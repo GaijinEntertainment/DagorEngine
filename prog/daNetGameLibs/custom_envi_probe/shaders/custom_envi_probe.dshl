@@ -22,10 +22,15 @@ shader custom_envi_probe_transform
   {
     envi_probe_rotation@f4 = envi_probe_rotation;
     envi_probe_mul@f1 = (envi_probe_mul);
-    envi_probe_source@smpCube = envi_probe_source;
+    envi_probe_source@texCube = envi_probe_source;
   }
+
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+
   hlsl(ps)
   {
+    #define envi_probe_source_samplerstate global_linear_wrap_sampler
+
     float4 transform_cubemap_ps(VsOutput input) : SV_Target
     {
       float2x2 matX = float2x2(envi_probe_rotation.x, envi_probe_rotation.y, -envi_probe_rotation.y, envi_probe_rotation.x);

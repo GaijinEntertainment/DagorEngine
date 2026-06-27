@@ -824,13 +824,15 @@ void delete_render_pass(RenderPass *rp)
   delete rp;
 }
 
-void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
+void begin_render_pass(RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets)
 {
   D3D_CONTRACT_ASSERT(rp);
   D3D_CONTRACT_ASSERT(RenderPass::active == nullptr);
   RenderPass::active = rp;
 
-  for (size_t i = 0; i < rp->textures.size(); ++i)
+  D3D_CONTRACT_ASSERTF(rp->textures.size() == targets.size(),
+    "missing/excessive targets for rp %s, expected %u got %u", rp->name, rp->textures.size(), targets.size());
+  for (size_t i = 0; i < targets.size(); ++i)
     rp->textures[i] = targets[i];
   rp->area = area;
 

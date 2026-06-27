@@ -453,6 +453,13 @@ static bool make_gameres_desc_diff(const char *desc_fn, const char *mnt_dir, con
   return true;
 }
 
+static void close_any_cache_file(dag::Span<FullFileLoadCB *> crd_cache, int but_i)
+{
+  for (auto &crd : crd_cache)
+    if (crd && &crd - crd_cache.data() != but_i)
+      del_it(crd);
+}
+
 int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root_dir, const char *patch_dest_dir, bool dryRun,
   const char *vrom_name, const char *res_blk_name, const char *rel_mount_dir, int &out_diff_files)
 {
@@ -615,6 +622,14 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
           crd_cache[old_idx] = new FullFileLoadCB(old_grp[old_idx].fn);
           if (!crd_cache[old_idx]->fileHandle)
           {
+            if (game_resources_diff_verbose)
+              debug("  cannot open <%s>, close any cache and retry", old_grp[old_idx].fn);
+            close_any_cache_file(make_span(crd_cache), old_idx);
+            crd_cache[old_idx] = new FullFileLoadCB(old_grp[old_idx].fn);
+          }
+          if (!crd_cache[old_idx]->fileHandle)
+          {
+            debug("  cannot open <%s>!", old_grp[old_idx].fn);
             del_it(crd_cache[old_idx]);
             continue;
           }
@@ -730,6 +745,14 @@ int64_t make_game_resources_diff(const char *base_root_dir, const char *new_root
           crd_cache[old_idx] = new FullFileLoadCB(old_dxp[old_idx].fn);
           if (!crd_cache[old_idx]->fileHandle)
           {
+            if (game_resources_diff_verbose)
+              debug("  cannot open <%s>, close any cache and retry", old_dxp[old_idx].fn);
+            close_any_cache_file(make_span(crd_cache), old_idx);
+            crd_cache[old_idx] = new FullFileLoadCB(old_dxp[old_idx].fn);
+          }
+          if (!crd_cache[old_idx]->fileHandle)
+          {
+            debug("  cannot open <%s>!", old_dxp[old_idx].fn);
             del_it(crd_cache[old_idx]);
             continue;
           }

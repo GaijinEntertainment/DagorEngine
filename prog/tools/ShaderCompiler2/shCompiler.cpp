@@ -341,6 +341,7 @@ void runPreshaderParse(const ShCompilationInfo &compInfo, CompilationContext &co
   for (const String &sourceFileName : recompiledSources)
   {
     TargetContext targetCtx = comp.makeTargetContext(sourceFileName.c_str(), true);
+    sh_process_errors();
     reset_source_file();
     CodeSourceBlocks::incFiles.reset();
     int64_t reft = ref_time_ticks();
@@ -414,6 +415,7 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
         Tab<SimpleString> dependenciesList(tmpmem_ptr());
 
         TargetContext targetCtx = comp.makeTargetContext(sourceFileName.c_str());
+        sh_process_errors();
 
         reset_source_file();
 
@@ -485,6 +487,7 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
     }
 
     TargetContext targetCtx = comp.makeTargetContext(compInfo.dest().c_str());
+    sh_process_errors();
 
     for (unsigned int sourceFileNo = 0; sourceFileNo < compInfo.sources().size(); sourceFileNo++)
     {

@@ -21,9 +21,9 @@
 static const int WATER_PLANAR_REFLECTION_RESOLUTION_DIV = 6;
 namespace var
 {
-static ShaderVariableInfo water_planar_reflection_dir("water_planar_reflection_dir");
-static ShaderVariableInfo water_planar_reflection_far_plane_pos("water_planar_reflection_far_plane_pos");
-static ShaderVariableInfo water_planar_reflection_view_proj("water_planar_reflection_view_proj");
+static ShaderVariableInfo water_planar_reflection_dir("water_planar_reflection_dir", true);
+static ShaderVariableInfo water_planar_reflection_far_plane_pos("water_planar_reflection_far_plane_pos", true);
+static ShaderVariableInfo water_planar_reflection_view_proj("water_planar_reflection_view_proj", true);
 } // namespace var
 
 void WorldRenderer::initWaterPlanarReflection()

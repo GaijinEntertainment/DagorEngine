@@ -85,8 +85,13 @@ void free_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t
 /**
  * \brief Updates a given bindless slot range with the references from 'resources' span.
  *
- * The slots have to be allocated previously with the corresponding allocation methods with 'type'
- * matching the getType() of 'res'. Null pointer are also acceptable and they will empty their corresponding slots.
+ * The slots have to be allocated previously with the corresponding allocation methods.
+ * Null entries in 'resources' empty their corresponding slot.
+ *
+ * Thread-safe: drivers serialize internally, callers do not need to hold any lock.
+ * Requires 'caps.hasBindless == true' (contract assert otherwise).
+ * Each non-null resources[i] must satisfy resources[i]->getType() == type (contract assert otherwise).
+ * Supports all D3DResourceType values (TEX, CUBETEX, VOLTEX, ARRTEX, CUBEARRTEX, SBUF) uniformly.
  *
  * \param type The type of resource range to update with res.
  * \param index The start index of the bindless slot to update. Must be in a previously allocated bindless range.
@@ -100,14 +105,19 @@ void update_bindless_resource_range(D3DResourceType type, uint32_t index, const 
  * The slot has to be allocated previously with the corresponding allocation methods with 'type'
  * matching the getType() of 'res'.
  *
+ * Thread-safe: drivers serialize internally, callers do not need to hold any lock.
+ * Requires 'caps.hasBindless == true' and 'res != nullptr' (contract assert otherwise).
+ *
  * \note We guarantee that draw calls and dispatch calls will see the result of the last update in the current frame
  * (before flush or update_screen) after the update call returns. The descriptor value after intermediate update calls
  * is undefined behavior and differs between platforms.
  *
  * \param index The index of the bindless slot to update. Must be in a previously allocated bindless range.
  * \param type The type of resource range to update with res.
- * \param res Pointer to the D3dResource object.
- * \return true if actual update is occurred, or false if internal cache was used
+ * \param res Pointer to the D3dResource object. Must not be null.
+ * \return true on success, false on contract violation. Backends may elide
+ *         redundant descriptor writes internally; this is not part of the
+ *         caller-visible contract.
  */
 bool update_bindless_resource(D3DResourceType type, uint32_t index, D3dResource *res);
 

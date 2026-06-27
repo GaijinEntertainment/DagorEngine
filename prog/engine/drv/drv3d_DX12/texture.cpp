@@ -15,6 +15,7 @@
 #include <ioSys/dag_memIo.h>
 #include <validateUpdateSubRegion.h>
 #include <validation/texture.h>
+#include <generic/dag_expected.h>
 
 
 #if 0
@@ -24,6 +25,11 @@
 #endif
 
 using namespace drv3d_dx12;
+
+namespace drv3d_dx12
+{
+dag::Expected<void, const char *> check_texformat_features(int cflg, D3DResourceType type);
+}
 
 namespace
 {
@@ -2163,9 +2169,11 @@ static constexpr int IMAGE_BYTES_PER_PIXEL = 4;
 static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, Texture *baseTexture,
   ResourceTagType tag)
 {
-  if (!d3d::check_texformat(flg) && get_device().isHealthy())
+  if (auto result = check_texformat_features(flg, D3DResourceType::TEX); !result && get_device().isHealthy())
   {
-    D3D_CONTRACT_ERROR("DX12: check_texformat failed (but device is in healthy state)");
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("DX12: create_tex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg,
+      result.error());
     return nullptr;
   }
 
@@ -2299,9 +2307,11 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
 static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const char *stat_name, CubeTexture *baseTexture,
   ResourceTagType tag)
 {
-  if (!d3d::check_cubetexformat(flg) && get_device().isHealthy())
+  if (auto result = check_texformat_features(flg, D3DResourceType::CUBETEX); !result && get_device().isHealthy())
   {
-    D3D_CONTRACT_ERROR("DX12: check_cubetexformat failed (but device is in healthy state)");
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("DX12: create_cubetex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg,
+      result.error());
     return nullptr;
   }
 
@@ -2343,9 +2353,11 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
 static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int levels, const char *stat_name, VolTexture *baseTexture,
   ResourceTagType tag)
 {
-  if (!d3d::check_voltexformat(flg) && get_device().isHealthy())
+  if (auto result = check_texformat_features(flg, D3DResourceType::VOLTEX); !result && get_device().isHealthy())
   {
-    D3D_CONTRACT_ERROR("DX12: check_voltexformat failed (but device is in healthy state)");
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("DX12: create_voltex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg,
+      result.error());
     return nullptr;
   }
 
@@ -2410,9 +2422,11 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
 static ArrayTexture *create_array_tex_internal(int w, int h, int d, int flg, int levels, const char *stat_name,
   ArrayTexture *baseTexture, ResourceTagType tag)
 {
-  if (!d3d::check_texformat(flg) && get_device().isHealthy())
+  if (auto result = check_texformat_features(flg, D3DResourceType::ARRTEX); !result && get_device().isHealthy())
   {
-    D3D_CONTRACT_ERROR("DX12: check_texformat failed (but device is in healthy state)");
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("DX12: create_array_tex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg,
+      result.error());
     return nullptr;
   }
 
@@ -2445,9 +2459,11 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
 static CubeArrayTexture *create_cube_array_tex_internal(int side, int d, int flg, int levels, const char *stat_name,
   CubeArrayTexture *baseTexture, ResourceTagType tag)
 {
-  if (!d3d::check_cubetexformat(flg) && get_device().isHealthy())
+  if (auto result = check_texformat_features(flg, D3DResourceType::CUBEARRTEX); !result && get_device().isHealthy())
   {
-    D3D_CONTRACT_ERROR("DX12: check_cubetexformat failed (but device is in healthy state)");
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("DX12: create_cube_array_tex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown",
+      flg, result.error());
     return nullptr;
   }
 

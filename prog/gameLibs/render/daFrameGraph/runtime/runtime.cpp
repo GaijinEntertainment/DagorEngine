@@ -31,7 +31,6 @@ CONSOLE_BOOL_VAL("dafg", recompile_graph, false);
 CONSOLE_BOOL_VAL("dafg", recompile_graph_every_frame, false);
 CONSOLE_BOOL_VAL("dafg", debug_dangling_reference, false);
 CONSOLE_BOOL_VAL("dafg", pedantic, false);
-CONSOLE_BOOL_VAL("dafg", verbose, true);
 CONSOLE_INT_VAL("dafg", test_incrementality_nodes, 0, 0, 1000);
 CONSOLE_BOOL_VAL("dafg", recompile_from_scratch, false);
 
@@ -44,7 +43,8 @@ Runtime::Runtime() // -V730
   else
     resourceAllocator.reset(new PoolResourceAllocator(nodeTracker));
 
-  nodeExec.emplace(*resourceAllocator, intermediateGraph, irMapping, registry, nameResolver, currentlyProvidedResources);
+  nodeExec.emplace(*resourceAllocator, intermediateGraph, irMapping, registry, nameResolver, currentlyProvidedResources,
+    bindlessSlotManager);
 
 #if DAGOR_DBGLEVEL > 0
   fgVisManager = visualization::make_real_manager(registry, nameResolver, dependencyDataCalculator.depData, intermediateGraph,
@@ -58,8 +58,20 @@ Runtime::~Runtime()
 {
   // CPU resources must be cleaned up gracefully when shutting down
   resourceScheduler.invalidateTemporalResources();
+  bindlessSlotManager.freeRanges();
   resourceAllocator->shutdown(frameIndex % SCHEDULE_FRAME_WINDOW);
   reset_texture_visualization();
+}
+
+static void log_node_changes(const char *msg, const auto &nodes, const auto &name_resolver)
+{
+  FRAMEMEM_REGION;
+  eastl::basic_string<char, framemem_allocator> log = msg;
+  for (auto [nodeId, changed] : nodes.enumerate())
+    if (changed)
+      log.append_sprintf("%s, ", name_resolver.getShortName(nodeId));
+
+  debug("%s", log.c_str());
 }
 
 auto Runtime::updateNodeDeclarations()
@@ -79,6 +91,9 @@ auto Runtime::resolveNames(const NodesChanged &nodes_changed)
     debug("daFG: Resolving names...");
   auto result = nameResolver.update(nodes_changed);
   currentStage = CompilationStage::REQUIRES_DEPENDENCY_DATA_CALCULATION;
+  if (verbose)
+    log_node_changes("daFG: Changed nodes: ", nodes_changed, registry.knownNames);
+
   return result;
 }
 
@@ -283,6 +298,9 @@ void Runtime::recalculateStateDeltas(const IrNodesChanged &nodesChanged, const I
 
   deltaCalculator.calculatePerNodeStateDeltas(perNodeStateDeltas, allResourceEvents, nodesChanged, resourcesChanged);
 
+  // Reassign bindless texture and buffer slots for the freshly compiled graph.
+  bindlessSlotManager.rebuild(intermediateGraph);
+
   NodeTracker::Alloc::flip();
 
   currentStage = CompilationStage::REQUIRES_AUTO_RESOLUTION_UPDATE;
@@ -377,6 +395,9 @@ void Runtime::scheduleResources(const IrResourcesChanged &lifetimeChangedResourc
       pendingDeactivations[historyPairing[idx]] = eastl::monostate{};
 
   resourceAllocator->applySchedule(prevFrame, schedule, intermediateGraph, dynResolutions, corrections, pendingDeactivations);
+
+  // Rescheduling may swap physical resources behind the slots, so force a refresh.
+  bindlessSlotManager.invalidateSlotCache();
 
   currentStage = CompilationStage::REQUIRES_HISTORY_UPDATE;
 }
@@ -591,7 +612,7 @@ void Runtime::setMultiplexingExtents(multiplexing::Extents extents)
   {
     prevMultiplexingExtents = currentMultiplexingExtents;
     currentMultiplexingExtents = extents;
-    markStageDirty(CompilationStage::REQUIRES_IR_GRAPH_BUILD);
+    markStageDirty(CompilationStage::REQUIRES_IR_GRAPH_BUILD, "multiplexing extents changed");
   }
 }
 
@@ -628,19 +649,16 @@ bool Runtime::runNodes()
   std::lock_guard<NodeTracker> lock(nodeTracker);
 
   if (nodeTracker.acquireNodesChanged())
-    markStageDirty(CompilationStage::REQUIRES_FULL_RECOMPILATION);
+    markStageDirty(CompilationStage::REQUIRES_FULL_RECOMPILATION, "nodes changed");
 
   if (recompile_graph.get() || recompile_graph_every_frame.get())
   {
     recompile_graph.set(false);
-    markStageDirty(CompilationStage::REQUIRES_FULL_RECOMPILATION);
+    markStageDirty(CompilationStage::REQUIRES_FULL_RECOMPILATION, "recompile graph flag set");
   }
 
   if (badResolutionTracker.pollRescheduling())
-  {
-    debug("daFG: Bad resolution tracker requested a resource rescheduling!");
-    markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
-  }
+    markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING, "bad resolution tracker requested rescheduling");
 
   if (debug_dangling_reference)
     debugDanglingReferences();
@@ -767,6 +785,7 @@ void Runtime::resetIncrementalState()
   barrierScheduler.resetIncrementalState();
   deltaCalculator.resetIncrementalState();
   resourceScheduler.resetIncrementalState();
+  bindlessSlotManager.freeRanges();
 }
 
 void Runtime::recompile()
@@ -910,15 +929,16 @@ void Runtime::recompile()
 void Runtime::invalidateHistory()
 {
   resourceScheduler.invalidateTemporalResources();
-  markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
+  markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING, "history invalidated");
 }
 
 void Runtime::beforeDeviceReset()
 {
   resourceScheduler.invalidateTemporalResources();
+  bindlessSlotManager.freeRanges();
   resourceAllocator->shutdown(frameIndex % SCHEDULE_FRAME_WINDOW);
   nodeTracker.scheduleAllNodeRedeclaration();
-  markStageDirty(CompilationStage::REQUIRES_NODE_DECLARATION_UPDATE);
+  markStageDirty(CompilationStage::REQUIRES_NODE_DECLARATION_UPDATE, "device reset");
 }
 
 void Runtime::wipeBlobsBetweenFrames(eastl::span<ResNameId> resources)

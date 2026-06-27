@@ -25,7 +25,6 @@ extern size_t pull_das_daFrameGraph_aot_lib();
   RS(animCharHider)          \
   RS(tonemap)                \
   RS(shaderVars)             \
-  RS(renderAnimCharIcon)     \
   RS(resPtr)                 \
   RS(frameGraphNode)         \
   RS(RTPool)                 \

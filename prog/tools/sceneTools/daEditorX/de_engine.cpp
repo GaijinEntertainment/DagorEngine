@@ -31,6 +31,8 @@
 #include <libTools/util/strUtil.h>
 #include <libTools/util/de_TextureName.h>
 #include <libTools/util/fileUtils.h>
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_oaHashNameMap.h>
 
@@ -92,7 +94,7 @@ extern bool services_catch_event(unsigned event_huid, void *user_data);
 
 extern void release_generic_grass_service();
 extern void reset_colliders_data();
-extern void init3d();
+extern void init3d(const char *window_layout_blk_path);
 extern bool src_assets_scan_allowed;
 extern OAHashNameMap<true> cmdline_force_enabled_plugins, cmdline_force_disabled_plugins;
 extern InitOnDemand<DebugTexOverlay> de3_show_tex_helper;
@@ -351,16 +353,7 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
   // detect new gameres system model and setup engine support for it
   DataBlock appblk(wsp->getAppBlkPath());
 
-  if (const DataBlock *mnt = appblk.getBlockByName("mountPoints"))
-  {
-    const bool useAddonVromSrc = true;
-    dblk::iterate_child_blocks(*mnt, [p = useAddonVromSrc ? "forSource" : "forVromfs", dir = getSdkDir()](const DataBlock &b) {
-      String mnt(0, "%s/%s", dir, b.getStr(p));
-      simplify_fname(mnt);
-      dd_set_named_mount_path(b.getBlockName(), mnt);
-    });
-    dd_dump_named_mounts();
-  }
+  setup_named_mount_points(*appblk.getBlockByNameEx("mountPoints"), getSdkDir());
 
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
   const DataBlock *exp_blk = appblk.getBlockByNameEx("assets")->getBlockByName("export");
@@ -388,12 +381,10 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
     String patch_dir;
     if (const char *dir = appblk.getBlockByNameEx("game")->getStr("res_patch_folder", NULL))
     {
-      patch_dir.printf(0, "%s/%s", wsp->getAppDir(), dir);
-      simplify_fname(patch_dir);
+      make_eff_app_relative_path(patch_dir, dir);
       DAEDITOR3.conNote("resource patches location: %s", patch_dir);
     }
-    String game_dir(0, "%s/%s", wsp->getAppDir(), appblk.getBlockByNameEx("game")->getStr("game_folder", "game"));
-    simplify_fname(game_dir);
+    String game_dir = make_eff_app_relative_path(appblk.getBlockByNameEx("game")->getStr("game_folder", "game"));
     int game_dir_prefix_len = (int)strlen(game_dir);
 
     if (packlist && expBlk.getBlockByNameEx("destination")->getStr("PC", NULL))
@@ -408,8 +399,7 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
 
       if (v_dest_fname)
       {
-        vrom_name.printf(260, "%s/%s", wsp->getAppDir(), v_dest_fname);
-        simplify_fname(vrom_name);
+        make_eff_app_relative_path(vrom_name, v_dest_fname);
         vrom = ::load_vromfs_dump(vrom_name, tmpmem);
         plname.printf(260, "%s/%s", v_game_relpath, packlist);
         if (vrom)
@@ -437,8 +427,7 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
       const char *base_pkg_res_dir = nullptr;
       if (const char *add_folder_c = expBlk.getBlockByNameEx("destination")->getBlockByNameEx("additional")->getStr("PC", NULL))
       {
-        String add_folder(0, "%s/%s", wsp->getAppDir(), add_folder_c);
-        simplify_fname(add_folder);
+        String add_folder = make_eff_app_relative_path(add_folder_c);
         if (const char *pstr = strstr(mntPoint, add_folder))
           if (const char *add_folder_last = strrchr(add_folder, '/'))
             base_pkg_res_dir = pstr + strlen(add_folder) - strlen(add_folder_last) + 1;
@@ -474,8 +463,7 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
       if (const char *add_pkg_folder = expBlk.getBlockByNameEx("destination")->getBlockByNameEx("additional")->getStr("PC", NULL))
       {
         // loading additional packages
-        String base(260, "%s/%s/", wsp->getAppDir(), add_pkg_folder);
-        simplify_fname(base);
+        String base = make_eff_app_relative_path(add_pkg_folder);
         const char *v_name = dd_get_fname(v_dest_fname);
         FastNameMapEx pkg_list;
 
@@ -573,7 +561,7 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
     for (int i = 0; i < blk.paramCount(); i++)
       if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid)
       {
-        String resDir(260, "%s/%s/", wsp->getAppDir(), blk.getStr(i));
+        String resDir = make_eff_app_relative_path(blk.getStr(i));
         ::scan_for_game_resources(resDir, true, blk.getStr("ddsxPacks", NULL));
       }
   }
@@ -821,6 +809,9 @@ bool DagorEdAppWindow::selectWorkspace(const char *app_blk_path)
 
   if (wspName ? wsp->load(wspName) : wsp->loadIndirect(app_blk_path))
   {
+    DAEDITOR3.conNote("using %%appDir=%s", dd_get_named_mount_path("appDir"));
+    setup_named_mount_points(*DataBlock("%appDir/application.blk").getBlockByNameEx("mountPoints"), getSdkDir());
+
     //== FIXME: clear export pathes list!
 
     DAGORED2->addExportPath(_MAKE4C('PC'));
@@ -836,7 +827,7 @@ bool DagorEdAppWindow::selectWorkspace(const char *app_blk_path)
       switchToName = cur->getInternalName();
 
     resetCore();
-    init3d();
+    init3d(getPerApplicationWindowLayoutBlkPath());
     editor_core_initialize_imgui();
     setDocTitle();
 

@@ -842,6 +842,8 @@ public:
   id<MTLTexture> blank_tex_2d = 0;
   id<MTLTexture> blank_tex_2dArray = 0;
   id<MTLTexture> blank_tex_cube = 0;
+  id<MTLTexture> blank_tex_3d = 0;
+  id<MTLTexture> blank_tex_cubeArray = 0;
 
   struct RenderTargetConfig
   {
@@ -1269,11 +1271,15 @@ public:
   Buffer *bindlessTexture2DIdBuffer = nullptr;
   Buffer *bindlessTextureCubeIdBuffer = nullptr;
   Buffer *bindlessTexture2DArrayIdBuffer = nullptr;
+  Buffer *bindlessTexture3DIdBuffer = nullptr;
+  Buffer *bindlessTextureCubeArrayIdBuffer = nullptr;
   Buffer *bindlessBufferIdBuffer = nullptr;
 
   BindlessTextureCache bindlessTextures2D;
   BindlessTextureCache bindlessTexturesCube;
   BindlessTextureCache bindlessTextures2DArray;
+  BindlessTextureCache bindlessTextures3D;
+  BindlessTextureCache bindlessTexturesCubeArray;
   BindlessBufferCache bindlessBuffers;
 
   Buffer *bindlessSamplerIdBuffer = nullptr;

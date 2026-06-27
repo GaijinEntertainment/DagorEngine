@@ -23,14 +23,16 @@ float clouds_first_layer_density = 1.;
 
 macro SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
   (code) {
-    gen_cloud_detail@smp3d = gen_cloud_detail;
+    gen_cloud_detail@tex3d = gen_cloud_detail;
     //clouds_extinction_low_val clouds_extinction_high_mul are not used or rather assumed 1,1 - so it is's just one madd
     global_clouds_sigma@f1 = (global_clouds_sigma*1.44269504089, clouds_extinction_low_val, clouds_extinction_high_mul, 0);//1.44269504089 - is log2(e)
     clouds_erosion_offset@f4 = (clouds_erosion_noise_wind_ofs.x/clouds_erosion_noise_tile_size, clouds_erosion_noise_wind_ofs.z/clouds_erosion_noise_tile_size, 65536*1./clouds_erosion_noise_tile_size, 1./clouds_erosion_noise_tile_size);
     weather_size@f4 = (clouds_weather_size, 1./clouds_weather_size,clouds_shape_scale/clouds_weather_size,clouds_cumulonimbus_shape_scale/clouds_weather_size);//clouds_cumulonimbus_shape_scale
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   EROSION_HEIGHT_MATH(code)
   hlsl(code) {
+    #define gen_cloud_detail_samplerstate global_linear_wrap_sampler
     #define CLOUDS_SIGMA (global_clouds_sigma.x)
     #define CLOUD_SHAPE_METERS_SCALE (weather_size.z)
     #define WEATHER_SIZE (weather_size.x)
@@ -74,13 +76,16 @@ endmacro
 macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
   SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
   (code) {
-    gen_cloud_shape@smp3d = gen_cloud_shape;
+    gen_cloud_shape@tex3d = gen_cloud_shape;
     clouds_curl_2d@smp2d = clouds_curl_2d;
-    clouds_weather_texture@smp2d = clouds_weather_texture;
+    clouds_weather_texture@tex2d = clouds_weather_texture;
     clouds_turbulence@f4 = (clouds_turbulence_freq, clouds_turbulence_scale/clouds_turbulence_freq, clouds_first_layer_density, clouds_second_layer_density);
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   DENSITY_HEIGHT_GRADIENT_TEXTURE(code)
   hlsl(code) {
+    #define clouds_weather_texture_samplerstate global_linear_wrap_sampler
+    #define gen_cloud_shape_samplerstate global_linear_wrap_sampler
     #define CLOUDS_PREBAKED_FIELD 0
     #define DENSITY_LAYER1 (clouds_turbulence.z)
     #define DENSITY_LAYER2 (clouds_turbulence.w)

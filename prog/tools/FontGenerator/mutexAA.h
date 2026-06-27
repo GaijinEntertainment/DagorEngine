@@ -20,7 +20,8 @@ struct MutexAutoAcquire
 #else
     if (!realpath(_fn, fn))
 #endif
-      strncpy(fn, _fn, 4096);
+      strncpy(fn, _fn, sizeof(fn));
+    fn[sizeof(fn) - 1] = '\0';
     for (char *p = fn; *p; p++)
       *p = (*p == ':' || *p == '/' || *p == '\\') ? '_' : tolower(*p);
 

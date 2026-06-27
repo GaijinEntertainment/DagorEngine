@@ -43,7 +43,8 @@ inline SQInteger picture_script_ctor(HSQUIRRELVM vm)
   {
     Sqrat::Var<Sqrat::Table> params(vm, 3);
     texFormat = params.value.GetSlotValue<int>("texFormat", Picture::def_tex_format);
-    bool isTexFmtValid = (texFormat == TexFormat::SRGB_IN_UNORM || texFormat == TexFormat::UNORM || texFormat == TexFormat::SRGB);
+    bool isTexFmtValid =
+      (texFormat == TexFormat::SRGB_IN_UNORM || texFormat == TexFormat::UNORM || texFormat == TexFormat::SRGB_DECAL);
     if (!isTexFmtValid)
       return sqstd_throwerrorf(vm, "Invalid tex format %d", texFormat);
   }

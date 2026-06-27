@@ -1,5 +1,0 @@
-indirect cycle detected: Future.resolve: cannot resolve with self
-a.getState=pending
-b.getState=pending
-after b.resolve a.getState=fulfilled
-script done

@@ -5,6 +5,9 @@
 #include "backend/context.h"
 #include "device_context.h"
 #include "backend/cmd/framebuffer.h"
+#include "globals.h"
+
+#include <supp/dag_math.h>
 
 namespace drv3d_vulkan
 {
@@ -143,6 +146,21 @@ void StateFieldFramebufferClearColor::applyTo(FrontFramebufferStateStorage &, Ex
     fbs.colorClearValue[i].float32[1] = data.g / 255.f;
     fbs.colorClearValue[i].float32[2] = data.b / 255.f;
     fbs.colorClearValue[i].float32[3] = data.a / 255.f;
+
+    if (Globals::cfg.bits.brokenClearsOnNonLinearUAVRT)
+    {
+      auto &att = fbs.frameBufferInfo.colorAttachments[i];
+      bool isNonLinearViewOnLinearUAVImage =
+        att.img && att.view.getFormat().isSrgb && !att.img->getFormat().isSrgb && (att.img->getUsage() & VK_IMAGE_USAGE_STORAGE_BIT);
+      if (isNonLinearViewOnLinearUAVImage)
+      {
+        for (uint32_t c = 0; c < 3; ++c)
+        {
+          float v = fbs.colorClearValue[i].float32[c];
+          fbs.colorClearValue[i].float32[c] = v <= 0.0031308f ? v * 12.92f : 1.055f * powf(v, 1.0f / 2.4f) - 0.055f;
+        }
+      }
+    }
   }
 }
 

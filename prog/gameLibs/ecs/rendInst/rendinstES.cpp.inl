@@ -441,7 +441,7 @@ inline void riextra_em_after_clear_es_event_handler(const ecs::EventEntityManage
 ECS_ON_EVENT(on_disappear)
 void riextra_destroyed_es_event_handler(const ecs::Event &, const RiExtraComponent &ri_extra, bool ri_extra__destroyed,
   const rendinst::RendInstDesc *ri_extra__riSyncDesc, const Point3 &ri_extra__impulseOnDestruction = Point3(),
-  const Point3 &ri_extra__impulsePosOnDestruction = Point3())
+  const Point3 &ri_extra__impulsePosOnDestruction = Point3(), bool ri_extra__destrFx = true)
 {
   const int riCellIdx = ri_extra__riSyncDesc && ri_extra__riSyncDesc->cellIdx < 0 ? -(ri_extra__riSyncDesc->cellIdx + 1) : -1;
   const int riOffset = ri_extra__riSyncDesc && ri_extra__riSyncDesc->cellIdx < 0 ? int(ri_extra__riSyncDesc->offs) : -1;
@@ -449,7 +449,7 @@ void riextra_destroyed_es_event_handler(const ecs::Event &, const RiExtraCompone
   if (isRiHandleValid)
   {
     const bool destroy = !ri_extra__destroyed && !em_is_clearing;
-    delete_riextra(ri_extra.handle, riCellIdx, riOffset, destroy, false /*add_restorable*/, true /*destr_effects*/, 1,
+    delete_riextra(ri_extra.handle, riCellIdx, riOffset, destroy, false /*add_restorable*/, ri_extra__destrFx /*destr_effects*/, 1,
       ri_extra__impulseOnDestruction, ri_extra__impulsePosOnDestruction);
   }
 

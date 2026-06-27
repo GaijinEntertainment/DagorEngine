@@ -157,23 +157,21 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   if (!::symhlp_load("daKernel" DAGOR_DLL))
     DEBUG_CTX("can't load sym for: %s", "daKernel" DAGOR_DLL);
 
-  String path_to_blk;
-  DataBlock appBlk;
-  if (!appBlk.load(options.appBlk.c_str()))
+  char app_dir[512];
+  dd_get_fname_location(app_dir, options.appBlk.c_str());
+  set_canonical_app_dir_mount(app_dir);
+  if (!app_dir[0])
+    strcpy(app_dir, "./");
+
+  DataBlock appblk;
+  if (!appblk.load(options.appBlk.c_str()))
   {
     logerr("cannot load %s", options.appBlk.c_str());
     return 1;
   }
-  else
-  {
-    path_to_blk = String(options.appBlk.c_str());
-    ::dd_get_fname_location(path_to_blk, options.appBlk.c_str());
-  }
+  setup_named_mount_points(*appblk.getBlockByNameEx("mountPoints"));
 
   engine.demandInit();
-
-  char fpath_buf[512];
-  const char *app_dir = ::_fullpath(fpath_buf, path_to_blk.c_str(), 512);
 
   DataBlock *global_settings_blk = const_cast<DataBlock *>(::dgs_get_settings());
 
@@ -184,10 +182,9 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   const DataBlock &blk = *appBlk.getBlockByNameEx("assets");
   const DataBlock *expBlk = blk.getBlockByName("export");
-  const DataBlock *gameBlk = appBlk.getBlockByName("game");
 
   const char *sh_file = appBlk.getStr("shaders", "compiledShaders/tools");
-  appBlk.setStr("appDir", app_dir);
+  appBlk.setStr("appDir", dd_get_named_mount_path("appDir"));
 
   DataBlock texStreamingBlk;
   ::load_tex_streaming_settings(options.appBlk.c_str(), &texStreamingBlk);
@@ -199,7 +196,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::dagor_init_video("DagorWClass", nCmdShow, NULL, "PLOD gen");
   dagor_install_dev_fatal_handler(NULL);
 
-  ::startup_shaders(String(0, "%s/%s", app_dir, sh_file).c_str());
+  ::startup_shaders(make_eff_app_relative_path(sh_file).c_str());
   ::startup_game(RESTART_ALL);
 
   CALL_AT_END_OF_SCOPE(flush_files());
@@ -228,7 +225,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     for (int i = 0; i < blk.paramCount(); i++)
       if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid)
       {
-        resDir.printf(DAGOR_MAX_PATH, "%s/%s/", app_dir, blk.getStr(i));
+        make_eff_app_relative_path(resDir, blk.getStr(i));
         ::scan_for_game_resources(resDir, true, blk.getStr("ddsxPacks", nullptr));
       }
   }

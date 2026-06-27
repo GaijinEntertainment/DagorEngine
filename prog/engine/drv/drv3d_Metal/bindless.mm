@@ -39,6 +39,10 @@ static void resizeBindlessArrays(D3DResourceType type, uint32_t count)
       render.bindlessTexturesCube.resize(count);
     else if (type == D3DResourceType::ARRTEX)
       render.bindlessTextures2DArray.resize(count);
+    else if (type == D3DResourceType::VOLTEX)
+      render.bindlessTextures3D.resize(count);
+    else if (type == D3DResourceType::CUBEARRTEX)
+      render.bindlessTexturesCubeArray.resize(count);
     else
       G_ASSERTF(0, "Unknown bindless array type %d", int(type));
     G_ASSERTF(count <= Render::BINDLESS_TEXTURE_COUNT, "bindless texture slot out of range: %d (max slot id: %d)", count, Render::BINDLESS_TEXTURE_COUNT);
@@ -53,7 +57,8 @@ uint32_t BindlessManager::allocateBindlessResourceRange(D3DResourceType type, ui
 
 uint32_t BindlessManager::allocateBindlessResourceRangeNoLock(D3DResourceType type, uint32_t count)
 {
-  G_ASSERT(D3DResourceType::TEX == type || D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type || D3DResourceType::SBUF == type);
+  G_ASSERT(D3DResourceType::TEX == type || D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type ||
+           D3DResourceType::VOLTEX == type || D3DResourceType::CUBEARRTEX == type || D3DResourceType::SBUF == type);
 
   ResourceArray &res = getArray(type);
 
@@ -86,7 +91,8 @@ void BindlessManager::freeBindlessResourceRange(D3DResourceType type, uint32_t i
 
 void BindlessManager::freeBindlessResourceRangeNoLock(D3DResourceType type, uint32_t index, uint32_t count)
 {
-  G_ASSERT(D3DResourceType::TEX == type || D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type || D3DResourceType::SBUF == type);
+  G_ASSERT(D3DResourceType::TEX == type || D3DResourceType::CUBETEX == type || D3DResourceType::ARRTEX == type ||
+           D3DResourceType::VOLTEX == type || D3DResourceType::CUBEARRTEX == type || D3DResourceType::SBUF == type);
 
   ResourceArray &res = getArray(type);
 

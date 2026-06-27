@@ -94,10 +94,11 @@ ViewportAxisId ViewportAxis::draw(const IPoint2 *mouse_pos, bool force_draw_rota
   GizmoSettings::retrieveAxisColors(colorX, colorY, colorZ);
 
   const float axisCircleRadiusScaled = axisCircleRadius * GizmoSettings::viewportGizmoScaleFactor;
-  const float gizmoPadding = hdpi::_pxS(gizmoPaddingInPixels);
+  const float gizmoXPadding = hdpi::_pxS(gizmoPaddingInPixels.x);
+  const float gizmoYPadding = hdpi::_pxS(gizmoPaddingInPixels.y);
   const float axisLength = hdpi::_pxS(axisLengthInPixels) * GizmoSettings::viewportGizmoScaleFactor;
-  const float centerX = viewportSize.x - (gizmoPadding + axisLength + axisCircleRadiusScaled * 2);
-  const float centerY = gizmoPadding + axisLength + axisCircleRadiusScaled * 2;
+  const float centerX = viewportSize.x - (gizmoXPadding + axisLength + axisCircleRadiusScaled * 2);
+  const float centerY = gizmoYPadding + axisLength + axisCircleRadiusScaled * 2;
   const Point2 center(centerX, centerY);
 
   Point3 ax, ay, az;
@@ -164,3 +165,5 @@ ViewportAxisId ViewportAxis::draw(const IPoint2 *mouse_pos, bool force_draw_rota
 
   return highlightedAxis;
 }
+
+void ViewportAxis::setGizmoPixelPadding(IPoint2 padding) { gizmoPaddingInPixels = padding; }

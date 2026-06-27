@@ -6,6 +6,7 @@
 #include <oldEditor/de_workspace.h>
 #include <osApiWrappers/dag_direct.h>
 #include "windSrv.h"
+#include <libTools/util/appDirRelativePath.h>
 
 // Keep these values in-sync with skyquake/prog/render/weather.cpp
 const float MIN_BEAUFORT_SCALE = 0.0f;
@@ -13,10 +14,10 @@ const float MAX_BEAUFORT_SCALE = 12.0f;
 
 static const IWindService::WindSettings defaultWindSettings;
 
-static void decode_rel_fname(String &dest, const char *src, const char *appDir)
+static void decode_rel_fname(String &dest, const char *src)
 {
   if (src[0] && src[1] != ':')
-    dest.printf(512, "%s%s", appDir, src);
+    make_eff_app_relative_path(dest, src);
   else
     dest = src;
 }
@@ -81,7 +82,7 @@ void WindBaseService::init(const char *inAppDdir, const DataBlock &envBlk)
   {
     useTemplate = true;
     String absWindTemplatePath;
-    decode_rel_fname(absWindTemplatePath, windTemplatePath, appDir);
+    decode_rel_fname(absWindTemplatePath, windTemplatePath);
     if (dd_file_exists(absWindTemplatePath))
     {
       DataBlock windBlk;
@@ -194,7 +195,7 @@ void WindBaseService::updateParams()
     currentSettings = previewSettings;
 
     String absLevelPath;
-    decode_rel_fname(absLevelPath, previewSettings.levelPath, appDir);
+    decode_rel_fname(absLevelPath, previewSettings.levelPath);
     if (!dd_file_exists(absLevelPath) && dd_file_exists(previewSettings.levelPath))
       absLevelPath = previewSettings.levelPath;
 

@@ -8,6 +8,7 @@
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_resource.h>
+#include <generic/dag_span.h>
 
 class BaseTexture;
 
@@ -125,7 +126,7 @@ void delete_render_pass(RenderPass *rp);
 /// \param rp Render pass resource to begin with
 /// \param area Rendering area restriction
 /// \param targets Array of targets that will be used in rendering
-void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets);
+void begin_render_pass(RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets);
 /// \brief Advances to next subpass
 /// \details Increases subpass number and executes necessary synchronization as well as binding,
 /// described for this subpass
@@ -163,7 +164,7 @@ namespace d3d
 {
 inline RenderPass *create_render_pass(const RenderPassDesc &rp_desc) { return d3di.create_render_pass(rp_desc); }
 inline void delete_render_pass(RenderPass *rp) { d3di.delete_render_pass(rp); }
-inline void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
+inline void begin_render_pass(RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets)
 {
   d3di.begin_render_pass(rp, area, targets);
 }

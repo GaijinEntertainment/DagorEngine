@@ -21,6 +21,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_fastIntList.h>
 #include <util/dag_globDef.h>
+#include <util/dag_delayedAction.h>
 #include <process.h>
 #include <stdio.h>
 #include <io.h>
@@ -708,6 +709,27 @@ void DagorAssetMgr::callAssetBaseChangeNotifications(dag::ConstSpan<DagorAsset *
     u->onAssetBaseChanged(changed_assets, added_assets, removed_assets);
 }
 
+class NotifyAssetChangedAction : public DelayedAction
+{
+public:
+  const DagorAsset *asset;
+  const DagorAssetMgr &mgr;
+
+  NotifyAssetChangedAction(const DagorAssetMgr &m, const DagorAsset *a) : mgr(m), asset(a) {}
+
+  void performAction()
+  {
+    mgr.callAssetBaseChangeNotifications(dag::ConstSpan<DagorAsset *>((DagorAsset *const *)&asset, 1), dag::ConstSpan<DagorAsset *>(),
+      dag::ConstSpan<DagorAsset *>());
+    mgr.callAssetChangeNotifications(*asset, asset->getNameId(), asset->getType());
+  }
+};
+
+void DagorAssetMgr::notifyAssetChanged(const DagorAsset *asset) const
+{
+  add_delayed_action(new NotifyAssetChangedAction(*this, asset));
+}
+
 void DagorAssetMgr::syncTracker() {}
 
 void DagorAssetMgr::subscribeUpdateNotify(IDagorAssetChangeNotify *notify, int asset_name_id, int asset_type)
@@ -806,6 +828,7 @@ void DagorAssetMgr::callAssetChangeNotifications(const DagorAsset &a, int aname,
 void DagorAssetMgr::callAssetBaseChangeNotifications(dag::ConstSpan<DagorAsset *> changed_assets,
   dag::ConstSpan<DagorAsset *> added_assets, dag::ConstSpan<DagorAsset *> removed_assets) const
 {}
+void DagorAssetMgr::notifyAssetChanged(const DagorAsset *asset) const {}
 void DagorAssetMgr::syncTracker() {}
 void DagorAssetMgr::subscribeUpdateNotify(IDagorAssetChangeNotify *notify, int asset_name_id, int asset_type) {}
 void DagorAssetMgr::subscribeBaseUpdateNotify(IDagorAssetBaseChangeNotify *notify) {}

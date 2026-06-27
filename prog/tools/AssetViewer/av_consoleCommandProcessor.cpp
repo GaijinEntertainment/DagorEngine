@@ -7,6 +7,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <EditorCore/ec_wndGlobal.h>
+#include <EditorCore/ec_shaders.h>
 #include <math/dag_mathUtils.h>
 #include <osApiWrappers/dag_direct.h>
 #include <render/debugTexOverlay.h>
@@ -285,12 +286,7 @@ void AssetViewerConsoleCommandProcessor::runShadersReload(dag::ConstSpan<const c
   const DriverDesc &dsc = d3d::get_driver_desc();
 
   DataBlock appblk(::get_app().getWorkspace().getAppBlkPath());
-  String sh_file;
-  if (appblk.getStr("shaders", NULL))
-    sh_file.printf(260, "%s/%s", ::get_app().getWorkspace().getAppDir(), appblk.getStr("shaders", NULL));
-  else
-    sh_file.printf(260, "%s/compiledShaders/classic/tools", sgg::get_common_data_dir());
-  simplify_fname(sh_file);
+  String sh_file = tools3d::get_shaders_path(appblk, ::get_app().dngBasedSceneRenderUsed());
 
   const char *shname = params.size() > 0 ? params[0] : sh_file.c_str();
 

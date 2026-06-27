@@ -14,7 +14,7 @@
 
 namespace drv3d_vulkan
 {
-struct PhysicalDeviceSet
+struct PhysicalDeviceSet // -V553
 {
   VulkanPhysicalDeviceHandle device;
   VkPhysicalDeviceFeatures features{};
@@ -33,6 +33,11 @@ struct PhysicalDeviceSet
 #if VK_EXT_conditional_rendering
   VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeature = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT, nullptr, false, false};
+#endif
+
+#if VK_EXT_scalar_block_layout
+  VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeature = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES, nullptr, false};
 #endif
 
 #if VK_EXT_memory_budget
@@ -156,6 +161,11 @@ struct PhysicalDeviceSet
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD, nullptr, false};
 #endif
 
+#if VK_KHR_fragment_shader_barycentric
+  VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR fragmentShaderBarycentricFeaturesKHR = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR, nullptr, false};
+#endif
+
 #if VK_KHR_fragment_shading_rate
   VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmenShadingRateFeaturesKHR = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR, nullptr, false, false, false};
@@ -176,6 +186,7 @@ struct PhysicalDeviceSet
   bool hasDevProps2 = false;
 
   bool hasConditionalRender = false;
+  bool hasScalarBlockLayout = false;
   bool hasImagelessFramebuffer = false;
   bool hasDeviceMemoryReport = false;
   bool hasDeviceBufferDeviceAddress = false;
@@ -203,6 +214,7 @@ struct PhysicalDeviceSet
   bool hasTileShadingQCOM = false;
   bool hasAMDAntiLag = false;
   bool hasAMDDeviceCoherentMem = false;
+  bool hasFragmentShaderBarycentric = false;
   bool hasPipelineFragmentShadingRate = false;
   bool hasPrimitiveFragmentShadingRate = false;
   bool hasAttachmentFragmentShadingRate = false;
@@ -370,6 +382,12 @@ struct PhysicalDeviceSet
       chain_structs(target, conditionalRenderingFeature);
     }
 #endif
+#if VK_EXT_scalar_block_layout
+    if (hasExtension<ScalarBlockLayoutEXT>())
+    {
+      chain_structs(target, scalarBlockLayoutFeature);
+    }
+#endif
 
 #if VK_EXT_device_memory_report
     if (hasExtension<DeviceMemoryReportEXT>())
@@ -518,6 +536,13 @@ struct PhysicalDeviceSet
     }
 #endif
 
+#if VK_KHR_fragment_shader_barycentric
+    if (hasExtension<FragmentShaderBarycentricKHR>())
+    {
+      chain_structs(target, fragmentShaderBarycentricFeaturesKHR);
+    }
+#endif
+
 #if VK_KHR_fragment_shading_rate
     if (hasExtension<FragmentShadingRateKHR>())
     {
@@ -656,6 +681,16 @@ struct PhysicalDeviceSet
     }
     else
       hasConditionalRender = false;
+#endif
+
+#if VK_EXT_scalar_block_layout
+    if (hasExtension<ScalarBlockLayoutEXT>())
+    {
+      hasScalarBlockLayout = scalarBlockLayoutFeature.scalarBlockLayout == VK_TRUE;
+      scalarBlockLayoutFeature.pNext = nullptr;
+    }
+    else
+      hasScalarBlockLayout = false;
 #endif
 
 #if VK_KHR_imageless_framebuffer
@@ -886,6 +921,16 @@ struct PhysicalDeviceSet
     }
     else
       hasAMDDeviceCoherentMem = false;
+#endif
+
+#if VK_KHR_fragment_shader_barycentric
+    if (hasExtension<FragmentShaderBarycentricKHR>())
+    {
+      hasFragmentShaderBarycentric = fragmentShaderBarycentricFeaturesKHR.fragmentShaderBarycentric;
+      fragmentShaderBarycentricFeaturesKHR.pNext = nullptr;
+    }
+    else
+      hasFragmentShaderBarycentric = false;
 #endif
 
 #if VK_KHR_fragment_shading_rate
@@ -1948,6 +1993,7 @@ struct PhysicalDeviceSet
         tileShadingFeaturesQCOM.tileShadingImageProcessing);
 #endif
     }
+    apd("hasFragmentShaderBarycentric: %s", boolToStr(hasFragmentShaderBarycentric));
     apd("hasFragmentShadingRate[Pipeline,Primitive,Attachment]: %s, %s, %s", boolToStr(hasPipelineFragmentShadingRate),
       boolToStr(hasPrimitiveFragmentShadingRate), boolToStr(hasAttachmentFragmentShadingRate));
   }

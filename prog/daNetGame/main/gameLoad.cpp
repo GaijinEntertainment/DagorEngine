@@ -924,7 +924,7 @@ static void load_scene_impl(const eastl::string_view &scene_name,
     dagor_random::set_rnd_seed(0);
 
   bool hasServerUrls = !connect_params.serverUrls.empty();
-  if (!app_profile::get().devMode && (hasServerUrls || !app_profile::get().replay.playFile.empty()))
+  if (is_main_thread_network() && !app_profile::get().devMode && (hasServerUrls || !app_profile::get().replay.playFile.empty()))
     net_init_late_client(eastl::move(connect_params), *g_entity_mgr);
 
   init_renderer_per_game();
@@ -966,7 +966,8 @@ static void load_scene_impl(const eastl::string_view &scene_name,
       logerr("Tried to load attachmentSlotsInitBlk '%s' but it does not exist.", anim_attachments_fn);
   }
   // on server net_init must be called after templates had been loaded and before scene is starting to load
-  net_init_late_server(*g_entity_mgr);
+  if (is_main_thread_network())
+    net_init_late_server(*g_entity_mgr);
 
   if (current_game.sceneName.empty() && !hasServerUrls)
   {

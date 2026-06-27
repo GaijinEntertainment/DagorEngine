@@ -58,6 +58,9 @@ float scatter_disappear_factor = 1;//we would better use it for water_vs blend o
 float projection_effects_fade_start = 10.0;
 float projection_effects_fade_end = 20.0;
 
+// Width (in reflectDir.y) of the horizon reflection fog fade.
+float horizon_reflection_fog_fade_range = 0.02;
+
 macro INIT_WATER_3D_DEFERRED_COLOR()
   // Declarations pulled from shader_global.dshl due to the need to get rid of "shadow_buffer_tex@smp = shadow_buffer_tex;" declaration
   (ps) {
@@ -85,6 +88,7 @@ macro INIT_WATER_3D_DEFERRED_COLOR()
     reflection_distortion_normal_scale_storm@f1 = reflection_distortion_normal_scale_storm;
     sun_spec_params@f4 = sun_spec_params;
     scatter_disappear_factor@f1 = scatter_disappear_factor;
+    horizon_reflection_fog_fade_range@f1 = horizon_reflection_fog_fade_range;
     projection_effects_fade@f2 = (-1.0 / max(projection_effects_fade_end - projection_effects_fade_start, 0.01),
                                   (water_level + projection_effects_fade_end) / max(projection_effects_fade_end - projection_effects_fade_start, 0.01));
   }
@@ -732,7 +736,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
 ##if (use_water_fresnel_reflections == yes)
       half additionalFresnelFactor;
       half3 worldReflection;
-      half refractionFresnelFactor;
+
       if (backFaceCalcs)
       {
         additionalFresnelFactor = water_fresnel_reflectance.y + water_fresnel_reflectance.z * pow3(saturate(half(underwater_primary_color.w) * (1.0h - vd.NdotV)));
@@ -740,15 +744,14 @@ macro USE_WATER_3D_DEFERRED_COLOR()
           worldReflection = reflectionsData.reflectionColor;
         else
           worldReflection = half3(sun_color_0 * underwater_primary_color.rgb);
-        refractionFresnelFactor = 1.0h - additionalFresnelFactor;
       }
       else
       {
         additionalFresnelFactor = water_fresnel_reflectance.y + water_fresnel_reflectance.z * pow3(saturate(1.0h - vd.NdotV));
         worldReflection = reflectionsData.reflectionColor;
-        refractionFresnelFactor = 1.0h;
       }
 
+      half refractionFresnelFactor = 1.0h - additionalFresnelFactor;
       half3 reflection = sunReflections.sunReflection + worldReflection * additionalFresnelFactor;
       half3 refraction = refractionsData.finalLitRefraction * refractionFresnelFactor;
 ##else
@@ -802,11 +805,10 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       result.rgb = applyWaterFog(result.rgb, 1.0, fogData);
 
       // Hide the 1px horizon seam between water and sky.
-      const float horizonReflectionFogFadeRange = 0.01;
       float3 envReflectionFogged = applyWaterFog(reflectionsData.envReflection, 1.0, fogData);
       #if USE_NOFOG_REFLECTION_ON_DISTANCE
         envReflectionFogged = lerp(envReflectionFogged, reflectionsData.envReflection,
-          smoothstep(0, horizonReflectionFogFadeRange, vd.reflectDirNormalized.y));
+          smoothstep(0, horizon_reflection_fog_fade_range, vd.reflectDirNormalized.y));
       #endif
 
       // Blend to env on far plane AFTER fog -- envReflection already has scattering baked in
@@ -814,7 +816,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       return result;
     }
 
-    float4 calc_water_color_from_ps_input(PsInput input, const ViewData vd, const DeepnessData deepnessData, const FoamData foamData, float waveHeightFactor)
+    half4 calc_water_color_from_ps_input(PsInput input, const ViewData vd, const DeepnessData deepnessData, const FoamData foamData, float waveHeightFactor)
     {
       // Caclulating reflection color
 

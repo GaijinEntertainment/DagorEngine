@@ -57,7 +57,7 @@ public:
   void getCascadePeriod(int cascade_no, float &out_period, float &out_window_in, float &out_window_out);
 #endif
 
-  WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int quality,
+  WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int render_quality,
     int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
     float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, const HeightmapHeightCulling *heightmap_culling,
     bool water_heightmap_draw_patches);

@@ -9,6 +9,7 @@
 #include <DetourTileCache.h>
 #include <DetourTileCacheBuilder.h>
 #include <DetourNavMeshBuilder.h>
+#include <EASTL/unique_ptr.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 struct ZSTD_DCtx_s;
@@ -20,8 +21,20 @@ class TiledScene;
 }
 class dtNavMeshQuery;
 
+namespace recastnavmesh
+{
+struct TileCacheDetailStorage;
+}
+
 namespace pathfinder
 {
+struct TileCacheDetailSettings
+{
+  uint32_t includeDetailedData = 0;
+  float detailSampleDist = 0.0f;
+  float detailSampleMaxError = 0.0f;
+};
+
 struct TileCacheCompressor : public dtTileCacheCompressor
 {
   TileCacheCompressor() = default;
@@ -47,9 +60,14 @@ private:
 
 struct TileCacheMeshProcess : public dtTileCacheMeshProcess
 {
+  TileCacheMeshProcess();
+  ~TileCacheMeshProcess() override;
+
   inline void setNavMesh(dtNavMesh *m) { mesh = m; }
   inline void setNavMeshQuery(dtNavMeshQuery *q) { meshQuery = q; }
   inline void setTileCache(dtTileCache *tileCache) { tc = tileCache; }
+  void setDetailedData(bool include, float sample_dist, float sample_max_error);
+  TileCacheDetailSettings getDetailedDataSettings() const;
 
   inline void forceStaticLinks() { staticLinks = true; }
 
@@ -60,8 +78,8 @@ struct TileCacheMeshProcess : public dtTileCacheMeshProcess
 
   bool checkOverLink(const float *from, const float *to, unsigned int &user_id) const;
 
-  void process(struct dtNavMeshCreateParams *params, unsigned char *polyAreas, unsigned short *polyFlags,
-    dtCompressedTileRef ref) override;
+  void process(struct dtNavMeshCreateParams *params, unsigned char *polyAreas, unsigned short *polyFlags, dtCompressedTileRef ref,
+    const dtTileCacheLayer &layer) override;
   void remove(int tx, int ty, int tlayer) override;
 
 private:
@@ -69,7 +87,11 @@ private:
   dtNavMeshQuery *meshQuery = nullptr;
   dtTileCache *tc = nullptr;
   bool staticLinks = false;
+  bool includeDetailedData = false;
+  float detailSampleDist = 0.0f;
+  float detailSampleMaxError = 0.0f;
   const scene::TiledScene *ladders = nullptr;
+  eastl::unique_ptr<recastnavmesh::TileCacheDetailStorage> detailStorage;
 
   Tab<float> offMeshConVerts;
   Tab<float> offMeshConRads;
@@ -82,6 +104,7 @@ private:
 void tilecache_init(dtTileCache *tc, const ska::flat_hash_set<uint32_t> &obstacle_res_name_hashes);
 void tilecache_cleanup();
 void tilecache_render_debug(const Frustum *frustum);
+TileCacheDetailSettings tilecache_get_detailed_data_settings();
 
 BBox3 tilecache_calc_tile_bounds(const dtTileCacheParams *params, const dtTileCacheLayerHeader *header);
 }; // namespace pathfinder

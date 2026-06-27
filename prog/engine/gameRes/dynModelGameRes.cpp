@@ -368,7 +368,7 @@ static void batch_reload_res(void *)
       last_reported_mls.reloadDataCount, status_str);
     last_reported_mls_reft = profile_ref_ticks();
   }
-#if DAGOR_DBGLEVEL > 0
+#if DAGOR_DBGLEVEL > 0 && !defined(DAGOR_THREAD_SANITIZER)
   const unsigned end_frame_no = interlocked_acquire_load(mss.end_frame_no);
   const unsigned start_frame_no = interlocked_acquire_load(mss.start_frame_no);
   if (dagor_frame_no() > end_frame_no + 16 || end_frame_no > start_frame_no + 600)

@@ -15,7 +15,6 @@ int bvh_terrain_valid;
 int bvh_particles_valid;
 
 int bvh_meta_count = 0;
-int bvh_gbuffer_range_start = 0;
 
 float4 bvh_origin;
 
@@ -68,7 +67,6 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
   (stage)
   {
     bvh_debug_value@i1 = bvh_debug_value;
-    bvh_gbuffer_range_start@i1 = bvh_gbuffer_range_start;
     bvh_meta_count@i1 = bvh_meta_count;
     bvh_origin@f3 = bvh_origin;
     bvh_mip_range@f1 = bvh_mip_range;
@@ -120,18 +118,6 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
       BINDLESS_NON_UNIFORM_TEX_ARRAY(TextureCube, bvh_cube_textures, 3);
       BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
     ##endif
-
-    static const uint bvhGbufferAlbedo = 0;
-    static const uint bvhGbufferNormal = 1;
-    static const uint bvhGbufferMaterial = 2;
-    static const uint bvhGbufferMotion = 3;
-    static const uint bvhGbufferDepth = 4;
-
-    #define albedo_gbuf_load   (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_range_start + bvhGbufferAlbedo))
-    #define normal_gbuf_load   (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_range_start + bvhGbufferNormal))
-    #define material_gbuf_load (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_range_start + bvhGbufferMaterial))
-    #define motion_gbuf_load   (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_range_start + bvhGbufferMotion))
-    #define depth_gbuf_load    (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_range_start + bvhGbufferDepth))
 
     #pragma hlsl2021
 
@@ -1947,7 +1933,7 @@ macro USE_CALC_GEOMETRY_NORMAL_HALF(stage)
 
     half3 calc_geometry_normal_half(uint2 tci, float2 inv_resolution, uint2 resolution)
     {
-      tci = min(tci, resolution - 2); // Prevent sampling depth over the edge of the screen.
+      tci = clamp(tci, 1u, resolution - 2u); // Prevent sampling depth over the edge of the screen.
       return calc_geometry_normal_depth(tci, inv_resolution, getHalfDepth(tci));
     }
   }
@@ -1970,7 +1956,7 @@ macro USE_CALC_GEOMETRY_NORMAL(stage)
 
     half3 calc_geometry_normal(uint2 tci, float2 inv_resolution, uint2 resolution)
     {
-      tci = min(tci, resolution - 2); // Prevent sampling depth over the edge of the screen.
+      tci = clamp(tci, 1u, resolution - 2u); // Prevent sampling depth over the edge of the screen.
       return calc_geometry_normal_depth(tci, inv_resolution, getDepth(tci));
     }
   }

@@ -50,6 +50,7 @@ let private STD_WHITELIST : table<string> <- {
     "min", "max", "abs", "clamp", "saturate", "sign", "floor", "ceil", "round", "trunc", "frac",
     "sqrt", "rsqrt", "pow", "exp", "exp2", "log", "log2",
     "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "sincos",
+    "radians", "degrees",   // lowered to `x * K` by flatten_opt (no opcode needed)
     "dot", "cross", "length", "normalize", "distance", "reflect", "refract",
     "lerp", "mix", "step", "smooth_step", "rcp", "mad",
     "float2", "float3", "float4", "int2", "int3", "int4", "uint2", "uint3", "uint4"
@@ -719,6 +720,8 @@ def public flatten_function(var func : FunctionPtr; whitelist : table<string>; m
             dse_pass(out)          // drop dead mask-kills (`__flat_live = false`) first…
             copy_prop_pass(out)    // inline single-def temps AND const-fold the masks they expose
                                    // (`__flat_live=true` → `true ? a:b` → a; `__flat_ret=c; return __flat_ret` → `return c`)
+            mask_const_prop_pass(out)  // flow-sensitive const-prop of the multi-def loop/iter masks:
+                                   // first unrolled iter unconditional (`true ? a:b → a`), `m = m && X → m = X`
             dse_pass(out)          // remove anything left dead (collapsed mask decls, folded temps)
             ssa_rename_pass(out)   // single-def-ify reassigned user locals → fold_body const-props the chain
         }
@@ -771,6 +774,14 @@ def public flatten_optimize(var func : FunctionPtr; barriers : table<string>; no
     //! per-draw `_preshader_` lets + regroup const-minus sums toward live `C - x` twins + CSE-dedup
     //! + rcp-rewrite uniform divisions. After the `flatten_fold` fixpoint; `barriers` = sampler names.
     return flatten_preshade_cse(func, barriers, no_fast_math, log_cse)
+}
+
+[macro_function]
+def public flatten_pack(var func : FunctionPtr; no_fast_math : bool = false) : bool {
+    //! Scalar-packing map-reduce re-roll (delegates to `pack_map_reduce`): recognize an unrolled
+    //! min/max reduction's N isomorphic scalar lanes and pack them into width-W vector ops + one
+    //! horizontal reduce. Run PRE-fold (before `flatten_fold`); re-infer after. no_fast_math skips it.
+    return pack_map_reduce(func, no_fast_math)
 }
 
 [macro_function]
@@ -893,6 +904,11 @@ def public flatten_fold_residuals(var func : FunctionPtr; no_fast_math : bool = 
         res <- v.found
         unsafe {
             delete v
+        }
+        // Statement-level (not a node pattern): a same-condition select-accumulation chain that
+        // fuse_select_chains should have collapsed to one select.
+        if (func.body is ExprBlock && has_fusable_select_chain(func.body as ExprBlock)) {
+            res |> push("an un-fused same-condition select chain (N selects should be 1)")
         }
     }
     return <- res

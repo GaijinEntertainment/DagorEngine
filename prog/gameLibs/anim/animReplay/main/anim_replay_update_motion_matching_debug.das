@@ -239,7 +239,7 @@ def anim_replay_update_motion_matching(evt : UpdateStageInfoAct;
       if !motion_matching__enabled && motion_matching__controller.motionMatchingWeight <= 0.f
         motion_matching__controller |> clearAnimations()
 
-[es(after=anim_replay_update_motion_matching, before=anim_replay_update_anim_state)]
+[es(after=anim_replay_update_motion_matching, before=(anim_replay_update_anim_state, anim_replay_update_characters))]
 def anim_replay_update_foot_locker(evt : UpdateStageInfoAct;
                                    anim_replay__animchars : Array;
                                    anim_replay__currentTime : float)
@@ -258,8 +258,8 @@ def update_root_orientation(current_time : float;
     controller.rootPosition = lerp(root_position[idx0], root_position[idx1], interpK)
     controller.rootRotation = quat_slerp(interpK, root_rotation[idx0], root_rotation[idx1])
 
-[es(after=mm_update_root_orientation_es, before=mm_calculate_root_offset_es)]
-def anim_replay_update_motion_matching_root(evt : ParallelUpdateFrameDelayed;
+[es(before=anim_replay_update_characters)]
+def anim_replay_update_motion_matching_root(evt : UpdateStageInfoAct;
                                             anim_replay__animchars : Array;
                                             anim_replay__timestamps : FloatList;
                                             anim_replay__currentTime : float)

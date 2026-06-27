@@ -84,7 +84,6 @@ struct Header;
 struct D3dInterfaceTable
 {
   const char *(*get_driver_name)();
-  const char *(*get_device_driver_version)();
   const char *(*get_device_name)();
   const char *(*get_last_error)();
   uint32_t (*get_last_error_code)();
@@ -335,7 +334,7 @@ struct D3dInterfaceTable
   d3d::RenderPass *(*create_render_pass)(const RenderPassDesc &rp_desc);
   void (*delete_render_pass)(d3d::RenderPass *rp);
 
-  void (*begin_render_pass)(d3d::RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets);
+  void (*begin_render_pass)(d3d::RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets);
   void (*next_subpass)();
   void (*end_render_pass)();
 

@@ -994,8 +994,9 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
   }
   else if (params.getTexId() != BAD_TEXTUREID)
   {
-    ShaderGlobal::set_int(enableTextureId, (params.getTexId2() != BAD_TEXTUREID) ? 5 // 5 - two textures
-                                                                                 : ((params.texFormat == TexFormat::SRGB) ? 2 : 1));
+    ShaderGlobal::set_int(enableTextureId, (params.getTexId2() != BAD_TEXTUREID)
+                                             ? 5 // 5 - two textures
+                                             : ((params.texFormat == TexFormat::SRGB_DECAL) ? 2 : 1));
     ShaderGlobal::set_texture(textureVarId, params.getTexId());
     ShaderGlobal::set_sampler(textureSamplerVarId, params.getTexSampler());
     ShaderGlobal::set_texture(textureSdrVarId, params.getTexId2());

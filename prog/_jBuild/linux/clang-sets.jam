@@ -67,6 +67,14 @@ if $(UseMOLDLink) = yes {
   _LINK_DLL += -fuse-ld=lld ;
 }
 
+if $(UseWholeOpt) = yes {
+  _LINK += -flto=thin ;
+  _LINK_DLL += -flto=thin ;
+} else if $(UseWholeOpt) != no {
+  _LINK += -flto=$(UseWholeOpt) ; # e.g. full
+  _LINK_DLL += -flto=$(UseWholeOpt) ;
+}
+
 if $(Fuzzer) != no {
   _LINK = $(_LINK) -fsanitize=fuzzer ;
   _LINK_DLL  = $(_LINK_DLL) -fsanitize=fuzzer ;

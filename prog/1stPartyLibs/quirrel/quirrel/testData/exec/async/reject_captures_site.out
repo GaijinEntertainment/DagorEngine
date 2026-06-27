@@ -1,0 +1,14 @@
+script done
+
+AN ERROR HAS OCCURRED [boom]
+
+ERROR TRACE
+    at reject (NATIVE:-1)
+    at rejectAt (testData/exec/async/reject_captures_site.nut:8)
+      f = instance
+      this = null
+    at __main__ (testData/exec/async/reject_captures_site.nut:12)
+      f = instance
+      rejectAt = function rejectAt (testData/exec/async/reject_captures_site.nut:7)
+      vargv = array(0)
+      this = null

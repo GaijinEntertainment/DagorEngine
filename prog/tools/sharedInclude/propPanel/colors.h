@@ -127,6 +127,9 @@ struct ColorOverride
     // Background color for edit boxes that are highlighted because they contain a wrong value.
     EDIT_BOX_WRONG_VALUE_BACKGROUND,
 
+    // Background color briefly flashed and faded out after a successful math expression commit.
+    EDIT_BOX_EVALUATED_VALUE_BACKGROUND,
+
     // Background color for edit boxes that are highlighted because they contain a non-default value.
     EDIT_BOX_NON_DEFAULT_VALUE_BACKGROUND,
 

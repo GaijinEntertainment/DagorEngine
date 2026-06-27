@@ -48,12 +48,11 @@ namespace videomode
 {
 
 #if _TARGET_PC
-static int compare_video_modes(const IPoint2 *a, const IPoint2 *b)
+static bool compare_video_modes(const IPoint2 &a, const IPoint2 &b)
 {
-  int sx = sign(a->x - b->x);
-  if (sx)
-    return sx;
-  return sign(a->y - b->y);
+  if (a.x != b.x)
+    return a.x < b.x;
+  return a.y < b.y;
 }
 #endif
 
@@ -98,7 +97,7 @@ static SQInteger get_video_modes(HSQUIRRELVM vm)
     }
   }
 
-  sort(modes, &compare_video_modes);
+  fast_sort(modes, &compare_video_modes);
 
   Sqrat::Array arr(vm, 1 + modes.size());
   arr.SetValue(0, "auto");

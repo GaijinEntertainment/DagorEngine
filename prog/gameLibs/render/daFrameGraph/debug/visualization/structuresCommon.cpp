@@ -71,6 +71,7 @@ const char *bind_type_name(const BindingType type)
   switch (type)
   {
     case BindingType::ShaderVar: return "SV";
+    case BindingType::BindlessShaderVar: return "BSV";
     case BindingType::ViewMatrix: return "VM";
     case BindingType::ProjMatrix: return "PM";
     case BindingType::Invalid: return "IN";

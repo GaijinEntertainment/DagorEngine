@@ -209,6 +209,11 @@ public:
   net::MessageClassInst<class_name> class_name::messageClass(ECS_NET_MSG_CLASS_NAME(class_name), ECS_NET_MSG_CLASS_HASH(class_name), \
     sizeof(class_name), rout, (eastl::is_base_of<net::IMessageTimed, class_name>::value), ##__VA_ARGS__)
 
+#define ECS_NET_IMPL_UNTARGETED_MSG(class_name, rout, rcptf, rlb, chn, flags_, dup_delay_ms, untargeted_handler)                     \
+  net::MessageClassInst<class_name> class_name::messageClass(ECS_NET_MSG_CLASS_NAME(class_name), ECS_NET_MSG_CLASS_HASH(class_name), \
+    sizeof(class_name), rout, (eastl::is_base_of<net::IMessageTimed, class_name>::value), rcptf, rlb, chn, flags_, dup_delay_ms,     \
+    untargeted_handler)
+
 }; // namespace net
 
 namespace ecs

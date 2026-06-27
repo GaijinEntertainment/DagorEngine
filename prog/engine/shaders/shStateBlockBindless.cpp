@@ -166,7 +166,7 @@ static uint32_t register_bindless_sampler(TEXTUREID tid, bool after_reset = fals
   if (sampler == d3d::INVALID_SAMPLER_HANDLE)
   {
     G_ASSERT(tid == BAD_TEXTUREID);
-    return uint32_t(-1);
+    return DEFAULT_SAMPLER_ID; // workaround for the -1 sampler access crash
   }
 
   return d3d::register_bindless_sampler(sampler);

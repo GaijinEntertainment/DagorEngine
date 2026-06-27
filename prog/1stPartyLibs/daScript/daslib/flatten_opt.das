@@ -25,6 +25,14 @@ def private is_flat_temp(name : das_string) : bool {
     return name |> starts_with("__flat_")
 }
 
+// Inlined-helper locals are uniquified to `__flat_loc_N` (inline_call). Unlike the loop/live
+// MASKS (`__flat_live`/`__flat_loop`/`__flat_iter`), an inlined `var` accumulator must be
+// SSA-renamed like a user accumulator — else it stays a self-referential `var` whose live init
+// a later DSE strips, leaving a null-init self-ref the shader backend rejects.
+def private is_flat_inlined_local(name : das_string) : bool {
+    return name |> starts_with("__flat_loc_")
+}
+
 // ===== Dead-store elimination =====
 // Straight-line body → liveness is one backward scan. Touches only `__flat_*` locals (never
 // user locals/globals); drops a store whose target is dead afterward and whose RHS is pure.
@@ -447,6 +455,77 @@ def public dse_pass(var out : array<ExpressionPtr>) {
     delete dead
 }
 
+// ===== Flow-sensitive const-bool propagation of loop/iter masks =====
+// The break/continue masks (`__flat_loop_*`, `__flat_iter_*`) are multi-def — a `var M = true`
+// decl plus `M = M && !(term)` narrows — so copy_prop (single-def only) leaves them. But the body
+// is straight-line, so a forward scan carries each mask's known const-bool value to its next use:
+// the decl seeds `true`; every use before the first narrow folds (`true && X → X`, `true ? a : b →
+// a`, so the first unrolled iteration is unconditional); the first narrow itself (`M = M && X`, M
+// known true → `M = X`) drops the dead `&& true` AND — when M is read nowhere else (a continue
+// mask whose sole consumer was its own narrow) — leaves the whole decl+store dead for the
+// following dse_pass. A non-const narrow clears the mask (subsequent uses are genuine reads).
+
+// True if `e` reads any flat-mask currently in `known` (fills `reads`, cleared first). Cheap
+// O(size) scan gating the cloning fold_const so mask-free statements are skipped.
+def private reads_known(var e : ExpressionPtr; known : table<uint64; bool>; var reads : table<uint64>) : bool {
+    clear(reads)
+    var risky = false
+    scan_flat(e, reads, risky)
+    for (h in keys(reads)) {
+        if (key_exists(known, h)) return true
+    }
+    return false
+}
+
+def public mask_const_prop_pass(var out : array<ExpressionPtr>) {
+    var known : table<uint64; bool>   // flat-mask name-hash -> currently-known const bool value
+    var reads : table<uint64>         // scratch, cleared per statement
+    let n = length(out)
+    for (i in range(n)) {
+        var s = out[i]
+        // (1) flat-mask decl `var M = <init>`: fold init under known masks, then (re)seed M.
+        if (s is ExprLet && length((s as ExprLet).variables) == 1 && is_flat_temp((s as ExprLet).variables[0].name)) {
+            var lc = s as ExprLet
+            let h = hash(lc.variables[0].name)
+            if (lc.variables[0].init != null) {
+                if (!empty(known) && reads_known(lc.variables[0].init, known, reads)) {
+                    lc.variables[0].init = fold_const(lc.variables[0].init, known)
+                }
+                var bv = false
+                if (const_bool(lc.variables[0].init, bv)) {
+                    known[h] = bv
+                } else {
+                    known |> erase(h)
+                }
+            } else {
+                known |> erase(h)
+            }
+            continue
+        }
+        // (2) flat-mask store `M = <rhs>`: fold rhs (the `M = M && X` collapse), then update M.
+        if (s is ExprCopy && (s as ExprCopy).left is ExprVar && is_flat_temp(((s as ExprCopy).left as ExprVar).name)) {
+            var cp = s as ExprCopy
+            let h = hash((cp.left as ExprVar).name)
+            if (!empty(known) && reads_known(cp.right, known, reads)) {
+                cp.right = fold_const(cp.right, known)
+            }
+            var bv = false
+            if (const_bool(cp.right, bv)) {
+                known[h] = bv
+            } else {
+                known |> erase(h)
+            }
+            continue
+        }
+        // (3) any other statement: fold its mask reads (select predicates) under known masks.
+        if (!empty(known) && reads_known(s, known, reads)) {
+            out[i] = fold_stmt(s, known)
+        }
+    }
+    delete known
+    delete reads
+}
+
 // ===== SSA-rename of reassigned user locals =====
 // Straight-line body → a reassigned local is a linear def-chain (no phi); renaming each write to a
 // fresh single-def `__ssa_` version lets post-infer const-prop fold the chain (declared-with-init only).
@@ -472,7 +551,8 @@ def public ssa_rename_pass(var out : array<ExpressionPtr>) {
     for (s in out) {
         if (s is ExprLet && length((s as ExprLet).variables) == 1) {
             let v = (s as ExprLet).variables[0]
-            if (!is_flat_temp(v.name) && v.init != null) declaredInit |> insert(hash(v.name))
+            // User locals, plus inline-renamed `__flat_loc_` accumulators (NOT the masks).
+            if ((!is_flat_temp(v.name) || is_flat_inlined_local(v.name)) && v.init != null) declaredInit |> insert(hash(v.name))
         }
     }
     if (empty(declaredInit)) {
@@ -523,6 +603,12 @@ def public ssa_rename_pass(var out : array<ExpressionPtr>) {
     delete ssaNames
     delete current
 }
+
+// radians/degrees are each exactly one float32 multiply by these conversion constants —
+// the bit pattern the C++ helpers (aot_builtin_math.h radians_float/degrees_float) fold to,
+// verified bit-identical to evaluating the builtin at 1.0 (0x3c8efa35 / 0x42652ee0).
+let private DEG_TO_RAD = 0.017453292f
+let private RAD_TO_DEG = 57.295776f
 
 class private FoldVisitor : AstVisitor {
     changed : bool
@@ -684,6 +770,21 @@ class private FoldVisitor : AstVisitor {
             if (!(folded is ExprCall)) {   // eval_to_const returns the call unchanged on failure
                 changed = true
                 return folded
+            }
+        }
+        // Lower radians/degrees to their defining multiply (`x * K`) so an adjacent const
+        // factor merges (`degrees(x) * C → x * (K*C)`, via reassoc) and a backend needs no
+        // radians/degrees opcode — only `mul`. Bit-exact (K = the builtin at 1.0); a const
+        // arg already folded to a literal above. `x * scalarK` covers float and float-vector
+        // (vec*scalar is native, matching the C++ v_mul-by-splat form).
+        if (that.func != null && that.func.flags.builtIn && length(that.arguments) == 1
+                && is_float_family(expr_bt(that.arguments[0]))) {
+            let nm = psh_simple_name("{that.func.name}")
+            if (nm == "radians" || nm == "degrees") {
+                changed = true
+                let k = nm == "radians" ? DEG_TO_RAD : RAD_TO_DEG
+                return new ExprOp2(at = that.at, op := "*", left = that.arguments[0],
+                    right = new ExprConstFloat(at = that.at, value = k))
             }
         }
         // DISASSEMBLE mad (and, under `expandLerp`, lerp) into raw arithmetic so the folds,
@@ -1523,6 +1624,195 @@ class private ReassocVisitor : AstVisitor {
     }
 }
 
+// ===== Same-condition select-accumulation fusion =====
+// An unrolled loop with a LOOP-INVARIANT guard (`if (uniform) { acc OP= tap }`) emits a chain of
+// selects all on ONE condition: `a0 = c ? T0 : B; a1 = c ? T1(a0) : a0; … ; am = c ? Tm(a_{m-1}) :
+// a_{m-1}`. Since `c` is a single value, the whole chain is binary — `c ? <full accumulation> : B`.
+// We hoist the shared `c` out of all N selects: strip the select from every link but the last
+// (its accumulation runs unconditionally, which in branchless code it already does — predication
+// computes both arms), and rewrite the last select's false arm to the base `B`. The op tree is
+// PRESERVED (not reassociated), so this is bit-exact for ANY ops in the Tk (mad/+/*/min/max/clamp,
+// even mixed) and NOT fast-math gated. Each intermediate accumulator must be single-use (consumed
+// only by the next link); the chain end may be multi-use (returned, etc.).
+
+def private sel3(e : ExpressionPtr) : ExprOp3? {
+    return (e != null && e is ExprOp3) ? (e as ExprOp3) : null   // ExprOp3 is the ternary `?:`
+}
+
+// The select-let `var a = (c ? T : F)` at `s`: its var name (or "" if not a single-var select-let).
+def private select_let_name(s : ExpressionPtr) : string {
+    if (s is ExprLet && length((s as ExprLet).variables) == 1 &&
+            sel3((s as ExprLet).variables[0].init) != null) {
+        return "{(s as ExprLet).variables[0].name}"
+    }
+    return ""
+}
+
+// Bare ExprVar name under an optional ExprRef2Value wrap (a value-context local read), else "".
+def private ref_var_name(e : ExpressionPtr) : string {
+    var x = e
+    if (x != null && x is ExprRef2Value) {
+        x = (x as ExprRef2Value).subexpr
+    }
+    return (x != null && x is ExprVar) ? "{(x as ExprVar).name}" : ""
+}
+
+// Safe to evaluate UNCONDITIONALLY? A stripped (non-last) chain link's true arm runs even when the
+// guard is false (in interp/JIT/AOT `?:` short-circuits, so the original did not), so it must not
+// be able to fault or have a side effect. CONSERVATIVE: explicitly whitelist the known-pure nodes
+// and recurse; ANYTHING else — `ExprAt` (index OOB), `ExprPtr2Ref` (null deref), `ExprNullCoalescing`,
+// or a node kind not reasoned about — is unsafe by default. Integer `/` / `%` panic on a zero divisor
+// (float div is inf, safe). Surviving calls are whitelisted pure GPU builtins (verify_flat bars user
+// calls) — total, no fault. A rejected true arm just isn't fused (a missed opt, never a miscompile).
+def private select_arm_eval_safe(e : ExpressionPtr) : bool {
+    if (e == null || e is ExprVar || e |> is_expr_const()) return true   // null / var read / literal is pure
+    if (e is ExprOp1) return select_arm_eval_safe((e as ExprOp1).subexpr)
+    if (e is ExprOp2) {
+        let o = e as ExprOp2
+        if ((o.op == "/" || o.op == "%") && !is_float_valued(e)) return false
+        return select_arm_eval_safe(o.left) && select_arm_eval_safe(o.right)
+    }
+    if (e is ExprOp3) {
+        let o = e as ExprOp3
+        return select_arm_eval_safe(o.subexpr) && select_arm_eval_safe(o.left) && select_arm_eval_safe(o.right)
+    }
+    if (e is ExprCall) {
+        for (a in (e as ExprCall).arguments) {
+            if (!select_arm_eval_safe(a)) return false
+        }
+        return true
+    }
+    if (e is ExprRef2Value) return select_arm_eval_safe((e as ExprRef2Value).subexpr)
+    if (e is ExprSwizzle) return select_arm_eval_safe((e as ExprSwizzle).value)
+    if (e is ExprField) return select_arm_eval_safe((e as ExprField).value)
+    if (e is ExprCast) return select_arm_eval_safe((e as ExprCast).subexpr)
+    if (e is ExprMakeTuple) {
+        for (v in (e as ExprMakeTuple).values) {
+            if (!select_arm_eval_safe(v)) return false
+        }
+        return true
+    }
+    return false   // ExprAt / ExprPtr2Ref / ExprNullCoalescing / unrecognized → conservatively unsafe
+}
+
+// Walk the def-use successor of `accName` (its sole referencing statement, since single-use) and,
+// if that statement is a same-`condKey` select whose false arm is `accName`, return its index; else -1.
+def private chain_successor(var ub : FlatUsesBuilder?; var blk : ExprBlock?; accName, condKey : string;
+                            afterIdx : int; consumed : table<int>) : int {
+    let hk = hash(accName)
+    // single-use: accName referenced in exactly one statement (its successor)
+    if (!key_exists(ub.nameUses, hk) || length(ub.nameUses[hk]) != 1) return -1
+    let j = ub.nameUses[hk][0]
+    // successor must be a later, unconsumed select-let
+    if (j <= afterIdx || key_exists(consumed, j) || select_let_name(blk.list[j]) == "") return -1
+    let succSel = sel3((blk.list[j] as ExprLet).variables[0].init)
+    // …on the same condition, with its false arm = the running accumulator
+    if (describe(succSel.subexpr) != condKey || ref_var_name(succSel.right) != accName) return -1
+    return j
+}
+
+// The maximal same-condition select chain headed at statement `i` (chain[0]=i, then each def-use
+// successor), or a <2 chain when `i` heads none. Shared by the fuse transform and its residual
+// oracle so they cannot drift. The condition must be STABLE: a syntactically-identical condition
+// over a reassigned var (a break/continue loop mask `__flat_loop_*` narrowed between selects) has a
+// DIFFERENT value per link, so a mutable-reading condition is rejected.
+def private build_select_chain(var ub : FlatUsesBuilder?; var blk : ExprBlock?; mutableVars : table<string>;
+                               consumed : table<int>; i : int) : array<int> {
+    var chain : array<int>
+    let headName = select_let_name(blk.list[i])
+    if (headName == "") return <- chain
+    var headSel = sel3((blk.list[i] as ExprLet).variables[0].init)
+    if (reads_mutable(headSel.subexpr, mutableVars)) return <- chain
+    let condKey = describe(headSel.subexpr)
+    chain |> push(i)
+    var accName = headName
+    while (true) {
+        let j = chain_successor(ub, blk, accName, condKey, chain[length(chain) - 1], consumed)
+        if (j < 0) break
+        // Appending j makes the current tail a STRIPPED non-last link — its true arm will run
+        // unconditionally, so it must be fault-free / side-effect-free. If not, stop here: the
+        // current tail stays the (guarded) last link. The check is in this shared walk so the
+        // transform and the residual oracle agree on which chains are fusable.
+        let tailSel = sel3((blk.list[chain[length(chain) - 1]] as ExprLet).variables[0].init)
+        if (!select_arm_eval_safe(tailSel.left)) break
+        chain |> push(j)
+        accName = "{(blk.list[j] as ExprLet).variables[0].name}"
+    }
+    return <- chain
+}
+
+def public fuse_select_chains(var blk : ExprBlock?) : bool {
+    let n = length(blk.list)
+    if (n < 2) return false
+    var mutableVars <- collect_mutable(blk)
+    var ub = new FlatUsesBuilder()
+    make_visitor(*ub) $(adapter) {
+        for (j in range(n)) {
+            ub.j = j
+            clear(ub.seen)
+            visit(blk.list[j], adapter)
+        }
+    }
+    var consumed : table<int>
+    var changed = false
+    for (i in range(n)) {
+        if (key_exists(consumed, i)) continue
+        var chain <- build_select_chain(ub, blk, mutableVars, consumed, i)
+        if (length(chain) >= 2) {
+            // base = the head select's false arm; clone it before re-parenting onto the tail select.
+            var baseExpr = clone_expression(sel3((blk.list[chain[0]] as ExprLet).variables[0].init).right)
+            for (ci in range(length(chain) - 1)) {     // strip every link but the last → its true arm
+                var lc = blk.list[chain[ci]] as ExprLet
+                lc.variables[0].init = sel3(lc.variables[0].init).left
+                consumed |> insert(chain[ci])
+            }
+            let lastIdx = chain[length(chain) - 1]      // tail keeps its select; false arm := base
+            sel3((blk.list[lastIdx] as ExprLet).variables[0].init).right = baseExpr
+            consumed |> insert(lastIdx)
+            changed = true
+        }
+        delete chain
+    }
+    delete consumed
+    delete mutableVars
+    unsafe {
+        delete ub
+    }
+    return changed
+}
+
+// Read-only oracle mirror: true if a same-condition select chain (≥2 links) is still un-fused.
+def public has_fusable_select_chain(var blk : ExprBlock?) : bool {
+    let n = length(blk.list)
+    if (n < 2) return false
+    var mutableVars <- collect_mutable(blk)
+    var ub = new FlatUsesBuilder()
+    make_visitor(*ub) $(adapter) {
+        for (j in range(n)) {
+            ub.j = j
+            clear(ub.seen)
+            visit(blk.list[j], adapter)
+        }
+    }
+    var consumed : table<int>   // always empty here — the oracle does not consume
+    var found = false
+    for (i in range(n)) {
+        var chain <- build_select_chain(ub, blk, mutableVars, consumed, i)
+        let isChain = length(chain) >= 2
+        delete chain
+        if (isChain) {
+            found = true
+            break
+        }
+    }
+    delete consumed
+    delete mutableVars
+    unsafe {
+        delete ub
+    }
+    return found
+}
+
 def public fold_body(var func : FunctionPtr; no_fast_math : bool = false; expand_lerp : bool = false) : bool {
     //! Post-infer fold over a flattened body: const-propagate single-def locals, reassociate scattered
     //! consts, collapse `const ? a : b`, fold identities/const ctors, drop pure self-assigns. SINGLE pass
@@ -1530,6 +1820,11 @@ def public fold_body(var func : FunctionPtr; no_fast_math : bool = false; expand
     if (!(func.body is ExprBlock)) return false
     let nfm = no_fast_math
     var changed = const_prop_locals(func.body as ExprBlock)
+    // Hoist a shared condition out of an invariant-guarded accumulation chain (N selects → 1),
+    // exposing the now-unconditional accumulation to reassoc / CSE / fuse below.
+    if (fuse_select_chains(func.body as ExprBlock)) {
+        changed = true
+    }
     // Reassociate BEFORE the fold — gather scattered consts into one adjacent group so the
     // FoldVisitor all-const arm (and the typer's re-infer) can collapse them. After const-prop,
     // which is what scatters consts (a substituted single-def local lands mid-chain).
@@ -1966,6 +2261,17 @@ struct private PEX {
     noFastMath : bool                       // zero-init false = fast-math ON (the default)
 }
 
+// A ref to a hoisted / CSE'd let, carrying the replaced node's resolved type. The cse/alias loop runs
+// passes that read expr_bt BEFORE the macro re-infers (the rcp-rewrite's scalar-float gate is one) — an
+// un-typed ref reads as `none`, so those passes silently skip a freshly-hoisted divisor.
+def private hoisted_ref(refName : string; src : ExpressionPtr) : ExpressionPtr {
+    var v = new ExprVar(at = src.at, name := refName)
+    if (src._type != null) {
+        v._type = clone_type(src._type)
+    }
+    return v
+}
+
 // `x / U` rcp-candidate: a varying division by a preshader-eligible scalar-float NON-const
 // divisor — shared verbatim by the extraction rewrite and the opt residual oracle. A wholly-
 // uniform division hoists intact (maximal arm); a const divisor belongs to the fold arm.
@@ -2042,7 +2348,7 @@ def private pex_extract(var pe : PEX; barriers : table<string>; var e : Expressi
     if (psh_has_compute(e) && pex_eligible(pe, barriers, e)) {
         let nm = pex_hoist_name(pe, e)
         pe.changed = true
-        return new ExprVar(at = e.at, name := nm)
+        return hoisted_ref(nm, e)
     }
     if (e is ExprOp1) {
         var o = e as ExprOp1
@@ -2057,7 +2363,7 @@ def private pex_extract(var pe : PEX; barriers : table<string>; var e : Expressi
             pe.changed = true
             return new ExprOp2(at = o.at, op := "*",
                 left = pex_extract(pe, barriers, o.left),
-                right = new ExprVar(at = o.at, name := nm))
+                right = hoisted_ref(nm, o.right))   // 1/U shares U's (scalar-float) type
         }
         o.left = pex_extract(pe, barriers, o.left)
         o.right = pex_extract(pe, barriers, o.right)
@@ -2153,7 +2459,7 @@ def private extract_preshader(var func : FunctionPtr; var blk : ExprBlock?; barr
                 if (psh_has_compute(init)) {
                     // Whole uniform let: hoist its init, rename refs to the preshader temp, drop the decl.
                     let nm = pex_hoist_name(pe, init)
-                    pe.rename[vname] = new ExprVar(at = init.at, name := nm)
+                    pe.rename[vname] = hoisted_ref(nm, init)
                     pe.changed = true
                 } else {
                     // Trivial uniform alias (a bare global / member read): inline it at every use.
@@ -2329,7 +2635,7 @@ class private CseTally : AstVisitor {
 def private cse_replace_expr(var e : ExpressionPtr; key, refName : string) : ExpressionPtr {
     if (e == null) return null
     if (psh_has_compute(e) && "{describe(e)}" == key) {
-        return new ExprVar(at = e.at, name := refName)
+        return hoisted_ref(refName, e)
     }
     if (e is ExprOp1) {
         var o = e as ExprOp1
@@ -3949,4 +4255,513 @@ def public fuse_body(var func : FunctionPtr; no_fast_math : bool = false) : bool
         }
     }
     return changed
+}
+
+// ===== Scalar packing — map-reduce loop re-roll (Phase 1) =====
+// Re-rolls an unrolled min/max reduction's N isomorphic scalar lanes into width-W vector ops + a
+// horizontal reduce (backend emits one width-W node, not N). Pre-fold. Design: scalar_packing/PLAN.md.
+
+struct private LinkInfo {
+    ok      : bool
+    defName : string   // var this link declares (acc_{k+1})
+    dName   : string   // per-lane operand (ternary true arm)
+    accRef  : string   // running accumulator (ternary false arm)
+    op      : string   // "min" / "max"
+}
+
+// A reduction link `var acc' = (d cmp acc) ? d : acc` — true arm replaces the accumulator with the
+// per-lane operand. Classifies the min/max direction. Fail-closed: both comparison operands must be
+// exactly the lane operand and the accumulator var, so a threshold-select (`(d < K) ? d : acc`) or a
+// shifted compare (`d < acc + eps`) does NOT classify and is left untouched rather than mis-packed.
+def private classify_link(s : ExpressionPtr) : LinkInfo {
+    var r : LinkInfo
+    if (!(s is ExprLet)) return r
+    let lc = s as ExprLet
+    if (length(lc.variables) != 1) return r
+    let t = sel3(lc.variables[0].init)
+    if (t == null || !(t.subexpr is ExprOp2)) return r
+    let cond = t.subexpr as ExprOp2
+    let isLess = cond.op == "<" || cond.op == "<="
+    let isGreater = cond.op == ">" || cond.op == ">="
+    if (!isLess && !isGreater) return r
+    let ta = ref_var_name(t.left)
+    let fa = ref_var_name(t.right)
+    if (ta == "" || fa == "" || ta == fa) return r
+    let cl = ref_var_name(cond.left)
+    let cr = ref_var_name(cond.right)
+    var condLeftIsNew = false
+    if (cl == ta && cr == fa) {
+        condLeftIsNew = true
+    } elif (cr == ta && cl == fa) {
+        condLeftIsNew = false
+    } else {
+        return r
+    }
+    r.op = (isLess == condLeftIsNew) ? "min" : "max"
+    r.defName = "{lc.variables[0].name}"
+    r.dName = ta
+    r.accRef = fa
+    r.ok = true
+    return r
+}
+
+// Name-HASHES of every var read in `e` (independence check). Hashes, not strings: `hash(expr.name)`
+// reads the das_string directly (no per-ExprVar temp alloc — the FlatVarRef rule, lines ~195). A
+// 64-bit collision among one function's locals is effectively impossible; were one to occur it would
+// at worst skip a valid pack (false bail) or — far less likely — miss a cross-lane dependency. Treat
+// as practically safe, not provably so.
+class private VarNames : AstVisitor {
+    found : table<uint64>
+    def override preVisitExprVar(expr : ExprVar?) : void {
+        found |> insert(hash(expr.name))
+    }
+}
+
+def private collect_var_hashes(e : ExpressionPtr) : table<uint64> {
+    var res : table<uint64>
+    var v = new VarNames()
+    make_visitor(*v) $(adapter) {
+        visit(e, adapter)
+    }
+    res <- v.found
+    unsafe {
+        delete v
+    }
+    return <- res
+}
+
+// Vectorize N parallel scalar exprs into one width-N (2..4) vector expr (CLONE-built): invariants
+// splat to floatN, differing float consts → a floatN const, lane-local vars → the role-vector
+// temp, op/call nodes rebuild over vectorized children. null on any unpackable shape (bails clean).
+def private vectorize(exprs : array<ExpressionPtr>; nameToRole : table<string; int>;
+                      roleVecName : array<string>; at : LineInfo) : ExpressionPtr {
+    let N = length(exprs)
+    let key0 = describe(exprs[0])
+    var allEq = true
+    for (i in range(1, N)) {
+        if (describe(exprs[i]) != key0) {
+            allEq = false
+            break
+        }
+    }
+    // invariant subtree → splat to floatN (daslang has no scalar→vector broadcast for +/-/call-args)
+    if (allEq) return make_float_splat(N, at, clone_expression(exprs[0]))
+    if (exprs[0] is ExprRef2Value) {
+        var inner : array<ExpressionPtr>
+        inner |> reserve(N)
+        var okk = true
+        for (e in exprs) {
+            if (!(e is ExprRef2Value)) {
+                okk = false
+                break
+            }
+            inner |> push((e as ExprRef2Value).subexpr)
+        }
+        var res : ExpressionPtr = null
+        if (okk) {
+            res = vectorize(inner, nameToRole, roleVecName, at)
+        }
+        unsafe {
+            delete inner
+        }
+        return res
+    }
+    if (exprs[0] is ExprConstFloat) {
+        var lanes : array<ExpressionPtr>
+        lanes |> reserve(N)
+        var okk = true
+        for (e in exprs) {
+            if (!(e is ExprConstFloat)) {
+                okk = false
+                break
+            }
+            lanes |> push(clone_expression(e))
+        }
+        var res : ExpressionPtr = null
+        if (okk) {
+            res = make_float_ctor(N, at, lanes)
+        }
+        unsafe {
+            delete lanes
+        }
+        return res
+    }
+    if (exprs[0] is ExprVar) {
+        var role = -1
+        for (e in exprs) {
+            if (!(e is ExprVar)) return null
+            let nm = "{(e as ExprVar).name}"
+            let rr = nameToRole?[nm] ?? -1
+            if (rr < 0) return null
+            if (role < 0) {
+                role = rr
+            } elif (role != rr) {
+                return null
+            }
+        }
+        return new ExprVar(at = at, name := roleVecName[role])
+    }
+    if (exprs[0] is ExprOp2) {
+        let l0 = exprs[0] as ExprOp2
+        let op0 = "{l0.op}"
+        var lefts : array<ExpressionPtr>
+        var rights : array<ExpressionPtr>
+        lefts |> reserve(N)
+        rights |> reserve(N)
+        var okk = true
+        for (e in exprs) {
+            if (!(e is ExprOp2) || "{(e as ExprOp2).op}" != op0) {
+                okk = false
+                break
+            }
+            lefts |> push((e as ExprOp2).left)
+            rights |> push((e as ExprOp2).right)
+        }
+        var res : ExpressionPtr = null
+        if (okk) {
+            var vl = vectorize(lefts, nameToRole, roleVecName, at)
+            var vr : ExpressionPtr = null
+            if (vl != null) {
+                vr = vectorize(rights, nameToRole, roleVecName, at)
+            }
+            if (vl != null && vr != null) {
+                res = new ExprOp2(at = at, atEnclosure = l0.atEnclosure, genFlags = l0.genFlags,
+                                  op := op0, left = vl, right = vr)
+            }
+        }
+        unsafe {
+            delete lefts
+            delete rights
+        }
+        return res
+    }
+    if (exprs[0] is ExprOp1) {
+        let l0 = exprs[0] as ExprOp1
+        let op0 = "{l0.op}"
+        var subs : array<ExpressionPtr>
+        subs |> reserve(N)
+        var okk = true
+        for (e in exprs) {
+            if (!(e is ExprOp1) || "{(e as ExprOp1).op}" != op0) {
+                okk = false
+                break
+            }
+            subs |> push((e as ExprOp1).subexpr)
+        }
+        var res : ExpressionPtr = null
+        if (okk) {
+            var vs = vectorize(subs, nameToRole, roleVecName, at)
+            if (vs != null) {
+                res = new ExprOp1(at = at, atEnclosure = l0.atEnclosure, genFlags = l0.genFlags,
+                                  op := op0, subexpr = vs)
+            }
+        }
+        unsafe {
+            delete subs
+        }
+        return res
+    }
+    if (exprs[0] is ExprCall) {
+        let l0 = exprs[0] as ExprCall
+        // simple name (post-infer .name is the mangled scalar overload) so re-infer picks by arg width
+        let nm0 = psh_simple_name("{l0.name}")
+        let argc = length(l0.arguments)
+        for (e in exprs) {
+            if (!(e is ExprCall) || psh_simple_name("{(e as ExprCall).name}") != nm0 ||
+                    length((e as ExprCall).arguments) != argc) {
+                return null
+            }
+        }
+        var c = new ExprCall(at = at, atEnclosure = l0.atEnclosure, genFlags = l0.genFlags, name := nm0)
+        for (ai in range(argc)) {
+            var col : array<ExpressionPtr>
+            col |> reserve(N)
+            for (e in exprs) {
+                col |> push((e as ExprCall).arguments[ai])
+            }
+            var v = vectorize(col, nameToRole, roleVecName, at)
+            unsafe {
+                delete col
+            }
+            if (v == null) return null
+            c.arguments |> push(v)
+        }
+        return c
+    }
+    return null
+}
+
+// Partition M lanes into width<=4 groups, never leaving a width-1 remainder (so every group packs).
+def private plan_groups(M : int) : array<int> {
+    var g : array<int>
+    g |> reserve((M + 3) / 4)
+    var rem = M
+    while (rem > 0) {
+        var take = rem >= 4 ? 4 : rem   // nolint:PERF015 — math.min not required in this module
+        if (rem - take == 1) {
+            take = take - 1
+        }
+        g |> push(take)
+        rem = rem - take
+    }
+    return <- g
+}
+
+def private make_vec_let(vecName : string; var vecExpr : ExpressionPtr) : ExpressionPtr {
+    return qmacro_expr(${ let $i(vecName) = $e(vecExpr); })
+}
+
+// Horizontal min/max over `vecName`'s W components: op(op(.x,.y),.z)... — W>=2.
+def private hreduce(vecName : string; width : int; op : string; at : LineInfo) : ExpressionPtr {
+    var acc : ExpressionPtr = new ExprField(at = at, value = new ExprVar(at = at, name := vecName),
+                                            name := slice("xyzw", 0, 1))
+    for (c in range(1, width)) {
+        var nextc = new ExprField(at = at, value = new ExprVar(at = at, name := vecName),
+                                  name := slice("xyzw", c, c + 1))
+        var call = new ExprCall(at = at, name := op)
+        call.arguments |> push(acc)
+        call.arguments |> push(nextc)
+        acc = call
+    }
+    return acc
+}
+
+def public pack_map_reduce(var func : FunctionPtr; no_fast_math : bool = false) : bool {
+    //! Map-reduce loop re-roll: pack an unrolled min/max reduction's N isomorphic scalar lanes into
+    //! width-W vector ops + a horizontal reduce. Returns true if it rewrote a chain. Run PRE-fold;
+    //! caller re-infers after. Skipped under no_fast_math (the reduce-tree reassociation opt-out).
+    if (no_fast_math || !(func.body is ExprBlock)) return false
+    var blk = func.body as ExprBlock
+    let n = length(blk.list)
+    if (n < 6) return false   // init + >=3 lanes (each >=1 let + link) is the smallest worth packing
+    var links : array<LinkInfo>
+    links |> reserve(n)
+    for (i in range(n)) {
+        links |> push(classify_link(blk.list[i]))
+    }
+    var accRefToIdx : table<string; int>
+    var isDef : table<string>
+    for (i in range(n)) {
+        if (links[i].ok) {
+            if (!key_exists(accRefToIdx, links[i].accRef)) {
+                accRefToIdx |> insert(links[i].accRef, i)
+            }
+            isDef |> insert(links[i].defName)
+        }
+    }
+    var ub = new FlatUsesBuilder()
+    make_visitor(*ub) $(adapter) {
+        for (j in range(n)) {
+            ub.j = j
+            clear(ub.seen)
+            visit(blk.list[j], adapter)
+        }
+    }
+    var did = false
+    for (h in range(n)) {
+        if (did) break
+        if (!links[h].ok || key_exists(isDef, links[h].accRef)) continue   // not a chain head
+        // head accumulator must be a const-init let, used only by this head link
+        var initIdx = -1
+        for (j in range(h)) {
+            if (!(blk.list[j] is ExprLet)) continue
+            let lc = blk.list[j] as ExprLet
+            if (length(lc.variables) == 1 && "{lc.variables[0].name}" == links[h].accRef &&
+                    lc.variables[0].init != null && is_all_const(lc.variables[0].init)) {
+                initIdx = j
+                break
+            }
+        }
+        if (initIdx < 0 ||
+                (key_exists(ub.nameUses, hash(links[h].accRef)) &&
+                 length(ub.nameUses[hash(links[h].accRef)]) != 1)) continue   // init absent or escapes
+        // follow the chain; each intermediate accumulator must be single-use (its successor link)
+        let op = links[h].op
+        var chainIdx : array<int>
+        var dNames : array<string>
+        chainIdx |> reserve(n)
+        dNames |> reserve(n)
+        var cur = h
+        var bail = false
+        while (true) {
+            chainIdx |> push(cur)
+            dNames |> push(links[cur].dName)
+            let dn = links[cur].defName
+            // stop: no successor link consumes dn (chain end), or dn escapes (multi-use accumulator)
+            if (!key_exists(accRefToIdx, dn) ||
+                    !key_exists(ub.nameUses, hash(dn)) || length(ub.nameUses[hash(dn)]) != 1) break
+            let nx = accRefToIdx[dn]
+            if (nx <= cur || !links[nx].ok || links[nx].op != op) break
+            cur = nx
+        }
+        let M = length(chainIdx)
+        let lastLinkIdx = chainIdx[M - 1]
+        // R = lane-lets between each pair of consecutive links (and after the init); must be uniform
+        let R = chainIdx[0] - initIdx - 1
+        if (M < 3 || R < 1) {
+            delete chainIdx
+            delete dNames
+            continue
+        }
+        for (k in range(1, M)) {
+            if (chainIdx[k] - chainIdx[k - 1] - 1 != R) {
+                bail = true
+                break
+            }
+        }
+        // collect per-lane let inits (role order) + own-name sets; last let must define d_k
+        var laneInit : array<array<ExpressionPtr>>
+        var laneNames : array<array<string>>
+        var laneOwnHash : array<table<uint64>>   // per-lane owned name-hashes (independence check)
+        var nameToRole : table<string; int>
+        var roleHash : table<uint64>             // all lane-local name-hashes (the role-name set)
+        laneInit |> reserve(M)
+        laneNames |> reserve(M)
+        laneOwnHash |> reserve(M)
+        if (!bail) {
+            for (k in range(M)) {
+                let prev = k == 0 ? initIdx : chainIdx[k - 1]
+                var inits : array<ExpressionPtr>
+                var names : array<string>
+                var own : table<uint64>
+                inits |> reserve(R)
+                names |> reserve(R)
+                for (idx in range(prev + 1, chainIdx[k])) {
+                    if (!(blk.list[idx] is ExprLet) || length((blk.list[idx] as ExprLet).variables) != 1) {
+                        bail = true
+                        break
+                    }
+                    var lc = blk.list[idx] as ExprLet
+                    inits |> push(lc.variables[0].init)
+                    let nm = "{lc.variables[0].name}"
+                    names |> push(nm)
+                    own |> insert(hash(nm))
+                    nameToRole |> insert(nm, length(names) - 1)
+                    roleHash |> insert(hash(nm))
+                }
+                if (!bail && (empty(names) || names[length(names) - 1] != dNames[k])) {
+                    bail = true
+                }
+                laneInit |> emplace(inits)
+                laneNames |> emplace(names)
+                laneOwnHash |> emplace(own)
+                if (bail) break
+            }
+        }
+        // independence: no lane let may read a spine accumulator or another lane's temp
+        if (!bail) {
+            var spineHash : table<uint64>
+            spineHash |> insert(hash(links[h].accRef))
+            for (ci in chainIdx) {
+                spineHash |> insert(hash(links[ci].defName))
+            }
+            for (k in range(M)) {
+                if (bail) break
+                for (r in range(R)) {
+                    var refs <- collect_var_hashes(laneInit[k][r])
+                    for (rh in keys(refs)) {
+                        if (key_exists(spineHash, rh) ||
+                                (key_exists(roleHash, rh) && !key_exists(laneOwnHash[k], rh))) {
+                            bail = true
+                        }
+                    }
+                    delete refs
+                    if (bail) break
+                }
+            }
+            delete spineHash
+        }
+        if (bail) {
+            delete chainIdx; delete dNames; delete laneNames; delete laneOwnHash; delete nameToRole; delete roleHash
+            unsafe {
+                delete laneInit
+            }
+            continue
+        }
+        // build the packed lets + per-group d-vector names
+        var groups <- plan_groups(M)
+        var newLets : array<ExpressionPtr>
+        var groupDName : array<string>
+        var groupWidth : array<int>
+        newLets |> reserve(length(groups) * R)
+        groupDName |> reserve(length(groups))
+        groupWidth |> reserve(length(groups))
+        var laneBase = 0
+        for (gid in range(length(groups))) {
+            let w = groups[gid]
+            var roleVecName : array<string>
+            roleVecName |> reserve(R)
+            for (r in range(R)) {
+                roleVecName |> push("_pk{h}_{gid}_{r}")
+            }
+            for (r in range(R)) {
+                var col : array<ExpressionPtr>
+                col |> reserve(w)
+                for (li in range(w)) {
+                    col |> push(laneInit[laneBase + li][r])
+                }
+                var v = vectorize(col, nameToRole, roleVecName, blk.at)
+                unsafe {
+                    delete col
+                }
+                if (v == null) {
+                    bail = true
+                    break
+                }
+                newLets |> push(make_vec_let(roleVecName[r], v))
+            }
+            groupDName |> push(roleVecName[R - 1])
+            groupWidth |> push(w)
+            delete roleVecName
+            laneBase += w
+            if (bail) break
+        }
+        if (bail) {
+            delete chainIdx; delete dNames; delete laneNames
+            delete laneOwnHash; delete nameToRole; delete roleHash; delete groups
+            delete groupDName; delete groupWidth
+            unsafe {
+                delete laneInit
+                delete newLets
+            }
+            continue
+        }
+        // reduce: op(init, op(g0, op(g1, ...))) — preserves the original reduction's value set
+        var acc = clone_expression((blk.list[initIdx] as ExprLet).variables[0].init)
+        for (gid in range(length(groups))) {
+            var hm = hreduce(groupDName[gid], groupWidth[gid], op, blk.at)
+            var call = new ExprCall(at = blk.at, name := op)
+            call.arguments |> push(acc)
+            call.arguments |> push(hm)
+            acc = call
+        }
+        let finalAcc = "{links[lastLinkIdx].defName}"
+        var finalStmt = qmacro_expr(${ var $i(finalAcc) = $e(acc); })
+        // splice: list is a dasvector — rebuild a fresh block (preamble drop-init, packed lets,
+        // final reduce, tail), moving the surviving original statements across.
+        var newBody = new ExprBlock(at = blk.at)
+        for (i in range(initIdx)) {   // nolint:PERF018 — preamble is a [0,initIdx) sub-range
+            newBody.list |> emplace(blk.list[i])
+        }
+        for (s in newLets) {
+            newBody.list |> emplace(s)
+        }
+        newBody.list |> emplace(finalStmt)
+        for (i in range(lastLinkIdx + 1, n)) {   // nolint:PERF018 — tail is a (lastLinkIdx,n) sub-range
+            newBody.list |> emplace(blk.list[i])
+        }
+        func.body = newBody
+        did = true
+        delete chainIdx; delete dNames; delete laneNames
+        delete laneOwnHash; delete nameToRole; delete roleHash; delete groups
+        delete groupDName; delete groupWidth
+        unsafe {
+            delete laneInit
+            delete newLets
+        }
+    }
+    unsafe {
+        delete ub
+    }
+    return did
 }

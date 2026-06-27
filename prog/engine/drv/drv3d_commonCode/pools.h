@@ -6,6 +6,7 @@
 #include <generic/dag_span.h>
 #include <generic/dag_tabExt.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <debug/dag_fatal.h>
 #include <stdio.h>
 #include <string.h>
 #include "keyMapPools.h"
@@ -52,7 +53,7 @@ struct PodPool
 
   ~PodPool() { destroy(); }
 
-  void clearGarbage()
+  void clearGarbageImpl()
   {
     if (garbage.size() > 0)
       debug("PodPool %s: clearGarbage, garbage size=%u", debugName, garbage.size());
@@ -79,7 +80,7 @@ struct PodPool
       return true;
 
     if (freeList != BAD_HANDLE)
-      D3D_ERROR("freeList %d is not equal to BAD_HANDLE, which means elements (%d) must be less than totalElements (%d)!", freeList,
+      DAG_FATAL("freeList %d is not equal to BAD_HANDLE, which means elements (%d) must be less than totalElements (%d)!", freeList,
         elements, totalElements);
 
 #if DAGOR_DBGLEVEL > 0
@@ -113,7 +114,7 @@ struct PodPool
 
     G_FAST_ASSERT(freeList >= 0);
     if (freeList >= totalElements || freeList < 0)
-      D3D_ERROR("freeList %d is out of range - the pool has %d of %d elements", freeList, usedElements, totalElements);
+      DAG_FATAL("freeList %d is out of range - the pool has %d of %d elements", freeList, usedElements, totalElements);
 
     int index = freeList;
     freeList = entries[index].link >> 1; // unlink from free list
@@ -147,6 +148,7 @@ struct PodPoolWithLock : protected PodPool<T, InitialCapacity>
 protected:
   mutable WinCritSec poolMutex;
 
+  using PodPoolType::clearGarbageImpl;
   using PodPoolType::destroy;
   using PodPoolType::entries;
   using PodPoolType::freeList;
@@ -159,7 +161,6 @@ public:
 
   using PodPoolType::alloc;
   using PodPoolType::operator[];
-  using PodPoolType::clearGarbage;
   using PodPoolType::fillEntryAsInvalid;
   using PodPoolType::isEntryUsed;
   using PodPoolType::isIndexValid;
@@ -181,6 +182,13 @@ public:
     G_FAST_ASSERT(entries[index].isUsed());
     unlock();
     return index;
+  }
+
+  void clearGarbage()
+  {
+    lock();
+    clearGarbageImpl();
+    unlock();
   }
 
   void safeReleaseEntry(int index)
@@ -222,9 +230,9 @@ public:
   {
     G_FAST_ASSERT(isIndexValid(index));
     if (!(freeList == BAD_HANDLE || isIndexValid(freeList)))
-      D3D_ERROR("freeList %d must be either BAD_HANDLE or valid index, pool has %d elements", freeList, totalElements);
+      DAG_FATAL("freeList %d must be either BAD_HANDLE or valid index, pool has %d elements", freeList, totalElements);
     if (!isIndexValid(index))
-      D3D_ERROR("releaseEntryUnsafe tries to free incorrect entry %d, pool has %d elements", index, totalElements);
+      DAG_FATAL("releaseEntryUnsafe tries to free incorrect entry %d, pool has %d elements", index, totalElements);
     entries[index].link = (freeList << 1) | 1;
     freeList = index;
     G_VERIFY(--usedElements >= 0);

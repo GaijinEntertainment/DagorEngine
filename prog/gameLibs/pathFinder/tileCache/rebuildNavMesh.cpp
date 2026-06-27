@@ -81,6 +81,7 @@ enum ERebuildStep
   RS_FINISHED,
 };
 ERebuildStep rebuildStep = RS_UNINIT;
+bool rebuildShouldReloadOriginalNavmesh = true;
 typedef ska::flat_hash_map<eastl::pair<int, int>, eastl::pair<float, float>, RebuildTilesHasher> RebuildTiles;
 static RebuildTiles rebuildedTiles;
 int rebuildedTilesTotalSz = 0;
@@ -125,10 +126,11 @@ static class NavmeshLayers
     Tab<eastl::unique_ptr<RegExp>> filter(tmpmem);
     buildFilter(filter, filterBlk);
 
-    for (int i = 0, size = rendinst::getRiGenExtraResCount(); i < size; ++i)
+    rendinst::iterateRIExtraMap([&](int i, const char *name) {
       for (const auto &re : filter)
-        if (re->test(rendinst::getRIGenExtraName(i)))
+        if (re->test(name))
           lambda(rendinst::RendinstVertexDataCbBase::make_pool_id(i, true));
+    });
   }
 
 public:
@@ -394,8 +396,8 @@ static bool finalize_navmesh_tilecached_tile(rcContext &ctx, const rcConfig &cfg
   };
 
   return finalize_navmesh_tilecached_tile(ctx, cfg, tileCache->getAlloc(), tileCache->getCompressor(), conn_storage, tile_ctx, tx, ty,
-    tileCache->getParams()->walkableClimb, tileCache->getParams()->walkableHeight, tileCache->getParams()->walkableRadius, obstacles,
-    tile_data, fn);
+    tileCache->getParams()->walkableClimb, tileCache->getParams()->walkableHeight, tileCache->getParams()->walkableRadius,
+    tilecache_get_detailed_data_settings().includeDetailedData != 0, obstacles, tile_data, fn);
 }
 
 static void init_tile_config(rcConfig &cfg, const Tab<Point3> &vertices, int override_tile_size = 0)
@@ -549,8 +551,7 @@ bool build_tile_ladder_links(const dtMeshTile *tile)
   }
   return true;
 }
-
-void rebuildNavMesh_init()
+static void rebuildNavMesh_initImpl(bool reload_original_navmesh)
 {
   rebuildParams = RebuildNavMeshSetup();
 
@@ -563,6 +564,7 @@ void rebuildNavMesh_init()
   removedObstacles.clear();
 
   rebuildNavMesh_close();
+  rebuildShouldReloadOriginalNavmesh = reload_original_navmesh;
 
   rebuildStep = RS_WAIT_ADD_TILES;
 
@@ -572,6 +574,10 @@ void rebuildNavMesh_init()
 
   generateTiles.clear();
 }
+
+void rebuildNavMesh_init() { rebuildNavMesh_initImpl(true); }
+
+void rebuildNavMesh_initFromCurrent() { rebuildNavMesh_initImpl(false); }
 
 void rebuildNavMesh_setup(const char *name, const Point2 &value)
 {
@@ -703,7 +709,8 @@ bool rebuildNavMesh_update(bool interactive)
     case RS_UNINIT: result = false; break;
 
     case RS_WAIT_ADD_TILES:
-      rebuildNavMesh_update_reloadNavMesh();
+      if (rebuildShouldReloadOriginalNavmesh)
+        rebuildNavMesh_update_reloadNavMesh();
       rebuildNavMesh_update_removeTiles();
       generateTiles = rebuildedTiles;
       rebuildStep = RS_REBUILDING_TILES;
@@ -832,6 +839,12 @@ bool rebuildNavMesh_update_buildTiles(int n)
       }
 
       init_tile_config(cfg, vertices);
+      const TileCacheDetailSettings detailSettings = tilecache_get_detailed_data_settings();
+      if (detailSettings.includeDetailedData != 0)
+      {
+        cfg.detailSampleDist = detailSettings.detailSampleDist < 0.9f ? 0 : cfg.cs * detailSettings.detailSampleDist;
+        cfg.detailSampleMaxError = cfg.ch * detailSettings.detailSampleMaxError;
+      }
 
       if (!prepare_tile_context(ctx, cfg, tile_ctx, tx, ty, vertices, indices, noTransparent))
       {

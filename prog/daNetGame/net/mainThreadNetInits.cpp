@@ -99,8 +99,8 @@ bool net_init_late_client(net::ConnectParams &&connect_params, ecs::EntityManage
           DAG_FATAL("incorrect replay!");
       }
     }
-    if (g_net_globals.isDummyTime())
-      g_net_globals.resetTimeMgr(!net ? create_server_time() : create_client_time());
+    if (is_dummy_time())
+      reset_time_mgr(!net ? create_server_time() : create_client_time());
     return true;
   }
   return false;
@@ -118,7 +118,7 @@ void net_init_late_server(ecs::EntityManager &mgr)
   mgr.broadcastEventImmediate(EventQueryReplayPlayback{&hasReplayPlayback});
   if ((net && !net->isServer()) || hasReplayPlayback)
   {
-    G_ASSERT(!g_net_globals.isDummyTime());
+    G_ASSERT(!is_dummy_time());
     return;
   }
   if (net_context)
@@ -130,7 +130,7 @@ void net_init_late_server(ecs::EntityManager &mgr)
     mgr.setEidsReservationMode(true);
     create_simple_entity(mgr, "msg_sink");
 
-    g_net_globals.resetTimeMgr(create_server_time());
+    reset_time_mgr(create_server_time());
 
     if (dgs_get_settings()->getBlockByNameEx("net")->getBool("enableScopeQuery", false))
       net_context->getNet().setScopeQueryCb([&mgr](net::Connection *c) { mgr.broadcastEventImmediate(EventNetScopeQuery(c)); });
@@ -145,8 +145,8 @@ void net_init_late_server(ecs::EntityManager &mgr)
     net::publish_net_em(mgr);
     create_simple_entity(mgr, "msg_sink");
     net::MessageClass::init(/*server*/ true, &mgr);
-    g_net_globals.resetTimeMgr(create_accum_time());
+    reset_time_mgr(create_accum_time());
     mgr.broadcastEventImmediate(OnNetInitServer{});
   }
-  G_ASSERT(!g_net_globals.isDummyTime());
+  G_ASSERT(!is_dummy_time());
 }

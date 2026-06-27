@@ -828,9 +828,8 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
     char errs[256], *cwd = nullptr;
     int errn = df_get_last_error(errs, sizeof(errs));
 
-#if _TARGET_ANDROID
     bool isOpened = false;
-    // Retry on transient errors (e.g. EACCES/ENOENT from FUSE on Android, EMFILE spikes)
+    // Retry transient open failures (Android FUSE ENOENT/EACCES, console storage glitches, fd spikes) before fatal
     for (int attempt = 1; attempt <= 3 && errn != 0; ++attempt)
     {
       logwarn("Can't open GameResPack '%s', error %d(%s), retrying (%d/3)...", fileName.str(), errn, errs, attempt);
@@ -841,7 +840,6 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
       errn = df_get_last_error(errs, sizeof(errs));
     }
     if (!isOpened)
-#endif
     {
 #if _TARGET_PC
       char cwdbuf[256];

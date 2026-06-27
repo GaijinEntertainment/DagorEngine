@@ -21,6 +21,8 @@
 #include <daECS/core/updateStage.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
+#include <shaders/dag_shaderVar.h>
+#include <math/dag_color.h>
 
 static FFTWater *dng_create_water()
 {
@@ -102,6 +104,22 @@ static void water_fft_resolution_es_event_handler(const ecs::Event &, FFTWater &
   // limit the resolution by 8 (which is 256x256) for perfomance reasons
   // and values greater than 8 is used mostly for big oceans in the ship simulators
   fft_water::set_fft_resolution(&water, min(water__fft_resolution, 8));
+}
+
+namespace var
+{
+static ShaderVariableInfo water_fresnel_reflectance("water_fresnel_reflectance", true);
+} // namespace var
+
+ECS_ON_EVENT(on_appear)
+ECS_TRACK(water__fresnel_specular_intensity, water__fresnel_ambient_reflection, water__fresnel_reflection)
+static void water_fresnel_reflectance_es_event_handler(const ecs::Event &,
+  float water__fresnel_specular_intensity,
+  float water__fresnel_ambient_reflection,
+  float water__fresnel_reflection)
+{
+  ShaderGlobal::set_float4(var::water_fresnel_reflectance,
+    Color4(water__fresnel_specular_intensity, water__fresnel_ambient_reflection, water__fresnel_reflection, 0));
 }
 
 ECS_ON_EVENT(on_appear)

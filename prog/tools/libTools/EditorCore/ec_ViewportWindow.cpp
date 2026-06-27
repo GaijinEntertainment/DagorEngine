@@ -1917,6 +1917,7 @@ void ViewportWindow::paint(int w, int h)
     const bool allowHighlight = (mouseDownOnViewportAxis != ViewportAxisId::None && !rotating) || canStartInteractionWithViewport();
     const IPoint2 mousePos(input.mouseX, input.mouseY);
     ViewportAxis viewportAxis(viewport->getViewMatrix(), viewportSize);
+    viewportAxis.setGizmoPixelPadding(gizmoPixelOffset);
     highlightedViewportAxisId = viewportAxis.draw(allowHighlight ? &mousePos : nullptr, rotating);
   }
   else
@@ -2531,6 +2532,8 @@ void ViewportWindow::resetScreenshotMode()
     "viewport_window=%dx%d render_viewport=%dx%d", viewportTextureSize.x, viewportTextureSize.y, (int)viewport->getrb().x,
     (int)viewport->getrb().y);
 }
+
+void ViewportWindow::setGizmoPixelOffset(IPoint2 offset) { gizmoPixelOffset = offset; }
 
 void ViewportWindow::onImguiDelayedCallback(void *user_data)
 {

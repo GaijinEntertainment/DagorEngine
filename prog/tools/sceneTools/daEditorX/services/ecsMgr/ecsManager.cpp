@@ -14,6 +14,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
 #include <debug/dag_debug3d.h>
+#include <libTools/util/appDirRelativePath.h>
 
 static Tab<const char *> ecs_tools_get_global_tags_context()
 {
@@ -146,10 +147,8 @@ void init_ecs_mgr_service(const DataBlock &app_blk, const char *app_dir)
   const char *entitiesPath = game->getStr("entities", nullptr);
   const char *scenePath = game->getStr("scene", nullptr);
 
-  String entities(0, "%s%s", app_dir, entitiesPath);
-  String scene(0, "%s%s", app_dir, scenePath);
-  EcsAdapter *ecsAdapter = new (inimem) EcsAdapter(entitiesPath ? String(0, "%s%s", app_dir, entitiesPath).c_str() : nullptr,
-    scenePath ? String(0, "%s%s", app_dir, scenePath).c_str() : nullptr, app_blk);
+  EcsAdapter *ecsAdapter = new (inimem) EcsAdapter(entitiesPath ? make_eff_app_relative_path(entitiesPath).c_str() : nullptr,
+    scenePath ? make_eff_app_relative_path(scenePath).c_str() : nullptr, app_blk);
   if (!IDaEditor3Engine::get().registerService(ecsAdapter))
     logerr("Failed to register ECS Manager service.");
 }

@@ -75,7 +75,7 @@ macro DO_USE_FOM_SHADOWS(stage)
     {
       bool invalid = fom_shadows_tm_z.w < -1e6;
 #if FOM_USES_BINDLESS
-      invalid &= fom_shadows_bindless_slots.w > 0;
+      invalid |= fom_shadows_bindless_slots.w > 0;
 #endif
       BRANCH
       if (invalid)//uniform branch for early out, if nothing renered to fom

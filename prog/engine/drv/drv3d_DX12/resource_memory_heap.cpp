@@ -6312,7 +6312,7 @@ void OutOfMemoryRepoter::reportOOMInformation(DXGIAdapter *adapter)
 }
 
 bool OutOfMemoryRepoter::checkForOOM(DXGIAdapter *adapter, const eastl::optional<MemoryAllocationError> &error_info,
-  const OomReportData &report_data)
+  const OomReportData &report_data, bool fatal)
 {
   if (!error_info)
   {
@@ -6377,7 +6377,8 @@ bool OutOfMemoryRepoter::checkForOOM(DXGIAdapter *adapter, const eastl::optional
     drv_message_box(message, caption, flags);
   }
 #endif
-  DAG_FATAL("DX12: OOM%s during %s (check logs to get more info)", budgetStatus, report_data.getMethodName());
+  if (fatal)
+    DAG_FATAL("DX12: OOM%s during %s (check logs to get more info)", budgetStatus, report_data.getMethodName());
   return false;
 }
 
@@ -6683,6 +6684,15 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     texture->getDebugName([=](const auto &name) {
       G_UNUSED(name);
       DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, no BaseTex found", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+
+  if (baseTex->isExcludedFromDefragmentation())
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, excluded from defragmentation", name.c_str());
     });
     return ResourceMoveResolution::STAYING;
   }
@@ -7393,6 +7403,8 @@ void HeapFragmentationManager::completeFrameRecording(Device &device, DXGIAdapte
   if (!device.isDefragmentationEnabled() && !panicBudgetDefragmentation)
     return;
 
+  WinAutoLock defragLock(device.getContext().getDefragGuard());
+
   for (auto &group : groups)
     for (auto &heap : group)
     {
@@ -7556,6 +7568,15 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
       DEFRAG_VERBOSE(true, "DX12: Unable to move texture <%s>, no BaseTex found", name.c_str());
     });
     return ResourceLocationUpdateResult::FAILED;
+  }
+
+  if (baseTex->isExcludedFromDefragmentation())
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(true, "DX12: Unable to move texture <%s>, excluded from defragmentation", name.c_str());
+    });
+    return ResourceLocationUpdateResult::IMMOVABLE;
   }
 
   // Layout of textures created with TEXCF_NO_STATE_TRACKING is owned by the user via

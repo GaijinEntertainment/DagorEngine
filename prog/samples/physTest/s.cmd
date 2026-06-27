@@ -1,4 +1,4 @@
 cd ..\..\..\samples\physTest
-start PhysTestBULLET~bt3-dev.exe
-rem start PhysTestBULLET~bt2.82-dev.exe
-rem start PhysTestJOLT-dev.exe
+start physTestBULLET-windows-x86_64~bt3-dev.exe
+rem start physTestJOLT-windows-x86_64-dev.exe
+rem start physTestJOLT-windows-arm64-dev.exe

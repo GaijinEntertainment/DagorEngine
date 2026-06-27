@@ -115,6 +115,36 @@ static ecs::EntitySystemDesc water_fft_resolution_es_event_handler_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,nullptr,"water__fft_resolution");
+static constexpr ecs::ComponentDesc water_fresnel_reflectance_es_event_handler_comps[] =
+{
+//start of 3 ro components at [0]
+  {ECS_HASH("water__fresnel_specular_intensity"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("water__fresnel_ambient_reflection"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("water__fresnel_reflection"), ecs::ComponentTypeInfo<float>()}
+};
+static void water_fresnel_reflectance_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    water_fresnel_reflectance_es_event_handler(evt
+        , ECS_RO_COMP(water_fresnel_reflectance_es_event_handler_comps, "water__fresnel_specular_intensity", float)
+    , ECS_RO_COMP(water_fresnel_reflectance_es_event_handler_comps, "water__fresnel_ambient_reflection", float)
+    , ECS_RO_COMP(water_fresnel_reflectance_es_event_handler_comps, "water__fresnel_reflection", float)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc water_fresnel_reflectance_es_event_handler_es_desc
+(
+  "water_fresnel_reflectance_es",
+  "prog/daNetGame/main/waterES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, water_fresnel_reflectance_es_event_handler_all_events),
+  empty_span(),
+  make_span(water_fresnel_reflectance_es_event_handler_comps+0, 3)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,nullptr,"water__fresnel_ambient_reflection,water__fresnel_reflection,water__fresnel_specular_intensity");
 static constexpr ecs::ComponentDesc water_flowmap_es_event_handler_comps[] =
 {
 //start of 2 rw components at [0]

@@ -74,6 +74,10 @@ shader debug_final_gbuffer
     {
       dbg_gbuff_tex@tex2d = dbg_gbuff_tex;
     }
+    if (show_gbuffer >= debug_mesh)
+    {
+      downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    }
     world_view_pos@f3 = world_view_pos;
   }
 
@@ -149,6 +153,7 @@ shader debug_final_gbuffer
       }
       #define LOD_DIFFUSE_WEIGHT 0.1
       #define LOD_AMBIENT_WEIGHT 0.5
+      #define LOD_BACKGROUND_TINT 0.6
     }
   }
 
@@ -209,15 +214,22 @@ shader debug_final_gbuffer
       ##elif show_gbuffer >= debug_mesh
         float2 res;
         depth_gbuf_read.GetDimensions(res.x, res.y);
-        uint stencil = stencilFetch(depth_gbuf_stencil, (int2)round(distortedTc * res));
+        uint stencil = stencilFetch(depth_gbuf_stencil, (int2)(distortedTc * res));
 
         if (is_overdraw_mode()) {
           float strength = clamp(float(stencil), 0, overdraw_range) / overdraw_range;
           return luminance_heatmap(strength);
         }
 
-        half3 diffuse = stencil == 0 ? gbuffer.diffuseColor : debug_mesh_get_color(stencil - 1);
-        diffuse = lerp(diffuse, gbuffer.diffuseColor, LOD_DIFFUSE_WEIGHT);
+        if (stencil == 0)
+        {
+          float farDepth = tex2Dlod(downsampled_far_depth_tex, float4(distortedTc, 0, 0)).x;
+          if (farDepth <= 0)
+            return half4(0, 0, 0, 1);
+          return half4(gbuffer.diffuseColor * LOD_BACKGROUND_TINT, 1);
+        }
+
+        half3 diffuse = lerp(debug_mesh_get_color(stencil - 1), gbuffer.diffuseColor, LOD_DIFFUSE_WEIGHT);
 
         float3 lightDir = -from_sun_direction.xyz;
         float NoL = dot(gbuffer.normal, lightDir);

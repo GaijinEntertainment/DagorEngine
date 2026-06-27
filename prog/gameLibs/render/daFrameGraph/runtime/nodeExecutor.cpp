@@ -13,6 +13,7 @@
 #include <drv/3d/dag_heap.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <perfMon/dag_statDrv.h>
@@ -588,7 +589,7 @@ void NodeExecutor::applyState(const sd::NodeStateDelta &state, int frame, int pr
         // TODO: this is a dirty hack, we need to upgrade API to properly tackle this
         TextureInfo info;
         targets.front().resource.tex->getinfo(info);
-        d3d::begin_render_pass(begin->rp, {0, 0, info.w, info.h, 0, 1}, targets.data());
+        d3d::begin_render_pass(begin->rp, {0, 0, info.w, info.h, 0, 1}, make_span_const(targets.data(), targets.size()));
       }
       else if (eastl::holds_alternative<sd::LegacyBackbufferPass>(passChange->beginAction))
       {
@@ -641,11 +642,17 @@ void NodeExecutor::applyBindings(const sd::BindingsMap &bindings, int frame, int
   {
     // At this point, the bindings are guaranteed to be correct,
     // but (optional) resource might've still gone missing.
+    const int frameToGet = bindInfo.history ? prev_frame : frame;
     switch (bindInfo.type)
     {
       case BindingType::ShaderVar:
       {
         bindShaderVar(bindIdx, bindInfo, frame, prev_frame);
+        break;
+      }
+      case BindingType::BindlessShaderVar:
+      {
+        bindBindlessShaderVar(bindIdx, bindInfo, frame, prev_frame);
         break;
       }
       case BindingType::ViewMatrix:
@@ -654,11 +661,11 @@ void NodeExecutor::applyBindings(const sd::BindingsMap &bindings, int frame, int
           "Binding a blob as VIEW whose projected type is not a matrix.");
         if (bindInfo.projectedTag == tag_for<TMatrix4>())
         {
-          bindBlob<TMatrix4, static_cast<void (*)(int, const TMatrix4 &)>(&bindViewSetter)>(bindIdx, bindInfo, frame);
+          bindBlob<TMatrix4, static_cast<void (*)(int, const TMatrix4 &)>(&bindViewSetter)>(bindIdx, bindInfo, frameToGet);
         }
         else if (bindInfo.projectedTag == tag_for<TMatrix>())
         {
-          bindBlob<TMatrix, static_cast<void (*)(int, const TMatrix &)>(&bindViewSetter)>(bindIdx, bindInfo, frame);
+          bindBlob<TMatrix, static_cast<void (*)(int, const TMatrix &)>(&bindViewSetter)>(bindIdx, bindInfo, frameToGet);
         }
         break;
       }
@@ -666,7 +673,7 @@ void NodeExecutor::applyBindings(const sd::BindingsMap &bindings, int frame, int
       {
         G_ASSERTF_BREAK(bindInfo.projectedTag == tag_for<TMatrix4>() || bindInfo.projectedTag == tag_for<TMatrix4_vec4>(),
           "Binding a blob as PROJ whose projected type is not a matrix.");
-        bindBlob<TMatrix4, &bindProjSetter>(bindIdx, bindInfo, frame);
+        bindBlob<TMatrix4, &bindProjSetter>(bindIdx, bindInfo, frameToGet);
         break;
       }
       case BindingType::Invalid: G_ASSERT(false); break;
@@ -715,6 +722,41 @@ void NodeExecutor::bindShaderVar(int bind_idx, const intermediate::Binding &bind
     case SHVT_TLAS: logerr("daFG: set_tlas is not implemented yet"); break;
     default: logerr("daFG: Invalid shader var type '%d'!", svType); break;
   }
+}
+
+void NodeExecutor::bindBindlessShaderVar(int bind_idx, const intermediate::Binding &binding, int frame, int prev_frame) const
+{
+  if (DAGOR_UNLIKELY(ShaderGlobal::get_var_type(bind_idx) != SHVT_INT))
+    return;
+
+  const int frameToGet = binding.history ? prev_frame : frame;
+
+  uint32_t slot = BindlessSlotManager::INVALID_SLOT;
+  if (binding.resource)
+  {
+    if (binding.projectedTag == tag_for<d3d::SamplerHandle>())
+    {
+      const auto blob = getBlobView(*binding.resource, frameToGet);
+      slot = d3d::register_bindless_sampler(*static_cast<const d3d::SamplerHandle *>(binding.projector(blob.data)));
+    }
+    else
+    {
+      // Pick this frame's slot from the resource's per-frame range; the manager
+      // refreshes the descriptor only if the bound resource changed.
+      const uint32_t baseSlot = graph.resources[*binding.resource].baseBindlessSlot;
+      const bool isTex = graph.resources[*binding.resource].getResType() == ResourceType::Texture;
+      D3dResource *res = isTex ? static_cast<D3dResource *>(getTexture(*binding.resource, frameToGet))
+                               : static_cast<D3dResource *>(getBuffer(*binding.resource, frameToGet));
+      if (baseSlot != BindlessSlotManager::INVALID_SLOT && res)
+      {
+        slot = baseSlot + frameToGet;
+        bindlessSlots.updateBindlessResource(isTex, slot, res);
+      }
+    }
+  }
+
+  // Published as int: INVALID_SLOT's (uint32_t)-1 reads back as -1 (missing or unbound).
+  ShaderGlobal::set_int(bind_idx, static_cast<int>(slot));
 }
 
 template <typename ProjectedType, auto bindSetter>

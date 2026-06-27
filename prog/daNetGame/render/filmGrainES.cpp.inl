@@ -13,6 +13,7 @@
 #include <shaders/dag_shaderVariableInfo.h>
 #include <render/priorityManagedShadervar.h>
 #include <perfMon/dag_statDrv.h>
+#include <util/dag_console.h>
 #include "render/renderEvent.h"
 
 #include "filmGrain.h"
@@ -75,13 +76,22 @@ void FilmGrainLutHolder::resetExternalParams()
     resetLut();
 }
 
-void FilmGrainLutHolder::setLutSettings(int wh, int d, const Point4 &gen_params)
+void FilmGrainLutHolder::setGenParamsSettings(const Point4 &gen_params)
 {
   const bool hasLut = lut.getBaseTex() != nullptr;
-  if (wh == lutWH && d == lutD && gen_params == genParams && hasLut == isLutNeeded())
+  if (gen_params == genParams && hasLut == isLutNeeded())
     return;
   ShaderGlobal::set_float4(film_grain_gen_paramsVarId, gen_params);
   genParams = gen_params;
+  if (isLutNeeded())
+    requestRebuild();
+}
+
+void FilmGrainLutHolder::setLutResolution(int wh, int d)
+{
+  const bool hasLut = lut.getBaseTex() != nullptr;
+  if (wh == lutWH && d == lutD && hasLut == isLutNeeded())
+    return;
   lutWH = wh;
   lutD = d;
   if (isLutNeeded())
@@ -94,18 +104,6 @@ void FilmGrainLutHolder::resetLut()
   genCs.reset();
   genSlice = -1;
   rebuildRequested = false;
-}
-
-void FilmGrainLutHolder::reinitFromSettings(bool preset_allows)
-{
-  bool filmGrain = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("filmGrain", false) && preset_allows;
-  if (filmGrain)
-  {
-    Point4 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint4("filmGrain", Point4(0.2, 0.1, 1, 0));
-    setParamsFromSettings(value);
-  }
-  else
-    resetParamsFromSettings();
 }
 
 bool FilmGrainLutHolder::generate()
@@ -172,22 +170,28 @@ static void film_grain_lut_after_device_reset_es_event_handler(const ecs::Event 
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
-ECS_TRACK(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params)
-static void film_grain_lut_params_change_es_event_handler(const ecs::Event &,
-  FilmGrainLutHolder &film_grain_lut,
-  int film_grain_lut__wh = 256,
-  int film_grain_lut__d = 64,
-  const Point4 &film_grain_lut__gen_params = Point4(0, 0, 0, 0))
+ECS_TRACK(film_grain_lut__gen_params)
+static void film_grain_lut_params_change_es_event_handler(
+  const ecs::Event &, FilmGrainLutHolder &film_grain_lut, const Point4 &film_grain_lut__gen_params = Point4(0, 0, 0, 0))
 {
-  film_grain_lut.setLutSettings(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params);
+  film_grain_lut.setGenParamsSettings(film_grain_lut__gen_params);
 }
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear, OnRenderSettingsUpdated)
 static void film_grain_lut_settings_change_es_event_handler(const ecs::Event &evt, FilmGrainLutHolder &film_grain_lut)
 {
-  bool bareMinimum = g_entity_mgr->getOr(get_render_settings(evt), ECS_HASH("render_settings__bare_minimum"), false);
-  film_grain_lut.reinitFromSettings(!bareMinimum);
+  const bool bareMinimum = g_entity_mgr->getOr(get_render_settings(evt), ECS_HASH("render_settings__bare_minimum"), false);
+  const bool needsFilmGrain = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("filmGrain", false) && !bareMinimum;
+  const IPoint2 filmGrainRes = dgs_get_settings()->getBlockByNameEx("graphics")->getIPoint2("filmGrainLutRes", IPoint2(256, 64));
+  film_grain_lut.setLutResolution(filmGrainRes.x, filmGrainRes.y);
+  if (needsFilmGrain)
+  {
+    Point4 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint4("filmGrain", Point4(0.2, 0.1, 1, 0));
+    film_grain_lut.setParamsFromSettings(value);
+  }
+  else
+    film_grain_lut.resetParamsFromSettings();
 }
 
 ECS_TAG(render)
@@ -208,3 +212,23 @@ void FilmGrainLutHolder::disable_external_modifier()
 {
   film_grain_lut_ecs_query(*g_entity_mgr, [](FilmGrainLutHolder &film_grain_lut) { film_grain_lut.resetExternalParams(); });
 }
+
+static bool film_grain_console_handler(const char *argv[], int argc)
+{
+  if (argc < 1)
+    return false;
+
+  int found = 0;
+  CONSOLE_CHECK_NAME("render", "set_film_grain_lut_resolution", 3, 3)
+  {
+    const IPoint2 resFromSettings = dgs_get_settings()->getBlockByNameEx("graphics")->getIPoint2("filmGrainLutRes", IPoint2(256, 64));
+    int wh = console::to_int(argv[1]);
+    int d = console::to_int(argv[2]);
+    const IPoint2 requestedRes = wh > 0 && d > 0 ? IPoint2(wh, d) : resFromSettings;
+    film_grain_lut_ecs_query(*g_entity_mgr,
+      [requestedRes](FilmGrainLutHolder &film_grain_lut) { film_grain_lut.setLutResolution(requestedRes.x, requestedRes.y); });
+  }
+  return found;
+}
+
+REGISTER_CONSOLE_HANDLER(film_grain_console_handler);

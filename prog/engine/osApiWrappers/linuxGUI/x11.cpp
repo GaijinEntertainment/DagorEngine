@@ -526,6 +526,17 @@ const XWindowAttributes &X11::getWindowAttrib(Window w, bool translated)
     return windowAttribs[X11::WND_ROOT];
 }
 
+bool X11::getWindowClientSize(void *w, int &width, int &height)
+{
+  if (!w)
+    return false;
+
+  const XWindowAttributes &attrib = getWindowAttrib((intptr_t)w, true);
+  width = attrib.width;
+  height = attrib.height;
+  return true;
+}
+
 bool X11::getWindowScreenRect(void *w, linux_GUI::RECT *rect, linux_GUI::RECT *rect_unclipped)
 {
   if (!w || !rect)

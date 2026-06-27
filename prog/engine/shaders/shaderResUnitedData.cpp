@@ -6,6 +6,7 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <memory/dag_framemem.h>
 #include <util/dag_delayedAction.h>
+#include <util/dag_convar.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <generic/dag_sort.h>
@@ -22,6 +23,10 @@ static const TMatrix &get_cam_itm() { return TMatrix::IDENT; }
 #else
 const TMatrix &get_cam_itm();
 #endif
+
+// 0 means no limit
+CONSOLE_INT_VAL("render", desired_ri_max_blas_size_kb, 0, 0, (4 << 20));
+CONSOLE_INT_VAL("render", desired_dm_max_blas_size_kb, 0, 0, (4 << 20));
 
 namespace unitedvdata
 {
@@ -352,9 +357,20 @@ bool unitedvdata::BufPool::arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd
   if (!has_vdata)
     return false;
 
+  int maxBlasUseKb = 0;
+  if (parent == &riUnitedVdata)
+    maxBlasUseKb = desired_ri_max_blas_size_kb;
+  else if (parent == &dmUnitedVdata)
+    maxBlasUseKb = desired_dm_max_blas_size_kb;
   for (int i = 0; i < usedStride.size(); i++)
   {
-    BufChunk c = allocChunkForStride(usedStride[i], usedSize[i], hints, use_soft_limit);
+    bool shouldFail = false;
+    if (maxBlasUseKb && use_soft_limit && can_fail)
+    {
+      int64_t totalBufferSize = interlocked_relaxed_load(blasTotalBytes);
+      shouldFail = (totalBufferSize >> 10) > maxBlasUseKb;
+    }
+    BufChunk c = shouldFail ? BufChunk{} : allocChunkForStride(usedStride[i], usedSize[i], hints, use_soft_limit);
     const bool emptyIBAllowed = usedStride[i] == IDX_IB && usedSize[i] == 0;
     if (can_fail && !c.sz && !emptyIBAllowed)
     {
@@ -626,12 +642,13 @@ String unitedvdata::BufPool::getStatStr() const
           max_c >> 10, (pool[i].getSize() - sum) / (float)pool[i].getSize() * 100.f, (sum - max_c) / float(sum) * 100.f);
     }
   }
-  s.aprintf(0, " (total %dM+%dM=%dM) ", ib_total >> 20, vb_total >> 20, (ib_total + vb_total) >> 20);
+  uint64_t total_blases = interlocked_acquire_load(blasTotalBytes);
+  s.aprintf(0, " (total %dM+%dM=%dM, blases=%lluM) ", ib_total >> 20, vb_total >> 20, (ib_total + vb_total) >> 20, total_blases >> 20);
   return s;
 }
 
 template <class RES>
-ShaderResUnitedVdata<RES>::ShaderResUnitedVdata() : buf(*RES::getStaticClassName())
+ShaderResUnitedVdata<RES>::ShaderResUnitedVdata() : buf(*RES::getStaticClassName(), this)
 {}
 
 template <class RES>
@@ -1226,6 +1243,17 @@ bool ShaderResUnitedVdata<RES>::canUseVbAsSr() const
 }
 
 template <class RES>
+void ShaderResUnitedVdata<RES>::setBlasAllocationLimit(int limitKb)
+{
+  if (this == (void *)&riUnitedVdata)
+    desired_ri_max_blas_size_kb = limitKb;
+  else if (this == (void *)&dmUnitedVdata)
+    desired_dm_max_blas_size_kb = limitKb;
+  else
+    G_ASSERTF(false, "Unknown ShaderResUnitedVdata");
+}
+
+template <class RES>
 void ShaderResUnitedVdata<RES>::discardUnusedResToFreeReqMemImpl(bool lock, bool forced, bool async)
 {
   if (interlocked_acquire_load(vbSizeToFree) <= 0 && interlocked_acquire_load(ibSizeToFree) <= 0 &&
@@ -1553,7 +1581,8 @@ bool ShaderResUnitedVdata<RES>::addRes(dag::Span<RES *> res)
         {
           resList.push_back(r);
 
-          BufPool tmp_buf(*RES::getStaticClassName()); // we shall not clear this temporary buffer since sbuf[] get owned by res later
+          BufPool tmp_buf(*RES::getStaticClassName(), this); // we shall not clear this temporary buffer since sbuf[] get owned by res
+                                                             // later
           BufConfig tmp_hint;
           BufChunkTab c;
           tmp_buf.allowRebuild = true; //-V1048 // mark as pre-reserve only, without creating Sbuffers in arrangeVdata()

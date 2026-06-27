@@ -283,13 +283,14 @@ struct WaterHeightmap : public IHeightmapHandler
 void init();
 void close();
 
-enum
+enum GeomLod
 {
-  GEOM_INVISIBLE = 0,
-  GEOM_LOW = 1,
-  GEOM_NORMAL = 2,
-  GEOM_HIGH = 3
+  GEOM_LOD_INVISIBLE = 0,
+  GEOM_LOD_LOW = 1,
+  GEOM_LOD_NORMAL = 2,
+  GEOM_LOD_HIGH = 3
 };
+
 enum RenderMode
 {
   WATER_SHADER = 0,
@@ -297,6 +298,7 @@ enum RenderMode
   WATER_SSR_SHADER,
   MAX
 };
+
 FFTWater *create_water(RenderQuality quality, float period = 1000.f, int res_bits = 7, bool depth_renderer = false,
   bool ssr_renderer = false, bool one_to_four_cascades = false, int min_render_res_bits = 6,
   RenderQuality geom_quality = RenderQuality::UNDEFINED, bool water_heightmap_draw_patches = true,
@@ -316,7 +318,7 @@ void simulate(FFTWater *handle, double time);
 void before_render(const FFTWater *handle);
 void set_render_quad(FFTWater *handle, const BBox2 &quad);
 void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, Occlusion *occlusion,
-  const Driver3dPerspective &persp, int geom_lod_quality = GEOM_NORMAL, int survey_id = -1,
+  const Driver3dPerspective &persp, int geom_lod_quality = GEOM_LOD_NORMAL, int survey_id = -1,
   IWaterDecalsRenderHelper *decals_renderer = NULL, RenderMode render_mode = WATER_SHADER,
   eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {});
 float getGridLod0AreaSize(const FFTWater *handle);

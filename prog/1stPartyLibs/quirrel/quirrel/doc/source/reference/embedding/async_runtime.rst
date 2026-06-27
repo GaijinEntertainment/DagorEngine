@@ -152,11 +152,13 @@ Future class & C API
 
     Settle a manually-created Future from C. The payload is kept
     alive by an internal ``sq_addref``. Settling an already-settled
-    or already-adopted future is a silent no-op.
+    future is a silent no-op.
 
-    ``future_resolve`` applies the JS Promise Resolution Procedure:
-    a Future ``value`` is adopted (``future`` mirrors its eventual
-    settlement); a non-Future ``value`` fulfills immediately.
+    ``value`` is stored verbatim regardless of type, on both paths.
+    A ``Future`` ``value`` is NOT unwrapped or adopted: it becomes the
+    settled value as-is, and the script side peels one level with
+    ``await`` (see :ref:`async`). ``future_resolve`` fulfils with
+    ``value``; ``future_throw`` faults with it.
 
     ``future_throw`` is reserved for surfacing bugs from native code
     when a Quirrel call stack is not available - typically a
@@ -165,17 +167,14 @@ Future class & C API
     ``future_resolve``. A native binding that detects a bug and is
     itself running inside a Quirrel call should use
     ``sq_throwerror``, which the runtime routes into the surrounding
-    async body's task-Future via the throw-escape path. ``value`` is
-    stored verbatim regardless of type.
+    async body's task-Future via the throw-escape path.
 
-    Both return ``SQ_ERROR`` and throw if ``future`` is not a
-    Future instance, is a task-future (returned by an ``async``
-    function), or the payload is ``future`` itself.
-    ``future_resolve`` additionally throws on a cycle that lies
-    entirely within the adoption chain
-    (``a.resolve(b); b.resolve(a)``). Cycles that pass through a
-    fault are detected during settlement and produce a diagnostic
-    value rather than throwing.
+    Both return ``SQ_ERROR`` and throw if ``future`` is not a Future
+    instance, is a task-future (returned by an ``async`` function), or
+    the payload is ``future`` itself (a direct self-settle, the only
+    cycle guard). An indirect cycle
+    (``future_resolve(a, b); future_resolve(b, a)``) is not detected
+    and leaks the pair until ``sq_close``.
 
 Typical worker -> VM result delivery looks like::
 
@@ -247,9 +246,11 @@ any Quirrel function declared ``async`` is wired automatically once
 Unhandled fault reporting
 -------------------------
 
-When a task-future faults and no awaiter is there to receive the thrown
-value, the pump-tick sweep routes the fault to the VM's installed error
-handler (``sq_seterrorhandler``).
+When a faulted future is abandoned - never awaited and never acknowledged
+with ``markHandled()`` - the pump-tick sweep routes the fault to the VM's
+installed error handler (``sq_seterrorhandler``). This covers both a
+task-future and a bare ``Future`` faulted through ``Future.reject()`` or
+:cpp:func:`sqasync::future_throw`.
 If no handler is installed, the runtime writes the diagnostic to the VM
 error stream, followed by an ``ERROR TRACE`` block when the fault carries one.
 
@@ -264,6 +265,10 @@ settle-time ancestry walk appends one ``awaited at`` frame - tagged
 the faulting step. The trace travels on the future alongside the value, so
 it records the path from the throw site out through those ``await`` hops
 without being attached to the thrown value.
+
+A manually faulted future traces differently: ``Future.reject()`` captures
+the reject call site, while :cpp:func:`sqasync::future_throw` captures none
+(no Quirrel frame) and reports the value with no ``ERROR TRACE``.
 
 The captured trace is handed to the error handler as a third argument,
 but only to a handler that declares room for it: a script handler written

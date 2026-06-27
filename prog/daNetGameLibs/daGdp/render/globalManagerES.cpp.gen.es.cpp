@@ -218,9 +218,10 @@ static ecs::EntitySystemDesc dagdp_placer_changed_es_es_desc
 ,"render","dagdp__name,dagdp__object_groups");
 static constexpr ecs::ComponentDesc dagdp_level_settings_changed_es_comps[] =
 {
-//start of 7 rq components at [0]
+//start of 8 rq components at [0]
   {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("dagdp__default_target_mesh_lod"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_3d_tiles"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__max_meshes"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__max_objects"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__max_tiles"), ecs::ComponentTypeInfo<int>()},
@@ -240,32 +241,33 @@ static ecs::EntitySystemDesc dagdp_level_settings_changed_es_es_desc
   ecs::EntitySystemOps(nullptr, dagdp_level_settings_changed_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(dagdp_level_settings_changed_es_comps+0, 7)/*rq*/,
+  make_span(dagdp_level_settings_changed_es_comps+0, 8)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear,
                        ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,"render","dagdp__default_target_mesh_lod,dagdp__max_meshes,dagdp__max_objects,dagdp__max_tiles,dagdp__max_triangles,dagdp__max_volumes");
+,"render","dagdp__default_target_mesh_lod,dagdp__max_3d_tiles,dagdp__max_meshes,dagdp__max_objects,dagdp__max_tiles,dagdp__max_triangles,dagdp__max_volumes");
 static constexpr ecs::ComponentDesc level_settings_ecs_query_comps[] =
 {
-//start of 6 ro components at [0]
+//start of 7 ro components at [0]
   {ECS_HASH("dagdp__max_objects"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__max_triangles"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__max_meshes"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__max_tiles"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__max_3d_tiles"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__max_volumes"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__default_target_mesh_lod"), ecs::ComponentTypeInfo<int>()},
-//start of 1 rq components at [6]
+//start of 1 rq components at [7]
   {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc level_settings_ecs_query_desc
 (
   "dagdp::level_settings_ecs_query",
   empty_span(),
-  make_span(level_settings_ecs_query_comps+0, 6)/*ro*/,
-  make_span(level_settings_ecs_query_comps+6, 1)/*rq*/,
+  make_span(level_settings_ecs_query_comps+0, 7)/*ro*/,
+  make_span(level_settings_ecs_query_comps+7, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::level_settings_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -280,6 +282,7 @@ inline void dagdp::level_settings_ecs_query(ecs::EntityManager &manager, Callabl
             , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_triangles", int)
             , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_meshes", int)
             , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_tiles", int)
+            , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_3d_tiles", int)
             , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__max_volumes", int)
             , ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__default_target_mesh_lod", int)
             );

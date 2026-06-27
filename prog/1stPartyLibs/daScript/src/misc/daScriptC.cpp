@@ -232,7 +232,10 @@ int das_fileaccess_is_locked ( das_file_access * access ) {
 
 void das_get_root ( char * root, int maxbuf ) {
     auto r = getDasRoot();
-    strncpy ( root, r.c_str(), maxbuf );
+    if ( maxbuf > 0 ) {
+        strncpy ( root, r.c_str(), maxbuf );
+        root[maxbuf - 1] = '\0';
+    }
 }
 
 das_program * das_program_compile ( char * program_file, das_file_access * access, das_text_writer * tout, das_module_group * libgroup ) {
@@ -435,7 +438,10 @@ void das_error_output ( das_error * error, das_text_writer * tout ) {
 void das_error_report ( das_error * error, char * text, int maxLength ) {
     auto err = (Error *) error;
     auto str = reportError(err->at, err->what, err->extra, err->fixme, err->cerr );
-    strncpy(text, str.c_str(), maxLength);
+    if ( maxLength > 0 ) {
+        strncpy(text, str.c_str(), maxLength);
+        text[maxLength - 1] = '\0';
+    }
 }
 
 das_module * das_module_create ( char * name ) {

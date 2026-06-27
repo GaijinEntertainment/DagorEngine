@@ -11,6 +11,7 @@
 #include <DetourTileCache.h>
 #include <DetourTileCacheBuilder.h>
 #include <DetourNavMeshBuilder.h>
+#include <recastTools/recastTileCacheDetail.h>
 #include <EASTL/bonus/tuple_vector.h>
 #include <EASTL/unique_ptr.h>
 #include <memory/dag_memPtrAllocator.h>
@@ -110,8 +111,8 @@ struct RecastTileContext
 template <class T, class TFunc>
 bool finalize_navmesh_tilecached_tile(rcContext &ctx, const rcConfig &cfg, dtTileCacheAlloc *tcAllocator,
   dtTileCacheCompressor *tcComp, OffMeshConnectionsStorage *conn_storage, RecastTileContext &tile_ctx, int tx, int ty,
-  float walkableClimb, float walkableHeight, float walkableRadius, const T &obstacles, Tab<BuildTileData> &tile_data,
-  TFunc markObstaclesCb)
+  float walkableClimb, float walkableHeight, float walkableRadius, bool include_detailed_data, const T &obstacles,
+  Tab<BuildTileData> &tile_data, TFunc markObstaclesCb)
 {
   tile_ctx.lset = rcAllocHeightfieldLayerSet();
   if (!tile_ctx.lset)
@@ -283,6 +284,18 @@ bool finalize_navmesh_tilecached_tile(rcContext &ctx, const rcConfig &cfg, dtTil
     params.cs = cfg.cs;
     params.ch = cfg.ch;
     params.buildBvTree = false;
+
+    TileCacheDetailStorage detailStorage; // Owns memory and must survive till dtCreateNavMeshData
+    if (include_detailed_data)
+    {
+      if (!detailStorage.build(ctx, *lctx.layer, params, cfg.maxSimplificationError, cfg.detailSampleDist, cfg.detailSampleMaxError))
+      {
+        ctx.log(RC_LOG_ERROR, "Could not build tile cache detail mesh.");
+        tile_ctx.clearIntermediate(&tile_data);
+        return false;
+      }
+      detailStorage.apply(params);
+    }
 
     unsigned char *navData = 0;
     int navDataSize = 0;

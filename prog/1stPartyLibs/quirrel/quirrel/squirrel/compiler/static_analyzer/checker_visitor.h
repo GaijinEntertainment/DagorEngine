@@ -169,6 +169,10 @@ class CheckerVisitor : public Visitor
   void checkArguments(const CallExpr *callExpr);
   void checkContainerModification(const CallExpr *expr);
   void checkUnwantedModification(const CallExpr *expr);
+  void checkMutatingSharedDefault(const CallExpr *expr);
+  void checkMutatingSharedDefault(const BinExpr *expr);
+  void checkMutatingSharedDefault(const IncExpr *expr);
+  void checkMutatingSharedDefault(const UnExpr *expr);
   void checkCannotBeNull(const CallExpr *expr);
   void checkBooleanLambda(const CallExpr *expr);
   void checkCallbackReturnValue(const CallExpr *expr);
@@ -260,6 +264,8 @@ class CheckerVisitor : public Visitor
   void checkAccessNullable(const DestructuringDecl *d);
   void checkAccessNullable(const AccessExpr *acc);
   void checkEnumConstUsage(const GetFieldExpr *acc);
+  const ParamDecl *findMutatedSharedDefaultParam(const Expr *receiver);
+  void reportMutatingSharedDefault(const Expr *receiver, const Node *mod);
 
   enum StackSlotType {
     SST_NODE,

@@ -39,7 +39,7 @@ DAS_BASE_BIND_ENUM_IMPL(dafg::ResourceType, ResourceType, Invalid, Texture, Buff
 DAS_BASE_BIND_ENUM_IMPL(VariableRateShadingCombiner, VariableRateShadingCombiner, VRS_PASSTHROUGH, VRS_OVERRIDE, VRS_MIN, VRS_MAX,
   VRS_SUM);
 
-DAS_BASE_BIND_ENUM_IMPL(dafg::BindingType, BindingType, ShaderVar, ViewMatrix, ProjMatrix, Invalid);
+DAS_BASE_BIND_ENUM_IMPL(dafg::BindingType, BindingType, ShaderVar, BindlessShaderVar, ViewMatrix, ProjMatrix, Invalid);
 
 namespace bind_dascript
 {

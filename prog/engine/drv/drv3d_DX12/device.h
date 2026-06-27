@@ -108,11 +108,16 @@ class DeviceErrorState
   std::atomic<Health> contextHealth{Health::HEALTHY};
 
 protected:
-  void enterErrorState()
+  /// @brief Transitions the device to an error state using atomic state machine logic.
+  ///
+  /// @return true if the device was in HEALTHY state and successfully transitioned to ILL state; false otherwise.
+  bool enterErrorState()
   {
+    bool reported = false;
     Health expected = Health::HEALTHY;
     if (contextHealth.compare_exchange_strong(expected, Health::ILL))
     {
+      reported = true;
       logdbg("DX12: Device was in healthy state, entering ill state...");
     }
     else if (Health::ILL == expected)
@@ -131,6 +136,7 @@ protected:
       D3D_ERROR("DX12: Device was in unexpected state %u", static_cast<uint32_t>(expected));
     }
     notify_all(contextHealth);
+    return reported;
   }
 
   bool enterRecoveringState()
@@ -283,7 +289,7 @@ protected:
 class DeviceErrorState
 {
 protected:
-  void enterErrorState() {}
+  bool enterErrorState() { return false; }
 
   bool enterRecoveringState() { return true; }
 
@@ -550,6 +556,7 @@ private:
   bool isNvapiInitialized = false;
 #endif
   WIN_MEMBER bool allowRaytracePipelinePreload = true;
+  WIN_MEMBER bool allowPipelineSetCompilation = true;
   frontend::BindlessManager bindlessManager;
   BufferState nullBuffer;
   Sbuffer *dummyUavBuffer = nullptr;
@@ -645,6 +652,7 @@ public:
   uint64_t getGpuTimestampFrequency();
   int getGpuClockCalibration(uint64_t *gpu, uint64_t *cpu, int *cpu_freq_type);
   bool isRaytracePipelinePreloadAllowed() const { return allowRaytracePipelinePreload; }
+  bool isPipelineSetCompilationAllowed() const { return allowPipelineSetCompilation; }
   Image *createImage(const ImageInfo &ii, Image *base_image, const char *name);
 #if _TARGET_PC_WIN
   Image *createVirtualBackbuffer(Image *base, const char *name);
@@ -781,10 +789,10 @@ public:
     enterErrorState();
   }
 
-  void signalDeviceErrorNoDebugInfo()
+  bool signalDeviceErrorNoDebugInfo()
   {
     D3D_ERROR("DX12: Detected device lost (debug info will be reported by error observer)...");
-    enterErrorState();
+    return enterErrorState();
   }
 #endif
 
@@ -1786,7 +1794,7 @@ inline void BufferInterfaceConfigCommon::setBufferApiName(BufferConstReferenceTy
     get_device().nameResource(buffer.buffer, name);
 }
 
-inline void BufferInterfaceConfigCommon::frontendSyncFence() { ScopedCommitLock lock(get_device().getContext()); }
+inline void BufferInterfaceConfigCommon::frontendSyncFence() { WinAutoLock lock(get_device().getContext().getDefragGuard()); }
 
 inline void BufferInterfaceConfigCommon::deleteBuffer(BufferReferenceType buffer)
 {

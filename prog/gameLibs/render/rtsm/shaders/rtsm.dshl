@@ -70,6 +70,8 @@ float4 globtm_no_ofs_psf_0;
 float4 globtm_no_ofs_psf_1;
 float4 globtm_no_ofs_psf_2;
 float4 globtm_no_ofs_psf_3;
+// Need to pass sampler explicitly, because the texture is used bindlessly
+sampler depth_gbuf_samplerstate;
 
 macro READ_NEIGHBORS(stage)
   hlsl(stage) {
@@ -216,12 +218,15 @@ shader rt_shadows, rt_shadows_fill_high
     USE_DISTANCE_PAYLOAD(cs)
     USE_GENERIC_RAYGEN_AHS(cs, true)
   }
-
-  INIT_READ_DEPTH_GBUFFER_BASE(cs)
-  hlsl (cs) {
-    #define depth_gbuf_load depth_gbuf_read
+  INIT_BVH_BINDLESS_GBUFFER(cs)
+  if (rtsm_add_far_screen_space_shadows == yes)
+  {
+    (cs)
+    {
+      gbuffer_uv_transform_depth_read@f4 = gbuffer_uv_transform;
+      depth_gbuf_read_samplerstate@sampler = depth_gbuf_samplerstate;
+    }
   }
-
   INIT_BLUE_NOISE(cs)
   USE_BLUE_NOISE(cs)
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
@@ -496,7 +501,7 @@ shader rt_shadows, rt_shadows_fill_high
           if (useSSS)
           {
             float2 hitUV;
-            float contactT = contactShadowRayCastWithScaleHitT(depth_gbuf_read,
+            float contactT = contactShadowRayCastWithScaleHitT(depth_gbuf_load,
                                                                depth_gbuf_read_samplerstate,
                                                                relPos,
                                                                direction,
@@ -610,12 +615,6 @@ shader rt_shadows_fill_low, rt_shadows_fill_high_prepass
   }
 
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
-  INIT_PACK_UNPACK_DYNSTCODE(cs)
-  INIT_LOAD_BVH_FLAGS_BASE(cs)
-  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
-  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
-  INIT_LOAD_GBUFFER_BASE(cs)
-  USE_LOAD_GBUFFER_BASE(cs, true)
 
   hlsl(cs) {
     #include <NRD.hlsli>
@@ -640,10 +639,6 @@ shader rt_shadows_fill_low, rt_shadows_fill_high_prepass
 
       if (any(dtid >= resolution))
         return;
-
-      float rawDepth = loadGbufferDepth(dtid);
-      float4 clipDepth = float4(0, 0, rawDepth, 1);
-      float4 viewDepth = mul(inv_proj_tm, clipDepth);
 
       uint samples = 0;
       uint missCount = 0;
@@ -750,6 +745,7 @@ shader rt_direct_lights
   USE_AND_INIT_VIEW_VEC_CS()
   INIT_ZNZFAR_STAGE(cs)
   INIT_PACK_UNPACK_DYNSTCODE(cs)
+  INIT_BVH_BINDLESS_GBUFFER(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, true)

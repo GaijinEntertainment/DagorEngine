@@ -4,25 +4,12 @@
 #include <assets/asset.h>
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_string.h>
+#include <libTools/util/appDirRelativePath.h>
 
 static String basedir, tmp;
 
 //! init asset local props management for specified application folders
-void assetlocalprops::init(const char *app_dir, const char *local_dir)
-{
-  if (!app_dir || !app_dir[0])
-    app_dir = "./";
-  if (!local_dir || !local_dir[0])
-    local_dir = ".";
-  tmp.printf(260, "%s/%s", app_dir, local_dir);
-  dd_simplify_fname_c(tmp);
-
-  if (!tmp[0])
-    tmp = ".";
-  else
-    dd_mkdir(tmp);
-  basedir.printf(260, "%s/", tmp.str());
-}
+void assetlocalprops::init(const char *local_dir) { make_eff_app_relative_path(basedir, local_dir, true); }
 
 bool assetlocalprops::mkDir(const char *rel_path) { return dd_mkdir(makePath(rel_path)); }
 

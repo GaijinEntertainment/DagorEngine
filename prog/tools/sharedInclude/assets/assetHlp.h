@@ -68,7 +68,7 @@ int get_tex_type();
 namespace assetlocalprops
 {
 //! init asset local props management for specified application folders
-void init(const char *app_dir, const char *local_dir = "develop/.asset-local");
+void init(const char *local_dir = "develop/.asset-local");
 
 //! creates folder specified by relative path
 bool mkDir(const char *rel_path);

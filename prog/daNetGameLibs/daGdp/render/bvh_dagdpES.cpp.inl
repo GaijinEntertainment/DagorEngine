@@ -64,7 +64,7 @@ BvhManager *get_bvh_manager()
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
-static void bvh_manager_appear_es(ecs::Event &, dagdp::BvhManager &dagdp__bvh_manager)
+static void bvh_manager_appear_es(const ecs::Event &, dagdp::BvhManager &dagdp__bvh_manager)
 {
   dagdp__bvh_manager.makeRTHWInstances = new_compute_shader("dagdp_bvh_riex_instantiate");
   dagdp__bvh_manager.makeIndirectArgs = new_compute_shader("dagdp_bvh_make_indirect_args");

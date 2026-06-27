@@ -9,6 +9,7 @@
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <util/dag_string.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <debug/dag_debug.h>
 
 struct DaBuildPluginState
@@ -104,7 +105,7 @@ bool assetrefs::load_plugins(DagorAssetMgr &mgr, DataBlock &appblk, const char *
   int nid_folder = appblk.getNameId("folder"), nid_plugin = appblk.getNameId("plugin"), nid_type = appblk.getNameId("type");
 
   if (appblk.getStr("shaders", NULL))
-    appblk.setStr("shadersAbs", String(260, "%s/%s", appdir, appblk.getStr("shaders", NULL)));
+    appblk.setStr("shadersAbs", make_eff_app_relative_path(appblk.getStr("shaders")));
   else
     appblk.setStr("shadersAbs", String(260, "%s/../common/compiledShaders/tools", start_dir));
 
@@ -148,14 +149,14 @@ bool assetrefs::load_plugins(DagorAssetMgr &mgr, DataBlock &appblk, const char *
       if (stricmp(pfolder, "*common") == 0)
         ret = load_plugins_from_dir(appblk, mgr, String(260, "%s/%s", start_dir, common_dir));
       else
-        ret = load_plugins_from_dir(appblk, mgr, String(260, "%s/%s", appdir, pfolder));
+        ret = load_plugins_from_dir(appblk, mgr, make_eff_app_relative_path(pfolder));
 
       if (!ret)
         return false;
     }
     else if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid_plugin)
     {
-      if (!loadSingleExporterPlugin(appblk, mgr, String(260, "%s/%s", appdir, blk.getStr(i))))
+      if (!loadSingleExporterPlugin(appblk, mgr, make_eff_app_relative_path(blk.getStr(i))))
         return false;
     }
   return true;

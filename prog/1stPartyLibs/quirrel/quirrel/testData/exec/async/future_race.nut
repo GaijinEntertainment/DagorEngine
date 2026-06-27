@@ -14,8 +14,8 @@ async function main() {
     print("race fulfil: " + r + "\n")
   }
 
-  // First to fault wins: `boom` faults, the other input never settles, so race
-  // adopts the fault and the await throws.
+  // First to fault wins: `boom` faults, the other input never settles, so the
+  // child catches it and does done.reject(e), and the await on race throws.
   {
     async function boom() { throw "race-boom" }
     let pending = Future()  // never settles

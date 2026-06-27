@@ -1,11 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "bvh_context.h"
+#include "bvh_tools.h"
 #include <3d/dag_lockSbuffer.h>
 #include <image/dag_texPixel.h>
 #include <util/dag_convar.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_enumerate.h>
+#include <shaders/dag_shaderResUnitedData.h>
 
 const PerInstanceData PerInstanceData::ZERO = {};
 
@@ -56,6 +58,10 @@ struct DeathrowJob : public cpujobs::IJob
 
 void Object::teardown(ContextId context_id, uint64_t object_id)
 {
+  if (type == BvhType::RI && blas)
+    unitedvdata::riUnitedVdata.adjustBlasSize(-int64_t(blas.getASSize()));
+  else if (type == BvhType::Dyn && blas)
+    unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(blas.getASSize()));
   blas.reset();
   for (auto &mesh : meshes)
     mesh.teardown(context_id);
@@ -67,6 +73,10 @@ void Object::teardown(ContextId context_id, uint64_t object_id)
   {
     if (iter->second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
       context_id->freeMetaRegion(iter->second.metaAllocId);
+    if (type == BvhType::RI && iter->second.blas)
+      unitedvdata::riUnitedVdata.adjustBlasSize(-int64_t(iter->second.blas.getASSize()));
+    else if (type == BvhType::Dyn && iter->second.blas)
+      unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(iter->second.blas.getASSize()));
     iter->second.blas.reset();
     context_id->stationaryTreeBuffers.erase(iter);
   }
@@ -465,7 +475,7 @@ bool Context::releaseBuffer(Sbuffer *buffer)
   return false;
 }
 
-Context::BLASCompaction *Context::beginBLASCompaction(uint64_t object_id)
+Context::BLASCompaction *Context::beginBLASCompaction(uint64_t object_id, BvhType type)
 {
   if (!is_blas_compaction_enabled())
     return nullptr;
@@ -499,6 +509,7 @@ Context::BLASCompaction *Context::beginBLASCompaction(uint64_t object_id)
   compaction->compactedSizeOffset = compactedSizeBufferCursor;
   compaction->query.reset(d3d::create_event_query());
   compaction->stage = Context::BLASCompaction::Stage::Created;
+  compaction->type = type;
 
   compactedSizeBufferCursor++;
 

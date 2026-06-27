@@ -113,6 +113,7 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
   // known-empty state; the header promises this contract.
   scratch.verts.clear();
   scratch.indices.clear();
+  scratch.orderedVerts.clear();
   scratch.primBoxes.clear();
 
   const auto allNodes = coll_res.getAllNodes();
@@ -219,49 +220,26 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
     firstVertex += vertCount;
   }
 
-  // BLAS leaf format packs vertex offsets in 10 bits each (max spread QUAD_O*_MAX = 1023,
-  // see swBLASLeafDefs.hlsli). Triangles whose vertex indices span more than that can't
-  // be represented in one leaf and would silently truncate to a wrapped offset, producing
-  // random triangle connectivity at runtime. For each such triangle, duplicate its three
-  // verts into a fresh compact range so its indices become (base, base+1, base+2) --
-  // spread = 2, always fits.
-  // Per-triangle spread is bounded by (vertCount - 1), so meshes at or below the limit
-  // can't overflow -- skip the scan entirely. Covers the bulk of small RI pools.
-  if (scratch.verts.size() > QUAD_O1_MAX + 1)
+  // Box fast path on the raw gather, before the SAH reorder: a box resource is emitted as an analytic
+  // box, so leafOrderVertexFetch's triangle-box + SAH-order work would be built only to be discarded.
+  // checkIfIsBox is vertex-order independent and a genuine box gathers exactly its 8 verts, so the
+  // verdict is identical pre- and post-reorder.
   {
-    const int idxCount = (int)scratch.indices.size();
-    for (int t = 0; t < idxCount; t += 3)
-    {
-      uint32_t &i0 = scratch.indices[t + 0];
-      uint32_t &i1 = scratch.indices[t + 1];
-      uint32_t &i2 = scratch.indices[t + 2];
-      const uint32_t mn = min(min(i0, i1), i2);
-      const uint32_t mx = max(max(i0, i1), i2);
-      if (mx - mn > QUAD_O1_MAX)
-      {
-        // Copy to locals first: push_back may reallocate scratch.verts, after which a
-        // reference into the old storage (scratch.verts[iN]) would dangle.
-        const Point3_vec4 v0 = scratch.verts[i0];
-        const Point3_vec4 v1 = scratch.verts[i1];
-        const Point3_vec4 v2 = scratch.verts[i2];
-        const uint32_t base = (uint32_t)scratch.verts.size();
-        scratch.verts.push_back(v0);
-        scratch.verts.push_back(v1);
-        scratch.verts.push_back(v2);
-        i0 = base;
-        i1 = base + 1;
-        i2 = base + 2;
-      }
-    }
+    const bbox3f rawBox = build_bvh::calcBox((const vec4f *)scratch.verts.data(), (int)scratch.verts.size());
+    if (build_bvh::checkIfIsBox(scratch.indices.data(), (int)scratch.indices.size(), (const vec4f *)scratch.verts.data(),
+          (int)scratch.verts.size(), rawBox))
+      return swrt.addBoxModel(rawBox.bmin, rawBox.bmax);
   }
 
-  const vec4f *vertsPtr = (const vec4f *)scratch.verts.data();
-  const int vertCountTotal = (int)scratch.verts.size();
+  // SAH-leaf-order renumber + shared window-block over-spread dup (build_bvh, see dag_bvhBuild.h).
+  // scratch.orderedVerts becomes the BLAS vertex array; scratch.indices is rewritten to index it.
+  build_bvh::leafOrderVertexFetch(scratch.indices.data(), (unsigned)scratch.indices.size(), (const vec4f *)scratch.verts.data(),
+    (unsigned)scratch.verts.size(), QUAD_O1_MAX + 1u, scratch.orderedVerts);
+
+  const vec4f *vertsPtr = scratch.orderedVerts.data();
+  const int vertCountTotal = (int)scratch.orderedVerts.size();
   const int idxCountTotal = (int)scratch.indices.size();
   bbox3f box = build_bvh::calcBox(vertsPtr, vertCountTotal);
-
-  if (build_bvh::checkIfIsBox(scratch.indices.data(), idxCountTotal, vertsPtr, vertCountTotal, box))
-    return swrt.addBoxModel(box.bmin, box.bmax);
 
   const int faceCount = idxCountTotal / 3;
   Tab<build_bvh::QuadPrim> prims;
@@ -278,7 +256,7 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
 
   dag::Vector<uint8_t> blasBytes;
   build_bvh::writeQuadBLAS(blasBytes, box, nodes.data(), root, prims.data(), (int)prims.size(),
-    reinterpret_cast<const uint8_t *>(scratch.verts.data()), (int)sizeof(Point3_vec4), vertCountTotal);
+    reinterpret_cast<const uint8_t *>(vertsPtr), (int)sizeof(vec4f), vertCountTotal);
 
   // Score box-resemblance on the SWRT BuiltBLAS itself (FP16-encoded tree)
   // if its already a box, we have early exit above (build_bvh::checkIfIsBox)

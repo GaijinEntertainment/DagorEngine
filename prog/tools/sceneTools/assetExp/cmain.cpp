@@ -18,6 +18,8 @@
 #include <libTools/util/strUtil.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/fileUtils.h>
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <ioSys/dag_findFiles.h>
 #include <ioSys/dag_fileIo.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -440,7 +442,13 @@ int DagorWinMain(bool debugmode)
 
   char app_dir[260];
   dd_get_fname_location(app_dir, arg[0]);
-  if (!app_dir[0])
+  set_canonical_app_dir_mount(app_dir);
+  if (const char *path = dd_get_named_mount_path("appDir", 6))
+  {
+    strncpy(app_dir, path, sizeof(app_dir));
+    app_dir[sizeof(app_dir) - 1] = '\0';
+  }
+  else if (!app_dir[0])
     strcpy(app_dir, "./");
 
   IDaBuildInterface *dabuild = get_dabuild_interface();
@@ -464,6 +472,7 @@ int DagorWinMain(bool debugmode)
     printf("ERR: cannot load project settings from <%s>\n", arg[0]);
     return 13;
   }
+  setup_named_mount_points(*appblk.getBlockByNameEx("mountPoints"));
 
   setup_dxp_grp_write_ver(*appblk.getBlockByNameEx("assets")->getBlockByNameEx("build"), log);
   appblk.setStr("appDir", app_dir);
@@ -478,9 +487,7 @@ int DagorWinMain(bool debugmode)
 
   // setup shaders dump path
   if (appblk.getStr("shaders", NULL))
-    appblk.setStr("shadersAbs", String(260, "%s/%s", app_dir, appblk.getStr("shaders", NULL)));
-  else
-    appblk.setStr("shadersAbs", String(260, "%s/../common/compiledShaders/tools", start_dir));
+    appblk.setStr("shadersAbs", make_eff_app_relative_path(appblk.getStr("shaders")));
 
   String cdk_dir(260, "%s/../", start_dir);
   appblk.setStr("dagorCdkDir", simplify_fname(cdk_dir));
@@ -836,9 +843,9 @@ int DagorWinMain(bool debugmode)
     const char *profile = (assets_profile && !*assets_profile) ? NULL : assets_profile;
     const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
 
-    cacheBase.printf(260, profile ? "%s/%s/~%s%s/" : "%s/%s/", app_dir, expblk.getStr("cache", "/develop/.cache"), profile,
+    cacheBase.printf(260, profile ? "%s/~%s%s/" : "%s/", make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache")), profile,
       dabuild_strip_d3d_res ? "~strip_d3d_res" : "");
-    cacheDdsxBase.printf(260, "%s/%s/ddsx~cvt/", app_dir, expblk.getStr("cache", "/develop/.cache"));
+    cacheDdsxBase.setStrCat(make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache"), true), "ddsx~cvt/");
 
     simplify_fname(cacheBase);
     simplify_fname(cacheDdsxBase);

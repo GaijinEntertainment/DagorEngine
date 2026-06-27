@@ -27,48 +27,48 @@ CONSOLE_BOOL_VAL("dagdp", volume_early_riex_gather, true);
 
 namespace var
 {
-static ShaderVariableInfo draw_ranges("dagdp_volume__draw_ranges");
-static ShaderVariableInfo placeables("dagdp_volume__placeables");
-static ShaderVariableInfo placeable_weights("dagdp_volume__placeable_weights");
-static ShaderVariableInfo renderable_indices("dagdp_volume__renderable_indices");
-static ShaderVariableInfo variants("dagdp_volume__variants");
-static ShaderVariableInfo volume_variants("dagdp_volume__volume_variants");
+static ShaderVariableInfo draw_ranges("dagdp_volume__draw_ranges", true);
+static ShaderVariableInfo placeables("dagdp_volume__placeables", true);
+static ShaderVariableInfo placeable_weights("dagdp_volume__placeable_weights", true);
+static ShaderVariableInfo renderable_indices("dagdp_volume__renderable_indices", true);
+static ShaderVariableInfo variants("dagdp_volume__variants", true);
+static ShaderVariableInfo volume_variants("dagdp_volume__volume_variants", true);
 
-static ShaderVariableInfo debug_frustum_culling_bias("dagdp_volume__debug_frustum_culling_bias");
-static ShaderVariableInfo max_placeable_bounding_radius("dagdp_volume__max_placeable_bounding_radius");
-static ShaderVariableInfo num_renderables("dagdp_volume__num_renderables");
-static ShaderVariableInfo num_placeables("dagdp_volume__num_placeables");
-static ShaderVariableInfo tile_start_index("dagdp_volume__tile_start_index");
+static ShaderVariableInfo debug_frustum_culling_bias("dagdp_volume__debug_frustum_culling_bias", true);
+static ShaderVariableInfo max_placeable_bounding_radius("dagdp_volume__max_placeable_bounding_radius", true);
+static ShaderVariableInfo num_renderables("dagdp_volume__num_renderables", true);
+static ShaderVariableInfo num_placeables("dagdp_volume__num_placeables", true);
+static ShaderVariableInfo tile_start_index("dagdp_volume__tile_start_index", true);
 
-static ShaderVariableInfo prng_seed_placeable("dagdp_volume__prng_seed_placeable");
-static ShaderVariableInfo prng_seed_slope("dagdp_volume__prng_seed_slope");
-static ShaderVariableInfo prng_seed_occlusion("dagdp_volume__prng_seed_occlusion");
-static ShaderVariableInfo prng_seed_scale("dagdp_volume__prng_seed_scale");
-static ShaderVariableInfo prng_seed_yaw("dagdp_volume__prng_seed_yaw");
-static ShaderVariableInfo prng_seed_pitch("dagdp_volume__prng_seed_pitch");
-static ShaderVariableInfo prng_seed_roll("dagdp_volume__prng_seed_roll");
-static ShaderVariableInfo prng_seed_triangle1("dagdp_volume__prng_seed_triangle1");
-static ShaderVariableInfo prng_seed_triangle2("dagdp_volume__prng_seed_triangle2");
-static ShaderVariableInfo prng_seed_jitter_x("dagdp_volume__prng_seed_jitter_x");
-static ShaderVariableInfo prng_seed_jitter_z("dagdp_volume__prng_seed_jitter_z");
+static ShaderVariableInfo prng_seed_placeable("dagdp_volume__prng_seed_placeable", true);
+static ShaderVariableInfo prng_seed_slope("dagdp_volume__prng_seed_slope", true);
+static ShaderVariableInfo prng_seed_occlusion("dagdp_volume__prng_seed_occlusion", true);
+static ShaderVariableInfo prng_seed_scale("dagdp_volume__prng_seed_scale", true);
+static ShaderVariableInfo prng_seed_yaw("dagdp_volume__prng_seed_yaw", true);
+static ShaderVariableInfo prng_seed_pitch("dagdp_volume__prng_seed_pitch", true);
+static ShaderVariableInfo prng_seed_roll("dagdp_volume__prng_seed_roll", true);
+static ShaderVariableInfo prng_seed_triangle1("dagdp_volume__prng_seed_triangle1", true);
+static ShaderVariableInfo prng_seed_triangle2("dagdp_volume__prng_seed_triangle2", true);
+static ShaderVariableInfo prng_seed_jitter_x("dagdp_volume__prng_seed_jitter_x", true);
+static ShaderVariableInfo prng_seed_jitter_z("dagdp_volume__prng_seed_jitter_z", true);
 
-static ShaderVariableInfo viewport_pos("dagdp_volume__viewport_pos");
-static ShaderVariableInfo viewport_max_distance("dagdp_volume__viewport_max_distance");
-static ShaderVariableInfo viewport_index("dagdp_volume__viewport_index");
+static ShaderVariableInfo viewport_pos("dagdp_volume__viewport_pos", true);
+static ShaderVariableInfo viewport_max_distance("dagdp_volume__viewport_max_distance", true);
+static ShaderVariableInfo viewport_index("dagdp_volume__viewport_index", true);
 
-static ShaderVariableInfo dispatch_index("dagdp_volume__dispatch_index");
+static ShaderVariableInfo dispatch_index("dagdp_volume__dispatch_index", true);
 
-static ShaderVariableInfo mesh_params("dagdp_volume__mesh_params");
-static ShaderVariableInfo areas_start_offset("dagdp_volume__areas_start_offset");
-static ShaderVariableInfo areas_bottom_offset("dagdp_volume__areas_bottom_offset");
-static ShaderVariableInfo areas_top_offset("dagdp_volume__areas_top_offset");
-static ShaderVariableInfo areas_count("dagdp_volume__areas_count");
-static ShaderVariableInfo areas("dagdp_volume__areas");
+static ShaderVariableInfo mesh_params("dagdp_volume__mesh_params", true);
+static ShaderVariableInfo areas_start_offset("dagdp_volume__areas_start_offset", true);
+static ShaderVariableInfo areas_bottom_offset("dagdp_volume__areas_bottom_offset", true);
+static ShaderVariableInfo areas_top_offset("dagdp_volume__areas_top_offset", true);
+static ShaderVariableInfo areas_count("dagdp_volume__areas_count", true);
+static ShaderVariableInfo areas("dagdp_volume__areas", true);
 
-static ShaderVariableInfo volumes("dagdp_volume__volumes");
-static ShaderVariableInfo meshes("dagdp_volume__meshes");
-static ShaderVariableInfo dispatches("dagdp_volume__dispatches");
-static ShaderVariableInfo tiles("dagdp_volume__tiles");
+static ShaderVariableInfo volumes("dagdp_volume__volumes", true);
+static ShaderVariableInfo meshes("dagdp_volume__meshes", true);
+static ShaderVariableInfo dispatches("dagdp_volume__dispatches", true);
+static ShaderVariableInfo tiles("dagdp_volume__tiles", true);
 } // namespace var
 
 using TmpName = eastl::fixed_string<char, 128>;
@@ -161,33 +161,6 @@ using PerLevel = dag::RelocatableFixedVector<T, ESTIMATED_PREFIX_SUM_LEVELS, tru
 
 template <typename T>
 using PerProcessedMesh = dag::RelocatableFixedVector<T, ESTIMATED_PROCESSED_MESHES_PER_FRAME, true, framemem_allocator>;
-
-template <typename T>
-bool updateFrameMem(dag::ConstSpan<T> items, Sbuffer *buffer, uint32_t max_size, const char *what)
-{
-  if (items.size() == 0)
-  {
-    // frame mem buffers must be updated every frame if shader specifies binding,
-    // regardless of logic inside of shader
-    T dummyItem = {};
-    buffer->updateData(0, sizeof(T), &dummyItem, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-    return true;
-  }
-
-  if (items.size() > max_size)
-  {
-    logerr("daGdp: volume placement exceeded max. number of %s (%u > %u).", what, items.size(), max_size);
-    return false;
-  }
-
-  if (!buffer->updateData(0, sizeof(T) * items.size(), items.data(), VBLOCK_WRITEONLY | VBLOCK_DISCARD))
-  {
-    logerr("daGdp: volume %s staging buffer update error.", what);
-    return false;
-  }
-
-  return true;
-}
 
 void DagdpRiexGatherJob::reset()
 {
@@ -470,19 +443,19 @@ void create_volume_nodes(const ViewInfo &view_info,
         }
       }
 
-      if (!updateFrameMem(make_span_const(gatheredInfo.relevantMeshes), persistentData->meshesBuffer.getBuf(),
-            persistentData->constants.maxMeshes, "meshes"))
+      if (!update_frame_mem(make_span_const(gatheredInfo.relevantMeshes), persistentData->meshesBuffer.getBuf(),
+            persistentData->constants.maxMeshes, "volume meshes"))
         return;
 
-      if (!updateFrameMem(make_span_const(gatheredInfo.dispatches), persistentData->dispatchesBuffer.getBuf(),
-            persistentData->constants.maxDispatches, "dispatches"))
+      if (!update_frame_mem(make_span_const(gatheredInfo.dispatches), persistentData->dispatchesBuffer.getBuf(),
+            persistentData->constants.maxDispatches, "volume dispatches"))
         return;
 
-      if (!updateFrameMem(make_span_const(gatheredInfo.relevantTiles), persistentData->tilesBuffer.getBuf(),
-            persistentData->constants.maxTiles, "tiles"))
+      if (!update_frame_mem(make_span_const(gatheredInfo.relevantTiles), persistentData->tilesBuffer.getBuf(),
+            persistentData->constants.maxTiles, "volume tiles"))
         return;
 
-      if (!updateFrameMem(make_span_const(gatheredInfo.relevantVolumes), persistentData->volumesBuffer.getBuf(),
+      if (!update_frame_mem(make_span_const(gatheredInfo.relevantVolumes), persistentData->volumesBuffer.getBuf(),
             persistentData->constants.maxVolumes, "volumes"))
         return;
 

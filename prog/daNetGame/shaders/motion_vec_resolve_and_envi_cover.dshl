@@ -30,7 +30,7 @@ shader fill_reactive_mask_from_gbuffer
   compile("target_ps", "main_ps");
 }
 
-shader motion_vectors_resolve
+shader resolve_motion_vectors
 {
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
 
@@ -56,7 +56,7 @@ shader motion_vectors_resolve
   }
 
   hlsl(ps) {
-    float4 motion_vectors_resolve_ps(VsOutput i) : SV_Target0
+    float4 resolve_motion_vectors_ps(VsOutput i) : SV_Target0
     {
       if (isGbufferDynamic(i.uv))
         discard;
@@ -74,7 +74,7 @@ shader motion_vectors_resolve
     }
   }
 
-  compile("target_ps", "motion_vectors_resolve_ps");
+  compile("target_ps", "resolve_motion_vectors_ps");
 }
 
 texture noise_128_tex_hash;

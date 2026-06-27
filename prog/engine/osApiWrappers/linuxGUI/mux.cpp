@@ -123,6 +123,7 @@ void set_title_utf8(const char *title, const char *tooltip) { ROUTE(setTitleUTF8
 int get_screen_refresh_rate() { ROUTE(getScreenRefreshRate()); }
 void set_fullscreen_mode(bool enable) { ROUTE(setFullscreenMode(enable)); }
 void process_messages() { ROUTE(processMessages()); }
+bool get_window_client_size(void *w, int &width, int &height) { ROUTE(getWindowClientSize(w, width, height)); }
 bool get_window_screen_rect(void *w, RECT *rect, RECT *rect_unclipped) { ROUTE(getWindowScreenRect(w, rect, rect_unclipped)); }
 bool get_last_cursor_pos(int *cx, int *cy, void *w) { ROUTE(getLastCursorPos(cx, cy, w)); }
 void set_cursor(void *w, const char *cursor_name) { ROUTE(setCursor(w, cursor_name)); }

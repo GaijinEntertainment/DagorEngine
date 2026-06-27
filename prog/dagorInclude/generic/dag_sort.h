@@ -83,7 +83,7 @@ template <class V, typename T = typename V::value_type>
 inline void sort(V &v, uint32_t at, uint32_t n, typename dag::SortFuncPredicate<T>::typed_cmp_func_t cmp)
 {
   T *p = v.data() + at;
-  if constexpr (eastl::is_scalar_v<T>)
+  if constexpr (eastl::is_trivially_copyable_v<T>) // Note: is_trivially_relocatable is C++26 (P1144R6)
   {
 #ifdef _DEBUG_TAB_
     stlsort::sort(p, p + n, dag::ValidateSortComparator<T, dag::SortFuncPredicate<T>>(dag::SortFuncPredicate<T>(cmp)));

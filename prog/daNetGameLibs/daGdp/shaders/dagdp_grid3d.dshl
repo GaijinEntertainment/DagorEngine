@@ -1,0 +1,267 @@
+include "hardware_defines.dshl"
+include "frustum.dshl"
+include "dagdp_common_placer.dshl"
+include "dagdp_volume_utils.dshl"
+
+
+buffer dagdp__instance_data;
+buffer dagdp__dyn_allocs;
+buffer dagdp__dyn_counters;
+
+buffer dagdp_grid3d__draw_ranges;
+buffer dagdp_grid3d__placeables;
+buffer dagdp_grid3d__placeable_weights;
+buffer dagdp_grid3d__renderable_indices;
+buffer dagdp_grid3d__variants;
+buffer dagdp_grid3d__tile_positions;
+buffer dagdp_grid3d__tiles;
+buffer dagdp_grid3d__volumes;
+
+int dagdp_grid3d__num_renderables;
+int dagdp_grid3d__num_placeables;
+int dagdp_grid3d__tiles_start_offset;
+
+float dagdp_grid3d__max_placeable_bounding_radius;
+float dagdp_grid3d__tile_pos_delta;
+float dagdp_grid3d__instance_pos_delta;
+float dagdp_grid3d__debug_frustum_culling_bias;
+
+int dagdp_grid3d__prng_seed_jitter_x;
+int dagdp_grid3d__prng_seed_jitter_y;
+int dagdp_grid3d__prng_seed_jitter_z;
+int dagdp_grid3d__prng_seed_placeable;
+int dagdp_grid3d__prng_seed_slope;
+int dagdp_grid3d__prng_seed_occlusion;
+int dagdp_grid3d__prng_seed_scale;
+int dagdp_grid3d__prng_seed_yaw;
+int dagdp_grid3d__prng_seed_pitch;
+int dagdp_grid3d__prng_seed_roll;
+
+int dagdp_grid3d__variant_index;
+float dagdp_grid3d__grid_jitter;
+float4 dagdp_grid3d__dist_based_scale_range;
+float4 dagdp_grid3d__dist_based_center;
+
+float4 dagdp_grid3d__viewport_pos;
+float dagdp_grid3d__viewport_max_distance;
+int dagdp_grid3d__viewport_index;
+
+
+shader dagdp_grid3d_place_stage0, dagdp_grid3d_place_stage1
+{
+  (cs) {
+    instance_data@uav = dagdp__instance_data hlsl {
+      RWBuffer<float4> instance_data@uav;
+    }
+
+    dyn_counters@uav = dagdp__dyn_counters hlsl {
+      RWStructuredBuffer<uint> dyn_counters@uav;
+    }
+
+    dyn_allocs@buf = dagdp__dyn_allocs hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<DynAlloc> dyn_allocs@buf;
+    }
+
+    draw_ranges@buf = dagdp_grid3d__draw_ranges hlsl {
+      StructuredBuffer<float> draw_ranges@buf;
+    }
+
+    placeables@buf = dagdp_grid3d__placeables hlsl {
+      #include "dagdp_common.hlsli"
+      StructuredBuffer<PlaceableGpuData> placeables@buf;
+    }
+
+    placeable_weights@buf = dagdp_grid3d__placeable_weights hlsl {
+      StructuredBuffer<float> placeable_weights@buf;
+    }
+
+    renderable_indices@buf = dagdp_grid3d__renderable_indices hlsl {
+      StructuredBuffer<uint> renderable_indices@buf;
+    }
+
+    variants@buf = dagdp_grid3d__variants hlsl {
+      #include "dagdp_common_placer.hlsli"
+      StructuredBuffer<VariantGpuData> variants@buf;
+    }
+
+    tiles@buf = dagdp_grid3d__tiles hlsl {
+      #include <dagdp_grid3d_placer.hlsli>
+      StructuredBuffer<Grid3dTile> tiles@buf;
+    }
+
+    volumes@buf = dagdp_grid3d__volumes hlsl {
+      #include <dagdp_volume.hlsli>
+      StructuredBuffer<VolumeGpuData> volumes@buf;
+    }
+
+    num_renderables@i1 = dagdp_grid3d__num_renderables;
+    num_placeables@i1 = dagdp_grid3d__num_placeables;
+    tile_offset@i1 = dagdp_grid3d__tiles_start_offset;
+
+    max_placeable_bounding_radius@f1 = dagdp_grid3d__max_placeable_bounding_radius;
+    tile_pos_delta@f1 = dagdp_grid3d__tile_pos_delta;
+    instance_pos_delta@f1 = dagdp_grid3d__instance_pos_delta;
+    debug_frustum_culling_bias@f1 = dagdp_grid3d__debug_frustum_culling_bias;
+
+    prng_seed_jitter_x@i1 = dagdp_grid3d__prng_seed_jitter_x;
+    prng_seed_jitter_y@i1 = dagdp_grid3d__prng_seed_jitter_y;
+    prng_seed_jitter_z@i1 = dagdp_grid3d__prng_seed_jitter_z;
+    prng_seed_placeable@i1 = dagdp_grid3d__prng_seed_placeable;
+    prng_seed_slope@i1 = dagdp_grid3d__prng_seed_slope;
+    prng_seed_occlusion@i1 = dagdp_grid3d__prng_seed_occlusion;
+    prng_seed_scale@i1 = dagdp_grid3d__prng_seed_scale;
+    prng_seed_yaw@i1 = dagdp_grid3d__prng_seed_yaw;
+    prng_seed_pitch@i1 = dagdp_grid3d__prng_seed_pitch;
+    prng_seed_roll@i1 = dagdp_grid3d__prng_seed_roll;
+
+    variant_index@u1 = dagdp_grid3d__variant_index;
+    grid_jitter@f1 = dagdp_grid3d__grid_jitter;
+    dist_based_scale@f2 = dagdp_grid3d__dist_based_scale_range;
+    dist_based_range@f1 = dagdp_grid3d__dist_based_scale_range.z;
+    dist_based_center@f3 = dagdp_grid3d__dist_based_center;
+
+    viewport_pos@f3 = dagdp_grid3d__viewport_pos;
+    viewport_max_distance@f1 = dagdp_grid3d__viewport_max_distance;
+    viewport_index@i1 = dagdp_grid3d__viewport_index;
+  }
+
+  hlsl(cs) {
+    #include <dagdp_grid3d_placer.hlsli>
+    groupshared uint g_storage[GRID3D_GROUP_SIZE * 2];
+    groupshared uint g_cond;
+  }
+
+  USE_DAGDP_COMMON_PLACER()
+  USE_DAGDP_COMMON_PLACER_THREADGROUP(GRID3D_GROUP_SIZE, g_storage, g_cond)
+  USE_DAGDP_VOLUME_UTILS()
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
+
+  hlsl(cs) {
+    float stableRand(int3 pos, int seed)
+    {
+      uint n = uint_noise3D(asuint(pos.x), asuint(pos.y), asuint(pos.z), asuint(seed)); // Int operations should be hardware-independent, unlike floats.
+      return 2.0 * asfloat((n & 0x7FFFFFu) | 0x3F000000u) - 1.0; // Convert to float in 0-1 range.
+    }
+
+    [numthreads(GRID3D_TILE_SIZE, GRID3D_TILE_SIZE, GRID3D_TILE_SIZE)]
+    void main(uint3 instanceIntPos : SV_GroupThreadID, uint tId : SV_GroupIndex, uint tileId : SV_GroupID)
+    {
+      ##if shader == dagdp_heightmap_place_stage1
+        const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0;
+        ##if hardware.dx11 || hardware.dx12
+          // Work around compiler assuming varying flow control.
+          BRANCH
+          if (threadGroupAnyTrue(isEarlyExit, tId))
+            return;
+        ##else
+          BRANCH
+          if (isEarlyExit)
+            return;
+        ##endif
+      ##endif
+
+      // Position of the tile itself.
+      Grid3dTile tile = structuredBufferAt(tiles, tileId + tile_offset);
+      const int3 tileIntPos = tile.pos;
+      const uint volumeStartIndex = tile.volumeRange & 0xffff;
+      const uint volumeEndIndex   = tile.volumeRange >> 16;
+
+      const int3 stablePos = tileIntPos * GRID3D_TILE_SIZE + int3(instanceIntPos);
+      float3 randPosJitter = 0.5 + grid_jitter * (float3(
+        stableRand(stablePos, prng_seed_jitter_x),
+        stableRand(stablePos, prng_seed_jitter_y),
+        stableRand(stablePos, prng_seed_jitter_z)) - 0.5);
+      // compute from integer coordinates using only tile_pos_delta, for stability:
+      const float3 baseInstancePos = (stablePos + randPosJitter) * (tile_pos_delta / GRID3D_TILE_SIZE);
+      float3 instancePos = baseInstancePos;
+      float3 instanceNormal = float3(0, 0, 0);
+
+      uint placeableIndex = ~0u;
+
+      VariantGpuData variant = structuredBufferAt(variants, variant_index);
+      placeableIndex = getPlaceableIndex(variant, stableRand(stablePos, prng_seed_placeable));
+
+      for (uint volumeIndex = volumeStartIndex; volumeIndex < volumeEndIndex; volumeIndex++)
+      {
+        VolumeGpuData volume = volumes[volumeIndex];
+        float3 localPos = localVolumePos(instancePos, volume);
+        FLATTEN
+        if (isInsideVolumeLocal(localPos, volume.volumeType))
+          instanceNormal += volume.axis;
+        else
+          placeableIndex = ~0u;
+      }
+
+      instanceNormal = normalize(instanceNormal);
+
+      PlaceableGpuData placeable;
+      FLATTEN
+      if (placeableIndex != ~0u)
+        placeable = structuredBufferAt(placeables, placeableIndex);
+
+      FLATTEN
+      if (placeableIndex != ~0u)
+      {
+        const bool isOcclusionOk = checkOcclusion(placeable.occlusionRange, placeable.occlusionMin, placeable.occlusionMax,
+          instancePos, instanceNormal, stableRand(stablePos, prng_seed_occlusion));
+        FLATTEN
+        if (!isOcclusionOk)
+          placeableIndex = ~0u;
+      }
+
+      const bool isViewportDistanceOk = distance(instancePos, viewport_pos) - max_placeable_bounding_radius < viewport_max_distance;
+      const bool isFrustumOk = testSphereB(instancePos, max_placeable_bounding_radius + debug_frustum_culling_bias);
+      FLATTEN
+      if (!isViewportDistanceOk || !isFrustumOk)
+        placeableIndex = ~0u;
+
+      BRANCH
+      if (!threadGroupAnyTrue(placeableIndex != ~0u, tId)) // Whole tile is culled, can safely exit.
+        return;
+
+      const float randScale = lerp(placeable.scaleMin, placeable.scaleMax, stableRand(stablePos, prng_seed_scale));
+      uint renderableIndex = getRenderableIndex(variant, placeableIndex, instancePos, viewport_pos, randScale);
+
+      const bool isPlaced = renderableIndex != ~0u;
+      const uint counterIndex = getCounterIndex(renderableIndex, viewport_index, num_renderables);
+
+      DynAlloc allocRegion;
+      FLATTEN
+      if (isPlaced)
+        allocRegion = structuredBufferAt(dyn_allocs, counterIndex);
+
+      uint baseInstanceOffset = ~0u;
+      BRANCH
+      if (isPlaced)
+      {
+        InterlockedAdd(structuredBufferAt(dyn_counters, counterIndex + DYN_COUNTERS_PREFIX), 1, baseInstanceOffset);
+
+        if (baseInstanceOffset > allocRegion.capacity)
+        {
+          ##if shader == dagdp_grid3d_place_stage1
+            ##assert(false, "Placement overflowed: %d < %d + %d", allocRegion.capacity, baseInstanceOffset, 0);
+          ##endif
+          // Placement overflowed, set a flag and don't write out instance data.
+          baseInstanceOffset = ~0u;
+          uint _ignore;
+          InterlockedCompareExchange(structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_OVERFLOW_FLAG), 0u, ~0u, _ignore);
+        }
+      }
+
+      BRANCH
+      if (isPlaced && baseInstanceOffset != ~0u)
+      {
+        uint instanceElementOffset = 4 * (allocRegion.instanceBaseIndex + baseInstanceOffset); // TODO: float4, float4x3
+        ##assert(allocRegion.capacity > baseInstanceOffset, "capacity %d must be greater than offset %d. (count = %d)", allocRegion.capacity, baseInstanceOffset, 1);
+
+        float3 randRot;
+        randRot.x = stableRand(stablePos, prng_seed_yaw);
+        randRot.y = stableRand(stablePos, prng_seed_pitch);
+        randRot.z = stableRand(stablePos, prng_seed_roll);
+        writeInstance(placeable, instancePos, instanceNormal, randRot, randScale, instanceElementOffset);
+      }
+    }
+  }
+  compile("target_cs", "main");
+}

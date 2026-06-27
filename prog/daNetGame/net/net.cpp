@@ -201,6 +201,8 @@ bool bootstrap_net_ctx(ecs::EntityManager &mgr, net::INetDriver *drv, net::creat
   return true;
 }
 extern const uint8_t TIMESYNC_NET_CHANNEL = NC_TIME_SYNC;
+void timesync_push_rtt(uint32_t rtt) { netstat::set(netstat::CT_RTT, rtt); }
+
 // in case of problems with current route, fallback shouldn't be too eager
 static constexpr int DEFAULT_TIME_TO_SWITCH_SERVER_ADDR = 4000;
 // in case of probing of alternative server route, fallback should be fast
@@ -292,22 +294,32 @@ void on_client_disconnected(ecs::EntityManager &manager, DisconnectionCause caus
   manager.broadcastEventImmediate(EventOnDisconnectedFromServer(cause));
 }
 
-net::ServerFlags net::get_server_flags() { return net_context ? net_context->srvFlags : net::ServerFlags::None; }
+net::ServerFlags net::get_server_flags()
+{
+  if (net::is_this_thread_net_em_owner())
+    return net_context ? net_context->srvFlags : net::ServerFlags::None;
+  return READ_NET_SNAPSHOT_FIELD(srvFlags);
+}
 
-bool is_server() { return !net_context || net_context->getNet().isServer(); }
+bool is_server()
+{
+  if (net::is_this_thread_net_em_owner())
+    return !net_context || net_context->getNet().isServer();
+  return READ_NET_SNAPSHOT_FIELD(isServer);
+}
 bool is_true_net_server()
 {
-  return net_context && net_context->getNet().isServer() && net_context->getNet().getDriver()->getControlIface() != NULL;
+  if (net::is_this_thread_net_em_owner())
+    return net_context && net_context->getNet().isServer() && net_context->getNet().getDriver()->getControlIface() != NULL;
+  return READ_NET_SNAPSHOT_FIELD(isTrueNetServer);
 }
-bool has_network() { return net_context.get() != nullptr; }
+bool has_network()
+{
+  if (net::is_this_thread_net_em_owner())
+    return net_context.get() != nullptr;
+  return READ_NET_SNAPSHOT_FIELD(hasNetwork);
+}
 
-ITimeManager &get_time_mgr() { return *g_net_globals.timeMgr; }
-float get_sync_time() { return get_time_mgr().getSeconds(); }
-double get_sync_time_d() { return get_time_mgr().getSeconds(); }
-
-void set_time_internal(ITimeManager *tmgr) { g_net_globals.resetTimeMgr(tmgr); }
-
-// Caller must hold net::TopologyLock::ReadScope across the get + use of the returned pointers.
 net::IConnection *get_server_conn()
 {
   auto *ctx = GET_NET_CTX();
@@ -638,7 +650,7 @@ bool net_destroy(ecs::EntityManager &mgr, bool final)
   ++g_net_globals.connectGen;
   destroy_net_ctx(); // also clears the EM binding (always, regardless of net_context presence)
   net::event::release_claim(&mgr);
-  g_net_globals.resetTimeMgr();
+  reset_time_mgr();
   mgr.broadcastEventImmediate(EventNetTornDown{});
   return true;
 }

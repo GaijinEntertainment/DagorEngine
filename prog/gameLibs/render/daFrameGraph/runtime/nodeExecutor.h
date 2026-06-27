@@ -14,6 +14,7 @@
 #include <backend/resourceScheduling/barrierScheduler.h>
 #include <backend/nodeStateDeltas.h>
 #include <runtime/graphHierarchicalMarksParser.h>
+#include <runtime/bindlessSlotManager.h>
 
 
 namespace dafg
@@ -23,8 +24,14 @@ class NodeExecutor
 {
 public:
   NodeExecutor(ResourceAllocator &rs, intermediate::Graph &g, const intermediate::Mapping &m, InternalRegistry &reg,
-    const NameResolver &res, ResourceProvider &rp) :
-    resourceAllocator{rs}, graph{g}, mapping{m}, registry{reg}, nameResolver{res}, currentlyProvidedResources{rp}
+    const NameResolver &res, ResourceProvider &rp, BindlessSlotManager &bindless_slots) :
+    resourceAllocator{rs},
+    graph{g},
+    mapping{m},
+    registry{reg},
+    nameResolver{res},
+    currentlyProvidedResources{rp},
+    bindlessSlots{bindless_slots}
   {}
 
   void execute(int prev_frame, int curr_frame, multiplexing::Extents multiplexing_extents, const BarrierScheduler::FrameEvents &events,
@@ -46,6 +53,7 @@ private:
   void applyBindings(const sd::BindingsMap &bindings, int frame, int prev_frame) const;
 
   void bindShaderVar(int bind_idx, const intermediate::Binding &binding, int frame, int prev_frame) const;
+  void bindBindlessShaderVar(int bind_idx, const intermediate::Binding &binding, int frame, int prev_frame) const;
   template <typename ProjectedType, auto bindSetter>
   void bindBlob(int bind_idx, const intermediate::Binding &binding, int frame) const;
 
@@ -70,6 +78,7 @@ private:
   InternalRegistry &registry;
   const NameResolver &nameResolver;
   ResourceProvider &currentlyProvidedResources;
+  BindlessSlotManager &bindlessSlots;
 
 #if TIME_PROFILER_ENABLED
   GraphHierarchicalMarksParser graphMarksParser;

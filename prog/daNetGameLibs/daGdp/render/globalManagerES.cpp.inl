@@ -99,11 +99,12 @@ void GlobalManager::queryLevelSettings(RulesBuilder &rules_builder)
 {
   level_settings_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) int dagdp__max_objects, int dagdp__max_triangles, int dagdp__max_meshes,
-      int dagdp__max_tiles, int dagdp__max_volumes, int dagdp__default_target_mesh_lod) {
+      int dagdp__max_tiles, int dagdp__max_3d_tiles, int dagdp__max_volumes, int dagdp__default_target_mesh_lod) {
       rules_builder.maxObjects = dagdp__max_objects;
       rules_builder.maxTriangles = dagdp__max_triangles;
       rules_builder.maxMeshes = dagdp__max_meshes;
       rules_builder.maxTiles = dagdp__max_tiles;
+      rules_builder.max3dTiles = dagdp__max_3d_tiles;
       rules_builder.maxVolumes = dagdp__max_volumes;
       rules_builder.targetMeshLod = dagdp__default_target_mesh_lod;
     });
@@ -225,13 +226,19 @@ static void dagdp_placer_changed_es(const ecs::Event &, ecs::EntityManager &mana
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(on_disappear)
-ECS_TRACK(
-  dagdp__max_objects, dagdp__max_triangles, dagdp__max_meshes, dagdp__max_tiles, dagdp__max_volumes, dagdp__default_target_mesh_lod)
+ECS_TRACK(dagdp__max_objects,
+  dagdp__max_triangles,
+  dagdp__max_meshes,
+  dagdp__max_tiles,
+  dagdp__max_3d_tiles,
+  dagdp__max_volumes,
+  dagdp__default_target_mesh_lod)
 ECS_REQUIRE(ecs::Tag dagdp_level_settings,
   int dagdp__max_objects,
   int dagdp__max_triangles,
   int dagdp__max_meshes,
   int dagdp__max_tiles,
+  int dagdp__max_3d_tiles,
   int dagdp__max_volumes,
   int dagdp__default_target_mesh_lod)
 static void dagdp_level_settings_changed_es(const ecs::Event &, ecs::EntityManager &manager)

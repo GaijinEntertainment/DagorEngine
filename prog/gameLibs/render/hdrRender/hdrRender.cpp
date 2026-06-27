@@ -149,7 +149,7 @@ const ManagedTex &hdrrender::get_render_target() { return float_rt_tex; }
 void hdrrender::set_render_target()
 {
   if (is_hdr_enabled())
-    d3d::set_render_target(float_rt_tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{float_rt_tex.getTex2D(), 0, 0}});
   else
     d3d::set_render_target();
 }

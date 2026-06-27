@@ -694,7 +694,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     if (need_tree_burning_for_leaves)
     {
       TREE_BURNING_LEAVES_VS()
-      TREE_BURNING_LEAVES_PS(false)
+      TREE_BURNING_LEAVES_PS(false, is_pivoted == yes)
     }
     hlsl(vs) {
       INSTANCING_BUFFERS
@@ -884,7 +884,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     {
       if (need_tree_burning_for_leaves)
       {
-        TREE_BURNING_LEAVES_PS(rendinst_render_pass != rendinst_render_pass_depth)
+        TREE_BURNING_LEAVES_PS(rendinst_render_pass != rendinst_render_pass_depth, is_pivoted == yes)
       }
       else if (need_tree_burning_for_trunk)
       {

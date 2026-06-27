@@ -205,6 +205,7 @@ ECS_TRACK(cinematic_mode__vignetteStrength,
   cinematic_mode__lenseDust,
   cinematic_mode__chromaticAberration,
   cinematic_mode__filmGrain,
+  cinematic_mode__filmGrainMul,
   cinematic_mode__fps,
   cinematic_mode__subPixels,
   cinematic_mode__fname,
@@ -221,6 +222,7 @@ static void cinematic_mode_settings_changed_es_event_handler(const ecs::Event &,
   const bool cinematic_mode__lenseDust,
   const Point3 cinematic_mode__chromaticAberration,
   const Point4 cinematic_mode__filmGrain,
+  const float cinematic_mode__filmGrainMul,
   const int cinematic_mode__fps,
   const int cinematic_mode__subPixels,
   const int cinematic_mode__superPixels,
@@ -233,7 +235,7 @@ static void cinematic_mode_settings_changed_es_event_handler(const ecs::Event &,
 
   cm.setVignetteStrength(cinematic_mode__vignetteStrength);
   cm.setChromaticAberration(cinematic_mode__chromaticAberration);
-  cm.setFilmGrain(cinematic_mode__filmGrain);
+  cm.setFilmGrain(cinematic_mode__filmGrainMul, cinematic_mode__filmGrain);
   cm.setFps(cinematic_mode__fps);
   cm.setSubPixels(cinematic_mode__subPixels);
   cm.setSuperPixels(cinematic_mode__superPixels);

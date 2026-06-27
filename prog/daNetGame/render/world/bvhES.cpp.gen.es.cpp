@@ -575,10 +575,9 @@ inline void bvh_check_is_binocular_ecs_query(ecs::EntityManager &manager, Callab
 }
 static constexpr ecs::ComponentDesc recreate_bvh_nodes_ecs_query_comps[] =
 {
-//start of 19 rw components at [0]
+//start of 18 rw components at [0]
   {ECS_HASH("bvh__update_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("denoiser_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("bvh_register_gbuffer_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("rtsm_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("rtsm_trace_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("rtsm_denoise_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
@@ -599,7 +598,7 @@ static constexpr ecs::ComponentDesc recreate_bvh_nodes_ecs_query_comps[] =
 static ecs::CompileTimeQueryDesc recreate_bvh_nodes_ecs_query_desc
 (
   "recreate_bvh_nodes_ecs_query",
-  make_span(recreate_bvh_nodes_ecs_query_comps+0, 19)/*rw*/,
+  make_span(recreate_bvh_nodes_ecs_query_comps+0, 18)/*rw*/,
   empty_span(),
   empty_span(),
   empty_span());
@@ -614,7 +613,6 @@ inline void recreate_bvh_nodes_ecs_query(ecs::EntityManager &manager, Callable f
           function(
               ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "bvh__update_node", dafg::NodeHandle)
             , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "denoiser_prepare_node", dafg::NodeHandle)
-            , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "bvh_register_gbuffer_node", dafg::NodeHandle)
             , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtsm_prepare_node", dafg::NodeHandle)
             , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtsm_trace_node", dafg::NodeHandle)
             , ECS_RW_COMP(recreate_bvh_nodes_ecs_query_comps, "rtsm_denoise_node", dafg::NodeHandle)

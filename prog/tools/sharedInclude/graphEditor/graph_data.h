@@ -160,8 +160,8 @@ struct GraphData
   DataBlock mainGraphBlk;
   DataBlock shaderListBlk;
 
-  // Output directories loaded from the graph .blk (textureRootDir / renderDir / entityDir).
-  eastl::string textureRootDir;
+  // Output directories loaded from the graph .blk. Node input paths resolve against the application
+  // dir directly (no per-graph texture root); renderDir / entityDir are export destinations.
   eastl::string renderDir;
   eastl::string entityDir;
 

@@ -5,7 +5,6 @@ bvh{
   bvh__initialized:b=no
   "bvh__update_node:dafg::NodeHandle"{}
   "denoiser_prepare_node:dafg::NodeHandle"{}
-  "bvh_register_gbuffer_node:dafg::NodeHandle"{}
   "bvh_register_fom_shadows:dafg::NodeHandle"{}
   "rtsm_prepare_node:dafg::NodeHandle"{}
   "rtsm_trace_node:dafg::NodeHandle"{}

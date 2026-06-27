@@ -362,8 +362,10 @@ static bool remove_recursive(const char *dirname)
   return ret;
 }
 
-static void mergeDataBlock(DataBlock &dest, const DataBlock &src, const SCFastNameMap *ex_nm = NULL)
+static void mergeDataBlock(DataBlock &dest, const DataBlock &src, bool override_and_squash_params = false,
+  const SCFastNameMap *ex_nm = NULL)
 {
+
   int num = src.paramCount();
   for (int i = 0; i < num; ++i)
   {
@@ -371,9 +373,24 @@ static void mergeDataBlock(DataBlock &dest, const DataBlock &src, const SCFastNa
 
     switch (src.getParamType(i))
     {
-      case DataBlock::TYPE_INT: dest.setInt(name, src.getInt(i)); break;
-      case DataBlock::TYPE_REAL: dest.setReal(name, src.getReal(i)); break;
-      case DataBlock::TYPE_BOOL: dest.setBool(name, src.getBool(i)); break;
+      case DataBlock::TYPE_INT:
+        if (override_and_squash_params)
+          dest.setInt(name, src.getInt(i));
+        else
+          dest.addInt(name, src.getInt(i));
+        break;
+      case DataBlock::TYPE_REAL:
+        if (override_and_squash_params)
+          dest.setReal(name, src.getReal(i));
+        else
+          dest.addReal(name, src.getReal(i));
+        break;
+      case DataBlock::TYPE_BOOL:
+        if (override_and_squash_params)
+          dest.setBool(name, src.getBool(i));
+        else
+          dest.addBool(name, src.getReal(i));
+        break;
 
       default: sh_debug(SHLOG_WARNING, "unsupported type=%d", src.getParamType(i));
     }
@@ -387,7 +404,7 @@ static void mergeDataBlock(DataBlock &dest, const DataBlock &src, const SCFastNa
     if (!d || (ex_nm && ex_nm->getNameId(name) != -1))
       d = dest.addNewBlock(src.getBlock(i), name);
     else
-      mergeDataBlock(*d, *src.getBlock(i));
+      mergeDataBlock(*d, *src.getBlock(i), override_and_squash_params, ex_nm);
   }
 }
 
@@ -484,7 +501,7 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
     IGenSave *hasher = create_hash_computer_cb(HASH_SAVECB_SHA1);
     DataBlock blk(blk_file_name);
     if (config_args)
-      mergeDataBlock(blk, *config_args);
+      mergeDataBlock(blk, *config_args, true);
     blk.removeBlock("source");
     blk.removeBlock("explicit_var_ref");
     blk.removeParam("outDumpName");
@@ -1546,7 +1563,7 @@ int DagorWinMain(bool debugmode)
       return 13;
     }
 
-    mergeDataBlock(blk, configArgs);
+    mergeDataBlock(blk, configArgs, true);
 
     if (const DataBlock *b = blk.getBlockByName("renderStages"))
     {
@@ -1768,19 +1785,16 @@ int DagorWinMain(bool debugmode)
         if (blk_av && blk_cav)
         {
           mergeDataBlock(*blk_av, *blk_cav);
-          // blk_av->saveToTextFile(String(260,"%d_%s_assume_vars", i, fsh));
         }
         if (blk_rs && blk_crs)
         {
           mergeDataBlock(*blk_rs, *blk_crs);
-          // blk_rs->saveToTextFile(String(260,"%d_%s_required_shaders", i, fsh));
         }
         if (blk_vv && blk_cvv)
         {
           SCFastNameMap names;
           names.addNameId("invalid");
-          mergeDataBlock(*blk_vv, *blk_cvv, &names);
-          // blk_av->saveToTextFile(String(260,"%d_%s_valid_variants", i, fsh));
+          mergeDataBlock(*blk_vv, *blk_cvv, false, &names);
         }
 
         if (blk_av && !blk_av->paramCount() && !blk_av->blockCount())

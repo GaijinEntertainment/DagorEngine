@@ -31,6 +31,7 @@ Sources =
   imageHelper.cpp
   imguiHelper.cpp
   immediateFocusLossHandler.cpp
+  mathExprEval.cpp
   menuImplementation.cpp
   messageQueueInternal.cpp
   toastManagerInternal.cpp

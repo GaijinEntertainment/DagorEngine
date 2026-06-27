@@ -216,3 +216,54 @@ static ecs::EntitySystemDesc additional_data_for_dynamic_material_params_es_es_d
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render",nullptr,nullptr,"animchar_before_render_es");
+static constexpr ecs::ComponentDesc animchar_validate_render_data_es_comps[] =
+{
+//start of 4 ro components at [0]
+  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
+  {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
+  {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("needModelVelocity"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL}
+};
+static void animchar_validate_render_data_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    animchar_validate_render_data_es(evt
+        , ECS_RO_COMP(animchar_validate_render_data_es_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+    , ECS_RO_COMP(animchar_validate_render_data_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP_PTR(animchar_validate_render_data_es_comps, "additional_data", ecs::Point4List)
+    , ECS_RO_COMP_PTR(animchar_validate_render_data_es_comps, "needModelVelocity", ecs::Tag)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc animchar_validate_render_data_es_es_desc
+(
+  "animchar_validate_render_data_es",
+  "prog/daNetGame/render/additionalDataES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, animchar_validate_render_data_es_all_events),
+  empty_span(),
+  make_span(animchar_validate_render_data_es_comps+0, 4)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"dev,render");
+//static constexpr ecs::ComponentDesc rendinst_palette_validation_init_es_comps[] ={};
+static void rendinst_palette_validation_init_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  rendinst_palette_validation_init_es(evt
+        );
+}
+static ecs::EntitySystemDesc rendinst_palette_validation_init_es_es_desc
+(
+  "rendinst_palette_validation_init_es",
+  "prog/daNetGame/render/additionalDataES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, rendinst_palette_validation_init_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<EventOnGameInit>::build(),
+  0
+);

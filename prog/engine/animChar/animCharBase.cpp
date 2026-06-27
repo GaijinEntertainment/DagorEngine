@@ -703,13 +703,13 @@ void AnimcharBaseComponent::calcAnimWtm(bool may_calc_anim)
   if (animGraph && !animValid && may_calc_anim)
   {
     AnimBlender::TlsContext *tls = NULL;
-    nodeTree.invalidateWtm();
-    vec3f world_translate = nodeTree.translateToZero();
     bool haveBlend = false;
     if (!postCtrl || !postCtrl->overridesBlender())
     {
       haveBlend |= animGraph->blend(*(tls = &animGraph->selectBlenderCtx(&irq, this)), *animState, getCharDepModif());
     }
+    nodeTree.invalidateWtm();
+    vec3f world_translate = nodeTree.translateToZero();
     if (haveBlend && tls)
     {
 #if MEASURE_PERF
@@ -837,7 +837,7 @@ intptr_t AnimcharBaseComponent::irq(int type, intptr_t p1, intptr_t p2, intptr_t
   else if (type == GIRQT_GetMotionMatchingPose)
   {
     AnimV20::AnimBlender::TlsContext *tls = (AnimV20::AnimBlender::TlsContext *)(void *)p1;
-    if (ac->motionMatchingController && ac->motionMatchingController->getPose(*tls, ac->animMap))
+    if (ac->motionMatchingController && ac->motionMatchingController->getPose(*tls, ac->animMap, ac->nodeTree))
       return GIRQR_MotionMatchingPoseApplied;
     else
       return GIRQR_NoResponse;

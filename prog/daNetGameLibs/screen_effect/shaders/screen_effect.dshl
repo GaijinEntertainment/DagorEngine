@@ -80,11 +80,11 @@ shader screen_effect
   (ps) {
     frame_tex@smp2d = frame_tex;
     downsampled_depth@smp2d = downsampled_depth;
-    screen_effect_tex0@smp2d = screen_effect_tex0;
-    screen_effect_tex1@smp2d = screen_effect_tex1;
-    screen_effect_tex2@smp2d = screen_effect_tex2;
-    screen_effect_tex3@smp2d = screen_effect_tex3;
-    screen_effect_tex4@smp2d = screen_effect_tex4;
+    screen_effect_tex0@tex2d = screen_effect_tex0;
+    screen_effect_tex1@tex2d = screen_effect_tex1;
+    screen_effect_tex2@tex2d = screen_effect_tex2;
+    screen_effect_tex3@tex2d = screen_effect_tex3;
+    screen_effect_tex4@tex2d = screen_effect_tex4;
 
     screen_effects_count@i1 = (screen_effects_count);
     input_resolution@f2 = get_dimensions(frame_tex, 0);
@@ -103,8 +103,14 @@ shader screen_effect
   INIT_FETCH_REFRACTED_PIXEL(ps)
   USE_FETCH_REFRACTED_PIXEL(ps)
   USE_ROUGH_TO_MIP()
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   hlsl(ps) {
+    #define screen_effect_tex0_samplerstate global_linear_wrap_sampler
+    #define screen_effect_tex1_samplerstate global_linear_wrap_sampler
+    #define screen_effect_tex2_samplerstate global_linear_wrap_sampler
+    #define screen_effect_tex3_samplerstate global_linear_wrap_sampler
+    #define screen_effect_tex4_samplerstate global_linear_wrap_sampler
 
     #include <psh_tangent.hlsl>
     #include <normaldetail.hlsl>

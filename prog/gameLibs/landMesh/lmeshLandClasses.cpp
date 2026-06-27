@@ -112,6 +112,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
   land.editorId = blk.getInt("editorId", 0);
   land.lcType = LC_SIMPLE;
   strncpy(&land.name[0], &name[0], sizeof(land.name));
+  land.name[sizeof(land.name) - 1] = '\0';
   land.offset = -blk.getPoint2("offset", Point2(0, 0));
   Point2 size = blk.getPoint2("size", Point2(1, 1));
   land.tile = safediv(1.0f, size.x);
@@ -167,6 +168,7 @@ static bool load_land_class(LandClassDetailTextures &land, const char *name, con
     {
       land.lcType = LC_CUSTOM;
       strncpy(land.shader_name, blk.getStr("shader", 0), sizeof(land.shader_name));
+      land.shader_name[sizeof(land.shader_name) - 1] = '\0';
 
       if (blk.getBlockByName("landClassParams"))
       {

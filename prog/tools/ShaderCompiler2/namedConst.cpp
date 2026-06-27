@@ -252,30 +252,91 @@ static constexpr eastl::array<int, 13> TYPE_PADDINGS = {
 
 static void emitBindlessArraysHlsl(String &out_text)
 {
+  // Shared bindless heap arrays used by static-material bindless, refined-block bindless and
+  // @bindless*. The caller emits this once per stage via emitBindlessArraysIfNeeded().
 #if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
 
-#elif _CROSS_TARGET_SPIRV
-  out_text += "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] Texture2D static_textures[];\n"
-              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube[];\n"
-              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] Texture2DArray static_textures_array[];\n"
-              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube_array[];\n"
-              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures3d[];\n"
-              "[[vk::binding(0, BINDLESS_SAMPLER_SET_META_ID)]] SamplerState static_samplers[];\n";
-#elif _CROSS_TARGET_METAL
-  out_text += "[[vk::binding(0, 32)]] Texture2D static_textures[];\n"
-              "[[vk::binding(1, 32)]] TextureCube static_textures_cube[];\n"
-              "[[vk::binding(2, 32)]] Texture2DArray static_textures_array[];\n"
-              "[[vk::binding(3, 32)]] TextureCube static_textures_cube_array[];\n"
-              "[[vk::binding(4, 32)]] TextureCube static_textures3d[];\n"
-              "[[vk::binding(0, 33)]] SamplerState static_samplers[];\n";
 #else
-  out_text += "Texture2D static_textures[] : BINDLESS_REGISTER(t, 1);\n"
-              "SamplerState static_samplers[] : BINDLESS_REGISTER(s, 1);\n"
-              "TextureCube static_textures_cube[] : BINDLESS_REGISTER(t, 2);\n"
-              "Texture2DArray static_textures_array[] : BINDLESS_REGISTER(t, 3);\n"
-              "TextureCube static_textures_cube_array[] : BINDLESS_REGISTER(t, 4);\n"
-              "TextureCube static_textures3d[] : BINDLESS_REGISTER(t, 5);\n";
+  using semantic::bindless_array_desc;
+  using semantic::BindlessShape;
+  // Texture heaps in register/binding order; the indices below must match the runtime bindless layout.
+  static constexpr BindlessShape texShapes[] = {
+    BindlessShape::Tex2D, BindlessShape::TexCube, BindlessShape::TexArray, BindlessShape::TexCubeArray, BindlessShape::Tex3D};
+  int slot = 0;
+  for (BindlessShape shape : texShapes)
+  {
+    const auto d = bindless_array_desc(shape);
+#if _CROSS_TARGET_SPIRV
+    out_text.aprintf(0, "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] %s %s[];\n", d.elemType, d.arrayName);
+#elif _CROSS_TARGET_METAL
+    out_text.aprintf(0, "[[vk::binding(%d, 32)]] %s %s[];\n", slot, d.elemType, d.arrayName);
+#else
+    out_text.aprintf(0, "%s %s[] : BINDLESS_REGISTER(t, %d);\n", d.elemType, d.arrayName, slot + 1);
 #endif
+    ++slot;
+  }
+  const auto smp = bindless_array_desc(BindlessShape::Sampler);
+#if _CROSS_TARGET_SPIRV
+  out_text.aprintf(0, "[[vk::binding(0, BINDLESS_SAMPLER_SET_META_ID)]] %s %s[];\n", smp.elemType, smp.arrayName);
+#elif _CROSS_TARGET_METAL
+  out_text.aprintf(0, "[[vk::binding(0, 33)]] %s %s[];\n", smp.elemType, smp.arrayName);
+#else
+  out_text.aprintf(0, "%s %s[] : BINDLESS_REGISTER(s, 1);\n", smp.elemType, smp.arrayName);
+#endif
+  // Buffer heap takes the next free t-space after the texture heaps (slot now == their count).
+  const auto buf = bindless_array_desc(BindlessShape::ByteBuffer);
+#if _CROSS_TARGET_SPIRV
+  out_text.aprintf(0, "[[vk::binding(0, BINDLESS_BUFFER_SET_META_ID)]] %s %s[];\n", buf.elemType, buf.arrayName);
+#elif _CROSS_TARGET_METAL
+  out_text.aprintf(0, "[[vk::binding(0, 34)]] %s %s[];\n", buf.elemType, buf.arrayName);
+#else
+  out_text.aprintf(0, "%s %s[] : BINDLESS_REGISTER(t, %d);\n", buf.elemType, buf.arrayName, slot + 1);
+#endif
+#endif
+}
+
+bool NamedConstBlock::hasExplicitBindlessDecls(ShaderStage stage) const
+{
+  if (anyExplicitBindless(stage == STAGE_VS ? vertexProps : pixelProps))
+    return true;
+  if (globConstBlk && globConstBlk->shConst.bufferedConstsHaveExplicitBindless)
+    return true;
+  const StageGroup group = stage == STAGE_VS ? StageGroup::VS : StageGroup::PS_CS;
+  for (const ShaderStateBlock *sb : suppBlk)
+  {
+    if (sb->shConst.explicitBindlessSubtree.test(size_t(group)))
+      return true;
+  }
+  return false;
+}
+
+bool NamedConstBlock::anyExplicitBindless(const RegisterProperties &props)
+{
+  for (const NamedConst &nc : props.sc)
+  {
+    if (nc.isExplicitBindless)
+      return true;
+  }
+  return false;
+}
+
+void NamedConstBlock::cacheExplicitBindlessSubtree()
+{
+  bufferedConstsHaveExplicitBindless = anyExplicitBindless(bufferedConstProps);
+  explicitBindlessSubtree.set(size_t(StageGroup::VS), hasExplicitBindlessDecls(STAGE_VS));
+  explicitBindlessSubtree.set(size_t(StageGroup::PS_CS), hasExplicitBindlessDecls(STAGE_PS)); // PS group also covers CS
+}
+
+void NamedConstBlock::emitBindlessArraysIfNeeded(String &out_text, ShaderStage stage) const
+{
+  // Keep in sync with the array-emitting paths: buildStaticConstBufHlslDecl,
+  // buildRefinedBlockBufHlslDecl, buildGlobalConstBufHlslDecl, preprocessHlslDecls.
+  bool needed =
+    shc::config().enableBindless && (!bufferedConstProps.sc.empty() || (mRefinedBlockLayout && !mRefinedBlockLayout->empty()));
+  if (!needed)
+    needed = hasExplicitBindlessDecls(stage);
+  if (needed)
+    emitBindlessArraysHlsl(out_text);
 }
 
 void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const CompiledPreshader &preshader) const
@@ -296,7 +357,6 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const Compil
     const eastl::string_view bindlessType =
       multidrawCbuf ? eastl::string_view{"#define BINDLESS_CBUFFER_ARRAY\n"} : eastl::string_view{"#define BINDLESS_CBUFFER_SINGLE\n"};
     out_text.append(bindlessType.data(), bindlessType.length());
-    emitBindlessArraysHlsl(out_text);
   }
 
   out_text.append("struct MaterialProperties\n{\n");
@@ -434,12 +494,6 @@ void NamedConstBlock::buildRefinedBlockBufHlslDecl(String &out_text, ShaderStage
   }
   out_text += "};\n\n";
 
-  if (bindless && bufferedConstProps.sc.empty())
-  {
-    emitBindlessArraysHlsl(out_text);
-    out_text += "\n";
-  }
-
   for (const shc::RefinedBlockVar &v : resVars)
   {
     auto [varTypeStr, _] = assembly::build_hlsl_type(v.varType);
@@ -482,6 +536,7 @@ void NamedConstBlock::buildGlobalConstBufHlslDecl(String &out_text) const
         out_text.append(hlsl);
     }
     out_text += "\n};\n\n";
+
     for (const NamedConst &nc : bufferedConstProps.sc)
     {
       if (const char *post = nc.hlslPostfix.c_str())
@@ -738,6 +793,10 @@ ShaderStateBlock::ShaderStateBlock(const char *nm, ShaderBlockLevel lev, NamedCo
   }
   if (shc::config().generateCppStcodeValidationData && cpp_stcode)
     add_stcode_validation_mask(stcodeId, cpp_stcode->constMask.release(), a_ctx);
+
+  // shConst (moved in above) already has its consts and supp/glob links; supp blocks are
+  // lower-level and were cached when they were constructed, so this aggregates bottom-up.
+  shConst.cacheExplicitBindlessSubtree();
 }
 
 int ShaderStateBlock::getVsNameId(const char *name) const

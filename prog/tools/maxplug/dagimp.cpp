@@ -3,6 +3,7 @@
 #include <functional>
 #include <regex>
 #include <unordered_set>
+#include <vector>
 #include <max.h>
 #include <CommCtrl.h>
 #include <plugapi.h>
@@ -1439,7 +1440,7 @@ static void flip_normals(Mesh &m)
     m.FlipNormal(i);
 }
 
-static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab<SkinData *> &skin_data, Tab<NodeId> &node_id)
+static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std::vector<SkinData> &skin_data, Tab<NodeId> &node_id)
 {
   float master_scale = get_master_scale();
   bool need_rescale = fabs(master_scale - 1.f) > 1e-4f;
@@ -1463,6 +1464,7 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
   ushort nid = ~0;
   Mtl *mtl = NULL;
   Object *obj = NULL;
+  MultiMtl *mm = nullptr;
   int nflg = 0;
   while (blk_rest() > 0)
   {
@@ -1678,7 +1680,7 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
       int num = blk_len() / 2;
       if (num > 1)
       {
-        MultiMtl *mm = NewDefaultMultiMtl();
+        mm = NewDefaultMultiMtl();
         assert(mm);
         mm->SetNumSubMtls(num);
         for (int i = 0; i < num; ++i)
@@ -1720,6 +1722,7 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
         {
           TriObject *tri = CreateNewTriObject();
           assert(tri);
+          obj = tri;
           Mesh &m = tri->mesh;
           uint nv = 0;
           rd(&nv, 4);
@@ -1836,12 +1839,12 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
 #endif
           if (n->GetNodeTM(0).Parity())
             flip_normals(m);
-          obj = tri;
         }
         else if (blk_type() == DAG_OBJ_MESH)
         {
           TriObject *tri = CreateNewTriObject();
           assert(tri);
+          obj = tri;
           Mesh &m = tri->mesh;
           uint nv = 0;
           rd(&nv, 2);
@@ -1958,26 +1961,26 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
 #endif
           if (n->GetNodeTM(0).Parity())
             flip_normals(m);
-          obj = tri;
 #if MAX_RELEASE >= 12000
         }
         else if (blk_type() == DAG_OBJ_BONES)
         {
-          SkinData *sd = new SkinData;
-          sd->skinNode = n;
-          rd(&sd->numb, 2);
-          sd->bones.SetCount(sd->numb);
-          rd(&sd->bones[0], sd->bones.Count() * sizeof(DagBone));
-          rd(&sd->numvert, 4);
-          sd->wt.SetCount(sd->numvert * sd->numb);
-          rd(&sd->wt[0], sd->wt.Count() * sizeof(float));
-          skin_data.Append(1, &sd);
+          skin_data.emplace_back();
+          SkinData &sd = skin_data.back();
+          sd.skinNode = n;
+          rd(&sd.numb, 2);
+          sd.bones.SetCount(sd.numb);
+          rd(&sd.bones[0], sd.bones.Count() * sizeof(DagBone));
+          rd(&sd.numvert, 4);
+          sd.wt.SetCount(sd.numvert * sd.numb);
+          rd(&sd.wt[0], sd.wt.Count() * sizeof(float));
 #endif
         }
         else if (blk_type() == DAG_OBJ_SPLINES)
         {
           SplineShape *shape = new SplineShape;
           assert(shape);
+          obj = shape;
           BezierShape &shp = shape->shape;
           int numspl;
           rd(&numspl, 4);
@@ -2013,7 +2016,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
           shp.UpdateSels();
           shp.InvalidateGeomCache();
           shp.InvalidateCapCache();
-          obj = shape;
         }
         else if (blk_type() == DAG_OBJ_LIGHT)
         {
@@ -2162,6 +2164,10 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
   return 1;
 read_err:
   DebugPrint(_T("read error in load_node() at %X of %s\n"), ftell(h), scene_name.data());
+  if (obj)
+    obj->DeleteMe();
+  if (mm)
+    mm->DeleteThis();
   return 0;
 }
 
@@ -2822,7 +2828,7 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
   DebugPrint(_T("import...\n"));
 
   cleanup();
-  Tab<SkinData *> skin_data;
+  std::vector<SkinData> skin_data;
   Tab<NodeId> node_id;
   SplitFilename(TSTR(fname), NULL, &scene_name, NULL);
   FILE *h = _tfopen(fname, _T("rb"));
@@ -2948,10 +2954,9 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
 #undef eblk
   fclose(h);
 
-#if MAX_RELEASE >= 12000
-  for (int i = 0; i < skin_data.Count(); i++)
+  for (size_t i = 0; i < skin_data.size(); i++)
   {
-    SkinData &sd = *skin_data[i];
+    SkinData &sd = skin_data[i];
     Modifier *skinMod = (Modifier *)CreateInstance(OSM_CLASS_ID, SKIN_CLASSID);
     GetCOREInterface12()->AddModifier(*sd.skinNode, *skinMod);
 
@@ -2983,10 +2988,7 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
         wt[b] = sd.wt[b * sd.numvert + j];
       iskinImport->AddWeights(sd.skinNode, j, bn, wt);
     }
-
-    delete skin_data[i];
   }
-#endif
 
   DebugPrint(_T("clean up\n"));
   cleanup();

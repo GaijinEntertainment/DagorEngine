@@ -7,6 +7,7 @@
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_driver.h>
 #include <generic/dag_initOnDemand.h>
+#include <util/dag_convar.h>
 
 #include <frontend/internalRegistry.h>
 #include <frontend/nameResolver.h>
@@ -25,6 +26,7 @@
 #include <runtime/nodeExecutor.h>
 #include <runtime/compilationStage.h>
 #include <runtime/typeDb.h>
+#include <runtime/bindlessSlotManager.h>
 
 #include <debug/visualizationManagerInterface.h>
 
@@ -34,6 +36,8 @@ struct InitOnDemand;
 
 namespace dafg
 {
+
+inline CONSOLE_BOOL_VAL("dafg", verbose, true);
 
 class Runtime
 {
@@ -71,17 +75,21 @@ public:
   void setMultiplexingExtents(multiplexing::Extents extents);
   bool runNodes();
 
-  void markStageDirty(CompilationStage stage)
+  void markStageDirty(CompilationStage stage, const char *reason_msg = nullptr)
   {
     if (stage < currentStage)
+    {
       currentStage = stage;
+      if (verbose && reason_msg)
+        logdbg("daFG: Marking stage %d dirty: %s", eastl::to_underlying(stage), reason_msg);
+    }
   }
 
   void invalidateHistory();
   void onStaticResolutionChange(AutoResTypeNameId id)
   {
     deltaCalculator.invalidateCachesForAutoResType(id);
-    Runtime::get().markStageDirty(CompilationStage::REQUIRES_NODE_DECLARATION_UPDATE);
+    Runtime::get().markStageDirty(CompilationStage::REQUIRES_NODE_DECLARATION_UPDATE, "static resolution changed");
   }
 
   void beforeDeviceReset();
@@ -147,6 +155,9 @@ private:
   BarrierScheduler::EventsCollection allResourceEvents;
 
   sd::DeltaCalculator deltaCalculator{intermediateGraph};
+
+  // Owns the bindless texture and buffer descriptor ranges for bindlessShaderVar requests.
+  BindlessSlotManager bindlessSlotManager;
 
   // Deferred init
   eastl::optional<NodeExecutor> nodeExec;

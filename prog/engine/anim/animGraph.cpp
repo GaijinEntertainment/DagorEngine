@@ -3223,7 +3223,7 @@ void AnimBlendCtrl_Hub::initChilds(AnimationGraph &graph, const DataBlock &blk, 
         }
         addBlendNode(n, cblk->getBool("enabled", true), cblk->getReal("weight", 1.0f));
       }
-  if (!blk.getBool("const", false))
+  if (!blk.getBool("const", true))
     finalizeInit(graph, varName);
 }
 

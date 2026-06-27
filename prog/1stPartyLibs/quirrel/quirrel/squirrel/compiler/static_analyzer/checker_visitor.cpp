@@ -468,6 +468,58 @@ static bool cannotBeNull(const Expr *e) {
   }
 }
 
+static bool isMutableDefaultValue(const Expr *e) {
+  e = deparenStatic(e);
+  if (!e)
+    return false;
+
+  switch (e->op()) {
+    case TO_ARRAY:  // []
+    case TO_TABLE:  // {}
+    case TO_CLASS:  // class { ... }
+    case TO_CALL:   // Point3(1,2,3), array(0)
+    case TO_CLONE:
+      return true;
+    case TO_TERNARY: {
+      const TerExpr *t = static_cast<const TerExpr *>(e);
+      return isMutableDefaultValue(t->b()) || isMutableDefaultValue(t->c());
+    }
+    case TO_NULLC:
+      return isMutableDefaultValue(static_cast<const BinExpr *>(e)->rhs());
+    default:
+      return false;
+  }
+}
+
+const ParamDecl *CheckerVisitor::findMutatedSharedDefaultParam(const Expr *receiver) {
+  receiver = deparenStatic(receiver);
+  if (!receiver || receiver->op() != TO_ID)
+    return nullptr;
+
+  const char *name = receiver->asId()->name();
+  ValueRef *v = findValueInScopes(name);
+  if (!v || !v->info || v->info->kind != SK_PARAM)
+    return nullptr;
+
+  const ParamDecl *param = v->info->declarator.p;
+  if (!param || !isMutableDefaultValue(param->defaultValue()))
+    return nullptr;
+
+  if (v->state != VRS_UNKNOWN || v->assigned)
+    return nullptr;
+
+  return param;
+}
+
+void CheckerVisitor::reportMutatingSharedDefault(const Expr *receiver, const Node *mod) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const ParamDecl *param = findMutatedSharedDefaultParam(receiver);
+  if (param)
+    report(mod, DiagnosticsId::DI_MUTATING_SHARED_DEFAULT, param->name());
+}
+
 void CheckerVisitor::reportIfCannotBeNull(const Expr *checkee, const Expr *n, const char *loc) {
   assert(n);
 
@@ -613,6 +665,17 @@ void CheckerVisitor::checkContainerModification(const UnExpr *u) {
   reportModifyIfContainer(receiver, u);
 }
 
+void CheckerVisitor::checkMutatingSharedDefault(const UnExpr *u) {
+  if (u->op() != TO_DELETE)
+    return;
+
+  const Expr *arg = deparenStatic(u->argument());
+  if (!arg || !arg->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(arg->asAccessExpr()->receiver(), u);
+}
+
 void CheckerVisitor::checkAndOrPriority(const BinExpr *expr) {
 
   if (isEffectsGatheringPass)
@@ -709,6 +772,25 @@ void CheckerVisitor::checkParamAssignInLambda(const BinExpr *expr) {
     return;
 
   report(expr, DiagnosticsId::DI_PARAM_ASSIGNMENT_IN_LAMBDA, name);
+}
+
+void CheckerVisitor::checkMutatingSharedDefault(const BinExpr *expr) {
+  if (expr->op() != TO_NEWSLOT && !isAssignOp(expr->op()))
+    return;
+
+  const Expr *lhs = deparenStatic(expr->lhs());
+  if (!lhs || !lhs->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(lhs->asAccessExpr()->receiver(), expr);
+}
+
+void CheckerVisitor::checkMutatingSharedDefault(const IncExpr *expr) {
+  const Expr *arg = deparenStatic(expr->argument());
+  if (!arg || !arg->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(arg->asAccessExpr()->receiver(), expr);
 }
 
 void CheckerVisitor::checkSameOperands(const BinExpr *expr) {
@@ -2240,6 +2322,22 @@ void CheckerVisitor::checkContainerModification(const CallExpr *call) {
   reportModifyIfContainer(callee->asAccessExpr()->receiver(), call);
 }
 
+void CheckerVisitor::checkMutatingSharedDefault(const CallExpr *call) {
+  const char *name = extractFunctionName(call);
+
+  if (!name)
+    return;
+
+  if (!nameLooksLikeModifiesObject(name))
+    return;
+
+  const Expr *callee = deparenStatic(call->callee());
+  if (!callee || !callee->isAccessExpr())
+    return;
+
+  reportMutatingSharedDefault(callee->asAccessExpr()->receiver(), call);
+}
+
 // Detect ambiguous expressions that may modify either a temporary or a persistent object
 static bool hasMixedLifetime(const Expr *e) {
   e = deparenStatic(e);
@@ -2500,6 +2598,7 @@ void CheckerVisitor::visitId(Id *id) {
 
 void CheckerVisitor::visitUnExpr(UnExpr *expr) {
   checkContainerModification(expr);
+  checkMutatingSharedDefault(expr);
 
   Visitor::visitUnExpr(expr);
 }
@@ -2532,6 +2631,7 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkCannotBeNull(expr);
   checkCanBeSimplified(expr);
   checkRangeCheck(expr);
+  checkMutatingSharedDefault(expr);
 
   Expr *lhs = expr->lhs();
   Expr *rhs = expr->rhs();
@@ -2605,6 +2705,8 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
 }
 
 void CheckerVisitor::visitIncExpr(IncExpr *expr) {
+  checkMutatingSharedDefault(expr);
+
   const char *name = computeNameRef(deparenStatic(expr->argument()), nullptr, 0);
   if (name) {
     ValueRef *v = findValueInScopes(name);
@@ -2637,6 +2739,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkSubstArguments(expr);
   checkContainerModification(expr);
   checkUnwantedModification(expr);
+  checkMutatingSharedDefault(expr);
   checkCannotBeNull(expr);
   checkBooleanLambda(expr);
   checkCallbackReturnValue(expr);

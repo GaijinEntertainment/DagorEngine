@@ -270,17 +270,14 @@ static bool prepare_file_impl(const char *path, write_stream_t &fpout, int lev_b
   return true;
 }
 
-#define MAX_CRYPTO_LINE (4 << 10)
-
 // Returns true if ends with carriage return ('\n')
 static bool out_file(write_stream_t fp, int lc, int extra_lc, int t, bool term, int ik, const char *format, const void *arg, int anum)
 {
   if (logsMaxSize && ik != LOGLEVEL_FATAL && logFileSizes[ik].load() >= logsMaxSize)
     return false;
 
-  char sbuf[MAX_CRYPTO_LINE];
+  PrintBuffer<8 << 10, /* MAX_CAP */ 1 << 20> lineBuf;
 
-  int sz = 0;
   const int enabled_bits = interlocked_acquire_load(debug_enabled_bits);
   if (!(enabled_bits & THREAD_IDS_BIT) || (&dbg_ctx)->threadId)
     ; // do nothing
@@ -289,65 +286,46 @@ static bool out_file(write_stream_t fp, int lc, int extra_lc, int t, bool term, 
   else
   {
     (&dbg_ctx)->threadId = interlocked_increment(next_thread_id);
-    sz = snprintf(sbuf, sizeof(sbuf), "---$%02X %s ---\n", (&dbg_ctx)->threadId - 1, (&dbg_ctx)->threadName);
+    lineBuf.sprintf("---$%02X %s ---\n", (&dbg_ctx)->threadId - 1, (&dbg_ctx)->threadName);
   }
 
   int thread_id = (enabled_bits & THREAD_IDS_BIT) ? (&dbg_ctx)->threadId - 1 : -1;
   if (override_timestamp_cb)
   {
-    sz += override_timestamp_cb(sbuf, sizeof(sbuf) - sz - 1, t);
+    lineBuf.overrideTimestamp(override_timestamp_cb, t);
     if (thread_id > 0)
-      sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, " %c%c%c%c $%02X ", _DUMP4C(lc), thread_id);
+      lineBuf.sprintf(" %c%c%c%c $%02X ", _DUMP4C(lc), thread_id);
     else
-      sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, " %c%c%c%c ", _DUMP4C(lc));
+      lineBuf.sprintf(" %c%c%c%c ", _DUMP4C(lc));
   }
   else if (t >= 0 && thread_id > 0)
-    sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, "%3d.%02d %c%c%c%c $%02X ", t / 1000, (t % 1000) / 10, _DUMP4C(lc), thread_id);
+    lineBuf.sprintf("%3d.%02d %c%c%c%c $%02X ", t / 1000, (t % 1000) / 10, _DUMP4C(lc), thread_id);
   else if (t >= 0)
-    sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, "%3d.%02d %c%c%c%c ", t / 1000, (t % 1000) / 10, _DUMP4C(lc));
+    lineBuf.sprintf("%3d.%02d %c%c%c%c ", t / 1000, (t % 1000) / 10, _DUMP4C(lc));
   else if (lc != debug_internal::stdTags[LOGLEVEL_DEBUG])
-    sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, "%c%c%c%c ", _DUMP4C(lc));
+    lineBuf.sprintf("%c%c%c%c ", _DUMP4C(lc));
 
   if (extra_lc)
-    sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, "%c%c%c%c ", _DUMP4C(extra_lc));
+    lineBuf.sprintf("%c%c%c%c ", _DUMP4C(extra_lc));
 
   debug_internal::Context *ctx = &debug_internal::dbg_ctx;
   if (ctx->file)
-    sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, ". %s,%d: ", ctx->file, ctx->line);
+    lineBuf.sprintf(". %s,%d: ", ctx->file, ctx->line);
 
-  int left = sizeof(sbuf) - sz - (term ? 2 : 1);
-  int ret = DagorSafeArg::mixed_print_fmt(sbuf + sz, left, format, arg, anum);
-  char *final_sbuf = sbuf;
-  if ((unsigned)ret < (unsigned)left - 1)
-    sz += ret;
-  else
-  {
-    // sbuf is not big enough, so allocate temporary buffer on heap
-    ret = (anum < 0) ? 128 << 10 : DagorSafeArg::count_len(format, (const DagorSafeArg *)arg, anum);
-    if (ret > (1 << 20))
-      ret = (1 << 20);
-    final_sbuf = (char *)malloc(sz + ret + 16);
-    memcpy(final_sbuf, sbuf, sz); //-V575
-    left = ret + 8;
-    sz += DagorSafeArg::mixed_print_fmt(final_sbuf + sz, left, format, arg, anum);
-  }
-  if (term)
-    final_sbuf[sz++] = '\n';
-  final_sbuf[sz] = '\0';
-  G_ASSERT(strlen(final_sbuf) == sz);
+  lineBuf.appendFmt(term, format, arg, anum);
   {
     WinAutoLock lock(writeCS); // both operations of crypto & file write should be not only atomic, but strictly ordered as well
 #if DAGOR_DBGLEVEL > 0
     if (ik == LOGLEVEL_DEBUG)
-      out_debug_str(final_sbuf);
+      out_debug_str(lineBuf.data());
 #endif
 #if DAGOR_FORCE_LOGS
-    crypt_out_str((unsigned char *)final_sbuf, sz, ik);
+    crypt_out_str((unsigned char *)lineBuf.data(), lineBuf.length(), ik);
 #endif
 #if MEASURE_WRITE_TIME
     int64_t ref = ref_time_ticks();
 #endif
-    write_stream_write(final_sbuf, sz, fp);
+    write_stream_write(lineBuf.data(), lineBuf.length(), fp);
 #if MEASURE_WRITE_TIME
     totalWriteCalls++;
     if (int spent = get_time_usec(ref))
@@ -357,11 +335,8 @@ static bool out_file(write_stream_t fp, int lc, int extra_lc, int t, bool term, 
     }
 #endif
   }
-  logFileSizes[ik].fetch_add(sz, dag::memory_order_relaxed);
-  bool endsWithCR = final_sbuf[max(sz - 1, 0)] == '\n';
-  if (final_sbuf != sbuf)
-    free(final_sbuf);
-  return endsWithCR;
+  logFileSizes[ik].fetch_add(lineBuf.length(), dag::memory_order_relaxed);
+  return lineBuf.endsWithNewline();
 }
 
 #if DAGOR_DBGLEVEL > 0

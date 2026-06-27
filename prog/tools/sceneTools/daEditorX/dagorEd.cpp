@@ -14,6 +14,7 @@
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/setupTexStreaming.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <oldEditor/de_workspace.h>
 
 #include <workCycle/dag_gameSettings.h>
@@ -30,6 +31,7 @@
 #include <startup/dag_restart.h>
 #include <gui/dag_stdGuiRender.h>
 
+#include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_vromfs.h>
@@ -207,13 +209,25 @@ namespace tools3d
 {
 extern void destroy();
 }
-void init3d()
+
+static void load_main_window_position_and_size(const char *window_layout_blk_path)
 {
-  const char *appdir = DAGORED2->getWorkspace().getAppDir();
+  FullFileLoadCB crd(window_layout_blk_path, DF_READ | DF_IGNORE_MISSING);
+  DataBlock windowLayoutBlk;
+  if (crd.fileHandle && windowLayoutBlk.loadFromStream(crd, window_layout_blk_path, crd.getTargetDataSize()))
+    if (const DataBlock *mainWindowBlk = windowLayoutBlk.getBlockByName("mainWindow"))
+    {
+      logdbg("Loading last used main window position and size from \"%s\".", window_layout_blk_path);
+      EDITORCORE->getWndManager()->loadMainWindowPositionAndSize(*mainWindowBlk);
+    }
+}
+
+void init3d(const char *window_layout_blk_path)
+{
   DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
 
   const bool useDngBasedSceneRender = DAGORED2->getWorkspace().isUsingDngBasedSceneRender();
-  String sh_file = tools3d::get_shaders_path(appblk, appdir, useDngBasedSceneRender);
+  String sh_file = tools3d::get_shaders_path(appblk, useDngBasedSceneRender);
 
   // shutdown imGui, render, shaders, d3d before reiniting
   imgui_shutdown();
@@ -240,19 +254,23 @@ void init3d()
     if (strcmp(blk_game.getBlock(i)->getBlockName(), "vromfs") == 0)
     {
       const DataBlock &blk_vrom = *blk_game.getBlock(i);
-      VirtualRomFsData *vrom = ::load_vromfs_dump(String(0, "%s/%s", appdir, blk_vrom.getStr("file")), tmpmem);
-      String mnt(blk_vrom.getStr("mnt"));
+      String vrom_fn = make_eff_app_relative_path(blk_vrom.getStr("file"));
+      String mnt = make_eff_app_relative_path(blk_vrom.getStr("mnt"));
+      VirtualRomFsData *vrom = ::load_vromfs_dump(vrom_fn, tmpmem);
       if (mnt.empty())
       {
         ::add_vromfs(vrom);
-        mnt.printf(0, "%s/%s/", appdir, blk_game.getStr("game_folder", "."));
-        vrom = ::load_vromfs_dump(String(0, "%s/%s", appdir, blk_vrom.getStr("file")), tmpmem);
+        make_eff_app_relative_path(mnt, blk_game.getStr("game_folder", "."));
+        vrom = ::load_vromfs_dump(vrom_fn, tmpmem);
       }
       ::add_vromfs(vrom, false, str_dup(mnt, tmpmem));
     }
 
   DataBlock texStreamingBlk;
   ::load_tex_streaming_settings(DAGORED2->getWorkspace().getAppBlkPath(), &texStreamingBlk);
+
+  load_main_window_position_and_size(window_layout_blk_path);
+
   EDITORCORE->getWndManager()->init3d(de3_drv_name, &texStreamingBlk, INITIAL_CAPTION, INITIAL_ICON);
   if (int resv_tid_count = appblk.getInt("texMgrReserveTIDcount", 128 << 10))
   {
@@ -265,7 +283,7 @@ void init3d()
   if (const char *gp_file = appblk.getBlockByNameEx("game")->getStr("params", NULL))
   {
     DataBlock *b = const_cast<DataBlock *>(dgs_get_game_params());
-    b->load(String(0, "%s/%s", appdir, gp_file));
+    b->load(make_eff_app_relative_path(gp_file));
     b->removeBlock("rendinstExtra");
     b->removeBlock("rendinstOpt");
   }

@@ -24,6 +24,7 @@ UseProgLibs +=
   3rdPartyLibs/recastnavigation/DetourTileCache
   3rdPartyLibs/arc/zstd-$(ZstdVer)
   gameLibs/gameMath
+  gameLibs/recastTools
 ;
 if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt = -D_TARGET_PC_TOOLS_BUILD ; }
 if $(PathFinderFastLzSupport) = yes {

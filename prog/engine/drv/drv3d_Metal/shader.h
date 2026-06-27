@@ -17,6 +17,8 @@ enum
   BindlessTypeTexture2D = 1 << 2,
   BindlessTypeTextureCube = 1 << 3,
   BindlessTypeTexture2DArray = 1 << 4,
+  BindlessTypeTexture3D = 1 << 5,
+  BindlessTypeTextureCubeArray = 1 << 6,
 };
 
 class Shader

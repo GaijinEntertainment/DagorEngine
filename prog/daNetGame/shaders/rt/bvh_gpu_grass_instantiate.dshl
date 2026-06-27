@@ -89,6 +89,7 @@ shader gpu_grass_bvh_instantiate
     gpu_grass_bvh_meta_index_horizontal@u1 = gpu_grass_bvh_meta_index_horizontal;
     gpu_grass_bvh_meta_count@u1 = gpu_grass_bvh_meta_count;
     world_view_pos@f3 = world_view_pos;
+    grass_max_instance_count@u1 = grass_max_instance_count;
   }
   assume gpu_grass_bvh_range = grass_on; // We just won't call it, if it's off
   USE_GRASS_COMPRESSION(cs)
@@ -107,7 +108,7 @@ shader gpu_grass_bvh_instantiate
     [numthreads(DISPATCH_X,1,1)]
     void make_instances(uint dtid : SV_DispatchThreadID)
     {
-      uint instanceCount = loadGrassCount();
+      uint instanceCount = min(loadGrassCount(), grass_max_instance_count);
       if (dtid >= instanceCount)
         return;
 

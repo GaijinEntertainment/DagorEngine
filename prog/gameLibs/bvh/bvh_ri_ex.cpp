@@ -276,7 +276,10 @@ struct RiExtraBVHJob : public cpujobs::IJob
     const E3DCOLOR *colors = nullptr;
     bool isTessellated = false;
     if constexpr (treeOrFlagsCheck)
+    {
       colors = rendinst::getRIGenExtraColors(riType);
+      isTessellated = globalObjectTessellationEnabled && riRes->isTessellated();
+    }
     else if (riRes->isTessellated())
       isTessellated = rendinst::isRIGenExtraRendinstClipmap(riType) || globalObjectTessellationEnabled;
 
@@ -447,7 +450,9 @@ struct RiExtraBVHJob : public cpujobs::IJob
                                            handle, invWorldTm, treeInfo, metaAllocId, this, false, isBurning, hashVal);
               if (!isOk)
                 continue;
-              add_riExtra_instance(contextId, meshId, transform, &treeInfo, isStationary, metaAllocId, threadIx);
+              const bool forceEnableBackfaceCulling = isTessellated && treeInfo.data.isTrunk;
+              add_riExtra_instance(contextId, meshId, transform, &treeInfo, isStationary, metaAllocId, threadIx,
+                forceEnableBackfaceCulling);
             }
           }
           else if (DAGOR_UNLIKELY(is_flag(contextId, elem)))
@@ -655,7 +660,9 @@ void prepare_ri_extra_instances()
       int elemCount = 0;
 
       auto riRes = rendinst::getRIGenExtraRes(riType);
-      if (!riRes || riRes->getBvhId() == 0)
+      if (DAGOR_UNLIKELY(!riRes))
+        return;
+      if (riRes->getBvhId() == 0)
       {
         // Not yet loaded. Put it into the dirt list so it will be checked later.
         newDirtList.insert(riType);

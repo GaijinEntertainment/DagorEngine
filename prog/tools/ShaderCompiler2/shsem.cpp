@@ -531,6 +531,7 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
 
   shc::ShaderContext shContext = ctx.makeShaderContext(shname->text, ShaderBlockLevel::SHADER, shname);
   ShaderClass &sclass = shContext.compiledShader();
+  sh_process_errors();
 
   if (ErrorCounter::curShader().err > 0)
   {
@@ -1080,6 +1081,7 @@ void add_block(block_decl *bl, Parser &parser, shc::TargetContext &ctx)
 
   shc::ShaderContext shaderBlockCtx = ctx.makeShaderContext(bl->name->text, level, bl->name);
   shc::VariantContext variantCtx = shaderBlockCtx.makeVariantContext(variant, targetSsc);
+  sh_process_errors();
 
   // evaluate shader
   AssembleShaderEvalCB cb{variantCtx};

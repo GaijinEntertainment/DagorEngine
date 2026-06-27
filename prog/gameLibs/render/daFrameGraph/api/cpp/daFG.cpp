@@ -50,7 +50,7 @@ void set_multiplexing_default_mode(multiplexing::Mode mode, multiplexing::Mode h
   {
     registry.defaultMultiplexingMode = mode;
     registry.defaultHistoryMultiplexingMode = history_mode;
-    runtime.markStageDirty(CompilationStage::REQUIRES_IR_GRAPH_BUILD);
+    runtime.markStageDirty(CompilationStage::REQUIRES_IR_GRAPH_BUILD, "default multiplexing mode changed");
   }
 }
 

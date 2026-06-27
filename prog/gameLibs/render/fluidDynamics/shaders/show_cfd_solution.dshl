@@ -15,12 +15,16 @@ shader show_cfd_solution
   POSTFX_VS_TEXCOORD(0, texcoord)
 
   (ps) {
-    plot_tex@smp3d = cfd_plot_tex;
+    plot_tex@tex3d = cfd_plot_tex;
     plot_type@i1 = cfd_plot_type;
     depth_tc@f1 = cfd_depth_tc;
   }
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+
   hlsl(ps) {
+    #define plot_tex_samplerstate global_linear_wrap_sampler
+
     float calc_P(float rho)
     {
       const float M = 0.0289644f; // molar mass of air

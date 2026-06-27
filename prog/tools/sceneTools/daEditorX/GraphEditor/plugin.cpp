@@ -1305,7 +1305,7 @@ void GraphEditorPlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
 
 void GraphEditorPlg::initResourcePaths()
 {
-  String graphEditorDataDir = ::make_full_path(sgg::get_common_data_dir(), "/graphEditor/");
+  String graphEditorDataDir = ::make_full_path(sgg::get_common_data_dir(), "graphEditor/");
 
   resourcePaths.defaultShadersPath = graphEditorDataDir + "default_shaders.blk";
   resourcePaths.defaultTexgenPath = graphEditorDataDir + "default_texgen.blk";
@@ -1316,7 +1316,7 @@ void GraphEditorPlg::initResourcePaths()
 
 void GraphEditorPlg::appendShaderTemplatesToBaseNodes()
 {
-  String shadersDir = ::make_full_path(sgg::get_common_data_dir(), "/graphEditor/shaders/");
+  String shadersDir = ::make_full_path(sgg::get_common_data_dir(), "graphEditor/shaders/");
   String pathMask(0, "%s*.blk", shadersDir.str());
 
   int loaded = 0;
@@ -1589,13 +1589,15 @@ bool GraphEditorPlg::loadBaseNodesBlkIfNeeded()
   {
     return baseNodesBlk.blockCount() > 0;
   }
-  baseNodesBlkLoaded = true;
-  String path = ::make_full_path(sgg::get_common_data_dir(), "/graphEditor/base_nodes.blk");
+
+  String path = ::make_full_path(sgg::get_common_data_dir(), "graphEditor/base_nodes.blk");
   if (!baseNodesBlk.load(path))
   {
     DAEDITOR3.conError("GraphEditor: failed to load %s", path.str());
     return false;
   }
+  baseNodesBlkLoaded = true;
+
   // Append shader sub-graph templates so the preprocess pass and uid index treat them
   // uniformly with built-in nodes. Order matters: appendShaderTemplatesToBaseNodes must
   // run before preprocess so synthesised shader descriptors get synthetic texture
@@ -1784,18 +1786,6 @@ void GraphEditorPlg::markGraphDirtyAndRegen()
   // (drops the preview every slider tick + forces a full pipeline reset every
   // frame).
   texGenService->markGraphDirty();
-}
-
-void GraphEditorPlg::markGraphForceRebuild()
-{
-  if (!texGenService)
-  {
-    return;
-  }
-  // Full pipeline reset + regenerate (texGenReg.close() / regcache::clear()), so registered textures
-  // are dropped and reloaded. markGraphDirtyAndRegen alone reuses textures by their root-independent
-  // reference name, so a changed textureRootDir wouldn't actually reload them against the new root.
-  texGenService->requestForceRebuild();
 }
 
 void GraphEditorPlg::notifyGraphSourceChanged()

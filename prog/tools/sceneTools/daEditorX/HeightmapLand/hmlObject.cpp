@@ -248,26 +248,28 @@ PropPanel::PanelWindowPropertyControl *HmapLandObjectEditor::getObjectProperties
   return objectPropBar ? objectPropBar->getPanel() : nullptr;
 }
 
-void HmapLandObjectEditor::addEditorCommandButton(PropPanel::ContainerPropertyControl *tb, int id, const char *editor_command_id,
-  const char *icon_name, const char *hint, bool check)
-{
-  // In the Landscape editor instead of the "Select objects by name" dialog we show the Outliner.
-  if (id == CM_OBJED_SELECT_BY_NAME)
-  {
-    icon_name = "outliner";
-    hint = "Outliner";
-    check = true;
-  }
-
-  ObjectEditor::addEditorCommandButton(tb, id, editor_command_id, icon_name, hint, check);
-}
-
 void HmapLandObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
-  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel();
+  ObjectEditor::fillToolBar(toolbar);
+
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+
+  // The first toolbar panel. We make it first by moving it before the panels created by ObjectEditor::fillToolBar().
+  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(CM_HEIGHTMAP_TOOLBAR_PANEL_FIRST);
+  toolbar->moveById(CM_HEIGHTMAP_TOOLBAR_PANEL_FIRST, CM_OBJED_TOOLBAR_PANEL_FIRST);
 
   addEditorCommandButton(tb1, CM_SHOW_PANEL, EditorCommandIds::TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES, "show_hml_panel",
     "Show/hide landscape props panel", true);
+
+  toolbar->removeById(CM_OBJED_OBJPROP_PANEL);
+  addEditorCommandButton(tb1, CM_OBJED_OBJPROP_PANEL, EditorCommandIds::OBJED_OBJPROP_PANEL, "show_panel",
+    "Show/hide object props panel", true);
+  setButton(CM_OBJED_OBJPROP_PANEL, objectPropBar != nullptr);
+
+  toolbar->removeById(CM_OBJED_SELECT_BY_NAME);
+  toolbar->removeById(CM_OBJED_SELECT_BY_NAME_SEPARATOR);
+  addEditorCommandButton(tb1, CM_OBJED_SELECT_BY_NAME, EditorCommandIds::OBJED_SELECT_BY_NAME, "outliner", "Outliner", true);
+
   //  addButton(tb1, CM_SHOW_LAND_OBJECTS, "show_bounds", "Show land hole boxes", true);
   tb1->createSeparator();
 
@@ -280,25 +282,14 @@ void HmapLandObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *tool
   addEditorCommandButton(tb1, CM_SCRIPT, EditorCommandIds::SCRIPT, "terr_script", "Apply script", true);
   tb1->createSeparator();
 
-  ObjectEditor::fillToolBar(toolbar);
+  // The toolbar panel before the "Filter by name" edit box.
+  PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel(CM_HEIGHTMAP_TOOLBAR_PANEL_SECOND);
+  toolbar->moveById(CM_HEIGHTMAP_TOOLBAR_PANEL_SECOND, CM_OBJED_TOOLBAR_PANEL_SELECT_FILTER);
 
-  PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel();
-
-  tb2->createSeparator();
-
-  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
-  PropPanel::ContainerPropertyControl *splineAndPolygonDebugControlsContainer = commandSystem->createToolbarPopupButtonGroup(*tb2);
-  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS,
-    EditorCommandIds::TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS, "hide_splines_polygons", "Hide spline and polygon controls", true);
-  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_SPLINE_DEBUG_CONTROLS,
-    EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS, "hide_splines", "Hide only spline controls", true);
-  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_POLYGON_DEBUG_CONTROLS,
-    EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS, "hide_polygons", "Hide only polygon controls", true);
-
-  addEditorCommandButton(tb2, CM_TOGGLE_NOTE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_NOTE_DEBUG_CONTROLS, "", "", true);
-  addEditorCommandButton(tb2, CM_SHOW_PHYSMAT, EditorCommandIds::SHOW_PHYSMAT, "show_physmat", "Show physmat", true);
-  addEditorCommandButton(tb2, CM_SHOW_PHYSMAT_COLORS, EditorCommandIds::SHOW_PHYSMAT_COLORS, "show_physmat_colors",
-    "Show physmat color", true);
+  addEditorCommandButton(tb2, CM_USE_PIXEL_PERFECT_SELECTION, EditorCommandIds::USE_PIXEL_PERFECT_SELECTION, "ctrl_eff_from_att",
+    "Use pixel perfect selection", true);
+  addEditorCommandButton(tb2, CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT, EditorCommandIds::SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT,
+    "select_only_if_entire_object_in_rect", "Select only if the entire object is in the selection rectangle", true);
   tb2->createSeparator();
 
   {
@@ -323,46 +314,60 @@ void HmapLandObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *tool
       "Select only splines and entities", true);
   }
 
-  addEditorCommandButton(tb2, CM_USE_PIXEL_PERFECT_SELECTION, EditorCommandIds::USE_PIXEL_PERFECT_SELECTION, "ctrl_eff_from_att",
-    "Use pixel perfect selection", true);
-  addEditorCommandButton(tb2, CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT, EditorCommandIds::SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT,
-    "select_only_if_entire_object_in_rect", "Select only if the entire object is in the selection rectangle", true);
-  tb2->createSeparator();
+  // The toolbar panel after the "Filter by name" edit box.
+  PropPanel::ContainerPropertyControl *tb3 = toolbar->createToolbarPanel(CM_HEIGHTMAP_TOOLBAR_PANEL_SECOND);
+  tb3->createSeparator();
+
+  PropPanel::ContainerPropertyControl *splineAndPolygonDebugControlsContainer = commandSystem->createToolbarPopupButtonGroup(*tb3);
+  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS,
+    EditorCommandIds::TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS, "hide_splines_polygons", "Hide spline and polygon controls", true);
+  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_SPLINE_DEBUG_CONTROLS,
+    EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS, "hide_splines", "Hide only spline controls", true);
+  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_POLYGON_DEBUG_CONTROLS,
+    EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS, "hide_polygons", "Hide only polygon controls", true);
+
+  addEditorCommandButton(tb3, CM_TOGGLE_NOTE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_NOTE_DEBUG_CONTROLS, "", "", true);
+  tb3->createSeparator();
 
   //  addButton(tb2, CM_CREATE_HOLEBOX_MODE, "create_holebox", "Create land hole box", true);
-  addEditorCommandButton(tb2, CM_CREATE_ENTITY, EditorCommandIds::CREATE_ENTITY, "create_lib_ent", "Create entity", true);
 
   {
-    PropPanel::ContainerPropertyControl *rotationContainer = tb2->createToolbarPanel(0, true);
+    PropPanel::ContainerPropertyControl *rotationContainer = tb3->createToolbarPanel(0, true);
     addEditorCommandButton(rotationContainer, CM_ROTATION_NONE, EditorCommandIds::ROTATION_NONE, "rotation_none", "No rotation", true);
     addEditorCommandButton(rotationContainer, CM_ROTATION_X, EditorCommandIds::ROTATION_X, "rotation_x", "X to normal", true);
     addEditorCommandButton(rotationContainer, CM_ROTATION_Y, EditorCommandIds::ROTATION_Y, "rotation_y", "Y to normal", true);
     addEditorCommandButton(rotationContainer, CM_ROTATION_Z, EditorCommandIds::ROTATION_Z, "rotation_z", "Z to normal", true);
   }
 
-  addEditorCommandButton(tb2, CM_CREATE_SPLINE, EditorCommandIds::CREATE_SPLINE, "create_spline",
+  addEditorCommandButton(tb3, CM_CREATE_ENTITY, EditorCommandIds::CREATE_ENTITY, "create_lib_ent", "Create entity", true);
+  addEditorCommandButton(tb3, CM_CREATE_SPLINE, EditorCommandIds::CREATE_SPLINE, "create_spline",
     "Create spline (hold Shift to place on RI; Alt+Click for regular shape)", true);
-  addEditorCommandButton(tb2, CM_CREATE_POLYGON, EditorCommandIds::CREATE_POLYGON, "create_poly",
+  addEditorCommandButton(tb3, CM_CREATE_POLYGON, EditorCommandIds::CREATE_POLYGON, "create_poly",
     "Create polygon (Alt+Click for regular shape)", true);
-  tb2->createSeparator();
+  tb3->createSeparator();
 
-  addEditorCommandButton(tb2, CM_REFINE_SPLINE, EditorCommandIds::REFINE_SPLINE, "spline_refine", "Refine spline", true);
-  addEditorCommandButton(tb2, CM_SPLIT_SPLINE, EditorCommandIds::SPLIT_SPLINE, "split_spline", "Split spline", true);
-  addEditorCommandButton(tb2, CM_SPLIT_POLY, EditorCommandIds::SPLIT_POLY, "split_poly", "Split poly", true);
+  addEditorCommandButton(tb3, CM_SHOW_PHYSMAT, EditorCommandIds::SHOW_PHYSMAT, "show_physmat", "Show physmat", true);
+  addEditorCommandButton(tb3, CM_SHOW_PHYSMAT_COLORS, EditorCommandIds::SHOW_PHYSMAT_COLORS, "show_physmat_colors",
+    "Show physmat color", true);
+  tb3->createSeparator();
 
-  addEditorCommandButton(tb2, CM_REVERSE_SPLINE, EditorCommandIds::REVERSE_SPLINE, "spline_reverse", "Reverse spline(s)");
-  addEditorCommandButton(tb2, CM_CLOSE_SPLINE, EditorCommandIds::CLOSE_SPLINE, "spline_close", "Close selected spline(s)");
-  addEditorCommandButton(tb2, CM_OPEN_SPLINE, EditorCommandIds::OPEN_SPLINE, "spline_break", "Un-close spline at selected point");
-  tb2->createSeparator();
+  addEditorCommandButton(tb3, CM_REFINE_SPLINE, EditorCommandIds::REFINE_SPLINE, "spline_refine", "Refine spline", true);
+  addEditorCommandButton(tb3, CM_SPLIT_SPLINE, EditorCommandIds::SPLIT_SPLINE, "split_spline", "Split spline", true);
+  addEditorCommandButton(tb3, CM_SPLIT_POLY, EditorCommandIds::SPLIT_POLY, "split_poly", "Split poly", true);
 
-  addEditorCommandButton(tb2, CM_MANUAL_SPLINE_REGEN_MODE, EditorCommandIds::MANUAL_SPLINE_REGEN_MODE, "offline",
+  addEditorCommandButton(tb3, CM_REVERSE_SPLINE, EditorCommandIds::REVERSE_SPLINE, "spline_reverse", "Reverse spline(s)");
+  addEditorCommandButton(tb3, CM_CLOSE_SPLINE, EditorCommandIds::CLOSE_SPLINE, "spline_close", "Close selected spline(s)");
+  addEditorCommandButton(tb3, CM_OPEN_SPLINE, EditorCommandIds::OPEN_SPLINE, "spline_break", "Un-close spline at selected point");
+  tb3->createSeparator();
+
+  addEditorCommandButton(tb3, CM_MANUAL_SPLINE_REGEN_MODE, EditorCommandIds::MANUAL_SPLINE_REGEN_MODE, "offline",
     "Use manual obj/geom update for spline/poly", true);
-  addEditorCommandButton(tb2, CM_SPLINE_REGEN, EditorCommandIds::SPLINE_REGEN, "compile", "Manual spline/poly obj/geom update");
+  addEditorCommandButton(tb3, CM_SPLINE_REGEN, EditorCommandIds::SPLINE_REGEN, "compile", "Manual spline/poly obj/geom update");
 
   setButton(CM_MANUAL_SPLINE_REGEN_MODE, !autoUpdateSpline);
   enableButton(CM_SPLINE_REGEN, !autoUpdateSpline);
 
-  addEditorCommandButton(tb2, CM_REBUILD_SPLINES_BITMASK, EditorCommandIds::REBUILD_SPLINES_BITMASK, "splinemask",
+  addEditorCommandButton(tb3, CM_REBUILD_SPLINES_BITMASK, EditorCommandIds::REBUILD_SPLINES_BITMASK, "splinemask",
     "Rebuild splines bitmask");
 }
 

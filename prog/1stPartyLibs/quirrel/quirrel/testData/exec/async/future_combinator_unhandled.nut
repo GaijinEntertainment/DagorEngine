@@ -3,8 +3,10 @@ from "async" import Future
 // (1) A faulting race loser raises no spurious unhandled diagnostic: every input
 //     is awaited by a combinator child, which marks it handled and catches its
 //     fault. (2) The only fault that can surface is on a `done` the test
-//     deliberately abandons -- exactly one ERROR block below, whose trace names
-//     the faulting input's origin (adoption seeds done.faultTrace).
+//     deliberately abandons -- exactly one ERROR block below. The combinator
+//     rejects `done` with the bare caught value, so the report carries the value
+//     but not the input's origin trace (accepted reduced fidelity for
+//     fire-and-forget combinator faults).
 //
 // This test relies on testRunner.py redirecting stdout and stderr to the .out.
 

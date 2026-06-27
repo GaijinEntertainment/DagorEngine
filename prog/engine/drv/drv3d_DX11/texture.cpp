@@ -1289,25 +1289,66 @@ HRESULT map_without_context_blocking(ID3D11Resource *resource, UINT subresource,
 }
 } // namespace drv3d_dx11
 
-unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
+static unsigned get_texformat_usage_impl(int cflg, D3DResourceType type, const char **out_reason = nullptr)
 {
+  using namespace d3d;
+
+  if (out_reason)
+    *out_reason = "unsupported format/flags combination";
+
   int format = cflg & TEXFMT_MASK;
   if (format == TEXFMT_A4R4G4B4)
+  {
+    if (out_reason)
+      *out_reason = "TEXFMT_A4R4G4B4 is not supported in DX11";
     return 0;
+  }
   if (format == TEXFMT_ETC2_RGBA || format == TEXFMT_ETC2_RG || format == TEXFMT_ASTC4 || format == TEXFMT_ASTC8 ||
       format == TEXFMT_ASTC12)
+  {
+    if (out_reason)
+      *out_reason = "ETC2/ASTC are mobile-only formats, not supported in DX11";
     return 0;
+  }
 
   UINT flags = 0;
   DXGI_FORMAT dxgiFormat = dxgi_format_from_flags(format);
   if (dx_device->CheckFormatSupport(dxgiFormat, &flags) != S_OK)
+  {
+    if (out_reason)
+      *out_reason = "CheckFormatSupport returned failure for this DXGI format";
     return 0;
+  }
   if ((type == D3DResourceType::TEX) && !(flags & D3D11_FORMAT_SUPPORT_TEXTURE2D))
+  {
+    if (out_reason)
+      *out_reason = "D3D11_FORMAT_SUPPORT_TEXTURE2D not available";
     return 0;
+  }
   if ((type == D3DResourceType::VOLTEX) && !(flags & D3D11_FORMAT_SUPPORT_TEXTURE3D))
+  {
+    if (out_reason)
+      *out_reason = "D3D11_FORMAT_SUPPORT_TEXTURE3D not available";
     return 0;
+  }
   if ((type == D3DResourceType::CUBETEX) && !(flags & D3D11_FORMAT_SUPPORT_TEXTURECUBE))
+  {
+    if (out_reason)
+      *out_reason = "D3D11_FORMAT_SUPPORT_TEXTURECUBE not available";
     return 0;
+  }
+  if ((type == D3DResourceType::ARRTEX) && !(flags & D3D11_FORMAT_SUPPORT_TEXTURE2D))
+  {
+    if (out_reason)
+      *out_reason = "D3D11_FORMAT_SUPPORT_TEXTURE2D not available";
+    return 0;
+  }
+  if ((type == D3DResourceType::CUBEARRTEX) && !(flags & D3D11_FORMAT_SUPPORT_TEXTURECUBE))
+  {
+    if (out_reason)
+      *out_reason = "D3D11_FORMAT_SUPPORT_TEXTURECUBE not available";
+    return 0;
+  }
 
   bool supportSrgb = false;
   switch (format)
@@ -1347,15 +1388,30 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
     }
   }
 
+  if (out_reason)
+  {
+    if (!is_depth_format_flg(format))
+    {
+      if ((cflg & TEXCF_RTARGET) && !(flags & D3D11_FORMAT_SUPPORT_RENDER_TARGET))
+        *out_reason = "D3D11_FORMAT_SUPPORT_RENDER_TARGET not available";
+      else if ((cflg & TEXCF_UNORDERED) && !(flags & D3D11_FORMAT_SUPPORT_TYPED_UNORDERED_ACCESS_VIEW))
+        *out_reason = "D3D11_FORMAT_SUPPORT_TYPED_UNORDERED_ACCESS_VIEW not available";
+    }
+    else if (!(flags & D3D11_FORMAT_SUPPORT_DEPTH_STENCIL))
+      *out_reason = "D3D11_FORMAT_SUPPORT_DEPTH_STENCIL not available";
+  }
+
   return ret | USAGE_PIXREADWRITE;
   // return (format == TEXFMT_A4R4G4B4) ? 0 : (unsigned)-1;
 }
 
+unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type) { return get_texformat_usage_impl(cflg, type); }
+
 namespace d3d
 {
-static bool check_texformat(int cflg, D3DResourceType type)
+static bool check_texformat(int cflg, D3DResourceType type, const char **out_reason = nullptr)
 {
-  unsigned flags = d3d::get_texformat_usage(cflg, type);
+  unsigned flags = get_texformat_usage_impl(cflg, type, out_reason);
   unsigned mask = USAGE_TEXTURE;
   if (is_depth_format_flg(cflg))
     mask |= USAGE_DEPTH;
@@ -1437,7 +1493,12 @@ Texture *drv3d_dx11::create_backbuffer_tex(int id, IDXGI_SWAP_CHAIN *swap_chain)
 BaseTexture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   check_texture_creation_args(w, h, flg, stat_name);
-  D3D_CONTRACT_ASSERT_RETURN(d3d::check_texformat(flg), nullptr);
+  if (const char *reason; !check_texformat(flg, D3DResourceType::TEX, &reason))
+  {
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("create_tex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg, reason);
+    return nullptr;
+  }
 
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
@@ -1570,7 +1631,12 @@ BaseTexture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels,
 
 BaseTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name, ResourceTagType)
 {
-  D3D_CONTRACT_ASSERT_RETURN(d3d::check_cubetexformat(flg), nullptr);
+  if (const char *reason; !check_texformat(flg, D3DResourceType::CUBETEX, &reason))
+  {
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("create_cubetex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg, reason);
+    return nullptr;
+  }
 
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
@@ -1611,7 +1677,12 @@ BaseTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
 
 BaseTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
-  D3D_CONTRACT_ASSERT_RETURN(d3d::check_voltexformat(flg), nullptr);
+  if (const char *reason; !check_texformat(flg, D3DResourceType::VOLTEX, &reason))
+  {
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("create_voltex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg, reason);
+    return nullptr;
+  }
 
   if ((flg & (TEXCF_RTARGET | TEXCF_DYNAMIC)) == (TEXCF_RTARGET | TEXCF_DYNAMIC))
   {
@@ -1670,7 +1741,12 @@ BaseTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const 
 
 BaseTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
-  D3D_CONTRACT_ASSERT_RETURN(d3d::check_texformat(flg), nullptr);
+  if (const char *reason; !check_texformat(flg, D3DResourceType::ARRTEX, &reason))
+  {
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("create_array_tex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg, reason);
+    return nullptr;
+  }
 
   fixup_tex_params(w, h, flg, levels);
 
@@ -1697,7 +1773,13 @@ BaseTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, con
 
 BaseTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
-  D3D_CONTRACT_ASSERT_RETURN(d3d::check_cubetexformat(flg), nullptr);
+  if (const char *reason; !check_texformat(flg, D3DResourceType::CUBEARRTEX, &reason))
+  {
+    const char *fmt_name = get_tex_format_name(flg);
+    D3D_CONTRACT_ERROR("create_cube_array_tex('%s'): format %s (flags 0x%08X) %s", stat_name, fmt_name ? fmt_name : "unknown", flg,
+      reason);
+    return nullptr;
+  }
 
   fixup_tex_params(side, side, flg, levels);
 

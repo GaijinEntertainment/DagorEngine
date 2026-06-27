@@ -19,6 +19,7 @@
 #include <libTools/util/strUtil.h>
 #include <libTools/util/fileUtils.h>
 #include <libTools/util/iLogWriter.h>
+#include <libTools/util/setupNamedMounts.h>
 
 #include <libTools/renderViewports/cachedViewports.h>
 
@@ -699,6 +700,7 @@ void GenericEditorAppWindow::startWith(const char *select_workspace)
       shouldLoadFile = false;
       String path_to_blk(sceneFname);
       ::dd_get_fname_location(path_to_blk, sceneFname);
+      set_canonical_app_dir_mount(path_to_blk);
 
       EditorWorkspace &wsp = getWorkspace();
       // wsp.initWorkspaceBlk(sceneFname);

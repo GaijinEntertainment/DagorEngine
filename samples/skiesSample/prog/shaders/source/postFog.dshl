@@ -55,11 +55,14 @@ shader postFog
 
   (ps) {
     world_view_pos@f3 = world_view_pos;
-    frame2_tex@smp2d = frame2_tex;
+    frame2_tex@tex2d = frame2_tex;
   }
+
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   BRUNETON_FOG()
   hlsl(ps) {
+    #define frame2_tex_samplerstate global_linear_wrap_sampler
     half4 postfog_ps(VsOutput input) : SV_Target
     {
       float rawDepth = tex2Dlod(depth_gbuf, float4(input.texcoord,0,0)).x;

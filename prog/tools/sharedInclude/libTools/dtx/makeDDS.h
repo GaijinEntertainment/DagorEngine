@@ -4,6 +4,7 @@
 #include <util/dag_stdint.h>
 #include <drv/3d/dag_tex3d.h>
 #include <3d/ddsFormat.h>
+#include <3d/ddsxTex.h>
 #include <debug/dag_debug.h>
 
 inline int dds_header_size() { return sizeof(DDSURFACEDESC2) + 4; }
@@ -104,4 +105,9 @@ inline bool fix_gamma_for_fmt(float &gamma, const char *fmt)
     return false;
   gamma = 1.0f;
   return true;
+}
+
+inline bool is_srgb_config_valid(const ddsx::Header &h)
+{
+  return (h.flags & ddsx::Header::FLG_GAMMA_EQ_1) || h.d3dFormat == D3DFMT_UNKNOWN || is_srgb_capable_d3d_fmt(h.d3dFormat);
 }

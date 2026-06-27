@@ -12,6 +12,7 @@
 
 #include <libTools/containers/dag_TabOps.h>
 #include <libTools/containers/tab_sort.h>
+#include <libTools/util/appDirRelativePath.h>
 
 #include <drv/3d/dag_info.h>
 #include <osApiWrappers/dag_files.h>
@@ -49,12 +50,7 @@ bool DeWorkspace::loadAppSpecific(const DataBlock &blk)
   const DataBlock *sdkBlk = blk.getBlockByName("SDK");
 
   if (sdkBlk)
-  {
-    params.additionalPlugins = sdkBlk->getStr("daeditor3x_additional_plugins", NULL);
-
-    if (params.additionalPlugins.length())
-      params.additionalPlugins = ::make_full_path(getAppDir(), params.additionalPlugins);
-  }
+    make_eff_app_relative_path(params.additionalPlugins, sdkBlk->getStr("daeditor3x_additional_plugins", nullptr));
 
   f11Tags.clear();
   plugTags.clear();

@@ -90,7 +90,10 @@ struct BufPool
   int maxVBUseKb = INT_MAX;
   std::mutex updateMutex;
 
-  BufPool(char nc) : nameChar(nc) { sbuf.push_back(nullptr); } // pre-alloc for IB
+  void *parent = nullptr;
+  volatile int64_t blasTotalBytes = 0;
+
+  BufPool(char nc, void *parent) : nameChar(nc), parent(parent) { sbuf.push_back(nullptr); } // pre-alloc for IB
   BufChunk allocChunkForStride(int stride, int req_avail_sz, const BufConfig &hints, bool use_soft_limit);
   bool arrangeVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, BufChunkTab &out_c, Sbuffer *ib, bool can_fail, bool use_soft_limit,
     const BufConfig &hints, int *vbShortage = nullptr, int *ibShortage = nullptr);
@@ -185,6 +188,15 @@ public:
   inline int getRequestLodsByDistanceFrames() const { return requestLodsByDistanceFrames; }
 
   void setAllocationLimits(int ibKb, int vbKb);
+  void setBlasAllocationLimit(int limitKb);
+
+  void adjustBlasSize(int64_t delta_bytes)
+  {
+    int64_t total = interlocked_add(buf.blasTotalBytes, delta_bytes);
+    G_ASSERT(total >= 0);
+    G_UNUSED(total);
+  }
+
   static bool isStreamingEnabled() { return ResType::on_higher_lod_required != nullptr; }
 
   bool canUseVbAsSr() const;

@@ -773,10 +773,11 @@ struct PipelineLogSerializer
   PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature;
   bool useConstBufferDescriptorRanges;
 
-  void serialize(const GraphicsPipelineSignature &sign, const D3D12_GRAPHICS_PIPELINE_STATE_DESC &info) const;
-  void serialize(const ComputePipelineSignature &sign, const D3D12_COMPUTE_PIPELINE_STATE_DESC &info) const;
-  void serialize(const GraphicsPipelineSignature &sign, const D3D12_PIPELINE_STATE_STREAM_DESC &info) const;
-  void serialize(const ComputePipelineSignature &sign, const D3D12_PIPELINE_STATE_STREAM_DESC &info) const;
+  void serialize(const GraphicsPipelineSignature &sign, const D3D12_GRAPHICS_PIPELINE_STATE_DESC &info,
+    const eastl::string &name) const;
+  void serialize(const ComputePipelineSignature &sign, const D3D12_COMPUTE_PIPELINE_STATE_DESC &info, const eastl::string &name) const;
+  void serialize(const GraphicsPipelineSignature &sign, const D3D12_PIPELINE_STATE_STREAM_DESC &info, const eastl::string &name) const;
+  void serialize(const ComputePipelineSignature &sign, const D3D12_PIPELINE_STATE_STREAM_DESC &info, const eastl::string &name) const;
 };
 
 struct GraphicsPipelineVariantCreateInfo
@@ -2880,6 +2881,10 @@ public:
 
   bool needToUpdateCache = false;
   bool hasFeatureSetInCache = true;
+  // Set once a device reset happened. After a reset the lazily-populated pipeline
+  // set is rebuilt and an in-flight command may reference a not-yet-repopulated
+  // slot; getGraphics/getCompute then degrade to a null return instead of asserting.
+  bool wasReset = false;
 };
 
 

@@ -116,7 +116,7 @@ dafg::NodeHandle makeGiFeedbackNode()
       }
 
       eastl::optional<dafg::VirtualResourceHandle<BaseTexture, true, false>> currentAmbientHndl;
-      if (wr.hasFeature(FeatureRenderFlags::DEFERRED_LIGHT))
+      if (wr.hasFeature(FeatureRenderFlags::DEFERRED_LIGHT) && shader_exists("deferredLight"))
       {
         registry.readTexture("current_ambient").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("current_ambient");
       }

@@ -205,7 +205,7 @@ shader water_foam_obstacle_apply
   }
 
   (ps) {
-    tex@smp2d = water_foam_obstacle;
+    tex@tex2d = water_foam_obstacle;
     perlin_noise3d@smp3d = perlin_noise3d;
 
     water_foam_trail_mask@smp2d = water_foam_trail_mask;
@@ -222,8 +222,10 @@ shader water_foam_obstacle_apply
 
   if ( ship_bow_foam != NULL )
   {
-    (ps) { ship_bow@smp2d = ship_bow_foam; }
+    (ps) { ship_bow@tex2d = ship_bow_foam; }
   }
+
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   hlsl {
     struct VsOutput
@@ -266,6 +268,9 @@ shader water_foam_obstacle_apply
 
   hlsl(ps)
   {
+    #define tex_samplerstate global_linear_wrap_sampler
+    #define ship_bow_samplerstate global_linear_wrap_sampler
+
     float4 target_ps(VsOutput input) : SV_Target
     {
       ##if water_foam_obstacle_tex_size == size_256

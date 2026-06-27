@@ -6,11 +6,14 @@ float4 blur_source_size;
 
 macro TEST_BLUR(stage)
   (stage) {
-    blur_source@smp2d = blur_source;
+    blur_source@tex2d = blur_source;
     blur_source_size@f4 = blur_source_size;
   }
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
+
   hlsl(stage) {
+    #define blur_source_samplerstate global_linear_wrap_sampler
     float4 get_blurred(float2 uv)
     {
       float4 acc = 0;

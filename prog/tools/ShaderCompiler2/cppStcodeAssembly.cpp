@@ -556,6 +556,11 @@ void DynamicStcodeRoutine::addDynamicShaderResource(ShaderStage stage, ResourceT
 static const char *get_shader_const_type_name(ShaderVarType type, semantic::VariableType vt)
 {
   using semantic::VariableType;
+
+  // Explicit bindless vars carry SHVT_INT4 but are a single int slot; write as scalar int1.
+  if (semantic::vt_is_explicit_bindless(vt))
+    return "int1";
+
   switch (vt)
   {
     case VariableType::f1: return "float1";

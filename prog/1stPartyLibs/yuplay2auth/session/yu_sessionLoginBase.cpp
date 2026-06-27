@@ -73,3 +73,54 @@ void YuSession::CommonLoginAction::onHttpResponse(const YuString& url, const YuC
 {
   done(parseServerAnswer(data));
 }
+
+
+//==================================================================================================
+bool YuSession::CommonLoginAction::runLoginAction(const YuString& url, YuStrMap& post, bool common)
+{
+  if (common)
+    setCommonLoginParams(post);
+
+  return sendPost(url, post);
+}
+
+
+//==================================================================================================
+bool YuSession::CommonLoginAction::runLoginAction(const YuString& url, YuStrMap& post,
+                                                  const YuString& game_id)
+{
+  setCommonLoginParams(post, game_id.c_str());
+
+  return sendPost(url, post);
+}
+
+
+//==================================================================================================
+bool YuSession::CommonLoginAction::runLoginAction(const YuString& url, YuStrMap& post,
+                                                  const YuStrMap& headers)
+{
+  setCommonLoginParams(post);
+
+  return sendPost(url, post, headers);
+}
+
+
+//==================================================================================================
+bool YuSession::CommonLoginAction::runLoginAction(const YuString& url, YuStrMap& post,
+                                                  const YuStrMap& headers, const YuString& game_id)
+{
+  setCommonLoginParams(post, game_id.c_str());
+
+  return sendPost(url, post, headers);
+}
+
+
+//==================================================================================================
+bool YuSession::CommonLoginAction::runLoginAction(const YuString& url, YuStrMap& post,
+                                                  const YuString& game_id, unsigned conn_timeout,
+                                                  unsigned request_timeout)
+{
+  setCommonLoginParams(post, game_id.c_str());
+
+  return sendPost(url, post, conn_timeout, request_timeout);
+}

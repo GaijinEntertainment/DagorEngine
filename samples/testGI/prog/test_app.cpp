@@ -2676,10 +2676,10 @@ public:
     }
     ShaderGlobal::set_int(get_shader_variable_id("deferred_lighting_mode"), RESULT);
 
-    d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
+    d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{frame.getTex2D(), 0, 0}});
     clusteredLights->renderOtherLights();
     renderEnvi();
-    d3d::set_depth(target->getDepth(), DepthAccess::RW);
+    d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
     ensurePrevFrame();
     d3d::stretch_rect(frame.getTex2D(), prevFrame.getTex2D());
 
@@ -3589,7 +3589,7 @@ protected:
     if (bvhLruMeshBase)
     {
       bvh::update_instances(bvhCtx, Point3::ZERO, Point3(0, -1, 0), TMatrix::IDENT, TMatrix4::IDENT, Frustum(), Frustum(), nullptr,
-        nullptr, nullptr, threadpool::PRIO_HIGH);
+        nullptr, nullptr, {}, threadpool::PRIO_HIGH);
 
       auto accept = [](auto) { return LRUCollision::ObjectClass::Accept; };
       auto addInstance = [this](size_t i, mat43f_cref tm, bbox3f_cref, bbox3f_cref) {

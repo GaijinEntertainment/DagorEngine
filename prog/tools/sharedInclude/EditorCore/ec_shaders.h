@@ -7,7 +7,7 @@
 namespace tools3d
 {
 
-bool get_snapshot_path(const DataBlock &blk, const char *app_dir, String &out_path);
-String get_shaders_path(const DataBlock &blk, const char *app_dir, bool use_dng);
+bool get_snapshot_path(const DataBlock &blk, String &out_path);
+String get_shaders_path(const DataBlock &blk, bool use_dng);
 
 } // namespace tools3d

@@ -50,7 +50,8 @@ NOTE: enable only when 1. render hero & hero is ship 2.when we make resolve defe
   VAR(hero_wetness_max_depth, true)         \
   VAR(hero_wetness_depth_bias, true)        \
   VAR(hero_foam_texture_transform, true)    \
-  VAR(hero_foam_scroll_fade, true)
+  VAR(hero_foam_scroll_fade, true)          \
+  VAR(use_hero_wetness, true)
 
 #define VAR(a, opt) static ShaderVariableInfo a##VarId(#a, opt);
 GLOBAL_VARS_LIST
@@ -70,26 +71,20 @@ HeroWetness::HeroWetness() :
   heroFoamScroll(Point2(0.f, 0.f)),
   heroFoamScrollSpeed(0.5f),
   heroFoamFadeUnderWater(Point2(2.f, 2.f)),
-  numClearsToDo(1)
-{
-  heroWetnessTex = nullptr;
-
-  init();
-}
+  numClearsToDo(1),
+  heroWetnessTex(nullptr)
+{}
 
 HeroWetness::~HeroWetness() { close(); }
 
-void HeroWetness::init()
+void HeroWetness::init(const DataBlock &settings)
 {
-  const DataBlock *heroWetnessBlk = ::dgs_get_game_params()->getBlockByNameEx("hero_wetness");
-  if (!heroWetnessBlk->getBool("useHeroWetness", true))
-    return;
-
   uint32_t fmt = TEXFMT_A16B16G16R16F;
   unsigned int workingFlags = d3d::USAGE_FILTER | d3d::USAGE_RTARGET;
   if ((d3d::get_texformat_usage(fmt) & workingFlags) != workingFlags)
     return;
-
+  ShaderGlobal::set_int(use_hero_wetnessVarId, 1);
+  const DataBlock *heroWetnessBlk = settings.getBlockByNameEx("graphics")->getBlockByNameEx("hero_wetness");
   // options & shader vars
   heroWetnessVolumeSlices = max(heroWetnessBlk->getInt("volumeSlices", 32), 1); // z upwards, i.e. horizontal slices
   heroWetnessVolumeSizeX = max(heroWetnessBlk->getInt("volumeSizeX", 32), 1);
@@ -199,6 +194,7 @@ void HeroWetness::close()
   waterHeightRendererShmat = NULL;
   waterHeightRendererShElem = NULL;
   waterHeightRendererVDecl = 0;
+  ShaderGlobal::set_int(use_hero_wetnessVarId, 0);
 }
 
 void HeroWetness::clearHeroWetnessVolume()

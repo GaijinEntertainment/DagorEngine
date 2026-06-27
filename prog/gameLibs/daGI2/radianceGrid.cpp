@@ -180,9 +180,12 @@ void RadianceGrid::initHistory()
 {
   if (validHistory)
     return;
-  d3d::set_rwbuffer(STAGE_CS, 0, dagi_radiance_grid_selected_probes.getBuf());
-  dagi_radiance_grid_clear_temporal_cs->dispatchThreads(1, 1, 1);
-  d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
+  if (radiance.temporalProbesBufferSize)
+  {
+    d3d::set_rwbuffer(STAGE_CS, 0, dagi_radiance_grid_selected_probes.getBuf());
+    dagi_radiance_grid_clear_temporal_cs->dispatchThreads(1, 1, 1);
+    d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
+  }
   // clearing should not be needed is variables disallow accessing invalid values
   // d3d::clear_rwtexf(dagi_irradiance_grid_sph0.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   // d3d::clear_rwtexf(dagi_irradiance_grid_sph1.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
@@ -332,16 +335,12 @@ bool RadianceGrid::updateClip(uint32_t clip_no, const Point3 &world_pos)
     return false;
 
 #if DAGOR_DBGLEVEL > 0
-  if (!is_pow_of2(grid.clipW) || !is_pow_of2(grid.clipD))
-  {
-    IPoint4 l = dagi_rad_grid_clipmap_sizei_np2VarId.get_int4();
-    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.z)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z ||
-        l.w < -clip.lt.y)
-    {
-      LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, grid.clipW,
-        grid.clipD);
-    }
-  }
+  IPoint4 l = dagi_rad_grid_clipmap_sizei_np2VarId.get_int4();
+  const bool xzOverflow = l.z && (l.z + abs(clip.lt.x) < 0 || l.z + abs(clip.lt.z) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z);
+  const bool yOverflow = l.w && (l.w + abs(clip.lt.y) < 0 || l.w < -clip.lt.y);
+  if (xzOverflow || yOverflow)
+    LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, grid.clipW,
+      grid.clipD);
 #endif
 
   ShaderGlobal::set_int4(dagi_rad_grid_clipmap_lt_coordVarId[clip_no], calc_clip_var(clip.lt, probeSize));
@@ -396,16 +395,13 @@ bool RadianceGrid::updateClipIrradiance(uint32_t clip_no, const Point3 &world_po
     return false;
 
 #if DAGOR_DBGLEVEL > 0
-  if (!is_pow_of2(grid.clipW) || !is_pow_of2(grid.clipD))
-  {
-    IPoint4 l = dagi_irrad_grid_clipmap_sizei_np2VarId.get_int4();
-    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.z)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z ||
-        l.w < -clip.lt.y)
-    {
-      LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, grid.clipW,
-        grid.clipD);
-    }
-  }
+  // np2 wrap offset is 0 for pow2 axes; only non-pow2 axes need range validation
+  IPoint4 l = dagi_irrad_grid_clipmap_sizei_np2VarId.get_int4();
+  const bool xzOverflow = l.z && (l.z + abs(clip.lt.x) < 0 || l.z + abs(clip.lt.z) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z);
+  const bool yOverflow = l.w && (l.w + abs(clip.lt.y) < 0 || l.w < -clip.lt.y);
+  if (xzOverflow || yOverflow)
+    LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, grid.clipW,
+      grid.clipD);
 #endif
 
   uint32_t numFilterPasses = 0, filterBatchProbes = 0;

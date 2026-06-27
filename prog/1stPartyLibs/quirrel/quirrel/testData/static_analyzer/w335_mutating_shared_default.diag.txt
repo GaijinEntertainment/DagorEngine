@@ -1,0 +1,162 @@
+WARNING: w335 (mutating-shared-default) Parameter 'a' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:5:4
+
+function mut_array_method(a = []) {
+    a.append(1)
+    ^----------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:9:4
+
+function mut_table_newslot(t = {}) {
+    t.x <- 1
+    ^-------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:13:4
+
+function mut_table_assign(t = {}) {
+    t.x = 1
+    ^------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:17:4
+
+function mut_table_plus_eq(t = { x = 0 }) {
+    t.x += 1
+    ^-------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:21:4
+
+function mut_table_slot_plus_eq(t = { x = 0 }) {
+    t["x"] += 1
+    ^----------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:25:4
+
+function mut_table_inc(t = { x = 0 }) {
+    t.x++
+    ^----
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:29:4
+
+function mut_table_slot_dec(t = { x = 0 }) {
+    t["x"]--
+    ^-------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:33:4
+
+function mut_table_delete(t = {}) {
+    delete t.x
+    ^---------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:37:4
+
+function mut_table_slot(t = {}) {
+    t["x"] <- 1
+    ^----------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:41:4
+
+function mut_table_slot_assign(t = {}) {
+    t["x"] = 1
+    ^---------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:46:8
+
+    if (cond) {
+        t.x = 1
+        ^------
+    }
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:52:8
+
+    foreach (_ in [1]) {
+        t.x <- 1
+        ^-------
+    }
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:58:8
+
+    let f = function() {
+        t.x = 1
+        ^------
+    }
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:64:16
+
+function mut_in_lambda(t = {}) {
+    let f = @() t.append(1)
+                ^----------
+    f()
+
+
+WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
+testData/static_analyzer/w335_mutating_shared_default.nut:69:4
+
+function nullable_default(a = null) {
+    a.append(1)
+    ^
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 'a' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:78:4
+
+function mut_factory_call(a = array(0)) {
+    a.append(1)
+    ^----------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 'p' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:87:4
+
+function mut_instance_field(p = Pt(1)) {
+    p.x = 2
+    ^------
+}
+
+
+WARNING: w335 (mutating-shared-default) Parameter 't' has a mutable default value and is modified.
+testData/static_analyzer/w335_mutating_shared_default.nut:91:4
+
+function mut_clone_default(t = clone {}) {
+    t.x <- 1
+    ^-------
+}
+
+

@@ -39,6 +39,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include "common.h"
 #include "virtualAnimCharEntityBase.h"
+#include <libTools/util/appDirRelativePath.h>
 
 struct AttachmentStor
 {
@@ -190,7 +191,7 @@ public:
             att.attSuffix = b.getStr("animCharSuffix", "_char");
             att.configDir = b.getStr("configDir", "");
             if (!att.configDir.empty() && att.configDir[0] == '#')
-              att.configDir = String(0, "%s%s", EDITORCORE->getBaseWorkspace().getAppDir(), &att.configDir[1]);
+              att.configDir = make_eff_app_relative_path(&att.configDir[1]);
 
             att.varBlockNm = b.getStr("varsForHolderBlockName", "");
 

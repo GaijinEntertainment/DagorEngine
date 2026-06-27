@@ -17,6 +17,7 @@
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_wndGlobal.h>
+#include <EditorCore/ec_shaders.h>
 #include <osApiWrappers/dag_direct.h>
 
 #include <perfMon/dag_graphStat.h>
@@ -826,12 +827,7 @@ bool DagorEdAppWindow::runShadersReload(dag::ConstSpan<const char *> params)
   auto shaderModel = d3d::get_driver_desc().shaderModel;
 
   DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
-  String sh_file;
-  if (appblk.getStr("shaders", NULL))
-    sh_file.printf(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), appblk.getStr("shaders", NULL));
-  else
-    sh_file.printf(260, "%s/compiledShaders/classic/tools", sgg::get_common_data_dir());
-  simplify_fname(sh_file);
+  String sh_file = tools3d::get_shaders_path(appblk, DAGORED2->getWorkspace().isUsingDngBasedSceneRender());
 
   const char *shname = params.size() > 0 ? params[0] : sh_file;
 

@@ -82,7 +82,8 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
     return [cameraHndl = cameraHndl, strmCtxHndl, debugTriangle,
              dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass")](
              const dafg::multiplexing::Index &multiplexing_index) {
-      debug_mesh::activate_mesh_coloring_master_override();
+      if (!debugTriangle)
+        debug_mesh::activate_mesh_coloring_master_override();
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       const auto &camera = cameraHndl.ref();
 
@@ -115,7 +116,8 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
           camera.jitterProjTm, camera.viewItm.getcol(3), camera.negRoundedCamPos, camera.negRemainderCamPos, occlusion, RENDER_MAIN,
           asyncAnimcharCtx, strmCtxHndl.ref()));
       }
-      debug_mesh::deactivate_mesh_coloring_master_override();
+      if (!debugTriangle)
+        debug_mesh::deactivate_mesh_coloring_master_override();
     };
   });
 }

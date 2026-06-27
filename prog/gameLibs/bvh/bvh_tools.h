@@ -161,7 +161,7 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
 
 inline void process_relems(ContextId context_id, const char *tag, const dag::Span<ShaderMesh::RElem> &elems, uint32_t bvh_id,
   uint32_t lod_ix, eastl::optional<const BufferProcessor *> vertex_processor, const Point4 &pos_mul, const Point4 &pos_add,
-  const BSphere3 &bounding, bool is_ri, PerInstanceDataUse per_instance_data_use,
+  const BSphere3 &bounding, bool is_ri, PerInstanceDataUse per_instance_data_use, const RenderableInstanceLodsResource *resource,
   const RenderableInstanceLodsResource::ImpostorParams *impostor_params = nullptr,
   const RenderableInstanceLodsResource::ImpostorTextures *impostor_textures = nullptr)
 {
@@ -183,19 +183,21 @@ inline void process_relems(ContextId context_id, const char *tag, const dag::Spa
   if (meshes.empty())
     return;
 
+  // filter out trees and flags because we don't want to account them yet
+  BvhType type = !resource->hasTreeOrFlag() ? BvhType::RI : BvhType::None;
   if (isAnimated)
   {
     for (auto [i, info] : zip(indices, meshes))
     {
       bool isMeshAnimated = info.vertexProcessor && !info.vertexProcessor->isOneTimeOnly();
       const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, i);
-      add_object(context_id, meshId, {{info}, isMeshAnimated, tag});
+      add_object(context_id, meshId, {{info}, type, isMeshAnimated, tag});
     }
   }
   else
   {
     const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, 0);
-    add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, isAnimated, tag});
+    add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, type, isAnimated, tag});
   }
 }
 

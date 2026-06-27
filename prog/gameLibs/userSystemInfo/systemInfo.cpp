@@ -359,8 +359,9 @@ bool get_cpu_info(String &cpu, String &cpuFreq, String &cpuVendor, String &cpu_s
           continue;
 
         strncpy(info, s + strlen(spl), MAX_PATH - 1);
-        if (info[strlen(info) - 1] == '\n')
-          info[strlen(info) - 1] = 0;
+        info[MAX_PATH - 1] = '\0';
+        if (size_t infoLen = strlen(info); infoLen && info[infoLen - 1] == '\n')
+          info[infoLen - 1] = 0;
 
         if (check_token(buffer, "processor"))
         {

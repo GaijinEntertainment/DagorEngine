@@ -59,7 +59,11 @@ void CinematicMode::setChromaticAberration(Point3 chromatic_aberration)
   PriorityShadervar::set_float4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(chromatic_aberration));
 }
 
-void CinematicMode::setFilmGrain(Point4 film_grain) { FilmGrainLutHolder::enable_external_modifier(film_grain); }
+void CinematicMode::setFilmGrain(float strength_mul, Point4 film_grain)
+{
+  film_grain.x *= strength_mul;
+  FilmGrainLutHolder::enable_external_modifier(film_grain);
+}
 
 void CinematicMode::setFps(int fps) { settings.videoSettings.fps = fps; }
 

@@ -1,17 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "math/dag_check_nan.h"
-#include "debug/dag_assert.h"
-#include "util/dag_globDef.h"
+#include <math/dag_check_nan.h>
+#include <debug/dag_assert.h>
+#include <util/dag_globDef.h>
+#include <supp/dag_math.h>
 #include <cstdint>
 #include <cfloat>
+#include <string.h>
 #include <vecmath/dag_vecMath.h>
-
-#if defined(__GNUC__) && __GNUC__ >= 13
-#define KNOWN_BROKEN() 1
-#else
-#define KNOWN_BROKEN() 0
-#endif
 
 static bool verify_impl(bool cond, const char *error_text, const char *text_cond)
 {
@@ -70,7 +66,7 @@ DAGOR_NOINLINE void verify_nan_finite_checks(uint32_t inan32, uint64_t inan64, f
   finiteCheckPassed &= verify(!check_finite(1.0 / zero64), "Finite check is broken on that platform/compiler: %s");
   finiteCheckPassed &= verify(v_test_xyzw_finite(V_C_ONE), "Finite check is broken on that platform/compiler: %s");
   finiteCheckPassed &= verify(!v_test_xyzw_finite(v_ldu(p3)), "Finite check is broken on that platform/compiler: %s");
-#if DAGOR_DBGLEVEL > 0 && !KNOWN_BROKEN()
+#if DAGOR_DBGLEVEL > 0
   G_ASSERT(nanCheckPassed);
   G_ASSERT(finiteCheckPassed);
 #endif

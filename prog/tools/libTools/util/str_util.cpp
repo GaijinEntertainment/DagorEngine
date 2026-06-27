@@ -32,6 +32,9 @@ bool is_full_path(const char *path)
     return true;
 #endif
 
+  if (*path == '%')
+    return true;
+
   return false;
 }
 

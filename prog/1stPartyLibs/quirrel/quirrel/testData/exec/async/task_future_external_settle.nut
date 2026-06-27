@@ -4,7 +4,7 @@ from "async" import Future
 // function) must throw regardless of task lifecycle. Task identity is
 // latched at construction, not derived from generator presence. Three phases:
 //   - inflight: task has not finished its body
-//   - after_adopt: task body returned a Future (chain-unwrap adoption)
+//   - returns_future: task body returned a Future (stored verbatim, no adoption)
 //   - after_done: task body fully complete
 // Bare Futures remain unaffected.
 
@@ -25,12 +25,12 @@ async function section_inflight() {
   print("consumer got: " + r + "\n")
 }
 
-async function section_after_adopt() {
-  print("=== after_adopt ===\n")
+async function section_returns_future() {
+  print("=== returns_future ===\n")
   let inner = Future()
-  async function f() { return inner }   // chain-unwrap: task-future adopts `inner`
+  async function f() { return inner }   // body returns a Future; no adoption, fulfils with it verbatim
   let task = f()
-  // One suspension so f's body reaches eDead and adopts `inner`.
+  // One suspension so f's body completes and the task-future fulfils.
   let tick = Future()
   tick.resolve(null)
   let _ = await tick
@@ -41,7 +41,9 @@ async function section_after_adopt() {
     print("resolve still throws: " + e + "\n")
   }
   inner.resolve("real")
-  let r = await task
+  // No adoption: `await task` yields the inner Future (one level); await again for the value.
+  let innerFut = await task
+  let r = await innerFut
   print("consumer got: " + r + "\n")
 }
 
@@ -62,7 +64,7 @@ async function section_after_done() {
 
 async function runAll() {
   await section_inflight()
-  await section_after_adopt()
+  await section_returns_future()
   await section_after_done()
   print("script done\n")
 }

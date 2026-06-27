@@ -133,10 +133,10 @@ struct Aliased<Point4>
 
 template <typename BlockHandle>
 template <typename T>
-void BaseBlockHandle<BlockHandle>::set(int var_id, const T &val)
+BlockHandle BaseBlockHandle<BlockHandle>::set(int var_id, const T &val)
 {
   using BlockType = typename BlockHandle::BlockType;
-  G_ASSERT_RETURN(is_valid_id<BlockType>(getId()), );
+  G_ASSERT_RETURN(is_valid_id<BlockType>(getId()), BlockHandle::invalid);
   const int gid = get_internal_id(var_id);
   if (DAGOR_LIKELY(gid >= 0))
   {
@@ -145,6 +145,7 @@ void BaseBlockHandle<BlockHandle>::set(int var_id, const T &val)
     b.vars[var_id] = v;
     b.gidVars[gid] = v;
   }
+  return BlockHandle(getId());
 }
 
 template <typename BlockHandle>
@@ -223,16 +224,16 @@ GlobalBlockHandle get_global()
 }
 
 #define INSTANTIATE_HANDLE_ACCESSORS(HandleType)                                                                    \
-  template void BaseBlockHandle<HandleType>::set(int, const int &);                                                 \
-  template void BaseBlockHandle<HandleType>::set(int, const float &);                                               \
-  template void BaseBlockHandle<HandleType>::set(int, const Color4 &);                                              \
-  template void BaseBlockHandle<HandleType>::set(int, const Point4 &);                                              \
-  template void BaseBlockHandle<HandleType>::set(int, const IPoint4 &);                                             \
-  template void BaseBlockHandle<HandleType>::set(int, const TMatrix4 &);                                            \
-  template void BaseBlockHandle<HandleType>::set(int, BaseTexture *const &);                                        \
-  template void BaseBlockHandle<HandleType>::set(int, Sbuffer *const &);                                            \
-  template void BaseBlockHandle<HandleType>::set(int, const d3d::SamplerHandle &);                                  \
-  template void BaseBlockHandle<HandleType>::set(int, RaytraceTopAccelerationStructure *const &);                   \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const int &);                                           \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const float &);                                         \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const Color4 &);                                        \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const Point4 &);                                        \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const IPoint4 &);                                       \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const TMatrix4 &);                                      \
+  template HandleType BaseBlockHandle<HandleType>::set(int, BaseTexture *const &);                                  \
+  template HandleType BaseBlockHandle<HandleType>::set(int, Sbuffer *const &);                                      \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const d3d::SamplerHandle &);                            \
+  template HandleType BaseBlockHandle<HandleType>::set(int, RaytraceTopAccelerationStructure *const &);             \
   template dag::Expected<int, GetError> BaseBlockHandle<HandleType>::get(int) const;                                \
   template dag::Expected<float, GetError> BaseBlockHandle<HandleType>::get(int) const;                              \
   template dag::Expected<Color4, GetError> BaseBlockHandle<HandleType>::get(int) const;                             \
@@ -261,6 +262,7 @@ INSTANTIATE_HANDLE_ACCESSORS(PassBlockHandle)
 
 ViewBlockHandle ViewBlockHandle::invalid = ViewBlockHandle(invalid_block_id);
 PassBlockHandle PassBlockHandle::invalid = PassBlockHandle(invalid_block_id);
+GlobalBlockHandle GlobalBlockHandle::invalid = GlobalBlockHandle(invalid_block_id);
 
 PassBlockHandle::PassBlockHandle(uint32_t id) : BaseBlockHandle<PassBlockHandle>(id) {}
 
@@ -409,9 +411,6 @@ void flush()
 
   for (auto [blockId, block] : enumerate(get_blocks<PassBlock>()))
   {
-    if (blockId == PassBlockHandle::invalid.getId())
-      continue;
-
     const auto flushResult = flush(PassBlockHandle(blockId), stcode.value());
     if (!flushResult)
       logerr("Failed to flush RefinedBlock '%s' err: %d", block.name, eastl::to_underlying(flushResult.error()));

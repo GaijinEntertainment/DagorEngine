@@ -49,7 +49,7 @@ shader static_flares
   }
 
   (ps) {
-    static_flares_tex@smp2d = static_flares_tex;
+    static_flares_tex@tex2d = static_flares_tex;
     static_flares_color_multiplier@f4 = static_flares_color_multiplier;
   }
 
@@ -112,8 +112,11 @@ shader static_flares
 
   INIT_HDR(ps)
   USE_HDR(ps)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   hlsl(ps) {
+    #define static_flares_tex_samplerstate global_linear_wrap_sampler
+
     half4 static_flares_ps(VsOutput input): SV_Target
     {
       half4 color = input.color * saturate(static_flares_color_multiplier) * tex2D(static_flares_tex, input.texcoord);

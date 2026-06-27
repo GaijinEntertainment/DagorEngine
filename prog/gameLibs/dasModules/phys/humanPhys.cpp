@@ -11,6 +11,8 @@ DAS_BASE_BIND_ENUM_98(HUStandState, HUStandState, ESS_STAND, ESS_CROUCH, ESS_CRA
   ESS_CLIMB, ESS_CLIMB_THROUGH, ESS_CLIMB_OVER, ESS_CLIMB_LADDER, ESS_EXTERNALLY_CONTROLLED, ESS_NUM);
 DAS_BASE_BIND_ENUM(HumanPhysState::StateFlag, StateFlag, ST_JUMP, ST_CROUCH, ST_CRAWL, ST_ON_GROUND, ST_SPRINT, ST_WALK, ST_SWIM,
   ST_DOWNED);
+DAS_BASE_BIND_ENUM(HumanPhys::ClimbState, ClimbState, CLIMB_STATE_JUMP_UP, CLIMB_STATE_CLIMB, CLIMB_STATE_JUMP_DOWN,
+  CLIMB_STATE_FLY_DOWN, CLIMB_STATE_LANDING);
 DAS_BASE_BIND_ENUM(HumanControlState::DodgeState, DodgeState, No, Left, Right, Back);
 
 DAS_ANNOTATE_VECTOR(HumanWeaponParamsArray, HumanWeaponParamsArray)
@@ -378,6 +380,13 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(maxHeightForFastClimbing)>("maxHeightForFastClimbing");
     addField<DAS_BIND_MANAGED_FIELD(fastClimbingMult)>("fastClimbingMult");
 
+    addField<DAS_BIND_MANAGED_FIELD(useClimbTrajectory)>("useClimbTrajectory");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryStage)>("climbTrajectoryStage");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevPos)>("climbTrajectoryPrevPos");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextPos)>("climbTrajectoryNextPos");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevTime)>("climbTrajectoryPrevTime");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextTime)>("climbTrajectoryNextTime");
+
     addField<DAS_BIND_MANAGED_FIELD(climbOverMaxHeight)>("climbOverMaxHeight");
     addField<DAS_BIND_MANAGED_FIELD(climbOverHeightThreshold)>("climbOverHeightThreshold");
     addField<DAS_BIND_MANAGED_FIELD(climbOverForwardOffset)>("climbOverForwardOffset");
@@ -489,6 +498,7 @@ public:
     addEnumeration(new EnumerationHUWeaponEquipState());
     addEnumeration(new EnumerationHumanControlThrowSlot());
     addEnumeration(new EnumerationStateFlag());
+    addEnumeration(new EnumerationClimbState());
     addEnumeration(new EnumerationPrecomputedPresetMode());
     addEnumeration(new EnumerationDodgeState());
 

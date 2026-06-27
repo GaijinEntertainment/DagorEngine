@@ -314,6 +314,9 @@ static bool compile_stat(const PreshaderStat &stat, PreshaderCompilationContext 
 
     outNcTable.addHlslDecl(hnd, eastl::move(builtHlsl.definition), eastl::move(builtHlsl.postfix));
 
+    if (def.isExplicitBindless())
+      outNcTable.getSlot(hnd).isExplicitBindless = true;
+
     if (!assembly::build_stcode_for_named_const<assembly::StcodeBuildFlagsBits::ALL>(
           def, reg, vctx, &outCppStcodePass, &outBytecodeAccum,
           [&](int id, void *var_node) {

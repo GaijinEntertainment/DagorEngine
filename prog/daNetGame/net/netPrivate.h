@@ -9,7 +9,10 @@
 #include <EASTL/fixed_vector.h>
 #include <util/dag_simpleString.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <debug/dag_log.h>
+#include <debug/dag_debug.h>
 #include <daECS/net/time.h>
 #include <daECS/net/network.h>
 #include "net.h"
@@ -82,6 +85,18 @@ void clear_net_em();
 extern InitOnDemand<net::NetContext, false> net_context;
 
 
+struct NetStateSnapshot
+{
+  bool hasNetwork = false;
+  bool isServer = true;
+  bool isTrueNetServer = false;
+  bool isDummyTime = true;
+  net::ServerFlags srvFlags = net::ServerFlags::None;
+  float syncTimeSec = 0.f;
+  double syncTimeSecD = 0.0;
+  int syncMillis = 0;
+};
+
 struct NetGlobals
 {
   int connectGen = 0;
@@ -89,17 +104,11 @@ struct NetGlobals
   DummyTimeManager dummyTime;
   ITimeManager *timeMgr = &dummyTime;
 
-  bool isDummyTime() const { return timeMgr == &dummyTime; }
+  OSSpinlock snapshotLock;
+  NetStateSnapshot authoritativeSnapshot DAG_TS_GUARDED_BY(snapshotLock);
+  volatile uint64_t authoritativeVersion = 0;
 
-  void resetTimeMgr(ITimeManager *newMgr = nullptr)
-  {
-    ITimeManager *prev = timeMgr;
-    timeMgr = newMgr ? newMgr : &dummyTime;
-    if (prev && prev != &dummyTime)
-      delete prev;
-  }
-
-  ~NetGlobals() { resetTimeMgr(nullptr); }
+  ~NetGlobals();
 };
 
 extern NetGlobals g_net_globals;
@@ -139,6 +148,42 @@ extern NetGlobals g_net_globals;
     if (!net::is_this_thread_net_em_owner())    \
       return __VA_ARGS__;                       \
   } while (0)
+
+#define ASSERT_MAIN_THREAD_GLOBAL_NET_FOR(mgr_)                                                                                \
+  do                                                                                                                           \
+  {                                                                                                                            \
+    G_ASSERTF(is_main_thread_network(), "needs main-thread-net (net=%d)", (int)is_main_thread_network());                      \
+    G_ASSERTF(&(mgr_) == g_entity_mgr.getRaw(), "targeted send needs g_entity_mgr=%p got %p", g_entity_mgr.getRaw(), &(mgr_)); \
+    G_ASSERTF((mgr_).getOwnerThreadId() == get_current_thread_id(),                                                            \
+      "targeted send needs current thread to own the EM (owner=%lld cur=%lld)", (long long)(mgr_).getOwnerThreadId(),          \
+      (long long)get_current_thread_id());                                                                                     \
+  } while (0)
+
+extern thread_local NetStateSnapshot net_snap;
+extern thread_local uint64_t net_snap_version;
+
+namespace net
+{
+// Refresh TLS snapshot from authoritative without touching the pinned flag.
+// Used by sync_thread_net_snapshot() and by ensure_tls_snapshot_fresh() to catch up
+// lazy/unpinned readers and to refresh stale pinned readers after diagnostic.
+void sync_thread_net_snapshot_lazy();
+
+// Bring the TLS snapshot up to date for a read about to happen on this thread.
+// In debug, also emits warn/err diagnostics for pinned threads that fall behind.
+// Caller must already have asserted off-EM-owner; this only touches TLS.
+void ensure_tls_snapshot_fresh();
+} // namespace net
+
+#define READ_NET_SNAPSHOT_FIELD(field)                                                                                            \
+  ([]() -> auto {                                                                                                                 \
+    G_ASSERTF(!net::is_this_thread_net_em_owner(),                                                                                \
+      "net snapshot TLS read from net-EM owner thread (%lld) -- owner reads truth, not TLS", (long long)get_current_thread_id()); \
+    net::ensure_tls_snapshot_fresh();                                                                                             \
+    return net_snap.field;                                                                                                        \
+  }())
+
+void publish_net_state_now();
 
 void flush_new_connection(net::IConnection &conn);
 

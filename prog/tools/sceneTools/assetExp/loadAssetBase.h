@@ -9,6 +9,7 @@
 #include <util/dag_string.h>
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/progressInd.h>
+#include <libTools/util/appDirRelativePath.h>
 
 static inline bool loadAssetBase(DagorAssetMgr &mgr, const char *app_dir, const DataBlock &appblk, IGenericProgressIndicator &pbar,
   ILogWriter &log)
@@ -22,7 +23,7 @@ static inline bool loadAssetBase(DagorAssetMgr &mgr, const char *app_dir, const 
   for (int i = 0; i < blk.paramCount(); i++)
     if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid)
     {
-      String base(260, "%s/%s", app_dir, blk.getStr(i));
+      String base = make_eff_app_relative_path(blk.getStr(i));
       if (!mgr.loadAssetsBase(base, "sample"))
       {
         debug("errors while loading base: %s", base.str());
@@ -82,7 +83,7 @@ static inline bool loadAssetBase(DagorAssetMgr &mgr, const char *app_dir, const 
   };
 
   if (const char *efx_fname = appblk.getBlockByNameEx("assets")->getStr("efxBlk", NULL))
-    mount_efx_assets(mgr, String(0, "%s/%s", app_dir, efx_fname));
+    mount_efx_assets(mgr, make_eff_app_relative_path(efx_fname));
 
   return success;
 }

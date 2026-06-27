@@ -69,6 +69,7 @@ Sources =
   runtime/nodeExecutor.cpp
   runtime/typeDb.cpp
   runtime/runtime.cpp
+  runtime/bindlessSlotManager.cpp
 ;
 
 if $(DAFG_ENABLE_DAS_INTEGRATION) = yes {

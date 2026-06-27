@@ -28,11 +28,10 @@ void dumpAllCollisions(IGenSave &cb)
   dag::Vector<uint16_t> indices;
   dag::Vector<Point3> vertices;
   cb.writeInt(riExtra.size()); // hint!
-  for (auto &pool : riExtra)
-  {
+  iterateRIExtra([&](int, const RiExtraPool &pool) {
     CollisionResource *collRes = pool.collRes;
     if (!collRes || pool.isPosInst())
-      continue;
+      return;
     indices.clear();
     vertices.clear();
     for (int ni = 0, ne = collRes->getAllNodes().size(); ni < ne; ++ni)
@@ -74,7 +73,7 @@ void dumpAllCollisions(IGenSave &cb)
         continue;
     }
     if (!indices.size())
-      continue;
+      return;
     cb.writeInt(indices.size());
     cb.write(indices.begin(), indices.size() * sizeof(*indices.data()));
     cb.writeInt(vertices.size());
@@ -82,7 +81,7 @@ void dumpAllCollisions(IGenSave &cb)
 
     cb.writeInt(pool.riTm.size());
     cb.write(pool.riTm.begin(), pool.riTm.size() * sizeof(mat43f));
-  }
+  });
 }
 } // namespace rendinst
 

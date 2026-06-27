@@ -1238,32 +1238,13 @@ static dafg::NodeHandle makeBvhRegisterFomShadowsNode()
   });
 }
 
-static dafg::NodeHandle makeBvhRegisterGbufferNode()
+static void bvh_read_all_gbuffer_bindlessly(dafg::Registry registry)
 {
-  if (!is_denoiser_enabled())
-    return {};
-
-  return dafg::register_node("bvh_register_gbuffer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.executionHas(dafg::SideEffects::External);
-    registry.readBlob<OrderingToken>("bvh_denoiser_prepared");
-    registry.createBlob<OrderingToken>("bvh_gbuffer_registered");
-
-    auto albedoHndl = registry.read("gbuf_0").texture().useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS_OR_CS).handle();
-    auto normalHndl = registry.read("gbuf_1").texture().useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS_OR_CS).handle();
-    auto materialHndl = registry.read("gbuf_2").texture().useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS_OR_CS).handle();
-    auto motionHndl =
-      registry.read("motion_vecs").texture().useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS_OR_CS).handle();
-    auto depthHndl = registry.read("gbuf_depth").texture().useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS_OR_CS).handle();
-
-    auto resources = eastl::make_tuple(albedoHndl, normalHndl, materialHndl, motionHndl, depthHndl);
-
-    return [resources = eastl::make_unique<decltype(resources)>(resources)]() {
-      auto [albedoHndl, normalHndl, materialHndl, motionHndl, depthHndl] = *resources;
-
-      ::bvh::bind_gbuffer_textures(bvhRenderingContextId, albedoHndl.view().getTex2D(), normalHndl.view().getTex2D(),
-        materialHndl.view().getTex2D(), motionHndl.view().getTex2D(), depthHndl.view().getTex2D());
-    };
-  });
+  registry.read("gbuf_0").texture().atStage(dafg::Stage::PS_OR_CS).bindlessShaderVar("bvh_gbuffer_albedo_index");
+  registry.read("gbuf_1").texture().atStage(dafg::Stage::PS_OR_CS).bindlessShaderVar("bvh_gbuffer_normal_index");
+  registry.read("gbuf_2").texture().atStage(dafg::Stage::PS_OR_CS).bindlessShaderVar("bvh_gbuffer_material_index");
+  registry.read("motion_vecs").texture().atStage(dafg::Stage::PS_OR_CS).bindlessShaderVar("bvh_gbuffer_motion_index");
+  registry.read("gbuf_depth").texture().atStage(dafg::Stage::PS_OR_CS).bindlessShaderVar("bvh_gbuffer_depth_index");
 }
 
 template <typename Callable>
@@ -1356,7 +1337,6 @@ static eastl::array<dafg::NodeHandle, 3> makeRTSMNode(RTPersistentTexturesECS &r
   auto prepareNode = dafg::register_node("rstm_prepare", DAFG_PP_NODE_SRC, [&rt_persistent_textures](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.readBlob<OrderingToken>("bvh_ready_token");
-    registry.readBlob<OrderingToken>("bvh_gbuffer_registered");
 
     registry.createBlob<OrderingToken>("rtsm_undenoised_token");
     auto ctxHndl = registry.createBlob<eastl::optional<rtsm::RTSMContext>>("rtsm_context").handle();
@@ -1389,8 +1369,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTSMNode(RTPersistentTexturesECS &r
     auto camera = read_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
 
-    read_gbuffer(registry, dafg::Stage::PS_OR_CS);
-    read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
+    bvh_read_all_gbuffer_bindlessly(registry);
 
     auto ctxHndl = registry.readBlob<eastl::optional<rtsm::RTSMContext>>("rtsm_context").handle();
     denoiser::TexInfoMap transientTextures;
@@ -1429,7 +1408,6 @@ dafg::NodeHandle make_rtsm_dynamic_node()
 {
   return dafg::register_node("rtsm_dynamic", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("combine_shadows_node");
-    registry.readBlob<OrderingToken>("bvh_gbuffer_registered");
     registry.readBlob<OrderingToken>("bvh_ready_token");
     registry.readBlob<OrderingToken>("rtao_token").optional();
     registry.readTexture("ssao_tex").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("ssao_tex").optional();
@@ -1440,8 +1418,7 @@ dafg::NodeHandle make_rtsm_dynamic_node()
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     auto viewPosHndl = registry.readBlob<Point4>("world_view_pos").handle();
 
-    read_gbuffer(registry, dafg::Stage::PS_OR_CS);
-    read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
+    bvh_read_all_gbuffer_bindlessly(registry);
 
     auto dynamicLightTexHndl =
       registry.modifyTexture("dynamic_lighting_texture").atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::SHADER_RESOURCE).handle();
@@ -1502,7 +1479,6 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
 
   auto prepareNode = dafg::register_node("rtr_prepare_node", DAFG_PP_NODE_SRC, [&rt_persistent_textures](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
-    registry.readBlob<OrderingToken>("bvh_gbuffer_registered");
     registry.readBlob<OrderingToken>("bvh_ready_token");
     registry.createBlob<OrderingToken>("rtr_undenoised_token");
 
@@ -1543,8 +1519,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
     registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
-    read_gbuffer(registry, dafg::Stage::PS_OR_CS);
-    read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
+    bvh_read_all_gbuffer_bindlessly(registry);
 
     use_bindless_fom_shadows(registry, dafg::Stage::CS);
 
@@ -1663,7 +1638,6 @@ static eastl::array<dafg::NodeHandle, 3> makeRTAONodes(RTPersistentTexturesECS &
 
   auto prepareNode = dafg::register_node("rtao_prepare_node", DAFG_PP_NODE_SRC, [&rt_persistent_textures](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
-    registry.readBlob<OrderingToken>("bvh_gbuffer_registered");
     registry.readBlob<OrderingToken>("bvh_ready_token");
     registry.createBlob<OrderingToken>("rtao_undenoised_token");
 
@@ -1682,8 +1656,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTAONodes(RTPersistentTexturesECS &
     auto camera = read_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
-    read_gbuffer(registry, dafg::Stage::PS_OR_CS);
-    read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
+    bvh_read_all_gbuffer_bindlessly(registry);
     // TODO remove this from the interface of rtao::render
     auto closeDepthHndl =
       registry.read("close_depth").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
@@ -1738,14 +1711,12 @@ static dafg::NodeHandle makePTGINode(RTPersistentTexturesECS &rt_persistent_text
 
   return dafg::register_node("ptgi", DAFG_PP_NODE_SRC, [&rt_persistent_textures](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
-    registry.readBlob<OrderingToken>("bvh_gbuffer_registered");
     registry.readBlob<OrderingToken>("bvh_ready_token");
     registry.createBlob<OrderingToken>("ptgi_token");
     auto camera = registry.readBlob<CameraParams>("current_camera");
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
-    read_gbuffer(registry, dafg::Stage::PS_OR_CS);
-    read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
+    bvh_read_all_gbuffer_bindlessly(registry);
     // TODO remove this from the interface of ptgi::render
     auto closeDepthHndl =
       registry.read("close_depth").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
@@ -1888,13 +1859,13 @@ static void recreate_bvh_nodes_ecs_query(ecs::EntityManager &manager, Callable c
 static void recreateBVHNodes(const RTFeatureChanged &changed)
 {
   recreate_bvh_nodes_ecs_query(*g_entity_mgr,
-    [&](dafg::NodeHandle &bvh__update_node, dafg::NodeHandle &denoiser_prepare_node, dafg::NodeHandle &bvh_register_gbuffer_node,
-      dafg::NodeHandle &rtsm_prepare_node, dafg::NodeHandle &rtsm_trace_node, dafg::NodeHandle &rtsm_denoise_node,
-      dafg::NodeHandle &rtr_prepare_node, dafg::NodeHandle &rtr_trace_node, dafg::NodeHandle &rtr_denoise_node,
-      dafg::NodeHandle &rttr_node, dafg::NodeHandle &rtao_prepare_node, dafg::NodeHandle &rtao_trace_node,
-      dafg::NodeHandle &rtao_denoise_node, dafg::NodeHandle &ptgi_node, dafg::NodeHandle &water_rt_early_before_envi_node,
-      dafg::NodeHandle &water_rt_early_after_envi_node, dafg::NodeHandle &water_rt_late_node,
-      dafg::NodeHandle &bvh_register_fom_shadows, RTPersistentTexturesECS &rt_persistent_textures) {
+    [&](dafg::NodeHandle &bvh__update_node, dafg::NodeHandle &denoiser_prepare_node, dafg::NodeHandle &rtsm_prepare_node,
+      dafg::NodeHandle &rtsm_trace_node, dafg::NodeHandle &rtsm_denoise_node, dafg::NodeHandle &rtr_prepare_node,
+      dafg::NodeHandle &rtr_trace_node, dafg::NodeHandle &rtr_denoise_node, dafg::NodeHandle &rttr_node,
+      dafg::NodeHandle &rtao_prepare_node, dafg::NodeHandle &rtao_trace_node, dafg::NodeHandle &rtao_denoise_node,
+      dafg::NodeHandle &ptgi_node, dafg::NodeHandle &water_rt_early_before_envi_node, dafg::NodeHandle &water_rt_early_after_envi_node,
+      dafg::NodeHandle &water_rt_late_node, dafg::NodeHandle &bvh_register_fom_shadows,
+      RTPersistentTexturesECS &rt_persistent_textures) {
       if (changed.isBVHChanged)
       {
         bvh__update_node = makeBVHUpdateNode();
@@ -1904,7 +1875,6 @@ static void recreateBVHNodes(const RTFeatureChanged &changed)
       if (changed.isDenoiserChanged)
       {
         denoiser_prepare_node = makeDenoiserPrepareNode(rt_persistent_textures);
-        bvh_register_gbuffer_node = makeBvhRegisterGbufferNode();
       }
       if (changed.isRTSMChanged)
       {
@@ -1963,6 +1933,7 @@ void setup_unitedvdata_allocation_limits()
   auto prepare_united_vdata_limits = [&](auto &unitedVdata, const char *type_nm) {
     int ibLimitsKb = INT_MAX;
     int vbLimitsKb = INT_MAX;
+    int blasLimitsKb = 0;
     if (is_bvh_enabled())
     {
       const DataBlock *streamingBlk = dgs_get_settings()->getBlockByNameEx(type_nm);
@@ -1986,12 +1957,14 @@ void setup_unitedvdata_allocation_limits()
       {
         ibLimitsKb = limitsBlk->getInt("ibLimitsKb", INT_MAX);
         vbLimitsKb = limitsBlk->getInt("vbLimitsKb", INT_MAX);
+        blasLimitsKb = limitsBlk->getInt("blasLimitsKb", 0);
       }
     }
 
-    debug("Setting %s limits to ib: %d kb, vb: %d kb", type_nm, ibLimitsKb, vbLimitsKb);
+    debug("Setting %s limits to ib: %d kb, vb: %d kb, blas: %d kb", type_nm, ibLimitsKb, vbLimitsKb, blasLimitsKb);
 
     unitedVdata.setAllocationLimits(ibLimitsKb, vbLimitsKb);
+    unitedVdata.setBlasAllocationLimit(blasLimitsKb);
   };
 
   prepare_united_vdata_limits(unitedvdata::dmUnitedVdata, "unitedVdata.dynModel");

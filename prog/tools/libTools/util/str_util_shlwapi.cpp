@@ -3,6 +3,7 @@
 #include <libTools/util/strUtil.h>
 #include <libTools/util/filePathname.h>
 #include <libTools/util/de_TextureName.h>
+#include <osApiWrappers/dag_basePath.h>
 #include <util/dag_string.h>
 #include <debug/dag_debug.h>
 
@@ -20,6 +21,8 @@ String make_path_relative(const char *path, const char *base)
   String pathStr(path);
   String baseStr(base);
 
+  dd_resolve_named_mount_inplace(pathStr);
+  dd_resolve_named_mount_inplace(baseStr);
   ::make_ms_slashes(pathStr);
   ::make_ms_slashes(baseStr);
 

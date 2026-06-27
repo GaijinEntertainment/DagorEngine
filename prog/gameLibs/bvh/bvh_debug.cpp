@@ -321,6 +321,7 @@ inline const char *operator!(bvh::DebugMode mode)
     case bvh::DebugMode::Paint: return "Paint";
     case bvh::DebugMode::IntersectionCount: return "Intersection count";
     case bvh::DebugMode::Instances: return "Instances";
+    case bvh::DebugMode::NaN: return "NaN";
     default: return "Unknown";
   }
 }
@@ -596,7 +597,7 @@ static void imguiWindow()
 
   ImGui::Separator();
 
-  ImGuiDagor::EnumCombo("Debug mode", bvh::DebugMode::None, bvh::DebugMode::Instances, debug_mode, &operator!);
+  ImGuiDagor::EnumCombo("Debug mode", bvh::DebugMode::None, bvh::DebugMode::NaN, debug_mode, &operator!);
 
   ImGui::Checkbox("Super sampling", &do_super_sampling);
   ImGui::Checkbox("Use atmosphere", &use_atmosphere);

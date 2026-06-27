@@ -1,12 +1,12 @@
 //it is minimalistic copy of application.blk for using in-game daBuild.
 
-shaders:t="compiledShaders/game" //TODO: do we need dx12 shaders too?
+shaders:t="%gameDir/compiledShaders/game" //TODO: do we need dx12 shaders too?
 
 //partial copy of assets block
 assets {
   export {
-    cache:t="/../develop/.cache"            //texture cache
-    assetCache:t="/../develop/.asset-local" //model cache
+    cache:t="%appDir/develop/.cache"            //texture cache
+    assetCache:t="%appDir/develop/.asset-local" //model cache
     useCache2Fast:b=yes
     types {
       type:t="tex"

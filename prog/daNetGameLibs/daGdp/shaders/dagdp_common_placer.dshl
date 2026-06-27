@@ -49,7 +49,7 @@ macro USE_DAGDP_COMMON_PLACER()
       return r <= w;
     }
 
-    void writeInstance(PlaceableGpuData placeable, float3 instancePos, float3 surfaceNormal, int2 stablePos,
+    void writeInstance(PlaceableGpuData placeable, float3 instancePos, float3 surfaceNormal, float3 randRot,
       float randScale, uint instanceElementOffset, float3 extra = float3(0, 0, 0))
     {
       float3 yawAxis;
@@ -94,9 +94,9 @@ macro USE_DAGDP_COMMON_PLACER()
       basis[0] = normalize(cross(basis[1], basis[2]));
 
       float3x3 basisT = transpose(basis);
-      float yawRadians = lerp(placeable.yawRadiansMin, placeable.yawRadiansMax, stableRand(stablePos, prng_seed_yaw));
-      float pitchRadians = lerp(placeable.pitchRadiansMin, placeable.pitchRadiansMax, stableRand(stablePos, prng_seed_pitch));
-      float rollRadians = lerp(placeable.rollRadiansMin, placeable.rollRadiansMax, stableRand(stablePos, prng_seed_roll));
+      float yawRadians = lerp(placeable.yawRadiansMin, placeable.yawRadiansMax, randRot.x);
+      float pitchRadians = lerp(placeable.pitchRadiansMin, placeable.pitchRadiansMax, randRot.y);
+      float rollRadians = lerp(placeable.rollRadiansMin, placeable.rollRadiansMax, randRot.z);
 
       // Rotate around local Y axis ("yaw").
       {

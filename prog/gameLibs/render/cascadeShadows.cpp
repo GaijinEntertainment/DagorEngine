@@ -524,7 +524,7 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
     RenderPassTarget targets[] = {
       {{cascades, 0, 0}, make_clear_value(1.0f, 0)}, {{shadowCascadesFakeRT.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)}};
 
-    d3d::begin_render_pass(mobileAreaUpdateRP, area, targets);
+    d3d::begin_render_pass(mobileAreaUpdateRP, area, make_span_const(targets));
   }
 
   shaders::OverrideStateId curStateId = shaders::overrides::get_current();

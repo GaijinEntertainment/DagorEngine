@@ -80,6 +80,9 @@ void net_disconnect(net::IConnection &conn, DisconnectionCause cause = DC_CONNEC
 // Return number of successfull sends
 int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 int send_net_msg(ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
+
+// Untargeted send: no EntityManager parameter -- routing is per-NetContext (GET_NET_CTX is thread-aware).
+int send_net_msg(net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 #endif
 
 net::CNetwork *get_net_or_null_unchecked(); // do not call directly; use GET_NET()
@@ -95,7 +98,6 @@ net::CNetwork *get_net_or_null_unchecked(); // do not call directly; use GET_NET
 bool send_msg_to_client(net::IMessage &&msg, int client_conn_id); // off-thread; pins internally
 void debug_verify_net_connection_ptr(net::IConnection *conn);     // off-thread; pins internally; debug-only
 
-using RelayConnectionCb = eastl::function<void(bool)>;
 void disconnect_from_relay();
 bool establish_relay_connection(const char *relay_url);
 bool set_relay_connection_handler(void (*relayConnectionHandler)(bool));

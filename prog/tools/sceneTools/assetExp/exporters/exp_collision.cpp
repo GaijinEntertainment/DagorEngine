@@ -203,6 +203,9 @@ static void calc_vhacd(const DataBlock *node, GeomMeshHelper &mesh, Tab<GeomMesh
   params.m_maxConvexHulls = node->getInt("maxConvexHulls", -1);
   params.m_maxNumVerticesPerCH = node->getInt("maxConvexVerts", -1);
   params.m_resolution = node->getInt("convexResolution", -1);
+  // Run VHACD single-threaded: dabuild already exports assets concurrently, so the per-VHACD worker
+  // pool only oversubscribes, and serialized hull/vertex order must not depend on thread scheduling.
+  params.m_asyncACD = false;
   iface->Compute((float *)mesh.verts.data(), mesh.verts.size(), (uint32_t *)mesh.faces.data(), mesh.faces.size(), params);
 
   mesh.verts.clear();
@@ -1049,6 +1052,8 @@ public:
     G_ASSERT(mcrd.readInt() == 0xACE50000);
     CollisionResource coll;
     coll.loadLegacyRawFormat(mcrd, -1, resolve_phmat);
+    for (auto &v : coll.ownVertices)
+      v.resv = 1.f;
 
     // Set by remove_degenerate_faces when it rewrites a modelBBox (REPLACE) or erases a node (DROP) -- i.e.
     // when node sort order / containment can change relative to the last sortNodesList. collapseAndOptimize
@@ -1566,6 +1571,8 @@ public:
     c.boundingBox = total;
     v_bbox3_init(c.vFullBBox, v_ldu(&total[0].x));
     v_bbox3_add_pt(c.vFullBBox, v_ldu(&total[1].x));
+    c.vFullBBox.bmin = v_perm_xyzd(c.vFullBBox.bmin, v_zero());
+    c.vFullBBox.bmax = v_perm_xyzd(c.vFullBBox.bmax, v_zero());
 
     const Point3 center = total.center();
     float r2 = 0.f;

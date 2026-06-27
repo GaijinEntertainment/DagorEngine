@@ -14,7 +14,6 @@ namespace d3d
 DriverCode get_driver_code() { return d3di.driverCode; }
 
 const char *get_driver_name() { return d3di.driverName; }
-const char *get_device_driver_version() { return d3di.driverVer; }
 const char *get_device_name() { return d3di.deviceName; }
 const char *get_last_error() { return d3di.get_last_error(); }
 

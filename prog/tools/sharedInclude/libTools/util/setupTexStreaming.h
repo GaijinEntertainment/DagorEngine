@@ -26,6 +26,8 @@ static inline void load_tex_streaming_settings(const char *app_blk, DataBlock *t
       String abs_tsfn;
       if (tsfn[0] == '*')
         abs_tsfn = tsfn + 1;
+      else if (tsfn[0] == '%')
+        abs_tsfn = tsfn;
       else if (dd_get_fname(app_blk) == app_blk)
         abs_tsfn.printf(0, "./%s", tsfn);
       else

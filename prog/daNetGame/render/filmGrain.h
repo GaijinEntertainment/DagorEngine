@@ -20,8 +20,8 @@ public:
   ~FilmGrainLutHolder();
 
 
-  void setLutSettings(int wh, int d, const Point4 &gen_params);
-  void reinitFromSettings(bool preset_allows);
+  void setGenParamsSettings(const Point4 &gen_params);
+  void setLutResolution(int wh, int d);
   void setParamsFromSettings(const Point4 &value);
   void resetParamsFromSettings();
   void setExternalParams(const Point4 &value);
@@ -38,8 +38,8 @@ private:
   UniqueTexWithShaderVar lut;
   eastl::unique_ptr<ComputeShaderElement> genCs;
 
-  int lutWH = 256;
-  int lutD = 64;
+  int lutWH = 0;
+  int lutD = 0;
   Point4 genParams = Point4(0, 0, 0, 0);
 
   bool enabledFromSettings = false;
@@ -48,7 +48,7 @@ private:
   int genSlice = -1;
   bool rebuildRequested = false;
 
-  [[nodiscard]] bool isLutNeeded() const { return enabledFromSettings || enabledFromExternalModifier; }
+  [[nodiscard]] bool isLutNeeded() const { return (enabledFromSettings || enabledFromExternalModifier) && lutWH > 0 && lutD > 0; }
   void requestRebuild();
   void resetLut();
   void setFilmGrainReady(bool is_ready);

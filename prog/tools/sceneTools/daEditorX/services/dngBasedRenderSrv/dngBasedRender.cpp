@@ -89,6 +89,7 @@
 #include <util/dag_finally.h>
 #include <3d/dag_resPtr.h>
 #include <camera/camShakerEvents.h>
+#include <libTools/util/appDirRelativePath.h>
 
 #if _TARGET_PC_WIN
 #include <windows.h>
@@ -608,27 +609,33 @@ public:
   {
     dynScene = new DngBasedRenderScene;
 
-    String base_game_dir(0, "%s/%s/", app_dir, appblk.getBlockByNameEx("game")->getStr("game_folder", ""));
-    simplify_fname(base_game_dir);
+    String base_game_dir = make_eff_app_relative_path(appblk.getBlockByNameEx("game")->getStr("game_folder", ""), true);
     dd_add_base_path(base_game_dir);
     dng_based_render::main_vromfs_fpath_str = appblk.getBlockByNameEx("game")->getStr("main_vromfs", "");
     dng_based_render::main_vromfs_mount_dir_str = appblk.getBlockByNameEx("game")->getStr("main_vromfs_mnt", "");
     if (const char *emptyScn = appblk.getBlockByNameEx("game")->getStr("empty_scene", nullptr))
       dng_based_render::dng_empty_scene_fname = String::mk_str_cat(app_dir, emptyScn);
     if (const char *scn = appblk.getBlockByNameEx("game")->getStr("scene", nullptr))
-      dng_based_render::dng_scene_fname = String::mk_str_cat(app_dir, scn);
+      dng_based_render::dng_scene_fname = make_eff_app_relative_path(scn);
     if (const char *templ = appblk.getBlockByNameEx("game")->getStr("entities", nullptr))
-      dng_based_render::dng_template_fname = String::mk_str_cat(app_dir, templ);
+      dng_based_render::dng_template_fname = make_eff_app_relative_path(templ);
     if (const char *params = appblk.getBlockByNameEx("game")->getStr("params", nullptr))
-      dng_based_render::dng_game_params_fname = String::mk_str_cat(app_dir, params);
+      dng_based_render::dng_game_params_fname = make_eff_app_relative_path(params);
     app_ecs_blk = *appblk.getBlockByNameEx("ecs");
 
     dng_based_render::dng_init_ui_fonts = appblk.getBool("initUiFonts", true);
 
-    String snapshot_dir;
-    if (tools3d::get_snapshot_path(appblk, app_dir, snapshot_dir))
-      if (alefind_t fs; dd_find_first(snapshot_dir + "*.das", 0, &fs))
-        dd_set_named_mount_path("toolScripts", snapshot_dir);
+    bool useAddonVromSrc = false;
+    if (const DataBlock *debugBlk = dgs_get_settings()->getBlockByName("debug"))
+      useAddonVromSrc = debugBlk->getBool("useAddonVromSrc", false);
+
+    if (!useAddonVromSrc)
+    {
+      String snapshot_dir;
+      if (tools3d::get_snapshot_path(appblk, snapshot_dir))
+        if (alefind_t fs; dd_find_first(snapshot_dir + "*.das", 0, &fs))
+          dd_set_named_mount_path("toolScripts", snapshot_dir);
+    }
 
     ec_camera_elem::freeCameraElem.demandInit();
     ec_camera_elem::maxCameraElem.demandInit();
@@ -1216,9 +1223,17 @@ static void dng_based_render::init_dng_framework()
 
     if (auto *graphics = config->getBlockByName("graphics"))
     {
+      // remove 'graphics->cloudsQuality' if has wrong type
+      const int cloudsQualityParamId = graphics->findParam("cloudsQuality");
+      if (cloudsQualityParamId != -1 && graphics->getParamType(cloudsQualityParamId) != DataBlock::ParamType::TYPE_STRING)
+        graphics->removeParam("cloudsQuality");
+
+      graphics->setBool("forceEnableMotionVectors", true);
       graphics->setStr("fxTarget", "highres");
+      graphics->setBool("screenEffect", false);
       graphics->setBool("hmapPatchesEnabled", false); // TODO: hmap patches conflics with hmapSrv
       graphics->setBool("shouldRenderWaterRipples", false);
+      graphics->setBool("fluidWind", false);
       const auto giAlgorithm = graphics->getStr("giAlgorithm", NULL);
       if (!giAlgorithm || String(giAlgorithm) == "high")
         graphics->setStr("giAlgorithm", "medium"); // TODO: high gi quality has broken screen probes

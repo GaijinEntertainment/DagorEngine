@@ -97,6 +97,8 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
 
   bool needAction = (event == INP_EV_PRESS) && !(accum_res & R_PROCESSED);
 
+  int result = 0;
+
   if (key_idx == DKEY_HOME)
   {
     if (needAction)
@@ -104,6 +106,7 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
       float minVal = elem->props.getFloat(elem->csk->min, DEF_MIN);
       setVal(elem, minVal);
     }
+    result = R_PROCESSED;
   }
   else if (key_idx == DKEY_END)
   {
@@ -112,25 +115,34 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
       float maxVal = elem->props.getFloat(elem->csk->max, DEF_MAX);
       setVal(elem, maxVal);
     }
+    result = R_PROCESSED;
   }
   else if (key_idx == DKEY_LEFT || key_idx == DKEY_UP)
   {
     Orientation orient = elem->props.getInt<Orientation>(elem->csk->orientation, O_HORIZONTAL);
-    if (needAction && ((key_idx == DKEY_LEFT && orient == O_HORIZONTAL) || (key_idx == DKEY_UP && orient == O_VERTICAL)))
+    if ((key_idx == DKEY_LEFT) == (orient == O_HORIZONTAL))
     {
-      float prevVal = elem->props.getFloat(elem->csk->fValue, DEF_VAL);
-      float unit = elem->props.getFloat(elem->csk->unit, DEF_UNIT);
-      setVal(elem, prevVal - unit);
+      if (needAction)
+      {
+        float prevVal = elem->props.getFloat(elem->csk->fValue, DEF_VAL);
+        float unit = elem->props.getFloat(elem->csk->unit, DEF_UNIT);
+        setVal(elem, prevVal - unit);
+      }
+      result = R_PROCESSED;
     }
   }
   else if (key_idx == DKEY_RIGHT || key_idx == DKEY_DOWN)
   {
     Orientation orient = elem->props.getInt<Orientation>(elem->csk->orientation, O_HORIZONTAL);
-    if (needAction && ((key_idx == DKEY_RIGHT && orient == O_HORIZONTAL) || (key_idx == DKEY_DOWN && orient == O_VERTICAL)))
+    if ((key_idx == DKEY_RIGHT) == (orient == O_HORIZONTAL))
     {
-      float prevVal = elem->props.getFloat(elem->csk->fValue, DEF_VAL);
-      float unit = elem->props.getFloat(elem->csk->unit, DEF_UNIT);
-      setVal(elem, prevVal + unit);
+      if (needAction)
+      {
+        float prevVal = elem->props.getFloat(elem->csk->fValue, DEF_VAL);
+        float unit = elem->props.getFloat(elem->csk->unit, DEF_UNIT);
+        setVal(elem, prevVal + unit);
+      }
+      result = R_PROCESSED;
     }
   }
   else if (key_idx == DKEY_PRIOR)
@@ -141,6 +153,7 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
       float pageScroll = elem->props.getFloat(elem->csk->pageScroll, DEF_PAGE_SIZE);
       setVal(elem, prevVal - pageScroll);
     }
+    result = R_PROCESSED;
   }
   else if (key_idx == DKEY_NEXT)
   {
@@ -150,11 +163,10 @@ int BhvSlider::kbdEvent(ElementTree *, Element *elem, InputEvent event, int key_
       float pageScroll = elem->props.getFloat(elem->csk->pageScroll, DEF_PAGE_SIZE);
       setVal(elem, prevVal + pageScroll);
     }
+    result = R_PROCESSED;
   }
-  else
-    return 0;
 
-  return R_PROCESSED;
+  return result;
 }
 
 

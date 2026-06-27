@@ -206,7 +206,7 @@ bool renderUnderwater(dafx::CullingId cull_id = dafx::CullingId());
 bool renderTransSpecial(uint8_t render_tag, dafx::CullingId cull_id = dafx::CullingId());
 void renderTransHaze();
 void renderTransWaterFoam();
-void renderTransWaterProj(const TMatrix4 &view, const TMatrix4 &proj, const Point3 &pos, float mip_bias);
+void renderTransWaterProj(BaseTexture *target_tex, const TMatrix4 &view, const TMatrix4 &proj, const Point3 &pos, float mip_bias);
 
 void killEffectsInSphere(const BSphere3 &bsph);
 

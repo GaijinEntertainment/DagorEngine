@@ -1,3 +1,7 @@
+macro TREE_BURNING_LIB_INCLUDED()
+  true
+endmacro
+
 buffer tree_burning_sources;
 
 float4 tree_burning_burnt_leaves_color = float4(0.01, 0.008, 0.005, 0); // (rgb, 0)
@@ -57,21 +61,38 @@ macro INIT_TREE_BURNING(need_color)
   }
 endmacro
 
-
-macro TREE_BURNING_VS(allow_discard)
+macro TREE_BURNING_READ_VS()
   hlsl(vs){
     #include "tree_burning.hlsli"
+    struct TreeBurningVsData
+    {
+      uint burningSourcesOfsCnt;
+    };
+    TreeBurningVsData read_tree_burning_additional_data(uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset)
+    {
+      TreeBurningVsData data = (TreeBurningVsData)0;
+      uint dataOffset = RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__OFFSET(perInstanceRenderDataFlags);
+      data.burningSourcesOfsCnt = asuint(LOAD_RIEXTRA_PID(dataOffset, RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__FLAG, 0)).x;
+      return data;
+    }
 
+    bool tree_burning_is_completely_burnt(in TreeBurningVsData data) { return data.burningSourcesOfsCnt == FULLY_BURNT_TREE; }
+  }
+endmacro
+
+macro TREE_BURNING_VS(allow_discard)
+  TREE_BURNING_READ_VS()
+  hlsl(vs){
   #ifdef VS_OUTPUT
     void read_tree_burning_additional_data(inout VS_OUTPUT output, uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset)
   #else
     void read_tree_burning_additional_data(inout VsOutput output, uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset)
   #endif
     {
-      uint dataOffset = RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__OFFSET(perInstanceRenderDataFlags);
-      output.burningSourcesOfsCnt = asuint(LOAD_RIEXTRA_PID(dataOffset, RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__FLAG, 0)).x;
+      TreeBurningVsData data = read_tree_burning_additional_data(perInstanceRenderDataFlags, perInstanceRenderDataOffset);
+      output.burningSourcesOfsCnt = data.burningSourcesOfsCnt;
       ##if allow_discard
-        if (output.burningSourcesOfsCnt == FULLY_BURNT_TREE)
+        if (tree_burning_is_completely_burnt(data))
           output.pos = 0;
       ##endif
     }
@@ -86,7 +107,7 @@ macro TREE_BURNING_TRUNK_VS()
   TREE_BURNING_VS(false)
 endmacro
 
-macro TREE_BURNING_COMMON_PS(is_leaves_burning)
+macro TREE_BURNING_COMMON_PS(is_leaves_burning, pivot_enabled_for_leaves)
   hlsl(ps){
     ##if is_leaves_burning
       float get_tree_burning_progress(uint burning_sources_offset_count, float3 local_pos, float4 leaves_pivot_length, float translucency)
@@ -104,7 +125,7 @@ macro TREE_BURNING_COMMON_PS(is_leaves_burning)
         float burnSourceSize = burning_sources[offset + i].w;
         float distance = length(local_pos - burnSourcePos) - burnSourceSize;
         float burningDistance = lerp(tree_burning_range_params.x, tree_burning_range_params.y, sqrt(burnSourceSize * tree_burning_range_params.z));
-        ##if is_leaves_burning && is_pivoted == yes
+        ##if is_leaves_burning && pivot_enabled_for_leaves
           // Do not allow fully burning down by growing sphere, otherwise pivots may be discarded before leaves tips
           const float maxSphereProgress = 0.66;
           progress = max(progress, min(1 - distance / burningDistance, maxSphereProgress));
@@ -162,8 +183,8 @@ macro TREE_BURNING_COMMON_PS(is_leaves_burning)
   }
 endmacro
 
-macro TREE_BURNING_LEAVES_PS(need_color)
-  TREE_BURNING_COMMON_PS(true)
+macro TREE_BURNING_LEAVES_PS(need_color, pivot_enabled_for_leaves)
+  TREE_BURNING_COMMON_PS(true, pivot_enabled_for_leaves)
   hlsl(ps){
   ##if need_color
     void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer)
@@ -181,7 +202,7 @@ macro TREE_BURNING_LEAVES_PS(need_color)
         float translucency = tex2DBindless(get_normal_tex(), input.diffuseTexcoord.xy).b;
       ##endif
 
-      ##if is_pivoted == yes
+      ##if pivot_enabled_for_leaves
         float4 leavesPivotLength = input.leavesPivotLength;
       ##else
         float4 leavesPivotLength = 0;
@@ -214,7 +235,7 @@ macro TREE_BURNING_LEAVES_PS(need_color)
 endmacro
 
 macro TREE_BURNING_TRUNK_PS()
-  TREE_BURNING_COMMON_PS(false)
+  TREE_BURNING_COMMON_PS(false, false)
   hlsl(ps){
     // Sampler from material textures looks much better because of mipmap_bias
     void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer, SamplerState tex_samplerstate)

@@ -88,6 +88,23 @@ void IrGraphBuilder::fixupFlagsAndActivation(ResNameId id, ResourceType type, in
     else if (type == ResourceType::Buffer)
       desc.asBasicRes.activation = ResourceActivationAction::DISCARD_AS_UAV;
   }
+
+  if (type == ResourceType::Texture)
+  {
+    bool valid = true;
+    switch (desc.type)
+    {
+      case D3DResourceType::TEX:
+      case D3DResourceType::ARRTEX: valid = d3d::check_texformat(desc.asBasicRes.cFlags); break;
+      case D3DResourceType::CUBETEX:
+      case D3DResourceType::CUBEARRTEX: valid = d3d::check_cubetexformat(desc.asBasicRes.cFlags); break;
+      case D3DResourceType::VOLTEX: valid = d3d::check_voltexformat(desc.asBasicRes.cFlags); break;
+      default: break;
+    }
+    if (!valid)
+      logerr("daFG: Resource %s has an invalid texture format specified by its creation flags (0x%X).",
+        registry.knownNames.getName(id), desc.asBasicRes.cFlags);
+  }
 }
 
 ResourceDescription IrGraphBuilder::createInfoToResDesc(ResNameId id, const Texture2dCreateInfo &info,

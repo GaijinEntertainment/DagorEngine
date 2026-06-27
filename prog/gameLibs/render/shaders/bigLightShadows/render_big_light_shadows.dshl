@@ -179,9 +179,6 @@ shader temporal_big_light_shadows
     ##elif big_shadows_cnt == four
     #define SHADOWS_CNT 4
     ##endif
-    ##if prev_downsampled_close_depth_tex == NULL
-      #define VALIDATE_HISTORY_UV 0
-    ##endif
   }
 
   INIT_FETCH_MOTION_VECTOR(ps, downsampled)

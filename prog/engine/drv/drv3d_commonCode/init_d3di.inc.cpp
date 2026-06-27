@@ -53,7 +53,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   // fill table with proper function pointers
   FILL_ENTRY(get_driver_name);
-  FILL_ENTRY(get_device_driver_version);
   FILL_ENTRY(get_device_name);
   FILL_ENTRY(get_last_error);
   FILL_ENTRY(get_last_error_code);
@@ -364,7 +363,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   d3dit.driverCode = DRV3D_CODE;
   d3dit.driverName = d3d::get_driver_name();
-  d3dit.driverVer = d3d::get_device_driver_version();
   d3dit.deviceName = d3d::get_device_name();
   memset(&d3dit.drvDesc, 0, sizeof(d3dit.drvDesc));
 

@@ -7,6 +7,8 @@
 #include <generic/dag_sort.h>
 #include <libTools/util/fileUtils.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <libTools/containers/tab_sort.h>
 #include <coolConsole/coolConsole.h>
 
@@ -178,6 +180,7 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
   appBlkPath = blk.getStr("application_path", "");
   if (appDir.length() && !appBlkPath.length())
     appBlkPath = ::make_full_path(appDir, "application.blk");
+  set_canonical_app_dir_mount(appDir);
 
   if (!appBlkPath.length() || !::dd_file_exist(appBlkPath))
   {
@@ -213,14 +216,12 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
     return false;
   }
 
-  sdkDir = ::make_full_path(appDir, sdkBlk->getStr("sdk_folder", ""));
-  libDir = ::make_full_path(appDir, sdkBlk->getStr("lib_folder", ""));
-  levelsDir = ::make_full_path(appDir, sdkBlk->getStr("levels_folder", ""));
-  resDir = ::make_full_path(appDir, sdkBlk->getStr("resource_database_folder", ""));
-  scriptDir = ::make_full_path(appDir, sdkBlk->getStr("script_scheme_folder", ""));
-
-  const char *asd = sdkBlk->getStr("asset_script_scheme_folder", NULL);
-  assetScriptsDir = (asd) ? ::make_full_path(appDir, asd) : "";
+  make_eff_app_relative_path(sdkDir, sdkBlk->getStr("sdk_folder", ""), true);
+  make_eff_app_relative_path(libDir, sdkBlk->getStr("lib_folder", ""), true);
+  make_eff_app_relative_path(levelsDir, sdkBlk->getStr("levels_folder", ""), true);
+  make_eff_app_relative_path(resDir, sdkBlk->getStr("resource_database_folder", ""), true);
+  make_eff_app_relative_path(scriptDir, sdkBlk->getStr("script_scheme_folder", ""), true);
+  make_eff_app_relative_path(assetScriptsDir, sdkBlk->getStr("asset_script_scheme_folder", nullptr), true);
 
   const DataBlock *gameBlk = appBlk.getBlockByName("game");
 
@@ -232,12 +233,10 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
     return false;
   }
 
-  gameDir = ::make_full_path(appDir, gameBlk->getStr("game_folder", ""));
-
-  levelsBinDir = ::make_full_path(appDir, gameBlk->getStr("levels_bin_folder", ""));
-  const char *tmp = gameBlk->getStr("physmat", "/game/config/physmat.blk");
-  physmatPath = (tmp && tmp[0]) ? ::make_full_path(appDir, tmp) : "";
-  scriptLibrary = ::make_full_path(appDir, gameBlk->getStr("script_objects", ""));
+  make_eff_app_relative_path(gameDir, gameBlk->getStr("game_folder", ""));
+  make_eff_app_relative_path(levelsBinDir, gameBlk->getStr("levels_bin_folder", ""));
+  physmatPath = make_eff_app_relative_path(gameBlk->getStr("physmat", "game/config/physmat.blk"));
+  make_eff_app_relative_path(scriptLibrary, gameBlk->getStr("script_objects", ""));
 
   const DataBlock *deDisabledBlk = appBlk.getBlockByName("dagored_disabled_plugins");
 
@@ -291,9 +290,9 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
   if (stricmp(collisionName, "unigine") == 0)
     collisionName = "Bullet";
 
-  sceneDir = ::make_full_path(appDir, appBlk.getBlockByNameEx("projectDefaults")
-                                        ->getBlockByNameEx("locationScene")
-                                        ->getStr("locationSceneFolder", "prog/gamebase/gamedata/scenes"));
+  make_eff_app_relative_path(sceneDir, appBlk.getBlockByNameEx("projectDefaults")
+                                         ->getBlockByNameEx("locationScene")
+                                         ->getStr("locationSceneFolder", "prog/gamebase/gamedata/scenes"));
 
   mountPoints.clear();
   if (const DataBlock *mnt = appBlk.getBlockByName("mountPoints"))

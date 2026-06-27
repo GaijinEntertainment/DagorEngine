@@ -185,8 +185,8 @@ struct RegisterComponentFilterAnnotation : das::FunctionAnnotation
 
   bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
   {
-    auto program = (*das::daScriptEnvironment::bound)->g_Program;
-    if (program->thisModule->isModule)
+    das::Module *mod = fn->fromGeneric ? fn->fromGeneric->module : fn->module;
+    if (mod && mod->isModule)
     {
       err = "register_component_filter shouldn't be placed in the module. Please move the function to a file without module directive";
       return false;

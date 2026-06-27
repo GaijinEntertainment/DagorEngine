@@ -435,9 +435,6 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
             fmtText->blocks.erase(fmtText->blocks.begin() + curBlockIdx);
             fmtText->freeTextBlock(curBlock);
 
-            if (curBlockIdx == fmtText->blocks.size())
-              etext->cursorPos = max(0, etext->cursorPos - 1);
-
             merge_text_blocks(fmtText);
           }
         }
@@ -446,9 +443,6 @@ int BhvTextAreaEdit::kbdEvent(ElementTree *etree, Element *elem, InputEvent even
           fmtText->blocks.erase(fmtText->blocks.begin() + curBlockIdx);
           fmtText->freeTextBlock(curBlock);
           fmtText->invalidateShapes();
-
-          if (curBlockIdx == fmtText->blocks.size())
-            etext->cursorPos = max(0, etext->cursorPos - 1);
 
           merge_text_blocks(fmtText);
         }

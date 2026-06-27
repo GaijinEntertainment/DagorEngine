@@ -18,7 +18,8 @@
   DC(DC_KICK_ANTICHEAT)            /* User was kicked by anticheat cause */                                 \
   DC(DC_KICK_FRIENDLY_FIRE)        /* User was kicked for friendly fire */                                  \
   DC(DC_KICK_VOTE)                 /* User was kicked by voting */                                          \
-  DC(DC_COMPLAINTS)                /* User was kicked for receiving too many complaints in short time */
+  DC(DC_COMPLAINTS)                /* User was kicked for receiving too many complaints in short time */    \
+  DC(DC_SERVER_NOT_READY)          /* Server is not ready to accept clients yet (e.g. still initializing) */
 
 enum DisconnectionCause : uint8_t
 {

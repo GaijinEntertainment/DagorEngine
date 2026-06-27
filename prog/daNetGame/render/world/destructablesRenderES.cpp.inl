@@ -73,6 +73,15 @@ static __forceinline void destructables_render(int /*render_pass*/,
   const TexStreamingContext &texCtx)
 {
   ContextId ctx = get_or_create_context("dynmodel_immediate");
+
+  TMatrix4 curView, curProj;
+  d3d::gettm(TM_VIEW, &curView);
+  d3d::gettm(TM_PROJ, &curProj);
+  TMatrix4_vec4 prevView, prevProj;
+  get_prev_view_proj(prevView, prevProj);
+  prevView.setrow(3, 0.f, 0.f, 0.f, 1.f);
+  set_context_view_proj(ctx, curView, curProj, prevView, prevProj);
+
   uint32_t startStage = 0, endStage = 0;
   if (render_stage == DestructablesRenderStage::OPAQUE)
   {

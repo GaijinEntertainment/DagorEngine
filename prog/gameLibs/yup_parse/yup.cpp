@@ -35,6 +35,7 @@ be_node *yup_get(be_node *yup, const char *keypath)
     return NULL;
   char tmppath[512];
   strncpy(tmppath, keypath, sizeof(tmppath));
+  tmppath[sizeof(tmppath) - 1] = '\0';
   be_node *lastNode = yup;
   char *savedptr = NULL;
   char *token = STRTOK_R(tmppath, "/", &savedptr);

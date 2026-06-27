@@ -11,6 +11,7 @@ return {
   manageSubscription = @(_) null
   upgradeSubscription = @(_,__,___) null
   isItemPurchased = @(_) false
+  getCountryCode = @() ""
   GP_EMPTY_RESPONSE_PURCHASE_DATA = -13
   GP_NOT_INITED = -12
   GP_EMPTY_RESPONSE_SKU_DATA = -11

@@ -204,7 +204,7 @@ void net_create_client_driver(ecs::EntityManager &mgr, const eastl::string &serv
     net_context->encryptionKey = eastl::move(connect_params.encryptKey);
     net::set_msg_sink_created_cb(
       [authKey = eastl::move(connect_params.authKey), &mgr](ecs::EntityId eid) { on_msg_sink_created_client(mgr, eid, authKey); });
-    g_net_globals.resetTimeMgr(create_client_time());
+    reset_time_mgr(create_client_time());
     netstat::init();
     mgr.broadcastEventImmediate(OnNetInitClient{});
   }

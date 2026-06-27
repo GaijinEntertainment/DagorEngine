@@ -192,11 +192,7 @@ ECS_NO_ORDER static inline void grass_view_finalize_es(const dagdp::EventViewFin
   create_grass_nodes(viewInfo, viewBuilder, dagdp__grass_manager, nodes);
 
   // Cleanup.
-#if DAGDP_DEBUG
-  dagdp__grass_manager.debug.builders.emplace_back(eastl::move(dagdp__grass_manager.currentBuilder));
-#else
   dagdp__grass_manager.currentBuilder = {}; // Reset the state.
-#endif
 }
 
 template <typename Callable>

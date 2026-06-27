@@ -1,0 +1,6 @@
+state: faulted
+getValue: nope
+q state: fulfilled value: 1
+task reject threw: cannot reject the future returned by an async function
+script done
+caught: nope

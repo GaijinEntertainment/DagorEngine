@@ -168,7 +168,7 @@ static void register_constants(HSQUIRRELVM vm)
 
     .Const("TEXFMT_SRGB_IN_UNORM", SRGB_IN_UNORM)
     .Const("TEXFMT_UNORM", UNORM)
-    .Const("TEXFMT_SRGB", SRGB)
+    .Const("TEXFMT_SRGB_DECAL", SRGB_DECAL)
 
     .CONST(TOVERFLOW_CLIP)
     .CONST(TOVERFLOW_CHAR)
@@ -817,7 +817,8 @@ SQInteger calc_str_box(HSQUIRRELVM vm)
     if (tp == OT_NULL)
       continue;
 
-    G_ASSERT(params.IsNull());
+    if (!params.IsNull())
+      return sq_throwerror(vm, "Multiple params tables provided; only one is allowed");
 
     if (tp == OT_TABLE)
       params = Sqrat::Var<Sqrat::Table>(vm, arg).value;

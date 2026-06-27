@@ -546,23 +546,24 @@ def plot_draw_tooltip(w : PlotWindow&; plot_pos, plot_size : float2; x_left, x_r
   let rel_y = (mouse_pos.y - plot_pos.y) / plot_size.y
   if rel_x < 0.f || rel_x > 1.f || rel_y < 0.f || rel_y > 1.f
     return
+  imgui::SetNextWindowBgAlpha(0.5f)
   if imgui::BeginTooltip()
-    let line1 = build_string() <| $(sb)
-      sb |> write("t: {fmt(":.4f", x_left + rel_x * x_range)}")
-      for i in range(min(n, 4))
+    imgui::TextUnformatted("t: {fmt(":.4f", x_left + rel_x * x_range)}")
+    let row_count = (n + 3) / 4
+    for row in range(row_count)
+      let row_start = row * 4
+      let row_end = min(row_start + 4, n)
+      for i in range(row_start, row_end)
+        // Row 0 (v0..v3) appends to the timestamp line; rows 1+ start on a fresh line.
+        if row == 0 || i > row_start
+          imgui::SameLine(0.f, 0.f)
+          imgui::TextUnformatted(" | ")
+          imgui::SameLine(0.f, 0.f)
         let e & = unsafe(w.entries[i])
         let v = e.scale_max + rel_y * (e.scale_min - e.scale_max)
-        sb |> write(" | v{i}: {fmt(":.4f", v)}")
-    imgui::TextUnformatted(line1)
-    if n > 4
-      let line2 = build_string() <| $(sb)
-        for i in range(4, n)
-          let e & = unsafe(w.entries[i])
-          let v = e.scale_max + rel_y * (e.scale_min - e.scale_max)
-          if i > 4
-            sb |> write(" | ")
-          sb |> write("v{i}: {fmt(":.4f", v)}")
-      imgui::TextUnformatted(line2)
+        imgui::PushStyleColor(ImGuiCol.Text, get_plot_color(i))
+        imgui::TextUnformatted("v{i}: {fmt(":.4f", v)}")
+        imgui::PopStyleColor()
     imgui::EndTooltip()
 
 

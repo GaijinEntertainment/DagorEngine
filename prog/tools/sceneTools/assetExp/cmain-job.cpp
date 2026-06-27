@@ -19,6 +19,8 @@ static const char *dbg_name();
 #include <libTools/util/strUtil.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/fileUtils.h>
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_sharedMem.h>
@@ -198,7 +200,13 @@ static int do_main(bool debugmode)
 
   char app_dir[260];
   dd_get_fname_location(app_dir, __argv[1]);
-  if (!app_dir[0])
+  set_canonical_app_dir_mount(app_dir);
+  if (const char *path = dd_get_named_mount_path("appDir", 6))
+  {
+    strncpy(app_dir, path, sizeof(app_dir));
+    app_dir[sizeof(app_dir) - 1] = '\0';
+  }
+  else if (!app_dir[0])
     strcpy(app_dir, "./");
 
   DataBlock appblk;
@@ -209,6 +217,7 @@ static int do_main(bool debugmode)
     debug("cannot load project settings from <%s>", __argv[1]);
     return false;
   }
+  setup_named_mount_points(*appblk.getBlockByNameEx("mountPoints"));
 
   bool q = dgs_execute_quiet;
   dgs_execute_quiet = true;
@@ -218,9 +227,7 @@ static int do_main(bool debugmode)
 
   // setup shaders dump path
   if (appblk.getStr("shaders", NULL))
-    appblk.setStr("shadersAbs", String(260, "%s/%s", app_dir, appblk.getStr("shaders", NULL)));
-  else
-    appblk.setStr("shadersAbs", String(260, "%s/../common/compiledShaders/tools", start_dir));
+    appblk.setStr("shadersAbs", make_eff_app_relative_path(appblk.getStr("shaders")));
 
   String cdk_dir(260, "%s/../", start_dir);
   appblk.setStr("dagorCdkDir", simplify_fname(cdk_dir));
@@ -301,7 +308,7 @@ static int do_main(bool debugmode)
   Tab<bool> expTypesMask;
 
   AssetExportCache gdc;
-  String cache_base(260, "%s/%s/", app_dir, exp_blk.getStr("cache", "/develop/.cache"));
+  String cache_base = make_eff_app_relative_path(exp_blk.getStr("cache", "develop/.cache"), true);
   String cache_base_patch(260, "%spatch/", cache_base);
   String dest_base, pack_fname_prefix;
   String cache_fname, pack_fname;

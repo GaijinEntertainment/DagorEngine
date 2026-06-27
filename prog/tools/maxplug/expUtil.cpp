@@ -42,6 +42,8 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
+#include <vector>
+#include <string>
 #include "Timer.hpp"
 #ifdef TIMER
 #define INTERVAL(name, elapsed, type) TimerInterval timerInterval(name, elapsed, type)
@@ -1174,11 +1176,14 @@ public:
   Tab<ExpMat> mat;
   std::vector<std::SET_TYPE<Mtl *>> mtls;
   Tab<int> matIDtoMatIdx;
-  Tab<TCHAR *> tex;
-  Tab<TCHAR *> klabel;
+  std::vector<std::wstring> tex;
+  std::unordered_map<std::wstring, int> texIndexMap; // lowercase key for case-insensitive O(1) lookup
+  std::vector<std::wstring> klabel;
+  std::unordered_map<std::wstring, int> klabelIndexMap; // lowercase key for case-insensitive O(1) lookup
   Tab<ExpNoteTrack *> ntrack;
   std::vector<EMat> matList;
   std::unordered_map<DWORD, std::wstring> wcmap;
+  std::unordered_map<INode *, int> nodeIdMap;
   int max_pkeys, max_rkeys, max_skeys;
   INode *max_pkeys_n, *max_rkeys_n, *max_skeys_n;
   INodeTab nonort_nodes;
@@ -1232,12 +1237,7 @@ public:
       if (mat[i].script)
         free(mat[i].script);
     }
-    for (i = 0; i < tex.Count(); ++i)
-      if (tex[i])
-        free(tex[i]);
-    for (i = 0; i < klabel.Count(); ++i)
-      if (klabel[i])
-        free(klabel[i]);
+
     for (i = 0; i < ntrack.Count(); ++i)
       if (ntrack[i])
         delete (ntrack[i]);
@@ -1250,17 +1250,19 @@ public:
       return -1;
     if (!n[0])
       return -1;
-    for (int i = 0; i < klabel.Count(); ++i)
-      if (_tcsicmp(klabel[i], n) == 0)
-        return i;
-    assert(klabel.Count() != 0xFFFF);
-    if (klabel.Count() >= 0xFFFF)
+    std::wstring key(n);
+    std::transform(key.begin(), key.end(), key.begin(), towlower);
+    auto it = klabelIndexMap.find(key);
+    if (it != klabelIndexMap.end())
+      return it->second;
+    assert(klabel.size() != 0xFFFF);
+    if (klabel.size() >= 0xFFFF)
       return -1;
-    TCHAR *s = _tcsdup(n);
-    assert(s);
-    klabel.Append(1, &s);
-    // DebugPrint("  added %d\n",klabel.Count());
-    return klabel.Count() - 1;
+    int idx = static_cast<int>(klabel.size());
+    klabel.emplace_back(n);
+    klabelIndexMap.emplace(std::move(key), idx);
+    // DebugPrint("  added %d\n",klabel.size());
+    return idx;
   }
 
   int get_notetrack(INode *n, Tab<TimeValue> &gk)
@@ -1329,16 +1331,18 @@ public:
       return -1;
     if (!fn[0])
       return -1;
-    for (int i = 0; i < tex.Count(); ++i)
-      if (_tcsicmp(tex[i], fn) == 0)
-        return i;
-    assert(tex.Count() != 0xFFFF);
-    if (tex.Count() >= 0xFFFF)
+    std::wstring key(fn);
+    std::transform(key.begin(), key.end(), key.begin(), towlower);
+    auto it = texIndexMap.find(key);
+    if (it != texIndexMap.end())
+      return it->second;
+    assert(tex.size() != 0xFFFF);
+    if (tex.size() >= 0xFFFF)
       return -1;
-    TCHAR *s = _tcsdup(fn);
-    assert(s);
-    tex.Append(1, &s);
-    return tex.Count() - 1;
+    int idx = static_cast<int>(tex.size());
+    tex.emplace_back(fn);
+    texIndexMap.emplace(std::move(key), idx);
+    return idx;
   }
 
   bool doesScriptMatch(const TCHAR *a, const TCHAR *b)
@@ -1555,8 +1559,8 @@ public:
         return false;
 
       // FIXME special symbols
-      const TSTR tex_a = extract_filename(tex[texid_a]);
-      const TSTR tex_b = extract_filename(tex[texid_b]);
+      const TSTR tex_a = extract_filename(tex[texid_a].c_str());
+      const TSTR tex_b = extract_filename(tex[texid_b].c_str());
       if (_tcsicmp(tex_a.data(), tex_b.data()))
         return false;
     }
@@ -1767,6 +1771,7 @@ public:
     assert(node.Count() != 0xFFFF);
     if (node.Count() >= 0xFFFF)
       return ECB_CONT;
+    nodeIdMap[n] = node.Count();
     node.Append(1, &n);
     return ECB_CONT;
   }
@@ -1775,10 +1780,8 @@ public:
   {
     if (!n)
       return -1;
-    for (int i = 0; i < node.Count(); ++i)
-      if (node[i] == n)
-        return i;
-    return -1;
+    auto it = nodeIdMap.find(n);
+    return it != nodeIdMap.end() ? it->second : -1;
   }
   int getmatid(Mtl *m, DWORD wc = 0xFFFFFF)
   {
@@ -3081,8 +3084,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
       std::wstring unused_mtls, unused_tex;
 
       Tab<int> tex_remap;
-      Tab<TCHAR *> new_tex;
-      tex_remap.SetCount(tex.Count());
+      std::vector<std::wstring> new_tex;
+      tex_remap.SetCount(static_cast<int>(tex.size()));
       for (i = 0; i < tex_remap.Count(); ++i)
         tex_remap[i] = -1;
 
@@ -3097,7 +3100,10 @@ bool wr_hlp( const void * p, int l, FILE * h )
               unsigned short &texid = mat[i].m.texid[j];
               int new_texid = tex_remap[texid];
               if (new_texid < 0)
-                tex_remap[texid] = new_texid = new_tex.Append(1, &tex[texid]);
+              {
+                new_tex.push_back(tex[texid]);
+                tex_remap[texid] = new_texid = static_cast<int>(new_tex.size()) - 1;
+              }
               texid = new_texid;
             }
           matIDtoMatIdx[i] = idx;
@@ -3121,15 +3127,21 @@ bool wr_hlp( const void * p, int l, FILE * h )
             mat[i].m.texid[j] = DAGBADMATID;
         }
 
-      for (i = 0; i < tex.Count(); ++i)
+      for (i = 0; i < static_cast<int>(tex.size()); ++i)
         if (tex_remap[i] < 0)
         {
           unused_tex += L"\r\n        '";
           unused_tex += tex[i];
           unused_tex += L"'";
-          free(tex[i]);
         }
-      tex = new_tex;
+      tex = std::move(new_tex);
+      texIndexMap.clear();
+      for (int j = 0; j < static_cast<int>(tex.size()); ++j)
+      {
+        std::wstring key = tex[j];
+        std::transform(key.begin(), key.end(), key.begin(), towlower);
+        texIndexMap.emplace(std::move(key), j);
+      }
 
       if (!unused_mtls.empty())
         explog(_T("these materials are UNUSED:%s\r\n"), unused_mtls.data());
@@ -3146,18 +3158,18 @@ bool wr_hlp( const void * p, int l, FILE * h )
     bblk(DAG_ID);
 
     // save textures
-    if (tex.Count())
+    if (!tex.empty())
     {
       bblk(DAG_TEXTURES);
 
-      int num = tex.Count();
+      int num = static_cast<int>(tex.size());
       if (num > 0xFFFF)
         num = 0xFFFF;
 
       wr(&num, 2);
       for (int i = 0; i < num; ++i)
       {
-        std::string name = wideToStr(tex[i]);
+        std::string name = wideToStr(tex[i].c_str());
 
         std::replace(name.begin(), name.end(), '\\', '/');
         if (name.find('/') == std::string::npos)
@@ -3229,21 +3241,21 @@ bool wr_hlp( const void * p, int l, FILE * h )
     }
 
     // save key labels
-    if (klabel.Count())
+    if (!klabel.empty())
     {
       bblk(DAG_KEYLABELS);
-      int num = klabel.Count();
+      int num = static_cast<int>(klabel.size());
       if (num > 0xFFFF)
         num = 0xFFFF;
       wr(&num, 2);
       for (int i = 0; i < num; ++i)
       {
-        int l = (int)_tcslen(klabel[i]);
+        int l = static_cast<int>(klabel[i].size());
         if (l > 255)
           l = 255;
         wr(&l, 1);
         if (l)
-          wr(klabel[i], l);
+          wr(klabel[i].c_str(), l);
       }
       eblk;
     }
@@ -3469,7 +3481,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
   int save_anim2(FILE *fp, Interface *ip)
   {
     // pools data
-    char *namesPool;
+    std::vector<char> namesPool;
     Tab<int> originLinVelT;
     Tab<int> originAngVelT;
     Tab<AnimKeyPoint3> originLinVel;
@@ -3491,16 +3503,21 @@ bool wr_hlp( const void * p, int l, FILE * h )
     getOriginVelocities(originLinVel, originAngVel, originLinVelT, originAngVelT);
 
     Tab<int> additionalIds;
-    Tab<char *> additionalNames;
+    std::vector<std::string> additionalNames;
     int linVelId = -1, angVelId = -1;
-    char *str;
     if (originLinVel.Count())
-      linVelId = additionalNames.Append(1, (char **)&(str = strdup(origin_lin_vel_node_name)));
+    {
+      linVelId = (int)additionalNames.size();
+      additionalNames.push_back(origin_lin_vel_node_name);
+    }
     if (originAngVel.Count())
-      angVelId = additionalNames.Append(1, (char **)&(str = strdup(origin_ang_vel_node_name)));
+    {
+      angVelId = (int)additionalNames.size();
+      additionalNames.push_back(origin_ang_vel_node_name);
+    }
 
     unsigned namePoolSize = 0;
-    int *nameIdx = NULL;
+    std::vector<int> nameIdx;
     getNamePool(exportNodes, noteTrackKeys, namesPool, nameIdx, namePoolSize, additionalNames, additionalIds);
 
     if (!getAnimations(node, nodeExp, exportNodes, pos, rot, scl))
@@ -3627,7 +3644,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
     fwrite(&hdr, sizeof(hdr), 1, fp);
 
     // write names pool
-    fwrite(namesPool, hdr.namePoolSize, 1, fp);
+    fwrite(namesPool.data(), hdr.namePoolSize, 1, fp);
 
     // write times pool
     if (originLinVelT.Count())
@@ -3727,16 +3744,12 @@ bool wr_hlp( const void * p, int l, FILE * h )
     explog(_T(" timePoolSz=%d\r\n"), timeNum * sizeof(int));
     explog(_T(" keyPoolSz=%d\r\n"), keyPoolSize);
 
-    for (int i = additionalNames.Count(); --i >= 0;)
-      delete additionalNames[i];
     for (int i = pos.Count(); --i >= 0;)
       delete pos[i];
     for (int i = scl.Count(); --i >= 0;)
       delete scl[i];
     for (int i = rot.Count(); --i >= 0;)
       delete rot[i];
-    delete nameIdx;
-    free(namesPool);
 
     return 1;
   }
@@ -3748,8 +3761,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
 private:
   void getNoteTrackKeys(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys);
 
-  void getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys, char *&namesPool, int *&nameIdx,
-    unsigned &namePoolSize, Tab<char *> &additionalNames, Tab<int> &additionalIds);
+  void getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys, std::vector<char> &namesPool,
+    std::vector<int> &nameIdx, unsigned &namePoolSize, std::vector<std::string> &additionalNames, Tab<int> &additionalIds);
 
   bool getAnimations(Tab<INode *> &node, Tab<bool> &nodeExp, Tab<INode *> &exportNodes, Tab<AnimChanPoint3 *> &pos,
     Tab<AnimChanQuat *> &rot, Tab<AnimChanPoint3 *> &scl);
@@ -3795,10 +3808,10 @@ void ExportENCB::getNoteTrackKeys(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &
   }
 }
 
-void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys, char *&namesPool, int *&nameIdx,
-  unsigned &namePoolSize, Tab<char *> &additionalNames, Tab<int> &additionalIds)
+void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteTrackKeys, std::vector<char> &namesPool,
+  std::vector<int> &nameIdx, unsigned &namePoolSize, std::vector<std::string> &additionalNames, Tab<int> &additionalIds)
 {
-  additionalIds.SetCount(additionalNames.Count());
+  additionalIds.SetCount((int)additionalNames.size());
   // prepare nodes name pool
   namePoolSize = 1;
   int len;
@@ -3808,16 +3821,14 @@ void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteT
   for (int i = 0; i < noteTrackKeys.Count(); ++i)
     if ((len = (int)strlen(noteTrackKeys[i].name)) != 0)
       namePoolSize += len + 1;
-  for (int i = 0; i < additionalNames.Count(); ++i)
-    if ((len = (int)strlen(additionalNames[i])) != 0)
+  for (size_t i = 0; i < additionalNames.size(); ++i)
+    if ((len = (int)additionalNames[i].size()) != 0)
       namePoolSize += len + 1;
   namePoolSize = (namePoolSize + 7) & ~7;
 
-  namesPool = (char *)malloc(namePoolSize);
-  nameIdx = new int[exportNodes.Count()];
-  memset(nameIdx, 0, sizeof(int) * exportNodes.Count());
+  namesPool.assign(namePoolSize, '\0');
+  nameIdx.assign(exportNodes.Count(), 0);
 
-  namesPool[0] = '\0';
   namePoolSize = 1;
   for (int i = 0; i < exportNodes.Count(); ++i)
   {
@@ -3827,7 +3838,7 @@ void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteT
     else
     {
       nameIdx[i] = namePoolSize;
-      char *poolName = namesPool + namePoolSize;
+      char *poolName = namesPool.data() + namePoolSize;
       strcpy(poolName, name.c_str());
       namePoolSize += len + 1;
     }
@@ -3840,22 +3851,22 @@ void ExportENCB::getNamePool(Tab<INode *> &exportNodes, Tab<AnimKeyLabel> &noteT
     else
     {
       noteTrackKeys[i].idx = namePoolSize;
-      char *poolName = namesPool + namePoolSize;
+      char *poolName = namesPool.data() + namePoolSize;
       strcpy(poolName, name);
       namePoolSize += len + 1;
     }
     free(name);
   }
-  for (int i = 0; i < additionalNames.Count(); ++i)
+  for (int i = 0; i < (int)additionalNames.size(); ++i)
   {
-    char *name = additionalNames[i];
-    if ((len = (int)strlen(name)) == 0)
+    const std::string &name = additionalNames[i];
+    if ((len = (int)name.size()) == 0)
       additionalIds[i] = 0;
     else
     {
       additionalIds[i] = namePoolSize;
-      char *poolName = namesPool + namePoolSize;
-      strcpy(poolName, name);
+      char *poolName = namesPool.data() + namePoolSize;
+      strcpy(poolName, name.c_str());
       namePoolSize += len + 1;
     }
   }
@@ -3994,7 +4005,7 @@ static bool trail_stricmp(const TCHAR *str, const TCHAR *str2)
   return (l >= l2) ? _tcsncicmp(str + l - l2, str2, l2) == 0 : false;
 }
 
-static bool find_co_layers(const TCHAR *fname, Tab<const TCHAR *> &fnames)
+static bool find_co_layers(const TCHAR *fname, std::vector<std::wstring> &fnames)
 {
   if (!trail_stricmp(fname, _T(".lod00.dag")))
     return false;
@@ -4007,144 +4018,135 @@ static bool find_co_layers(const TCHAR *fname, Tab<const TCHAR *> &fnames)
   TCHAR str_buf[512];
   for (int i = 0; i < 16; i++)
   {
-    _stprintf(str_buf, _T("LOD%02d"), i);
-    l = manager->GetLayer(TSTR(str_buf));
+    _stprintf_s(str_buf, _countof(str_buf), _T("LOD%02d"), i);
+    l = manager->GetLayer(str_buf);
     if (!l)
     {
-      _stprintf(str_buf, _T("lod%02d"), i);
-      l = manager->GetLayer(TSTR(str_buf));
+      _stprintf_s(str_buf, _countof(str_buf), _T("lod%02d"), i);
+      l = manager->GetLayer(str_buf);
       if (!l)
       {
-        _stprintf(str_buf, _T("Lod%02d"), i);
-        l = manager->GetLayer(TSTR(str_buf));
+        _stprintf_s(str_buf, _countof(str_buf), _T("Lod%02d"), i);
+        l = manager->GetLayer(str_buf);
       }
     }
     if (l && l->HasObjects())
     {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("%.*s.lod%02d.dag"), base_len, fname, i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s.lod%02d.dag"), base_len, fname, i);
+      fnames.push_back(str_buf);
     }
   }
 
-  l = manager->GetLayer(TSTR(p[0] = _T("DESTR")));
+  l = manager->GetLayer(p[0] = _T("DESTR"));
   if (!l)
-    l = manager->GetLayer(TSTR(p[0] = _T("destr")));
+    l = manager->GetLayer(p[0] = _T("destr"));
 
   if (l && l->HasObjects())
   {
-    p[0] = _tcsdup(p[0]);
-    _stprintf(str_buf, _T("%.*s_destr.lod00.dag"), base_len, fname);
-    p[1] = _tcsdup(str_buf);
-    fnames.Append(2, p);
+    fnames.push_back(p[0]);
+    _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_destr.lod00.dag"), base_len, fname);
+    fnames.push_back(str_buf);
   }
 
   // if (base_len > 2 && _tcsncmp(&fname[base_len-2], _T("_a"), 2)==0)
   //   base_len -= 2;
 
-  l = manager->GetLayer(TSTR(p[0] = _T("DM")));
+  l = manager->GetLayer(p[0] = _T("DM"));
   if (!l)
   {
-    l = manager->GetLayer(TSTR(p[0] = _T("dm")));
+    l = manager->GetLayer(p[0] = _T("dm"));
     if (!l)
-      l = manager->GetLayer(TSTR(p[0] = _T("Dm")));
+      l = manager->GetLayer(p[0] = _T("Dm"));
   }
   if (l && l->HasObjects())
   {
-    p[0] = _tcsdup(p[0]);
-    _stprintf(str_buf, _T("%.*s_dm.dag"), base_len, fname);
-    p[1] = _tcsdup(str_buf);
-    fnames.Append(2, p);
+    fnames.push_back(p[0]);
+    _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_dm.dag"), base_len, fname);
+    fnames.push_back(str_buf);
   }
 
   for (int i = 0; i < 16; i++)
   {
-    _stprintf(str_buf, _T("DMG_LOD%02d"), i);
-    l = manager->GetLayer(TSTR(str_buf));
+    _stprintf_s(str_buf, _countof(str_buf), _T("DMG_LOD%02d"), i);
+    l = manager->GetLayer(str_buf);
     if (!l)
     {
-      _stprintf(str_buf, _T("dmg_lod%02d"), i);
-      l = manager->GetLayer(TSTR(str_buf));
+      _stprintf_s(str_buf, _countof(str_buf), _T("dmg_lod%02d"), i);
+      l = manager->GetLayer(str_buf);
       if (!l)
       {
-        _stprintf(str_buf, _T("Dmg_lod%02d"), i);
-        l = manager->GetLayer(TSTR(str_buf));
+        _stprintf_s(str_buf, _countof(str_buf), _T("Dmg_lod%02d"), i);
+        l = manager->GetLayer(str_buf);
       }
     }
     if (l && l->HasObjects())
     {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("%.*s_dmg.lod%02d.dag"), base_len, fname, i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
-    }
-  }
-
-  for (int i = 0; i < 16; i++)
-  {
-    _stprintf(str_buf, _T("DMG2_LOD%02d"), i);
-    l = manager->GetLayer(TSTR(str_buf));
-    if (!l)
-    {
-      _stprintf(str_buf, _T("dmg2_lod%02d"), i);
-      l = manager->GetLayer(TSTR(str_buf));
-      if (!l)
-      {
-        _stprintf(str_buf, _T("Dmg2_lod%02d"), i);
-        l = manager->GetLayer(TSTR(str_buf));
-      }
-    }
-    if (l && l->HasObjects())
-    {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("%.*s_dmg2.lod%02d.dag"), base_len, fname, i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_dmg.lod%02d.dag"), base_len, fname, i);
+      fnames.push_back(str_buf);
     }
   }
 
   for (int i = 0; i < 16; i++)
   {
-    _stprintf(str_buf, _T("EXPL_LOD%02d"), i);
-    l = manager->GetLayer(TSTR(str_buf));
+    _stprintf_s(str_buf, _countof(str_buf), _T("DMG2_LOD%02d"), i);
+    l = manager->GetLayer(str_buf);
     if (!l)
     {
-      _stprintf(str_buf, _T("expl_lod%02d"), i);
-      l = manager->GetLayer(TSTR(str_buf));
+      _stprintf_s(str_buf, _countof(str_buf), _T("dmg2_lod%02d"), i);
+      l = manager->GetLayer(str_buf);
       if (!l)
       {
-        _stprintf(str_buf, _T("Expl_lod%02d"), i);
-        l = manager->GetLayer(TSTR(str_buf));
+        _stprintf_s(str_buf, _countof(str_buf), _T("Dmg2_lod%02d"), i);
+        l = manager->GetLayer(str_buf);
       }
     }
     if (l && l->HasObjects())
     {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("%.*s_expl.lod%02d.dag"), base_len, fname, i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_dmg2.lod%02d.dag"), base_len, fname, i);
+      fnames.push_back(str_buf);
     }
   }
 
-  l = manager->GetLayer(TSTR(p[0] = _T("XRAY")));
+  for (int i = 0; i < 16; i++)
+  {
+    _stprintf_s(str_buf, _countof(str_buf), _T("EXPL_LOD%02d"), i);
+    l = manager->GetLayer(str_buf);
+    if (!l)
+    {
+      _stprintf_s(str_buf, _countof(str_buf), _T("expl_lod%02d"), i);
+      l = manager->GetLayer(str_buf);
+      if (!l)
+      {
+        _stprintf_s(str_buf, _countof(str_buf), _T("Expl_lod%02d"), i);
+        l = manager->GetLayer(str_buf);
+      }
+    }
+    if (l && l->HasObjects())
+    {
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_expl.lod%02d.dag"), base_len, fname, i);
+      fnames.push_back(str_buf);
+    }
+  }
+
+  l = manager->GetLayer(p[0] = _T("XRAY"));
   if (!l)
-    l = manager->GetLayer(TSTR(p[0] = _T("xray")));
+    l = manager->GetLayer(p[0] = _T("xray"));
 
   if (l && l->HasObjects())
   {
-    p[0] = _tcsdup(p[0]);
-    _stprintf(str_buf, _T("%.*s_xray.dag"), base_len, fname);
-    p[1] = _tcsdup(str_buf);
-    fnames.Append(2, p);
+    fnames.push_back(p[0]);
+    _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_xray.dag"), base_len, fname);
+    fnames.push_back(str_buf);
   }
 
-  if (fnames.Count() / 2 > 1)
+  if (fnames.size() / 2 > 1)
     return true;
 
-  for (int i = 0; i < fnames.Count(); i++)
-    free((void *)fnames[i]);
-  fnames.ZeroCount();
+  fnames.clear();
   return false;
 }
 #endif
@@ -4154,53 +4156,47 @@ BOOL ExpUtil::export_dag()
 #if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
 
-  Tab<const TCHAR *> fnames;
+  std::vector<std::wstring> fnames;
   Tab<bool> isHidden;
 
   if (!find_co_layers(exp_fname, fnames))
     return export_one_dag(exp_fname);
 
   static TCHAR buf[8192];
-  _stprintf(buf, _T("Export layers to %d separate files?\n"), fnames.Count() / 2);
-  for (int i = 0; i < fnames.Count(); i += 2)
+  _stprintf_s(buf, _countof(buf), _T("Export layers to %d separate files?\n"), fnames.size() / 2);
+  for (int i = 0; i < (int)fnames.size(); i += 2)
     if (_tcslen(buf) < (7 << 10))
     {
-      int fn_len = (int)_tcslen(fnames[i + 1]);
-      _stprintf(buf + _tcslen(buf), _T("%s -> %s%s\n"), fnames[i], fn_len > 64 ? _T("...") : _T(""),
-        fn_len > 48 ? fnames[i + 1] + fn_len - 48 : fnames[i + 1]);
+      int fn_len = (int)fnames[i + 1].size();
+      _stprintf_s(buf + _tcslen(buf), _countof(buf) - _tcslen(buf), _T("%s -> %s%s\n"), fnames[i].data(),
+        fn_len > 64 ? _T("...") : _T(""), fn_len > 48 ? fnames[i + 1].data() + fn_len - 48 : fnames[i + 1].data());
     }
 
   if (MessageBox(GetFocus(), buf, _T("Export layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES)
-  {
-    for (int i = 0; i < fnames.Count(); i++)
-      free((void *)fnames[i]);
     return export_one_dag(exp_fname);
-  }
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
-  isHidden.SetCount(fnames.Count() / 2);
-  for (int i = 0; i < fnames.Count(); i += 2)
+  isHidden.SetCount(fnames.size() / 2);
+  for (int i = 0; i < (int)fnames.size(); i += 2)
   {
-    ILayer *l = manager->GetLayer(TSTR(fnames[i]));
+    ILayer *l = manager->GetLayer(fnames[i].data());
     isHidden[i / 2] = l->IsHidden();
     l->Hide(true);
   }
-  for (int i = 0; i < fnames.Count(); i += 2)
+  for (int i = 0; i < (int)fnames.size(); i += 2)
   {
-    TSTR lnm(fnames[i]);
+    TSTR lnm(fnames[i].data());
     ILayer *l = manager->GetLayer(lnm);
     manager->SetCurrentLayer(lnm);
     l->Hide(false);
 
-    export_one_dag(fnames[i + 1]);
+    export_one_dag(fnames[i + 1].data());
     l->Hide(true);
   }
-  for (int i = 0; i < fnames.Count(); i += 2)
+  for (int i = 0; i < (int)fnames.size(); i += 2)
   {
     if (!isHidden[i / 2])
-      manager->GetLayer(TSTR(fnames[i]))->Hide(false);
-    free((void *)fnames[i]);
-    free((void *)fnames[i + 1]);
+      manager->GetLayer(fnames[i].data())->Hide(false);
   }
   manager->SetCurrentLayer();
 
@@ -4254,8 +4250,8 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn)
     explog(_T ("  for \"%s\"\r\n"), cb.max_skeys_n->GetName());
   explog(_T ("%d nodes\r\n"), cb.node.Count());
   explog(_T ("%d materials\r\n"), cb.mat.Count());
-  explog(_T ("%d textures\r\n"), cb.tex.Count());
-  explog(_T ("%d key labels\r\n"), cb.klabel.Count());
+  explog(_T ("%d textures\r\n"), cb.tex.size());
+  explog(_T ("%d key labels\r\n"), cb.klabel.size());
   explog(_T ("%d note tracks\r\n"), cb.ntrack.Count());
   MSTR nonortn = TSTR(GetString(IDS_NONORT_SELSET));
   if (cb.nonort)

@@ -39,6 +39,7 @@
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_resourceTag.h>
+#include <generic/dag_expected.h>
 #include <drv_returnAddrStore.h>
 #include <drv_utils.h>
 #include <dxgi_utils.h>
@@ -1131,8 +1132,6 @@ const char *d3d::get_last_error() { return drv3d_dx12::dxgi_error_code_to_string
 
 uint32_t d3d::get_last_error_code() { return drv3d_dx12::api_state.lastErrorCode; }
 
-const char *d3d::get_device_driver_version() { return "1.0"; }
-
 void *d3d::get_device() { return api_state.device.getDevice(); }
 
 namespace
@@ -1230,6 +1229,11 @@ int on_driver_command_compile_pipeline_set(void *par1)
 {
   if (!par1)
   {
+    return 1;
+  }
+  if (!api_state.device.isPipelineSetCompilationAllowed())
+  {
+    logdbg("DX12: PSO cache warmup skipped, disabled for the current driver");
     return 1;
   }
   auto sets = static_cast<const CompilePipelineSet *>(par1);
@@ -2467,36 +2471,36 @@ uint32_t map_dx12_format_features_to_tex_usage(FormatStore fmt, D3DResourceType 
   return result | d3d::USAGE_PIXREADWRITE;
 }
 
-bool check_format_features(int cflg, FormatStore fmt, D3DResourceType type)
+dag::Expected<void, const char *> check_format_features(int cflg, FormatStore fmt, D3DResourceType type)
 {
-  D3D_CONTRACT_ASSERT_RETURN(type != D3DResourceType::SBUF, false);
+  D3D_CONTRACT_ASSERT_RETURN(type != D3DResourceType::SBUF, (dag::Unexpected<const char *>{"SBUF is not a texture type"}));
   if ((type == D3DResourceType::TEX || type == D3DResourceType::ARRTEX) && !fmt.isSupportedTexture2D())
-    return false;
+    return dag::Unexpected<const char *>{"texture2D not supported"};
   if ((type == D3DResourceType::VOLTEX) && !fmt.isSupportedTexture3D())
-    return false;
+    return dag::Unexpected<const char *>{"texture3D not supported"};
   if ((type == D3DResourceType::CUBETEX || type == D3DResourceType::CUBEARRTEX) && !fmt.isSupportedTextureCube())
-    return false;
+    return dag::Unexpected<const char *>{"textureCube not supported"};
 
   if ((cflg & TEXCF_UNORDERED) && !fmt.isSupportedTypedUav())
-    return false;
+    return dag::Unexpected<const char *>{"typed UAV not supported"};
 
   if ((cflg & TEXCF_RTARGET) && !fmt.isSupportedRenderTarget() && !fmt.isSupportedMultisampleRenderTarget())
-    return false;
+    return dag::Unexpected<const char *>{"render target not supported"};
 
   if (fmt.isDepth() && !fmt.isSupportedDepthStencil())
-    return false;
+    return dag::Unexpected<const char *>{"depth/stencil not supported"};
 
   bool isMultisampled = ((cflg & TEXCF_SAMPLECOUNT_MASK) != 0);
 
   if (isMultisampled && !fmt.isSupportedMultisampleRenderTarget())
-    return false;
+    return dag::Unexpected<const char *>{"multisampled render target not supported"};
 
   // We don't require read or resolve support for multisampled render targets here, it is checked in view creation or in resolve.
 
   if ((cflg & TEXCF_TILED_RESOURCE) != 0 && !fmt.isSupportedTiled())
-    return false;
+    return dag::Unexpected<const char *>{"tiled resource not supported"};
 
-  return true;
+  return {};
 }
 } // namespace
 bool d3d::check_texformat(int cflg)
@@ -2504,7 +2508,7 @@ bool d3d::check_texformat(int cflg)
   auto fmt = FormatStore::fromCreateFlags(cflg);
   if (!fmt.isSampleCountSupported(get_sample_count(cflg)))
     return false;
-  return check_format_features(cflg, fmt, D3DResourceType::TEX);
+  return check_format_features(cflg, fmt, D3DResourceType::TEX).has_value();
 }
 
 int d3d::get_max_sample_count(int cflg)
@@ -2524,14 +2528,25 @@ bool d3d::issame_texformat(int cflg1, int cflg2)
 bool d3d::check_cubetexformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  return check_format_features(cflg, fmt, D3DResourceType::CUBETEX);
+  return check_format_features(cflg, fmt, D3DResourceType::CUBETEX).has_value();
 }
 
 bool d3d::check_voltexformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  return check_format_features(cflg, fmt, D3DResourceType::VOLTEX);
+  return check_format_features(cflg, fmt, D3DResourceType::VOLTEX).has_value();
 }
+
+namespace drv3d_dx12
+{
+dag::Expected<void, const char *> check_texformat_features(int cflg, D3DResourceType type)
+{
+  auto fmt = FormatStore::fromCreateFlags(cflg);
+  if (!fmt.isSampleCountSupported(get_sample_count(cflg)))
+    return dag::Unexpected<const char *>{"requested sample count not supported"};
+  return check_format_features(cflg, fmt, type);
+}
+} // namespace drv3d_dx12
 
 bool d3d::stretch_rect(BaseTexture *src, BaseTexture *dst, const RectInt *rsrc, const RectInt *rdst)
 {

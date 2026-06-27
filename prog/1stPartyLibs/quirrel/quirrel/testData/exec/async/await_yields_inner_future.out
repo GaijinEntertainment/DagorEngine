@@ -1,0 +1,7 @@
+script done
+got is inner: true
+got.getValue: 7
+deep: 7
+a.getState: fulfilled
+a deep: 9
+return await: 9

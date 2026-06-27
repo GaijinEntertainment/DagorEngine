@@ -781,6 +781,20 @@ void CodeGenVisitor::visitReturnStatement(ReturnStatement *retStmt) {
                 if (!checkInferredType(retStmt, retStmt->argument(), _fs->_result_type_mask))
                     EmitCheckType(target, _fs->_result_type_mask);
             }
+            // `return g()` (g async, no await) settles this future WITH g's
+            // future verbatim, so an awaiter gets a nested Future, not g's
+            // value. Opt out when annotated to return an instance; a
+            // `return await g()` arg is TO_AWAIT, not TO_CALL, so never trips.
+            if (_fs->_isAsync) {
+                Expr *probe = deparen(retStmt->argument());
+                if (probe->op() == TO_CALL) {
+                    ResolvedCallee info = resolveCallee(probe->asCallExpr()->callee());
+                    bool returnsInstanceByDecl = _fs->_result_type_mask != ~0u
+                                              && (_fs->_result_type_mask & _RT_INSTANCE) != 0;
+                    if (info.known && info.isAsync && !info.isNative && !returnsInstanceByDecl)
+                        _ctx.reportDiagnostic(DiagnosticsId::DI_ASYNC_RETURN_FUTURE, retStmt);
+                }
+            }
             _fs->AddInstruction(_OP_RETURN, 1, target);
         } else {
             if ((_fs->_result_type_mask & _RT_NULL) == 0 && !_fs->_bgenerator)
@@ -1915,7 +1929,7 @@ void CodeGenVisitor::emitAwait(UnExpr *u) {
     // Flag a known-sync call as a dead `await`. Native closures opt out: from
     // script we can't tell whether they return a Future (httpFetch, async.delay,
     // async.nextFrame) or a plain value. Sync helpers annotated as returning an
-    // instance opt out too - chain-unwrap makes `await wrap()` do real work
+    // instance opt out too - `await wrap()` does real work (peels one level)
     // when wrap returns a Future. Class constructors don't opt out (their
     // result is never awaitable). deparen so `await (f())` matches.
     Expr *probe = deparen(arg);

@@ -4,10 +4,12 @@
 #include <render/daFrameGraph/das/registerBlobType.h>
 #include <frontend/nodeTracker.h>
 #include <runtime/runtime.h>
+#include <runtime/bindlessSlotManager.h>
 
 InitOnDemand<dafg::Runtime, false> dafg::Runtime::instance;
 void dafg::Runtime::wipeBlobsBetweenFrames(eastl::span<dafg::ResNameId>) { G_ASSERT(0); }
 dafg::Runtime::~Runtime() { G_ASSERT(0); }
+dafg::BindlessSlotManager::~BindlessSlotManager() { G_ASSERT(0); }
 
 void dafg::detail::unregister_node(detail::NodeUid) { G_ASSERT(0); }
 

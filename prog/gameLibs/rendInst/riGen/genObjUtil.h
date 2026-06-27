@@ -334,8 +334,7 @@ struct SingleEntityPool
   {
 #if DAGOR_DBGLEVEL > 0 && !_TARGET_PC_TOOLS_BUILD
     vec4f instScaleSq = v_mat44_scale43_sq(m);
-    // 16/256=1/16=6.25% which is the end of first non-zero scale bucket for a palette-rotated posInst
-    if (v_signmask(v_cmp_le(instScaleSq, v_splats(scl_thres ? *scl_thres : 3.9e-3f)))) [[unlikely]]
+    if (v_signmask(v_cmp_le(instScaleSq, v_splats(scl_thres ? *scl_thres : /* (3/32)^2=9.375% */ 8.789e-3f)))) [[unlikely]]
       if (!v_test_all_bits_zeros(instScaleSq)) // Assume that zero scale is destroyed one (so not an error)
       {
         Point3_vec4 instScale;

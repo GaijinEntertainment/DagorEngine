@@ -4,6 +4,7 @@
 #include <frontend/internalRegistry.h>
 #include <render/daFrameGraph/resourceCreation.h>
 #include <runtime/runtime.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <EASTL/vector_set.h>
 
 namespace dafg::detail
@@ -104,8 +105,8 @@ void VirtualResourceRequestBase::markWithTag(ResourceSubtypeTag tag) { thisReque
 
 void VirtualResourceRequestBase::optional() { thisRequest().optional = true; }
 
-void VirtualResourceRequestBase::bindToShaderVar(const char *shader_var_name, ResourceSubtypeTag projected_tag,
-  TypeErasedProjector projector)
+void VirtualResourceRequestBase::recordShaderVarBinding(BindingType binding_type, const char *shader_var_name,
+  ResourceSubtypeTag projected_tag, TypeErasedProjector projector)
 {
   if (shader_var_name == nullptr)
     shader_var_name = registry->knownNames.getShortName(resUid.resId);
@@ -127,11 +128,23 @@ void VirtualResourceRequestBase::bindToShaderVar(const char *shader_var_name, Re
       shader_var_name, registry->knownNames.getName(nodeId));
     return;
   }
-  bindings[svId] = Binding{
-    BindingType::ShaderVar, resUid.resId, static_cast<bool>(resUid.history), reset, thisRequest().optional, projected_tag, projector};
+  bindings[svId] =
+    Binding{binding_type, resUid.resId, static_cast<bool>(resUid.history), reset, thisRequest().optional, projected_tag, projector};
 
   // NOTE: we don't need to set this for blobs, but it doesn't matter anyways
   thisRequest().usage.type = Usage::SHADER_RESOURCE;
+}
+
+void VirtualResourceRequestBase::bindToShaderVar(const char *shader_var_name, ResourceSubtypeTag projected_tag,
+  TypeErasedProjector projector)
+{
+  recordShaderVarBinding(BindingType::ShaderVar, shader_var_name, projected_tag, projector);
+}
+
+void VirtualResourceRequestBase::bindlessShaderVar(const char *shader_var_name, ResourceSubtypeTag projected_tag)
+{
+  G_ASSERT(d3d::get_driver_desc().caps.hasBindless);
+  recordShaderVarBinding(BindingType::BindlessShaderVar, shader_var_name, projected_tag, identity_projector);
 }
 
 void VirtualResourceRequestBase::bindAsView(ResourceSubtypeTag projected_tag, TypeErasedProjector projector)

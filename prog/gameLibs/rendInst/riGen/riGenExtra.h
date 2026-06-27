@@ -82,6 +82,30 @@ bool rayHitRIGenExtraCollidable(const Point3 &p0, const Point3 &norm_dir, float 
 void reapplyLodRanges();
 void addRiExtraRefs(DataBlock *b, const DataBlock *riConf, const char *name);
 
+/** \brief iterate over RiExtraPool
+ *
+ * \return false if callback returned false (and iteration stopped), true otherwise
+ */
+template <typename Func>
+inline bool iterateRIExtra(const Func &callback)
+{
+  using RetType = eastl::invoke_result_t<Func, int, RiExtraPool &>;
+  int id = 0;
+  if constexpr (eastl::is_same_v<RetType, bool>)
+  {
+    for (auto &pool : riExtra)
+      if (!callback(id++, pool))
+        return false;
+  }
+  else
+  {
+    static_assert(eastl::is_void_v<RetType>);
+    for (auto &pool : riExtra)
+      callback(id++, pool);
+  }
+  return true;
+}
+
 enum
 {
   DYNAMIC_SCENE = 0,

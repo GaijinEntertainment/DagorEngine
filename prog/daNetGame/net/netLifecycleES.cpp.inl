@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "netEvents.h"
+#include "net.h"
 #include "net/netPropsRegistry.h"
 #include "phys/physUtils.h"
 #include "main/main.h"
@@ -22,6 +23,11 @@ ECS_NO_ORDER
 static void net_lifecycle_init_server_es(const OnNetInitServer &)
 {
   propsreg::init_net_registry_server();
+  if (!GET_NET()) // SP/offline: no NetContext for a replay writer
+  {
+    reject_replay_record_offline();
+    return;
+  }
   server_create_replay_record();
 }
 

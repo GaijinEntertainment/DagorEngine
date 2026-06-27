@@ -19,7 +19,7 @@ hlsl {
 }
 
 texture heightmap_holes_tex;
-float4 hmap_holes_scale_step_offset = (0., 0., 10., 10.);
+float4 hmap_holes_scale_step_offset = (0., 0., 10., 10.) always_referenced;
 buffer heightmap_holes_zones_cb;
 int heightmap_holes_zones_num = 0;
 int heightmap_holes_support_assume = 1;

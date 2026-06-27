@@ -13,6 +13,8 @@ public:
 
   ViewportAxisId draw(const IPoint2 *mouse_pos, bool force_draw_rotator) const;
 
+  void setGizmoPixelPadding(IPoint2 paddings);
+
 private:
   void calculateAxisClientPosition(Point3 &ax, Point3 &ay, Point3 &az) const;
   void drawGizmoArrow(const Point2 &line_start, const Point2 &line_end, E3DCOLOR color, const char *axis_name, bool highlight,
@@ -27,6 +29,6 @@ private:
   const int axisCirclePadding;
   const int axisCircleRadius;
 
-  static const int gizmoPaddingInPixels = 15;
+  IPoint2 gizmoPaddingInPixels = IPoint2(15, 15);
   static const int axisLengthInPixels = 50;
 };

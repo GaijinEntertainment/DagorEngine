@@ -22,7 +22,6 @@ include "skinning_inc2.dshl"
 include "underwater_fog.dshl"
 
 int bvh_paint_details_tex_slot;
-int bvh_paint_details_smp_slot;
 
 int rtr_shadow = 1;
 interval rtr_shadow: off < 1, on;
@@ -206,7 +205,6 @@ macro INIT_RT_SURFACE_PARAMS(stage)
   (stage)
   {
     paint_details_tex_slot@i1 = bvh_paint_details_tex_slot;
-    paint_details_smp_slot@i1 = bvh_paint_details_smp_slot;
     perlin_noise3d@tex3d = perlin_noise3d;
     bvh_eye_sclera_color@f3 = (pow(bvh_eye_sclera_color.x, 2.2), pow(bvh_eye_sclera_color.y, 2.2), pow(bvh_eye_sclera_color.z, 2.2), 0);
     bvh_eye_iris_color@f3 = (pow(bvh_eye_iris_color.x, 2.2), pow(bvh_eye_iris_color.y, 2.2), pow(bvh_eye_iris_color.z, 2.2), 0);

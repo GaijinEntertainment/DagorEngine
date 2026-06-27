@@ -475,6 +475,11 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
       def.nameSpaceTerm->text);
   }
 
+  if (vt_is_explicit_bindless(def.type) && def.hlsl)
+    report_error(parser, def.nameSpaceTerm,
+      "named const <%s> of type <%s> generates its own declaration and must not have an hlsl block", def.baseName,
+      def.nameSpaceTerm->text);
+
   if (def.type != VariableType::f44 && state_block.arr && !state_block.arr->par)
     report_error(parser, def.varTerm, "Array initializer for single named constants is only allowed for @f44 type");
 
@@ -490,9 +495,9 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
 #undef TYPE
   }
 
-  def.isBindless = vt_is_static_texture(def.type) && shc::config().enableBindless;
-  if (def.isBindless)
+  if (vt_is_static_texture(def.type) && shc::config().enableBindless)
   {
+    def.bindlessMode = BindlessMode::StaticImplicit;
     if (stage == STAGE_CS)
     {
       report_error(parser, def.varTerm, "variable <%s> of type <%s> is not permitted in a compute shader", def.baseName,
@@ -523,6 +528,21 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     case VariableType::u4:
       def.shvarType = SHVT_INT4;
       def.regSpace = HLSL_RSPACE_C;
+      break;
+    case VariableType::bindlessTex2D:
+    case VariableType::bindlessTex3D:
+    case VariableType::bindlessTexCube:
+    case VariableType::bindlessTexArray:
+    case VariableType::bindlessTexCubeArray:
+    case VariableType::bindlessSampler:
+    case VariableType::bindlessByteBuffer:
+      if (!shc::config().enableBindless)
+        report_error(parser, def.varTerm, "variable <%s> of type <%s> requires bindless support, which is not enabled for this target",
+          def.baseName, def.nameSpaceTerm->text);
+      def.shvarType = SHVT_INT4;
+      def.regSpace = HLSL_RSPACE_C;
+      def.bindlessMode = BindlessMode::ExplicitApi;
+      def.mangledName = String{0, "%s_bindless_id", def.baseName};
       break;
     case VariableType::tex:
     case VariableType::tex2d:
@@ -558,8 +578,8 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     case VariableType::staticTex3D:
     case VariableType::staticSmp3D:
       def.shvarType = SHVT_TEXTURE;
-      def.regSpace = def.isBindless ? HLSL_RSPACE_C : HLSL_RSPACE_T;
-      needPairSampler = !def.isBindless && semantic::vt_is_static_sampled_texture(def.type);
+      def.regSpace = def.isStaticBindless() ? HLSL_RSPACE_C : HLSL_RSPACE_T;
+      needPairSampler = !def.isStaticBindless() && semantic::vt_is_static_sampled_texture(def.type);
       switch (def.type)
       {
         case VariableType::staticTex:

@@ -4,7 +4,6 @@
 #include <daECS/net/time.h>
 #include <generic/dag_carray.h>
 #include <daECS/net/msgDecl.h>
-#include <daECS/net/msgSink.h>
 #include <daNet/getTime.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math.h>
@@ -115,9 +114,12 @@ public:
 
   void updateTimeRequest(int cur_time)
   {
-    if (!net::get_msg_sink() || cur_time <= nextRequestTimeMs)
+    if (cur_time <= nextRequestTimeMs)
       return;
-    send_net_msg(net::get_msg_sink(), TimeSyncRequest(danet::GetTime()));
+    if (send_net_msg(TimeSyncRequest(danet::GetTime())) <= 0)
+      return; // retry next tick; consumer-side untargeted shim (e.g. skyquake routing via msg_sink)
+              // can drop a send before the sink entity exists, and we must not advance the timer
+              // or early probes would skip to the full interval.
     nextRequestTimeMs = cur_time + (numTimeRec < NUM_INITIAL_TIME_PROBES ? INITIAL_TIME_SYNC_INTERVAL_MS : TIME_SYNC_INTERVAL_MS);
   }
 
@@ -184,8 +186,8 @@ void on_time_sync_response_received(const net::IMessage *msg) // non-static due 
     G_ASSERTF(0, "Unknown/unsupported time impl %x", t4cc);
 }
 
-ECS_NET_IMPL_MSG(TimeSyncResponse, net::ROUTING_SERVER_TO_CLIENT, &net::direct_connection_rcptf, UNRELIABLE, TIMESYNC_NET_CHANNEL,
-  net::MF_URGENT, ECS_NET_NO_DUP, &on_time_sync_response_received);
+ECS_NET_IMPL_UNTARGETED_MSG(TimeSyncResponse, net::ROUTING_SERVER_TO_CLIENT, &net::direct_connection_rcptf, UNRELIABLE,
+  TIMESYNC_NET_CHANNEL, net::MF_URGENT, ECS_NET_NO_DUP, &on_time_sync_response_received);
 
 ITimeManager *create_client_time() { return new ClientTime(); }
 ITimeManager *create_replay_time(double start_time) { return new ReplayTime(start_time); }

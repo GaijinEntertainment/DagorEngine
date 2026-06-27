@@ -27,6 +27,30 @@ These must be used inside the declaration callback for specifying the following 
  * What global state the node requires (e.g. shader blocks)
  * Additional metadata (multiplexing mode, priority, explicit dependencies, etc)
 
+.. _dafg-bindless-shader-var:
+
+.. rubric:: Bindless bindings
+
+Besides ``bindToShaderVar()``, a resource request can be bound *bindlessly*:
+the resource is registered in a bindless heap and its slot index is written into a
+named ``int`` shader variable (``-1`` when the resource is missing or the driver has
+no bindless support).
+
+.. code-block:: cpp
+
+   registry.read("your_tex").texture()
+     .atStage(dafg::Stage::PS_OR_CS)
+     .bindlessShaderVar("your_bindless_index");
+
+   registry.create("your_sampler")
+     .blob<d3d::SamplerHandle>(d3d::request_sampler(d3d::SamplerInfo{}))
+     .bindlessShaderVar("your_sampler_index");
+
+The shader consumes the index through the matching ``int`` variable, either via the
+``@bindless*`` DSHL sugar or a manual ``BINDLESS_*_ARRAY`` declaration. See
+:ref:`explicit-bindless-resources` in the DSHL reference. The full request API is
+documented in :cpp:class:`dafg::VirtualResourceRequest` below.
+
 .. doxygenclass:: dafg::Registry
   :project: daFrameGraph
   :members:

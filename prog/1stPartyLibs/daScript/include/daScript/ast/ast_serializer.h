@@ -220,7 +220,7 @@ namespace das {
         AstSerializer & operator << ( Module & module );
         AstSerializer & serializeModule ( Module & module, bool already_exists );
 
-        uint32_t getVersion ();
+        static constexpr uint32_t getVersion () { return 193; }
 
         void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) noexcept;
         bool serializeScript ( ProgramPtr program ) noexcept;

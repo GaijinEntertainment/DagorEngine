@@ -13,6 +13,7 @@
 #include <render/daFrameGraph/resourceCreation.h>
 #include <render/daFrameGraph/detail/projectors.h>
 #include <render/daFrameGraph/detail/resourceType.h>
+#include <drv/3d/dag_samplerHandle.h>
 #include <catch2/catch_test_macros.hpp>
 
 
@@ -209,7 +210,8 @@ struct IrGraphBuilderFixture
   }
 
   dafg::NodeNameId addNodeReadingAndBindingShVar(const char *node_name, const char *res_name, int sv_id, bool is_optional,
-    dafg::ResourceSubtypeTag projected_tag, dafg::detail::TypeErasedProjector projector)
+    dafg::ResourceSubtypeTag projected_tag, dafg::detail::TypeErasedProjector projector,
+    dafg::BindingType binding_type = dafg::BindingType::ShaderVar)
   {
     auto root = registry.knownNames.root();
     auto nodeId = registry.knownNames.addNameId<dafg::NodeNameId>(root, node_name);
@@ -231,7 +233,7 @@ struct IrGraphBuilderFixture
     // performs the "reset to T{}" when an optional resource is missing -- so
     // the IR builder must carry both fields through for the reset to fire.
     dafg::Binding binding;
-    binding.type = dafg::BindingType::ShaderVar;
+    binding.type = binding_type;
     binding.resource = resId;
     binding.optional = is_optional;
     binding.projectedTag = projected_tag;
@@ -509,6 +511,109 @@ TEST_CASE("mandatory shader-var binding does not set IR optional flag", "[irGrap
     CHECK_FALSE(it->second.optional);
     CHECK(it->second.projectedTag == kProjectedTag);
     CHECK(it->second.projector == &testShVarProjector);
+    foundBinding = true;
+  }
+  CHECK(foundBinding);
+}
+
+
+TEST_CASE("bindless shader-var binding survives into IR with its type", "[irGraphBuilder][bindings]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // The IR builder must carry BindingType::BindlessShaderVar through unchanged.
+  constexpr int kFakeShVarId = 8;
+  f.addNodeCreatingResource("producer", "the_tex", dafg::SideEffects::External);
+  auto consumerId = f.addNodeReadingAndBindingShVar("consumer", "the_tex", kFakeShVarId, /*is_optional*/ false,
+    dafg::ResourceSubtypeTag::Invalid, &testShVarProjector, dafg::BindingType::BindlessShaderVar);
+
+  f.finalize();
+  f.build();
+
+  bool foundBinding = false;
+  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  {
+    if (irNode.frontendNode != consumerId)
+      continue;
+
+    const auto &bindings = f.graph.nodeStates[idx].bindings;
+    auto it = bindings.find(kFakeShVarId);
+    REQUIRE(it != bindings.end());
+    CHECK(it->second.type == dafg::BindingType::BindlessShaderVar);
+    CHECK(it->second.resource.has_value());
+    CHECK_FALSE(it->second.optional);
+    foundBinding = true;
+  }
+  CHECK(foundBinding);
+}
+
+
+TEST_CASE("missing optional bindless shader-var binding survives into IR with optional flag", "[irGraphBuilder][bindings]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // A bindless binding for a resource that no node produces. Like the plain
+  // shader-var case, the IR builder must keep the binding (so the runtime sets
+  // the index to -1) with no resource, the optional flag preserved and the
+  // BindlessShaderVar type carried through unchanged.
+  constexpr int kFakeShVarId = 9;
+  auto consumerId = f.addNodeReadingAndBindingShVar("consumer", "missing_tex", kFakeShVarId, /*is_optional*/ true,
+    dafg::ResourceSubtypeTag::Invalid, &testShVarProjector, dafg::BindingType::BindlessShaderVar);
+
+  f.finalize();
+  f.build();
+
+  bool foundBinding = false;
+  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  {
+    if (irNode.frontendNode != consumerId)
+      continue;
+
+    const auto &bindings = f.graph.nodeStates[idx].bindings;
+    auto it = bindings.find(kFakeShVarId);
+    REQUIRE(it != bindings.end());
+    CHECK(it->second.type == dafg::BindingType::BindlessShaderVar);
+    CHECK_FALSE(it->second.resource.has_value());
+    CHECK(it->second.optional);
+    foundBinding = true;
+  }
+  CHECK(foundBinding);
+}
+
+
+TEST_CASE("bindless sampler binding survives into IR with its SamplerHandle tag", "[irGraphBuilder][bindings]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // A bindless sampler binds a SamplerHandle blob to an int var. Both the
+  // BindlessShaderVar type and the SamplerHandle projected tag must survive into
+  // the IR unchanged: the executor relies on that tag to route the binding to
+  // register_bindless_sampler instead of the texture/buffer slot manager.
+  constexpr int kFakeShVarId = 10;
+  const auto kSamplerTag = dafg::tag_for<d3d::SamplerHandle>();
+  f.addNodeCreatingResource("producer", "the_sampler", dafg::SideEffects::External);
+  auto consumerId = f.addNodeReadingAndBindingShVar("consumer", "the_sampler", kFakeShVarId, /*is_optional*/ false, kSamplerTag,
+    &testShVarProjector, dafg::BindingType::BindlessShaderVar);
+
+  f.finalize();
+  f.build();
+
+  bool foundBinding = false;
+  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+  {
+    if (irNode.frontendNode != consumerId)
+      continue;
+
+    const auto &bindings = f.graph.nodeStates[idx].bindings;
+    auto it = bindings.find(kFakeShVarId);
+    REQUIRE(it != bindings.end());
+    CHECK(it->second.type == dafg::BindingType::BindlessShaderVar);
+    CHECK(it->second.resource.has_value());
+    // The tag is what discriminates a bindless sampler from a bindless texture/buffer.
+    CHECK(it->second.projectedTag == kSamplerTag);
     foundBinding = true;
   }
   CHECK(foundBinding);

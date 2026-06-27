@@ -106,6 +106,7 @@ shader rt_reflection
 
   INIT_BVH(cs, 0, false)
 
+  INIT_BVH_BINDLESS_GBUFFER(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, true)
   USE_LOAD_IS_HERO_COCKPIT(cs)

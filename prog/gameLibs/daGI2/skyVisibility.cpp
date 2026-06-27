@@ -86,15 +86,11 @@ void SkyVisibility::setClipVars(int clip_no, float probe_size) const
   auto &clip = clipmap[clip_no];
   set_clip_vars(clip_no, clip.lt, probe_size, replicateToIrradiance);
 #if DAGOR_DBGLEVEL > 0
-  if (!is_pow_of2(clipW) || !is_pow_of2(clipD))
-  {
-    IPoint4 l = dagi_sky_vis_clipmap_sizei_np2VarId.get_int4();
-    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.z)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z ||
-        l.w < -clip.lt.y)
-    {
-      LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, clipW, clipD);
-    }
-  }
+  IPoint4 l = dagi_sky_vis_clipmap_sizei_np2VarId.get_int4();
+  const bool xzOverflow = l.z && (l.z + abs(clip.lt.x) < 0 || l.z + abs(clip.lt.z) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z);
+  const bool yOverflow = l.w && (l.w + abs(clip.lt.y) < 0 || l.w < -clip.lt.y);
+  if (xzOverflow || yOverflow)
+    LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, clipW, clipD);
 #endif
 }
 

@@ -1,0 +1,4 @@
+f: faulted / boom
+f after ack: faulted / boom
+g: faulted / later
+script done

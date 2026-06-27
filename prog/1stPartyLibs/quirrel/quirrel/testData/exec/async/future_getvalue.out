@@ -1,0 +1,5 @@
+pending throws: Future.getValue: future is still pending
+fulfilled getValue: 42
+null state: fulfilled getValue is null: true
+faulted getValue: boom
+script done

@@ -129,11 +129,6 @@ const char *d3d::get_driver_name()
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::metal); }
 #endif
 
-const char *d3d::get_device_driver_version()
-{
-  return "1.0";
-}
-
 const char *d3d::get_device_name()
 {
   return render.device_name;

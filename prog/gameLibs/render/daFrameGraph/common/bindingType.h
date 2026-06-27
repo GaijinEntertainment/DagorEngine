@@ -9,6 +9,7 @@ namespace dafg
 enum class BindingType : uint8_t
 {
   ShaderVar,
+  BindlessShaderVar,
   ViewMatrix,
   ProjMatrix,
   Invalid,

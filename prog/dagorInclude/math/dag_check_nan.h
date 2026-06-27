@@ -4,72 +4,36 @@
 //
 #pragma once
 
-#include <util/dag_compilerDefs.h>
-#include <cstring>
-#include <cstdint>
-#include <cmath>
+#include <util/dag_bitwise_cast.h>
+#include <stdint.h>
 
-#if defined(__GNUC__) || defined(__clang__)
-#if !defined(__clang__)
-#define DAG_FINITE_MATH __attribute__((optimize("no-finite-math-only")))
-#elif defined(__SSE__)
-#define DAG_FINITE_MATH __vectorcall
-#else
-#define DAG_FINITE_MATH
-#endif
-#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__)
-#pragma float_control(push)
-#pragma float_control(precise, on)
-#endif
-#if ((__clang_major__ < 12 || __clang_major__ >= 17 || defined(__APPLE__) || _TARGET_ANDROID) && defined(__clang__) && \
-     defined(__FAST_MATH__)) ||                                                                                        \
-  defined(__ILP32__)
-// unfortunately older and newest versions of clang do not work with float_control
-__forceinline DAG_FINITE_MATH bool check_nan(float a)
+// Must stay correct in TUs built with -ffast-math / -fp:fast, where isnan,
+// isfinite and fpclassify get folded to constants under the compiler's no-NaN
+// promise. We test the IEEE-754 exponent/mantissa bits as integers, but first
+// read the value through a volatile: with -ffinite-math-only the compiler
+// otherwise assumes a clean float (a parameter, a division result) is finite
+// and folds the bit test away before bit_cast can hide it. The volatile load
+// forces an opaque value from memory. No per-compiler pragmas needed.
+__forceinline bool check_nan(float a)
 {
-  volatile float b = a;
-  return b != a;
+  volatile float v = a;
+  // The (float) cast forces that load on clang (else it reuses the reg, store dies).
+  return (dag::bit_cast<uint32_t>((float)v) & 0x7FFFFFFFu) > 0x7F800000u;
 }
-__forceinline DAG_FINITE_MATH bool check_nan(double a)
+__forceinline bool check_nan(double a)
 {
-  volatile double b = a;
-  return b != a;
+  volatile double v = a;
+  return (dag::bit_cast<uint64_t>((double)v) & 0x7FFFFFFFFFFFFFFFull) > 0x7FF0000000000000ull;
 }
-__forceinline DAG_FINITE_MATH bool check_finite(float a)
+__forceinline bool check_finite(float a)
 {
-  uint32_t i;
-  memcpy(&i, &a, sizeof(a));
-  i &= ~(1 << 31);
-  memcpy(&a, &i, sizeof(a));
-  static volatile float inf = INFINITY;
-  return a != inf && !check_nan(a);
+  volatile float v = a;
+  return (dag::bit_cast<uint32_t>((float)v) & 0x7FFFFFFFu) < 0x7F800000u;
 }
-__forceinline DAG_FINITE_MATH bool check_finite(double a)
+__forceinline bool check_finite(double a)
 {
-  uint64_t i;
-  memcpy(&i, &a, sizeof(a));
-  i &= ~(1ull << 63);
-  memcpy(&a, &i, sizeof(a));
-  static volatile double inf = INFINITY;
-  return a != inf && !check_nan(a);
+  volatile double v = a;
+  return (dag::bit_cast<uint64_t>((double)v) & 0x7FFFFFFFFFFFFFFFull) < 0x7FF0000000000000ull;
 }
-#else
-DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_nan(float a) { return __builtin_isnan(a); }
-DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_nan(double a) { return __builtin_isnan(a); }
-DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(float a) { return __builtin_isfinite(a) && !__builtin_isnan(a); }
-DAGOR_NOINLINE DAG_FINITE_MATH inline bool check_finite(double a) { return __builtin_isfinite(a) && !__builtin_isnan(a); }
-#endif
-#undef DAG_FINITE_MATH
-#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__)
-#pragma float_control(pop)
-#endif
-#else
-#include <float.h>
-// msvc just does not optimize fast math
-__forceinline bool check_finite(float a) { return isfinite(a); }
-__forceinline bool check_nan(float a) { return isnan(a); }
-__forceinline bool check_finite(double a) { return isfinite(a); }
-__forceinline bool check_nan(double a) { return isnan(a); }
-#endif
 
 void verify_nan_finite_checks();

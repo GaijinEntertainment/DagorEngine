@@ -1,7 +1,3 @@
-=== after_adopt ===
-after double-resolve p.getState=pending
-after q.resolve p.getState=fulfilled
-waiter got: real
 === after_terminal ===
 first resolve, p=fulfilled
 after extra calls p=fulfilled

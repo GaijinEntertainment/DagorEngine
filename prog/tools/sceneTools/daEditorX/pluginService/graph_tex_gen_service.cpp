@@ -8,6 +8,8 @@
 #include <graphEditor/graph_data.h>
 
 #include <de3_interface.h>
+#include <oldEditor/de_interface.h>
+#include <oldEditor/de_workspace.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
@@ -31,6 +33,7 @@
 #include <textureGen/textureRegManager.h>
 #include <textureGen/entitiesSaver.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <util/dag_fileTimeChecker.h>
 #include <workCycle/dag_workCycle.h>
 
@@ -447,8 +450,12 @@ public:
       }
     }
 
-    const char *rDir = (graphData && !graphData->renderDir.empty()) ? graphData->renderDir.c_str() : "render";
-    const char *eDir = (graphData && !graphData->entityDir.empty()) ? graphData->entityDir.c_str() : "entity";
+    const String rDirPath =
+      make_eff_app_relative_path((graphData && !graphData->renderDir.empty()) ? graphData->renderDir.c_str() : "render");
+    const String eDirPath =
+      make_eff_app_relative_path((graphData && !graphData->entityDir.empty()) ? graphData->entityDir.c_str() : "entity");
+    const char *rDir = rDirPath.str();
+    const char *eDir = eDirPath.str();
 
     dd_mkdir(rDir);
     dd_mkdir(eDir);
@@ -1103,7 +1110,15 @@ private:
     }
 
     texGenReg.setEntitiesSaver(&entitiesSaver);
-    texGenReg.setTextureRootDir(graphData->textureRootDir.c_str());
+    // Node input paths are stored app-relative (no per-graph texture root), so the registry resolves
+    // them against the application dir directly. Strip any trailing slash: getRelativeTexName joins
+    // "<root>/<name>" by naive concat, so a trailing slash would yield "<appDir>//<name>" -- which
+    // passes df_stat but makes the raw-texture loader fail ("can not create ... although file exist").
+    String appDir(DAGORED2->getWorkspace().getAppDir());
+    ::simplify_fname(appDir);
+    ::remove_trailing_string(appDir, "/");
+    texGenReg.setTextureRootDir(appDir.str());
+    debug("TexGenService: texture root (app dir) '%s'", appDir.str());
     texGenStepCount = clamp(dgs_get_settings()->getBlockByNameEx("texgen")->getInt("texGenPerFrame", 2), 1, 256);
     texGenStep = 0;
 
@@ -1680,8 +1695,12 @@ private:
       return;
     }
 
-    const char *rDir = (graphData && !graphData->renderDir.empty()) ? graphData->renderDir.c_str() : "render";
-    const char *eDir = (graphData && !graphData->entityDir.empty()) ? graphData->entityDir.c_str() : "entity";
+    const String rDirPath =
+      make_eff_app_relative_path((graphData && !graphData->renderDir.empty()) ? graphData->renderDir.c_str() : "render");
+    const String eDirPath =
+      make_eff_app_relative_path((graphData && !graphData->entityDir.empty()) ? graphData->entityDir.c_str() : "entity");
+    const char *rDir = rDirPath.str();
+    const char *eDir = eDirPath.str();
 
     for (const auto &fStr : finalStrings)
     {

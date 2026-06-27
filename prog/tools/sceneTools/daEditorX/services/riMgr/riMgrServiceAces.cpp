@@ -89,8 +89,8 @@
 #include <EditorCore/ec_camera_elem.h>
 #include <de3_hmapService.h>
 #include <de3_landmesh.h>
+#include <libTools/util/appDirRelativePath.h>
 
-extern const char *daeditor3_get_appblk_fname();
 namespace rendinst
 {
 extern int maxRiGenPerCell, maxRiExPerCell;
@@ -223,7 +223,7 @@ public:
 
   void load(const char *nav_mesh_kind = nullptr)
   {
-    DataBlock appblk(daeditor3_get_appblk_fname());
+    DataBlock appblk("%appDir/application.blk");
     const DataBlock *gameBlk = appblk.getBlockByNameEx("game");
     if (!gameBlk)
       return;
@@ -249,7 +249,7 @@ public:
 
     obstaclePools.clear();
 
-    DataBlock navmblk(String(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), navmesh_layers));
+    DataBlock navmblk(make_eff_app_relative_path(navmesh_layers));
 
     applyRegExp(navmblk.getBlock(navmblk.findBlock("filter")), [&](int pool) { poolsToIgnore.set(pool); });
     applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_exclude")), [&](int pool) { poolsToIgnore.reset(pool); });
@@ -313,7 +313,7 @@ public:
       logdbg("rendinst_dmg is not specified, tilecached navmesh will be built without obstacles");
       return;
     }
-    DataBlock dmgblk(String(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), rendinstDmgBlk.c_str()));
+    DataBlock dmgblk(make_eff_app_relative_path(rendinstDmgBlk));
     const DataBlock *riExtraBlk = dmgblk.getBlockByName("riExtra");
     if (!riExtraBlk)
     {
@@ -381,7 +381,7 @@ public:
     if (navmesh_obstacles.empty())
       return;
 
-    String navObstaclesPath(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), navmesh_obstacles);
+    String navObstaclesPath = make_eff_app_relative_path(navmesh_obstacles);
     rendinst::load_obstacle_settings(navObstaclesPath.c_str(), obstaclesSettings);
   }
 } navmeshLayers;
@@ -1320,7 +1320,7 @@ public:
   }
   void explicitInit()
   {
-    DataBlock appBlk(daeditor3_get_appblk_fname());
+    DataBlock appBlk("%appDir/application.blk");
     rigenSrv = this;
     rendinst::register_land_gameres_factory();
     rendinst::configurateRIGen(*appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBlockByNameEx("config"));

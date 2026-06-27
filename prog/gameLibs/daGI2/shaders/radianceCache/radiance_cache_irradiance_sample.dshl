@@ -70,11 +70,15 @@ endmacro
 macro RADIANCE_CACHE_SAMPLE_IRRADIANCE_GRID(code)
   RADIANCE_CACHE_CLIPMAP_MATH(code)
   (code) {
-    radiance_cache_irradiance_sph0@smp3d = radiance_cache_irradiance_sph0;
-    radiance_cache_irradiance_sph1@smp3d = radiance_cache_irradiance_sph1;
+    radiance_cache_irradiance_sph0@tex3d = radiance_cache_irradiance_sph0;
+    radiance_cache_irradiance_sph1@tex3d = radiance_cache_irradiance_sph1;
   }
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+
   hlsl (code) {
+    #define radiance_cache_irradiance_sph0_samplerstate global_linear_wrap_sampler
+    #define radiance_cache_irradiance_sph1_samplerstate global_linear_wrap_sampler
     #include <sh1.hlsl>
     #define MAX_IRRADIANCE_CACHE_CLIPS 1//MAX_RADIANCE_CACHE_CLIPS
     bool sample_irradiance_from_radiance_cache_grid(float3 worldPos, float3 worldDir, inout half3 lighting, uint startClip)

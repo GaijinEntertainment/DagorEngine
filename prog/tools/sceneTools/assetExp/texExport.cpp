@@ -624,6 +624,19 @@ bool buildDdsxTexPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
     if (!changed && AssetExportCache::sharedDataIsAssetInForceRebuildList(*assets[i]))
       changed = true;
 
+    if (!changed && prev_pack)
+    {
+      if (int id = prev_pack->findDDSx(assets[i]->getName()); id >= 0 && prev_pack->rec[id].packedDataSize >= 0)
+      {
+        const ddsx::Header &h = prev_pack->hdr[id];
+        if (!is_srgb_config_valid(h))
+        {
+          log.addMessage(ILogWriter::NOTE, "%s: has no FLG_GAMMA_EQ_1 flag and sRGB-incompatible D3D format %i", assets[i]->getName(),
+            h.d3dFormat);
+          changed = true;
+        }
+      }
+    }
     if (prev_pack && changed)
       prev_pack->removeDDSx(assets[i]->getName());
 
@@ -788,6 +801,13 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
       for (int j = target_file_checked ? 1 : 0; j < a_files.size(); j++)
         if (c4.checkFileChanged(a_files[j]))
           goto cur_changed;
+    }
+
+    if (int id = prev_pack->findDDSx(assets[i]->getName()); id >= 0 && prev_pack->rec[id].packedDataSize >= 0)
+    {
+      const ddsx::Header &h = prev_pack->hdr[id];
+      if (!is_srgb_config_valid(h))
+        goto cur_changed;
     }
 
     assets[i]->setUserFlags(ch_bit);

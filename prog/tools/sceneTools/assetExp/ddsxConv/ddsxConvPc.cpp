@@ -510,7 +510,7 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
 
   if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
-  if (!(hdr.flags & hdr.FLG_GAMMA_EQ_1) && !is_srgb_capable_d3d_fmt(fmt))
+  if (!is_srgb_config_valid(hdr))
   {
     ERR_PRINTF("gamma=%.1f is applied to D3D format %i that doesn't support sRGB. Resetting gamma to 1.0", params.imgGamma, fmt);
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
@@ -659,7 +659,7 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
 
   if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
-  if (!(hdr.flags & hdr.FLG_GAMMA_EQ_1) && !is_srgb_capable_d3d_fmt(fmt))
+  if (!is_srgb_config_valid(hdr))
   {
     ERR_PRINTF("gamma=%.1f is applied to D3D format %i that doesn't support sRGB. Resetting gamma to 1.0", params.imgGamma, fmt);
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
@@ -831,7 +831,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
   if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
   float effGamma = params.imgGamma;
-  if (!(hdr.flags & hdr.FLG_GAMMA_EQ_1) && !is_srgb_capable_d3d_fmt(fmt))
+  if (!is_srgb_config_valid(hdr))
   {
     ERR_PRINTF("gamma=%.1f is applied to D3D format %i that doesn't support sRGB. Resetting gamma to 1.0", params.imgGamma, fmt);
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;

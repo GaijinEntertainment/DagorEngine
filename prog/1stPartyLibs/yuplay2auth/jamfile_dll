@@ -67,6 +67,7 @@ Sources =
   session/yu_sessionAction.cpp
   session/yu_sessionFallback.cpp
   session/yu_sessionHttp.cpp
+  session/yu_sessionLogin.cpp
   session/yu_sessionLoginBase.cpp
   session/yu_sessionProc.cpp
   session/yuplay2_session.cpp

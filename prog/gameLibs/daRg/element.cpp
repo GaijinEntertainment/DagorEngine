@@ -581,6 +581,23 @@ void Element::readTransform(const Sqrat::Table &desc)
     if (isBad(transform->pivot.x) || isBad(transform->pivot.y))
       invalidValues.append_sprintf("pivot=(%f, %f) ", transform->pivot.x, transform->pivot.y);
 
+    for (const Element *e = this; e; e = e->parent)
+      if (!e->props.scriptBuilder.IsNull())
+      {
+        String comp;
+        get_closure_full_name(e->props.scriptBuilder, comp);
+        invalidValues.append_sprintf("| component %s ", comp.c_str());
+        break;
+      }
+
+    Sqrat::Object updFunc = desc.RawGetSlot(csk->update);
+    if (!updFunc.IsNull())
+    {
+      String upd;
+      get_closure_full_name(updFunc, upd);
+      invalidValues.append_sprintf("| update %s ", upd.c_str());
+    }
+
     darg_assert_trace_var(invalidValues.c_str(), desc, csk->transform);
   }
 }

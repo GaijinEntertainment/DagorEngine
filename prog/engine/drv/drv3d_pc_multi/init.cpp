@@ -150,7 +150,9 @@ static eastl::optional<DriverCode> override_driver_preference([[maybe_unused]] c
   {
     if (d3d_get_vendor(vendorId) != GpuVendor::INTEL)
       return {};
-    anyModernIntel = anyModernIntel || !gpu::IsPreXe(deviceId);
+    // Xe-LP (Gen12 integrated/DG1) performs like pre-Xe iGPUs on DX12, so it is
+    // not "modern" here -- only Arc-class (Xe-HPG) and newer qualify.
+    anyModernIntel = anyModernIntel || (!gpu::IsPreXe(deviceId) && !gpu::IsXeLP(deviceId));
   }
 
 #if USE_MULTI_D3D_DX12
@@ -218,7 +220,7 @@ static DriverCode detect_driver()
       candidateDriver = *overrideDriver;
   }
 
-  logdbg("Mapping driver:t=%s to DriverCode:0x%04X", driver, candidateDriver.asFourCC());
+  logdbg("[DRV_MULTI] driver:t=%s mapped to %08X", driver, candidateDriver.asFourCC());
 
   for (int i = 0; i < 2; i++)
   {
@@ -359,7 +361,7 @@ static DriverCode get_selected_driver()
       DAG_FATAL("D3D API not selected, settings.blk: video { driver:t=\"%s\" }",
         ::dgs_get_settings()->getBlockByNameEx("video")->getStr("driver", ""));
     else
-      logdbg("Set active_driver to 0x%04X", active_driver.asFourCC());
+      logdbg("[DRV_MULTI] Set active_driver to %08X", active_driver.asFourCC());
   }
 
   return active_driver;

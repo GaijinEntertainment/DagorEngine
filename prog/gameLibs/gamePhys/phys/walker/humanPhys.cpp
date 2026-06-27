@@ -336,6 +336,28 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   climbPositions = blk->getInt("climbPositions", climbPositions);
   climbDetachProjLen = blk->getReal("climbDetachProjLen", climbDetachProjLen);
 
+  useClimbTrajectory = blk->getBool("useClimbTrajectory", false);
+  if (useClimbTrajectory)
+  {
+    climbTrajectoryStartPositionOffset = blk->getPoint3("climbTrajectoryStartPositionOffset", Point3());
+    climbTrajectorySpeedCoef = blk->getReal("climbTrajectorySpeedCoef", 1.f);
+    if (const DataBlock *trajectoryBlk = blk->getBlockByNameEx("climbTrajectory", nullptr))
+    {
+      for (int i = 0; i < trajectoryBlk->blockCount(); ++i)
+      {
+        const DataBlock *keyBlk = trajectoryBlk->getBlock(i);
+        Point3 position = keyBlk->getPoint3("p", Point3(0.f, 0.f, 0.f));
+        float time = keyBlk->getReal("t", 0.f);
+        climbTrajectory.emplace_back(position, time);
+      }
+
+      {
+        const DataBlock *lastTrajectoryBlk = trajectoryBlk->getBlock(trajectoryBlk->blockCount() - 1);
+        climbMaxTime = lastTrajectoryBlk->getReal("t", 0.f);
+      }
+    }
+  }
+
   swimPosOffset = blk->getPoint3("swimPosOffset", swimPosOffset);
   underwaterSwimPosOffset = blk->getPoint3("underwaterSwimPosOffset", underwaterSwimPosOffset);
   swimmingLevelBias = blk->getReal("swimmingLevelBias", swimmingLevelBias);
@@ -1418,6 +1440,14 @@ void HumanPhys::performClimb(const ClimbQueryResults &climb_res, float at_time)
   currentState.climbContactPos = climb_res.climbContactPos;
   currentState.climbNorm = climb_res.climbNorm;
   currentState.isClimbingOverObstacle = canClimbOverObstacle(climb_res);
+
+  if (useClimbTrajectory)
+  {
+    climbTime = 0.f;
+    climbTrajectoryStage = CLIMB_STATE_JUMP_UP;
+    currentState.climbContactPos += climbTrajectoryStartPositionOffset;
+  }
+
   if (currentState.isClimbingOverObstacle)
   {
     Point3 targetPos = currentState.climbToPos + currentState.climbDir * climbOverForwardOffset;
@@ -1538,6 +1568,7 @@ ClimbQueryResults HumanPhys::climbQuery(const Point3 &offset, int ray_mat_id, bo
   TMatrix tm;
   currentState.location.toTM(tm);
   Point3 curCcdPos = ccdPos[currentState.collisionLinksStateTo];
+  Point3 curPos = useClimbTrajectory ? curCcdPos : curCcdPos + offset;
   // is it possible to climb at all?
   dacoll::ShapeQueryOutput toClimbQuery;
 
@@ -1546,7 +1577,7 @@ ClimbQueryResults HumanPhys::climbQuery(const Point3 &offset, int ray_mat_id, bo
   float airClimbHeight = jumpClimbHeight - maxJumpHeight;
   float climbHeight =
     on_ladder ? climbLadderHeight + standingHeight : (!check_max ? halfHeight : (is_in_air ? airClimbHeight : jumpClimbHeight));
-  Point3 overHeadPos = Point3::xVz(curCcdPos + offset, climbHeight);
+  Point3 overHeadPos = Point3::xVz(curPos, climbHeight);
   bool overheadRes = dacoll::trace_sphere_cast_ex(tm * curCcdPos, tm * overHeadPos, climbOnRad, CLIMB_RAYS_INITIAL, toClimbQuery,
     ray_mat_id, getActor()->getId(), handle, CLIMB_CAST_FLAGS);
   Point3 vertDir = on_ladder ? normalize(currentState.ladderTm.getcol(1)) : currentState.vertDirection;
@@ -1562,19 +1593,19 @@ ClimbQueryResults HumanPhys::climbQuery(const Point3 &offset, int ray_mat_id, bo
     minPos = true;
   }
 
-  Point3 climbFromPos = tm * (curCcdPos + offset);
+  Point3 climbFromPos = tm * curPos;
   ClimbQueryResults res;
 
   if (!overheadRes)
   {
-    res = climbQueryImpl(tm, overHeadPos, curCcdPos + offset, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
+    res = climbQueryImpl(tm, overHeadPos, curPos, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
     if (!res.canClimb && shouldCheckMinimizedPos)
     {
       minPos = true;
       overHeadPos.y *= 0.5f;
-      if (!dacoll::trace_sphere_cast_ex(tm * curCcdPos, tm * overHeadPos, climbOnRad, CLIMB_RAYS_INITIAL, toClimbQuery, ray_mat_id,
+      if (!dacoll::trace_sphere_cast_ex(tm * curPos, tm * overHeadPos, climbOnRad, CLIMB_RAYS_INITIAL, toClimbQuery, ray_mat_id,
             getActor()->getId(), handle, CLIMB_CAST_FLAGS))
-        res = climbQueryImpl(tm, overHeadPos, curCcdPos + offset, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
+        res = climbQueryImpl(tm, overHeadPos, curPos, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
       else
         res.wallAhead = true; // Act as wall is ahead of us.
     }
@@ -1590,7 +1621,7 @@ ClimbQueryResults HumanPhys::climbQuery(const Point3 &offset, int ray_mat_id, bo
     overHeadPos.y = climbHeight * 0.66f;
     if (!dacoll::trace_sphere_cast_ex(tm * curCcdPos, tm * overHeadPos, climbOnRad, CLIMB_RAYS_INITIAL, toClimbQuery, ray_mat_id,
           getActor()->getId(), handle, CLIMB_CAST_FLAGS))
-      res = climbQueryImpl(tm, overHeadPos, curCcdPos + offset, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
+      res = climbQueryImpl(tm, overHeadPos, curPos, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
   }
 
   if (!res.canClimb && res.wallAhead && minPos)
@@ -1599,7 +1630,7 @@ ClimbQueryResults HumanPhys::climbQuery(const Point3 &offset, int ray_mat_id, bo
     overHeadPos.y = climbHeight * 0.83f;
     if (!dacoll::trace_sphere_cast_ex(tm * curCcdPos, tm * overHeadPos, climbOnRad, CLIMB_RAYS_INITIAL, toClimbQuery, ray_mat_id,
           getActor()->getId(), handle, CLIMB_CAST_FLAGS))
-      res = climbQueryImpl(tm, overHeadPos, curCcdPos + offset, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
+      res = climbQueryImpl(tm, overHeadPos, curPos, climbFromPos, vertDir, check_norm, ray_mat_id, handle);
   }
 
   const Point3 &vdir = vertDir;
@@ -1842,6 +1873,89 @@ HumanPhys::TorsoCollisionResults HumanPhys::processTorsoCollision(TMatrix &tm, i
 CONSOLE_BOOL_VAL("walkerphys", disable_walk_query, false);
 CONSOLE_BOOL_VAL("walkerphys", draw_climb_update, false);
 
+void HumanPhys::updateClimbingWithTrajectory(float dt, const TMatrix &tm, const Point3 &vert_dir, const Point3 &cur_coll_center)
+{
+  currentState.climbToPos += currentState.climbToPosVel * dt;
+  currentState.climbFromPos += currentState.climbToPosVel * dt;
+  currentState.climbContactPos += currentState.climbToPosVel * dt;
+
+  float climbParam = climbTime * climbTrajectorySpeedCoef;
+
+  Point3 climbRight = normalize(vert_dir % currentState.climbDir);
+  TMatrix climbOrient;
+  climbOrient.setcol(2, -currentState.climbDir);
+  climbOrient.setcol(1, vert_dir);
+  climbOrient.setcol(0, climbRight);
+  climbOrient.setcol(3, ZERO<Point3>());
+
+  Point3 curClimbPos = tm * cur_coll_center;
+  if (climbTrajectoryStage == CLIMB_STATE_JUMP_UP)
+  {
+    const float climbingSpeedMult = currentState.climbingSpeedMult * (currentState.isFastClimbing ? fastClimbingMult : 1.f);
+    const float velY = -(currentState.velocity * currentState.gravDirection);
+    const float gravVertSpd = velY - currentState.gravMult * gamephys::atmosphere::g() * dt;
+    const float maxVertSpd = maxClimbSpeed * climbingSpeedMult;
+
+    const float vertAccel = (currentState.velocity * vert_dir > 0.f ? climbVertAccel : climbVertBrake);
+    const float vertSpd = currentState.velocity * vert_dir + dt * vertAccel * climbingSpeedMult;
+    float clampedY = clamp(vertSpd, gravVertSpd, maxVertSpd);
+    currentState.velocity = vert_dir * clampedY;
+
+    if (dot(curClimbPos, vert_dir) >= dot(currentState.climbContactPos, vert_dir))
+    {
+      climbTrajectoryNextPos = climbOrient % climbTrajectory[0].position + currentState.climbContactPos;
+      climbTrajectoryNextTime = 0.f;
+      climbTrajectoryStage = 1;
+    }
+  }
+
+  if (climbTrajectoryStage == CLIMB_STATE_CLIMB)
+  {
+    int currentNodeIdx = 0;
+    for (int i = 0; i < climbTrajectory.size(); i++)
+    {
+      if (climbParam < climbTrajectory[i].time)
+      {
+        currentNodeIdx = i;
+        break;
+      }
+    }
+
+    if (climbParam >= climbTrajectory.back().time)
+    {
+      Point3 finalPos = climbOrient % climbTrajectory.back().position + currentState.climbContactPos;
+      climbTrajectoryPrevPos = climbTrajectoryNextPos;
+      climbTrajectoryNextPos = finalPos;
+      currentState.velocity = ZERO<Point3>();
+      currentState.location.P = DPoint3(finalPos);
+      currentState.isClimbing = false;
+      currentState.climbThrough = false;
+    }
+    else if (currentNodeIdx > 0)
+    {
+      float climbTimeBegin = climbTrajectory[currentNodeIdx - 1].time;
+      float climbTimeEnd = climbTrajectory[currentNodeIdx].time;
+      float climbTime01 = (climbParam - climbTimeBegin) / (climbTimeEnd - climbTimeBegin);
+      Point3 climbPositionBegin = climbTrajectory[currentNodeIdx - 1].position;
+      Point3 climbPositionEnd = climbTrajectory[currentNodeIdx].position;
+      Point3 localPos = lerp(climbPositionBegin, climbPositionEnd, climbTime01);
+      Point3 localVel = (climbPositionEnd - climbPositionBegin) / (climbTimeEnd - climbTimeBegin);
+
+      climbTrajectoryPrevPos = climbTrajectoryNextPos;
+      climbTrajectoryNextPos = currentState.climbContactPos + climbOrient % localPos;
+      climbTrajectoryPrevTime = climbTrajectoryNextTime;
+      climbTrajectoryNextTime = climbParam / climbMaxTime;
+      currentState.velocity = (climbOrient % localVel) * climbTrajectorySpeedCoef;
+      currentState.location.P = DPoint3(climbTrajectoryNextPos);
+      currentState.isClimbing = true;
+      currentState.climbThrough = false;
+      currentState.isInAirHistory = -1;
+    }
+
+    climbTime += dt;
+  }
+}
+
 void HumanPhys::updateClimbing(float at_time, float dt, const TMatrix &tm, const Point3 &vert_dir, const Point3 &cur_coll_center,
   bool torso_collided, const Point3 &torso_coll_norm)
 {
@@ -1948,7 +2062,7 @@ void HumanPhys::updateClimbing(float at_time, float dt, const TMatrix &tm, const
   {
     const float springyAfterClimbCoef = 1.35f; // must be > 1.3f for efficient climbing, < 1.4f to avoid fly-from-slope effect
                                                // (defaults)
-    float clampedY = clamp(gravVertSpd, 0.f, maxVertSpd * springyAfterClimbCoef);
+    float clampedY = overObstacle ? 0.f : clamp(gravVertSpd, 0.f, maxVertSpd * springyAfterClimbCoef);
     currentState.velocity = basis_aware_xVz(currentState.velocity, vert_dir * clampedY, vert_dir);
   }
 
@@ -2390,7 +2504,11 @@ void HumanPhys::updatePhys(double at_time, float dt, bool /*is_for_real*/)
       currentState.standingVelocity.zero();
     if (currentState.isClimbing)
     {
-      updateClimbing(at_time, dt, tm, currentState.vertDirection, curCollCenter, torsoRes.haveContact, torsoRes.meanCollisionNormal);
+      if (useClimbTrajectory)
+        updateClimbingWithTrajectory(dt, tm, currentState.vertDirection, curCollCenter);
+      else
+        updateClimbing(at_time, dt, tm, currentState.vertDirection, curCollCenter, torsoRes.haveContact, torsoRes.meanCollisionNormal);
+
       const bool exitedFromClimbing = !currentState.isClimbing; // was climbing previously
       if (exitedFromClimbing)
       {

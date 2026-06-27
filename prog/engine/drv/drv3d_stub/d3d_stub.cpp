@@ -1023,7 +1023,6 @@ const char *d3d::get_driver_name() { return "d3d/dummy"; }
 const char *d3d::get_device_name() { return "device/dummy"; }
 const char *d3d::get_last_error() { return "n/a"; }
 uint32_t d3d::get_last_error_code() { return 0; }
-const char *d3d::get_device_driver_version() { return "1.0"; }
 
 void d3d::prepare_for_destroy() { on_before_window_destroyed(); }
 void d3d::window_destroyed(void *hwnd)
@@ -2036,7 +2035,7 @@ d3d::RenderPass *d3d::create_render_pass(const RenderPassDesc &rp_desc)
 
 void d3d::delete_render_pass(d3d::RenderPass *rp) { G_UNUSED(rp); }
 
-void d3d::begin_render_pass(d3d::RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
+void d3d::begin_render_pass(d3d::RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets)
 {
   G_UNUSED(rp);
   G_UNUSED(area);

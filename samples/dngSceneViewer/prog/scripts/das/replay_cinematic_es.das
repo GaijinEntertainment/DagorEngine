@@ -55,8 +55,8 @@ def set_chromatic_aberration_offset_es(evt : CmdSetChromaticAberrationOffset; va
   cinematic_mode__chromaticAberration.z = evt.offset
 
 [es(tag=render)]
-def set_film_grain_es(evt : CmdSetFilmGrain; var cinematic_mode__filmGrain : float4&)
-  cinematic_mode__filmGrain.x = evt.strength
+def set_film_grain_es(evt : CmdSetFilmGrain; var cinematic_mode__filmGrainMul : float&)
+  cinematic_mode__filmGrainMul = evt.strength
 
 [es(tag=render)]
 def set_vignette_strength_es(evt : CmdSetVignetteStrength; var cinematic_mode__vignetteStrength : float&)

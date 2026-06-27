@@ -25,9 +25,11 @@ thread when the awaited value is ready.
 Background and design notes
 ---------------------------
 
-Modelled on JavaScript ``Promise``; named ``Future`` because the script
-surface has no ``.reject()`` - faulted state comes only from a throw
-inside an ``async``.
+Modelled on JavaScript ``Promise``, but deliberately simpler: there is
+no Promise Resolution Procedure. ``resolve`` stores its argument
+verbatim and ``await`` peels exactly one level, so a value is never
+silently flattened across Future boundaries (see ``Future.resolve``).
+The name ``Future`` is kept for familiarity.
 
 ``await`` - only valid inside an ``async`` function - is how a
 caller consumes a Future's value. A consequence is that any caller
@@ -85,26 +87,32 @@ The body of an async function may contain ``await`` (the whole point) and
 may ``return`` a value or ``throw``: the returned task-future settles
 fulfilled with the returned value or faulted with the thrown error.
 
-Returning a ``Future`` from an async function does NOT yield a
-``Future<Future<value>>`` to the caller: the runtime adopts the
-returned future's settlement (the JS-style "Promise Resolution
-Procedure"). ``return p`` is therefore equivalent to ``return await p``
-from the caller's perspective, with one fewer suspension::
+The returned value is stored verbatim - there is no auto-flattening.
+Returning a ``Future`` settles the task-future fulfilled WITH that
+Future as its value, so the caller sees a ``Future<Future<value>>``.
+``await`` peels exactly one level, so a caller that wants the inner
+value either lets the producer ``return await`` it, or awaits twice::
 
-    async function inner() {
-      let p = Future()
-      p.resolve(42)
-      return p                    // outer task-future adopts p
-    }
-    async function outer() {
-      let v = await inner()       // v is 42, not a Future
-      print(v)
+    async function returnsFuture() { let f = Future(); f.resolve(9); return f }
+    async function returnsValue()  { let f = Future(); f.resolve(9); return await f }
+
+    async function caller() {
+      let a = await returnsFuture()   // a is the inner Future (one level peeled)
+      let v = await a                 // v is 9
+      let w = await returnsValue()    // w is 9 directly (producer awaited)
     }
 
-If the returned future is still pending, the task-future stays pending
-until the inner settles, then mirrors its fulfilment or fault. The
-fault path is not unwrapped: ``throw someFuture`` faults the
-task-future with the Future object as the value (matching JS).
+This is the deliberate divergence from JavaScript, where a Promise
+resolved with another Promise adopts it recursively. A Future never
+does. The trade-off buys one predictable rule - ``await`` peels a
+single layer, nothing flattens behind your back - at the cost of
+pass-through code that forwards a Future without ``await``; write
+``return await p`` when the producer should hand back the inner value.
+
+One exception: a body that returns (or throws) its own task-future
+would make the future hold itself as its value - an uncollectable
+self-cycle. The runtime detects this and faults the task-future with a
+diagnostic rather than storing it.
 
 Because ``await`` accepts any ``Future`` regardless of who returned
 it, the natural shape for a callback-to-Future adapter is a sync
@@ -119,12 +127,15 @@ function::
       let v = await timeoutFuture(0.1, "x")   // v is "x"
     }
 
-The ``: instance`` return annotation tells the static analyzer that the
+The ``: instance`` return annotation tells the static analyzer the
 function may return a Future, suppressing the ``w328 redundant-await``
-diagnostic at callers. Without an annotation the analyzer still warns
-because it cannot infer the body's return type; annotate, or mark the
-helper ``async function`` if you prefer the analyzer to know
-automatically.
+diagnostic at callers. Keep this adapter a sync function: making it
+``async`` changes the contract - ``async function timeoutFuture(...) {
+return p }`` settles its task-future WITH ``p`` (verbatim, no
+flattening), so ``await timeoutFuture(...)`` would then yield the inner
+Future instead of ``"x"``. Use ``return await p`` if you do make it
+async. Without the annotation the analyzer still warns, because it
+cannot infer the body's return type.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Where ``async`` is not allowed
@@ -162,6 +173,10 @@ until the result is available.
 * If the result is not a Future, the value is delivered to the
   await site as-is at the next scheduler step (no transient Future
   is allocated). This is what makes ``await scalar`` a valid no-op.
+
+The yielded value is exactly the Future's settled value - one level
+peeled. If that value is itself a Future, ``await`` does not chase it;
+a second ``await`` reaches the next level.
 
 ``await`` is only valid inside an async function. Using it in a
 plain function is a compile-time error.
@@ -213,47 +228,65 @@ A Future is in one of three states: ``"pending"``, ``"fulfilled"``,
 .. sq:function:: Future()
 
     Construct a fresh pending future. No arguments - there is no
-    JS-style executor callback. Settle it later with ``.resolve``.
-    A future built this way can only be fulfilled directly; there is
-    no ``reject``. It becomes faulted only second-hand, by adopting a
-    faulted future - for example when you ``.resolve`` it with the
-    result of an ``async`` call whose body threw.
+    JS-style executor callback. Settle it later with ``.resolve`` to
+    fulfil or ``.reject`` to fault.
 
 .. sq:function:: Future.getState()
 
     Returns the current state as one of the strings
     ``"pending"`` / ``"fulfilled"`` / ``"faulted"``.
 
-.. sq:function:: Future.resolve(value)
+.. sq:function:: Future.resolve([value])
 
-    Settle a pending future as fulfilled with ``value``. Idempotent on
-    an already-settled future: a Future transitions from pending to
-    settled exactly once; second and later calls to ``.resolve`` are
-    silently ignored and leave the original state and value unchanged.
-
-    If ``value`` is itself a ``Future``, the receiver adopts its
-    settlement instead of storing the Future as the value
-    (chain-unwrap, matching JS). If the inner future is already
-    fulfilled the receiver settles immediately with the inner's value;
-    if faulted, the receiver settles faulted with the same value;
-    if pending, the receiver stays pending until the inner settles and
-    then mirrors it. Recursive: an inner Future that itself wraps
-    another Future unwraps all the way to a non-Future value.
-
-    Adoption locks the receiver: once ``p.resolve(otherFuture)`` has
-    been accepted, subsequent ``p.resolve(...)`` calls are silent
-    no-ops, exactly as on an already-settled future. Only
-    ``otherFuture``'s eventual settlement can complete ``p``.
+    Settle a pending future as fulfilled with ``value`` (default
+    ``null``). The value is stored verbatim: a ``Future`` value is NOT
+    unwrapped or adopted - it becomes the settled value as-is, and a
+    consumer peels it with one ``await``. Idempotent on an
+    already-settled future: the pending -> settled transition happens
+    exactly once; later ``resolve`` / ``reject`` calls are silently
+    ignored and leave the state and value unchanged.
 
     Two errors throw:
 
-    * Resolving a future with itself (``p.resolve(p)``) or with a
-      Future that chains back to ``p`` via any depth of adoption
-      (``a.resolve(b); b.resolve(a)`` or longer chains): would form an
-      uncollectable cycle, detected by walking the adoption chain.
+    * Settling a future with itself (``p.resolve(p)``): the future
+      would root itself through the runtime's value table and leak
+      until the VM closes. This is the only cycle guard; an indirect
+      cycle (``a.resolve(b); b.resolve(a)``) is not detected (see note).
     * Resolving the future returned by an ``async`` function: a
-      task-future is owned by its generator and must settle through
-      the body's return / throw, not externally.
+      task-future settles only through its body's ``return`` /
+      ``throw``, never externally.
+
+.. sq:function:: Future.reject([value])
+
+    Settle a pending future as faulted with ``value`` (default
+    ``null``), stored verbatim. The same idempotency and the same two
+    throwing guards as ``resolve`` apply. A future left faulted with no
+    awaiter is reported through the unhandled-fault path, exactly like a
+    ``throw`` inside an ``async``. The ``reject`` call site is captured,
+    so an abandoned rejected future's report carries an ``ERROR TRACE``
+    pointing at where ``reject`` was called.
+
+.. sq:function:: Future.getValue()
+
+    Returns the settled value - the fulfilled value or the fault value,
+    verbatim. Throws while the future is still pending, so ``null``
+    stays a valid settled value: disambiguate with ``getState()``
+    first. This is the synchronous read; ``await`` is the asynchronous
+    one, and it additionally re-raises a fault rather than returning it.
+    ``getValue`` is a pure peek: reading a fault does NOT acknowledge it,
+    so an otherwise-unconsumed fault still reports as unhandled. Inspect
+    with ``getValue``; take responsibility with ``markHandled`` (or
+    ``await``, which consumes it).
+
+.. sq:function:: Future.markHandled()
+
+    Acknowledge a faulted future so the unhandled-fault sweep skips it,
+    without consuming the value - ``getValue()`` still reads it and
+    ``getState()`` still reports ``"faulted"``. The explicit counterpart
+    to ``getValue``'s peek, for when you inspect a fault and take
+    responsibility for it without ``await``-ing. A no-op on a fulfilled
+    future; on a pending one it pre-acknowledges, so a later fault is not
+    reported.
 
 Example::
 
@@ -268,11 +301,13 @@ Example::
 
 .. note::
 
-   A pending ``p.resolve(q)`` makes ``p`` and ``q`` reference each
-   other so settlement can propagate. If nothing settles ``q`` and the
-   script drops all external references, the pair leaks until the VM
-   is closed; refcounting cannot break the cycle, and the
-   unhandled-error diagnostic does not surface it.
+   ``resolve`` / ``reject`` keep the stored value alive through the
+   runtime's value table. Storing a Future as another Future's value is
+   legal and useful; just avoid closing the loop. A direct self-settle
+   is rejected (above), but an indirect cycle
+   (``a.resolve(b); b.resolve(a)``) stores each future as the other's
+   value and leaks the pair until the VM closes; refcounting cannot
+   break it and no diagnostic surfaces it.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Combinators: ``Future.all`` and ``Future.race``
@@ -288,9 +323,14 @@ are not Futures are awaited as-is (an immediate value), exactly like
 
 Both treat a fault as an outcome that decides the result, never one to
 wait out: ``all`` faults on the first faulting input; ``race`` lets a
-fault win exactly like a fulfilment. A propagating fault carries its
-thrown value and trace. There is deliberately no ``Future.any`` -
-"keep waiting past a fault until one fulfils" would suppress a real bug.
+fault win exactly like a fulfilment. The result is rejected with the
+faulting input's bare value (``done.reject(e)``); the input's origin
+trace is NOT carried onto the result. A combinator fault is therefore
+attributed to the combinator (an abandoned result reports the combinator
+child as origin) or to the awaiting site, never to the original input's
+throw site - an accepted fidelity reduction, the price of keeping the
+combinators pure script. There is deliberately no ``Future.any`` - "keep
+waiting past a fault until one fulfils" would suppress a real bug.
 
 .. sq:function:: Future.all(arr)
 
@@ -339,13 +379,13 @@ Two flavours of Future exist at runtime:
 
 * Manual / bare future - created by ``Future()`` from script (or
   ``sqasync::future_create`` from C++). Settle it explicitly through
-  ``.resolve`` (or, from native code, ``sqasync::future_throw`` for
-  a worker-thread bug). This is what bindings hand to script when
-  they begin an async operation.
+  ``.resolve`` / ``.reject`` (or, from native code,
+  ``sqasync::future_throw`` for a worker-thread bug). This is what
+  bindings hand to script when they begin an async operation.
 * Task-future - created implicitly when an ``async`` function is
-  called. It is owned by the function's generator frame; calling
-  ``.resolve`` on it from outside throws an error. The function's
-  own ``return`` / ``throw`` is the only way to settle it.
+  called. It is owned by the function's frame; calling ``.resolve`` /
+  ``.reject`` on it from outside throws an error. The function's own
+  ``return`` / ``throw`` is the only way to settle it.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Subclassing ``Future``

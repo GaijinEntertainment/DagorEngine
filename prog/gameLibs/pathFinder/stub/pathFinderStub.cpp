@@ -150,6 +150,7 @@ obstacle_handle_t tilecache_obstacle_add(const TMatrix &, const BBox3 &, const P
 obstacle_handle_t tilecache_obstacle_add(const Point3 &, const Point3 &, float, bool, bool, bool) { return {}; }
 
 void rebuildNavMesh_init() {}
+void rebuildNavMesh_initFromCurrent() {}
 void rebuildNavMesh_setup(const char *, float) {}
 void rebuildNavMesh_setup(const char *, const Point2 &) {}
 void rebuildNavMesh_addBBox(const BBox3 &) {}

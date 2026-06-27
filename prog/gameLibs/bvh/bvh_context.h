@@ -647,6 +647,7 @@ struct Object
   UniqueBLAS blas;
   dag::Vector<Mesh> meshes;
   MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
+  BvhType type = BvhType::None;
   bool isAnimated = false;
   bool hasVertexProcessor = false;
   const char *tag = nullptr;
@@ -836,6 +837,7 @@ struct Context
     bool uniqueIsStationary;
     bool noShadow;
     bool hasInstanceColor;
+    bool forceEnableBackfaceCulling;
 
     bool needsBlasBuild;
     bool alreadyProcessed;
@@ -866,6 +868,7 @@ struct Context
       other.objectId = 0;
       query = eastl::move(other.query);
       stage = other.stage;
+      type = other.type;
       other.stage = Stage::MovedFrom; // For debugging
     }
     BLASCompaction &operator=(BLASCompaction &&other)
@@ -882,6 +885,7 @@ struct Context
       other.objectId = 0;
       query = eastl::move(other.query);
       stage = other.stage;
+      type = other.type;
       other.stage = Stage::MovedFrom; // For debugging
       return *this;
     }
@@ -897,6 +901,7 @@ struct Context
     UniqueBLAS compactedBlas;
     EventQueryHolder query;
     cpujobs::IJob *blasCreateJob = nullptr;
+    BvhType type = BvhType::None;
 
     Stage stage = Stage::Created;
   };
@@ -923,7 +928,7 @@ struct Context
 
   bool has(uint32_t feature) const { return (features & feature) != 0; }
 
-  BLASCompaction *beginBLASCompaction(uint64_t object_id);
+  BLASCompaction *beginBLASCompaction(uint64_t object_id, BvhType type);
   void cancelCompaction(uint64_t object_id);
 
   String name;
@@ -947,10 +952,12 @@ struct Context
 
   struct RingBuffers
   {
+    // MUST stay >= the driver's frames-in-flight (FRAME_FRAME_BACKLOG_LENGTH in DX12)
+    // TODO: use assert or common consts with the drivers
 #if _TARGET_PC_WIN
     static constexpr uint32_t ringSize = 4;
 #else
-    static constexpr uint32_t ringSize = 2;
+    static constexpr uint32_t ringSize = 3;
 #endif
 
     inline static int ringIndex = 0;

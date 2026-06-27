@@ -63,6 +63,8 @@ public:
   bool sendto(int cur_time, ecs::EntityId to_eid, const IMessage &msg, IConnection *receiver,
     const MessageNetDesc *msg_net_desc = nullptr);
 
+  bool sendto_untargeted(int cur_time, const IMessage &msg, IConnection *receiver, const MessageNetDesc *msg_net_desc = nullptr);
+
   Connection *getServerConnection() { return serverConnection.get(); }
   const eastl::vector<eastl::unique_ptr<Connection>> &getClientConnections() const // Warning: vector might contain NULLs!
   {

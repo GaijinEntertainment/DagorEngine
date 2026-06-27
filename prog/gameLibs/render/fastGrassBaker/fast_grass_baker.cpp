@@ -13,6 +13,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_cpuJobs.h>
+#include <osApiWrappers/dag_basePath.h>
 #include <ecs/gameres/commonLoadingJobMgr.h>
 #include <folders/folders.h>
 #include <math/integer/dag_IPoint2.h>
@@ -1061,6 +1062,23 @@ static void on_imgui_state_change(ImGuiState, ImGuiState new_state)
   }
 }
 
+static inline void make_eff_app_relative_path(char *dest_buf, const char *path)
+{
+  if (!path || !*path)
+  {
+    dest_buf[0] = '\0';
+    return;
+  }
+  String dest;
+  if (*path == '%')
+    dest = path;
+  else
+    dest.setStrCat("%appDir/", path);
+  dd_resolve_named_mount_inplace(dest);
+  simplify_fname(dest);
+  strcpy(dest_buf, dest);
+}
+
 void init_fast_grass_baker()
 {
 #define VAR(a) a##VarId = ShaderVariableInfo(#a).get_var_id();
@@ -1068,11 +1086,15 @@ void init_fast_grass_baker()
 #undef VAR
 
   imgui_register_on_state_change_handler(on_imgui_state_change);
+  if (!dd_get_named_mount_path("%appDir", 7))
+  {
+    String app_dir = folders::get_game_dir();
+    app_dir += "/../";
+    simplify_fname(app_dir);
+    dd_set_named_mount_path("%appDir", app_dir);
+  }
 
-  char appFname[DAGOR_MAX_PATH];
-  strcpy(appFname, folders::get_game_dir().c_str());
-  strcat(appFname, "/../application.blk");
-  dd_simplify_fname_c(appFname);
+  const char *appFname = "%appDir/application.blk";
 
   DataBlock appBlk;
   if (!dd_file_exists(appFname) || !dblk::load(appBlk, appFname, dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS))
@@ -1081,17 +1103,8 @@ void init_fast_grass_baker()
   auto settingsBlk = appBlk.getBlockByNameEx("assets")->getBlockByNameEx("grass_impostor");
   resolution = settingsBlk->getIPoint2("resolution", resolution);
 
-  dd_get_fname_location(data_folder, appFname);
-  dd_append_slash_c(data_folder);
-  strcat(data_folder, settingsBlk->getStr("data_folder", "develop"));
-  dd_simplify_fname_c(data_folder);
-  dd_append_slash_c(data_folder);
-
-  dd_get_fname_location(texture_folder, appFname);
-  dd_append_slash_c(texture_folder);
-  strcat(texture_folder, settingsBlk->getStr("texture_folder", settingsBlk->getStr("data_folder", "develop")));
-  dd_simplify_fname_c(texture_folder);
-  dd_append_slash_c(texture_folder);
+  make_eff_app_relative_path(data_folder, settingsBlk->getStr("data_folder", "develop"));
+  make_eff_app_relative_path(texture_folder, settingsBlk->getStr("texture_folder", settingsBlk->getStr("data_folder", "develop")));
 
   debug("fast grass baker data folder: %s", data_folder);
   debug("fast grass baker texture folder: %s", texture_folder);

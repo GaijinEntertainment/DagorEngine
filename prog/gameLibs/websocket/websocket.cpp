@@ -10,8 +10,8 @@
 #include <EASTL/string_view.h>
 #include <b64/cencode.h>
 #include <curl/curl.h>
-#include <openssl/rand.h>
-#include <openssl/sha.h>
+#include <dagCrypto/rand.h>
+#include <hash/sha1.h>
 
 #include <string.h>
 
@@ -270,7 +270,7 @@ static eastl::string generate_sec_key()
   uint8_t secKey[16];
   char secKeyB64[sizeof(secKey) * 2];
   memset(&secKeyB64[0], 0, sizeof(secKeyB64));
-  RAND_bytes(&secKey[0], sizeof(secKey));
+  crypto::rand_bytes(&secKey[0], sizeof(secKey));
   base64_encodestate enc;
   base64_init_encodestate(&enc);
   int len = base64_encode_block((const char *)&secKey[0], sizeof(secKey), &secKeyB64[0], &enc);
@@ -281,7 +281,7 @@ static eastl::string generate_sec_key()
 static uint32_t gen_rand_mask()
 {
   uint32_t mask;
-  RAND_bytes((uint8_t *)&mask, sizeof(mask));
+  crypto::rand_bytes((uint8_t *)&mask, sizeof(mask));
   return mask;
 }
 
@@ -314,12 +314,12 @@ static Payload xor_crypt_buf(PayloadView input, uint32_t mask)
 
 static eastl::string websocket_sec_answer(const eastl::string &sec_key)
 {
-  uint8_t webSocketRespKeySHA1[20];
-  SHA_CTX shaCtx;
-  SHA1_Init(&shaCtx);
-  SHA1_Update(&shaCtx, sec_key.data(), sec_key.size());
-  SHA1_Update(&shaCtx, &websocket_guid[0], sizeof(websocket_guid) - 1);
-  SHA1_Final(&webSocketRespKeySHA1[0], &shaCtx);
+  uint8_t webSocketRespKeySHA1[SHA1_DIGEST_LENGTH];
+  sha1_context shaCtx;
+  sha1_starts(&shaCtx);
+  sha1_update(&shaCtx, (const unsigned char *)sec_key.data(), sec_key.size());
+  sha1_update(&shaCtx, (const unsigned char *)&websocket_guid[0], sizeof(websocket_guid) - 1);
+  sha1_finish(&shaCtx, &webSocketRespKeySHA1[0]);
 
   eastl::string webSocketRespKeyB64;
   webSocketRespKeyB64.resize(40);

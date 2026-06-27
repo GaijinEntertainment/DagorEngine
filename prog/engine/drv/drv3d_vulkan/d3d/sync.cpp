@@ -62,7 +62,11 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline /*gpu_pi
     OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
 
     desc.enumerateTextureBarriers([](BaseTexture *tex, ResourceBarrier state, unsigned res_index, unsigned res_range) {
-      G_ASSERT(tex);
+      if (!tex)
+      {
+        D3D_ERROR("vulkan: no texture in user barrier specified");
+        return;
+      }
       // ignore split barrier flags for now, process only end part
       if (state & RB_FLAG_SPLIT_BARRIER_BEGIN)
         return;
@@ -108,7 +112,11 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline /*gpu_pi
       if (state & RB_FLAG_SPLIT_BARRIER_BEGIN)
         return;
 
-      G_ASSERT(buf);
+      if (!buf)
+      {
+        D3D_ERROR("vulkan: no buffer in user barrier specified");
+        return;
+      }
       auto gbuf = (GenericBufferInterface *)buf;
       G_ASSERT(gbuf->getBufferRef().buffer);
       Globals::ctx.dispatchCmdNoLock<CmdBufferBarrier>({gbuf->getBufferRef(), state}); //-V522

@@ -51,6 +51,7 @@ void d3d::update_bindless_resource_range(D3DResourceType type, uint32_t index, c
 bool d3d::update_bindless_resource(D3DResourceType, uint32_t index, D3dResource *res)
 {
   D3D_CONTRACT_ASSERTF_RETURN(Globals::VK::phy.hasBindless, false, "Bindless resources are not supported on this hardware");
+  D3D_CONTRACT_ASSERTF_RETURN(res != nullptr, false, "d3d::update_bindless_resource: 'res' can not be null");
   return drv3d_vulkan::Globals::ctx.updateBindlessResource(index, res);
 }
 

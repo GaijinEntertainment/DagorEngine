@@ -75,7 +75,7 @@ shader forcedome
   {
     forcedome_color@f4 = forcedome_color;
     params@f4 = (forcedome_brightness, forcedome_edge_intensity, 1.0 / forcedome_edge_intensity, forcedome_edge_thinness);
-    forcedome_diffuse_texture@smp2d = forcedome_diffuse_texture;
+    forcedome_diffuse_texture@tex2d = forcedome_diffuse_texture;
     half_res_depth_tex@smp2d = downsampled_far_depth_tex;
   }
 
@@ -84,9 +84,12 @@ shader forcedome
   USE_SCREENPOS_TO_TC()
   INIT_ZNZFAR()
   USE_DECODE_DEPTH()
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   hlsl(ps)
   {
+    #define forcedome_diffuse_texture_samplerstate global_linear_wrap_sampler
+
     float4 forcedome_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       float brightness = params.x;

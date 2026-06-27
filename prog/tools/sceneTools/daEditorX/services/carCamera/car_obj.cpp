@@ -11,6 +11,7 @@
 #include <assets/assetMgr.h>
 #include <assets/assetExporter.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
 #include <EditorCore/ec_workspace.h>
@@ -80,8 +81,8 @@ bool VehicleViewer::begin(IGenViewportWnd *_vpw)
 
   DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
 
-  const char *cpBlkPath = appBlk.getBlockByNameEx("game")->getStr("car_params", "/game/config/car_params.blk");
-  load_car_params_block_from(String(260, "%s%s", DAGORED2->getWorkspace().getAppDir(), cpBlkPath));
+  load_car_params_block_from(
+    make_eff_app_relative_path(appBlk.getBlockByNameEx("game")->getStr("car_params", "game/config/car_params.blk")));
 
   ::dagor_game_time_scale = 1.0;
   car = NULL;

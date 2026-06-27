@@ -171,7 +171,8 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
     }
 
     return [cameraHndl, strmCtxHndl, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
-      debug_mesh::activate_mesh_coloring_master_override();
+      if (!debugTriangle)
+        debug_mesh::activate_mesh_coloring_master_override();
       CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
       camJobsMgr->waitVisibility(RENDER_MAIN);
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
@@ -186,7 +187,8 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       if (!debugTriangle && wr.clipmap)
         wr.clipmap->increaseUAVAtomicPrefix();
-      debug_mesh::deactivate_mesh_coloring_master_override();
+      if (!debugTriangle)
+        debug_mesh::deactivate_mesh_coloring_master_override();
     };
   }));
 
@@ -197,7 +199,8 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
     registry.read("ri_update_token").blob<OrderingToken>();
 
     return [cameraHndl, strmCtxHndl, prepassEnabled, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
-      debug_mesh::activate_mesh_coloring_master_override();
+      if (!debugTriangle)
+        debug_mesh::activate_mesh_coloring_master_override();
       CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
       camJobsMgr->waitVisibility(RENDER_MAIN);
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
@@ -207,7 +210,8 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
       rendinst::render::renderRIGen(renderPass, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
         rendinst::LayerFlag::NotExtra, prepassEnabled ? rendinst::OptimizeDepthPass::Yes : rendinst::OptimizeDepthPass::No, 1,
         rendinst::AtestStage::NoAtest, nullptr, strmCtxHndl.ref());
-      debug_mesh::deactivate_mesh_coloring_master_override();
+      if (!debugTriangle)
+        debug_mesh::deactivate_mesh_coloring_master_override();
     };
   }));
 

@@ -305,10 +305,10 @@ void WaterNVRender::setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p)
   ShaderGlobal::set_float4(UVScaleCascade4567VarId, UVScaleCascade4567);
 }
 
-WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int q,
-  int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
-  float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, const HeightmapHeightCulling *heightmap_culling,
-  bool water_heightmap_draw_patches) :
+WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation,
+  int render_quality, int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades,
+  float cascade_window_length, float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap,
+  const HeightmapHeightCulling *heightmap_culling, bool water_heightmap_draw_patches) :
   fft(NULL),
   cascadeWindowLength(cascade_window_length),
   cascadeFacetSize(cascade_facet_size),
@@ -338,7 +338,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   mipBias(0.0f)
 {
   // num_cascades = min(d3d::get_driver_desc().maxvertexsamplers-1, num_cascades);
-  renderQuality = q;
+  renderQuality = render_quality;
   geomQuality = max(geom_quality, waterHeightmap ? fft_water::RENDER_LOW : 0);
   autoVsamplersAdjust = true;
   memset(maxWaveSize, 0, sizeof(maxWaveSize));
@@ -1251,7 +1251,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   float waterHeight = waterLevel;
   if (waterHeightmap)
     waterHeightmap->getHeightmapDataBilinear(origin.x, origin.z, waterHeight);
-  else if ((geom_lod_quality == fft_water::GEOM_LOW) || (geom_lod_quality == fft_water::GEOM_HIGH))
+  else if ((geom_lod_quality == fft_water::GEOM_LOD_LOW) || (geom_lod_quality == fft_water::GEOM_LOD_HIGH))
     waterHeight = maxWaterLevel;
   float originAlt = origin.y - waterHeight;
   const int fftResBits = fft[0].getParams().fft_resolution_bits;
@@ -1293,7 +1293,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
       break;
   }
 
-  if (forceTessellation || waterHeightmap || (geom_lod_quality == fft_water::GEOM_HIGH))
+  if (forceTessellation || waterHeightmap || (geom_lod_quality == fft_water::GEOM_LOD_HIGH))
     lodCount = (int)waveLods.size() - 1;
 
   const int lod0Rad = 1;
@@ -1302,11 +1302,11 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   float nextLod = originAlt * 0.015f;
   if (waterHeightmap)
     nextLod = min(nextLod, maxLodWithHeightmap);
-  if (geom_lod_quality == fft_water::GEOM_INVISIBLE && !renderQuad)
+  if (geom_lod_quality == fft_water::GEOM_LOD_INVISIBLE && !renderQuad)
     nextLod = lodCount;
-  else if (geom_lod_quality == fft_water::GEOM_LOW)
+  else if (geom_lod_quality == fft_water::GEOM_LOD_LOW)
     nextLod += 1;
-  else if (geom_lod_quality == fft_water::GEOM_HIGH)
+  else if (geom_lod_quality == fft_water::GEOM_LOD_HIGH)
     nextLod = 0;
   int lod = (int)floorf(max(nextLod, 0.f));
   if (lodCount <= lod)
@@ -1379,7 +1379,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   cameraPatchAlign = cameraPatch.size;
 
   BBox2 heightmapRegion;
-  if ((geom_lod_quality == fft_water::GEOM_LOW) || (geom_lod_quality == fft_water::GEOM_HIGH))
+  if ((geom_lod_quality == fft_water::GEOM_LOD_LOW) || (geom_lod_quality == fft_water::GEOM_LOD_HIGH))
   {
     const Point2 &origin = defaultCullData.originPos;
     float lod0CellSize = defaultCullData.scaleX;

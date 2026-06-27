@@ -19,6 +19,7 @@ int getScreenRefreshRate();
 void setFullscreenMode(bool enable);
 
 void processMessages();
+bool getWindowClientSize(void *w, int &width, int &height);
 bool getWindowScreenRect(void *w, linux_GUI::RECT *rect, linux_GUI::RECT *rect_unclipped);
 bool getLastCursorPos(int *cx, int *cy, void *w);
 void setCursor(void *w, const char *cursor_name);

@@ -186,7 +186,8 @@ inline uint32_t get_frame_render_target_format()
   return rtFmt;
 }
 
-inline void create_gbuffer_targets(dafg::Registry registry, const char *name_fmt, const bool need_motion_vectors)
+inline void create_gbuffer_targets(
+  dafg::Registry registry, const char *name_fmt, const bool need_motion_vectors, const bool force_clear_on_creation = false)
 {
   const auto gbufResolution = registry.getResolution<2>("main_view");
 
@@ -212,9 +213,9 @@ inline void create_gbuffer_targets(dafg::Registry registry, const char *name_fmt
                         .texture({gbufFmts[i] | globalFlags | TEXCF_RTARGET, gbufResolution})
                         .useAs(dafg::Usage::COLOR_ATTACHMENT)
                         .atStage(dafg::Stage::PS);
-    if (i == 0 && isRREnabled)
+    if (i == 0 && (force_clear_on_creation || isRREnabled))
       eastl::move(gbufRtHndl).clear(make_clear_value(0.0f, 0.0f, 0.0f, 0.0f));
-    if (i == 1 && (!renderer_has_feature(FeatureRenderFlags::PREV_OPAQUE_TEX) || isRREnabled))
+    if (i == 1 && (force_clear_on_creation || !renderer_has_feature(FeatureRenderFlags::PREV_OPAQUE_TEX) || isRREnabled))
       eastl::move(gbufRtHndl).clear(make_clear_value(0, 0, 0, 0));
     if (i == 2 && (need_motion_vectors))
       eastl::move(gbufRtHndl).clear(make_clear_value(0, 0, 0, 0));

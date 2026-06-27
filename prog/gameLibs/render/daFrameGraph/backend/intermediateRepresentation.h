@@ -198,6 +198,10 @@ struct Resource
   // Multiplexing iteration this resource is produced on
   MultiplexingIndex multiplexingIndex{Invalid};
 
+  // Base of the SCHEDULE_FRAME_WINDOW bindless descriptor slots assigned to this
+  // resource for bindlessShaderVar requests (frame f uses baseBindlessSlot + f).
+  uint32_t baseBindlessSlot = static_cast<uint32_t>(-1);
+
   bool isExternal() const { return eastl::holds_alternative<ExternalResource>(resource); }
   bool isScheduled() const { return eastl::holds_alternative<ScheduledResource>(resource); }
   bool isDriverDeferredTexture() const { return eastl::holds_alternative<DriverDeferredTexture>(resource); }

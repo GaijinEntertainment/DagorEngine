@@ -1044,6 +1044,7 @@ bool dblk::print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int
       buf_wr.flush();
       return false;
     }
+    buf_wr.flush();
   }
   DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;

@@ -261,6 +261,9 @@ water{
     water__level:r=0
     water__fft_resolution:i=7
     water__max_tessellation:i=4
+    water__fresnel_specular_intensity:r=0.02
+    water__fresnel_ambient_reflection:r=0.2
+    water__fresnel_reflection:r=0.5
     water__flowmap:b=yes
     water__has_slopes:b=no
     water__flowmap_tex:t=""
@@ -459,12 +462,8 @@ capsules_ao{
 
 film_grain_lut{
   _singleton:b=yes
-  film_grain_lut__wh:i=256
-  film_grain_lut__d:i=64
   film_grain_lut__gen_params:p4=2.5,0.5,1.0,64
 
-  _tracked:t="film_grain_lut__wh"
-  _tracked:t="film_grain_lut__d"
   _tracked:t="film_grain_lut__gen_params"
 
   film_grain_lut{
@@ -776,7 +775,8 @@ cinematic_mode_settings{
     cinematic_mode__superPixels:i=2
     cinematic_mode__vignetteStrength:r=0.0
     cinematic_mode__chromaticAberration:p3=0.01, 0.007, 1 // red, green, offset
-    cinematic_mode__filmGrain:p4=0.0, 1.0, 1.0, 0 // strength, grain_scale, time_scale, exposure_correction
+    cinematic_mode__filmGrain:p4=0.0, 1.0, 1.0, 0 // base_strength, grain_scale, time_scale, exposure_correction
+    cinematic_mode__filmGrainMul:r=1.0
     cinematic_mode__lenseFlareIntensity:r=0.0
     cinematic_mode__lenseDust:b=no
     cinematic_mode__recording:b=no

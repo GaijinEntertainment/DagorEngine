@@ -67,14 +67,16 @@ NO_UBSAN void d3d::delete_render_pass(d3d::RenderPass *rp)
   la.ctx.dispatchCmd<CmdDestroyRenderPassResource>({(RenderPassResource *)rp});
 }
 
-NO_UBSAN void d3d::begin_render_pass(d3d::RenderPass *drv_rp, const RenderPassArea area, const RenderPassTarget *targets)
+NO_UBSAN void d3d::begin_render_pass(d3d::RenderPass *drv_rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets)
 {
   D3D_CONTRACT_ASSERTF(drv_rp, "vulkan: can't start null render pass");
   using Bind = StateFieldRenderPassTarget;
   LocalAccessor la;
 
   RenderPassResource *rp = (RenderPassResource *)drv_rp;
-  for (uint32_t i = 0; i < rp->getTargetsCount(); ++i)
+  D3D_CONTRACT_ASSERTF(rp->getTargetsCount() == targets.size(), "vulkan: missing/excessive targets for rp %s, expected %u got %u",
+    rp->getDebugName(), rp->getTargetsCount(), targets.size());
+  for (uint32_t i = 0; i < targets.size(); ++i)
   {
     D3D_CONTRACT_ASSERTF(targets[i].resource.tex, "vulkan: trying to start render pass %s with missing target %u", rp->getDebugName(),
       i);

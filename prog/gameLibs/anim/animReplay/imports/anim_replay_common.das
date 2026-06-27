@@ -55,6 +55,13 @@ def iterate_alive_replay_animchars(animchars : Array; cur_time : float; blk : bl
         continue
       invoke(blk, animcharData)
 
+def iterate_replay_animchars(animchars : Array; blk : block<(animchar_data : Object; eid : EntityId) : void>)
+  for animcharChildComp in animchars
+    unsafe
+      let animcharData & = *get_ecs_object(animcharChildComp)
+      let eid = *get_Eid(animcharData, "eid")
+      invoke(blk, animcharData, eid)
+
 def iterate_replay_animchars(var animchars : Array; blk : block<(var animchar_data : Object; eid : EntityId) : void>)
   for animcharChildComp in animchars
     unsafe

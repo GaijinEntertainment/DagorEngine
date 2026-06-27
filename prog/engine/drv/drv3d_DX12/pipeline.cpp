@@ -483,6 +483,14 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
 #if _TARGET_PC_WIN
   pipeline = pipe_cache.loadGraphicsPipelineVariant(base.cacheId, top, input_layout, is_wire_frame, static_state, fb_layout, gpciDesc,
     cacheTarget);
+
+  if (pipeline)
+  {
+    if (PipelineBuildInitiator::RUNTIME == buildInitiator)
+    {
+      buildInitiator = PipelineBuildInitiator::DISK_CACHE;
+    }
+  }
 #endif
   LoadVariantsStats::cacheLoadUsec += get_time_usec(tCacheLoad);
 
@@ -529,9 +537,9 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
         logdbg("DX12: CreatePipelineState E_OUTOFMEMORY for <%s> (graphics), desc size %llu, VS %llu, PS %llu, cachedBlob %llu",
           name.c_str(), gpciDesc.SizeInBytes, tmpstorageVs.size(), tmpstoragePs.size(), cacheTarget.CachedBlobSizeInBytes);
       }
-      info.toLog.serialize(base.signature, gpciDesc);
+      info.toLog.serialize(base.signature, gpciDesc, name);
 #else
-      info.toLog.serialize(base.signature, desc);
+      info.toLog.serialize(base.signature, desc, name);
 #endif
 
       if (is_recoverable_error(result))
@@ -761,6 +769,13 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
 
   D3D12_PIPELINE_STATE_STREAM_DESC gpciDesc = {gpci.rootSize(), gpci.root()};
   pipeline = pipe_cache.loadGraphicsMeshPipelineVariant(base.cacheId, is_wire_frame, static_state, fb_layout, gpciDesc, cacheTarget);
+  if (pipeline)
+  {
+    if (PipelineBuildInitiator::RUNTIME == buildInitiator)
+    {
+      buildInitiator = PipelineBuildInitiator::DISK_CACHE;
+    }
+  }
 #else
   G_UNUSED(pipe_cache);
   D3D12_PIPELINE_STATE_STREAM_DESC gpciDesc = {gpci.rootSize(), gpci.root()};
@@ -798,7 +813,7 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
     {
       loadResult.runtimeError = true;
 
-      info.toLog.serialize(base.signature, gpciDesc);
+      info.toLog.serialize(base.signature, gpciDesc, name);
 
       if (is_recoverable_error(result))
       {
@@ -2173,7 +2188,14 @@ ComputePipeline *PipelineManager::getCompute(ProgramID program)
   G_ASSERTF(program.isCompute(), "getCompute called for a non compute program!");
   uint32_t index = program.getIndex();
   auto &pipelineGroup = computePipelines[program.getGroup()];
-  G_ASSERTF(pipelineGroup[index] != nullptr, "getCompute called for uninitialized compute pipeline! index was %u", index);
+  if (index >= pipelineGroup.size() || !pipelineGroup[index])
+  {
+    // Caller skips the dispatch on a null pipeline; only fatal when no reset
+    // could explain the missing slot. See wasReset.
+    G_ASSERTF(wasReset, "getCompute called for uninitialized compute pipeline! group was %u and index was %u", program.getGroup(),
+      index);
+    return nullptr;
+  }
   return pipelineGroup[index].get();
 }
 
@@ -2181,7 +2203,14 @@ BasePipeline *PipelineManager::getGraphics(GraphicsProgramID program)
 {
   uint32_t index = program.getIndex();
   auto &pipelineGroup = graphicsPipelines[program.getGroup()];
-  G_ASSERTF(pipelineGroup[index] != nullptr, "getGraphics called for uninitialized graphics pipeline! index was %u", index);
+  if (index >= pipelineGroup.size() || !pipelineGroup[index])
+  {
+    // Caller skips the draw on a null pipeline; only fatal when no reset could
+    // explain the missing slot. See wasReset.
+    G_ASSERTF(wasReset, "getGraphics called for uninitialized graphics pipeline! group was %u and index was %u", program.getGroup(),
+      index);
+    return nullptr;
+  }
   return pipelineGroup[index].get();
 }
 
@@ -2518,6 +2547,8 @@ bool PipelineManager::recover(ID3D12Device2 *device, PipelineCache &cache)
 
 void PipelineManager::preRecovery()
 {
+  wasReset = true;
+
   ShaderBindingTablePool::preRecovery();
 
   blitPipelines.clear();
@@ -3822,6 +3853,10 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
   computePipeline = cache.loadCompute(shaderModule.ident.shaderHash, cpciDesc, cacheTarget);
   if (computePipeline)
   {
+    if (PipelineBuildInitiator::RUNTIME == buildInitiator)
+    {
+      buildInitiator = PipelineBuildInitiator::DISK_CACHE;
+    }
     device.nameObject(computePipeline.Get(), name);
     return true;
   }
@@ -3894,9 +3929,9 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
     {
 
 #if _TARGET_PC_WIN
-      log_serializer.serialize(signature, cpciDesc);
+      log_serializer.serialize(signature, cpciDesc, name);
 #else
-      log_serializer.serialize(signature, desc);
+      log_serializer.serialize(signature, desc, name);
 #endif
 
       if (is_recoverable_error(result))
@@ -4559,7 +4594,7 @@ struct RootSignatureGenerator
   }
 };
 
-static void print_to_log(const SerializedGpuPipeline &data_store)
+static void print_to_log(const SerializedGpuPipeline &data_store, const eastl::string &name)
 {
   if (data_store.empty())
   {
@@ -4598,46 +4633,50 @@ static void print_to_log(const SerializedGpuPipeline &data_store)
   {
     logdbg("DX12: PipelineBlob: ~%s~", dataView.data());
   }
+  if (!name.empty())
+  {
+    logdbg("DX12: PipelineName: ~%s~", name);
+  }
   logdbg("DX12: EndPipelineBlob");
 }
 
 void PipelineLogSerializer::serialize([[maybe_unused]] const GraphicsPipelineSignature &sign,
-  [[maybe_unused]] const D3D12_GRAPHICS_PIPELINE_STATE_DESC &info) const
+  [[maybe_unused]] const D3D12_GRAPHICS_PIPELINE_STATE_DESC &info, [[maybe_unused]] const eastl::string &name) const
 {
 #if _TARGET_PC_WIN
   RootSignatureGenerator signatureStore;
   signatureStore.generate(sign, *this);
   auto serializedCode = serialize_graphics_pipeline({.shaderHashes = false}, info, signatureStore);
-  print_to_log(serializedCode);
+  print_to_log(serializedCode, name);
 #endif
 }
 void PipelineLogSerializer::serialize([[maybe_unused]] const ComputePipelineSignature &sign,
-  [[maybe_unused]] const D3D12_COMPUTE_PIPELINE_STATE_DESC &info) const
+  [[maybe_unused]] const D3D12_COMPUTE_PIPELINE_STATE_DESC &info, [[maybe_unused]] const eastl::string &name) const
 {
 #if _TARGET_PC_WIN
   RootSignatureGenerator signatureStore;
   signatureStore.generate(sign, *this);
   auto serializedCode = serialize_compute_pipeline({.shaderHashes = false}, info, signatureStore);
-  print_to_log(serializedCode);
+  print_to_log(serializedCode, name);
 #endif
 }
 void PipelineLogSerializer::serialize([[maybe_unused]] const GraphicsPipelineSignature &sign,
-  [[maybe_unused]] const D3D12_PIPELINE_STATE_STREAM_DESC &info) const
+  [[maybe_unused]] const D3D12_PIPELINE_STATE_STREAM_DESC &info, [[maybe_unused]] const eastl::string &name) const
 {
 #if _TARGET_PC_WIN
   RootSignatureGenerator signatureStore;
   signatureStore.generate(sign, *this);
   auto serializedCode = serialize_pipeline({.shaderHashes = false}, info, signatureStore);
-  print_to_log(serializedCode);
+  print_to_log(serializedCode, name);
 #endif
 }
 void PipelineLogSerializer::serialize([[maybe_unused]] const ComputePipelineSignature &sign,
-  [[maybe_unused]] const D3D12_PIPELINE_STATE_STREAM_DESC &info) const
+  [[maybe_unused]] const D3D12_PIPELINE_STATE_STREAM_DESC &info, [[maybe_unused]] const eastl::string &name) const
 {
 #if _TARGET_PC_WIN
   RootSignatureGenerator signatureStore;
   signatureStore.generate(sign, *this);
   auto serializedCode = serialize_pipeline({.shaderHashes = false}, info, signatureStore);
-  print_to_log(serializedCode);
+  print_to_log(serializedCode, name);
 #endif
 }

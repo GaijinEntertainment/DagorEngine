@@ -57,6 +57,7 @@ shader bvh_debug
     #define BVH_DEBUG_MODE_PAINT 9
     #define BVH_DEBUG_MODE_INTERSECTION_COUNT 10
     #define BVH_DEBUG_MODE_INSTANCES 11
+    #define BVH_DEBUG_MODE_NAN 12
   }
 
   INIT_BVH(cs, 0, true)
@@ -65,6 +66,7 @@ shader bvh_debug
 
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
   INIT_PACK_UNPACK_DYNSTCODE(cs)
+  INIT_BVH_BINDLESS_GBUFFER(cs)
   USE_LOAD_GBUFFER_BASE(cs, false)
 
   USE_ADAPTIVE_RAY_OFFSET(cs)
@@ -80,7 +82,6 @@ shader bvh_debug
   INIT_VIEW_VEC_STAGE(cs)
   USE_VIEW_VEC_STAGE(cs)
   INIT_ZNZFAR_STAGE(cs)
-  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_CALC_GEOMETRY_NORMAL(cs)
 
@@ -112,9 +113,11 @@ shader bvh_debug
       {
         isHit = true;
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);
-        if (bvh_debug_mode == BVH_DEBUG_MODE_LIT)
+        if (bvh_debug_mode == BVH_DEBUG_MODE_LIT || bvh_debug_mode == BVH_DEBUG_MODE_NAN)
         {
           result = light_hit_surface(hitSurface, -direction, hitInfo.t, 100000);
+          if (bvh_debug_mode == BVH_DEBUG_MODE_NAN)
+            result = select(isfinite(result), 1, 0);
           if (bvh_detect_identical_geometry)
           {
 #ifdef BVH_TWO_SIDED

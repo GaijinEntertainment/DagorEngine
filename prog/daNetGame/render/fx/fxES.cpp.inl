@@ -859,9 +859,10 @@ bool renderTransSpecial(uint8_t render_tag, dafx::CullingId cull_id)
   return r;
 }
 
-void renderTransWaterProj(const TMatrix4 &view, const TMatrix4 &proj, const Point3 &pos, float mip_bias)
+void renderTransWaterProj(BaseTexture *target_tex, const TMatrix4 &view, const TMatrix4 &proj, const Point3 &pos, float mip_bias)
 {
   TIME_D3D_PROFILE(renderTransWaterProj);
+  G_UNUSED(target_tex);
 
   // render fx
   TMatrix4 globtm = view * proj;

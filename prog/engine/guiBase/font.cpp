@@ -1228,7 +1228,9 @@ void DagorFontBinDump::DynamicFontAtlas::prepareTex(int idx)
 {
   if (tex)
     return;
-  const int texcf = TEXFMT_R8 | TEXCF_UPDATE_DESTINATION | TEXCF_CLEAR_ON_CREATE;
+  // use linear layout for Scarlett to workaround corrupted fonts bug
+  const int texcf = TEXFMT_R8 | TEXCF_UPDATE_DESTINATION | TEXCF_CLEAR_ON_CREATE |
+                    (d3d::get_driver_code().is(d3d::scarlett) ? TEXCF_LINEAR_LAYOUT : 0);
   tex = (Texture *)d3d::create_tex(NULL, hist.size(), hist.size(), texcf, 1, "dynFontAtlas", RESTAG_GUI);
   texId = register_managed_tex(String(0, "dynFontAtlas%d", idx), tex);
 }

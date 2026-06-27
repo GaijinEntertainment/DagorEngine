@@ -323,20 +323,18 @@ void FormattedText::parseAndSplitText(Tab<TextBlock *> &output, const char *str,
         }
         else if (STARTS_WITH(str + i, "<color="))
         {
-          attrStack.push_back(nextBlockAttr);
-          tagsStack.push_back(strColor);
-
-          bool isError = false;
           const char *startPtr = str + i + 7;
-          char *endPtr = nullptr;
           const char *endOfIntPtr = strchr(startPtr, '>');
           if (!endOfIntPtr)
-          {
-            isError = true;
-            i = strLen;
-          }
+            // Unclosed <color=...>: keep it as literal text instead of dropping the remainder.
+            logerr("parseAndSplitText: unclosed <color=...> at pos=%i string='%s'", i, str);
           else
           {
+            attrStack.push_back(nextBlockAttr);
+            tagsStack.push_back(strColor);
+
+            bool isError = false;
+            char *endPtr = nullptr;
             long long color = strtoll(startPtr, &endPtr, 10);
             if (endPtr != endOfIntPtr || color > (long long)(UINT_MAX) || color < INT_MIN)
             {
@@ -345,16 +343,14 @@ void FormattedText::parseAndSplitText(Tab<TextBlock *> &output, const char *str,
                 color = E3DCOLOR(255, 255, 255, 255);
             }
 
+            if (isError)
+              logerr("parseAndSplitText: syntax error in color constant at pos=%i string='%s'", i, str);
+
             nextBlockAttr.fontColor = uint32_t(color);
-            int length = int(endOfIntPtr - startPtr);
-            i += length + 1 + 7;
+            nextBlockAttr.isDefaultColor = isError;
+            i += int(endOfIntPtr - startPtr) + 1 + 7;
+            gotTag = true;
           }
-
-          if (isError)
-            logerr("parseAndSplitText: syntax error in color constant at pos=%i string='%s'", i, str);
-
-          nextBlockAttr.isDefaultColor = isError;
-          gotTag = true;
         }
         else if (STARTS_WITH(str + i, "</color>"))
         {
@@ -441,16 +437,22 @@ void FormattedText::parseAndSplitText(Tab<TextBlock *> &output, const char *str,
             // Try embedded components
             // Find tag closing (limited length)
             int embedEnd = -1;
-            const int maxEmbedNameLen = 32;
-            for (int t = i + 2; embedEnd < 0 && t < strLen - 1 && t < i + 1 + maxEmbedNameLen; ++t)
+            const int maxEmbedNameLen = 128;
+            for (int t = i + 2; embedEnd < 0 && t < strLen - 1 && t <= i + 1 + maxEmbedNameLen; ++t)
               if (str[t] == '/' && str[t + 1] == '>')
                 embedEnd = t;
 
             if (embedEnd > 0)
             {
-              if (tp->getEmbeddedComponent(String(str + i + 1, embedEnd - i - 1), embeddedComponent))
+              String tagName(str + i + 1, embedEnd - i - 1);
+              if (tp->getEmbeddedComponent(tagName, embeddedComponent))
+              {
                 gotTag = true;
-              i = embedEnd + 2;
+                i = embedEnd + 2;
+              }
+              else
+                // Unknown <foo/>: leave it as literal text instead of swallowing it.
+                logerr("parseAndSplitText: unknown embedded component <%s/> at pos=%d string='%s'", tagName.c_str(), i, str);
             }
           }
         }

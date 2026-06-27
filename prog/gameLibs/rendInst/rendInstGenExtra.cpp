@@ -1090,13 +1090,13 @@ void shrinkToFitRiEx()
 {
   ScopedRIExtraWriteLock wr;
   ScopedLockWrite lock(rendinst::riXYZRLock);
-  for (auto &p : riExtra) // To consider: several passes to realloc homogeneous data near by in memory?
-  {
+  // To consider: several passes to realloc homogeneous data near by in memory?
+  iterateRIExtra([](int, RiExtraPool &p) {
     p.riTm.shrink_to_fit();
     p.riHP.shrink_to_fit();
     p.riUniqueData.shrink_to_fit();
     p.riXYZR.shrink_to_fit();
-  }
+  });
 }
 
 } // namespace rendinst
@@ -1351,12 +1351,7 @@ int rendinst::riExSize()
 int rendinst::riExCount()
 {
   int count = 0;
-
-  for (int i = 0; i < rendinst::riExtra.size(); i++)
-  {
-    count += rendinst::riExtra[i].riTm.size();
-  }
-
+  iterateRIExtra([&](int, const RiExtraPool &pool) { count += pool.riTm.size(); });
   return count;
 }
 
@@ -1365,8 +1360,7 @@ int rendinst::riExCount(int idx) { return rendinst::riExtra[idx].riTm.size(); }
 int rendinst::getRIGenExtraInstancesCount()
 {
   int count = 0;
-  for (int i = 0, n = rendinst::riExtra.size(); i < n; ++i)
-    count += rendinst::riExtra[i].getEntitiesCount();
+  iterateRIExtra([&](int, const RiExtraPool &pool) { count += pool.getEntitiesCount(); });
   return count;
 }
 
@@ -2172,12 +2166,11 @@ void rendinst::gatherRIGenExtraAllSlow(riex_collidable_t &out_handles, const BBo
     // so its not worth to make a grid, and its fast enough
     // If for some reason, you need to do this frequently, just make a separate grid
     TIME_PROFILE_DEV(gather_riex_not_collidable_box);
-    for (int poolIdx = 0; poolIdx < riExtra.size(); poolIdx++)
-    {
+    iterateRIExtra([&](int poolIdx, RiExtraPool &pool) {
       // skip collidable pools
-      if (riExtra[poolIdx].collRes && v_extract_w(riExtra[poolIdx].bsphXYZR) > VERY_SMALL_NUMBER)
-        continue;
-      dag::ConstSpan<vec4f> riXYZR(riExtra[poolIdx].riXYZR);
+      if (pool.collRes && v_extract_w(pool.bsphXYZR) > VERY_SMALL_NUMBER)
+        return;
+      dag::ConstSpan<vec4f> riXYZR(pool.riXYZR);
       for (int instIdx = 0; instIdx < riXYZR.size(); instIdx++)
       {
         vec4f bsph = riXYZR[instIdx];
@@ -2185,7 +2178,7 @@ void rendinst::gatherRIGenExtraAllSlow(riex_collidable_t &out_handles, const BBo
         if (v_bbox3_test_sph_intersect(box, bsph, r2_x))
           out_handles.push_back(make_handle(poolIdx, instIdx));
       }
-    }
+    });
   }
 
   if (!out_handles.empty())
@@ -2272,30 +2265,29 @@ bool rendinst::rayHitRIGenExtraCollidable(const Point3 &from, const Point3 &dir,
 
 void rendinst::reapplyLodRanges()
 {
-  for (int id = 0; id < riExtra.size(); id++)
-  {
+  iterateRIExtra([](int id, RiExtraPool &pool) {
     const DataBlock *ri_ovr = rendinst::ri_lod_ranges_ovr.getBlockByName(riExtraMap.getName(id));
-    RenderableInstanceLodsResource *riRes = riExtra[id].res;
+    RenderableInstanceLodsResource *riRes = pool.res;
 
     int lod_cnt = riRes->lods.size();
     float max_lod_dist = lod_cnt ? riResLodRange(riRes, lod_cnt - 1, ri_ovr) : (RendInstGenData::renderResRequired ? 0.0f : 1e5f);
 
     // RiExtra does not support impostors. Need to skip impostor and transition lods.
-    lod_cnt -= lod_cnt ? riExtra[id].hasTransitionLod + riExtra[id].posInst : 0;
+    lod_cnt -= lod_cnt ? pool.hasTransitionLod + pool.posInst : 0;
 
-    riExtra[id].distSqLOD[0] = lod_cnt > 1 ? riResLodRange(riRes, 0, ri_ovr) : max_lod_dist;
+    pool.distSqLOD[0] = lod_cnt > 1 ? riResLodRange(riRes, 0, ri_ovr) : max_lod_dist;
     if (lod_cnt > 0)
     {
       for (int l = 1; l < rendinst::RiExtraPool::MAX_LODS; l++)
-        riExtra[id].distSqLOD[l] =
-          l < lod_cnt ? (l < lod_cnt - 1 ? riResLodRange(riRes, l, ri_ovr) : max_lod_dist) : riExtra[id].distSqLOD[lod_cnt - 1] - 0.1f;
+        pool.distSqLOD[l] =
+          l < lod_cnt ? (l < lod_cnt - 1 ? riResLodRange(riRes, l, ri_ovr) : max_lod_dist) : pool.distSqLOD[lod_cnt - 1] - 0.1f;
       for (int l = 0; l < rendinst::RiExtraPool::MAX_LODS; l++)
-        riExtra[id].distSqLOD[l] *= riExtra[id].distSqLOD[l];
+        pool.distSqLOD[l] *= pool.distSqLOD[l];
     }
     else
       for (int l = 0; l < rendinst::RiExtraPool::MAX_LODS; l++)
-        riExtra[id].distSqLOD[l] = max_lod_dist * max_lod_dist;
-  }
+        pool.distSqLOD[l] = max_lod_dist * max_lod_dist;
+  });
 }
 
 static void getRendinstLandclassData(TempRiLandclassVec &ri_landclasses)
@@ -2303,15 +2295,12 @@ static void getRendinstLandclassData(TempRiLandclassVec &ri_landclasses)
   using namespace rendinst;
   ri_landclasses.clear();
 
-  for (int res_idx = 0, res_idx_end = riExtra.size(); res_idx < res_idx_end; res_idx++)
-  {
-    RiExtraPool &pool = riExtra[res_idx];
-
+  rendinst::iterateRIExtra([&](int, RiExtraPool &pool) {
     if (pool.riLandclassCachedData.size() == 0)
-      continue;
+      return;
 
     if (!pool.res->lods.size())
-      continue;
+      return;
 
     int firstValidTmId = -1;
     for (int i = 0; i < pool.riTm.size(); i++)
@@ -2326,7 +2315,7 @@ static void getRendinstLandclassData(TempRiLandclassVec &ri_landclasses)
       }
 
     if (firstValidTmId == -1) // only for unique RI landclasses
-      continue;
+      return;
 
     RendinstLandclassData landclassData;
     {
@@ -2350,7 +2339,7 @@ static void getRendinstLandclassData(TempRiLandclassVec &ri_landclasses)
     landclassData.mapping = riLandclassCachedData.mapping;
 
     ri_landclasses.push_back(landclassData);
-  }
+  });
 }
 
 float rendinst::getMaxRendinstHeight() { return static_cast<float>(interlocked_relaxed_load(maxRiExtraHeight)); }
@@ -2735,13 +2724,9 @@ float rendinst::getRIGenExtraTiledScenesMaxObjectHeight()
 
 rendinst::HasRIClipmap rendinst::hasRIClipmapPools()
 {
-  if (hasRiClipmap == rendinst::HasRIClipmap::UNKNOWN)
-  {
-    for (const auto &ri : riExtra)
-      if (ri.isRendinstClipmap)
-        return hasRiClipmap = rendinst::HasRIClipmap::YES;
-    return hasRiClipmap = rendinst::HasRIClipmap::NO;
-  }
+  if (hasRiClipmap == HasRIClipmap::UNKNOWN)
+    hasRiClipmap =
+      iterateRIExtra([](int, const RiExtraPool &ri) { return !ri.isRendinstClipmap; }) ? HasRIClipmap::NO : HasRIClipmap::YES;
   return hasRiClipmap;
 }
 
@@ -2769,8 +2754,7 @@ static void riPerDrawData_afterDeviceReset()
 {
   if (!RendInstGenData::renderResRequired)
     return;
-  for (uint32_t i = 0; i < rendinst::riExtra.size(); ++i)
-    rendinst::render::update_per_draw_gathered_data(i);
+  rendinst::iterateRIExtra([](int i, const auto &) { rendinst::render::update_per_draw_gathered_data(i); });
 }
 
 static void rendinst_gen_extra_after_device_reset(bool /*full_reset*/)

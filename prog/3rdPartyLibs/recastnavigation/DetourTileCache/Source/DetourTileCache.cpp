@@ -756,7 +756,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	
 	if (m_tmproc)
 	{
-		m_tmproc->process(&params, bc.lmesh->areas, bc.lmesh->flags, ref);
+		m_tmproc->process(&params, bc.lmesh->areas, bc.lmesh->flags, ref, *bc.layer);
 	}
 	
 	unsigned char* navData = 0;

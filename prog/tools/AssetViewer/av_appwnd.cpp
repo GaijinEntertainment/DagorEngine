@@ -124,6 +124,8 @@
 #include "Entity/colorDlgAppMat.h"
 #include "Entity/compositeEditorPanel.h"
 #include "Entity/compositeEditorTree.h"
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 
 #include <imgui/imgui.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -302,6 +304,8 @@ static String get_global_av_hotkey_settings_file_path()
 {
   return make_full_path(sgg::get_exe_path_full(), "../.local/av_hotkeys.blk");
 }
+
+static String get_per_application_window_layout_blk_path() { return String(assetlocalprops::makePath("_av_window_layout.blk")); }
 
 static E3DCOLOR load_window_background_color()
 {
@@ -758,6 +762,9 @@ void AssetViewerApp::saveLayout(const char *path)
 {
   DataBlock blk;
 
+  DataBlock *mainWindowBlk = blk.addBlock("mainWindow");
+  getWndManager()->saveMainWindowPositionAndSize(*mainWindowBlk);
+
   DataBlock *modelessWindowsBlk = blk.addBlock("modelessWindows");
   getModelessWindowControllers().saveState(*modelessWindowsBlk);
 
@@ -804,7 +811,7 @@ bool AssetViewerApp::loadLayout(const DataBlock &blk)
 
 void AssetViewerApp::loadLastUsedLayout()
 {
-  const String windowLayoutBlkPath(assetlocalprops::makePath("_av_window_layout.blk"));
+  const String windowLayoutBlkPath = get_per_application_window_layout_blk_path();
   DataBlock windowLayoutBlk;
   if (dd_file_exist(windowLayoutBlkPath) && windowLayoutBlk.load(windowLayoutBlkPath))
   {
@@ -2048,7 +2055,20 @@ namespace tools3d
 {
 extern void destroy();
 }
-static void init3d(const DataBlock &appblk)
+
+static void load_main_window_position_and_size(const char *window_layout_blk_path)
+{
+  FullFileLoadCB crd(window_layout_blk_path, DF_READ | DF_IGNORE_MISSING);
+  DataBlock windowLayoutBlk;
+  if (crd.fileHandle && windowLayoutBlk.loadFromStream(crd, window_layout_blk_path, crd.getTargetDataSize()))
+    if (const DataBlock *mainWindowBlk = windowLayoutBlk.getBlockByName("mainWindow"))
+    {
+      logdbg("Loading last used main window position and size from \"%s\".", window_layout_blk_path);
+      EDITORCORE->getWndManager()->loadMainWindowPositionAndSize(*mainWindowBlk);
+    }
+}
+
+static void init3d(const DataBlock &appblk, const char *window_layout_blk_path)
 {
   // shutdown imGui, render, shaders and d3d before reiniting
   imgui_shutdown();
@@ -2071,24 +2091,25 @@ static void init3d(const DataBlock &appblk)
   // reinit 3d with actual shaders and texStreaming/texMgr setup for a project
   dgs_all_shader_vars_optionals = false;
   const DataBlock &blk_game = *appblk.getBlockByNameEx("game");
-  const char *appdir = appblk.getStr("appDir");
   for (int i = 0; i < blk_game.blockCount(); i++)
     if (strcmp(blk_game.getBlock(i)->getBlockName(), "vromfs") == 0)
     {
       const DataBlock &blk_vrom = *blk_game.getBlock(i);
-      VirtualRomFsData *vrom = ::load_vromfs_dump(String(0, "%s/%s", appdir, blk_vrom.getStr("file")), tmpmem);
-      String mnt(blk_vrom.getStr("mnt"));
+      String vrom_fn = make_eff_app_relative_path(blk_vrom.getStr("file"));
+      String mnt = make_eff_app_relative_path(blk_vrom.getStr("mnt"));
+      VirtualRomFsData *vrom = ::load_vromfs_dump(vrom_fn, tmpmem);
       if (mnt.empty())
       {
         ::add_vromfs(vrom);
-        mnt.printf(0, "%s/%s/", appdir, blk_game.getStr("game_folder", "."));
-        vrom = ::load_vromfs_dump(String(0, "%s/%s", appdir, blk_vrom.getStr("file")), tmpmem);
+        make_eff_app_relative_path(mnt, blk_game.getStr("game_folder", "."));
+        vrom = ::load_vromfs_dump(vrom_fn, tmpmem);
       }
       ::add_vromfs(vrom, false, str_dup(mnt, tmpmem));
     }
 
   DataBlock texStreamingBlk;
   ::load_tex_streaming_settings(::get_app().getWorkspace().getAppBlkPath(), &texStreamingBlk);
+  load_main_window_position_and_size(window_layout_blk_path);
   EDITORCORE->getWndManager()->init3d(av2_drv_name, &texStreamingBlk, INITIAL_CAPTION, INITIAL_ICON);
   if (int resv_tid_count = appblk.getInt("texMgrReserveTIDcount", 128 << 10))
   {
@@ -2111,7 +2132,7 @@ static void init3d(const DataBlock &appblk)
   if (const char *gp_file = appblk.getBlockByNameEx("game")->getStr("params", NULL))
   {
     DataBlock *b = const_cast<DataBlock *>(dgs_get_game_params());
-    b->load(String(0, "%s/%s", appdir, gp_file));
+    b->load(make_eff_app_relative_path(gp_file));
     b->removeBlock("rendinstExtra");
     b->removeBlock("rendinstOpt");
   }
@@ -2161,21 +2182,10 @@ static ImpostorGenerator::GenerateResponse impostor_export_callback(DagorAsset *
   return ImpostorGenerator::GenerateResponse::PROCESS;
 }
 
-void read_mount_points(const DataBlock &appblk)
+bool AssetViewerApp::loadProject(const char *)
 {
-  const bool useAddonVromSrc = true;
-  if (const DataBlock *mnt = appblk.getBlockByName("mountPoints"))
-  {
-    dblk::iterate_child_blocks(*mnt, [p = useAddonVromSrc ? "forSource" : "forVromfs"](const DataBlock &b) {
-      String mnt(0, "%s/%s", ::get_app().getWorkspace().getSdkDir(), b.getStr(p));
-      simplify_fname(mnt);
-      dd_set_named_mount_path(b.getBlockName(), mnt);
-    });
-    dd_dump_named_mounts();
-  }
-}
-bool AssetViewerApp::loadProject(const char *app_dir)
-{
+  const char *app_dir = dd_get_named_mount_path("appDir");
+  DAEDITOR3.conNote("using %%appDir=%s", app_dir);
   projectLoaded = false;
   ec_set_busy(true);
   ::dagor_idle_cycle();
@@ -2204,19 +2214,18 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   av_perform_uptodate_check =
     appblk.getBlockByNameEx("assets")->getBool("avPerformUpToDateChecks", true) && !dgs_get_argv("skip_check");
 
-  matParamsPath = appblk.getBlockByNameEx("game")->getStr("mat_params", "");
+  matParamsPath = make_eff_app_relative_path(appblk.getBlockByNameEx("game")->getStr("mat_params", ""));
   appblk.setStr("appDir", app_dir);
   useDngBasedSceneRender = appblk.getBlockByNameEx("game")->getBool("daNetGameRender", false);
   if (useDngBasedSceneRender)
     appblk.setBool("initUiFonts", false);
 
-  appblk.setStr("shadersAbs", tools3d::get_shaders_path(appblk, app_dir, useDngBasedSceneRender));
+  appblk.setStr("shadersAbs", tools3d::get_shaders_path(appblk, useDngBasedSceneRender));
 
-  read_mount_points(appblk);
+  setup_named_mount_points(*appblk.getBlockByNameEx("mountPoints"), getWorkspace().getSdkDir());
 
-
-  init3d(appblk);
-  assetlocalprops::init(app_dir, "develop/.asset-local");
+  assetlocalprops::init("develop/.asset-local");
+  init3d(appblk, get_per_application_window_layout_blk_path());
 
   const DataBlock &debugSettings = *dgs_get_settings()->getBlockByNameEx("debug");
   const DataBlock *profiler = debugSettings.getBlockByName("profiler");
@@ -2241,7 +2250,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
   const char *fx_nut = appblk.getBlockByNameEx("assets")->getStr("fxScriptsDir", NULL);
   if (fx_nut)
-    fx_devres_base_path.printf(260, "%s/%s/", app_dir, fx_nut);
+    make_eff_app_relative_path(fx_devres_base_path, fx_nut);
 
   // detect new gameres system model and setup engine support for it
   const DataBlock *exp_blk = appblk.getBlockByNameEx("assets")->getBlockByName("export");
@@ -2285,12 +2294,10 @@ bool AssetViewerApp::loadProject(const char *app_dir)
     String patch_dir;
     if (const char *dir = appblk.getBlockByNameEx("game")->getStr("res_patch_folder", NULL))
     {
-      patch_dir.printf(0, "%s/%s", app_dir, dir);
-      simplify_fname(patch_dir);
+      make_eff_app_relative_path(patch_dir, dir);
       DAEDITOR3.conNote("resource patches location: %s", patch_dir);
     }
-    String game_dir(0, "%s/%s", app_dir, appblk.getBlockByNameEx("game")->getStr("game_folder", "game"));
-    simplify_fname(game_dir);
+    String game_dir = make_eff_app_relative_path(appblk.getBlockByNameEx("game")->getStr("game_folder", "game"));
     int game_dir_prefix_len = (int)strlen(game_dir);
 
     if (packlist && expBlk.getBlockByNameEx("destination")->getStr("PC", NULL))
@@ -2305,8 +2312,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
       if (v_dest_fname)
       {
-        vrom_name.printf(260, "%s/%s", app_dir, v_dest_fname);
-        simplify_fname(vrom_name);
+        make_eff_app_relative_path(vrom_name, v_dest_fname);
         vrom = ::load_vromfs_dump(vrom_name, tmpmem);
         plname.printf(260, "%s/%s", v_game_relpath, packlist);
         if (vrom)
@@ -2331,8 +2337,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
       const char *base_pkg_res_dir = nullptr;
       if (const char *add_folder_c = expBlk.getBlockByNameEx("destination")->getBlockByNameEx("additional")->getStr("PC", NULL))
       {
-        String add_folder(0, "%s/%s", app_dir, add_folder_c);
-        simplify_fname(add_folder);
+        String add_folder = make_eff_app_relative_path(add_folder_c);
         if (const char *pstr = strstr(mntPoint, add_folder))
           if (const char *add_folder_last = strrchr(add_folder, '/'))
             base_pkg_res_dir = pstr + strlen(add_folder) - strlen(add_folder_last) + 1;
@@ -2470,7 +2475,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
   for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
     if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-      assetMgr.loadAssetsBase(String::mk_str_cat(app_dir, blk.getStr(i)), "global");
+      assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
   if (true)
   {
     dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();
@@ -2508,7 +2513,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
     assetMgr.mountBuiltGameResEx(scannedResBlk, *skipTypes);
 
   if (const char *efx_fname = appblk.getBlockByNameEx("assets")->getStr("efxBlk", NULL))
-    mount_efx_assets(assetMgr, String(0, "%s/%s", app_dir, efx_fname));
+    mount_efx_assets(assetMgr, make_eff_app_relative_path(efx_fname));
 
   if (get_max_managed_texture_id())
     debug("tex/res registered before AssetBase: %d", get_max_managed_texture_id().index());

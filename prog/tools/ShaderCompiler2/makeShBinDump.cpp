@@ -1086,6 +1086,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   // Load shaders and construct bindump from them
   //
   shc::TargetContext targetCtx = ctx.makeTargetContext(dump_name);
+  sh_process_errors();
 
   Tab<uint32_t> gvmap(tmpmem);
 

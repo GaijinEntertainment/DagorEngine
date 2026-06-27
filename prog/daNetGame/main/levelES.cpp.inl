@@ -1374,12 +1374,11 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
   int found = 0;
   CONSOLE_CHECK_NAME("level", "reroll_weather_choice", 1, 6)
   {
-    delete_weather_choice_entities();
     int weatherSeed = -1; //-1 means it'll be randomized in setup_level_weather_and_datetime
     int skiesSeed = -1;
     int timeSeed = -1;
     float timeOfDay = -1;
-    const char *presetName = nullptr;
+    String presetName;
     if (argc >= 2)
       weatherSeed = console::to_int(argv[1]);
     if (argc >= 3)
@@ -1390,7 +1389,15 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
       timeOfDay = console::to_real(argv[4]);
     if (argc >= 6)
       presetName = argv[5];
-    reroll_weather_choice(weatherSeed, skiesSeed, timeSeed, timeOfDay, presetName);
+    // reroll calls ecs_tick(); webui is processed on the main thread while the
+    // additional game job updates the ECS concurrently, so queue reroll for the
+    // next work cycle's perform_delayed_actions() (which runs after that job is
+    // waited and before the next one starts) instead of racing its das contexts.
+    // Must be add_delayed_action, not execute_delayed_action_on_main_thread: the
+    // latter runs inline when already on the main thread.
+    add_delayed_action(make_delayed_action([=]() {
+      reroll_weather_choice(weatherSeed, skiesSeed, timeSeed, timeOfDay, presetName.empty() ? nullptr : presetName.c_str());
+    }));
   }
 
   CONSOLE_CHECK_NAME("level", "select_weather_preset", 2, 2) { select_weather_preset(argv[1]); }

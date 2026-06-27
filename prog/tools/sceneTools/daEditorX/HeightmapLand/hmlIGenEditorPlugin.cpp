@@ -32,6 +32,7 @@
 #include <libTools/util/colorUtil.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/appDirRelativePath.h>
 #include "editorLandRayTracer.h"
 
 #include <3d/dag_render.h>
@@ -506,19 +507,20 @@ void HmapLandPlugin::resetRenderer(bool imm)
 bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
 {
   String fn(0, "levels/%s", DAGORED2->getProjectFileName());
-  String app_root(DAGORED2->getWorkspace().getAppDir());
   DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
 
   class LevelsFolderIncludeFileResolver : public DataBlock::IIncludeFileResolver
   {
   public:
-    LevelsFolderIncludeFileResolver() : prefix(tmpmem), appDir(NULL) {}
+    LevelsFolderIncludeFileResolver() : prefix(tmpmem) {}
     bool resolveIncludeFile(String &inout_fname) override
     {
       String fn;
       for (int i = 0; i < prefix.size(); i++)
       {
-        fn.printf(0, "%s/%s/levels/%s", appDir, prefix[i], inout_fname);
+        make_eff_app_relative_path(fn, prefix[i]);
+        fn += "/levels/";
+        fn += inout_fname;
         if (dd_file_exists(fn))
         {
           inout_fname = fn;
@@ -527,10 +529,9 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
       }
       return false;
     }
-    void preparePrefixes(const DataBlock *b, const char *app_dir)
+    void preparePrefixes(const DataBlock *b)
     {
       prefix.clear();
-      appDir = app_dir;
       if (!b)
         return;
       for (int i = 0; i < b->paramCount(); i++)
@@ -538,11 +539,10 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
           prefix.push_back(b->getStr(i));
     }
     Tab<const char *> prefix;
-    const char *appDir;
   };
   static LevelsFolderIncludeFileResolver inc_resv;
 
-  inc_resv.preparePrefixes(appblk.getBlockByName("levelsBlkPrefix"), app_root);
+  inc_resv.preparePrefixes(appblk.getBlockByName("levelsBlkPrefix"));
   DataBlock::setIncludeResolver(&inc_resv);
 
   while (char *p = (char *)dd_get_fname_ext(fn))
@@ -555,7 +555,8 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
   int prefix_tried = 0;
   for (int i = 0; i < inc_resv.prefix.size(); i++)
   {
-    String fpath(0, "%s/%s/%s", app_root, inc_resv.prefix[i], fn);
+    String fpath = make_eff_app_relative_path(inc_resv.prefix[i], true);
+    fpath.append(fn);
     if (dd_file_exists(fpath) && level_blk.load(fpath))
     {
       loaded = true;
@@ -563,7 +564,8 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
       break;
     }
     debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
-    fpath.printf(0, "%s/%s/%s", app_root, inc_resv.prefix[i], dd_get_fname(fn));
+    make_eff_app_relative_path(fpath, inc_resv.prefix[i], true);
+    fpath.append(dd_get_fname(fn));
     if (dd_file_exists(fpath) && level_blk.load(fpath))
     {
       loaded = true;
@@ -603,7 +605,7 @@ bool HmapLandPlugin::loadLevelSettingsBlk(DataBlock &level_blk)
   if (IRendInstGenService *rendInstGenService = DAGORED2->queryEditorInterface<IRendInstGenService>())
     rendInstGenService->onLevelBlkLoaded(loaded ? level_blk : DataBlock());
 
-  DataBlock::setRootIncludeResolver(app_root);
+  DataBlock::setRootIncludeResolver("%appDir/");
   return loaded;
 }
 

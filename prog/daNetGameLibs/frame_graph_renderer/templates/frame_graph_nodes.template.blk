@@ -42,3 +42,10 @@ upscale_node {
   "upscale_weights_buffer:UniqueBufWithShaderVar"{}
 
 }
+
+water_refraction_stub {
+  _singleton:b=true
+  _tags:t="render"
+
+  "water_refraction_stub:UniqueTexWithShaderVar"{}
+}

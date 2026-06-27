@@ -340,7 +340,7 @@ void WaterEffects::renderInternalWaterProjFx()
   TMatrix4 view, proj;
   Point3 pos;
   if (waterProjectedFx && waterProjectedFx->getView(view, proj, pos))
-    acesfx::renderTransWaterProj(view, proj, pos, getWaterProjectedFxLodBias());
+    acesfx::renderTransWaterProj(waterProjectedFx->getTarget(0), view, proj, pos, getWaterProjectedFxLodBias());
 }
 
 WaterEffects::~WaterEffects()
@@ -420,7 +420,7 @@ void WaterEffects::render(FFTWater &water,
     {
       foamFx->beginMaskRender();
       fft_water::render(&water, inverse(view_tm).getcol(3), BAD_TEXTUREID, Frustum(TMatrix4(view_tm) * TMatrix4(proj_tm)), nullptr,
-        perps, fft_water::GEOM_NORMAL, -1, nullptr, fft_water::RenderMode::WATER_DEPTH_SHADER);
+        perps, fft_water::GEOM_LOD_NORMAL, -1, nullptr, fft_water::RenderMode::WATER_DEPTH_SHADER);
       if (isShipWakeFxActive)
         shipWakeFx->renderFoamMask();
 

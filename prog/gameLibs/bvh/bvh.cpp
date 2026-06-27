@@ -117,7 +117,8 @@ void teardown(ContextId context_id);
 void enable_dynamic_planar_decals(bool enable);
 void on_unload_scene(ContextId context_id);
 void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
-  dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position);
+  dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position,
+  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances);
 void wait_dynrend_instances();
 void update_animchar_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position, dynrend::BVHIterateCallback iterate_callback);
@@ -1212,13 +1213,14 @@ void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transfor
 {
   add_instance(context_id, context_id->genericInstances, object_id, transform, nullptr, false,
     Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-    MeshMetaAllocator::INVALID_ALLOC_ID);
+    MeshMetaAllocator::INVALID_ALLOC_ID, false);
 }
 
 void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
   const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
   dynrend::ContextId *dynrend_no_shadow_context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
-  dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
+  dynrend::BVHIterateCallback dynrend_iterate, dag::Vector<DynamicRenderableSceneInstance *> &&og_instances,
+  threadpool::JobPriority prio)
 {
   bvh_context_id->genericInstances.clear();
   for (auto &instances : bvh_context_id->dynrendInstances)
@@ -1251,7 +1253,8 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
       dyn::update_animchar_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position,
         dynrend_iterate);
     else
-      dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position);
+      dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position,
+        eastl::move(og_instances));
   }
 
   if (bvh_context_id->has(Features::AnyRI))
@@ -1267,10 +1270,11 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
 
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
   const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
-  dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio)
+  dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
+  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances, threadpool::JobPriority prio)
 {
   update_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum, dynrend_context_id,
-    dynrend_no_shadow_context_id, {ri_gen_visibility}, nullptr, prio);
+    dynrend_no_shadow_context_id, {ri_gen_visibility}, nullptr, eastl::move(og_instances), prio);
 }
 
 // daNetGame doesn't use dynrend, but these can be used to identify contexts in BVH
@@ -1281,7 +1285,7 @@ void update_instances(ContextId bvh_context_id, const Point3 &view_position, con
   const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
 {
   update_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum, &bvh_dynrend_context,
-    &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, prio);
+    &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, {}, prio);
 }
 
 void wait_dynamic_instances_jobs()
@@ -1412,6 +1416,7 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
   object.tag = object_info.tag;
   object.meshes = decltype(object.meshes)(object_info.meshes.size());
   object.isAnimated = object_info.isAnimated;
+  object.type = object_info.type;
   object.hasVertexProcessor =
     eastl::any_of(object_info.meshes.begin(), object_info.meshes.end(), [](const auto &m) { return m.vertexProcessor; });
   {
@@ -2008,7 +2013,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
     buildInfo.flags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
 
-    Context::BLASCompaction *compaction = context_id->beginBLASCompaction(objectId);
+    Context::BLASCompaction *compaction = context_id->beginBLASCompaction(objectId, object.type);
     if (compaction)
     {
       buildInfo.flags |= RaytraceBuildFlags::ALLOW_COMPACTION;
@@ -2020,6 +2025,10 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
     object.blas = UniqueBLAS::create(desc, descCount, buildInfo.flags);
     HANDLE_LOST_DEVICE_STATE(object.blas, );
+    if (object.type == BvhType::RI && object.blas)
+      unitedvdata::riUnitedVdata.adjustBlasSize(object.blas.getASSize());
+    else if (object.type == BvhType::Dyn && object.blas)
+      unitedvdata::dmUnitedVdata.adjustBlasSize(object.blas.getASSize());
 
     buildInfo.geometryDesc = desc;
     buildInfo.geometryDescCount = descCount;
@@ -2223,7 +2232,19 @@ void process_meshes(ContextId context_id, BuildBudget budget)
           if (d3d::get_event_query_status(compaction.query.get(), false))
           {
             if (auto blas = getBlas(compaction))
+            {
+              if (compaction.type == BvhType::RI)
+              {
+                unitedvdata::riUnitedVdata.adjustBlasSize(-int64_t(blas->getASSize()));
+                unitedvdata::riUnitedVdata.adjustBlasSize(compaction.compactedBlas.getASSize());
+              }
+              else if (compaction.type == BvhType::Dyn)
+              {
+                unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(blas->getASSize()));
+                unitedvdata::dmUnitedVdata.adjustBlasSize(compaction.compactedBlas.getASSize());
+              }
               blas->swap(compaction.compactedBlas);
+            }
 
             cancelCompaction(context_id, iter);
             continue;
@@ -2373,6 +2394,11 @@ public:
   }
 } bvh_fallback_upload_heavy_data_job;
 
+static bool is_tree_instance(const Context::Instance &instance)
+{
+  // so far this is only true for trees
+  return instance.hasInstanceColor;
+}
 
 static void add_instances(ContextId context_id, const Context::InstanceMap &instances, dag::Vector<NativeInstance> &outInstances,
   uint32_t group_mask, bool is_camera_relative, const char *name, const Point3 &light_direction, const Point3 &camera_pos,
@@ -2496,6 +2522,11 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
           isNew = true;
 
           HANDLE_LOST_DEVICE_STATE(blas, );
+          // this is how we distinguish tree which are later deleted via stationaryTreeBuffers
+          if (object.type == BvhType::RI && is_tree_instance(instance) && blas)
+            unitedvdata::riUnitedVdata.adjustBlasSize(blas.getASSize());
+          else if (object.type == BvhType::Dyn && is_tree_instance(instance) && blas)
+            unitedvdata::dmUnitedVdata.adjustBlasSize(blas.getASSize());
 
           if (object.blas && object.blas != blas && !stationary)
           {
@@ -2559,6 +2590,11 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
           object.blas = UniqueBLAS::create(geoms.data(), geoms.size(), update.basbi.flags);
           d3d::copy_raytrace_acceleration_structure(object.blas.get(), update.as);
 
+          if (object.type == BvhType::RI && object.blas)
+            unitedvdata::riUnitedVdata.adjustBlasSize(object.blas.getASSize());
+          else if (object.type == BvhType::Dyn && object.blas)
+            unitedvdata::dmUnitedVdata.adjustBlasSize(object.blas.getASSize());
+
           allBlasUpdatesAs.erase(blasUpdates.back().as);
           blasUpdates.pop_back();
           updateGeoms.pop_back();
@@ -2585,8 +2621,9 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
     desc.instanceID = MeshMetaAllocator::decode(metaAllocId);
     desc.instanceMask = instance.noShadow ? bvhGroupNoShadow : group_mask;
     desc.instanceContributionToHitGroupIndex = 0;
-    desc.flags = flipWinding ? RaytraceGeometryInstanceDescription::TRIANGLE_CULL_FLIP_WINDING
-                             : RaytraceGeometryInstanceDescription::TRIANGLE_CULL_DISABLE;
+    desc.flags = instance.forceEnableBackfaceCulling ? (flipWinding ? RaytraceGeometryInstanceDescription::TRIANGLE_CULL_FLIP_WINDING
+                                                                    : RaytraceGeometryInstanceDescription::NONE)
+                                                     : RaytraceGeometryInstanceDescription::TRIANGLE_CULL_DISABLE;
     desc.blasGpuAddress = blas.getGPUAddress();
 
     if (!is_camera_relative)
@@ -3356,7 +3393,11 @@ static void upload_atmosphere(ContextId context_id)
 void bind_gbuffer_textures(ContextId context_id, Texture *gbuffer_albedo, Texture *gbuffer_normal, Texture *gbuffer_material,
   Texture *gbuffer_motion, Texture *gbuffer_depth)
 {
-  static int bvh_gbuffer_range_startVarId = get_shader_variable_id("bvh_gbuffer_range_start");
+  static int bvh_gbuffer_albedo_indexVarId = get_shader_variable_id("bvh_gbuffer_albedo_index");
+  static int bvh_gbuffer_normal_indexVarId = get_shader_variable_id("bvh_gbuffer_normal_index");
+  static int bvh_gbuffer_material_indexVarId = get_shader_variable_id("bvh_gbuffer_material_index");
+  static int bvh_gbuffer_motion_indexVarId = get_shader_variable_id("bvh_gbuffer_motion_index");
+  static int bvh_gbuffer_depth_indexVarId = get_shader_variable_id("bvh_gbuffer_depth_index");
 
   enum
   {
@@ -3372,23 +3413,22 @@ void bind_gbuffer_textures(ContextId context_id, Texture *gbuffer_albedo, Textur
 
   d3d::update_bindless_resources_to_null(D3DResourceType::TEX, context_id->gbufferBindlessRange, 5);
 
-  auto registerGbufferTexture = [br = context_id->gbufferBindlessRange](Texture *t, int i) {
+  auto registerGbufferTexture = [br = context_id->gbufferBindlessRange](Texture *t, int i, int shadervar) {
     d3d::resource_barrier({t, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     d3d::update_bindless_resource(D3DResourceType::TEX, br + i, t);
+    ShaderGlobal::set_int(shadervar, br + i);
   };
 
   if (gbuffer_albedo)
-    registerGbufferTexture(gbuffer_albedo, bvhGbufferAlbedo);
+    registerGbufferTexture(gbuffer_albedo, bvhGbufferAlbedo, bvh_gbuffer_albedo_indexVarId);
   if (gbuffer_normal)
-    registerGbufferTexture(gbuffer_normal, bvhGbufferNormal);
+    registerGbufferTexture(gbuffer_normal, bvhGbufferNormal, bvh_gbuffer_normal_indexVarId);
   if (gbuffer_material)
-    registerGbufferTexture(gbuffer_material, bvhGbufferMaterial);
+    registerGbufferTexture(gbuffer_material, bvhGbufferMaterial, bvh_gbuffer_material_indexVarId);
   if (gbuffer_motion)
-    registerGbufferTexture(gbuffer_motion, bvhGbufferMotion);
+    registerGbufferTexture(gbuffer_motion, bvhGbufferMotion, bvh_gbuffer_motion_indexVarId);
   if (gbuffer_depth)
-    registerGbufferTexture(gbuffer_depth, bvhGbufferDepth);
-
-  ShaderGlobal::set_int(bvh_gbuffer_range_startVarId, context_id->gbufferBindlessRange);
+    registerGbufferTexture(gbuffer_depth, bvhGbufferDepth, bvh_gbuffer_depth_indexVarId);
 }
 
 void bind_fom_textures(ContextId context_id, Texture *fom_sin, Texture *fom_cos, const d3d::SamplerHandle *fom_sampler)

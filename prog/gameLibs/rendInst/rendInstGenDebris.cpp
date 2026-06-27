@@ -1351,11 +1351,9 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
   }
   if (rendinst::isRgLayerPrimary(layerIdx))
   {
-    for (int i = 0; i < rendinst::riExtra.size(); i++)
-    {
-      rendinst::RiExtraPool &curRi = rendinst::riExtra[i];
+    rendinst::iterateRIExtra([this](int i, rendinst::RiExtraPool &curRi) {
       if ((size_t)curRi.riPoolRef >= (size_t)riDestr.size())
-        continue;
+        return;
 
       if (riProperties[curRi.riPoolRef].immortal || (rendinst::riExtra[i].initialHP < 0.f && !riDestr[curRi.riPoolRef].destructable))
         curRi.immortal = true;
@@ -1370,7 +1368,7 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
         curRi.destroyedPhysRes = curRiDestr.res;
         ::game_resource_add_ref_ex(curRi.destroyedPhysRes, PhysObjGameResClassId);
       }
-    }
+    });
   }
 }
 

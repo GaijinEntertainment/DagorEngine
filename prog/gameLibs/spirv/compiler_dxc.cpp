@@ -652,8 +652,11 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
         result.infoLog.insert(end(result.infoLog), begin(blobReadResult.errorLog), end(blobReadResult.errorLog));
         result.infoLog.insert(end(result.infoLog), begin(blobReadResult.warningLog), end(blobReadResult.warningLog));
 
-        // first validate structure layouts and bail out if they are invalid
-        if (!validateStructureLayouts(module, StructureValidationRules::VULKAN_1_0, errorHandler))
+        // first validate structure layouts and bail out if they are invalid. The runtime texgen path
+        // opts into scalar layout (DX-packed structs) via USE_SCALAR_LAYOUT; offline stays strict.
+        const StructureValidationRules layoutRules =
+          bool(flags & CompileFlags::USE_SCALAR_LAYOUT) ? StructureValidationRules::SCALAR : StructureValidationRules::VULKAN_1_0;
+        if (!validateStructureLayouts(module, layoutRules, errorHandler))
         {
           errorHandler.onMessage("DXC Produced the following SPIR-V Module");
           spvtools::SpirvTools tools{SPV_ENV_VULKAN_1_0};

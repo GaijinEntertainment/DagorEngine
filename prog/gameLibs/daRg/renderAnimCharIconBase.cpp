@@ -50,7 +50,7 @@
 #include "math/dag_TMatrix.h"
 #include <daRg/dag_renderAnimCharIconBase.h>
 
-#include <shaders/icon_render.hlsli>
+#include <render/icon_render.hlsli>
 
 #if DAGOR_DBGLEVEL > 0
 #define ICON_3D_RENDER_DEBUG 1
@@ -125,6 +125,9 @@ void IconAnimchar::init(AnimV20::IAnimCharacter2 *animchar_, const DataBlock *bl
   silhouette = blk->getE3dcolor("silhouette", 0);
   silhouetteHasShadow = blk->getBool("silhouetteHasShadow", false);
   silhouetteMinShadow = blk->getReal("silhouetteMinShadow", 1.0f);
+  aoIntensity = blk->getReal("aoIntensity", 0.0f);
+  aoRadius = blk->getReal("aoRadius", 1.0f);
+  aoBias = blk->getReal("aoBias", 0.02f);
   outline = blk->getE3dcolor("outline", 0);
   calcBBox = blk->getBool("calcBBox", true);
   swapYZ = blk->getBool("swapYZ", true);
@@ -379,33 +382,36 @@ void RenderAnimCharIconBase::clear_to(E3DCOLOR col, const PictureManager::Pictur
   VAR(icon_tonemap_enabled)             \
   VAR(view_scale_ofs)
 
-#define VAR(a) static int a##VarId = -1;
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_ANIMCHAR_ICONS_LIST
 #undef VAR
 
-eastl::optional<SharedTexWithShaderVar> RenderAnimCharIconBase::setEnviParams(const DataBlock &info)
+IconAnimcharEnviParams RenderAnimCharIconBase::getEnviParams(const DataBlock &info)
 {
   const char *defaultEnviPanoramaTexName = dgs_get_game_params()->getStr("icon_render_panorama", "");
   const char *enviPanoramaGameresTex = info.getStr("enviPanoramaTex", defaultEnviPanoramaTexName);
   const EnviPanoramaCache::Id enviId = enviPanoramaCache.addEnvi(enviPanoramaGameresTex);
-  SharedTexWithShaderVar enviPanoramaScoped;
-  if (enviId)
-  {
-    if (!enviPanoramaCache.prefetch(enviId))
-      return eastl::nullopt;
-    const SharedTex &envi = enviPanoramaCache.get(enviId);
 
-    enviPanoramaScoped = dag::set_texture(icon_envi_panoramaVarId, envi);
-    ShaderGlobal::set_sampler(icon_envi_panorama_samplerstateVarId, get_texture_separate_sampler(envi.getTexId()));
-  }
-  else
+  if (!enviId)
     debug("Animchar Icon Render: '%s' is rendered without envi panorama.", info.getStr("animchar", "<no name>"));
 
+  const bool prefetched = enviId ? enviPanoramaCache.prefetch(enviId) : true;
   const float defaultEnviExposure = dgs_get_game_params()->getReal("icon_envi_panorama_exposure", 64.f);
   const float enviExposure = info.getReal("enviExposure", defaultEnviExposure);
-  ShaderGlobal::set_float(icon_envi_panorama_exposureVarId, enviExposure);
 
-  return enviPanoramaScoped;
+  return {.id = enviId, .prefetched = prefetched, .exposure = enviExposure};
+}
+
+
+SharedTexWithShaderVar RenderAnimCharIconBase::setEnviParams(const IconAnimcharEnviParams &envi_params)
+{
+  if (!envi_params.id)
+    return {};
+
+  ShaderGlobal::set_float(icon_envi_panorama_exposureVarId, envi_params.exposure);
+  const SharedTex &envi = enviPanoramaCache.get(envi_params.id);
+  ShaderGlobal::set_sampler(icon_envi_panorama_samplerstateVarId, get_texture_separate_sampler(envi.getTexId()));
+  return dag::set_texture(icon_envi_panoramaVarId.get_var_id(), envi);
 }
 
 static inline Point4 get_light_dir(float zenith, float azimuth)
@@ -839,6 +845,10 @@ Driver3dPerspective RenderAnimCharIconBase::updateAnimcharRenderParams(IconAnimc
 
   TMatrix viewTm;
   float fovInTan, fovHkInTan, zn, zf, scaleX, scaleY, centerX, centerY;
+
+  render_ctx.iconAnimchars[0].animchar->setTm(TMatrix::IDENT);
+  render_ctx.iconAnimchars[0].animchar->recalcWtm();
+
   get_animchar_tight_matrix(pic_ctx.props, render_ctx.iconAnimchars, float(icon_ssaa.w) / icon_ssaa.h, viewTm, fovInTan, fovHkInTan,
     zn, zf, scaleX, scaleY, centerX, centerY);
   scaleX *= scale;
@@ -927,7 +937,7 @@ Driver3dPerspective RenderAnimCharIconBase::updateAnimcharRenderParams(IconAnimc
     scaleX * fovInTan, scaleY * fovHkInTan, zn, zf, ofs.x * scale - centerX * scaleX, ofs.y * scale - centerY * scaleY};
 }
 
-RenderAnimCharIconBase::IconSSAA RenderAnimCharIconBase::applySSAA(const int dstw, const int dsth, const DataBlock &info) const
+IconSSAA RenderAnimCharIconBase::applySSAA(const int dstw, const int dsth, const DataBlock &info) const
 {
   int w = dstw, h = dsth;
   const bool ssaaEnabled = !dgs_get_settings()->getBlockByNameEx("graphics")->getBool("iconDisableSSAA", false);
@@ -1003,16 +1013,15 @@ void RenderAnimCharIconBase::afterRender(IconAnimcharWithAttachments &icon_animc
   onAfterRender();
 }
 
-RenderAnimCharIconBase::IconAnimcharRenderingContext RenderAnimCharIconBase::beforeRender(
-  const PictureManager::PictureRenderContext &pic_ctx)
+IconAnimcharRenderingContext RenderAnimCharIconBase::beforeRender(const PictureManager::PictureRenderContext &pic_ctx)
 {
   AnimcharPrefetch animcharPrefetch = prepareAnimchar(pic_ctx);
 
   if (animcharPrefetch.status != IconPrepareStatus::Ready)
     return {animcharPrefetch.status};
 
-  eastl::optional<SharedTexWithShaderVar> previousEnviPanoramaScoped = setEnviParams(pic_ctx.props);
-  if (!previousEnviPanoramaScoped.has_value())
+  IconAnimcharEnviParams enviParams = getEnviParams(pic_ctx.props);
+  if (!enviParams.prefetched)
     return {IconPrepareStatus::RetryAgain};
 
   onBeforeRender(pic_ctx.props);
@@ -1020,16 +1029,12 @@ RenderAnimCharIconBase::IconAnimcharRenderingContext RenderAnimCharIconBase::bef
   return {
     .status = IconPrepareStatus::Ready,
     .iconAnimchars = eastl::move(animcharPrefetch.ia),
-    .previousEnviPanoramaScoped = eastl::move(previousEnviPanoramaScoped),
+    .enviParams = eastl::move(enviParams),
   };
 }
 
-RenderAnimCharIconBase::IconPrepareStatus RenderAnimCharIconBase::renderInternal(const PictureManager::PictureRenderContext &pic_ctx)
+IconPrepareStatus RenderAnimCharIconBase::renderInternal(const PictureManager::PictureRenderContext &pic_ctx)
 {
-#define VAR(a) a##VarId = get_shader_variable_id(#a, true);
-  GLOBAL_VARS_ANIMCHAR_ICONS_LIST
-#undef VAR
-
   IconAnimcharRenderingContext renderCtx = beforeRender(pic_ctx);
   if (renderCtx.status != IconPrepareStatus::Ready)
     return renderCtx.status;
@@ -1043,6 +1048,8 @@ RenderAnimCharIconBase::IconPrepareStatus RenderAnimCharIconBase::renderInternal
 
     const IconSSAA iconSSAA = applySSAA(pic_ctx.w, pic_ctx.h, pic_ctx.props);
     ensureDim(iconSSAA.w, iconSSAA.h);
+
+    SharedTexWithShaderVar scopedPanorama = setEnviParams(renderCtx.enviParams);
 
     const Driver3dPerspective perspective = updateAnimcharRenderParams(renderCtx, pic_ctx, iconSSAA);
     if (!renderIconAnimChars(renderCtx, pic_ctx, iconSSAA, perspective))

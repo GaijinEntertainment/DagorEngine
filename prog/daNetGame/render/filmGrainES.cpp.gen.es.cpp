@@ -33,9 +33,7 @@ static constexpr ecs::ComponentDesc film_grain_lut_params_change_es_event_handle
 {
 //start of 1 rw components at [0]
   {ECS_HASH("film_grain_lut"), ecs::ComponentTypeInfo<FilmGrainLutHolder>()},
-//start of 3 ro components at [1]
-  {ECS_HASH("film_grain_lut__wh"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("film_grain_lut__d"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
+//start of 1 ro components at [1]
   {ECS_HASH("film_grain_lut__gen_params"), ecs::ComponentTypeInfo<Point4>(), ecs::CDF_OPTIONAL}
 };
 static void film_grain_lut_params_change_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -43,8 +41,6 @@ static void film_grain_lut_params_change_es_event_handler_all_events(const ecs::
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     film_grain_lut_params_change_es_event_handler(evt
         , ECS_RW_COMP(film_grain_lut_params_change_es_event_handler_comps, "film_grain_lut", FilmGrainLutHolder)
-    , ECS_RO_COMP_OR(film_grain_lut_params_change_es_event_handler_comps, "film_grain_lut__wh", int(256))
-    , ECS_RO_COMP_OR(film_grain_lut_params_change_es_event_handler_comps, "film_grain_lut__d", int(64))
     , ECS_RO_COMP_OR(film_grain_lut_params_change_es_event_handler_comps, "film_grain_lut__gen_params", Point4(Point4(0, 0, 0, 0)))
     );
   while (++comp != compE);
@@ -55,13 +51,13 @@ static ecs::EntitySystemDesc film_grain_lut_params_change_es_event_handler_es_de
   "prog/daNetGame/render/filmGrainES.cpp.inl",
   ecs::EntitySystemOps(nullptr, film_grain_lut_params_change_es_event_handler_all_events),
   make_span(film_grain_lut_params_change_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(film_grain_lut_params_change_es_event_handler_comps+1, 3)/*ro*/,
+  make_span(film_grain_lut_params_change_es_event_handler_comps+1, 1)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,"render","film_grain_lut__d,film_grain_lut__gen_params,film_grain_lut__wh");
+,"render","film_grain_lut__gen_params");
 static constexpr ecs::ComponentDesc film_grain_lut_settings_change_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]

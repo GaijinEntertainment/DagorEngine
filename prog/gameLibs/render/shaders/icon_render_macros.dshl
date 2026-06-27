@@ -1,0 +1,744 @@
+include "sky_shader_global.dshl"
+include "pbr.dshl"
+include "gbuffer.dshl"
+include "monteCarlo.dshl"
+include "roughToMip.dshl"
+include "normaldetail.dshl"
+include "viewVecVS.dshl"
+include "invGlobTm.dshl"
+include "use_prefiltered_gf.dshl"
+include "contact_shadows.dshl"
+include "contrast_adaptive_sharpening.dshl"
+
+
+float4 icon_outline_color = (0,0,0,2);
+float4 icon_silhouette_color = (0,0,0,2);
+float4 icon_ssaa = (1,1,0,0);
+float icon_silhouette_has_shadow = 0.0;
+interval icon_silhouette_has_shadow: no <1.0, yes;
+float icon_silhouette_min_shadow = 1.0;
+float icon_contact_shadow_num_steps = 64.0;
+float icon_contact_shadow_jitter_count = 16.0;
+
+float icon_ao_intensity = 0.0;
+float icon_ao_radius_meter = 1.0;
+float icon_ao_bias = 0.02;
+
+texture combined_shadows;
+
+sampler linear_clamp_sampler
+{
+  mipmap_mode = linear;
+  filter = linear;
+  address_u = clamp;
+  address_v = clamp;
+  address_w = clamp;
+};
+
+macro COMMON_RESOLVE()
+  supports global_const_block;
+  STANDARD_BRDF_SHADING()
+  INIT_GBUFFER_FOR_ICON_RENDER()
+  USE_READ_GBUFFER()
+
+  USE_ROUGH_TO_MIP()
+  INIT_SKY()
+  USE_SKY()
+  USE_DECODE_DEPTH()
+  USE_PREINTEGRATED_GF()
+endmacro
+
+macro COMMON_RESOLVE_MOBILE()
+  supports global_const_block;
+  hlsl {
+    #define SPECULAR_DISABLED 1
+    #define MOBILE_GBUFFER_UNPACK_FORCE_METALNESS 0
+  }
+  STANDARD_BRDF_SHADING()
+
+  INIT_SKY()
+  USE_SKY()
+endmacro
+
+float4 view_scale_ofs = (1,1,0,0);
+texture icon_albedo_gbuf;
+texture icon_normal_gbuf;
+texture icon_material_gbuf;
+texture icon_depth_gbuf;
+
+float4 icon_light_dirs[5]; //ICON_RENDER_MAX_LIGHTS
+float4 icon_light_colors[5]; //ICON_RENDER_MAX_LIGHTS
+int icon_lights_count = 0;
+
+texture icon_envi_panorama;
+float icon_envi_panorama_exposure = 64;
+
+macro ICON_RENDER_RESOLVE_SHADER()
+  hlsl{
+    #include "icon_render.hlsli"
+  }
+
+  supports global_frame;
+  INIT_ICON_VARIABLES()
+
+  (ps) {
+    linear_clamp_sampler@sampler = linear_clamp_sampler;
+    view_scale_ofs@f4 = view_scale_ofs;
+    icon_depth_gbuf@smp2d = icon_depth_gbuf;
+    icon_envi_panorama@smp2d = icon_envi_panorama;
+    icon_outline_color@f4 = icon_outline_color;
+    icon_silhouette_color@f4 = icon_silhouette_color;
+    icon_silhouette_has_shadow@f1 = icon_silhouette_has_shadow;
+    icon_silhouette_min_shadow@f1 = icon_silhouette_min_shadow;
+    icon_light_dirs@f4[] = icon_light_dirs;
+    icon_light_colors@f4[] = icon_light_colors;
+    icon_lights_count@i1 = icon_lights_count;
+    viewProjectionMatrix@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 };
+    icon_envi_panorama_exposure@f1 = (icon_envi_panorama_exposure);
+    icon_contact_shadow_num_steps@f1 = icon_contact_shadow_num_steps;
+    icon_contact_shadow_jitter_count@f1 = icon_contact_shadow_jitter_count;
+    icon_ao_intensity@f1 = icon_ao_intensity;
+    icon_ao_radius_meter@f1 = icon_ao_radius_meter;
+    icon_ao_bias@f1 = icon_ao_bias;
+  }
+
+  VIEW_VEC_OPTIMIZED(ps)
+  INIT_FULL_TONEMAP_FOR_ICONS()
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    INIT_ENVI_SPECULAR()
+    COMMON_RESOLVE()
+  }
+
+  cull_mode  = none;
+  z_write = false;
+  z_test = false;
+
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = one; blend_adst = isa;
+
+  //fixme: in case of (depth_bounds_support == no_bounds)
+  //z_test = false should be true ONLY for cascade other than [0, something]
+
+
+  USE_AND_INIT_INV_GLOBTM_PS()
+  INIT_ZNZFAR()
+
+  bool apply_contact_shadows = compatibility_mode == compatibility_mode_off;
+  if (apply_contact_shadows)
+  {
+    hlsl{
+      #define COMPARE_TOLERANCE_SCALE(a) 1.5
+    }
+    CONTACT_SHADOWS()
+  }
+
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  hlsl(ps) {
+    float3 FilmicMain( float3 texColor )
+    {
+      float3 x = max(0,texColor-0.004); // Filmic Curve
+      float3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
+      return retColor;
+    }
+    #include <fast_shader_trig.hlsl>
+    float2 toRadialCoords(float3 normalizedCoords)
+    {
+      //float latitude = acos(normalizedCoords.y);
+      //float longitude = atan2(normalizedCoords.z, normalizedCoords.x);
+      float latitude = acosFast4(normalizedCoords.y);
+      float longitude = atan2(normalizedCoords.z, normalizedCoords.x);
+      float2 sphereCoords = float2(longitude, latitude) * float2(0.5/PI, 1.0/PI);
+      return float2(sphereCoords.x,sphereCoords.y);
+      //return float2(0.5,1.0) - sphereCoords;
+    }
+##if compatibility_mode == compatibility_mode_off
+    float3 sampleIconEnviSpecularLod(float3 dir, float lod)
+    {
+      return tex2Dlod(icon_envi_panorama, float4(toRadialCoords(dir),0,lod)).xyz;
+    }
+
+  #define USE_REFERENCE_INTEGRATION 0
+  #if USE_REFERENCE_INTEGRATION
+
+    #include <monteCarlo.hlsl>
+    #include <hammersley.hlsl>
+    float3 sampleEnviSpecular(float3 N, float3 V, float ggx_alpha, float3 specularColor)
+    {
+      float weight = 0;
+      float3 res = 0;
+      const uint NUM_FILTER_SAMPLES=64;
+      LOOP
+      for ( uint i = 0; i < NUM_FILTER_SAMPLES; ++i )
+      {
+        float2 E = hammersley( i, NUM_FILTER_SAMPLES, 0 );
+
+        float3 H = tangent_to_world( importance_sample_GGX_NDF( E, ggx_alpha).xyz, N );
+        float3 L = 2 * dot( V, H ) * H - V;
+
+        float NoV = saturate( dot( N, V ) );
+        float NoL = saturate( dot( N, L ) );
+        float NoH = saturate( dot( N, H ) );
+        float VoH = saturate( dot( V, H ) );
+
+        if( NoL > 0 )
+        {
+          half3 cubeTex = sampleIconEnviSpecularLod(L.xyz, 0);
+          float Vis = BRDF_geometricVisibility( ggx_alpha, NoV, NoL, VoH );
+          float Fc = pow5(1 - VoH);
+          float3 F = (1 - Fc) * specularColor + Fc;
+
+          res += cubeTex * F * ( NoL * Vis * (4 * VoH / NoH) );
+        }
+      }
+      return res*icon_envi_panorama_exposure/NUM_FILTER_SAMPLES;
+    }
+    float3 sampleEnviDiffuse(float3 N, float3 V, float linearRoughness)
+    {
+      float3 diffuse=0;
+      const uint NUM_DIFFUSE_SAMPLES = 256;
+      LOOP
+      for ( uint i = 0; i < NUM_DIFFUSE_SAMPLES; ++i )
+      {
+        float2 E = hammersley( i, NUM_DIFFUSE_SAMPLES, 0 );
+
+        float3 L = tangent_to_world( cosine_sample_hemisphere( E ).xyz, N );
+        float3 H = normalize(V + L);
+        float NoV = saturate( dot( N, V ) );
+        float NoL = saturate( dot( N, L ) );
+        float NoH = saturate( dot( N, H ) );
+        float VoH = saturate( dot( V, H ) );
+
+        if( NoL > 0 )
+        {
+          diffuse += BRDF_diffuse( 1, linearRoughness, NoV, NoL, VoH, NoH )*sampleIconEnviSpecularLod(L.xyz, 0);
+        }
+      }
+      return diffuse * icon_envi_panorama_exposure/ NUM_DIFFUSE_SAMPLES;
+    }
+    void sampleIconEnvi(float3 normal, float3 V, float roughness, float linearRoughness, float3 specularColor, out float3 specular, out float3 diffuse)
+    {
+      specular = sampleEnviSpecular(normal, V,roughness, specularColor);
+      diffuse = sampleEnviDiffuse(normal, V, linearRoughness);
+    }
+  #else
+
+    #define ENVI_DIFFUSE_MIP 5//this is exactly same number as used when build icon_render_panorama texture!
+    float3 sampleEnviDiffuse(float3 N, float3 V, float linearRoughness)
+    {
+      //return icon_envi_panorama_exposure*sampleIconEnviSpecularLod(normalize(getDiffuseDominantDir(N, V, dot(N, V), ggx_alpha)), DIFFUSE_MIP);
+      ##if icon_envi_panorama==NULL
+        return GetSkySHDiffuse(N);
+      ##else
+        return icon_envi_panorama_exposure*sampleIconEnviSpecularLod(N, ENVI_DIFFUSE_MIP);//since we use it for sss rendering only
+      ##endif
+    }
+    void sampleIconEnvi(float3 N, float3 V, float ggx_alpha, float linearRoughness, float3 specularColor, out float3 specular, out float3 diffuse)
+    {
+      float roughMip = linearRoughness*float(ENVI_DIFFUSE_MIP)-0.5;//we actually allow roughness = 1 to be DIFFUSE_MIP-0.5. it is kinda similar, and we don't need another mip
+      float NdotV = dot(N, V);
+      float saturate_NdotV = saturate(NdotV);
+      float3 reflectionVec = 2 * NdotV * N - V;
+      float NoV = abs( NdotV ) + 1e-5;
+      half3 AB = getEnviBRDF_AB(linearRoughness, NoV);
+      half3 enviBRDF = specularColor * AB.x + AB.yyy;
+      float3 roughR = getRoughReflectionVec(reflectionVec, N, ggx_alpha);
+      float3 diffuseN = normalize(getDiffuseDominantDir(N, V, saturate_NdotV, ggx_alpha));
+      ##if icon_envi_panorama==NULL// || icon_envi_panorama!=NULL
+        float enviScale = 1.0/(abs(enviSPH0.w)+abs(enviSPH1.w)+abs(enviSPH2.w)+1e-6);//use current environemnt, but fix brightness of band0
+        enviScale *= clamp(0.5/(dot(sun_color_0.rgb,1)+1e-6), 1., 4.0);//if there is no sun, environment is very dark
+        float3 specularAtDir = texCUBElod(envi_probe_specular, float4(roughR, roughMip)).rgb*enviScale;
+        half3 diffuseAtDir = GetSkySHDiffuse(diffuseN)*min(enviScale, 4.0);
+      ##else
+        float3 specularAtDir = icon_envi_panorama_exposure*sampleIconEnviSpecularLod(normalize(roughR), roughMip);
+        half3 diffuseAtDir  = icon_envi_panorama_exposure*sampleIconEnviSpecularLod(diffuseN, ENVI_DIFFUSE_MIP);
+      ##endif
+      specular = specularAtDir*enviBRDF;
+      diffuse = AB.z*diffuseAtDir;
+    }
+  #endif
+##endif //compatibility_mode == compatibility_mode_off
+    float get_outline(float2 tc, float rawDepth)//sobel
+    {
+      bool center = rawDepth>0;
+      #define ALLOFS(DO)\
+        DO(0,0);DO(1,0);DO(2,0);\
+        DO(0,1);        DO(2,1);\
+        DO(0,2);DO(1,2);DO(2,2);
+      #define SAMPLE_DEPTH(x,y)\
+        float val##x##y = (icon_depth_gbuf.SampleLevel(icon_depth_gbuf_samplerstate, tc,0, int2(x-1,y-1)).r>0) != center;
+      ALLOFS(SAMPLE_DEPTH)
+
+      #define NO_CENTER(to, DO)\
+        float to = DO(2,0)  - DO(0,0) +\
+                -2*DO(0,1) + 2*DO(2,1)+\
+                 -DO(0,2)  + DO(2,2);
+      #define HORIZONTAL(x,y) val##x##y
+      #define VERTICAL(x,y) val##y##x
+      NO_CENTER(horizontal, HORIZONTAL)
+      NO_CENTER(vertical, VERTICAL)
+      return saturate(sqrt(horizontal * horizontal + vertical * vertical));
+    }
+
+    void iconGTAOSliceSample(float2 sampleVp, float3 centerViewPos, float3 view, inout float closest)
+    {
+      if (any(saturate(sampleVp) != sampleVp))
+        return;
+
+      float2 sampleUV = sampleVp * view_scale_ofs.xy + view_scale_ofs.zw;
+      float rawDepth = icon_depth_gbuf.SampleLevel(icon_depth_gbuf_samplerstate, sampleUV, 0).x;
+
+      if (rawDepth <= 0)
+        return;
+
+      float3 p = getViewVecOptimized(sampleVp) * linearize_z(rawDepth, zn_zfar.zw) - centerViewPos;
+      float pLen = length(p);
+
+      if (pLen > icon_ao_radius_meter)
+        return;
+
+      float cur = dot(view, p) / max(pLen, 1e-6) - icon_ao_bias;
+      closest = max(closest, cur);
+
+      // avoids darkening over the semi-flat surfaces
+      // especially dark banding lines
+      // because it's possible to encounter a "horizon spike"
+      // lerping will flatten it away (if samples count is high enough)
+      closest = lerp(closest, cur, 0.2);
+    }
+
+    float iconGTAOHorizonMarch(float3 centerViewPos, float3 endViewPos, float3 view, int numSteps)
+    {
+      float4 startClip = mul(float4(centerViewPos, 1), viewProjectionMatrix);
+      float4 endClip   = mul(float4(endViewPos, 1),    viewProjectionMatrix);
+
+      float3 startScreen = startClip.xyz / startClip.w;
+      float3 endScreen   = endClip.xyz / endClip.w;
+      float3 dirScreen   = endScreen - startScreen;
+
+      float3 t0 = (-1.0 - startScreen) / dirScreen;
+      float3 t1 = ( 1.0 - startScreen) / dirScreen;
+      float3 tmax = max(t0, t1);
+
+      float tClip = max(0.0, min(min(tmax.x, tmax.y), 1.0));
+      endScreen = startScreen + dirScreen * tClip;
+
+      float2 startVp = startScreen.xy * float2(0.5, -0.5) + 0.5;
+      float2 endVp   = endScreen.xy   * float2(0.5, -0.5) + 0.5;
+
+      float closest = -1.0;
+      [loop]
+      for (int s = 1; s <= numSteps; s++)
+      {
+        float t = pow2(float(s) / numSteps);
+        iconGTAOSliceSample(lerp(startVp, endVp, t), centerViewPos, view, closest);
+      }
+      return closest;
+    }
+
+    float iconGTAO(VsOutput input, float3 center_normal, float depth)
+    {
+      float2 vp = input.texcoord.xy;
+
+      BRANCH
+      if (icon_ao_intensity <= 0.001 || icon_ao_radius_meter <= 0.0)
+        return 1.0;
+
+      const int NUM_SLICES = 8;
+      const int NUM_STEPS = 16;
+      const float PI_HALF = 0.5 * PI;
+
+      float2 depthTexSize;
+      icon_depth_gbuf.GetDimensions(depthTexSize.x, depthTexSize.y);
+      float2 vpTexel = rcp(depthTexSize) / view_scale_ofs.xy;
+
+      float linearDepth = linearize_z(depth, zn_zfar.zw);
+      float3 centerViewPos = getViewVecOptimized(vp) * linearDepth;
+      float3 view = normalize(-centerViewPos);
+
+      float3 worldDx = getViewVecOptimized(vp + float2(vpTexel.x, 0)) - getViewVecOptimized(vp);
+      float3 worldDy = getViewVecOptimized(vp + float2(0, vpTexel.y)) - getViewVecOptimized(vp);
+
+      float visibility = 0;
+      [loop]
+      for (int sl = 0; sl < NUM_SLICES; sl++)
+      {
+        float angle = (PI / NUM_SLICES) * (sl + 0.5);
+        float sinA, cosA;
+        sincos(angle, sinA, cosA);
+        float2 sliceUnit = float2(cosA, sinA);
+
+        float3 toDir = getViewVecOptimized(vp + sliceUnit * vpTexel);
+        float3 planeNormal = normalize(cross(view, -toDir));
+        float3 projNormal = center_normal - planeNormal * dot(center_normal, planeNormal);
+        float projLen = length(projNormal);
+        float3 projDir = normalize(normalize(toDir) + view);
+        float sliceNormalAngle = acosFast4(clamp(dot(-projDir, projNormal / max(projLen, 1e-5)), -1.0, 1.0)) - PI_HALF;
+
+        float3 ending = normalize(worldDx * cosA + worldDy * sinA) * icon_ao_radius_meter;
+        float c2 = iconGTAOHorizonMarch(centerViewPos, centerViewPos + ending, view, NUM_STEPS);
+        float c1 = iconGTAOHorizonMarch(centerViewPos, centerViewPos - ending, view, NUM_STEPS);
+
+        float h1 = sliceNormalAngle + max(-acosFast4(clamp(c1, -1.0, 1.0)) - sliceNormalAngle, -PI_HALF);
+        float h2 = sliceNormalAngle + min( acosFast4(clamp(c2, -1.0, 1.0)) - sliceNormalAngle,  PI_HALF);
+
+        float sinN, cosN;
+        sincos(sliceNormalAngle, sinN, cosN);
+        float integratedArc = 0.25 * (-cos(2.0 * h1 - sliceNormalAngle)
+                            + cosN + 2.0 * h1 * sinN
+                            - cos(2.0 * h2 - sliceNormalAngle) + cosN + 2.0 * h2 * sinN);
+
+        visibility += integratedArc * projLen;
+      }
+      visibility /= NUM_SLICES;
+
+      return pow(saturate(visibility), icon_ao_intensity);
+    }
+
+    float iconAO(VsOutput input, float3 center_normal, float depth)
+    {
+    ##if compatibility_mode == compatibility_mode_off
+      return iconGTAO(input, center_normal, depth);
+    ##else
+      return 1.0;
+    ##endif
+    }
+
+    float iconContactShadowTrace(float3 cameraToPoint,
+      float3 rayDirection, float rayLength,
+      float numSteps, float stepOffset)
+    {
+      const float MAX_PENETRATION_DEPTH = 0.2;
+
+      float4 rayStartClip = mul( float4( cameraToPoint, 1 ), viewProjectionMatrix );
+      float4 rayEndClip = mul( float4( cameraToPoint + rayDirection * rayLength, 1 ), viewProjectionMatrix );
+
+      float3 rayStartScreen = float3(rayStartClip.xyz / rayStartClip.w);
+      float3 rayEndScreen = float3(rayEndClip.xyz / rayEndClip.w);
+      float3 rayDirScreen = rayEndScreen - rayStartScreen;
+
+      float3 t0 = (-1.0 - rayStartScreen) / rayDirScreen;
+      float3 t1 = (1.0 - rayStartScreen) / rayDirScreen;
+      float3 tmax = max(t0,t1);
+      //don't go further than original ending point
+      float tClip = max(0.0, min(min(tmax.x, tmax.y), 1.0));
+      rayEndScreen = rayStartScreen + rayDirScreen * tClip;
+
+      float3 rayStartUVz = float3( rayStartScreen.xy * float2(0.5, -0.5) + 0.5h, rayStartScreen.z );
+      float3 rayEndUVz = float3( rayEndScreen.xy * float2(0.5, -0.5) + 0.5h, rayEndScreen.z );
+
+      rayStartUVz.xy = rayStartUVz.xy * view_scale_ofs.xy + view_scale_ofs.zw;
+      rayEndUVz.xy   = rayEndUVz.xy   * view_scale_ofs.xy + view_scale_ofs.zw;
+
+      float hitT = 1.0;
+      [loop]
+      for (float i = 0; i < numSteps; ++i)
+      {
+        float t = pow2((i + stepOffset) / numSteps);
+        float3 sampleUVz = lerp(rayStartUVz, rayEndUVz, t);
+
+        float2 uv = sampleUVz.xy;
+
+        float hDepth = 1.0 / max(1e-5, float(icon_depth_gbuf.SampleLevel(icon_depth_gbuf_samplerstate, uv, 0).x));
+        float lDepth = 1.0 / max(1e-5, float(icon_depth_gbuf.SampleLevel(linear_clamp_sampler, uv, 0).x));
+
+        float furthestLinearDepth = max(hDepth, lDepth);
+        float closestLinearDepth = min(hDepth, lDepth);
+        float sampleLinearDepth = 1.0 / max(1e-5, sampleUVz.z);
+
+        float penetration = sampleLinearDepth - closestLinearDepth;
+        bool hasIntersection = sampleLinearDepth > furthestLinearDepth && (penetration <= MAX_PENETRATION_DEPTH);
+
+        hitT = hasIntersection ? min(hitT, t) : hitT;
+      }
+      return hitT;
+    }
+
+    float iconContactShadow(float2 screenpos, float3 cameraToPoint,
+      float3 rayDirection, float rayLength, float numSteps)
+    {
+    ##if compatibility_mode == compatibility_mode_off
+        const float jittersCount = icon_contact_shadow_jitter_count;
+        float ign = interleavedGradientNoise(screenpos);
+
+        float shadow = 0.0;
+        for(float i = 0; i < jittersCount; ++i)
+        {
+          float stepOffset = 0.5 + (i + ign) / jittersCount;
+          shadow += iconContactShadowTrace(cameraToPoint, rayDirection, rayLength, numSteps, stepOffset);
+        }
+        shadow /= jittersCount;
+
+        return shadow;
+    ##else
+        return iconContactShadowTrace(cameraToPoint, rayDirection, rayLength, numSteps, 1.0);
+    ##endif
+    }
+
+  ##if compatibility_mode == compatibility_mode_off
+    void apply_direct_light(float2 screenpos, ProcessedGbuffer gbuffer, half envi_ao, float NoV, half3 specular_color,
+      float3 world_pos, float3 view, bool is_subsurface, float w, float3 light_dir, half3 light_color,
+      inout half3 result, inout half3 environment_ambient_lighting
+    )
+    {
+      float NoL = dot(gbuffer.normal, light_dir);
+
+      ##if apply_contact_shadows
+        float hitT = iconContactShadow(screenpos, world_pos, light_dir, w, icon_contact_shadow_num_steps);
+        float contactShadow = pow2(hitT);
+      ##else
+        float contactShadow = 1.0f;
+      ##endif
+
+      half csmShadow = contactShadow;
+      half shadow = min(envi_ao, min(gbuffer.shadow, csmShadow));
+      half SSSshadow = shadow;
+
+      BRANCH
+      if (NoL>0 && shadow>0)
+      {
+        result += standardBRDF( NoV, NoL, gbuffer.diffuseColor, gbuffer.ggx_alpha, gbuffer.linearRoughness,
+          specular_color, gbuffer.extracted_albedo_ao, light_dir, view, gbuffer.normal) * shadow * light_color;
+      }
+
+      BRANCH
+      if (is_subsurface) //fixme: use that only for foliage?
+      {
+        result += (gbuffer.ao * foliageSSS(NoL, view, light_dir) * SSSshadow) * light_color * gbuffer.translucencyColor;
+        environment_ambient_lighting += envi_ao * sampleEnviDiffuse(-gbuffer.normal, view, gbuffer.linearRoughness) * gbuffer.translucencyColor;
+      }
+    }
+  ##endif
+
+    float4 deferred_simple_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    {
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+      float2 tc = input.texcoord.xy*view_scale_ofs.xy + view_scale_ofs.zw;
+      float rawDepth = tex2Dlod(icon_depth_gbuf, float4(tc,0,0)).x;
+      BRANCH
+      if (rawDepth<=0)// we can ac
+      {
+        BRANCH
+        if (icon_outline_color.a<=1)
+          return icon_outline_color * get_outline(tc, rawDepth);//we use sobel filter only out of picture, to make 'outer' outline
+        else
+          return 0;
+      }
+
+    ##if compatibility_mode != compatibility_mode_off
+      if (icon_silhouette_color.a<=1)
+      {
+        float4 silhouetteColor;
+
+        BRANCH
+        if (icon_outline_color.a<=1)
+          silhouetteColor = lerp(icon_silhouette_color, icon_outline_color, get_outline(tc, rawDepth));//we use sobel filter only out of picture, to make 'outer' outline
+        else
+          silhouetteColor = icon_silhouette_color;
+
+        return silhouetteColor;
+      }
+    ##endif
+##if compatibility_mode == compatibility_mode_off
+      float4 farpos = float4(input.texcoord.xy * float2(2,-2) + float2(-1,1), rawDepth, 1.);
+      float4 worldpos_prj = mul(farpos, globtm_inv);
+      float4 worldPos = worldpos_prj / worldpos_prj.w;
+      float3 pointToEye = -worldPos.xyz;// world_view_pos.xyz is assumed to be zero!
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+      float dist = rcp(invRsqrt);
+
+      ProcessedGbuffer gbuffer = readProcessedGbuffer(tc);
+
+      float geometryFactor = 1;
+      half translucencyStrength = gbuffer.translucency;
+
+      float NdotV = dot(gbuffer.normal, view);
+      float NoV = abs( NdotV ) + 1e-5;
+
+      float ssao = iconAO(input, gbuffer.normal, rawDepth);
+      half enviAO = gbuffer.ao;//we still modulate by albedo color, so we don't need micro AO
+      enviAO = min(enviAO, ssao);
+
+      float ggx_alpha = gbuffer.ggx_alpha;
+      half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, ggx_alpha);// dice spec occlusion
+      half3 specularColor = gbuffer.specularColor*specularAOcclusion;
+
+      bool subSurface = isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile);
+      float4 clipSpacePos = mul( float4( worldPos.xyz, 1 ), viewProjectionMatrix );
+      float w = clipSpacePos.w;
+
+      BRANCH
+      if (icon_silhouette_color.a<=1)
+      {
+        float shadow = 1.0;
+
+        if (icon_silhouette_has_shadow >= 1.0)
+        {
+          shadow = 0.0;
+          for (int i = 0; i < icon_lights_count; ++i)
+          {
+            float3 lightDir = -icon_light_dirs[i].xyz;
+          #if CONTACT_SHADOWS_INCLUDED
+            float hitT = iconContactShadow(screenpos.xy, worldPos.xyz, lightDir, w, icon_contact_shadow_num_steps);
+            float contactShadow = pow2(hitT);
+          #else
+            float contactShadow = 1.0f;
+          #endif
+            shadow = max(shadow, contactShadow);
+          }
+          shadow = max(icon_silhouette_min_shadow, shadow);
+          shadow = min(shadow, ssao);
+        }
+
+        float4 silhouetteFillColor = float4(icon_silhouette_color.rgb * shadow, icon_silhouette_color.a);
+        float4 silhouetteColor;
+        BRANCH
+        if (icon_outline_color.a<=1)
+          silhouetteColor = lerp(silhouetteFillColor, icon_outline_color, get_outline(tc, rawDepth));//we use sobel filter only out of picture, to make 'outer' outline
+        else
+          silhouetteColor = silhouetteFillColor;
+
+        return silhouetteColor;
+      }
+
+      half3 enviDiffuse, enviSpecular;
+      sampleIconEnvi(gbuffer.normal, view, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, enviSpecular, enviDiffuse);
+      half3 environmentAmbientLighting = (enviAO * geometryFactor)*gbuffer.diffuseColor*enviDiffuse;
+      half3 totalReflection = enviSpecular*specularAOcclusion;
+
+      half3 result = half3(0,0,0);
+
+      for (int i = 0; i < icon_lights_count; ++i)
+      {
+        float3 lightDir = -icon_light_dirs[i].xyz;
+        half3 lightColor = icon_light_colors[i].xyz;
+
+        apply_direct_light(screenpos.xy, gbuffer, enviAO, NoV, specularColor, worldPos.xyz, view, subSurface, w,
+          lightDir, lightColor,
+          result, environmentAmbientLighting);
+      }
+
+      half3 reflection = environmentAmbientLighting + totalReflection;//*enviAO - tri-ace formula
+      result += reflection;
+      result += gbuffer.emissionColor;
+##else // compatibility_mode == compatibility_mode_on
+      half3 sunLight     = texelFetch(icon_albedo_gbuf, screenpos.xy, 0).xyz;
+      half3 ambientLight = texelFetch(icon_normal_gbuf, screenpos.xy, 0).xyz;
+      half3 result       = sunLight + ambientLight;
+##endif
+      return float4(result,1);
+    }
+  }
+
+  compile("target_ps", "deferred_simple_ps");
+endmacro
+
+float icon_tonemap_enabled = 1;
+
+texture animchar_icons_final;
+macro ICON_RENDER_TONEMAP_SHADER()
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+  supports global_frame;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  (ps) {
+    frame_tex@smp2d = animchar_icons_final;
+    view_scale@f2 = view_scale_ofs;
+    icon_ssaa@f4 = icon_ssaa;
+    icon_tonemap_enabled@f1 = icon_tonemap_enabled;
+  }
+  blend_src = sa; blend_dst = isa;
+  hlsl(ps) {
+    float3 FilmicMain( float3 texColor )
+    {
+       float3 x = max(0,texColor-0.004); // Filmic Curve
+       float3 retColor = (x*(6.2*x+.5))/(x*(6.2*x+1.7)+0.06);
+       return retColor;
+    }
+    #define tonemap UnchartedMain
+    float4 postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      float4 pos = GET_SCREEN_POS(input.pos);
+      float4 frame = 0;
+      BRANCH
+      if (icon_ssaa.x <= 2)//simplest case
+      {
+        frame = tex2Dlod(frame_tex, float4(input.tc * view_scale.xy,0,0));//it is actually incorrect if icon_ssaa.x==2, as we tonemap downsampled and not downsampled tonemapped
+        BRANCH
+        if (icon_tonemap_enabled > 0.5)
+          frame = float4(FilmicMain(frame.rgb).rgb, frame.a);
+      } else
+      {
+        int4 icon_ssaaI = icon_ssaa;
+        int2 start = int2(pos.xy) * icon_ssaaI.x;
+        for (uint y = 0; y < icon_ssaaI.x; ++y)
+          for (uint x = 0; x < icon_ssaaI.x; ++x)
+          {
+            float4 val = frame_tex[start + int2(x, y)];
+            frame += (icon_tonemap_enabled > 0.5) ? float4(FilmicMain(val.rgb), val.a) : val;
+          }
+        frame /= icon_ssaa.x*icon_ssaa.x;
+      }
+      return frame;
+    }
+  }
+
+  compile("target_ps", "postfx_ps");
+endmacro
+
+float icon_sharpen_amount = 0.0;
+float icon_contrast = 1.0;
+texture animchar_icons_finalAA;
+float4 icon_viewport_size = (1, 1, 0, 0);
+macro ICON_RENDER_SHARPEN_SHADER()
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  no_ablend;
+
+  supports global_frame;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  INIT_CONTRAST_ADAPTIVE_SHARPENING(ps)
+  USE_CONTRAST_ADAPTIVE_SHARPENING(ps)
+  (ps)
+  {
+    frame_tex@tex2d = animchar_icons_finalAA;
+    frame_tex_samplerstate@sampler = linear_clamp_sampler;
+    view_scale@f2 = view_scale_ofs;
+    icon_sharpen_amount@f1 = icon_sharpen_amount;
+    icon_contrast@f1 = icon_contrast;
+    icon_viewport_size@f4=icon_viewport_size;
+  }
+
+  hlsl(ps)
+  {
+    float4 sharpen_ps(VsOutput input) : SV_Target
+    {
+      float4 color = 0;
+      if (icon_sharpen_amount > 0.0)
+        color = tex2DCAS(frame_tex, input.tc, icon_viewport_size.xy, icon_viewport_size.zw, -icon_sharpen_amount);
+      else
+      {
+        float2 textureCoord = input.tc * view_scale.xy;
+        color = tex2Dlod(frame_tex, float4(textureCoord,0,0));
+      }
+
+      float luminance = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
+      color.rgb += (luminance - 0.5) * (icon_contrast - 1.0);
+      color.rgb = saturate(color.rgb);
+      return color;
+    }
+  }
+  compile("target_ps", "sharpen_ps");
+endmacro

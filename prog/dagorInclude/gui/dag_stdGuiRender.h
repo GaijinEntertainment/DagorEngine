@@ -57,7 +57,7 @@ enum TexFormat : uint8_t
 {
   SRGB_IN_UNORM, // texture is in unorm format but values are in sRGB space
   UNORM,
-  SRGB
+  SRGB_DECAL
 };
 
 struct StdGuiFontContext

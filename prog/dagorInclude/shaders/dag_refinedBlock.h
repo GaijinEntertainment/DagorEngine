@@ -96,10 +96,22 @@ public:
   const char *getName() const;
 
   template <typename T>
-  void set(int var_id, const T &val);
+  BlockHandle set(int var_id, const T &val);
+
+  template <typename T>
+  BlockHandle set(const ShaderVariableInfo &var_info, const T &val)
+  {
+    return set(var_info.get_var_id(), val);
+  }
 
   template <typename T>
   dag::Expected<T, GetError> get(int var_id) const;
+
+  template <typename T>
+  dag::Expected<T, GetError> get(const ShaderVariableInfo &var_info) const
+  {
+    return get<T>(var_info.get_var_id());
+  }
 };
 
 class GlobalBlockHandle : public BaseBlockHandle<GlobalBlockHandle>
@@ -116,8 +128,11 @@ public:
 
   ViewBlockHandle refineBlock(const char *name);
 
+  static GlobalBlockHandle invalid;
+
 private:
   friend GlobalBlockHandle get_global();
+  friend BaseBlockHandle<GlobalBlockHandle>;
 
   GlobalBlockHandle(uint32_t id) : BaseBlockHandle<GlobalBlockHandle>(id) {}
 };
@@ -143,6 +158,7 @@ public:
 private:
   template <typename ParentHandle>
   friend typename ParentHandle::ChildHandle refine_block(const char *name, ParentHandle parent);
+  friend BaseBlockHandle<ViewBlockHandle>;
 
   ViewBlockHandle(uint32_t id) : BaseBlockHandle<ViewBlockHandle>(id) {}
 };
@@ -166,6 +182,7 @@ public:
 private:
   template <typename ParentHandle>
   friend typename ParentHandle::ChildHandle refine_block(const char *name, ParentHandle parent);
+  friend BaseBlockHandle<PassBlockHandle>;
 
   friend void flush();
 

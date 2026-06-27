@@ -307,7 +307,6 @@ void DaSkies::setStrataCloudsTexture(const char *tex_name)
   strataClouds = dag::get_tex_gameres(tex_name, "strata_clouds");
   prefetch_managed_texture(strataClouds.getTexId());
   strataClouds.setVar();
-  ShaderGlobal::set_sampler(::get_shader_variable_id("strata_clouds_samplerstate"), d3d::request_sampler({}));
   lastTexName = tex_name;
 }
 

@@ -89,12 +89,14 @@ replay_animchar{
   animchar__turnDir:b=yes
   "animchar__animState:object"{}
   "anim_replay_character:tag"{}
+  "anim_replay__attaches_list:list<eid>"{}
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
 }
 
 replay_attached_animchar{
   _use:t="replay_animchar_base"
   "anim_replay__parentEid:eid"{}
+  slot_attach__slotId:i=-1
 }
 
 anim_replay_camera{

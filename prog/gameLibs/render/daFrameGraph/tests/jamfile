@@ -53,7 +53,7 @@ UseProgLibs =
   gameLibs/render/daFrameGraph
 ;
 
-ShaderVarsStub ?= yes ;
+ShaderVarsStub ?= mock ;
 
 AddIncludes =
   $(Root)/$(Location)/..

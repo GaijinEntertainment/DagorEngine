@@ -64,6 +64,14 @@ constexpr float BLOCK_CONTAINMENT_GAP = 1.0f;
 // bezier control-point bulge beyond the endpoint node rects.
 constexpr float CULL_VIEWPORT_MARGIN_FRAC = 0.5f;
 
+// Off-screen-cull memoization (GraphPanel::updateImgui): the cull pre-pass result is cached and rebuilt
+// only when an input changes. When a pointer interaction (node drag / block resize) ends, keep reculling
+// for this many frames so the final committed node bounds are captured.
+constexpr int CULL_INTERACTION_SETTLE_FRAMES = 2;
+// Below this much viewport movement (canvas units) the cached cull is treated as still valid; guards
+// against floating-point noise rebuilding the pass while the view is static.
+constexpr float CULL_VIEW_MOVE_EPS = 0.01f;
+
 // Node level-of-detail (GraphPanel::updateImgui): at or below this canvas zoom the on-screen nodes are
 // too small to read, so they render "reduced" (text and pin-square decoration dropped; boxes + links
 // kept -- pins stay bound so links still land)
@@ -366,6 +374,7 @@ void GraphPanel::onGraphDataChanged()
   disable_node_editor_shortcuts(editor);
 
   navigationFramesLeft = 5;
+  cullDirty = true;
 
   // Clear any stale selection -- the previous graph's selected node id is meaningless
   // against the new node set (most often: previous was non-empty, new is empty).
@@ -390,6 +399,7 @@ void GraphPanel::addNode(GraphData::Node node)
 {
   pendingPositionIds.insert(node.id);
   plugin.mutateGraphData([&](GraphData &gd) { gd.nodes.emplace_back(eastl::move(node)); });
+  cullDirty = true;
 }
 
 int GraphPanel::allocateNodeId() const
@@ -416,6 +426,7 @@ void GraphPanel::addEdge(GraphData::Edge edge)
 {
   plugin.mutateGraphData([&](GraphData &gd) { gd.edges.emplace_back(eastl::move(edge)); });
   plugin.markGraphDirtyAndRegen();
+  cullDirty = true;
 }
 
 bool GraphPanel::removeEdgeById(int edge_id)
@@ -432,6 +443,7 @@ bool GraphPanel::removeEdgeById(int edge_id)
   if (erased)
   {
     plugin.markGraphDirtyAndRegen();
+    cullDirty = true;
   }
   return erased;
 }
@@ -457,6 +469,7 @@ bool GraphPanel::removeNodeById(int node_id)
   if (erasedAny)
   {
     plugin.markGraphDirtyAndRegen();
+    cullDirty = true;
   }
   return erasedAny;
 }
@@ -1115,20 +1128,47 @@ void GraphPanel::updateImgui()
   // framing is handled by NavigateToContent over navigationFramesLeft) runs in the pass below for
   // EVERY node, so a newly-added off-screen node still gets positioned and acquires bounds.
   const int nodeCount = static_cast<int>(graphData.nodes.size());
-  cullNodes.resize(nodeCount);
-  cullNodeOrder.clear();
-  cullNodeOrder.reserve(nodeCount);
-  {
-    ImRect cullRect(ne::ScreenToCanvas(canvasMin), ne::ScreenToCanvas(canvasMax));
-    {
-      const ImVec2 sz = cullRect.GetSize();
-      cullRect.Expand(ImVec2(sz.x * CULL_VIEWPORT_MARGIN_FRAC, sz.y * CULL_VIEWPORT_MARGIN_FRAC));
-    }
 
-    // Suspend culling while a framing operation is in flight (load fit over navigationFramesLeft, or
-    // a deferred fit / show-next this frame): the fit measures only nodes drawn live this frame, so
-    // every node must render. A few full-render frames during framing is a negligible one-shot cost.
-    const bool forceAllVisible = navigationFramesLeft > 0 || fitContentReq || fitSelectionReq || fitSelectionMarginReq || showNextReq;
+  // Cull viewport in canvas space. Cheap to compute every frame (two ScreenToCanvas + an inflate), and it
+  // doubles as the change signal for pan / zoom / navigate-animation, which all move this rect.
+  ImRect cullRect(ne::ScreenToCanvas(canvasMin), ne::ScreenToCanvas(canvasMax));
+  {
+    const ImVec2 sz = cullRect.GetSize();
+    cullRect.Expand(ImVec2(sz.x * CULL_VIEWPORT_MARGIN_FRAC, sz.y * CULL_VIEWPORT_MARGIN_FRAC));
+  }
+
+  // Suspend culling while a framing operation is in flight (load fit over navigationFramesLeft, or a
+  // deferred fit / show-next this frame): the fit measures only nodes drawn live this frame, so every
+  // node must render. A few full-render frames during framing is a negligible one-shot cost.
+  const bool forceAllVisible = navigationFramesLeft > 0 || fitContentReq || fitSelectionReq || fitSelectionMarginReq || showNextReq;
+
+  // The cull pass is ~O(N^2) (ne::GetNodePosition / GetNodeSize are linear lookups), so its result
+  // (cullNodes / cullNodeOrder) is cached and rebuilt only when an input changed. A held mouse button --
+  // and a few frames after release -- forces a rebuild every frame: a node drag or block resize moves ne
+  // bounds with no view or graph-data change, so neither cullRect nor cullDirty would notice.
+  if (ImGui::IsAnyMouseDown())
+  {
+    cullSettleFrames = CULL_INTERACTION_SETTLE_FRAMES;
+  }
+  else if (cullSettleFrames > 0)
+  {
+    --cullSettleFrames;
+  }
+
+  const bool viewMoved =
+    ImFabs(cullRect.Min.x - cullViewMin.x) > CULL_VIEW_MOVE_EPS || ImFabs(cullRect.Min.y - cullViewMin.y) > CULL_VIEW_MOVE_EPS ||
+    ImFabs(cullRect.Max.x - cullViewMax.x) > CULL_VIEW_MOVE_EPS || ImFabs(cullRect.Max.y - cullViewMax.y) > CULL_VIEW_MOVE_EPS;
+
+  // pendingPositionIds is drained inside the pass (each id's position pushed to ne once), so a non-empty
+  // set must let it run; the size mismatch is a safety net for a node add / remove that bypassed cullDirty.
+  const bool recull = cullDirty || forceAllVisible || viewMoved || cullSettleFrames > 0 || !pendingPositionIds.empty() ||
+                      static_cast<int>(cullNodes.size()) != nodeCount;
+
+  if (recull)
+  {
+    cullNodes.resize(nodeCount);
+    cullNodeOrder.clear();
+    cullNodeOrder.reserve(nodeCount);
 
     for (int ni = 0; ni < nodeCount; ++ni)
     {
@@ -1178,6 +1218,11 @@ void GraphPanel::updateImgui()
         cullNodes[ib].needed = true;
       }
     }
+
+    cullViewMin = cullRect.Min;
+    cullViewMax = cullRect.Max;
+    // A forceAllVisible pass is an all-visible snapshot, not the steady state -- rebuild once framing ends.
+    cullDirty = forceAllVisible;
   }
 
   const float invZoom = ne::GetCurrentZoom();

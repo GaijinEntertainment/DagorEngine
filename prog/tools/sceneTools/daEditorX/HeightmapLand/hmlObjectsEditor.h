@@ -38,8 +38,6 @@ public:
 
   // ObjectEditor interface implementation
   void fillToolBar(PropPanel::ContainerPropertyControl *toolbar) override;
-  void addEditorCommandButton(PropPanel::ContainerPropertyControl *tb, int id, const char *editor_command_id, const char *icon_name,
-    const char *hint, bool check = false) override;
   void updateToolbarButtons() override;
   bool pickObjects(IGenViewportWnd *wnd, int x, int y, Tab<RenderableEditableObject *> &objs) override;
 

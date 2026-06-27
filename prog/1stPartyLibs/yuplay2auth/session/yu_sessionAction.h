@@ -26,6 +26,8 @@ public:
   const void* getResult() const { return result; }
   IYuplay2Answer* getAnswer() { return &answer; }
 
+  void beginAction(); //Must be called before run()
+
 protected:
   YuSession& session;
   ActionId id;
@@ -33,7 +35,6 @@ protected:
   YuEvent doneEvt;
   YuApiAnswer answer;
 
-  void beginAction();
   void done(Yuplay2Status status, const void* result = NULL);
 
 private:

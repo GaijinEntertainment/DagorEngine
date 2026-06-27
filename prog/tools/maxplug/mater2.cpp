@@ -90,12 +90,17 @@ static std::wstring mangled_category_name(unsigned depth, const std::wstring &na
   return prefix + name;
 }
 
-std::unique_ptr<DataBlock> get_blk()
+static std::unique_ptr<DataBlock> get_blk()
 {
-  std::wstring filename = get_cfg_filename(DAGOR_SHADERS_CONFIG);
-  DataBlock *dataBlk = new DataBlock(std::make_shared<NameMap>());
-  dataBlk->load(filename);
-  return std::unique_ptr<DataBlock>(dataBlk);
+  std::unique_ptr<DataBlock> dataBlk = std::make_unique<DataBlock>(std::make_shared<NameMap>());
+  dataBlk->load(get_cfg_filename(DAGOR_SHADERS_CONFIG));
+  return dataBlk;
+}
+
+static const DataBlock *get_shared_blk()
+{
+  static std::unique_ptr<DataBlock> blk = get_blk();
+  return blk.get();
 }
 
 
@@ -708,7 +713,6 @@ public:
   HPEN hFramePen;
 
   std::vector<std::unique_ptr<AbstractWidget>> parameters;
-  std::unique_ptr<DataBlock> blk;
 
   WStr proxyPath;
   FilterList filterList;
@@ -1174,7 +1178,7 @@ static INT_PTR CALLBACK ParamDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
           const auto &names = new_par.GetNewParamNames();
           for (const auto &name : names)
           {
-            ParamInfo param = get_param_info(dlg->blk.get(), shader, name);
+            ParamInfo param = get_param_info(get_shared_blk(), shader, name);
             dlg->theMtl->script += param.name.data();
             dlg->theMtl->script += L"=";
             dlg->theMtl->script += param.value.data();
@@ -1360,8 +1364,6 @@ Dagormat2Dialog::Dagormat2Dialog(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m) 
   theMtl = m;
   valid = FALSE;
   paramOrg.x = paramOrg.y = 0;
-
-  blk = get_blk();
 
   filterList.Append(_T("Proxymat (proxymat.blk)"));
   filterList.Append(_T("*.proxymat.blk"));
@@ -1565,7 +1567,7 @@ void Dagormat2Dialog::RestoreParams()
   UpdateShaderNameWidget();
 
   // get list of shader parameters (including group names)
-  const DataBlock *shader_blk = get_blk_shader(blk.get(), shader_name);
+  const DataBlock *shader_blk = get_blk_shader(get_shared_blk(), shader_name);
   std::vector<ParamInfo> all_params = get_blk_shader_params(shader_blk);
 
   // collect user-specified params
@@ -1574,7 +1576,7 @@ void Dagormat2Dialog::RestoreParams()
   std::vector<std::wstring> lines = split(script, L'\n');
   for (std::wstring &line : lines)
     if (!line.empty())
-      user_params.emplace_back(get_blk_param_info_value(blk.get(), line, shader_name));
+      user_params.emplace_back(get_blk_param_info_value(get_shared_blk(), line, shader_name));
 
   // find uncategorized parameters (those that do not have a parent group)
   std::vector<ParamInfo> uncategorized_params;
@@ -1663,7 +1665,7 @@ void Dagormat2Dialog::RestoreParams()
 
   SaveParams();
   DialogsReposition();
-  MarkUnknownParams(blk.get());
+  MarkUnknownParams(get_shared_blk());
 }
 
 void Dagormat2Dialog::SaveParams()
@@ -2702,10 +2704,8 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
   if (shader_name.empty())
     return;
 
-  auto blk = get_blk();
-
   // get list of shader parameters (including group names)
-  const DataBlock *shader_blk = get_blk_shader(blk.get(), shader_name);
+  const DataBlock *shader_blk = get_blk_shader(get_shared_blk(), shader_name);
   std::vector<ParamInfo> all_params = get_blk_shader_params(shader_blk);
 
   // collect user-specified params
@@ -2714,7 +2714,7 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
   std::vector<std::wstring> lines = split(s, L'\n');
   for (std::wstring &line : lines)
     if (!line.empty())
-      user_params.emplace_back(get_blk_param_info_value(blk.get(), line, shader_name));
+      user_params.emplace_back(get_blk_param_info_value(get_shared_blk(), line, shader_name));
 
   // find uncategorized parameters (those that do not have a parent group)
   std::vector<ParamInfo> uncategorized_params;
@@ -2919,9 +2919,7 @@ BOOL NewParameterDialog::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
       HWND lb = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
       ListBox_SetColumnWidth(lb, 512); // FIXME
 
-      auto dataBlk = get_blk();
-
-      const DataBlock *shader_blk = get_blk_shader(dataBlk.get(), shader);
+      const DataBlock *shader_blk = get_blk_shader(get_shared_blk(), shader);
       if (shader_blk)
       {
         std::vector<ParamInfo> shader_params = get_blk_shader_params(shader_blk);
@@ -3057,8 +3055,7 @@ bool NewParameterDialog::GetAndVerifyParamName()
     return it != selected.end();
   };
 
-  auto dataBlk = get_blk();
-  const DataBlock *shader_blk = get_blk_shader(dataBlk.get(), shader);
+  const DataBlock *shader_blk = get_blk_shader(get_shared_blk(), shader);
   if (!shader_blk)
     return false;
   std::vector<ParamInfo> shader_params = get_blk_shader_params(shader_blk);
@@ -3488,7 +3485,7 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
       SetValue(param.value);
       InvalidateRect(hWnd, NULL, TRUE);
       UpdateWindow(hWnd);
-      parent->MarkUnknownParams(parent->blk.get());
+      parent->MarkUnknownParams(get_shared_blk());
       break;
 
     case WM_COMMAND:
@@ -3528,7 +3525,7 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
         GetValue();
         InvalidateRect(hWnd, NULL, TRUE);
         UpdateWindow(hWnd);
-        parent->MarkUnknownParams(parent->blk.get());
+        parent->MarkUnknownParams(get_shared_blk());
       }
       break;
 

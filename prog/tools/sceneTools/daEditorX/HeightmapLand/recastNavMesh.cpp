@@ -174,6 +174,7 @@ struct NavMeshParams
   float detailSampleDist, detailSampleMaxError;
   pathfinder::NavMeshType navMeshType;
   bool usePrefabCollision;
+  bool includeDetailedData;
   int tileSize;
   float bucketSize;
   float crossingWaterDepth;
@@ -295,6 +296,7 @@ static void init_nm_params(const DataBlock &blk, int nav_mesh_idx)
   nmParams.detailSampleDist = blk.getReal("detailSampleDist", 3.0f);
   nmParams.detailSampleMaxError = blk.getReal("detailSampleMaxError", 0.25f);
   nmParams.usePrefabCollision = blk.getBool("usePrefabCollision", true);
+  nmParams.includeDetailedData = blk.getBool("includeDetailedData", false);
   nmParams.crossingWaterDepth = blk.getReal("crossingWaterDepth", 0.f);
   nmParams.crossObstaclesWithJumplinks = blk.getBool("crossObstaclesWithJumplinks", false);
 
@@ -408,6 +410,13 @@ struct NavmeshBucketsKeyHasher
     return (size_t)(((uint32_t)key.second * 16777619) ^ (uint32_t)key.first);
   }
 };
+
+static void write_tilecache_detail_settings(BinDumpSaveCB &cwr, const NavMeshParams &nav_mesh_params)
+{
+  cwr.writeInt32e(nav_mesh_params.includeDetailedData ? 1u : 0u);
+  cwr.writeFloat32e(nav_mesh_params.detailSampleDist);
+  cwr.writeFloat32e(nav_mesh_params.detailSampleMaxError);
+}
 
 template <class T>
 using SamplesTab = dag::Vector<T, dag::MemPtrAllocator, false, uint64_t>;
@@ -581,6 +590,8 @@ static void save_navmesh_bucket_format(const dtNavMesh *mesh, const NavMeshParam
     cwr.endBlock();
   }
 
+  write_tilecache_detail_settings(cwr, nav_mesh_params);
+
   ZSTD_freeCCtx(cctx);
   ZSTD_freeCDict(cDict);
 }
@@ -623,7 +634,7 @@ static void save_navmesh(const dtNavMesh *mesh, const NavMeshParams &nav_mesh_pa
     for (const NavMeshObstacle &obs : obstacles)
       obsResNameHashes.insert(obs.resNameHash);
     numObsResNameHashes = (int)obsResNameHashes.size();
-    dataSize += sizeof(int) + sizeof(uint32_t) * numObsResNameHashes;
+    dataSize += sizeof(int) + sizeof(uint32_t) * numObsResNameHashes + sizeof(pathfinder::TileCacheDetailSettings);
   }
 
   BinDumpSaveCB dcwr(2 << 20, cwr);
@@ -668,6 +679,7 @@ static void save_navmesh(const dtNavMesh *mesh, const NavMeshParams &nav_mesh_pa
     }
     for (uint32_t h : obsResNameHashes)
       dcwr.writeInt32e(h);
+    write_tilecache_detail_settings(dcwr, nav_mesh_params);
   }
   DEBUG_DUMP_VAR(dataSize);
   cwr.writeInt32e(dataSize | (HmapLandPlugin::preferZstdPacking ? 0x40000000 : 0));
@@ -966,8 +978,8 @@ static bool finalize_navmesh_tilecached_tile(const NavMeshParams &nav_mesh_param
   };
 
   return recastnavmesh::finalize_navmesh_tilecached_tile(ctx, cfg, &tcAllocator, &tcComp,
-    nav_mesh_params.jlkParams.enabled ? &conn_storage : nullptr, tile_ctx, tx, ty, agentMaxClimb, agentHeight, agentRadius, obstacles,
-    tile_data, fn);
+    nav_mesh_params.jlkParams.enabled ? &conn_storage : nullptr, tile_ctx, tx, ty, agentMaxClimb, agentHeight, agentRadius,
+    nav_mesh_params.includeDetailedData, obstacles, tile_data, fn);
 }
 
 static bool prepare_tile_context(const NavMeshParams &nav_mesh_params, BuildContext &ctx, rcConfig &cfg,
@@ -2425,6 +2437,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
       tcMeshProc.setNavMesh(navMesh);
       tcMeshProc.setNavMeshQuery(nullptr);
       tcMeshProc.setTileCache(tileCache);
+      tcMeshProc.setDetailedData(nmParams.includeDetailedData, nmParams.detailSampleDist, nmParams.detailSampleMaxError);
       tcMeshProc.forceStaticLinks();
       dtStatus status = tileCache->init(&tcparams, &tcAllocator, &tcComp, &tcMeshProc);
       if (dtStatusFailed(status))

@@ -167,7 +167,16 @@ public:
       .device = static_cast<ID3D12Device *>(d3d::get_device()),
     };
 
+    ffxCreateContextDescUpscaleVersion versionDesc{
+      .header{
+        .type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE_VERSION,
+      },
+      .version = FFX_UPSCALER_VERSION,
+    };
+
     ffxCreateContextDescUpscale desc = convert(args, backendDesc.header);
+    versionDesc.header.pNext = desc.header.pNext;
+    desc.header.pNext = &versionDesc.header;
 
     auto status = createContext(&upscalingContext, &desc.header, nullptr);
     if (status != FFX_API_RETURN_OK)

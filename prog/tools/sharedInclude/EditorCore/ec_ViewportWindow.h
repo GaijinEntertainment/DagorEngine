@@ -381,6 +381,8 @@ public:
   void setScreenshotMode(Point2 size) override { screenshotSize = size; }
   void resetScreenshotMode() override;
 
+  void setGizmoPixelOffset(IPoint2 offset);
+
 protected:
   // include_camera_distance: if set to false then the camera distance statistics will not be displayed in the
   //   statistics dialog. Set it false from the override.
@@ -421,6 +423,8 @@ protected:
   Quat cameraTransitionEndQuaternion;
   float cameraTransitionElapsedTime;
   bool cameraTransitioning = false;
+
+  IPoint2 gizmoPixelOffset = IPoint2(15, 15);
 
   bool allowPopupMenu;
 

@@ -1,5 +1,5 @@
 // `await` on a sync function declared to return an instance is NOT flagged:
-// the runtime applies chain-unwrap if it really is a Future, and we trust
+// `await wrap(...)` peels one level if it really is a Future, and we trust
 // the annotation. Counterpart to async_redundant_await.nut.
 
 from "async" import Future

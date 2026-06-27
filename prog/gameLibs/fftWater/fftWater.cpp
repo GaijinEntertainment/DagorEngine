@@ -317,14 +317,22 @@ public:
       renderCommon.shoreEnable(shoreEnable);
       renderCommon.setWaterLevel(waterLevel);
       if (renderChop)
+      {
         renderChop->setLevel(waterLevel);
+        if (hasMinMaxLevel)
+          renderChop->setMinMaxLevel(lastMinLevel, lastMaxLevel);
+      }
     }
     else
     {
       renderCommon.shoreEnable(false);
       renderCommon.setWaterLevel(0.0f);
       if (renderChop)
+      {
         renderChop->setLevel(0.0f);
+        if (hasMinMaxLevel)
+          renderChop->setMinMaxLevel(lastMinLevel, lastMaxLevel);
+      }
     }
     updateHeightCullingWaveHeight();
   }

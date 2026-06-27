@@ -35,9 +35,9 @@ static void init_grass_render_ecs_query(ecs::EntityManager &manager, Callable c)
 
 namespace var
 {
-ShaderVariableInfo reprojected_hzb("reprojected_hzb");
-ShaderVariableInfo reprojected_hzb_depth_mip_count("reprojected_hzb_depth_mip_count");
-ShaderVariableInfo grass_use_hzb_occlusion("grass_use_hzb_occlusion");
+ShaderVariableInfo reprojected_hzb("reprojected_hzb", true);
+ShaderVariableInfo reprojected_hzb_depth_mip_count("reprojected_hzb_depth_mip_count", true);
+ShaderVariableInfo grass_use_hzb_occlusion("grass_use_hzb_occlusion", true);
 } // namespace var
 
 void GrassRenderer::makeFastGrassNodes()

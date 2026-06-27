@@ -132,13 +132,6 @@ public:
   // instantly; coalesces with other pending marks before the worker picks them up.
   void markGraphDirtyAndRegen();
 
-  // Like markGraphDirtyAndRegen, but forces a full texture-pipeline rebuild (closes texGenReg /
-  // clears regcache) so source textures reload from scratch. Use when a change invalidates
-  // already-registered textures that a plain regen would reuse -- e.g. a textureRootDir edit
-  // (textures are keyed by their root-independent reference name, so the new root wouldn't take
-  // effect otherwise).
-  void markGraphForceRebuild();
-
   // Use after a graph load (BLK / initial registration). Pushes heightmap
   // params, hands the GraphData pointer to the service (which resets pipeline
   // state -- preview-final, selected texture, etc.), then marks dirty so the
@@ -236,7 +229,7 @@ private:
   GraphData graphData;
 
   // Guards `graphData`'s source-of-truth fields (nodes / edges / propertyValues
-  // / textureRootDir / heightmap*) against concurrent read by the texgen worker
+  // / heightmap*) against concurrent read by the texgen worker
   // running compile_graph_to_blks. Also covers the compiled outputs
   // (mainGraphBlk / shaderListBlk) on the write side: the plugin's
   // IGraphCompiler::compile() commits them inside the same mutateGraphData

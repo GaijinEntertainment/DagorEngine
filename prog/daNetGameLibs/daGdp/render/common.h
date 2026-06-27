@@ -109,6 +109,7 @@ struct RulesBuilder
   uint32_t maxTriangles = 1 << 20;
   uint32_t maxMeshes = 1 << 10;
   uint32_t maxTiles = 1 << 10;
+  uint32_t max3dTiles = 1 << 10;
   uint32_t maxVolumes = 1 << 6;
   int targetMeshLod = 2;
 };

@@ -8,6 +8,7 @@
 
 #include <libTools/util/binDumpReader.h>
 #include <libTools/util/fileUtils.h>
+#include <libTools/util/setupNamedMounts.h>
 #include <ioSys/dag_fileIo.h>
 
 #include <util/dag_string.h>
@@ -17,6 +18,7 @@
 #include <assets/assetRefs.h>
 
 #include <libTools/util/setupTexStreaming.h>
+#include <libTools/util/appDirRelativePath.h>
 
 
 TexChecker::TexChecker(const char *input_file1, const char *input_file2) :
@@ -117,9 +119,8 @@ void TexChecker::readAssetTextures(DagorAsset *asset)
 
 void TexChecker::readAssetBaseTexList()
 {
-  String app_dir(mBlk1.getStr("app_dir", "."));
-  app_dir.append("\\");
-  String fname(260, "%sapplication.blk", app_dir.str());
+  set_canonical_app_dir_mount(mBlk1.getStr("app_dir", "."));
+  const char *fname = "%appDir/application.blk";
 
   DataBlock appblk;
 
@@ -136,10 +137,7 @@ void TexChecker::readAssetBaseTexList()
 
   for (int i = 0; i < blk.paramCount(); i++)
     if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-    {
-      fname.printf(260, "%s%s", app_dir.str(), blk.getStr(i));
-      mAssetMgr.loadAssetsBase(fname, "global");
-    }
+      mAssetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
 
   char dir_path[512];
   if (assetrefs::load_plugins(mAssetMgr, appblk, dag_get_appmodule_dir(dir_path, sizeof(dir_path))))

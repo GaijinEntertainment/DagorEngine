@@ -5,9 +5,18 @@
 #include <runtime/runtime.h>
 #include <render/daFrameGraph/daFG.h>
 
+namespace shader_vars_mock
+{
+void reset();
+}
+
 struct TestRuntime
 {
-  TestRuntime() { dafg::Runtime::startup(); }
+  TestRuntime()
+  {
+    shader_vars_mock::reset();
+    dafg::Runtime::startup();
+  }
 
   void executeGraph()
   {
@@ -15,5 +24,9 @@ struct TestRuntime
     dafg::Runtime::get().runNodes();
   }
 
-  ~TestRuntime() { dafg::Runtime::shutdown(); }
+  ~TestRuntime()
+  {
+    dafg::Runtime::shutdown();
+    shader_vars_mock::reset();
+  }
 };

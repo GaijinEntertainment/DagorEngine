@@ -62,4 +62,33 @@ void add_variant(
 [[nodiscard]] bool init_common_placer_buffers(
   const CommonPlacerBufferInit &init, eastl::string_view buffer_name_prefix, CommonPlacerBuffers &output);
 
+template <typename T>
+bool update_frame_mem(dag::ConstSpan<T> items, Sbuffer *buffer, uint32_t max_size, const char *what)
+{
+  if (items.size() == 0)
+  {
+    // frame mem buffers must be updated every frame if shader specifies binding,
+    // regardless of logic inside of shader
+    T dummyItem = {};
+    buffer->updateData(0, sizeof(T), &dummyItem, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    return true;
+  }
+
+  if (items.size() > max_size)
+  {
+    logerr("daGdp: placement exceeded max. number of %s (%u > %u).", what, items.size(), max_size);
+    return false;
+  }
+
+  if (!buffer->updateData(0, sizeof(T) * items.size(), items.data(), VBLOCK_WRITEONLY | VBLOCK_DISCARD))
+  {
+    logerr("daGdp: %s staging buffer update error.", what);
+    return false;
+  }
+
+  return true;
+}
+
+void debug_draw_volume(const TMatrix &transform, float scale, vec4f extent2, int volume_type);
+
 } // namespace dagdp

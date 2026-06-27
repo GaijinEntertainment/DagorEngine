@@ -113,7 +113,7 @@ static void impostor_callback(const RenderableInstanceLodsResource *resource)
 
       if (textures.albedo_alpha != BAD_TEXTUREID)
         process_relems(context_id, "impostor", elems, resource->getBvhId(), lodIx, eastl::nullopt, Point4::ONE, Point4::ZERO, bounding,
-          true, PerInstanceDataUse::ALLOWED, &params, &textures);
+          true, PerInstanceDataUse::ALLOWED, resource, &params, &textures);
     }
 }
 
@@ -195,7 +195,8 @@ static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsR
         auto bounding = BSphere3(resource->bsphCenter, resource->bsphRad);
         process_relems(context_id, get_tag(lodIx), elems, resource->getBvhId(), lodIx,
           resource->isUsedAsDagdp() ? eastl::make_optional<const BufferProcessor *>(nullptr) : eastl::nullopt, Point4::ONE,
-          Point4::ZERO, bounding, true, resource->isUsedAsDagdp() ? PerInstanceDataUse::FORCE_OFF : PerInstanceDataUse::ALLOWED);
+          Point4::ZERO, bounding, true, resource->isUsedAsDagdp() ? PerInstanceDataUse::FORCE_OFF : PerInstanceDataUse::ALLOWED,
+          resource);
       }
     }
   }

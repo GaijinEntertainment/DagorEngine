@@ -18,7 +18,8 @@ void MotionMatchingController::setup(const AnimationDataBase &data_base, const A
   dataBase = &data_base;
 }
 
-bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, const Tab<AnimV20::AnimMap> &anim_map) const
+bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, const Tab<AnimV20::AnimMap> &anim_map,
+  const GeomNodeTree &animchar_node_tree) const
 {
   if (motionMatchingWeight == 0.f || debug_disable_motion_matching_blend.get())
     return false;
@@ -51,7 +52,6 @@ bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, co
     AnimV20::AnimBlender::WeightedNode &chPos = tls.chPos[animId];
     chPos.readyFlg = AnimV20::AnimBlender::RM_POS_B;
     chPos.blendWt[0] = nodeWeight;
-    chPrs.pos = (geomId == rootId ? rootPRS.position : resultAnimation.position[geomId]);
 
     AnimV20::AnimBlender::NodeWeight &wtRot = tls.wtRot[animId];
     wtRot.totalNum = 1;
@@ -59,7 +59,6 @@ bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, co
     AnimV20::AnimBlender::WeightedNode &chRot = tls.chRot[animId];
     chRot.readyFlg = AnimV20::AnimBlender::RM_ROT_B;
     chRot.blendWt[0] = nodeWeight;
-    chPrs.rot = (geomId == rootId ? rootPRS.rotation : resultAnimation.rotation[geomId]);
 
     if (geomId == rootId)
     {
@@ -69,7 +68,23 @@ bool MotionMatchingController::getPose(AnimV20::AnimBlender::TlsContext &tls, co
       AnimV20::AnimBlender::WeightedNode &chScl = tls.chScl[animId];
       chScl.readyFlg = AnimV20::AnimBlender::RM_SCL_B;
       chScl.blendWt[0] = nodeWeight;
-      chPrs.scl = rootPRS.scale;
+      chPrs.scl = rootScale;
+
+      const mat44f &animcharTm = animchar_node_tree.getRootTm();
+      quat4f animcharRotation = v_quat_from_mat43(animcharTm);
+      quat4f invAnimcharRotation = v_quat_conjugate(animcharRotation);
+      vec3f animcharWorldPos = v_add(animcharTm.col3, animchar_node_tree.getWtmOfs());
+
+      vec3f rootLocalPos = v_quat_mul_vec3(invAnimcharRotation,
+        v_add(v_quat_mul_vec3(rootRotation, resultAnimation.position[rootId]), v_sub(rootPosition, animcharWorldPos)));
+      quat4f rootLocalRot = v_quat_mul_quat(invAnimcharRotation, v_quat_mul_quat(rootRotation, resultAnimation.rotation[rootId]));
+      chPrs.pos = rootLocalPos;
+      chPrs.rot = rootLocalRot;
+    }
+    else
+    {
+      chPrs.pos = resultAnimation.position[geomId];
+      chPrs.rot = resultAnimation.rotation[geomId];
     }
   }
   return true;
@@ -86,7 +101,7 @@ void MotionMatchingController::playAnimation(int clip_index, int frame_index, bo
   const AnimationClip &nextClip = dataBase->clips[clip_index];
   // We probably want blending here, but it looks like all clips will have (1,1,-1) scale.
   // And I also don't understand why we need scale in animations at all, such constants can be premultiplied.
-  rootPRS.scale = nextClip.rootScale;
+  rootScale = nextClip.rootScale;
 
   if (need_transition)
   {

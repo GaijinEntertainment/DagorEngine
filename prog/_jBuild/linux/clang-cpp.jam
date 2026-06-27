@@ -28,6 +28,9 @@ rule ProcessCompileTarget
   }
   if $(CheckOnly) != yes && $(Config) != dbg { _CONFIG_OPT += -g ; }
 
+  if $(UseWholeOpt) = yes { _CONFIG_OPT += -flto=thin ; }
+  else if $(UseWholeOpt) != no { _CONFIG_OPT += -flto=$(UseWholeOpt) ; } # e.g. full
+
   if $(FortifySource) = yes { _CONFIG_OPT += -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 ; }
 
   if $(PlatformArch) = e2k { # no StackProtection support available

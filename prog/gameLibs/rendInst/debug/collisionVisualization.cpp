@@ -261,18 +261,16 @@ static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cr
   shrink_frustum_zfar(frustum, curViewPos, v_splats(visibility_max_dist));
   vec3f vMinSize = v_splats(rendinst_debug_min_size);
 
-  for (int i = 0; i < rendinst::riExtra.size(); ++i)
-  {
-    rendinst::RiExtraPool &riPool = rendinst::riExtra[i];
+  iterateRIExtra([&](int i, const RiExtraPool &riPool) {
     if (riPool.collRes == nullptr)
-      continue;
+      return;
 
     if (for_occlusion && (!riPool.isWalls || !riPool.largeOccluder))
-      continue;
+      return;
 
     int pool_vis = frustum.testBox(riPool.fullWabb.bmin, riPool.fullWabb.bmax);
     if (pool_vis == frustum.OUTSIDE)
-      continue;
+      return;
 
     for (int j = 0; j < riPool.riTm.size(); ++j)
     {
@@ -306,7 +304,7 @@ static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cr
 
       out_collisions.push_back(info);
     }
-  }
+  });
 }
 
 static void draw_collision_ui(const CollisionInfo &coll, mat44f_cref globtm, const Point3 &view_pos,

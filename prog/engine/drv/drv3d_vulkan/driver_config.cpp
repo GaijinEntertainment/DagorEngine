@@ -13,6 +13,9 @@
 #include <gpuVendor.h>
 #include "backend.h"
 #include "backend_interop.h"
+#if _TARGET_PC_LINUX
+#include <unistd.h> // access() for the WSL2 /dev/dxg probe
+#endif
 
 using namespace drv3d_vulkan;
 
@@ -307,6 +310,18 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
+    // WSL2 routes the GPU through dxgkrnl (/dev/dxg), whose host-visible memory rejects a kernel
+    // fread (used to fill the texture-upload RUB); stage that write in RAM and memcpy it in.
+    // Native Linux has no /dev/dxg, and vendor/driver strings match WSL2, so key on the OS here.
+#if _TARGET_PC_LINUX
+    bits.stageRubThroughCpu = access("/dev/dxg", F_OK) == 0;
+    debug("vulkan: stageRubThroughCpu enabled");
+#else
+    bits.stageRubThroughCpu = false;
+#endif
+  }
+
+  {
     const DataBlock *disallowedFormatsProp = getPerDriverPropertyBlock("disallowedFormats");
     formatSupportMask.resize(Globals::VK::phy.formatProperties.size());
     for (uint32_t i = 0; i < Globals::VK::phy.formatProperties.size(); ++i)
@@ -376,6 +391,11 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     if (!bits.allowXess)
       debug("vulkan: XeSS disabled by per-driver config");
   }
+
+  bits.brokenClearsOnNonLinearUAVRT =
+    getPerDriverPropertyBlock("brokenClearsOnNonLinearUAVRT")->getBool("affected", Globals::VK::phy.vendor == GpuVendor::AMD);
+  if (bits.brokenClearsOnNonLinearUAVRT)
+    debug("vulkan: applying workaround for broken clears on non-linear UAV render targets");
 }
 
 const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)

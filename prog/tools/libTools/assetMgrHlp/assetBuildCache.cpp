@@ -17,6 +17,7 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/util/iLogWriter.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_string.h>
@@ -158,9 +159,7 @@ int dabuildcache::bind_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
     return -1;
 
   if (appblk.getStr("shaders", NULL))
-    appblk.setStr("shadersAbs", String(260, "%s/%s", appdir, appblk.getStr("shaders", NULL)));
-  else
-    appblk.setStr("shadersAbs", String(260, "%s/../common/compiledShaders/tools", startDir.str()));
+    appblk.setStr("shadersAbs", make_eff_app_relative_path(appblk.getStr("shaders")));
 
   String cdk_dir(260, "%s/../", startDir.str());
   ::dd_simplify_fname_c(cdk_dir);

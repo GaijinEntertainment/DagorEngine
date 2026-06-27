@@ -14,7 +14,7 @@
 #include <generic/dag_enumerate.h>
 #include <math/dag_cube_matrix.h>
 
-static ShaderVariableInfo copySourceVarId{"video360_copy_source"};
+static ShaderVariableInfo copySourceVarId("video360_copy_source", true);
 
 Video360::Video360(int cube_size, int convergence_frames, float z_near, float z_far, TMatrix view_itm) :
   cubemapFace(0),

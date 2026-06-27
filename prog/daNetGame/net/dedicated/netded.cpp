@@ -438,7 +438,7 @@ struct DedicatedNetObserver final : public net::INetworkObserver
     }
     else // replay connection
     {
-      G_ASSERT(get_time_mgr().getMillis() == 0); // make sure that all replay connections has same timeline
+      G_ASSERT(get_sync_millis() == 0);
       flush_new_connection(conn);
     }
   }

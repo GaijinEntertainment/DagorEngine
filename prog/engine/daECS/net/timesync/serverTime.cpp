@@ -3,7 +3,6 @@
 #include <daECS/net/netbase.h>
 #include <daECS/net/time.h>
 #include <daECS/net/msgDecl.h>
-#include <daECS/net/msgSink.h>
 #include <daNet/getTime.h>
 #include <math.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -35,7 +34,7 @@ public:
     int clientTime = msg->get<0>() + localQueueCorrection;
     TimeSyncResponse respMsg(clientTime, self.getMillis());
     respMsg.connection = imsg->connection;
-    send_net_msg(net::get_msg_sink(), eastl::move(respMsg));
+    send_net_msg(eastl::move(respMsg));
   }
   // ~ITimeManager
 
@@ -44,7 +43,7 @@ private:
   int64_t refTicks = ref_time_ticks();
 };
 
-ECS_NET_IMPL_MSG(TimeSyncRequest, net::ROUTING_CLIENT_TO_SERVER, ECS_NET_NO_RCPTF, UNRELIABLE, TIMESYNC_NET_CHANNEL, net::MF_URGENT,
-  ECS_NET_NO_DUP, &ServerTime::onReceiveTimeSyncRequestMsg);
+ECS_NET_IMPL_UNTARGETED_MSG(TimeSyncRequest, net::ROUTING_CLIENT_TO_SERVER, ECS_NET_NO_RCPTF, UNRELIABLE, TIMESYNC_NET_CHANNEL,
+  net::MF_URGENT, ECS_NET_NO_DUP, &ServerTime::onReceiveTimeSyncRequestMsg);
 
 ITimeManager *create_server_time() { return new ServerTime(); }

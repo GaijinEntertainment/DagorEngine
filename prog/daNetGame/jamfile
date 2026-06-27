@@ -184,9 +184,9 @@ if $(HaveEditor) = yes {
 if $(HaveRenderer) = yes && ( $(Platform)-$(PlatformArch) = windows-x86_64 ||  $(Platform) in linux scarlett ps5 ) {
   # disable BVH on windows x86_64 min CPU build
   if $(Platform) = windows && $(SSEVersion) < 4 {
-    BVHSupport = no ;
+    BVHSupport ?= no ;
   } else {
-    BVHSupport = yes ;
+    BVHSupport ?= yes ;
   }
 } else {
   BVHSupport = no ;

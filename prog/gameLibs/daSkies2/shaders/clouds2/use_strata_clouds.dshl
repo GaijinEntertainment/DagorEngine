@@ -12,14 +12,16 @@ macro USE_STRATA_CLOUDS(code)
       radius_to_camera_offseted,0);
   }
   (code) {
-    strata_clouds@smp2d = strata_clouds;
+    strata_clouds@tex2d = strata_clouds;
     strata_tc_scale0@f4 = (strata_tc_scale, strata_tc_scale, 0.5 + (skies_world_view_pos.x - strata_pos_x)*strata_tc_scale, 0.5 + (skies_world_view_pos.z - strata_pos_z)*strata_tc_scale);
 
     strata_clouds_pow@f4 = (1 / (0.00001 + strata_clouds_effect), strata_clouds_altitude, strata_clouds_altitude + skies_planet_radius,
       (strata_clouds_altitude + skies_planet_radius)*(strata_clouds_altitude + skies_planet_radius));
     strata_clouds_effect@f1 = (strata_clouds_effect)
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   hlsl(code) {
+    #define strata_clouds_samplerstate global_linear_wrap_sampler
     half henyey_greenstein(half g, half cos0)//move to common
     {
       half g2 = g * g;

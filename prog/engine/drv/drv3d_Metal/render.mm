@@ -1045,6 +1045,10 @@ namespace drv3d_metal
             bindless_buffer = render.bindlessTextureCubeIdBuffer;
           else if (remap.texture_type == MetalImageType::Tex2DArray)
             bindless_buffer = render.bindlessTexture2DArrayIdBuffer;
+          else if (remap.texture_type == MetalImageType::Tex3D)
+            bindless_buffer = render.bindlessTexture3DIdBuffer;
+          else if (remap.texture_type == MetalImageType::TexCubeArray)
+            bindless_buffer = render.bindlessTextureCubeArrayIdBuffer;
           else
             G_ASSERTF(0, "Unsupported bindless texture array type %d", int(remap.texture_type));
         }
@@ -1443,6 +1447,12 @@ namespace drv3d_metal
     blank_tex[int(MetalImageType::Tex2DArray)]->apply(blank_tex_2dArray, 0, 0, false, false);
     G_ASSERT(blank_tex_2dArray);
 
+    blank_tex[int(MetalImageType::Tex3D)]->apply(blank_tex_3d, 0, 0, false, false);
+    G_ASSERT(blank_tex_3d);
+
+    blank_tex[int(MetalImageType::TexCubeArray)]->apply(blank_tex_cubeArray, 0, 0, false, false);
+    G_ASSERT(blank_tex_cubeArray);
+
     // create default one
     free_encoders.clear();
     last_encoders.clear();
@@ -1570,6 +1580,8 @@ namespace drv3d_metal
         [residencySet addAllocation : blank_tex_2d];
         [residencySet addAllocation : blank_tex_2dArray];
         [residencySet addAllocation : blank_tex_cube];
+        [residencySet addAllocation : blank_tex_3d];
+        [residencySet addAllocation : blank_tex_cubeArray];
         [residencySet addAllocation : stub_buffer];
       }
     }
@@ -1580,6 +1592,8 @@ namespace drv3d_metal
       bindlessTexture2DIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture 2d id buffer");
       bindlessTexture2DArrayIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture 2d array id buffer");
       bindlessTextureCubeIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture cube id buffer");
+      bindlessTexture3DIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture 3d id buffer");
+      bindlessTextureCubeArrayIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture cube array id buffer");
       bindlessBufferIdBuffer = new Buffer(BINDLESS_BUFFER_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless buffer id buffer");
       bindlessSamplerIdBuffer = new Buffer(BINDLESS_SAMPLER_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless sampler id buffer");
 
@@ -1588,6 +1602,8 @@ namespace drv3d_metal
         bindlessTextures2D.init(ToResourceID(blank_tex_2d));
         bindlessTexturesCube.init(ToResourceID(blank_tex_cube));
         bindlessTextures2DArray.init(ToResourceID(blank_tex_2dArray));
+        bindlessTextures3D.init(ToResourceID(blank_tex_3d));
+        bindlessTexturesCubeArray.init(ToResourceID(blank_tex_cubeArray));
         bindlessBuffers.init(stub_buffer.gpuAddress);
       }
     }
@@ -1683,6 +1699,10 @@ namespace drv3d_metal
               G_ASSERTF(res.texture != tex.tex, "Texture %s beging released is in bindless 2darray array", res.texture->getName());
             for (auto &tex : bindlessTexturesCube.cache)
               G_ASSERTF(res.texture != tex.tex, "Texture %s beging released is in bindless cube array", res.texture->getName());
+            for (auto &tex : bindlessTextures3D.cache)
+              G_ASSERTF(res.texture != tex.tex, "Texture %s beging released is in bindless 3d array", res.texture->getName());
+            for (auto &tex : bindlessTexturesCubeArray.cache)
+              G_ASSERTF(res.texture != tex.tex, "Texture %s beging released is in bindless cube array array", res.texture->getName());
 #endif
             res.texture->release();
             break;
@@ -2653,6 +2673,18 @@ namespace drv3d_metal
               if (tex.tex)
                 track_resource_read(*tex.tex);
           }
+          else if (type == BindlessTypeTexture3D)
+          {
+            for (auto &tex : bindlessTextures3D.cache)
+              if (tex.tex)
+                track_resource_read(*tex.tex);
+          }
+          else if (type == BindlessTypeTextureCubeArray)
+          {
+            for (auto &tex : bindlessTexturesCubeArray.cache)
+              if (tex.tex)
+                track_resource_read(*tex.tex);
+          }
         }
         break;
         case CommandType::CopyAccelerationStruct:
@@ -2684,11 +2716,21 @@ namespace drv3d_metal
 
           ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Acceleration);
 
-          for (uint32_t i = 0; i < count; ++i)
           {
-            Buffer *buf = nullptr;
-            command_encoder.read(buf);
-            track_resource_read(*buf);
+            std::lock_guard<std::mutex> scopedLock(delete_lock);
+
+            if (info.scratch)
+              resources2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = info.scratch->getBuffer() });
+
+            for (uint32_t i = 0; i < count; ++i)
+            {
+              Buffer *buf = nullptr;
+              command_encoder.read(buf);
+
+              G_ASSERT(!buf->is_fast_discard());
+              track_resource_read(*buf);
+              resources2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = buf->getBuffer() });
+            }
           }
 
           if (as->index == -1)
@@ -3167,6 +3209,18 @@ namespace drv3d_metal
         return false;
       bindless_resources_bound &= ~BindlessTypeTexture2DArray;
     }
+    else if (D3DResourceType::VOLTEX == resType)
+    {
+      if (!bindlessTextures3D.update(index, res))
+        return false;
+      bindless_resources_bound &= ~BindlessTypeTexture3D;
+    }
+    else if (D3DResourceType::CUBEARRTEX == resType)
+    {
+      if (!bindlessTexturesCubeArray.update(index, res))
+        return false;
+      bindless_resources_bound &= ~BindlessTypeTextureCubeArray;
+    }
     return true;
   }
 
@@ -3205,6 +3259,22 @@ namespace drv3d_metal
         update |= bindlessTextures2DArray.update(index + i, nullptr);
       if (update)
         bindless_resources_bound &= ~BindlessTypeTexture2DArray;
+    }
+    else if (D3DResourceType::VOLTEX == type)
+    {
+      bool update = false;
+      for (uint32_t i = 0; i < count; i++)
+        update |= bindlessTextures3D.update(index + i, nullptr);
+      if (update)
+        bindless_resources_bound &= ~BindlessTypeTexture3D;
+    }
+    else if (D3DResourceType::CUBEARRTEX == type)
+    {
+      bool update = false;
+      for (uint32_t i = 0; i < count; i++)
+        update |= bindlessTexturesCubeArray.update(index + i, nullptr);
+      if (update)
+        bindless_resources_bound &= ~BindlessTypeTextureCubeArray;
     }
 
     return 1;
@@ -4218,7 +4288,9 @@ namespace drv3d_metal
     }
     if (tex->type == D3DResourceType::VOLTEX && attach.layer != d3d::RENDER_TO_WHOLE_ARRAY)
       desc.depthPlane = attach.layer;
-    else if ((tex->type == D3DResourceType::CUBETEX || tex->type == D3DResourceType::ARRTEX) && attach.layer != d3d::RENDER_TO_WHOLE_ARRAY)
+    else if ((tex->type == D3DResourceType::CUBETEX || tex->type == D3DResourceType::ARRTEX ||
+               tex->type == D3DResourceType::CUBEARRTEX) &&
+             attach.layer != d3d::RENDER_TO_WHOLE_ARRAY)
       desc.slice = attach.layer;
 
     G_ASSERT(samples == -1 || samples == desc.texture.sampleCount);
@@ -4653,12 +4725,16 @@ namespace drv3d_metal
       bindlessTexture2DIdBuffer->destroy();
       bindlessTexture2DArrayIdBuffer->destroy();
       bindlessTextureCubeIdBuffer->destroy();
+      bindlessTexture3DIdBuffer->destroy();
+      bindlessTextureCubeArrayIdBuffer->destroy();
       bindlessBufferIdBuffer->destroy();
       bindlessSamplerIdBuffer->destroy();
 
       bindlessTexture2DIdBuffer = nullptr;
       bindlessTexture2DArrayIdBuffer = nullptr;
       bindlessTextureCubeIdBuffer = nullptr;
+      bindlessTexture3DIdBuffer = nullptr;
+      bindlessTextureCubeArrayIdBuffer = nullptr;
       bindlessBufferIdBuffer = nullptr;
       bindlessSamplerIdBuffer = nullptr;
 
@@ -5169,13 +5245,22 @@ namespace drv3d_metal
     G_ASSERT(instanceBuf.length >= d3d::get_driver_desc().raytrace.topAccelerationStructureInstanceElementSize * tasbi.instanceCount);
 
     blases.lock();
-    accDesc.instanceDescriptorBuffer = instanceBuf;
-    accDesc.instancedAccelerationStructures = nativeBlases;
+    @autoreleasepool
+    {
+      accDesc.instanceDescriptorBuffer = instanceBuf;
+      accDesc.instancedAccelerationStructures = [[NSArray alloc] initWithArray : nativeBlases];
+    }
     blases.unlock();
 
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::Acceleration);
 
     ASBuildInfo info {.scratch = (Buffer *)tasbi.scratchSpaceBuffer, .offset = tasbi.scratchSpaceBufferOffsetInBytes, .size = tasbi.scratchSpaceBufferSizeInBytes, .update = tasbi.doUpdate ? 1u : 0u};
+
+    addResource(instanceBuf);
+    if (info.scratch)
+      addResource(info.scratch->getBuffer());
+
+    commitResidencySet();
 
     uint8_t count = 1;
     command_encoder.write(CommandType::BuildAccelerationStructure).write(as).write([accDesc retain]).write(info).write(count).write(ibuffer);
@@ -5197,6 +5282,13 @@ namespace drv3d_metal
     G_ASSERT(basbi.scratchSpaceBufferSizeInBytes == 0 || basbi.scratchSpaceBuffer);
     ASBuildInfo info {.scratch = (Buffer *)basbi.scratchSpaceBuffer, .offset = basbi.scratchSpaceBufferOffsetInBytes, .size = basbi.scratchSpaceBufferSizeInBytes, .update = basbi.doUpdate ? 1u : 0u};
 
+    for (const auto &buf : resources)
+      addResource(buf->getBuffer());
+    if (info.scratch)
+      addResource(info.scratch->getBuffer());
+
+    commitResidencySet();
+
     uint8_t count = uint8_t(resources.size());
     command_encoder.write(CommandType::BuildAccelerationStructure).write(blas).write([accDesc retain]).write(info).write(count).write(resources.data(), resources.size()*sizeof(Buffer *));
   }
@@ -5214,15 +5306,21 @@ namespace drv3d_metal
     uint64_t tex_2d = 0;
     uint64_t tex_2dArray = 0;
     uint64_t tex_cube = 0;
+    uint64_t tex_3d = 0;
+    uint64_t tex_cubeArray = 0;
     uint64_t buffer_stub = 0;
     if (@available(macOS 13.0, iOS 16.0, *))
     {
       G_ASSERT(blank_tex_2d);
       G_ASSERT(blank_tex_2dArray);
       G_ASSERT(blank_tex_cube);
+      G_ASSERT(blank_tex_3d);
+      G_ASSERT(blank_tex_cubeArray);
       tex_2d = ToResourceID(blank_tex_2d);
       tex_2dArray = ToResourceID(blank_tex_2dArray);
       tex_cube = ToResourceID(blank_tex_cube);
+      tex_3d = ToResourceID(blank_tex_3d);
+      tex_cubeArray = ToResourceID(blank_tex_cubeArray);
       buffer_stub = stub_buffer.gpuAddress;
     }
 
@@ -5250,6 +5348,22 @@ namespace drv3d_metal
         bindlessTexture2DArrayIdBuffer->updateDataWithLock(0, sizeof(uint64_t), &tex_2dArray, VBLOCK_DISCARD);
       else
         bindlessTexture2DArrayIdBuffer->updateDataWithLock(0, sizeof(uint64_t)*bindlessTextures2DArray.id_cache.size(), bindlessTextures2DArray.id_cache.data(), VBLOCK_DISCARD);
+    }
+    if (mask & (BindlessTypeTexture3D))
+    {
+      command_encoder.write(CommandType::TrackBindless).write(BindlessTypeTexture3D);
+      if (bindlessTextures3D.id_cache.empty())
+        bindlessTexture3DIdBuffer->updateDataWithLock(0, sizeof(uint64_t), &tex_3d, VBLOCK_DISCARD);
+      else
+        bindlessTexture3DIdBuffer->updateDataWithLock(0, sizeof(uint64_t)*bindlessTextures3D.id_cache.size(), bindlessTextures3D.id_cache.data(), VBLOCK_DISCARD);
+    }
+    if (mask & (BindlessTypeTextureCubeArray))
+    {
+      command_encoder.write(CommandType::TrackBindless).write(BindlessTypeTextureCubeArray);
+      if (bindlessTexturesCubeArray.id_cache.empty())
+        bindlessTextureCubeArrayIdBuffer->updateDataWithLock(0, sizeof(uint64_t), &tex_cubeArray, VBLOCK_DISCARD);
+      else
+        bindlessTextureCubeArrayIdBuffer->updateDataWithLock(0, sizeof(uint64_t)*bindlessTexturesCubeArray.id_cache.size(), bindlessTexturesCubeArray.id_cache.data(), VBLOCK_DISCARD);
     }
     if (mask & BindlessTypeBuffer)
     {

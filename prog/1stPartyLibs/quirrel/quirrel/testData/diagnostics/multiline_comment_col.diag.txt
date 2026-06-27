@@ -1,0 +1,8 @@
+ERROR: expected '('
+testData/diagnostics/multiline_comment_col.nut:3:26
+
+   line
+   comment  */ local x = @!@
+                          ^
+
+

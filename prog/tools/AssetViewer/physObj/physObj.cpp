@@ -31,6 +31,7 @@
 
 #include <winGuiWrapper/wgw_input.h>
 #include <render/dag_cur_view.h>
+#include <libTools/util/appDirRelativePath.h>
 
 using hdpi::_pxActual;
 using hdpi::_pxScaled;
@@ -847,8 +848,8 @@ public:
     rwd = fwd = rsa = fsa = false;
 
     DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
-    const char *cpBlkPath = appBlk.getBlockByNameEx("game")->getStr("car_params", "/game/config/car_params.blk");
-    load_car_params_block_from(String(260, "%s%s", ::get_app().getWorkspace().getAppDir(), cpBlkPath));
+    load_car_params_block_from(
+      make_eff_app_relative_path(appBlk.getBlockByNameEx("game")->getStr("car_params", "game/config/car_params.blk")));
 
     nowSimulated = false;
     slowSimulate = false;

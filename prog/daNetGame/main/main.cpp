@@ -857,7 +857,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   if (!selfcheck_passed)
     return 3;
 
-  if (!net_init_early(*g_entity_mgr)) // do init network early as it might fail application startup (i.e. on server)
+  if (is_main_thread_network() && !net_init_early(*g_entity_mgr))
     return 1;
 
   g_entity_mgr->broadcastEventImmediate(VromfsUpdaterEarlyInitEvent{});

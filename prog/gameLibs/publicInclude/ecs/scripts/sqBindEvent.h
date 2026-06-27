@@ -131,7 +131,7 @@ inline void event_ctor_bind_helper(Cls &cls, eastl::index_sequence<Indexes...>)
   cls.template Ctor<typename MaybeAddRef<typename eastl::tuple_element<Indexes, Tuple>::type>::type...>();
 }
 
-typedef bool (*push_instance_fn_t)(HSQUIRRELVM, void *);
+typedef bool (*push_instance_fn_t)(HSQUIRRELVM, ecs::Event *);
 void register_native_event_impl(ecs::event_type_t evtt, push_instance_fn_t push_inst_fn);
 template <typename C>
 inline void register_native_event()

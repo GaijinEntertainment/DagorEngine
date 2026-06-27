@@ -250,11 +250,11 @@ void writeQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const QuadPrim *prims
     // Singles are a fallback (cannot be rejected like quad candidates), so an index spread beyond
     // the 10-bit offset range would silently wrap and read the wrong vertices. Clamp + logerr keeps
     // the geometry bounded and the failure visible in release (dev too) instead of corrupting the
-    // GPU buffer; the proper fix is a vertex-duplication pass before build (meshopt-optimized
-    // indices, see dag_quadBLASBuilder.h).
+    // GPU buffer; the proper fix is the SAH-leaf-order renumber + window-block dup before build
+    // (build_bvh::leafOrderVertexFetch, see dag_bvhBuild.h).
     if ((unsigned)o1 > QUAD_O1_MAX || (unsigned)o2 > QUAD_O2_MAX)
     {
-      logerr("daBVH: quad single offset overflow o1=%d o2=%d (max %d); mesh not meshopt-optimized?", o1, o2, QUAD_O1_MAX);
+      logerr("daBVH: quad single offset overflow o1=%d o2=%d (max %d); leaf-order/window-dedup not applied?", o1, o2, QUAD_O1_MAX);
       o1 = o1 < 0 ? 0 : (o1 > (int)QUAD_O1_MASK ? (int)QUAD_O1_MASK : o1);
       o2 = o2 < 0 ? 0 : (o2 > (int)QUAD_O2_MASK ? (int)QUAD_O2_MASK : o2);
     }

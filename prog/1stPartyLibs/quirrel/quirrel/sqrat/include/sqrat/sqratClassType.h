@@ -258,9 +258,9 @@ public:
         return 0;
     }
 
-
-    static bool PushNativeInstance(HSQUIRRELVM vm, C* ptr) {
-        if (!ptr) {
+    template <typename T>
+    static bool PushNativeInstance(HSQUIRRELVM vm, T *arg) {
+        if (!arg) {
             sq_pushnull(vm);
             return true;
         }
@@ -269,6 +269,8 @@ public:
         SQRAT_ASSERT(cd); // class must be registered for this VM
         if (!cd)
             return false;
+
+        C *ptr = static_cast<C *>(arg);
 
         // Dedup: if this pointer is already known (owned or borrowed),
         // return the existing Quirrel instance. Prevents creating a

@@ -87,3 +87,28 @@ macro WETNESS_FOR_SPEC_BRDF(stage)
     }
   }
 endmacro
+
+int bvh_gbuffer_albedo_index = 0;
+int bvh_gbuffer_normal_index = 0;
+int bvh_gbuffer_material_index = 0;
+int bvh_gbuffer_motion_index = 0;
+int bvh_gbuffer_depth_index = 0;
+
+macro INIT_BVH_BINDLESS_GBUFFER(stage)
+  (stage)
+  {
+    bvh_gbuffer_albedo_index@u1 = bvh_gbuffer_albedo_index;
+    bvh_gbuffer_normal_index@u1 = bvh_gbuffer_normal_index;
+    bvh_gbuffer_material_index@u1 = bvh_gbuffer_material_index;
+    bvh_gbuffer_motion_index@u1 = bvh_gbuffer_motion_index;
+    bvh_gbuffer_depth_index@u1 = bvh_gbuffer_depth_index;
+  }
+  hlsl(stage)
+  {
+    #define albedo_gbuf_load   (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_albedo_index))
+    #define normal_gbuf_load   (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_normal_index))
+    #define material_gbuf_load (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_material_index))
+    #define motion_gbuf_load   (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_motion_index))
+    #define depth_gbuf_load    (uniformBindlessTex2D(bvh_textures, bvh_gbuffer_depth_index))
+  }
+endmacro

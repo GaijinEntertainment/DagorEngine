@@ -2,6 +2,7 @@
 
 #include "gamepad_classdrv.h"
 #include "gamepad_device.h"
+#include "flightstick_classdrv.h"
 #include "keyboard_classdrv.h"
 #include "mouse_emu.h"
 
@@ -21,6 +22,12 @@ IGenJoystickClassDrv *HumanInput::createGameInputJoystickClassDriver(bool should
   }
   return cd;
 }
+
+
+IGenJoystickClassDrv *HumanInput::createGameInputFlightStickClassDriver() { return new (inimem) FlightStickClassDriver(); }
+
+
+IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool) { return new (inimem) FlightStickClassDriver(); }
 
 
 IGenKeyboardClassDrv *HumanInput::createGameInputKeyboardClassDriver()

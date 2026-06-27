@@ -132,13 +132,6 @@ static FILE *xbox_debug_file = NULL;
 static bool file_was_created_this_launch = false;
 #endif
 
-#define PFUN(fmt, ...)                                                                 \
-  do                                                                                   \
-  {                                                                                    \
-    snprintf(buf + buf_used_len, sizeof(vlog_buf) - buf_used_len, fmt, ##__VA_ARGS__); \
-    buf_used_len += (int)strlen(buf + buf_used_len);                                   \
-  } while (0)
-
 #define LOG_TAIL_BUF (_TARGET_XBOX || _TARGET_C1 || _TARGET_C2 || _TARGET_ANDROID || _TARGET_IOS)
 
 #if DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
@@ -157,7 +150,7 @@ void debug_set_thread_name(const char *persistent_thread_name_ptr)
 #endif
 }
 
-static thread_local char vlog_buf[8 << 10];
+static thread_local debug_internal::PrintBuffer<> lineBuf;
 
 #if LOG_TAIL_BUF
 #include <util/dag_ringBuf.h>
@@ -400,8 +393,6 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
 {
   if (!logimpl_ctors_inited)
     return;
-  char *buf = vlog_buf;
-  int buf_used_len = (int)strlen(buf);
 
 #if !DAGOR_FORCE_LOGS || DAGOR_DBGLEVEL > 0 || FORCE_THREAD_IDS
   if (!dbg_tid_enabled || (&dbg_ctx)->threadId)
@@ -412,9 +403,9 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
   {
     (&dbg_ctx)->threadId = interlocked_increment(next_thread_id);
 #if DAGOR_HOSTED_INTERNAL_SERVER
-    PFUN("{HIS} ");
+    lineBuf.sprintf("%s", "{HIS} ");
 #endif
-    PFUN("---$%02X %s ---\n", (&dbg_ctx)->threadId - 1, (&dbg_ctx)->threadName);
+    lineBuf.sprintf("---$%02X %s ---\n", (&dbg_ctx)->threadId - 1, (&dbg_ctx)->threadName);
   }
 #endif
 
@@ -430,62 +421,55 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
   bool addSlashN = !(&dbg_ctx)->holdLine;
   bool new_debug_line = !(&dbg_ctx)->nextSameLine;
 #if DAGOR_HOSTED_INTERNAL_SERVER
-  PFUN("{HIS} ");
+  lineBuf.sprintf("%s", "{HIS} ");
 #endif
   if (thread_id > 0)
   {
     if ((&dbg_ctx)->file)
     {
       if (debug_internal::timestampEnabled)
-        PFUN("%d.%02d $%02X . %s,%d: ", t / 1000, (t % 1000) / 10, thread_id, (&dbg_ctx)->file, (&dbg_ctx)->line);
+        lineBuf.sprintf("%d.%02d $%02X . %s,%d: ", t / 1000, (t % 1000) / 10, thread_id, (&dbg_ctx)->file, (&dbg_ctx)->line);
       else
-        PFUN("$%02X %s,%d: ", thread_id, (&dbg_ctx)->file, (&dbg_ctx)->line);
+        lineBuf.sprintf("$%02X %s,%d: ", thread_id, (&dbg_ctx)->file, (&dbg_ctx)->line);
       (&dbg_ctx)->reset();
     }
     else if (new_debug_line && debug_internal::timestampEnabled)
-      PFUN("%d.%02d $%02X ", t / 1000, (t % 1000) / 10, thread_id);
+      lineBuf.sprintf("%d.%02d $%02X ", t / 1000, (t % 1000) / 10, thread_id);
   }
   else if ((&dbg_ctx)->file)
   {
     if (debug_internal::timestampEnabled)
-      PFUN("%d.%02d . %s,%d: ", t / 1000, (t % 1000) / 10, (&dbg_ctx)->file, (&dbg_ctx)->line);
+      lineBuf.sprintf("%d.%02d . %s,%d: ", t / 1000, (t % 1000) / 10, (&dbg_ctx)->file, (&dbg_ctx)->line);
     else
-      PFUN("%s,%d: ", (&dbg_ctx)->file, (&dbg_ctx)->line);
+      lineBuf.sprintf("%s,%d: ", (&dbg_ctx)->file, (&dbg_ctx)->line);
     (&dbg_ctx)->reset();
   }
   else if (new_debug_line && debug_internal::timestampEnabled)
-    PFUN("%d.%02d ", t / 1000, (t % 1000) / 10);
+    lineBuf.sprintf("%d.%02d ", t / 1000, (t % 1000) / 10);
 
   const int rt = (uint32_t)tag <= LOGLEVEL_REMARK ? debug_internal::stdTags[tag] : tag;
   if (rt != debug_internal::stdTags[LOGLEVEL_DEBUG]) // I'm not sure whether we need or not print debug tag
-    PFUN("%c%c%c%c ", _DUMP4C(rt));
+    lineBuf.sprintf("%c%c%c%c ", _DUMP4C(rt));
 
-  DagorSafeArg::mixed_print_fmt(buf + buf_used_len, sizeof(vlog_buf) - buf_used_len, format, arg, anum);
-  buf[sizeof(vlog_buf) - 2] = 0;
-
-  size_t bufLen = buf_used_len + strlen(buf + buf_used_len);
-  if (addSlashN)
-    strcpy(buf + bufLen, "\n");
-  bool term = addSlashN || (bufLen > 0 && buf[bufLen - 1] == '\n');
+  lineBuf.appendFmt(addSlashN, format, arg, anum);
+  bool term = lineBuf.endsWithNewline();
 
   if (term)
   {
 #if _TARGET_XBOX
-    for (char *pos = buf; *pos; pos++) // Watson is sensitive to non-printable characters and can terminate the log with 0x83750007
-                                       // WEB_E_INVALID_JSON_STRING.
+    // Watson is sensitive to non-printable characters and can terminate the log with 0x83750007 WEB_E_INVALID_JSON_STRING
+    for (char *pos = lineBuf.data(); *pos; pos++)
       if ((uint8_t)*pos < ' ' && *pos != '\n' && *pos != '\r' && *pos != '\t')
         *pos = '*';
 #endif
 
-    log_write(buf, bufLen + (int)addSlashN);
-    buf[0] = 0;
+    log_write(lineBuf.data(), lineBuf.length());
+    lineBuf.reset();
   }
 
   (&dbg_ctx)->nextSameLine = !term;
   (&dbg_ctx)->holdLine = false;
 }
-
-#undef PFUN
 
 void debug_override_log_timestamp_format(debug_override_timestamp_cb_t) {}
 

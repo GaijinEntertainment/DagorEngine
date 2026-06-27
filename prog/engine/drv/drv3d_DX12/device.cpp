@@ -14,6 +14,7 @@
 #include <gpuVendorNvidia.h>
 
 #include <3d/gpuLatency.h>
+#include <3d/dag_gpuConfig.h>
 #include <osApiWrappers/dag_winVersionQuery.h>
 
 
@@ -1330,6 +1331,20 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
              " (skipPreloadRaytracingPipelinesOnNvidia)");
   }
 
+  if (GpuVendor::NVIDIA == vendor)
+  {
+    auto driverDate = gpu::get_driver_date(adapter_info.info.VendorId, adapter_info.info.DeviceId);
+    // 2022-or-older NVIDIA drivers hang during PSO cache warmup. Skip warmup and flag the driver
+    // as outdated so the shared "outdated driver" message box recommends a driver update.
+    if (driverDate.year > 0 && driverDate.year <= 2022)
+    {
+      allowPipelineSetCompilation = false;
+      d3d_mark_gpu_driver_outdated();
+      logwarn("DX12: Old NVIDIA driver detected (%02d.%02d.%04d), disabling PSO cache warmup as it might hang", driverDate.day,
+        driverDate.month, driverDate.year);
+    }
+  }
+
   const bool validationLayerAvailable = debug::DeviceState::setup(debug_state, device.get(), d3d_env);
 
   if (validationLayerAvailable)
@@ -2110,6 +2125,7 @@ template <typename F>
 bool Device::processDefragmentation(const F &defragmentation_call, const char *defragmentation_method_name)
 {
   ScopedCommitLock ctxLock{context};
+  WinAutoLock defragLock(context.getDefragGuard());
 
   if (!isHealthy())
   {
@@ -2155,6 +2171,7 @@ void Device::processEmergencyDefragmentation(uint32_t requested_group, bool is_a
   TIME_D3D_PROFILE_NAME(EmergencyDefragmentation, "EmergencyDefragmentation");
 
   ScopedCommitLock ctxLock{context};
+  WinAutoLock defragLock(context.getDefragGuard());
 
   if (!context.noActiveQueriesNoLock())
   {

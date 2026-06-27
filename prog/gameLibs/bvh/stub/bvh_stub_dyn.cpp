@@ -10,7 +10,9 @@ void init(ContextId) {}
 void teardown(ContextId) {}
 void enable_dynamic_planar_decals(bool) {}
 void on_unload_scene(ContextId) {}
-void update_dynrend_instances(ContextId, dynrend::ContextId, dynrend::ContextId, const Point3 &) {}
+void update_dynrend_instances(ContextId, dynrend::ContextId, dynrend::ContextId, const Point3 &,
+  dag::Vector<DynamicRenderableSceneInstance *> &&)
+{}
 void update_animchar_instances(ContextId, dynrend::ContextId, dynrend::ContextId, const Point3 &, dynrend::BVHIterateCallback) {}
 void set_up_dynrend_context_for_processing(dynrend::ContextId) {}
 void wait_dynrend_instances() {}

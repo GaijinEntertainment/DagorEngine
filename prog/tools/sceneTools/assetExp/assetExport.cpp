@@ -10,6 +10,7 @@
 #include <libTools/util/progressInd.h>
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <generic/dag_span.h>
 #include <generic/dag_smallTab.h>
@@ -314,14 +315,14 @@ public:
         if (stricmp(pfolder, "*common") == 0)
           ret = loadExporterPluginsInFolder(String(260, "%s/plugins/dabuild", startDir.str()));
         else
-          ret = loadExporterPluginsInFolder(String(260, "%s/%s", appDir.str(), pfolder));
+          ret = loadExporterPluginsInFolder(make_eff_app_relative_path(pfolder));
 
         if (!ret)
           return false;
       }
       else if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid_plugin)
       {
-        if (!loadSingleExporterPlugin(String(260, "%s/%s", appDir.str(), blk.getStr(i))))
+        if (!loadSingleExporterPlugin(make_eff_app_relative_path(blk.getStr(i))))
           return false;
       }
 

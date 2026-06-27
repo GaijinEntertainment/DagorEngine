@@ -132,6 +132,17 @@ private:
   eastl::vector<NodeCull> cullNodes;
   eastl::vector<eastl::pair<int, int>> cullNodeOrder;
 
+  // Cull-result memoization. The pass that fills cullNodes / cullNodeOrder is ~O(N^2) (ne::GetNodePosition
+  // / GetNodeSize are linear lookups), so it is rebuilt only when an input changes and otherwise reused.
+  // cullDirty is raised by graph mutations (add / remove node / edge, graph reload). cullViewMin/Max is the
+  // canvas-space viewport the cache was built against -- a pan / zoom / navigate-animation moves it and
+  // forces a rebuild. cullSettleFrames keeps the pass running during a pointer interaction and for a few
+  // frames after, so a node drag or block resize (ne bounds move with no view / graph-data change) shows.
+  bool cullDirty = true;
+  int cullSettleFrames = 0;
+  ImVec2 cullViewMin = ImVec2(0.0f, 0.0f);
+  ImVec2 cullViewMax = ImVec2(0.0f, 0.0f);
+
   void drawCommentNode(const GraphData::Node &n);
   void drawBlockNode(const GraphData::Node &n);
 

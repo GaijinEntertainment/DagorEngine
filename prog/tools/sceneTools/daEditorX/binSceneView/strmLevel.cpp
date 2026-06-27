@@ -43,6 +43,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/renderUtil/dynRenderBuf.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <landMesh/lmeshRenderer.h>
 #include <heightmap/heightmapHandler.h>
 #include <pathFinder/pathFinder.h>
@@ -395,18 +396,19 @@ void AcesScene::loadLevel(const char *bindump)
   release_managed_tex(levelMapTexId);
 
   String fn(0, "levels/%s.blk", ::dd_get_fname(levelFileNameWithoutExt));
-  String app_root(DAGORED2->getWorkspace().getAppDir());
 
   class LevelsFolderIncludeFileResolver : public DataBlock::IIncludeFileResolver
   {
   public:
-    LevelsFolderIncludeFileResolver() : prefix(tmpmem), appDir(NULL) {}
+    LevelsFolderIncludeFileResolver() : prefix(tmpmem) {}
     bool resolveIncludeFile(String &inout_fname) override
     {
       String fn;
       for (int i = 0; i < prefix.size(); i++)
       {
-        fn.printf(0, "%s/%s/levels/%s", appDir, prefix[i], inout_fname);
+        make_eff_app_relative_path(fn, prefix[i]);
+        fn += "/levels/";
+        fn += inout_fname;
         if (dd_file_exists(fn))
         {
           inout_fname = fn;
@@ -415,10 +417,9 @@ void AcesScene::loadLevel(const char *bindump)
       }
       return false;
     }
-    void preparePrefixes(const DataBlock *b, const char *app_dir)
+    void preparePrefixes(const DataBlock *b)
     {
       prefix.clear();
-      appDir = app_dir;
       if (!b)
         return;
       for (int i = 0; i < b->paramCount(); i++)
@@ -426,11 +427,10 @@ void AcesScene::loadLevel(const char *bindump)
           prefix.push_back(b->getStr(i));
     }
     Tab<const char *> prefix;
-    const char *appDir;
   };
   static LevelsFolderIncludeFileResolver inc_resv;
 
-  inc_resv.preparePrefixes(appblk.getBlockByName("levelsBlkPrefix"), app_root);
+  inc_resv.preparePrefixes(appblk.getBlockByName("levelsBlkPrefix"));
   DataBlock::setIncludeResolver(&inc_resv);
 
   debug("Loading level settings from \"%s\"", fn);
@@ -438,14 +438,16 @@ void AcesScene::loadLevel(const char *bindump)
   int prefix_tried = 0;
   for (int i = 0; i < inc_resv.prefix.size(); i++)
   {
-    String fpath(0, "%s/%s/%s", app_root, inc_resv.prefix[i], fn);
+    String fpath = make_eff_app_relative_path(inc_resv.prefix[i]);
+    fpath.aprintf(0, "/%s", fn);
     if (dd_file_exists(fpath) && levelSettingsBlk.load(fpath))
     {
       loaded = true;
       break;
     }
     debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
-    fpath.printf(0, "%s/%s/%s", app_root, inc_resv.prefix[i], dd_get_fname(fn));
+    make_eff_app_relative_path(fpath, inc_resv.prefix[i]);
+    fpath.aprintf(0, "/%s", dd_get_fname(fn));
     if (dd_file_exists(fpath) && levelSettingsBlk.load(fpath))
     {
       loaded = true;
@@ -464,7 +466,7 @@ void AcesScene::loadLevel(const char *bindump)
   if (IRendInstGenService *rendInstGenService = DAGORED2->queryEditorInterface<IRendInstGenService>())
     rendInstGenService->onLevelBlkLoaded(loaded ? levelSettingsBlk : DataBlock());
 
-  DataBlock::setRootIncludeResolver(app_root);
+  DataBlock::setRootIncludeResolver("%appRoot/");
   if (ISkiesService *skiesSrv = DAGORED2->queryEditorInterface<ISkiesService>())
   {
     skiesSrv->overrideWeather(0, NULL, NULL, -1, NULL, levelSettingsBlk.getBlockByNameEx("stars"));

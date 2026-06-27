@@ -39,6 +39,7 @@
 #include <textureUtil/textureUtil.h>
 #include <render/wind/ambientWind.h>
 #include <assets/asset.h>
+#include <libTools/util/appDirRelativePath.h>
 
 using hdpi::_pxScaled;
 
@@ -1426,7 +1427,8 @@ void environment::load_skies_settings(const DataBlock &blk)
 
 void environment::save_skies_settings(DataBlock &blk)
 {
-  blk.setStr("preset", ::make_path_relative(av_skies_preset, get_app().getWorkspace().getSdkDir()));
+  blk.setStr("preset",
+    av_skies_preset[0] == '%' ? av_skies_preset : ::make_path_relative(av_skies_preset, get_app().getWorkspace().getSdkDir()));
   blk.setStr("env", av_skies_env);
   blk.setStr("wtype", av_skies_wtype);
   if (av_skies_srv)
@@ -1449,7 +1451,7 @@ void AssetLightData::setReflectionTexture()
   {
     String texPath;
     if ((strlen(textureName) > 2) && (textureName[1] != ':'))
-      texPath.printf(512, "%s/%s", get_app().getWorkspace().getAppDir(), textureName.str());
+      make_eff_app_relative_path(texPath, textureName.str());
     else
       texPath = textureName;
 

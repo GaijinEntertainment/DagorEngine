@@ -9,6 +9,7 @@
 #include <math/dag_Point2.h>
 #include <util/dag_index16.h>
 #include <EASTL/vector.h>
+#include <generic/dag_staticTab.h>
 
 class GeomNodeTree;
 class DataBlock;
@@ -68,7 +69,7 @@ struct Chain
   void initWithEdges(const eastl::vector<float> &edges_lengths, const TMatrix &tm_start, const Point3 &pt_finish);
 
 private:
-  void calculate3EdgesSolution(const Point2 &control_point_local, eastl::vector<Point2> &local_points_out);
+  void calculate3EdgesSolution(const Point2 &control_point_local, StaticTab<Point2, 4> &local_points_out);
 };
 
 class ChainIKSolver

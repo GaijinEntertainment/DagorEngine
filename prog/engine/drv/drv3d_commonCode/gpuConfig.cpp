@@ -631,3 +631,5 @@ const GpuUserConfig &d3d_get_gpu_cfg()
 }
 
 const GpuDriverConfig &get_gpu_driver_cfg() { return gpu_driver_config; }
+
+void d3d_mark_gpu_driver_outdated() { gpu_driver_config.outdatedDriver = true; }

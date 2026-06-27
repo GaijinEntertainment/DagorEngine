@@ -56,7 +56,6 @@ void d3d::release_driver() {}
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::null); }
 #endif
 const char *d3d::get_driver_name() { return "d3d/stub"; }
-const char *d3d::get_device_driver_version() { return "1.0"; }
 const char *d3d::get_device_name() { return "device/stub"; }
 const char *d3d::get_last_error() { return "n/a"; }
 uint32_t d3d::get_last_error_code() { return 0; }
@@ -416,7 +415,7 @@ void d3d::destroy_shader_library(ShaderLibrary) {}
 
 d3d::RenderPass *d3d::create_render_pass(const RenderPassDesc &) { return nullptr; }
 void d3d::delete_render_pass(d3d::RenderPass *) {}
-void d3d::begin_render_pass(d3d::RenderPass *, const RenderPassArea, const RenderPassTarget *) {}
+void d3d::begin_render_pass(d3d::RenderPass *, const RenderPassArea, dag::ConstSpan<RenderPassTarget>) {}
 void d3d::next_subpass() {}
 void d3d::end_render_pass() {}
 

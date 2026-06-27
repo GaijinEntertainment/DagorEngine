@@ -243,6 +243,10 @@ namespace drv3d_metal
             bindless_type_mask |= BindlessTypeTextureCube;
           else if (remap.texture_type == MetalImageType::Tex2DArray)
             bindless_type_mask |= BindlessTypeTexture2DArray;
+          else if (remap.texture_type == MetalImageType::Tex3D)
+            bindless_type_mask |= BindlessTypeTexture3D;
+          else if (remap.texture_type == MetalImageType::TexCubeArray)
+            bindless_type_mask |= BindlessTypeTextureCubeArray;
           else
             G_ASSERTF(0, "Unsupported bindless texture array type %d", int(remap.texture_type));
         }

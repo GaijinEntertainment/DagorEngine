@@ -15,7 +15,6 @@ void GenWeather::init()
   clouds_weather_texture.close();
   clouds_weather_texture =
     dag::create_tex(NULL, size, size, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY, 1, "clouds_weather_texture", RESTAG_DASKIES2);
-  ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_weather_texture_samplerstate"), d3d::request_sampler({}));
   gen_weather.init("gen_weather");
   invalidate();
 }

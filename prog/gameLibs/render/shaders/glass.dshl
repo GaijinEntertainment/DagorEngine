@@ -22,7 +22,7 @@ assume_if_not_assumed use_glass_backface_light = no;
 
 int allow_rt_glass_reflection = 1;
 interval allow_rt_glass_reflection : no < 1, yes;
-assume_if_not_assumed allow_rt_glass_reflection = no;
+assume_if_not_assumed allow_rt_glass_reflection = yes;
 
 macro INIT_RT_GLASS_REFLECTION_SUPPORT()
   static int asset_supports_rt_glass_reflection = 1 no_warnings;

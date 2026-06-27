@@ -7,6 +7,8 @@
 #include <osApiWrappers/dag_direct.h>
 #include <ioSys/dag_dataBlock.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <math/dag_TMatrix.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_oaHashNameMap.h>
@@ -191,6 +193,7 @@ int DagorWinMain(bool debugmode)
     append_slash(appBlk);
     appBlk += "application.blk";
   }
+  set_canonical_app_dir_mount_from_fpath(appBlk);
 
   DataBlock appblk;
   if (!appblk.load(appBlk))
@@ -208,10 +211,8 @@ int DagorWinMain(bool debugmode)
     return -1;
   }
 
-  location_from_path(appBlk);
-  appBlk.pop_back();
-  developDir = appBlk + cb->getStr("sdk_folder", "");
-  libraryDir = appBlk + cb->getStr("lib_folder", "");
+  developDir = make_eff_app_relative_path(cb->getStr("sdk_folder", ""));
+  libraryDir = make_eff_app_relative_path(cb->getStr("lib_folder", ""));
 
   DataBlock blk;
   convertDir(__argv[1], blk);

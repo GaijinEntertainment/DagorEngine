@@ -164,6 +164,8 @@ bool read_eid(const danet::BitStream &bs, ecs::EntityId &eid); // return false i
 int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId to_eid, net::IMessage &&msg,
   const net::MessageNetDesc *msg_net_desc = nullptr);
 int send_net_msg(ecs::EntityId eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
+// Untargeted send: no EntityManager parameter -- routing is per-NetContext (GET_NET_CTX is thread-aware).
+int send_net_msg(net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc = nullptr);
 #endif
 // Returns true if app is running in server environment.
 // Offline (no network mode) is also assumed to be "server".

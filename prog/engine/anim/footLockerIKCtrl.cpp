@@ -251,10 +251,18 @@ void AnimV20::FootLockerIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
       else
       {
         float remainingDistance = Point2::xz(leg.posOffset).length();
-        if (remainingDistance > min(proceduralStepDistance, proceduralStepHeight))
+        float footSpeed = proceduralStepSpeed;
+        float landingDistance = min(proceduralStepDistance, proceduralStepHeight);
+
+        if (remainingDistance > landingDistance)
+        {
           footVerticalMove += proceduralStepHeight;
-        leg.posOffset.y = move_to(leg.posOffset.y, footVerticalMove, dt, proceduralStepSpeed);
-        float nextDistance = max(remainingDistance - proceduralStepSpeed * dt, 0.f);
+          footSpeed *= clamp(1.f - safediv(footVerticalMove - leg.posOffset.y, proceduralStepHeight), 0.25f, 1.f);
+        }
+        else
+          footSpeed *= M_SQRT1_2 * max(remainingDistance / landingDistance, 0.25f);
+        leg.posOffset.y = move_to(leg.posOffset.y, footVerticalMove, dt, footSpeed);
+        float nextDistance = max(remainingDistance - footSpeed * dt, 0.f);
         if (nextDistance > 0.f)
         {
           float posOffsetXZMul = nextDistance / remainingDistance;

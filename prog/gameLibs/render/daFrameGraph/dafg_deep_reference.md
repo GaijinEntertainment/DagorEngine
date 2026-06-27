@@ -239,10 +239,11 @@ Assigns physical memory locations to virtual resources:
 
 ## 9. Bindings
 
-`BindingType`: `ShaderVar`, `ViewMatrix`, `ProjMatrix`
+`BindingType`: `ShaderVar`, `BindlessShaderVar`, `ViewMatrix`, `ProjMatrix`
 
 Bindings connect resources to shader variables or matrices:
 - `bindToShaderVar(name)` -- binds texture/buffer/blob to shader variable
+- `bindlessShaderVar(name)` -- registers the resource (texture, buffer or sampler) bindlessly and sets the int shader variable to its slot index
 - `bindAsView()`/`bindAsProj()` -- binds blob as view/projection matrix
 - `bindAsVertexBuffer(stream, stride)`/`bindAsIndexBuffer()` -- buffer input assembly
 

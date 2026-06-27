@@ -17,7 +17,9 @@ public:
   TrackBarIntPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
     const char caption[], int min, int max, int step) :
     PropertyControlBase(id, event_handler, parent, x, y, w, hdpi::Px(0)), controlCaption(caption), spinEdit(min, max, step, 0)
-  {}
+  {
+    spinEdit.setIntegerValues(true);
+  }
 
   ~TrackBarIntPropertyControl() override
   {

@@ -10,11 +10,15 @@
 
 #include <de3_interface.h>
 #include <EditorCore/ec_interface.h>
+#include <oldEditor/de_workspace.h>
 #include <ioSys/dag_dataBlock.h>
+#include <libTools/util/strUtil.h>
 #include <math/dag_e3dColor.h>
+#include <osApiWrappers/dag_direct.h>
 #include <propPanel/control/container.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_string.h>
+#include <winGuiWrapper/wgw_dialogs.h>
 
 #include "properties_panel.h"
 #include "graph_panel.h"
@@ -27,7 +31,6 @@ enum
 {
   PID_GRAPH_BASE = 13000,
   PID_GRAPH_TEX_WRAP = PID_GRAPH_BASE + 0,
-  PID_GRAPH_TEXROOT = PID_GRAPH_BASE + 1,
   PID_GRAPH_RENDER_DIR = PID_GRAPH_BASE + 2,
   PID_GRAPH_ENTITY_DIR = PID_GRAPH_BASE + 3,
   PID_GRAPH_HEIGHT_SCALE = PID_GRAPH_BASE + 4,
@@ -66,6 +69,83 @@ bool parse_bool(const char *s)
 const char *value_or(const eastl::string &s, const char *fallback) { return s.empty() ? fallback : s.c_str(); }
 
 float effective_height(float v, float fallback) { return v == FLT_MAX ? fallback : v; }
+
+// True (and out_rel set to the app-relative form) if `text` resolves to a location inside the
+// application directory. The graph .blk stores these dirs app-relative, so anything that escapes
+// appDir is rejected: a different drive (make_path_relative keeps it absolute) or a parent/sibling
+// (a leading "..").
+bool resolve_under_app_dir(const char *text, String &out_rel)
+{
+  const char *appDir = DAGORED2->getWorkspace().getAppDir();
+  if (!appDir || !*appDir)
+  {
+    return false;
+  }
+  const String full = ::make_full_path(appDir, text); // joins; returns text unchanged if it is absolute
+  // appDir itself -> project root, stored as "". Handled up front because make_path_relative cannot
+  // relativize an equal-length path on Linux (it falls back to the absolute path, which would be
+  // rejected below). dd_fname_equal simplifies both sides and compares case-insensitively.
+  if (::dd_fname_equal(full.str(), appDir))
+  {
+    out_rel = "";
+    return true;
+  }
+  out_rel = ::make_path_relative(full.str(), appDir);
+  // make_path_relative routes its result through make_good_path, which re-prefixes a slash-less
+  // relative path with "./"; simplify_fname strips that so the stored value is canonical ("develop",
+  // not "./develop") and a bare parent reads as ".." rather than "./..".
+  ::simplify_fname(out_rel);
+  // A pick on a different drive leaves the result absolute; a parent/sibling leaves a leading ".."
+  // segment. Both escape appDir, so reject. PATH_DELIM is '/' on every platform; "..foo" is kept.
+  if (out_rel.empty() || ::is_full_path(out_rel.str()))
+  {
+    return false;
+  }
+  const char *s = out_rel.str();
+  if (s[0] == '.' && s[1] == '.' && (s[2] == '/' || s[2] == 0))
+  {
+    return false;
+  }
+  return true;
+}
+
+// File-picker base dir for a `filepath` node property. Its optional `root` hint names the dir it lives
+// under: "app" (default) -> app dir; "renderDir"/"entityDir" -> that output dir (defaulting to
+// "render"/"entity" like the texgen service); "none" -> no base (stored verbatim, e.g. font_path).
+String filepath_base(const DataBlock *prop_desc, const GraphData &gd)
+{
+  const char *appDir = DAGORED2->getWorkspace().getAppDir();
+  const char *root = prop_desc ? prop_desc->getStr("root", "app") : "app";
+  if (!strcmp(root, "none"))
+  {
+    return String();
+  }
+  if (!strcmp(root, "renderDir"))
+  {
+    return ::make_full_path(appDir, gd.renderDir.empty() ? "render" : gd.renderDir.c_str());
+  }
+  if (!strcmp(root, "entityDir"))
+  {
+    return ::make_full_path(appDir, gd.entityDir.empty() ? "entity" : gd.entityDir.c_str());
+  }
+  return String(appDir);
+}
+
+// Lenient relativization for a `filepath` value: make `text` relative to `base` when it resolves under
+// (or near) it, otherwise keep it as-is. Unlike resolve_under_app_dir this never rejects -- a
+// parent/sibling stays a ".." path (still resolves once re-joined onto base), a different drive stays
+// absolute, and an empty base means "store verbatim".
+String relativize_under(const char *base, const char *text)
+{
+  if (!base || !*base || !text || !*text)
+  {
+    return String(text);
+  }
+  const String full = ::make_full_path(base, text);
+  String rel = ::make_path_relative(full.str(), base);
+  ::simplify_fname(rel);
+  return rel.empty() ? String(text) : rel;
+}
 
 // Look up a node property value by name. Returns nullptr when the value isn't set yet
 // (caller should fall back to the descriptor default).
@@ -245,9 +325,14 @@ void PropertiesPanel::rebuildForGraph()
 
   const GraphData &gd = plugin.getGraphData();
 
-  panelWindow->createEditBox(PID_GRAPH_TEXROOT, "Texture root", gd.textureRootDir.c_str());
-  panelWindow->createEditBox(PID_GRAPH_RENDER_DIR, "Render dir", gd.renderDir.c_str());
-  panelWindow->createEditBox(PID_GRAPH_ENTITY_DIR, "Entity dir", gd.entityDir.c_str());
+  const char *appDir = DAGORED2->getWorkspace().getAppDir();
+  panelWindow->createFileEditBox(PID_GRAPH_RENDER_DIR, "Render dir", gd.renderDir.c_str());
+  panelWindow->setUserData(PID_GRAPH_RENDER_DIR, appDir);
+  panelWindow->setInt(PID_GRAPH_RENDER_DIR, PropPanel::FS_DIALOG_DIRECTORY);
+
+  panelWindow->createFileEditBox(PID_GRAPH_ENTITY_DIR, "Entity dir", gd.entityDir.c_str());
+  panelWindow->setUserData(PID_GRAPH_ENTITY_DIR, appDir);
+  panelWindow->setInt(PID_GRAPH_ENTITY_DIR, PropPanel::FS_DIALOG_DIRECTORY);
 
   panelWindow->createSeparator();
 
@@ -434,6 +519,27 @@ void PropertiesPanel::rebuildForNode(int node_id)
     {
       panelWindow->createColorBox(pid, propName, parse_color(valStr.c_str()));
     }
+    else if (!strcmp(propType, "filepath"))
+    {
+      // File picker based at the property's root (see filepath_base). Outputs (renderDir/entityDir)
+      // use a save dialog, inputs/absolute an open dialog; an optional `mask` sets the file filter.
+      const String base = filepath_base(propDesc, plugin.getGraphData());
+      const char *root = propDesc->getStr("root", "app");
+      const bool isOutput = !strcmp(root, "renderDir") || !strcmp(root, "entityDir");
+      panelWindow->createFileEditBox(pid, propName, valStr.c_str());
+      if (!base.empty())
+      {
+        panelWindow->setUserData(pid, base.str());
+      }
+      panelWindow->setInt(pid, isOutput ? PropPanel::FS_DIALOG_SAVE_FILE : PropPanel::FS_DIALOG_OPEN_FILE);
+      const char *mask = propDesc->getStr("mask", "");
+      if (mask[0])
+      {
+        Tab<String> masks;
+        masks.push_back(String(mask));
+        panelWindow->setStrings(pid, masks);
+      }
+    }
     else if (is_readonly_complex_type(propType))
     {
       // V1: read-only display. Editing happens in the legacy JS editor.
@@ -536,46 +642,48 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
   // is rebuilt (see send_immediate_focus_loss_notification in updateImgui) -- rather than on
   // every keystroke. Skipping an unchanged value avoids a needless recompile/regen (and the
   // transient "texgen failed" it would otherwise surface for a half-typed path).
-  if (pcb_id == PID_GRAPH_TEXROOT || pcb_id == PID_GRAPH_RENDER_DIR || pcb_id == PID_GRAPH_ENTITY_DIR)
+  if (pcb_id == PID_GRAPH_RENDER_DIR || pcb_id == PID_GRAPH_ENTITY_DIR)
   {
     const SimpleString text = panel->getText(pcb_id);
+    String rel; // app-relative form to store ("" clears the dir)
+    if (!text.empty() && !resolve_under_app_dir(text.str(), rel))
+    {
+      wingw::message_box(wingw::MBS_EXCL, "Invalid folder",
+        "'%s' is outside the application directory:\n%s\n\nChoose a folder inside it.", text.str(),
+        DAGORED2->getWorkspace().getAppDir());
+      const GraphData &gd = plugin.getGraphData();
+      const char *prev = pcb_id == PID_GRAPH_RENDER_DIR ? gd.renderDir.c_str() : gd.entityDir.c_str();
+      panel->setText(pcb_id, prev);
+      return;
+    }
+    const char *newValue = rel.str();
+    if (strcmp(newValue, text.str()) != 0)
+    {
+      panel->setText(pcb_id, newValue); // reflect the normalized app-relative form
+    }
+
     bool changed = false;
     plugin.mutateGraphData([&](GraphData &gd) {
-      if (pcb_id == PID_GRAPH_TEXROOT)
+      if (pcb_id == PID_GRAPH_RENDER_DIR)
       {
-        if (gd.textureRootDir != text.str())
+        if (gd.renderDir != newValue)
         {
-          gd.textureRootDir = text.str();
-          changed = true;
-        }
-      }
-      else if (pcb_id == PID_GRAPH_RENDER_DIR)
-      {
-        if (gd.renderDir != text.str())
-        {
-          gd.renderDir = text.str();
+          gd.renderDir = newValue;
           changed = true;
         }
       }
       else
       {
-        if (gd.entityDir != text.str())
+        if (gd.entityDir != newValue)
         {
-          gd.entityDir = text.str();
+          gd.entityDir = newValue;
           changed = true;
         }
       }
     });
     if (changed)
     {
-      if (pcb_id == PID_GRAPH_TEXROOT)
-      {
-        plugin.markGraphForceRebuild();
-      }
-      else
-      {
-        plugin.markGraphDirtyAndRegen();
-      }
+      plugin.markGraphDirtyAndRegen();
     }
     return;
   }
@@ -648,6 +756,17 @@ void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropert
     char buf[64];
     _snprintf(buf, sizeof(buf), "%g,%g,%g,%g", c.r / 255.f, c.g / 255.f, c.b / 255.f, c.a / 255.f);
     newVal = buf;
+  }
+  else if (!strcmp(t, "filepath"))
+  {
+    const String base = filepath_base(propDesc, plugin.getGraphData());
+    const SimpleString raw = panel->getText(pcb_id);
+    const String stored = relativize_under(base.str(), raw.str());
+    if (strcmp(stored.str(), raw.str()) != 0)
+    {
+      panel->setText(pcb_id, stored.str()); // reflect the canonical stored form
+    }
+    newVal = stored.str();
   }
   else
   {

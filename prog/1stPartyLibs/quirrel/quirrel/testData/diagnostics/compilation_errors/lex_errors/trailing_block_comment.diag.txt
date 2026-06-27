@@ -1,9 +1,9 @@
 ERROR: missing "*/" in comment
-testData/diagnostics/compilation_errors/lex_errors/trailing_block_comment.nut:2:0
+testData/diagnostics/compilation_errors/lex_errors/trailing_block_comment.nut:2:2
 
 // EXPECT_ERROR: "in comment"
-/* this comment is never closed
-^--------------------------------------------
+  /* this comment is never closed
+  ^
 let x = 42
 
 

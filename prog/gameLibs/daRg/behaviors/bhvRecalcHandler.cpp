@@ -47,7 +47,10 @@ void BhvRecalcHandler::onRecalcLayout(Element *elem)
     else if (nparams == 2)
       scene->queueScriptHandler(new ScriptHandlerSqFunc<bool>(f, initial));
     else
-      f(initial, elem->getRef(vm));
+    {
+      Sqrat::Object elemRef = elem->getRef(vm);
+      scene->queueScriptHandler(new ScriptHandlerSqFunc<bool, Sqrat::Object>(f, initial, elemRef));
+    }
 
     elem->props.storage.SetValue(key, false);
   }

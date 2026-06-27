@@ -27,6 +27,7 @@ namespace
 
 struct CommandEntry
 {
+  SimpleString displayedName;
   dag::Vector<SimpleString> idTokens;
   SimpleString cachedShortcutText;
   dag::Vector<SimpleString> shortcutTokens;
@@ -37,6 +38,7 @@ struct CommandEntry
 struct GroupNode
 {
   SimpleString name;
+  SimpleString displayedName;
   dag::Vector<GroupNode> children;
   dag::Vector<int> bindings;
   bool hasNonDefaultRecursive = false;
@@ -82,9 +84,11 @@ static void tokenize(const char *str, const char *seps, dag::Vector<SimpleString
 }
 
 // spilts by '.' and camelCase (does not split consecutive upper letters)
-static void tokenizeId(const char *id, dag::Vector<SimpleString> &out)
+static void tokenizeId(const char *id, dag::Vector<SimpleString> &out, SimpleString &name)
 {
   char buf[64];
+  char nameBuf[64];
+  char *nameEnd = nameBuf;
   const char *p = id;
   while (*p)
   {
@@ -101,7 +105,11 @@ static void tokenizeId(const char *id, dag::Vector<SimpleString> &out)
     {
       const bool atEnd = (c == segEnd);
       const bool camelBoundary = !atEnd && isupper((unsigned char)*c) && islower((unsigned char)*(c - 1));
-      if (atEnd || camelBoundary)
+      // ECSEditor -> ECS Editor but not SGeometry because single letter is not a helpful token
+      const bool upperLettersBoundary = !camelBoundary && (c - id) >= 2 && *c && isupper((unsigned char)*(c - 2)) &&
+                                        isupper((unsigned char)*(c - 1)) && isupper((unsigned char)*c) &&
+                                        islower((unsigned char)*(c + 1));
+      if (atEnd || camelBoundary || upperLettersBoundary)
       {
         const int len = (int)(c - tok);
         if (len > 0 && len < (int)sizeof(buf))
@@ -111,8 +119,23 @@ static void tokenizeId(const char *id, dag::Vector<SimpleString> &out)
           lowercaseInPlace(buf);
           out.push_back(SimpleString(buf));
         }
+
+        if (*segEnd == '\0')
+        {
+          if ((int)(nameEnd - nameBuf) + len < (int)sizeof(nameBuf))
+            memcpy(nameEnd, tok, len);
+          nameEnd[len] = ' ';
+          nameEnd += len + 1;
+        }
         tok = c;
       }
+    }
+
+    if (*segEnd == '\0' && nameBuf < nameEnd)
+    {
+      nameEnd -= 1;
+      *nameEnd = '\0';
+      name.setStr(nameBuf, nameEnd - nameBuf + 1);
     }
     p = segEnd;
   }
@@ -200,6 +223,8 @@ static GroupNode *findOrAddChild(GroupNode &parent, const char *name, int name_l
   memcpy(buf, name, copyLen);
   buf[copyLen] = '\0';
   added.name = SimpleString(buf);
+  dag::Vector<SimpleString> unused;
+  tokenizeId(buf, unused, added.displayedName);
   return &added;
 }
 
@@ -247,15 +272,6 @@ static void resetGroupRecursive(GroupNode &g)
     if (id)
       ec_editor_commands.resetToDefaultHotkeys(id);
   }
-}
-
-static const char *lastIdSegment(const char *id)
-{
-  const char *last = id;
-  for (const char *p = id; *p; ++p)
-    if (*p == '.')
-      last = p + 1;
-  return last;
 }
 
 } // namespace
@@ -307,7 +323,7 @@ void KeyboardShortcutsPanel::State::buildCache()
     CommandEntry &e = cache[i];
     e.idTokens.clear();
     if (id)
-      tokenizeId(id, e.idTokens);
+      tokenizeId(id, e.idTokens, e.displayedName);
 
     const EditorCommand *cmd = id ? ec_editor_commands.getCommand(id) : nullptr;
     const char *shortcutText = (cmd && cmd->getHotkeyCount() > 0) ? cmd->getKeyChordsAsText() : "";
@@ -426,7 +442,7 @@ void KeyboardShortcutsPanel::State::renderGroup(GroupNode &g)
   ImGui::SetNextItemOpen(forcedOpen || g.openPersistent);
   const float headerLeftX = ImGui::GetCursorScreenPos().x;
   char displayName[160];
-  snprintf(displayName, sizeof(displayName), g.hasNonDefaultRecursive ? "%s *" : "%s", g.name.c_str());
+  snprintf(displayName, sizeof(displayName), g.hasNonDefaultRecursive ? "%s *" : "%s", g.displayedName.c_str());
   const float headerMaxWidth = eastl::max(childRightX - headerLeftX, 0.0f);
   const bool expanded = PropPanel::ImguiHelper::collapsingHeaderWidth(displayName, headerMaxWidth, ImGuiTreeNodeFlags_AllowOverlap);
   const ImVec2 headerMin = ImGui::GetItemRectMin();
@@ -526,7 +542,7 @@ void KeyboardShortcutsPanel::State::renderBinding(int cmd_index)
 
   const float textY = rowStart.y + (rowHeight - ImGui::GetTextLineHeight()) * 0.5f;
   ImGui::SetCursorScreenPos(ImVec2(rowStart.x + kCommandTextInset, textY));
-  ImGui::TextUnformatted(lastIdSegment(id));
+  ImGui::TextUnformatted(cache[cmd_index].displayedName.c_str());
 
   ImGui::PushClipRect(rowMin, rowMax, true);
   const float buttonsY = rowStart.y + (rowHeight - buttonH) * 0.5f;
@@ -597,7 +613,7 @@ void KeyboardShortcutsPanel::State::renderBinding(int cmd_index)
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
     {
       anyWidgetHovered = true;
-      ImGui::SetTooltip("Reset %s to defaults", lastIdSegment(id));
+      ImGui::SetTooltip("Reset %s to defaults", cache[cmd_index].displayedName.c_str());
     }
     actionX += actionBtnSize + actionGap;
 
@@ -611,7 +627,7 @@ void KeyboardShortcutsPanel::State::renderBinding(int cmd_index)
     if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
     {
       anyWidgetHovered = true;
-      ImGui::SetTooltip("Remove all shortcuts for %s", lastIdSegment(id));
+      ImGui::SetTooltip("Remove all shortcuts for %s", cache[cmd_index].displayedName.c_str());
     }
   }
 

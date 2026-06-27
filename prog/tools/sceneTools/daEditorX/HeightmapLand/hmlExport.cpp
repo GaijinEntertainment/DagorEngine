@@ -747,12 +747,12 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
       for (int di = 0; di < MAX_DET_TEX_NUM; di++)
         if (detIds[di] != 0xFFU)
         {
-          DagorAsset *a = detIds[di] >= 0 && detIds[di] < land_class_names.size()
+          DagorAsset *a = detIds[di] < land_class_names.size()
                             ? DAEDITOR3.getAssetByName(land_class_names[detIds[di]], DAEDITOR3.getAssetTypeId("land"))
                             : NULL;
           if (!a)
             DAEDITOR3.conError("cannot export with unresolved reference to landclass <%s>, id=%d [%d]",
-              detIds[di] >= 0 && detIds[di] < land_class_names.size() ? land_class_names[detIds[di]] : "", detIds[di], di);
+              detIds[di] < land_class_names.size() ? land_class_names[detIds[di]] : "", detIds[di], di);
           else if (!a->props.getBlockByName("detail"))
             DAEDITOR3.conError("Land class <%s> - has no detail block", land_class_names[detIds[di]]);
           else if (!a->props.getBlockByName("detail")->getStr("texture", NULL))
@@ -830,7 +830,7 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
       }
       else
       {
-        if (optimize_size)
+        if (optimize_size) // -V547
           optimizedSize += texSize * texSize * 2;
       }
       int endOfs1 = cb.tell();

@@ -97,8 +97,6 @@ void GenNoise::init()
     cloud2.setVar();
     initCompressor();
   }
-  ShaderGlobal::set_sampler(::get_shader_variable_id("gen_cloud_detail_samplerstate"), d3d::request_sampler({}));
-  ShaderGlobal::set_sampler(::get_shader_variable_id("gen_cloud_shape_samplerstate"), d3d::request_sampler({}));
 
   if (!curlRendered)
   {

@@ -8,6 +8,7 @@
 #include <assets/assetMgr.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/iLogWriter.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <scriptHelpers/scriptHelpers.h>
 #include <fx/effectClassTools.h>
 #include <fx/dag_commonFx.h>
@@ -148,9 +149,7 @@ class EffectExporterPlugin : public IDaBuildPlugin
 public:
   bool __stdcall init(const DataBlock &appblk) override
   {
-    const char *fx_nut = appblk.getBlockByNameEx("assets")->getStr("fxScriptsDir", NULL);
-    if (fx_nut)
-      fx_devres_base_path.printf(260, "%s/%s/", appblk.getStr("appDir", "."), fx_nut);
+    make_eff_app_relative_path(fx_devres_base_path, appblk.getBlockByNameEx("assets")->getStr("fxScriptsDir", nullptr));
 
     register_all_common_fx_tools(appblk);
     return true;

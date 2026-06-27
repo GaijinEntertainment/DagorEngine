@@ -70,7 +70,10 @@ enum class CompileFlags : uint32_t
   ENABLE_HLSL21 = 1 << 7,
   // enable mesh shader extension
   ENABLE_MESH_SHADER = 1 << 8,
-  VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER = 1 << 9
+  VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER = 1 << 9,
+  // accept scalar block layout (DX-packed structs) for structured/uniform buffers; the consuming
+  // device must enable the scalarBlockLayout feature. Used by runtime HLSL compiles (editor texgen).
+  USE_SCALAR_LAYOUT = 1 << 10
 };
 
 inline CompileFlags &operator|=(CompileFlags &self, CompileFlags o)

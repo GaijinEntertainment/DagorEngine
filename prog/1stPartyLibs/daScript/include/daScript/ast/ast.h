@@ -1596,7 +1596,7 @@ namespace das
         /*option*/ bool force_inscope_pod = false;                 // force in-scope for POD-like types
         /*option*/ bool log_inscope_pod = false;                   // log in-scope for POD-like types
         /*option*/ bool force_escape_free = false;                 // escape analysis: statically free non-escaping new-pointer locals at scope exit
-        /*option*/ bool force_allocate_on_stack = true;            // escape analysis: stack-allocate non-escaping new-pointer locals (no heap)
+        /*option*/ bool force_allocate_on_stack = false;            // escape analysis: stack-allocate non-escaping new-pointer locals (no heap)
         /*option*/ bool log_escape_analysis = false;               // log escape-analysis static frees
         /*option*/ bool log_gc_time = false;                       // log gc time
     // debugger

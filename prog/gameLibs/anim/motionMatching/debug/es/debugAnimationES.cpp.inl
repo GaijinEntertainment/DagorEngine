@@ -44,7 +44,7 @@ static void get_current_mm_pose(GeomNodeTree &mm_animated_tree, eastl::bitvector
   tlsAnimCtx.wtRot = wtRot.data();
   tlsAnimCtx.wtScl = wtScl.data();
 
-  controller.getPose(tlsAnimCtx, animMap);
+  controller.getPose(tlsAnimCtx, animMap, animchar.getNodeTree());
   for (int i = 0, e = animMap.size(); i < e; i++)
   {
     vec3f pos, scl;

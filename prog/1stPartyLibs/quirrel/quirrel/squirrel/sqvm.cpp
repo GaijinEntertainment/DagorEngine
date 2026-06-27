@@ -2029,14 +2029,14 @@ void SQVM::CallDebugHook(SQInteger type,SQInteger forcedline)
         _debughook_native(this,type,src,line,fname);
     }
     else {
-        SQObjectPtr temp_reg;
+        SQObjectPtr tmp;
         SQInteger nparams=5;
         PushNull();
         Push(SQObjectPtr(type));
         Push(func->_sourcename);
         Push(SQObjectPtr(forcedline ? forcedline : func->GetLine(ci->_ip)));
         Push(func->_name);
-        Call(_debughook_closure,nparams,_top-nparams,temp_reg,SQFalse);
+        Call(_debughook_closure,nparams,_top-nparams,tmp,SQFalse);
         Pop(nparams);
     }
     _debughook = true;
@@ -2456,7 +2456,7 @@ SQInteger SQVM::FallBackSet(const SQObjectPtr &self,const SQObjectPtr &key,const
 
 bool SQVM::Clone(const SQObjectPtr &self,SQObjectPtr &target)
 {
-    SQObjectPtr temp_reg;
+    SQObjectPtr tmp;
     SQObjectPtr newobj;
     switch(sq_type(self)){
     case OT_TABLE:
@@ -2469,7 +2469,7 @@ cloned_mt:
         if(_delegable(newobj)->_delegate && _delegable(newobj)->GetMetaMethod(this,MT_CLONED,closure)) {
             Push(newobj);
             Push(self);
-            if(!CallMetaMethod(closure,MT_CLONED,2,temp_reg))
+            if(!CallMetaMethod(closure,MT_CLONED,2,tmp))
                 return false;
         }
         }

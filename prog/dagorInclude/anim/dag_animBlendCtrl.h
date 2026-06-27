@@ -290,14 +290,7 @@ public:
 
   // run-time routines
   void setBlendNodeWt(AnimGraphStateHolder &st, IAnimBlendNode *n, real wt);
-  void setBlendNodesWt(AnimGraphStateHolder &st, dag::ConstSpan<int> node_indexes, real wt)
-  {
-    if (paramId == -1)
-      return;
-    float *ptr = (float *)st.getInlinePtr(paramId);
-    for (int nodeIdx : node_indexes)
-      ptr[nodeIdx] = wt;
-  }
+  void setBlendNodesWt(AnimGraphStateHolder &st, dag::ConstSpan<int> node_indexes, real wt);
 
   int getNodeIndex(IAnimBlendNode *n);
 

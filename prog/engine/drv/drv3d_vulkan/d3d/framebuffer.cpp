@@ -290,6 +290,12 @@ bool d3d::clearview(int what, E3DCOLOR color, float z, uint32_t stencil)
   la.pipeState.set<StateFieldFramebufferClearColor, E3DCOLOR, FrontGraphicsState, FrontFramebufferState>(color);
   la.pipeState.set<StateFieldFramebufferClearDepth, float, FrontGraphicsState, FrontFramebufferState>(z);
   la.pipeState.set<StateFieldFramebufferClearStencil, uint8_t, FrontGraphicsState, FrontFramebufferState>((uint8_t)stencil);
+
+  if (Globals::cfg.bits.brokenClearsOnNonLinearUAVRT)
+    la.pipeState
+      .set<StateFieldFramebufferClearColor, StateFieldFramebufferClearColor::InvalidateTag, FrontGraphicsState, FrontFramebufferState>(
+        {});
+
   la.ctx.dispatchPipeline<CmdClearView>({what}, "clearView");
   return true;
 }

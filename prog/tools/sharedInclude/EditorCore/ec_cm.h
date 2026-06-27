@@ -112,6 +112,9 @@ enum EditorCoreCM
   // ObjectEditor commands. Put it between CM_OBJED_FIRST and CM_OBJED_LAST enum keys.
   CM_OBJED_FIRST,
 
+  CM_OBJED_TOOLBAR_PANEL_FIRST,         // The first toolbar panel on the toolbar.
+  CM_OBJED_TOOLBAR_PANEL_SELECT_FILTER, // Toolbar panel for the "Filter by name" edit box.
+
   CM_OBJED_MODE_SELECT,
   CM_OBJED_MODE_MOVE,
   CM_OBJED_MODE_SURF_MOVE,
@@ -121,6 +124,7 @@ enum EditorCoreCM
   CM_OBJED_DROP,
   CM_OBJED_OBJPROP_PANEL,
   CM_OBJED_SELECT_BY_NAME,
+  CM_OBJED_SELECT_BY_NAME_SEPARATOR,
   CM_OBJED_SELECT_FILTER,
 
   CM_OBJED_DELETE,

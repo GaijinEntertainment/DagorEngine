@@ -384,6 +384,7 @@ struct AnimGraphStateHolderAnnotation : das::ManagedStructureAnnotation<AnimV20:
     cppName = " ::AnimV20::AnimGraphStateHolder";
 
     addProperty<DAS_BIND_MANAGED_PROP(getSize)>("size", "getSize");
+    addProperty<DAS_BIND_MANAGED_PROP(getGraph)>("graph", "getGraph");
   }
 };
 

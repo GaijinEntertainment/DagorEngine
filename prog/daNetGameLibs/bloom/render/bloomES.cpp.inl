@@ -29,7 +29,7 @@
 GLOBAL_VARS_BLOOM
 #undef VAR
 
-static const auto bloomNodesNamespace = dafg::root() / "bloom";
+static auto bloomNodesNamespace = dafg::root() / "bloom";
 
 template <typename Callable>
 static void disable_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
@@ -67,6 +67,7 @@ static void init_bloom_es(const ecs::Event &evt,
   IPoint2 postfx_resolution =
     evt.is<SetResolutionEvent>() ? evt.cast<SetResolutionEvent>()->postFxResolution : get_postfx_resolution();
   const float mipsCountF = floor(bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y)) + 0.999f;
+  bloomNodesNamespace.fillSlot(dafg::NamedSlot("bloom_input_tex"), dafg::root(), "downsampled_color");
   bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCountF);
   bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCountF, bloom__upSample,
     color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),

@@ -2,6 +2,7 @@
 
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
+#include <daECS/core/coreEvents.h>
 #include <render/skies.h>
 #include <render/waterRender.h>
 #include <render/world/worldRendererQueries.h>
@@ -10,6 +11,7 @@
 #include <render/world/frameGraphHelpers.h>
 #include <util/dag_convar.h>
 #include <fftWater/fftWater.h>
+#include <main/water.h>
 
 #define INSIDE_RENDERER 1
 #include "../private_worldRenderer.h"
@@ -20,6 +22,7 @@
 #include <render/renderEvent.h>
 #include <render/world/bvh.h>
 #include <ecs/render/renderEvent.h>
+#include <ecs/render/resPtr.h>
 #include <image/dag_texPixel.h>
 
 CONSOLE_BOOL_VAL("water", distantWater, true);
@@ -57,6 +60,9 @@ const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::COUNT)> W
   "gbuf_depth_after_resolve", "opaque_depth_with_water_before_clouds", "depth_before_water_late"};
 
 static bool is_water_reflection_full_res() { return is_rr_enabled() && is_rt_water_enabled(); }
+
+// RR produces noisy image if water refraction is enabled, so we disable it for RR
+static bool is_water_refraction_enabled() { return !is_rr_enabled(); }
 
 dafg::NodeHandle makePrepareWaterNode()
 {
@@ -329,9 +335,7 @@ eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode
   return nodes;
 }
 
-static UniqueTexWithShaderVar water_refraction_stub;
-
-static void create_water_refraction_stub()
+static void create_water_refraction_stub(UniqueTexWithShaderVar &water_refraction_stub)
 {
   static constexpr uint32_t WATER_REFRACTION_STUB_COLOR = 0xFF182618;
   TexImage32 image[2];
@@ -367,7 +371,7 @@ dafg::NodeHandle makeWaterNode(WaterRenderMode mode)
 
     registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_far_depth_tex");
 
-    if (renderer_has_feature(FeatureRenderFlags::PREV_OPAQUE_TEX) && !is_rr_enabled())
+    if (renderer_has_feature(FeatureRenderFlags::PREV_OPAQUE_TEX) && is_water_refraction_enabled())
       registry.read(DOWNSAMPLED_FRAME_TEX_NAMES[modeIdx]).texture().atStage(dafg::Stage::PS).bindToShaderVar("water_refraction_tex");
 
     registry.read("wfx_hmap").texture().atStage(dafg::Stage::VS | dafg::Stage::PS).bindToShaderVar().optional();
@@ -417,15 +421,28 @@ dafg::NodeHandle makeWaterNode(WaterRenderMode mode)
   });
 }
 
+template <typename Callable>
+static void water_refraction_stub_ecs_query(ecs::EntityManager &manager, Callable c);
+
 void bind_water_refraction_stub_if_unset()
 {
   static int water_refraction_texVarId = get_shader_variable_id("water_refraction_tex", true);
+  // FG does not bind the refraction tex when it is disabled, so force the var NULL here: a stale
+  // binding from any prior source (e.g. a portal that bound the stub) would otherwise leak in and
+  // break the render.
+  if (!is_water_refraction_enabled())
+  {
+    ShaderGlobal::set_texture(water_refraction_texVarId, BAD_TEXTUREID);
+    return;
+  }
   // check if it's already set by the caller: get_tex_ptr works for FG managed textures too
   if (ShaderGlobal::get_tex_ptr(water_refraction_texVarId) != nullptr)
     return;
-  if (!water_refraction_stub)
-    create_water_refraction_stub();
-  water_refraction_stub.setVar();
+  water_refraction_stub_ecs_query(*g_entity_mgr, [](UniqueTexWithShaderVar &water_refraction_stub) {
+    if (!water_refraction_stub)
+      create_water_refraction_stub(water_refraction_stub);
+    water_refraction_stub.setVar();
+  });
 }
 
 ECS_TAG(render)
@@ -442,13 +459,24 @@ static void create_water_nodes_es(const OnCameraNodeConstruction &evt)
 }
 
 ECS_TAG(render)
-ECS_ON_EVENT(AfterDeviceReset)
-static void recreate_water_refraction_stub_es(const ecs::Event &)
+ECS_ON_EVENT(on_appear)
+ECS_REQUIRE(FFTWater water)
+static void create_water_refraction_stub_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  if (water_refraction_stub)
-    create_water_refraction_stub();
+  manager.getOrCreateSingletonEntity(ECS_HASH("water_refraction_stub"));
 }
 
 ECS_TAG(render)
-ECS_ON_EVENT(UnloadLevel)
-static void close_water_refraction_stub_es(const ecs::Event &) { water_refraction_stub.close(); }
+ECS_ON_EVENT(on_disappear)
+ECS_REQUIRE(FFTWater water)
+static void destroy_water_refraction_stub_es(const ecs::Event &, ecs::EntityManager &manager)
+{
+  manager.destroyEntity(manager.getSingletonEntity(ECS_HASH("water_refraction_stub")));
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(AfterDeviceReset)
+static void recreate_water_refraction_stub_es(const ecs::Event &, UniqueTexWithShaderVar &water_refraction_stub)
+{
+  create_water_refraction_stub(water_refraction_stub);
+}

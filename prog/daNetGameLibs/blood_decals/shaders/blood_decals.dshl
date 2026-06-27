@@ -80,7 +80,7 @@ shader blood_projective_decal_decals
     current_time@f1 = (time_phase(0, 0));
   }
   (ps) {
-    blood_decals_diff_tex@smp2d = blood_decals_diff_tex;
+    blood_decals_diff_tex@tex2d = blood_decals_diff_tex;
     perlin_noise3d@smp3d = perlin_noise3d;
     blood_decal_begin_color@f4 = blood_begin_color;
     blood_decal_end_color@f4 = blood_end_color;
@@ -175,7 +175,10 @@ shader blood_projective_decal_decals
   WRITE_GBUFFER_WITH_MIXING(true, true, true)
   PROJECTIVE_DECALS_PS_COMMON()
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+
   hlsl(ps) {
+    #define blood_decals_diff_tex_samplerstate global_linear_wrap_sampler
     #include "projectiveDecals/blood_decals_const.hlsli"
 
     GBUFFER_OUTPUT projective_decals_ps(VsOutput input HW_USE_SCREEN_POS)

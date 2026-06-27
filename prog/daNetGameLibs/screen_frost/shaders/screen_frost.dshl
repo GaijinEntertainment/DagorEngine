@@ -86,8 +86,8 @@ shader screen_frost
   (ps) {
     frame_tex@smp2d = frame_tex;
     downsampled_depth@smp2d = downsampled_depth;
-    tile_tex@smp2d = screen_frost_tile_tex;
-    corruption_tex@smp2d = screen_corruption_tile_tex;
+    tile_tex@tex2d = screen_frost_tile_tex;
+    corruption_tex@tex2d = screen_corruption_tile_tex;
     world_view_pos_intensity@f4 = (world_view_pos.x, world_view_pos.y, world_view_pos.z, screen_frost_intensity);
     diffuse_roughness@f4 = (screen_frost_diffuse.r, screen_frost_diffuse.g, screen_frost_diffuse.b, screen_frost_roughness);
     tile_to_screen_ratio_opacity@f4 = (screen_frost_display_resolution.x * screen_frost_tile_resolution.z, screen_frost_display_resolution.y * screen_frost_tile_resolution.w, screen_frost_opacity, 0);
@@ -100,8 +100,11 @@ shader screen_frost
   INIT_FETCH_REFRACTED_PIXEL(ps)
   USE_FETCH_REFRACTED_PIXEL(ps)
   USE_ROUGH_TO_MIP()
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   hlsl(ps) {
+    #define tile_tex_samplerstate global_linear_wrap_sampler
+    #define corruption_tex_samplerstate global_linear_wrap_sampler
 
     #include <psh_tangent.hlsl>
     #include <normaldetail.hlsl>

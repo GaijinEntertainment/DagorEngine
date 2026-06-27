@@ -16,8 +16,10 @@ shader rgb_to_rgbm
   }
 
   (ps) {
-    srcTex@smp2d = rgb_to_rgbm_src_tex;
+    srcTex@tex2d = rgb_to_rgbm_src_tex;
   }
+
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   hlsl {
     struct VsOutput
@@ -42,6 +44,7 @@ shader rgb_to_rgbm
   }
 
   hlsl(ps) {
+  #define srcTex_samplerstate global_linear_wrap_sampler
   float4 convert_to_rgbm(float2 texcoord)
   {
     return encode_rgbm(tex2Dlod(srcTex, float4(texcoord,0,0)).rgb, rgbm_conversion_scale);

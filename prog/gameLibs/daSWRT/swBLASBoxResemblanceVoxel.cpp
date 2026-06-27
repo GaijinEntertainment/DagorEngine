@@ -53,8 +53,8 @@ float computeBlasBoxResemblanceVoxel(const uint8_t *blas_data, int tree_start, i
   static const int axU[3] = {1, 0, 0};
   static const int axV[3] = {2, 2, 1};
 
-  constexpr int NODE_SZ = 16;  // = BVH_BLAS_NODE_SIZE
-  constexpr int LEAF_TAIL = 4; // leaf is node (16B) + 4B vertex offset, but we never read vertices
+  constexpr int NODE_SZ = BVH_BLAS_NODE_SIZE;
+  constexpr int LEAF_TAIL = BVH_BLAS_LEAF_SIZE - BVH_BLAS_NODE_SIZE; // leaf tail after the node box; we read only the box
 
   int dataOffset = tree_start;
   const int endOffset = tree_start + tree_bytes;

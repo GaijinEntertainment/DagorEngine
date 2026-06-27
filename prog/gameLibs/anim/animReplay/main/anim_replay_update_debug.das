@@ -3,6 +3,7 @@ require ecs
 require ecs.safe
 require math
 require AnimV20
+require DagorMath
 require DagorSystem
 require GeomNodeTree
 require daslib/algorithm
@@ -11,38 +12,27 @@ require %gameLibs/anim/animReplay/imports/anim_replay_common
 
 
 [es(no_order)]
-def anim_replay_update_animchar(evt : UpdateStageInfoAct;
-                                anim_replay__animchars : Array;
-                                anim_replay__timestamps : FloatList;
-                                anim_replay__currentTime : float)
+def anim_replay_update_character_tm(evt : UpdateStageInfoAct;
+                                    anim_replay__animchars : Array;
+                                    anim_replay__timestamps : FloatList;
+                                    anim_replay__currentTime : float)
   sample_timestamps(anim_replay__currentTime, anim_replay__timestamps) <| $(prevIdx; nextIdx; interpK)
     iterate_alive_replay_animchars(anim_replay__animchars, anim_replay__currentTime) <| $(animcharData)
       let animcharEid = *get_Eid(animcharData, "eid")
-      let position & = unsafe(*get_ecs_Point3List(animcharData, "position"))
-      let rotation & = unsafe(*get_ecs_Point4List(animcharData, "rotation"))
-      let pos = lerp(position[prevIdx], position[nextIdx], interpK)
-      let rot = quat_slerp(interpK, rotation[prevIdx], rotation[nextIdx])
-      // NOTE: characters and weapons may be displaced for one frame because `animchar_copy_nodes`
-      // (copies nodes that will be used in render) for characters is called during animchar_es in PUFD,
-      // so they will be rendered only in next frame after PUFD. But it is not too easy to fix because:
-      //  1. `animchar_copy_nodes` for animchar itself is useless, we need updated non-weapon attachments
-      //  (clothes, hands, head and etc)
-      //  2. All animations should be updated before this copy too, now most problematic place is
-      //  `anim_replay_update_motion_matching_root` and `mm_calculate_root_offset_es`, they are also executed
-      //  in PUFD, and even more tricky. Character position and rotation are updated immediately because
-      //  replay time is updated in imgui (beforeRender stage), then in PUFD MM overwrite pos/rot with fresh data.
-      //  But in `mm_calculate_root_offset_es` we also use MotionMatchingController::resultAnimation, which is not
-      //  updated yet, so it will be outdated for one frame.
-      query(animcharEid) <| $[es(REQUIRE=anim_replay_character)] (var transform : float3x4&)
-        transform = make_tm(rot, pos)
-      // attachments
-      query(animcharEid) <| $[es(REQUIRE_NOT=anim_replay_character)] (var animchar : AnimcharBaseComponent;
-                                                                      var animchar_node_wtm : AnimcharNodesMat44&;
-                                                                      var animchar_render__root_pos : vec4f&)
-        let tm = make_tm(rot, pos)
+      query(animcharEid) <| $[es(REQUIRE=anim_replay_character)] (var animchar : AnimcharBaseComponent;
+                                                                  var transform : float3x4&;
+                                                                  let animchar__turnDir : bool = false)
+        let position & = unsafe(*get_ecs_Point3List(animcharData, "position"))
+        let rotation & = unsafe(*get_ecs_Point4List(animcharData, "rotation"))
+        let pos = lerp(position[prevIdx], position[nextIdx], interpK)
+        let rot = quat_slerp(interpK, rotation[prevIdx], rotation[nextIdx])
+        var tm = make_tm(rot, pos)
+        transform = tm // intentionally not affected by turnDir, like in game
+        if animchar__turnDir
+          let tmp = tm[0]
+          tm[0] = tm[2]
+          tm[2] = -tmp
         animchar_set_tm(animchar, tm, true)
-        geomtree_calcWtmForBranch(*animchar.nodeTree, 0)
-        animchar_copy_nodes(animchar, animchar_node_wtm, animchar_render__root_pos)
 
 def apply_tracked_anim_state_params(var anim_state : AnimGraphStateHolder; anim_params : Array; frame_idx : int)
   for animParamChildComp in anim_params
@@ -90,6 +80,13 @@ def apply_precise_anim_state_params(var anim_state : AnimGraphStateHolder;
       let paramValue = values[get_current_timestamp_idx(t, time)]
       anim_state_holder_setParam(anim_state, paramId, paramValue)
 
+[es(on_appear)]
+def anim_replay_init_slot_attachment(evt : Event; var anim_replay__animchars : Array)
+  iterate_replay_animchars(anim_replay__animchars) <| $(_animchar_data, animchar_eid)
+    query(animchar_eid) <| $[es] (anim_replay__parentEid : EntityId)
+      query(anim_replay__parentEid) <| $[es] (var anim_replay__attaches_list : EidList)
+        push(anim_replay__attaches_list, animchar_eid)
+
 [es(before=anim_replay_update_anim_state)]
 def anim_replay_update_attachment_slots(evt : UpdateStageInfoAct;
                                         anim_replay__animchars : Array;
@@ -104,8 +101,10 @@ def anim_replay_update_attachment_slots(evt : UpdateStageInfoAct;
     let attachmentEid = *get_Eid(animchar_data, "eid")
     query(attachmentEid) <| $[es] (var animchar aka attached_animchar : AnimcharBaseComponent;
                                    var animchar_render__enabled : bool&;
+                                   var slot_attach__slotId : int&;
                                    anim_replay__parentEid : EntityId)
       query(anim_replay__parentEid) <| $[es] (var animchar aka parent_animchar : AnimcharBaseComponent)
+        slot_attach__slotId = currentSlotIdx
         if currentSlotIdx >= 0
           animchar_setAttachedChar(parent_animchar, currentSlotIdx, uint(attachmentEid), attached_animchar, false)
           animchar_render__enabled = true
@@ -211,6 +210,71 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
       // TODO: maybe it worth to use small dt update for smooth backward rewind only on watched character.
       if anim_replay__prevTime > anim_replay__currentTime
         animchar_act(animchar, 0f, true)
+
+def recalc_branches(var node_tree : GeomNodeTree&; skeleton_recalc_branch : UInt8List)
+  for nodeNo in skeleton_recalc_branch
+    let intNodeNo = int(nodeNo)
+    let parentNodeIdx = geomtree_getParentNodeIdx(node_tree, intNodeNo)
+    let parentNodeWtm = float3x4(geomtree_getNodeWtmRel(node_tree, parentNodeIdx))
+    let curNodeWtm = float3x4(geomtree_getNodeTm(node_tree, intNodeNo))
+    geomtree_getNodeWtmRel(node_tree, intNodeNo) = mat44f(parentNodeWtm * curNodeWtm)
+    geomtree_calcWtmForBranch(node_tree, intNodeNo)
+
+def update_skeleton_attachments_nodes(parent_attaches_list : EidList; parent_tree : GeomNodeTree)
+  for childEid in parent_attaches_list
+    query(childEid) <| $[es] (attaches_list : EidList const?;
+                              skeleton_attach__skeletonRemap : UInt16List;
+                              skeleton_attach__skeletonRecalcBranch : UInt8List;
+                              var animchar : AnimcharBaseComponent;
+                              var animchar_node_wtm : AnimcharNodesMat44&;
+                              var animchar_render__root_pos : vec4f&)
+      assume childTree = *animchar.nodeTree
+      let wtmOfs = geomtree_getWtmOfs(parent_tree)
+      geomtree_setWtmOfs(childTree, wtmOfs)
+      for nodesRemap in skeleton_attach__skeletonRemap
+        let childNode = int(nodesRemap) & 0xff
+        let parentNode = (int(nodesRemap) >> 8) & 0xff
+        geomtree_getNodeTm(childTree, childNode) = geomtree_getNodeTm(parent_tree, parentNode)
+        geomtree_getNodeWtmRel(childTree, childNode) = geomtree_getNodeWtmRel(parent_tree, parentNode)
+      recalc_branches(childTree, skeleton_attach__skeletonRecalcBranch)
+      animchar_copy_nodes(animchar, animchar_node_wtm, animchar_render__root_pos)
+      if attaches_list != null
+        update_skeleton_attachments_nodes(*attaches_list, childTree)
+
+def update_slot_attachments_wtm(parent_attaches_list : EidList; parent_animchar : AnimcharBaseComponent)
+  for childEid in parent_attaches_list
+    query(childEid) <| $[es] (attaches_list : EidList const?;
+                              slot_attach__slotId : int;
+                              var animchar aka child_animchar : AnimcharBaseComponent;
+                              var animchar_node_wtm : AnimcharNodesMat44&;
+                              var animchar_render__root_pos : vec4f&)
+      if slot_attach__slotId >= 0
+        let slotNodeWtm = animchar_getSlotNodeWtm(parent_animchar, slot_attach__slotId)
+        let slotNodeTm = animchar_getAttachmentTm(parent_animchar, slot_attach__slotId)
+        if slotNodeWtm != null && slotNodeTm != null
+          let attachmentWtm = mat44f(float3x4(*slotNodeWtm) * float3x4(*slotNodeTm))
+          let wtmOfs = *parent_animchar.nodeTree |> geomtree_getWtmOfs()
+          animchar_setTmWithOfs(child_animchar, attachmentWtm, wtmOfs)
+        animchar_recalc_wtm(child_animchar)
+        animchar_copy_nodes(child_animchar, animchar_node_wtm, animchar_render__root_pos)
+      if attaches_list != null
+        update_slot_attachments_wtm(*attaches_list, child_animchar)
+
+[es(after=(anim_replay_update_character_tm, anim_replay_update_anim_state))]
+def anim_replay_update_characters(evt : UpdateStageInfoAct;
+                                  anim_replay__animchars : Array)
+  iterate_replay_animchars(anim_replay__animchars) <| $(_animchar_data, animchar_eid)
+    query(animchar_eid) <| $[es(REQUIRE=anim_replay_character)] (attaches_list : EidList const?;
+                                                                 anim_replay__attaches_list : EidList;
+                                                                 var animchar : AnimcharBaseComponent;
+                                                                 var animchar_node_wtm : AnimcharNodesMat44&;
+                                                                 var animchar_render__root_pos : vec4f&)
+      animchar_act(animchar, 0f, true)
+      animchar_copy_nodes(animchar, animchar_node_wtm, animchar_render__root_pos)
+      if attaches_list != null
+        update_skeleton_attachments_nodes(*attaches_list, *animchar.nodeTree)
+        update_slot_attachments_wtm(*attaches_list, animchar)
+      update_slot_attachments_wtm(anim_replay__attaches_list, animchar)
 
 def update_anim_state_cache(anim_graph : AnimationGraph; anim_state : AnimGraphStateHolder; current_time : float; var animchar_data : Object)
   let CACHE_TIME = fixed_array(1f, 5f, 30f)

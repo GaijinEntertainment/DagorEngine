@@ -88,8 +88,8 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
   }
   bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, das::string &err) override
   {
-    auto program = (*das::daScriptEnvironment::bound)->g_Program;
-    if (program->thisModule->isModule)
+    auto mod = fn->fromGeneric ? fn->fromGeneric->module : fn->module;
+    if (mod && mod->isModule)
     {
       err = "console cmd shouldn't be placed in the module. Please move the function to a file without module directive";
       return false;

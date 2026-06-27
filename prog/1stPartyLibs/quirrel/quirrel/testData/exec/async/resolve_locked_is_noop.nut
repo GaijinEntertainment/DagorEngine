@@ -1,24 +1,7 @@
 from "async" import Future
 
-// A bare Future that is "locked" against further settlement silently ignores
-// extra .resolve() calls. Locked has two flavors:
-//   - after_adopt: adopted another Future (L_Adopted); inner's settlement wins
-//   - after_terminal: already fulfilled or faulted; terminal is final
-// Matches JS spec for the Promise Resolution Procedure on a locked future.
-
-async function section_after_adopt() {
-  print("=== after_adopt ===\n")
-  let p = Future()
-  let q = Future()
-  p.resolve(q)         // p adopts q; p is locked
-  p.resolve(42)        // no-op
-  p.resolve("xyz")     // no-op
-  print("after double-resolve p.getState=" + p.getState() + "\n")  // still pending
-  q.resolve("real")    // q settles -> p mirrors q with "real", NOT 42
-  print("after q.resolve p.getState=" + p.getState() + "\n")
-  let v = await p
-  print("waiter got: " + v + "\n")
-}
+// A bare Future that is already settled silently ignores extra .resolve()
+// calls; the terminal state is final.
 
 async function section_after_terminal() {
   print("=== after_terminal ===\n")
@@ -43,7 +26,6 @@ async function section_after_terminal() {
 }
 
 async function runAll() {
-  await section_after_adopt()
   await section_after_terminal()
   print("script done\n")
 }

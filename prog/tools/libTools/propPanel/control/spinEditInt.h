@@ -24,7 +24,9 @@ public:
     controlCaption(caption),
     widthIncludesLabel(width_includes_label),
     spinEdit(0, 0, 1, 1)
-  {}
+  {
+    spinEdit.setIntegerValues(true);
+  }
 
   ~SpinEditIntPropertyControl() override
   {

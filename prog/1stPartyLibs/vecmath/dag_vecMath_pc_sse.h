@@ -111,8 +111,12 @@ VECTORCALL VECMATH_FINLINE vec4f v_make_vec3f(float x, float y, float z)
 
 VECTORCALL VECMATH_FINLINE vec4i v_make_vec3i(int x, int y, int z)
 {
+#if _TARGET_SIMD_SSE >= 4
   int64_t xy = int64_t(uint32_t(x)) | (int64_t(y) << 32);
   return _mm_insert_epi32(_mm_set_epi64x(0, xy), z, 2);
+#else
+  return _mm_set_epi32(z, z, y, x);
+#endif
 }
 
 VECTORCALL VECMATH_FINLINE vec4f v_make_vec3f(vec4f x, vec4f y, vec4f z)
@@ -770,12 +774,32 @@ VECTORCALL VECMATH_FINLINE vec4f sse2_dot4_x(vec4f a, vec4f b)
 VECTORCALL VECMATH_FINLINE vec4f sse2_plane_dist_x(plane3f a, vec3f b) { return v_add_x(sse2_dot3_x(a,b), v_splat_w(a)); }
 
 #if _TARGET_SIMD_SSE >= 4 || defined(_DAGOR_PROJECT_OPTIONAL_SSE4) || defined(__SSE4_1__)
-VECTORCALL VECMATH_FINLINE vec4f sse4_dot4(vec4f a, vec4f b) { return _mm_dp_ps(a,b, 0xFF); }
-VECTORCALL VECMATH_FINLINE vec4f sse4_dot4_x(vec4f a, vec4f b) { return _mm_dp_ps(a,b,0xF1); }
-VECTORCALL VECMATH_FINLINE vec4f sse4_dot3(vec4f a, vec4f b) { return _mm_dp_ps(a,b, 0x7F); }
-VECTORCALL VECMATH_FINLINE vec4f sse4_dot3_x(vec4f a, vec4f b) { return _mm_dp_ps(a,b,0x71); }
-VECTORCALL VECMATH_FINLINE vec4f sse4_dot2(vec4f a, vec4f b) { return _mm_dp_ps(a, b, 0x3F); }
-VECTORCALL VECMATH_FINLINE vec4f sse4_dot2_x(vec4f a, vec4f b) { return _mm_dp_ps(a, b, 0x31); }
+VECTORCALL VECMATH_FINLINE vec4f sse4_dot4_x(vec4f a, vec4f b)
+{
+  // dpps is slower, especially on AMD
+  __m128 mul = _mm_mul_ps(a, b);
+  __m128 shuf = _mm_movehdup_ps(mul);
+  __m128 sums = _mm_add_ps(mul, shuf);
+  shuf = _mm_movehl_ps(shuf, sums);
+  return _mm_add_ss(sums, shuf);
+}
+VECTORCALL VECMATH_FINLINE vec4f sse4_dot4(vec4f a, vec4f b) { return v_splat_x(sse4_dot4_x(a, b)); }
+VECTORCALL VECMATH_FINLINE vec4f sse4_dot3_x(vec4f a, vec4f b)
+{
+  // dpps is slower, especially on AMD
+  __m128 mul = _mm_mul_ps(a, b);
+  __m128 shuf = _mm_movehl_ps(mul, mul);
+  __m128 sums = _mm_add_ss(mul, shuf);
+  shuf = _mm_movehdup_ps(mul);
+  return _mm_add_ss(sums, shuf);
+}
+VECTORCALL VECMATH_FINLINE vec4f sse4_dot3(vec4f a, vec4f b) { return v_splat_x(sse4_dot3_x(a, b)); }
+VECTORCALL VECMATH_FINLINE vec4f sse4_dot2_x(vec4f a, vec4f b)
+{
+  __m128 mul = _mm_mul_ps(a, b);
+  return _mm_add_ss(mul, _mm_movehdup_ps(mul));
+}
+VECTORCALL VECMATH_FINLINE vec4f sse4_dot2(vec4f a, vec4f b) { return v_splat_x(sse4_dot2_x(a, b)); }
 VECTORCALL VECMATH_FINLINE vec4f sse4_plane_dist_x(plane3f a, vec3f b) { return v_add_x(sse4_dot3_x(a,b), v_splat_w(a)); }
 #else // fallback to SSE2
 VECTORCALL VECMATH_FINLINE vec4f sse4_dot4(vec4f a, vec4f b) { return sse2_dot4(a, b); }
@@ -787,18 +811,6 @@ VECTORCALL VECMATH_FINLINE vec4f sse4_dot2_x(vec4f a, vec4f b) { return sse2_dot
 VECTORCALL VECMATH_FINLINE vec4f sse4_plane_dist_x(plane3f a, vec3f b) { return sse2_plane_dist_x(a,b); }
 #endif
 
-#if _TARGET_SIMD_SSE >= 3 || defined(_DAGOR_PROJECT_OPTIONAL_SSE4) || defined(__SSE3__)
-VECTORCALL VECMATH_FINLINE vec4f sse3_dot4(vec4f a, vec4f b)
-{
-  vec4f m = _mm_mul_ps(a, b);
-  m = _mm_hadd_ps(m,m);
-  return _mm_hadd_ps(m,m);
-}
-VECTORCALL VECMATH_FINLINE vec4f sse3_plane_dist_x(plane3f a, vec3f b) { return v_add_x(sse2_dot3_x(a,b), v_splat_w(a)); }
-#else
-VECTORCALL VECMATH_FINLINE vec4f sse3_dot4(vec4f a, vec4f b) { return sse2_dot4(a, b); }
-VECTORCALL VECMATH_FINLINE vec4f sse3_plane_dist_x(plane3f a, vec3f b) { return sse2_plane_dist_x(a,b); }
-#endif
 
 
 #if _TARGET_SIMD_SSE >= 4
@@ -809,14 +821,6 @@ VECTORCALL VECMATH_FINLINE vec4f v_dot3_x(vec4f a, vec4f b) { return sse4_dot3_x
 VECTORCALL VECMATH_FINLINE vec4f v_dot2(vec4f a, vec4f b) { return sse4_dot2(a,b); }
 VECTORCALL VECMATH_FINLINE vec4f v_dot2_x(vec4f a, vec4f b) { return sse4_dot2_x(a,b); }
 VECTORCALL VECMATH_FINLINE vec4f v_plane_dist_x(plane3f a, vec3f b) { return sse4_plane_dist_x(a,b); }
-#elif _TARGET_SIMD_SSE >= 3
-VECTORCALL VECMATH_FINLINE vec4f v_dot4(vec4f a, vec4f b) { return sse3_dot4(a,b); }
-VECTORCALL VECMATH_FINLINE vec4f v_dot4_x(vec4f a, vec4f b) { return sse3_dot4(a,b); }
-VECTORCALL VECMATH_FINLINE vec4f v_dot3(vec4f a, vec4f b) { return sse2_dot3(a,b); }
-VECTORCALL VECMATH_FINLINE vec4f v_dot3_x(vec4f a, vec4f b) { return sse2_dot3_x(a,b); }
-VECTORCALL VECMATH_FINLINE vec4f v_dot2(vec4f a, vec4f b) { return sse2_dot2(a,b); }
-VECTORCALL VECMATH_FINLINE vec4f v_dot2_x(vec4f a, vec4f b) { return sse2_dot2_x(a,b); }
-VECTORCALL VECMATH_FINLINE vec4f v_plane_dist_x(plane3f a, vec3f b) { return sse3_plane_dist_x(a,b); }
 #else
 VECTORCALL VECMATH_FINLINE vec4f v_dot4(vec4f a, vec4f b) { return sse2_dot4(a,b); }
 VECTORCALL VECMATH_FINLINE vec4f v_dot4_x(vec4f a, vec4f b) { return sse2_dot4_x(a,b); }

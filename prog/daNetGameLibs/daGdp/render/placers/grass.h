@@ -51,20 +51,9 @@ struct GrassBuilder
   float grassMaxRange = FLT_MAX;
 };
 
-#if DAGOR_DBGLEVEL != 0
-struct GrassDebug
-{
-  dag::Vector<GrassBuilder> builders;
-};
-#endif
-
 struct GrassManager
 {
   GrassBuilder currentBuilder; // Only valid while building a view.
-
-#if DAGOR_DBGLEVEL != 0
-  GrassDebug debug;
-#endif
 };
 
 void create_grass_nodes(

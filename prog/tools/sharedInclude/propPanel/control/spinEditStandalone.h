@@ -25,16 +25,23 @@ public:
   void setMinMaxStepValue(float in_min, float in_max, float in_step);
   void setPrecValue(int in_precision);
 
+  // Round committed values down to whole numbers so an integer control's displayed text matches its
+  // floored getIntValue() (e.g. "10/3" shows 3, not 3.33). Set by the int spin edit and track bar.
+  void setIntegerValues(bool yes) { integerValues = yes; }
+
   bool isTextInputFocused() const { return textInputFocused; }
   void sendWcChangeIfVarChanged(WindowControlEventHandler &event_handler);
   // Fires onWcChangeFinished if a value change has been sent (via onWcChange) since the last finish.
   // Used to commit once when an interaction ends -- e.g. on spinner release rather than every frame
   // the spin button is held.
   void sendWcChangeFinishedIfPending(WindowControlEventHandler &event_handler);
-  // Convenience for onImmediateFocusLoss: send the pending value change (if any) and immediately
-  // finish it, so an immediate focus loss (tree select / panel rebuild) commits like Enter / focus loss.
+  // Convenience for onImmediateFocusLoss: evaluate the in-progress text, then send the resulting
+  // value change (if any) and finish it, so an immediate focus loss (tree select / panel rebuild)
+  // commits like Enter / focus loss. Without the commitText() the typed text is never parsed on this
+  // path and the stale value would be committed; invalid text reverts to the last valid value.
   void sendWcChangeAndFinishIfVarChanged(WindowControlEventHandler &event_handler)
   {
+    commitText(/*revert_display_on_error*/ true);
     sendWcChangeIfVarChanged(event_handler);
     sendWcChangeFinishedIfPending(event_handler);
   }
@@ -59,7 +66,10 @@ private:
   bool spinButtons(float &step_multiplier, const String *tooltip, const void *tooltip_owner);
   void setValueInternal(float value);
   float correctBounds(float value);
-  void onTextChanged();
+  // Evaluate the typed text as a math expression (see mathExprEval.h), store the result in
+  // internalValue, and canonicalize the display to it. On an invalid expression the raw text is
+  // kept (Enter) or the last valid value is restored (revert_display_on_error, focus loss).
+  void commitText(bool revert_display_on_error);
 
   String textValue;
   float internalValue, min, max, step;
@@ -72,6 +82,16 @@ private:
   // True once onWcChange has been sent and not yet finished; gates sendWcChangeFinishedIfPending.
   bool changePendingFinish = false;
   SpinnerButtonId draggedSpinnerButton = SpinnerButtonId::Nothing;
+  // Integer-domain control (int spin edit / track bar): committed values are floored so the displayed
+  // text matches the floored getIntValue().
+  bool integerValues = false;
+  // Committed text is evaluated as a math expression (see mathExprEval.h). mathExprError marks the
+  // last commit invalid, which shows the wrong-value background and the message as a tooltip.
+  bool mathExprError = false;
+  String mathExprErrorMsg;
+  // ImGui time (s) of the last successful expression commit; drives the green fade-out flash.
+  // Negative when inactive.
+  double successHighlightTimeS = -1.0;
 };
 
 } // namespace PropPanel

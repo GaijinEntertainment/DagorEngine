@@ -20,9 +20,9 @@
 
 namespace var
 {
-static ShaderVariableInfo dyn_region("dagdp__dyn_region");
-static ShaderVariableInfo dyn_counters_num("dagdp__dyn_counters_num");
-static ShaderVariableInfo global_density_mul("dagdp__global_density_mul");
+static ShaderVariableInfo dyn_region("dagdp__dyn_region", true);
+static ShaderVariableInfo dyn_counters_num("dagdp__dyn_counters_num", true);
+static ShaderVariableInfo global_density_mul("dagdp__global_density_mul", true);
 }; // namespace var
 
 using TmpName = eastl::fixed_string<char, 256>;

@@ -13,24 +13,6 @@
 
 using namespace drv3d_vulkan;
 
-namespace
-{
-
-bool get_window_client_rect(void *w, linux_GUI::RECT *rect)
-{
-  if (!w || !rect)
-    return false;
-
-  linux_GUI::RECT client, unclipped;
-  linux_GUI::get_window_screen_rect(w, &client, &unclipped);
-  rect->right = client.right - unclipped.left;
-  rect->left = client.left - unclipped.left;
-  rect->top = client.top - unclipped.top;
-  rect->bottom = client.bottom - unclipped.top;
-  return true;
-}
-} // namespace
-
 void drv3d_vulkan::get_video_modes_list(Tab<String> &list) { linux_GUI::get_video_mode_list(list); }
 
 bool drv3d_vulkan::validate_vulkan_signature(void *file)
@@ -83,9 +65,9 @@ VulkanSurfaceKHRHandle drv3d_vulkan::init_window_surface(VulkanInstance &instanc
 
 VkExtent2D drv3d_vulkan::get_window_client_rect_extent(void *window)
 {
-  linux_GUI::RECT rc = {};
-  get_window_client_rect(window, &rc);
-  return {static_cast<uint32_t>(rc.right - rc.left), static_cast<uint32_t>(rc.bottom - rc.top)};
+  int width = 0, height = 0;
+  linux_GUI::get_window_client_size(window, width, height);
+  return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }
 
 void drv3d_vulkan::WindowState::set(void *, const char *, int, void *, void *, const char *title, void *wnd_proc)

@@ -169,6 +169,7 @@ static struct RiGenBVHJob : public cpujobs::IJob
   threadpool::JobPriority prio = threadpool::PRIO_DEFAULT;
   dag::AtomicInteger<unsigned> chunkBudgetItems = 0;
   bool hitChunkBudget = false;
+  bool globalObjectTessellationEnabled = false;
 
   static ReferencedTransformData *mapTreeRiGen(ContextId context_id, uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle,
     int lod_ix, void *user_data, bool &recycled, int &anim_index)
@@ -326,7 +327,10 @@ static struct RiGenBVHJob : public cpujobs::IJob
                                       invWorldTm, treeInfo, metaAllocId, thiz, false, false, palette_id);
           if (!iok)
             continue;
-          add_riGen_instance(thiz->contextId, meshId, tm43, &treeInfo, isStationary, metaAllocId, thiz->threadIx);
+          const bool forceEnableBackfaceCulling =
+            thiz->globalObjectTessellationEnabled && riRes->isTessellated() && treeInfo.data.isTrunk;
+          add_riGen_instance(thiz->contextId, meshId, tm43, &treeInfo, isStationary, metaAllocId, thiz->threadIx,
+            forceEnableBackfaceCulling);
           thiz->riGenCount++;
         }
         else if (is_leaves(thiz->contextId, elem))
@@ -460,6 +464,8 @@ void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibi
   wait_ri_gen_instances_update(context_id);
   start_new_tree_mapping_debug_frame();
 
+  const bool globalObjectTessellationEnabled = is_global_object_tessellation_enabled();
+
   for (auto [i, ri_gen_visibility] : enumerate(ri_gen_visibilities))
   {
     rendinst::build_ri_gen_thread_accel(ri_gen_visibility, RiGenBVHJob::accels[i].accel1, RiGenBVHJob::accels[i].accel2);
@@ -488,6 +494,7 @@ void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibi
         job.prio = prio;
         job.otherFlip = &ri_gen_bvh_job[threadIx][flip ^ 1];
         job.chunkBudgetItems.store(chunkBudgetItems, dag::memory_order_relaxed);
+        job.globalObjectTessellationEnabled = globalObjectTessellationEnabled;
         v_bbox3_init_empty(job.treeArea);
       }
       parallel_instance_processing::before_job_start(context_id);

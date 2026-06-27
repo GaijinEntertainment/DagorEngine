@@ -347,7 +347,7 @@ int BhvDragAndDrop::pointingEvent(ElementTree *etree, Element *elem, InputDevice
             evt.button = button_id;
             evt.screenX = pointer_pos.x;
             evt.screenY = pointer_pos.y;
-            evt.target = elem->getRef(f.GetVM());
+            evt.target = target->getRef(f.GetVM());
             calc_elem_rect_for_event_handler(evt.targetRect, target);
 
             const HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : NULL;
@@ -478,6 +478,7 @@ int BhvDragAndDrop::applyPointerMove(const Point2 &pointer_pos, darg::DragAndDro
   Sqrat::Object curTargetHandler;
   Element *curTarget = findDropTarget(etree, pointer_pos, elem, curTargetHandler);
   activateTarget(etree, elem, ddState, curTarget, curTargetHandler, activeStateFlag);
+
   return result;
 }
 
@@ -525,12 +526,17 @@ void BhvDragAndDrop::onDetach(Element *elem, DetachMode)
 int BhvDragAndDrop::deactivateInputImpl(Element *elem, DragAndDropState *ddState)
 {
   if (ddState->isDragMode)
+  {
     elem->etree->updateSceneStateFlags(ElementTree::F_DRAG_ACTIVE, false);
+    callDragModeHandler(elem->etree->guiScene, elem, false);
+  }
 
   if (elem->transform)
     elem->transform->translate.zero();
   elem->updFlags(Element::F_ZORDER_ON_TOP, false);
   elem->clearGroupStateFlags(Element::S_DRAG | active_state_flags_for_device(ddState->activeDeviceId));
+
+  activateTarget(elem->etree, elem, ddState, nullptr, Sqrat::Object(), active_state_flags_for_device(ddState->activeDeviceId));
 
   if (ddState == activeDrag)
     activeDrag = nullptr;

@@ -200,8 +200,9 @@ void Chain::solve()
 
   G_ASSERT_RETURN((num >= 2 && num <= 4), );
 
-  const Point3 &pStart = points.front().getPos();
-  const Point3 &pFinal = points.back().getPos();
+  ParticlePoint *pts = points.data();
+  const Point3 &pStart = pts[0].getPos();
+  const Point3 &pFinal = pts[num - 1].getPos();
 
   if (num == 2)
   {
@@ -213,30 +214,31 @@ void Chain::solve()
 
       const Point3 offset = dirTm.getcol(1) * shoulder;
       if (needRotateFirst)
-        rotate_at_point(points.front().tm, pFinal + offset);
-      rotate_at_point(points.back().tm, pStart - offset);
+        rotate_at_point(pts[0].tm, pFinal + offset);
+      rotate_at_point(pts[1].tm, pStart - offset);
     }
     else
     {
       if (needRotateFirst)
-        rotate_at_point(points.front().tm, pFinal);
-      rotate_at_point(points.back().tm, pStart);
+        rotate_at_point(pts[0].tm, pFinal);
+      rotate_at_point(pts[1].tm, pStart);
     }
     return;
   }
 
   // make local tm for plane by start point, end point and x-axis of start node
   tmToLocal2DSpace.setcol(3, pStart);
-  tmToLocal2DSpace.setcol(0, points.front().initialTm.getcol(0));
+  tmToLocal2DSpace.setcol(0, pts[0].initialTm.getcol(0));
   tmToLocal2DSpace.setcol(2, normalize(tmToLocal2DSpace.getcol(0) % (pFinal - pStart)));
   tmToLocal2DSpace.setcol(1, tmToLocal2DSpace.getcol(0) % tmToLocal2DSpace.getcol(2));
 
   const Point2 endEffectorLocal = Point2::xy(pFinal * inverse(tmToLocal2DSpace));
 
-  eastl::vector<Point2> localPoints;
+  StaticTab<Point2, 4> localPoints;
   localPoints.resize(num);
-  localPoints.front() = ZERO<Point2>();
-  localPoints.back() = endEffectorLocal;
+  Point2 *lp = localPoints.data();
+  lp[0] = ZERO<Point2>();
+  lp[num - 1] = endEffectorLocal;
 
   // calculate angles and local positions
   if (num == 3)
@@ -246,7 +248,7 @@ void Chain::solve()
     const float l1 = edges.front();
     const float l2 = edges.back();
 
-    localPoints[1] = get_point_in_triangle(l1, length, l2, dir, ZERO<Point2>(), false);
+    lp[1] = get_point_in_triangle(l1, length, l2, dir, ZERO<Point2>(), false);
   }
   else
   {
@@ -255,27 +257,25 @@ void Chain::solve()
 
   // calculate transformed positions
   for (int i = 1; i < num - 1; ++i)
-  {
-    points[i].tm.setcol(3, Point3::xy0(localPoints[i]) * tmToLocal2DSpace);
-  }
+    pts[i].tm.setcol(3, Point3::xy0(lp[i]) * tmToLocal2DSpace);
 
   // calculate node rotations
   for (int i = 0; i < num - 1; ++i)
   {
-    const Point3 currentVec = points[i + 1].getPos() - points[i].getPos();
-    const TMatrix rotTm = makeTM(quat_rotation_arc(points[i].originalVec, currentVec));
-    const Point3 savedPos = points[i].getPos();
-    points[i].tm = rotTm * points[i].initialTm;
-    points[i].tm.setcol(3, savedPos);
+    const Point3 currentVec = pts[i + 1].getPos() - pts[i].getPos();
+    const TMatrix rotTm = makeTM(quat_rotation_arc(pts[i].originalVec, currentVec));
+    const Point3 savedPos = pts[i].getPos();
+    pts[i].tm = rotTm * pts[i].initialTm;
+    pts[i].tm.setcol(3, savedPos);
   }
 
-  const Point3 savedPos = points.back().getPos();
-  points.back().tm = points.back().tm * points.back().initialTm;
-  points.back().tm.setcol(3, savedPos);
+  const Point3 savedPos = pts[num - 1].getPos();
+  pts[num - 1].tm = pts[num - 1].tm * pts[num - 1].initialTm;
+  pts[num - 1].tm.setcol(3, savedPos);
 }
 
 
-void Chain::calculate3EdgesSolution(const Point2 &end_effector_local, eastl::vector<Point2> &local_points_out)
+void Chain::calculate3EdgesSolution(const Point2 &end_effector_local, StaticTab<Point2, 4> &local_points_out)
 {
   const float length = end_effector_local.length();
   const Point2 dir = normalize(end_effector_local);

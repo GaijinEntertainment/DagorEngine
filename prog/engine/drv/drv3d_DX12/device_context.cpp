@@ -507,6 +507,7 @@ void DeviceContext::makeReadyForFrame(uint32_t frame_index, [[maybe_unused]] boo
 }
 
 WinCritSec &DeviceContext::getFrontGuard() { return mutex; }
+WinCritSec &DeviceContext::getDefragGuard() { return defragGuard; }
 
 #if DX12_FIXED_EXECUTION_MODE
 void DeviceContext::initMode()
@@ -3566,6 +3567,11 @@ void DeviceContext::executeFSRFG(const amd::FSR::FrameGenArgs &params)
   args.depthTexture = cast_to_image(params.depthTexture);
   args.motionVectors = cast_to_image(params.motionVectors);
   args.uiTexture = cast_to_image(params.uiTexture);
+
+  if (params.colorTexture)
+    cast_to_texture_base(params.colorTexture)->setExcludedFromDefragmentation(true);
+  if (params.uiTexture)
+    cast_to_texture_base(params.uiTexture)->setExcludedFromDefragmentation(true);
 
   DX12_LOCK_FRONT();
   auto cmd = make_command<CmdDispatchFSRFG>(args);

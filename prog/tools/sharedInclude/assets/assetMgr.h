@@ -132,6 +132,8 @@ public:
   void callAssetBaseChangeNotifications(dag::ConstSpan<DagorAsset *> changed_assets, dag::ConstSpan<DagorAsset *> added_assets,
     dag::ConstSpan<DagorAsset *> removed_assets) const;
 
+  void notifyAssetChanged(const DagorAsset *asset) const;
+
 
 #if defined(__clang__)
 #pragma GCC diagnostic push

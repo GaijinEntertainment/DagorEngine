@@ -85,19 +85,17 @@ SQUIRREL_API SQRESULT future_push_class(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT future_create(HSQUIRRELVM v, HSQOBJECT *out);
 
 // Settle a Future from C. An internal sq_addref keeps the payload alive.
-// Settling an already-settled or already-adopted future is a no-op.
+// Settling an already-settled future is a no-op.
 //
-// future_resolve applies the JS Promise Resolution Procedure: a Future
-// `value` is adopted (mirrors its eventual settlement); other values
-// fulfill immediately. future_throw faults the future. Prefer routing
-// documented failures as resolved values; reserve future_throw for
-// worker-thread bugs with no live Quirrel stack to sq_throwerror into.
+// The value is stored verbatim: a Future `value` is NOT unwrapped (await
+// unwraps one level on the script side). future_throw faults the future with
+// the value verbatim. Prefer routing documented failures as resolved values;
+// reserve future_throw for worker-thread bugs with no live Quirrel stack to
+// sq_throwerror into.
 //
-// Both return SQ_ERROR and throw if `future` is not a Future instance or
-// is a task-future. future_resolve also throws on an adoption cycle that
-// closes back on `future` (direct self, or a.resolve(b); b.resolve(a)).
-// A cycle discovered through an already-faulted future during the
-// settlement cascade yields a diagnostic value instead of throwing.
+// Both return SQ_ERROR and throw if `future` is not a Future instance or is a
+// task-future. The only cycle guard is a direct self-settle
+// (future_resolve(f, f) / future_throw(f, f)), which throws.
 SQUIRREL_API SQRESULT future_resolve(HSQUIRRELVM v, HSQOBJECT future, HSQOBJECT value);
 SQUIRREL_API SQRESULT future_throw(HSQUIRRELVM v, HSQOBJECT future, HSQOBJECT value);
 

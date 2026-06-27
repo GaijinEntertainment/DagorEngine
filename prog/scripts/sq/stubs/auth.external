@@ -1,0 +1,4 @@
+return {
+  convert_external_jwt_to_auth_jwt = @(...) null
+  login_external = @(_params, _id) null
+}

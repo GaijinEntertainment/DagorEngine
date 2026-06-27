@@ -1421,6 +1421,26 @@ void Wayland::setFullscreenMode(bool enable)
     mainWindow->changeFullscreen(enable);
 }
 
+bool Wayland::getWindowClientSize(void *w, int &width, int &height)
+{
+  if (!w)
+    return false;
+
+  Window &wi = *(Window *)w;
+  if (wi.fullscreen && wi.fullscreenOnOutput)
+  {
+    width = wi.fullscreenOnOutput->mode.current.width;
+    height = wi.fullscreenOnOutput->mode.current.height;
+  }
+  else
+  {
+    width = wi.reportedWidth ? wi.reportedWidth : wi.boundsWidth;
+    height = wi.reportedHeight ? wi.reportedHeight : wi.boundsHeight;
+  }
+
+  return true;
+}
+
 bool Wayland::getWindowScreenRect(void *w, linux_GUI::RECT *rect, linux_GUI::RECT *rect_unclipped)
 {
   if (!w || !rect)

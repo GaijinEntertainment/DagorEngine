@@ -4,6 +4,7 @@
 #include <drv/3d/dag_resUpdateBuffer.h>
 
 #include <osApiWrappers/dag_miscApi.h>
+#include <memory/dag_mem.h>
 #include "buffer_resource.h"
 #include "texture.h"
 #include "globals.h"
@@ -66,6 +67,9 @@ NO_UBSAN d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTe
   rub->destTex = dest_tex;
   rub->originalImg = dest_tex->image;
   rub->stagingBuffer = stagingBuffer;
+  // WSL2 (GPU via dxgkrnl) cannot kernel-fread into host-visible memory; the DDSX read lands in
+  // this RAM shadow and update() memcpys it into the staging buffer (a user-space write is fine).
+  rub->cpuShadow = Globals::cfg.bits.stageRubThroughCpu ? memalloc(size, tmpmem) : nullptr;
   rub->pitch = fmt.calculateRowPitch(width);
   rub->slicePitch = slicePitch;
   rub->uploadInfo =
@@ -111,6 +115,9 @@ NO_UBSAN d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *
   rub->destTex = dest_tex;
   rub->originalImg = dest_tex->image;
   rub->stagingBuffer = stagingBuffer;
+  // WSL2 (GPU via dxgkrnl) cannot kernel-fread into host-visible memory; the DDSX read lands in
+  // this RAM shadow and update() memcpys it into the staging buffer (a user-space write is fine).
+  rub->cpuShadow = Globals::cfg.bits.stageRubThroughCpu ? memalloc(size, tmpmem) : nullptr;
   rub->pitch = fmt.calculateRowPitch(level_w);
   rub->slicePitch = size;
 
@@ -136,6 +143,8 @@ NO_UBSAN void d3d::release_update_buffer(d3d::ResUpdateBuffer *&rub)
 {
   if (ResUpdateBufferImp *&rub_imp = reinterpret_cast<ResUpdateBufferImp *&>(rub))
   {
+    if (rub_imp->cpuShadow)
+      memfree(rub_imp->cpuShadow, tmpmem);
     Globals::ctx.dispatchCmd<CmdDestroyBuffer>({rub_imp->stagingBuffer});
     Globals::Res::rub.free(rub_imp);
     rub = nullptr;
@@ -146,6 +155,8 @@ NO_UBSAN char *d3d::get_update_buffer_addr_for_write(d3d::ResUpdateBuffer *rub)
 {
   if (ResUpdateBufferImp *rub_imp = reinterpret_cast<ResUpdateBufferImp *>(rub))
   {
+    if (rub_imp->cpuShadow)
+      return reinterpret_cast<char *>(rub_imp->cpuShadow);
     G_ASSERT(rub_imp->stagingBuffer->hasMappedMemory());
     return reinterpret_cast<char *>(rub_imp->stagingBuffer->ptrOffsetLoc(0));
   }
@@ -170,6 +181,9 @@ NO_UBSAN bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer
     return false;
 
   ResUpdateBufferImp *&rub_imp = reinterpret_cast<ResUpdateBufferImp *&>(rub);
+
+  if (rub_imp->cpuShadow)
+    memcpy(rub_imp->stagingBuffer->ptrOffsetLoc(0), rub_imp->cpuShadow, rub_imp->slicePitch);
 
   rub_imp->stagingBuffer->markNonCoherentRangeLoc(0, rub_imp->stagingBuffer->getBlockSize(), true);
 

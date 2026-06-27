@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "yu_session.h"
 #include "yu_sessionProc.h"
+#include "yu_sessionLogin.h"
 #include "yu_debug.h"
 #include "yu_path.h"
 #include "yu_fs.h"
@@ -92,6 +93,7 @@ YuSession::YuSession(const char* client_name, const char* game, unsigned app_id,
     { ACTION_ACTIVATE, REDEEM_CODE_URL_DEF },
     { ACTION_HUAWEI_LOGIN, HUAWEI_LOGIN_URL_DEF },
     { ACTION_NVIDIA_LOGIN, NVIDIA_LOGIN_URL_DEF },
+    { ACTION_VK_LOGIN, VK_LOGIN_URL_DEF },
   };
 
   memset(currentActions, 0, sizeof(currentActions));
@@ -747,6 +749,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run())
     {
       if (call) //Async action, just return its handle
@@ -779,6 +783,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1))
     {
       if (call) //Async action, just return its handle
@@ -809,6 +815,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1, v2))
     {
       if (call) //Async action, just return its handle
@@ -839,6 +847,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1, v2, v3))
     {
       if (call) //Async action, just return its handle
@@ -869,6 +879,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1, v2, v3, v4))
     {
       if (call) //Async action, just return its handle
@@ -900,6 +912,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1, v2, v3, v4, v5))
     {
       if (call) //Async action, just return its handle
@@ -931,6 +945,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1, v2, v3, v4, v5, v6))
     {
       if (call) //Async action, just return its handle
@@ -962,6 +978,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1, v2, v3, v4, v5, v6, v7))
     {
       if (call) //Async action, just return its handle
@@ -993,6 +1011,8 @@ Yuplay2Status YuSession::doAction(Yuplay2AsyncCall* call,
 
   if (res == YU2_OK)
   {
+    action->beginAction();
+
     if (action->run(v1, v2, v3, v4, v5, v6, v7, v8))
     {
       if (call) //Async action, just return its handle
@@ -1474,6 +1494,31 @@ Yuplay2Status YU2VCALL YuSession::nvidiaLoginAsync(const char* nvidia_jwt, Yupla
 
 
 //==================================================================================================
+Yuplay2Status YU2VCALL YuSession::vkLoginSync(const char* vk_token, const char* client_id)
+{
+  if (!CHECK_STRING(vk_token) || !CHECK_STRING(client_id))
+    return YU2_WRONG_PARAMETER;
+
+  return doAction<false, VkLoginAction, ACTION_VK_LOGIN,
+                  YuString, YuString>
+                  (NULL, vk_token, client_id, NULL);
+}
+
+
+//==================================================================================================
+Yuplay2Status YU2VCALL YuSession::vkLoginAsync(const char* vk_token, const char* client_id,
+                                               Yuplay2AsyncCall* call)
+{
+  if (!call || !CHECK_STRING(vk_token) || !CHECK_STRING(client_id))
+    return YU2_WRONG_PARAMETER;
+
+  return doAction<false, VkLoginAction, ACTION_VK_LOGIN,
+                  YuString, YuString>
+                  (call, vk_token, client_id, NULL);
+}
+
+
+//==================================================================================================
 Yuplay2Status YU2VCALL YuSession::getSteamLinkTokenSync(const void* auth_code,
                                                         unsigned auth_code_len,
                                                         int steam_app_id, IYuplay2String** tok)
@@ -1846,6 +1891,16 @@ void YuSession::onNewToken(const YuString& token, int64_t exp_time)
 #else
   this->tokenExpTime += ::time(NULL);
 #endif //YU2_WINAPI
+}
+
+
+//==================================================================================================
+void YuSession::logoff()
+{
+  YuWarden warden(sessionLock);
+
+  yuToken = "";
+  stateBits &= ~YU2_SESSION_LOGGED_IN;
 }
 
 

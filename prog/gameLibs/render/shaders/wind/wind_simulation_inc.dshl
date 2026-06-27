@@ -47,15 +47,12 @@ macro INIT_AMBIENT_WIND(stage)
 endmacro
 
 macro USE_FLUID_WIND(stage)
-  if (allow_fluid_wind == yes)
-  {
-    hlsl(stage) {
-      float3 sampleFluidWind(float3 pos)
-      {
-        float3 tcSpeed = (pos.xyz - fluid_wind_origin.xyz) / fluid_wind_world_size.xyz + 0.5;
-        float4 speed = tex3Dlod(fluid_wind_tex, float4(tcSpeed.xzy, 0));
-        return disable_wind ? 0 : speed.xzy;
-      }
+  hlsl(stage) {
+    float3 sampleFluidWind(float3 pos)
+    {
+      float3 tcSpeed = (pos.xyz - fluid_wind_origin.xyz) / fluid_wind_world_size.xyz + 0.5;
+      float4 speed = tex3Dlod(fluid_wind_tex, float4(tcSpeed.xzy, 0));
+      return disable_wind ? 0 : speed.xzy;
     }
   }
 endmacro
@@ -130,8 +127,11 @@ macro INIT_COMBINED_WIND(stage)
   INIT_AMBIENT_WIND(stage)
 endmacro
 
-macro USE_COMBINED_WIND(stage)
-  USE_FLUID_WIND(stage)
+macro USE_COMBINED_WIND_WITH_OPTIONAL_FLUID(stage, fluid_condition)
+  if (fluid_condition)
+  {
+    USE_FLUID_WIND(stage)
+  }
   USE_AMBIENT_WIND(stage)
 
   hlsl(stage) {
@@ -141,7 +141,7 @@ macro USE_COMBINED_WIND(stage)
       noise_params.x *= noise_speed_mult;
       float3 wind = sampleAmbientWind(pos, noise_params, time) - velocity;
 
-      ##if allow_fluid_wind == yes
+      ##if fluid_condition
         if (fluid_wind_status > 0)
           wind += fluid_wind_multiplier * sampleFluidWind(pos);
       ##endif
@@ -173,4 +173,8 @@ macro USE_COMBINED_WIND(stage)
         velocity, noise_speed_mult, ambient_wind__speed__current_time__previous_time.z);
     }
   }
+endmacro
+
+macro USE_COMBINED_WIND(stage)
+  USE_COMBINED_WIND_WITH_OPTIONAL_FLUID(stage, allow_fluid_wind == yes)
 endmacro

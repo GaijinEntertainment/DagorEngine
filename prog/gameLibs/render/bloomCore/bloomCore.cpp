@@ -15,14 +15,9 @@ GLOBAL_VARS_BLOOM
 
 namespace bloom
 {
-static eastl::string bloomInputTexName = "downsampled_color";
-
-void set_input_tex_name(const eastl::string &tex_name) { bloomInputTexName = tex_name; }
 
 static eastl::string gen_downsample_source_tex_name(uint32_t mip_to_gen)
 {
-  if (mip_to_gen == 0)
-    return bloomInputTexName;
   const uint32_t previous_mip = mip_to_gen - 1;
   return eastl::string("downsampled_bloom_mip_") + eastl::to_string(previous_mip);
 }
@@ -67,10 +62,16 @@ void regenerate_downsample_chain(dafg::NameSpace ns, dag::Vector<dafg::NodeHandl
     const eastl::string downsampleNodeName = eastl::string("bloom_downsample_") + eastl::to_string(mip);
     nodes.push_back(ns.registerNode(downsampleNodeName.c_str(), DAFG_PP_NODE_SRC, [mip, cb, use_esram](dafg::Registry registry) {
       const bool firstMip = mip == 0;
-      const eastl::string sourceTexName = gen_downsample_source_tex_name(mip);
+      if (firstMip)
+      {
+        registry.read(dafg::NamedSlot("bloom_input_tex")).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
+      }
+      else
+      {
+        const eastl::string sourceTexName = gen_downsample_source_tex_name(mip);
+        registry.read(sourceTexName.c_str()).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
+      }
       const eastl::string targetTexName = gen_downsample_target_tex_name(mip);
-
-      registry.read(sourceTexName.c_str()).texture().atStage(dafg::Stage::PS).bindToShaderVar("blur_src_tex");
       registry.create(targetTexName.c_str())
         .texture({TEXCF_RTARGET | TEXFMT_R11G11B10F | (use_esram ? TEXCF_ESRAM_ONLY : 0U),
           registry.getResolution<2>("post_fx", 0.25f / (1 << mip))});

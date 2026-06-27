@@ -164,7 +164,10 @@ eastl::optional<ProcessHandle> spawn_process(ExecutionState &state, ProcessTask 
   if (task.cwd.has_value())
   {
     if (is_path_abs(task.cwd->c_str()))
+    {
       strncpy(cwdStorage, task.cwd->c_str(), sizeof(cwdStorage));
+      cwdStorage[sizeof(cwdStorage) - 1] = '\0';
+    }
     else
     {
       DWORD len = GetCurrentDirectory(sizeof(cwdStorage), cwdStorage);

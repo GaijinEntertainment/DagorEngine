@@ -5,18 +5,16 @@
 
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_direct.h>
-
-#include <util/dag_string.h>
+#include <libTools/util/appDirRelativePath.h>
 
 namespace tools3d
 {
 
-bool get_snapshot_path(const DataBlock &blk, const char *app_dir, String &out_path)
+bool get_snapshot_path(const DataBlock &blk, String &out_path)
 {
   if (const char *snapshot = blk.getStr("dngSnapshot", nullptr))
   {
-    String dir(0, "%s/%s/", app_dir, snapshot);
-    simplify_fname(dir);
+    String dir = make_eff_app_relative_path(snapshot, true);
     if (alefind_t fs; dd_find_first(dir + "*.shdump.bin", 0, &fs))
     {
       dd_find_close(&fs);
@@ -27,12 +25,12 @@ bool get_snapshot_path(const DataBlock &blk, const char *app_dir, String &out_pa
   return false;
 }
 
-String get_shaders_path(const DataBlock &blk, const char *app_dir, bool use_dng)
+String get_shaders_path(const DataBlock &blk, bool use_dng)
 {
   if (use_dng)
   {
     String dir;
-    if (get_snapshot_path(blk, app_dir, dir))
+    if (get_snapshot_path(blk, dir))
     {
       dd_add_base_path(dir);
       dir.append("game");
@@ -41,9 +39,8 @@ String get_shaders_path(const DataBlock &blk, const char *app_dir, bool use_dng)
   }
 
   if (const char *shfn = blk.getStr("shaders", nullptr))
-    return String(260, "%s/%s", app_dir, use_dng ? blk.getStr("dngShaders", shfn) : shfn);
-  else
-    return String(260, "%s/compiledShaders/classic/tools", sgg::get_common_data_dir());
+    return make_eff_app_relative_path(use_dng ? blk.getStr("dngShaders", shfn) : shfn);
+  return {};
 }
 
 } // namespace tools3d

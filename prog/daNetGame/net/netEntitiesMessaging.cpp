@@ -104,7 +104,7 @@ int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId to_eid, net::IMessage &&
   {
     net::recipient_filter_t rcptFilter = msgDesc.rcptFilter;
     G_FAST_ASSERT(rcptFilter != NULL);
-    int curTime = is_replay_recording() ? get_time_mgr().getAsyncMillis() : 0;
+    int curTime = is_replay_recording() ? get_async_millis() : 0;
     if (rcptFilter == &net::broadcast_rcptf)
     {
       for (net::ConnectionsIterator cit; cit; ++cit)

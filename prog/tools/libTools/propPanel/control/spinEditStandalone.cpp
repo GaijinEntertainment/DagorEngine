@@ -2,13 +2,22 @@
 
 #include "../tooltipHelper.h"
 #include <propPanel/control/spinEditStandalone.h>
+#include <propPanel/mathExprEval.h>
 #include <propPanel/c_window_event_handler.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/colors.h>
+#include <propPanel/toastManager.h>
 #include <imgui/imgui_internal.h>
 #include <stdio.h> // snprintf
 
 namespace PropPanel
 {
+
+namespace
+{
+// How long the green highlight flashed after a successful expression commit takes to fade out.
+constexpr float SUCCESS_HIGHLIGHT_FADE_SECONDS = 1.5f;
+} // namespace
 
 SpinEditControlStandalone::SpinEditControlStandalone(float in_min, float in_max, float in_step, int in_precision) :
   min(in_min), max(in_max), step(in_step), precision(in_precision > 0 ? (in_precision - 1) : 0)
@@ -54,6 +63,10 @@ void SpinEditControlStandalone::setPrecValue(int in_precision)
 void SpinEditControlStandalone::setValueInternal(float value)
 {
   value = correctBounds(value);
+  if (integerValues)
+  {
+    value = floorf(value);
+  }
 
   char buf[64];
   float minValue = precision > 0 ? powf(10.0f, -precision) : 1.0f;
@@ -81,6 +94,8 @@ void SpinEditControlStandalone::setValueInternal(float value)
 
   textValue = buf;
   internalValue = value;
+  mathExprError = false;
+  successHighlightTimeS = -1.0; // a fresh value (spinner, arrow, external set) cancels the success flash
 }
 
 float SpinEditControlStandalone::correctBounds(float value)
@@ -113,11 +128,40 @@ void SpinEditControlStandalone::sendWcChangeFinishedIfPending(WindowControlEvent
   event_handler.onWcChangeFinished(nullptr);
 }
 
-void SpinEditControlStandalone::onTextChanged()
+void SpinEditControlStandalone::commitText(bool revert_display_on_error)
 {
-  float value = atof(textValue);
-  value = correctBounds(value);
-  internalValue = value;
+  const MathExprResult r = eval_math_expr(textValue.str());
+  if (r.ok)
+  {
+    const String rawInput = textValue;                // what the user typed, before canonicalization
+    setValueInternal(r.value);                        // textValue becomes the evaluated, clamped result
+    if (strcmp(rawInput.str(), textValue.str()) != 0) // commit rewrote the text (expression evaluated or literal reformatted)
+      successHighlightTimeS = ImGui::GetTime();
+    return;
+  }
+
+  // Invalid expression: alert the user with the reason, on Enter or focus loss alike. Skip if the
+  // previous commit already failed (mathExprError still set) so holding Enter does not stack toasts.
+  // set_toast_message is called directly because this control is inside propPanel; DAEDITOR3.showToast
+  // is only the plugin-DLL route to the same toast.
+  if (!mathExprError)
+  {
+    ToastMessage toast;
+    toast.type = ToastType::Alert;
+    toast.text = r.error.str();
+    toast.setHideOnMouseMove(true);
+    toast.setToMousePos(Point2(0.0f, 0.0f)); // top-left corner at the cursor
+    set_toast_message(toast);
+  }
+
+  if (revert_display_on_error)
+    setValueInternal(internalValue); // focus loss: restore the last valid value (clears error)
+  else
+  {
+    mathExprError = true; // Enter: keep the raw text plus the red frame and tooltip
+    mathExprErrorMsg = r.error;
+    successHighlightTimeS = -1.0; // a fresh error cancels any in-progress success flash
+  }
 }
 
 bool SpinEditControlStandalone::spinButton(SpinnerButtonId button, float &step_multiplier, const String *tooltip,
@@ -209,12 +253,44 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
   const char *inputLabel = "";
   const bool textInputWasFocused = textInputFocused;
   const bool textInputWasActive = textInputActive;
+
+  // Frame background, inner to any color the owner control set. An invalid commit shows the
+  // wrong-value background until the next edit; otherwise a successful expression commit flashes the
+  // evaluated-value background and fades it out. Error takes priority over the flash.
+  float successAlpha = 0.0f;
+  if (successHighlightTimeS >= 0.0)
+  {
+    const float elapsed = ImGui::GetTime() - successHighlightTimeS;
+    if (elapsed >= 0.0 && elapsed < SUCCESS_HIGHLIGHT_FADE_SECONDS)
+      successAlpha = 1.0f - static_cast<float>(elapsed / SUCCESS_HIGHLIGHT_FADE_SECONDS);
+    else
+      successHighlightTimeS = -1.0;
+  }
+
+  const bool pushFrameBg = mathExprError || successAlpha > 0.0f;
+  if (mathExprError)
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, getOverriddenColor(ColorOverride::EDIT_BOX_WRONG_VALUE_BACKGROUND));
+  else if (successAlpha > 0.0f)
+  {
+    ImVec4 successColor = getOverriddenColor(ColorOverride::EDIT_BOX_EVALUATED_VALUE_BACKGROUND);
+    successColor.w *= successAlpha;
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, successColor);
+  }
+
   const bool textChanged = ImguiHelper::inputTextWithEnterWorkaround(inputLabel, nullptr, &textValue, textInputWasFocused);
   textInputFocused = ImGui::IsItemFocused();
   textInputActive = ImGui::IsItemActive();
 
-  if (tooltip && !tooltip->empty())
-    tooltip_helper.setPreviousImguiControlTooltip(tooltip_owner, tooltip->begin(), tooltip->end());
+  if (pushFrameBg)
+    ImGui::PopStyleColor();
+
+  static const String mathExprHelp("Math expression supported.\n"
+                                   "Operators: + - * / ^ ** ( )    Constant: pi\n"
+                                   "Functions: sqrt abs sin cos tan atan pow   (trig in degrees)\n"
+                                   "Example: (100/2)^2  ->  2500");
+  const String *effectiveTooltip = mathExprError ? &mathExprErrorMsg : (tooltip && !tooltip->empty()) ? tooltip : &mathExprHelp;
+  if (!effectiveTooltip->empty())
+    tooltip_helper.setPreviousImguiControlTooltip(tooltip_owner, effectiveTooltip->begin(), effectiveTooltip->end());
 
   ImGui::SameLine(0.0f, spaceBeforeSpinButtons);
 
@@ -228,7 +304,21 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
   else if (textInputFocused && (ImGui::IsKeyPressed(ImGuiKey_Enter, ImGuiInputFlags_None, ImGuiKeyOwner_Any) ||
                                  ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, ImGuiInputFlags_None, ImGuiKeyOwner_Any)))
   {
-    onTextChanged();
+    commitText(/*revert_display_on_error*/ false);
+
+    // On a valid expression the text was rewritten to the evaluated value; refresh the
+    // still-focused input so the box shows the result rather than the typed expression.
+    if (!mathExprError)
+    {
+      if (ImGuiInputTextState *inputState = ImGui::GetInputTextState(ImGui::GetID(inputLabel)))
+      {
+        inputState->ReloadUserBufAndMoveToEnd();
+        // The reload updates the buffer and cursor but not the horizontal scroll, which a long typed
+        // expression has pushed past the short result; reset it so the result stays in view.
+        inputState->Scroll.x = 0.0f;
+      }
+    }
+
     sendWcChangeIfVarChanged(event_handler);
     sendWcChangeFinishedIfPending(event_handler);
   }
@@ -244,17 +334,28 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
     // Workaround needed to be able to set text of a focused text input.
     // See: https://github.com/ocornut/imgui/issues/7482
     if (ImGuiInputTextState *inputState = ImGui::GetInputTextState(ImGui::GetID(inputLabel)))
+    {
       inputState->ReloadUserBufAndMoveToEnd();
+      // The reload puts the cursor at the end but does not scroll to it. A spin step changes the
+      // trailing digits, so let the scroll follow the cursor to keep the last digit in view.
+      inputState->CursorFollow = true;
+    }
 
     sendWcChangeIfVarChanged(event_handler);
     sendWcChangeFinishedIfPending(event_handler);
   }
   else
   {
-    if (textChanged)
-      onTextChanged();
+    const bool lostFocus = (textInputWasFocused && !textInputFocused) || (textInputWasActive && !textInputActive);
 
-    if ((textInputWasFocused && !textInputFocused) || (textInputWasActive && !textInputActive))
+    // Evaluate on commit only. While typing, keep the raw text and just drop any stale error
+    // highlight; on focus loss evaluate and revert the display if the expression is invalid.
+    if (lostFocus)
+      commitText(/*revert_display_on_error*/ true);
+    else if (textChanged)
+      mathExprError = false;
+
+    if (lostFocus)
     {
       sendWcChangeIfVarChanged(event_handler);
       sendWcChangeFinishedIfPending(event_handler);

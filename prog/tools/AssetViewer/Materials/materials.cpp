@@ -23,6 +23,7 @@
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/staticGeom/staticGeometry.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
+#include <libTools/util/appDirRelativePath.h>
 
 #include <shaders/dag_dynSceneRes.h>
 #include <osApiWrappers/dag_direct.h>
@@ -152,7 +153,7 @@ void MaterialsPlugin::initMatParamsDescr(const DataBlock &app_blk)
 {
   clearMatParamsDescr();
 
-  String descrPath = ::make_full_path(::get_app().getWorkspace().getAppDir(), get_app().getMatParamsPath());
+  String descrPath = make_eff_app_relative_path(get_app().getMatParamsPath());
   if (!::dd_file_exist(descrPath.str()))
     descrPath = ::make_full_path(sgg::get_exe_path(), "../commonData/mat_params.blk");
 

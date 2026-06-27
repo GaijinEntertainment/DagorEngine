@@ -153,7 +153,7 @@ macro SAMPLE_CLOUDS_NUKE_INVERSION(code, for_render)
 
       density = (density + resultDensity.y) * resultExtinction + resultDensity.x;
       ##if for_render
-        fake_shadow = clamp(1 - 20*(resultDensity.y * resultExtinction + resultDensity.x), 0.25, 1);
+        fake_shadow = clamp(1 - 40*(resultDensity.y * resultExtinction + resultDensity.x)*noise.x, 0.25, 1);
         return density;
       ##else
         return false;

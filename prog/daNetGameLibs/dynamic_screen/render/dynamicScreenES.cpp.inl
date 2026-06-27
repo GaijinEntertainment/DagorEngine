@@ -11,10 +11,6 @@
 #include <ecs/anim/anim.h>
 #include <ecs/render/animCharUtils.h>
 
-namespace var
-{
-static ShaderVariableInfo dynamic_screen_tex("dynamic_screen_tex");
-}
 static int dynamic_screen_tex_counter = 0;
 
 ECS_TAG(render)
@@ -25,6 +21,8 @@ static void dynamic_screen_on_appear_es(const ecs::Event &,
   int dynamic_screen__texture_mips,
   AnimV20::AnimcharRendComponent *animchar_render = nullptr)
 {
+  static ShaderVariableInfo dynamic_screen_tex("dynamic_screen_tex");
+
   int texcf = TEXFMT_A16B16G16R16F | TEXCF_RTARGET;
   if (dynamic_screen__texture_mips != 1)
     texcf |= TEXCF_GENERATEMIPS;
@@ -33,7 +31,7 @@ static void dynamic_screen_on_appear_es(const ecs::Event &,
   if (animchar_render)
   {
     recreate_material_with_new_params(*animchar_render, "dynamic_screen", [&dynamic_screen__texture](ShaderMaterial *mat) {
-      mat->set_texture_param(var::dynamic_screen_tex.get_var_id(), dynamic_screen__texture.getTexId());
+      mat->set_texture_param(dynamic_screen_tex.get_var_id(), dynamic_screen__texture.getTexId());
     });
   }
 }

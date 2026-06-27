@@ -78,7 +78,7 @@ def anim_replay_camera_input(info : UpdateStageInfoAct;
     anim_replay_camera__rotation = float2(0, 0)
     anim_replay_camera__zoom = 0f
 
-[es(tag=dev, after=(anim_replay_camera_input, anim_replay_update_animchar), before=after_camera_sync)]
+[es(tag=dev, after=(anim_replay_camera_input, anim_replay_update_character_tm), before=after_camera_sync)]
 def anim_replay_camera_update(info : UpdateStageInfoAct;
                               var camera__accuratePos : DPoint3&;
                               var transform aka camera_transform : float3x4&;

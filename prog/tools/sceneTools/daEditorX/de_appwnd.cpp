@@ -74,6 +74,7 @@
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/renderViewports/cachedViewports.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/setupNamedMounts.h>
 #include <scene/dag_occlusionMap.h>
 #include <sceneBuilder/nsb_StdTonemapper.h>
 #include <sceneBuilder/nsb_LightmappedScene.h>
@@ -147,7 +148,7 @@ enum
 };
 
 extern void init3d_early();
-extern void init3d();
+extern void init3d(const char *window_layout_blk_path);
 
 namespace environment
 {
@@ -827,6 +828,9 @@ void DagorEdAppWindow::makeDefaultLayout(bool for_initial_layout)
 void DagorEdAppWindow::saveLayout(const char *path)
 {
   DataBlock blk;
+
+  DataBlock *mainWindowBlk = blk.addBlock("mainWindow");
+  getWndManager()->saveMainWindowPositionAndSize(*mainWindowBlk);
 
   DataBlock *modelessWindowsBlk = blk.addBlock("modelessWindows");
   getModelessWindowControllers().saveState(*modelessWindowsBlk);
@@ -2173,14 +2177,16 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
     ec_set_busy(true);
     resetCore();
     DataBlock app_blk;
+    DAEDITOR3.conNote("using %%appDir=%s", dd_get_named_mount_path("appDir"));
     if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
     {
       DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
       handled = false;
       continue;
     }
+    setup_named_mount_points(*app_blk.getBlockByNameEx("mountPoints"), getSdkDir());
 
-    init3d();
+    init3d(getPerApplicationWindowLayoutBlkPath());
 
     const DataBlock &debugSettings = *dgs_get_settings()->getBlockByNameEx("debug");
     const DataBlock *profiler = debugSettings.getBlockByName("profiler");
@@ -3135,8 +3141,7 @@ bool DagorEdAppWindow::loadProject(const char *filename)
       wingw::message_box(wingw::MBS_EXCL, "Plugin fatal error", "Plugin \"%s\" loading failed, plugin disabled.", menuName);
       debug("Plugin \"%s\" loading failed, plugin disabled.", menuName);
 
-      DataBlock::setRootIncludeResolver(wsp->getAppDir()); // reset DataBlock::setIncludeResolver() that may be installed in plugin to
-                                                           // be removed
+      DataBlock::setRootIncludeResolver("%appDir/"); // reset setIncludeResolver() that may be installed in plugin to be removed
       unregisterPlugin(plugin[i].p);
       --i;
 
@@ -3192,8 +3197,7 @@ bool DagorEdAppWindow::loadProject(const char *filename)
           wingw::message_box(wingw::MBS_EXCL, "Plugin fatal error", "Plugin \"%s\" loading failed, plugin disabled.", menuName);
         debug("Plugin \"%s\" loading failed, plugin disabled.", menuName);
 
-        DataBlock::setRootIncludeResolver(wsp->getAppDir()); // reset DataBlock::setIncludeResolver() that may be installed in plugin
-                                                             // to be removed
+        DataBlock::setRootIncludeResolver("%appDir/"); // reset setIncludeResolver() that may be installed in plugin to be removed
         unregisterPlugin(plugin[i].p);
         --i;
 

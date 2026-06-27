@@ -20,7 +20,7 @@
 
 ECS_TAG(render)
 ECS_AFTER(after_guns_update_sync, wait_motion_matching_job_es)
-ECS_BEFORE(mm_calculate_root_offset_es)
+ECS_BEFORE(before_animchar_update_sync)
 static void mm_update_root_orientation_es(const ParallelUpdateFrameDelayed &act, const TMatrix &transform,
   const Point3 &mm_trajectory__linearVelocity, const Point3 &mm_trajectory__angularVelocity,
   const ecs::Point3List &mm_trajectory__featureDirections, MotionMatchingController &motion_matching__controller,
@@ -36,34 +36,6 @@ static void mm_update_root_orientation_es(const ParallelUpdateFrameDelayed &act,
   }
   motion_matching__controller.updateRoot(act.dt, animcharTm, mm_trajectory__linearVelocity, mm_trajectory__angularVelocity,
     mm_trajectory__featureDirections.size() ? mm_trajectory__featureDirections.back() : Point3::ZERO);
-}
-
-ECS_TAG(render)
-ECS_AFTER(after_guns_update_sync, wait_motion_matching_job_es)
-ECS_BEFORE(before_animchar_update_sync)
-static void mm_calculate_root_offset_es(const ParallelUpdateFrameDelayed &, const TMatrix &transform,
-  MotionMatchingController &motion_matching__controller, bool animchar__turnDir = false)
-{
-  if (!motion_matching__controller.dataBase)
-    return;
-  mat44f animcharTm;
-  v_mat44_make_from_43cu(animcharTm, transform.array);
-  if (animchar__turnDir)
-  {
-    vec3f col0 = animcharTm.col0;
-    animcharTm.col0 = animcharTm.col2;
-    animcharTm.col2 = v_neg(col0);
-  }
-  quat4f animcharRotation = v_quat_from_mat43(animcharTm);
-  quat4f invAnimcharRotation = v_quat_conjugate(animcharRotation);
-  int rootId = motion_matching__controller.dataBase->rootNode.index();
-  MotionMatchingController &ctrl = motion_matching__controller;
-  vec3f rootWorldPos = v_add(v_quat_mul_vec3(ctrl.rootRotation, ctrl.resultAnimation.position[rootId]), ctrl.rootPosition);
-  quat4f rootWorldRot = v_quat_mul_quat(ctrl.rootRotation, ctrl.resultAnimation.rotation[rootId]);
-  vec3f rootLocalPos = v_quat_mul_vec3(invAnimcharRotation, v_sub(rootWorldPos, animcharTm.col3));
-  quat4f rootLocalRot = v_quat_mul_quat(invAnimcharRotation, rootWorldRot);
-  motion_matching__controller.rootPRS.position = rootLocalPos;
-  motion_matching__controller.rootPRS.rotation = rootLocalRot;
 }
 
 ECS_TAG(render)

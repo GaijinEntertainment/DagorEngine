@@ -67,6 +67,10 @@ if $(ShaderVarsStub) = no {
   Sources +=
     shadersBinaryDataVars.cpp
   ;
+} else if $(ShaderVarsStub) = mock {
+  Sources +=
+    shadersBinaryDataVarsMock.cpp
+  ;
 } else {
   Sources +=
     shadersBinaryDataVarsStub.cpp

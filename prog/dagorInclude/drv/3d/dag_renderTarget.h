@@ -70,6 +70,10 @@ bool set_render_target();
 /**
  * @brief Set the depth texture target.
  *
+ * @deprecated Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors) instead.
+ *             set_depth modifies only the depth attachment and silently keeps any previously-bound color slots, which makes
+ *             render-pass state hard to reason about. The unified set_render_target call binds the full RT set atomically.
+ *
  * @param tex Texture to set as depth target. NULL means NO depth.
  * @param access Access mode for the depth attachment.
  * @return true if the operation was successful, false otherwise.
@@ -78,6 +82,8 @@ bool set_depth(BaseTexture *tex, DepthAccess access);
 
 /**
  * @brief Set the depth texture target.
+ *
+ * @deprecated Use set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors) instead.
  *
  * @param tex Texture to set as depth target. NULL means NO depth.
  * @param layer Layer of the tex to set as depth target.

@@ -273,7 +273,7 @@ global const O_VERTICAL="O_VERTICAL"
 
 global const TEXFMT_SRGB_IN_UNORM = 0
 global const TEXFMT_UNORM = 1
-global const TEXFMT_SRGB = 2
+global const TEXFMT_SRGB_DECAL = 2
 
 global const TOVERFLOW_CLIP="TOVERFLOW_CLIP"
 global const TOVERFLOW_CHAR="TOVERFLOW_CHAR"

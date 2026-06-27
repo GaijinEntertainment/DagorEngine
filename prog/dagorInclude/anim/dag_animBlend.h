@@ -786,7 +786,7 @@ struct AnimMap;
 class IMotionMatchingController
 {
 public:
-  virtual bool getPose(AnimBlender::TlsContext &tls, const Tab<AnimMap> &) const = 0;
+  virtual bool getPose(AnimBlender::TlsContext &tls, const Tab<AnimMap> &, const GeomNodeTree &node_tree) const = 0;
 };
 
 typedef bool (*blend_node_creator_t)(AnimationGraph &graph, const DataBlock &blk);

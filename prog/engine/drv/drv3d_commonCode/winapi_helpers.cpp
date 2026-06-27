@@ -8,7 +8,9 @@
 
 #include <setupapi.h>
 #include <devguid.h>
+#include <cfgmgr32.h>
 #pragma comment(lib, "setupapi.lib")
+#pragma comment(lib, "cfgmgr32.lib")
 
 
 #if DEBUG_REPORT_REGISTRY_INSPECTION
@@ -167,7 +169,7 @@ eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
           nullptr))
       continue;
 
-    debug("%ls", hwId.data());
+    debug("Found GPU with GDI %ls", hwId.data());
 
     uint16_t vendorId, deviceId;
     if (!parseHardwareId(hwId.data(), vendorId, deviceId))
@@ -176,6 +178,14 @@ eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
     // Skip Microsoft Basic Render Driver.
     if (vendorId == 0x1414 && deviceId == 0x008C)
       continue;
+
+    ULONG devStatus = 0, devProblem = 0;
+    if (CM_Get_DevNode_Status(&devStatus, &devProblem, devData.DevInst, 0) == CR_SUCCESS && (devStatus & DN_HAS_PROBLEM) &&
+        (devProblem == CM_PROB_DISABLED || devProblem == CM_PROB_HARDWARE_DISABLED))
+    {
+      debug("skipping disabled GPU %04X:%04X (problem %u)", vendorId, deviceId, devProblem);
+      continue;
+    }
 
     gdis.push_back({vendorId, deviceId});
   }

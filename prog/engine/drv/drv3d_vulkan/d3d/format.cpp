@@ -34,13 +34,37 @@ static VkImageUsageFlags usage_flags_from_cfg(int cflg, FormatStore fmt)
   return flags;
 }
 
+// UAV + SRGB + RT decomposes to UAV view and SRGB + RT view
+// so we must handle this case properly to avoid difference between actual format support and its raw check
+static bool check_format_support(int cflg, FormatStore fmt, VkImageType image_type, VkImageCreateFlags create_flags)
+{
+  VkSampleCountFlagBits samples = VkSampleCountFlagBits(get_sample_count(cflg));
+
+  if ((cflg & TEXCF_UNORDERED) && fmt.isSrgbCapableFormatType() && fmt.getLinearFormat() != fmt.asVkFormat())
+  {
+    // check SRGB format supports everything except storage
+    if (!Globals::VK::fmt.support(fmt.asVkFormat(), image_type, VK_IMAGE_TILING_OPTIMAL,
+          usage_flags_from_cfg(cflg & ~TEXCF_UNORDERED, fmt), create_flags, samples))
+      return false;
+
+    // check linear format supports storage
+    auto linearFmt = fmt.getLinearVariant();
+    VkImageUsageFlags storageUsage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    if (!(cflg & TEXCF_SYSMEM))
+      storageUsage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    return Globals::VK::fmt.support(linearFmt.asVkFormat(), image_type, VK_IMAGE_TILING_OPTIMAL, storageUsage, create_flags, samples);
+  }
+
+  return Globals::VK::fmt.support(fmt.asVkFormat(), image_type, VK_IMAGE_TILING_OPTIMAL, usage_flags_from_cfg(cflg, fmt), create_flags,
+    samples);
+}
+
 } // anonymous namespace
 
 bool d3d::check_texformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  return Globals::VK::fmt.support(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, usage_flags_from_cfg(cflg, fmt), 0,
-    VkSampleCountFlagBits(get_sample_count(cflg)));
+  return check_format_support(cflg, fmt, VK_IMAGE_TYPE_2D, 0);
 }
 
 int d3d::get_max_sample_count(int cflg)
@@ -69,8 +93,7 @@ bool d3d::issame_texformat(int cflg1, int cflg2)
 bool d3d::check_cubetexformat(int cflg)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  return Globals::VK::fmt.support(fmt.asVkFormat(), VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, usage_flags_from_cfg(cflg, fmt),
-    VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, VkSampleCountFlagBits(get_sample_count(cflg)));
+  return check_format_support(cflg, fmt, VK_IMAGE_TYPE_2D, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT);
 }
 
 bool d3d::check_voltexformat(int cflg)
@@ -84,8 +107,7 @@ bool d3d::check_voltexformat(int cflg)
     else
       return false;
   }
-  return Globals::VK::fmt.support(fmt.asVkFormat(), VK_IMAGE_TYPE_3D, VK_IMAGE_TILING_OPTIMAL, usage_flags_from_cfg(cflg, fmt), flags,
-    VkSampleCountFlagBits(get_sample_count(cflg)));
+  return check_format_support(cflg, fmt, VK_IMAGE_TYPE_3D, flags);
 }
 
 unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)

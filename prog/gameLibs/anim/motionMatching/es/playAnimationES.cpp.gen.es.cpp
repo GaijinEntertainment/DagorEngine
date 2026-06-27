@@ -40,37 +40,6 @@ static ecs::EntitySystemDesc mm_update_root_orientation_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
   0
-,"render",nullptr,"mm_calculate_root_offset_es","after_guns_update_sync,wait_motion_matching_job_es");
-static constexpr ecs::ComponentDesc mm_calculate_root_offset_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("motion_matching__controller"), ecs::ComponentTypeInfo<MotionMatchingController>()},
-//start of 2 ro components at [1]
-  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
-};
-static void mm_calculate_root_offset_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  G_FAST_ASSERT(evt.is<ParallelUpdateFrameDelayed>());
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    mm_calculate_root_offset_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
-        , ECS_RO_COMP(mm_calculate_root_offset_es_comps, "transform", TMatrix)
-    , ECS_RW_COMP(mm_calculate_root_offset_es_comps, "motion_matching__controller", MotionMatchingController)
-    , ECS_RO_COMP_OR(mm_calculate_root_offset_es_comps, "animchar__turnDir", bool(false))
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc mm_calculate_root_offset_es_es_desc
-(
-  "mm_calculate_root_offset_es",
-  "prog/gameLibs/anim/motionMatching/es/playAnimationES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, mm_calculate_root_offset_es_all_events),
-  make_span(mm_calculate_root_offset_es_comps+0, 1)/*rw*/,
-  make_span(mm_calculate_root_offset_es_comps+1, 2)/*ro*/,
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),
-  0
 ,"render",nullptr,"before_animchar_update_sync","after_guns_update_sync,wait_motion_matching_job_es");
 static constexpr ecs::ComponentDesc mm_update_goal_features_es_comps[] =
 {

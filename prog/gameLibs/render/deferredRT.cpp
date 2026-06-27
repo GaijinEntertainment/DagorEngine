@@ -230,6 +230,7 @@ DeferredRT::DeferredRT(const char *name_, int w, int h, StereoMode stereo_mode, 
   }
 
   strncpy(name, name_, sizeof(name));
+  name[sizeof(name) - 1] = '\0';
   uint32_t currentFmt = depth_fmt;
   close();
   width = w;

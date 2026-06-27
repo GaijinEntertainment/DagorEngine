@@ -333,15 +333,11 @@ void RadianceCache::set_clip_vars(int clip_no, float probe_voxel_size, const IPo
     bitwise_cast<uint32_t>(probe_voxel_size));
   ShaderGlobal::set_int4(radiance_cache_clipmap_lt_prev_coordVarId[clip_no], prev_lt.x, prev_lt.y, prev_lt.z, 0);
 #if DAGOR_DBGLEVEL > 0
-  if (!is_pow_of2(clipW) || !is_pow_of2(clipD))
-  {
-    IPoint4 l = radiance_cache_clipmap_sizei_np2VarId.get_int4();
-    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.z)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z ||
-        l.w < -clip.lt.y)
-    {
-      LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, clipW, clipD);
-    }
-  }
+  IPoint4 l = radiance_cache_clipmap_sizei_np2VarId.get_int4();
+  const bool xzOverflow = l.z && (l.z + abs(clip.lt.x) < 0 || l.z + abs(clip.lt.z) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z);
+  const bool yOverflow = l.w && (l.w + abs(clip.lt.y) < 0 || l.w < -clip.lt.y);
+  if (xzOverflow || yOverflow)
+    LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, clipW, clipD);
 #endif
 }
 

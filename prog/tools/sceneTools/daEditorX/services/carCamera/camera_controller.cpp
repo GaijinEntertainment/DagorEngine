@@ -12,6 +12,7 @@
 #include <debug/dag_debug.h>
 #include <math/dag_mathBase.h>
 #include <scene/dag_frtdump.h>
+#include <libTools/util/appDirRelativePath.h>
 
 #define USE_BULLET_PHYSICS 1
 #include <phys/dag_vehicle.h>
@@ -97,11 +98,10 @@ Point3 clip_camera(const Point3 &pos, const Point3 &tpos, IPhysCar *target)
 String get_car_common_fn()
 {
   DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
-  const char *cpBlkPath = appBlk.getBlockByNameEx("game")->getStr("car_params", "/game/config/car_params.blk");
+  String cpBlkPath = make_eff_app_relative_path(appBlk.getBlockByNameEx("game")->getStr("car_params", "game/config/car_params.blk"));
 
   char buf[260];
-  char *path = dd_get_fname_location(buf, cpBlkPath);
-  return String(260, "%s%s%s", DAGORED2->getWorkspace().getAppDir(), path, "car_common.blk");
+  return String::mk_str_cat(dd_get_fname_location(buf, cpBlkPath), "car_common.blk");
 }
 
 //--------------------------------------------

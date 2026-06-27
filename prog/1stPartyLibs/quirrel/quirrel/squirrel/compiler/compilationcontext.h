@@ -119,7 +119,9 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(FUNCTION_RETURNS_SAME_VALUE, WARNING, SEMA, 331, "function-returns-same-value", "Function returns the same value from all value-returning paths."), \
   DEF_DIAGNOSTIC(DUPLICATE_IMPORT, WARNING, SEMA, 332, "duplicate-import", "Imported field '%s' is listed more than once."), \
   DEF_DIAGNOSTIC(WILDCARD_AND_NAMED_IMPORT, WARNING, SEMA, 333, "wildcard-and-named-import", "Module '%s' is imported both with '*' and by explicit names."), \
-  DEF_DIAGNOSTIC(SUBST_ARGUMENT_INDEX, WARNING, SEMA, 334, "subst-argument-index", "Substitution references positional placeholder '{%d}' but only %d argument(s) passed; it will be left as literal text.") \
+  DEF_DIAGNOSTIC(SUBST_ARGUMENT_INDEX, WARNING, SEMA, 334, "subst-argument-index", "Substitution references positional placeholder '{%d}' but only %d argument(s) passed; it will be left as literal text."), \
+  DEF_DIAGNOSTIC(MUTATING_SHARED_DEFAULT, WARNING, SEMA, 335, "mutating-shared-default", "Parameter '%s' has a mutable default value and is modified."), \
+  DEF_DIAGNOSTIC(ASYNC_RETURN_FUTURE, WARNING, SEMA, 336, "async-return-future", "Returning an async call without 'await' settles with the Future, not its value; use 'return await'.") \
 
 
 namespace SQCompilation {

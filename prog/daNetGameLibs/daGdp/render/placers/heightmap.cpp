@@ -18,55 +18,55 @@
 
 namespace var
 {
-static ShaderVariableInfo draw_ranges("dagdp_heightmap__draw_ranges");
-static ShaderVariableInfo placeables("dagdp_heightmap__placeables");
-static ShaderVariableInfo placeable_weights("dagdp_heightmap__placeable_weights");
-static ShaderVariableInfo renderable_indices("dagdp_heightmap__renderable_indices");
-static ShaderVariableInfo tile_positions("dagdp_heightmap__tile_positions");
-static ShaderVariableInfo biomes("dagdp_heightmap__biomes");
-static ShaderVariableInfo variants("dagdp_heightmap__variants");
-static ShaderVariableInfo indirect_args("dagdp_heightmap__indirect_args");
+static ShaderVariableInfo draw_ranges("dagdp_heightmap__draw_ranges", true);
+static ShaderVariableInfo placeables("dagdp_heightmap__placeables", true);
+static ShaderVariableInfo placeable_weights("dagdp_heightmap__placeable_weights", true);
+static ShaderVariableInfo renderable_indices("dagdp_heightmap__renderable_indices", true);
+static ShaderVariableInfo tile_positions("dagdp_heightmap__tile_positions", true);
+static ShaderVariableInfo biomes("dagdp_heightmap__biomes", true);
+static ShaderVariableInfo variants("dagdp_heightmap__variants", true);
+static ShaderVariableInfo indirect_args("dagdp_heightmap__indirect_args", true);
 
-static ShaderVariableInfo density_mask("dagdp_heightmap__density_mask");
-static ShaderVariableInfo density_mask_sampler("dagdp_heightmap__density_mask_samplerstate");
-static ShaderVariableInfo density_mask_scale_offset("dagdp_heightmap__density_mask_scale_offset");
-static ShaderVariableInfo density_mask_channel_weights("dagdp_heightmap__density_mask_channel_weights");
+static ShaderVariableInfo density_mask("dagdp_heightmap__density_mask", true);
+static ShaderVariableInfo density_mask_sampler("dagdp_heightmap__density_mask_samplerstate", true);
+static ShaderVariableInfo density_mask_scale_offset("dagdp_heightmap__density_mask_scale_offset", true);
+static ShaderVariableInfo density_mask_channel_weights("dagdp_heightmap__density_mask_channel_weights", true);
 
-static ShaderVariableInfo num_renderables("dagdp_heightmap__num_renderables");
-static ShaderVariableInfo num_placeables("dagdp_heightmap__num_placeables");
-static ShaderVariableInfo num_biomes("dagdp_heightmap__num_biomes");
-static ShaderVariableInfo num_tiles("dagdp_heightmap__num_tiles");
+static ShaderVariableInfo num_renderables("dagdp_heightmap__num_renderables", true);
+static ShaderVariableInfo num_placeables("dagdp_heightmap__num_placeables", true);
+static ShaderVariableInfo num_biomes("dagdp_heightmap__num_biomes", true);
+static ShaderVariableInfo num_tiles("dagdp_heightmap__num_tiles", true);
 
-static ShaderVariableInfo max_placeable_bounding_radius("dagdp_heightmap__max_placeable_bounding_radius");
-static ShaderVariableInfo tile_pos_delta("dagdp_heightmap__tile_pos_delta");
-static ShaderVariableInfo instance_pos_delta("dagdp_heightmap__instance_pos_delta");
-static ShaderVariableInfo debug_frustum_culling_bias("dagdp_heightmap__debug_frustum_culling_bias");
+static ShaderVariableInfo max_placeable_bounding_radius("dagdp_heightmap__max_placeable_bounding_radius", true);
+static ShaderVariableInfo tile_pos_delta("dagdp_heightmap__tile_pos_delta", true);
+static ShaderVariableInfo instance_pos_delta("dagdp_heightmap__instance_pos_delta", true);
+static ShaderVariableInfo debug_frustum_culling_bias("dagdp_heightmap__debug_frustum_culling_bias", true);
 
-static ShaderVariableInfo prng_seed_jitter_x("dagdp_heightmap__prng_seed_jitter_x");
-static ShaderVariableInfo prng_seed_jitter_z("dagdp_heightmap__prng_seed_jitter_z");
-static ShaderVariableInfo prng_seed_placeable("dagdp_heightmap__prng_seed_placeable");
-static ShaderVariableInfo prng_seed_slope("dagdp_heightmap__prng_seed_slope");
-static ShaderVariableInfo prng_seed_occlusion("dagdp_heightmap__prng_seed_occlusion");
-static ShaderVariableInfo prng_seed_scale("dagdp_heightmap__prng_seed_scale");
-static ShaderVariableInfo prng_seed_yaw("dagdp_heightmap__prng_seed_yaw");
-static ShaderVariableInfo prng_seed_pitch("dagdp_heightmap__prng_seed_pitch");
-static ShaderVariableInfo prng_seed_roll("dagdp_heightmap__prng_seed_roll");
-static ShaderVariableInfo prng_seed_density("dagdp_heightmap__prng_seed_density");
-static ShaderVariableInfo grid_jitter("dagdp_heightmap__grid_jitter");
-static ShaderVariableInfo displacement_noise_scale("dagdp_heightmap__displacement_noise_scale");
-static ShaderVariableInfo displacement_strength("dagdp_heightmap__displacement_strength");
-static ShaderVariableInfo placement_noise_scale("dagdp_heightmap__placement_noise_scale");
-static ShaderVariableInfo sample_range("dagdp_heightmap__sample_range");
-static ShaderVariableInfo lower_level("dagdp_heightmap__lower_level");
-static ShaderVariableInfo use_decals("dagdp_heightmap__use_decals");
-static ShaderVariableInfo discard_on_grass_erasure("dagdp_heightmap__discard_on_grass_erasure");
+static ShaderVariableInfo prng_seed_jitter_x("dagdp_heightmap__prng_seed_jitter_x", true);
+static ShaderVariableInfo prng_seed_jitter_z("dagdp_heightmap__prng_seed_jitter_z", true);
+static ShaderVariableInfo prng_seed_placeable("dagdp_heightmap__prng_seed_placeable", true);
+static ShaderVariableInfo prng_seed_slope("dagdp_heightmap__prng_seed_slope", true);
+static ShaderVariableInfo prng_seed_occlusion("dagdp_heightmap__prng_seed_occlusion", true);
+static ShaderVariableInfo prng_seed_scale("dagdp_heightmap__prng_seed_scale", true);
+static ShaderVariableInfo prng_seed_yaw("dagdp_heightmap__prng_seed_yaw", true);
+static ShaderVariableInfo prng_seed_pitch("dagdp_heightmap__prng_seed_pitch", true);
+static ShaderVariableInfo prng_seed_roll("dagdp_heightmap__prng_seed_roll", true);
+static ShaderVariableInfo prng_seed_density("dagdp_heightmap__prng_seed_density", true);
+static ShaderVariableInfo grid_jitter("dagdp_heightmap__grid_jitter", true);
+static ShaderVariableInfo displacement_noise_scale("dagdp_heightmap__displacement_noise_scale", true);
+static ShaderVariableInfo displacement_strength("dagdp_heightmap__displacement_strength", true);
+static ShaderVariableInfo placement_noise_scale("dagdp_heightmap__placement_noise_scale", true);
+static ShaderVariableInfo sample_range("dagdp_heightmap__sample_range", true);
+static ShaderVariableInfo lower_level("dagdp_heightmap__lower_level", true);
+static ShaderVariableInfo use_decals("dagdp_heightmap__use_decals", true);
+static ShaderVariableInfo discard_on_grass_erasure("dagdp_heightmap__discard_on_grass_erasure", true);
 
-static ShaderVariableInfo base_tile_pos_xz("dagdp_heightmap__base_tile_pos_xz");
-static ShaderVariableInfo base_tile_int_pos_xz("dagdp_heightmap__base_tile_int_pos_xz");
-static ShaderVariableInfo viewport_pos("dagdp_heightmap__viewport_pos");
-static ShaderVariableInfo viewport_max_distance("dagdp_heightmap__viewport_max_distance");
-static ShaderVariableInfo viewport_index("dagdp_heightmap__viewport_index");
-static ShaderVariableInfo visible_tiles_start_offset("dagdp_heightmap__visible_tiles_start_offset");
+static ShaderVariableInfo base_tile_pos_xz("dagdp_heightmap__base_tile_pos_xz", true);
+static ShaderVariableInfo base_tile_int_pos_xz("dagdp_heightmap__base_tile_int_pos_xz", true);
+static ShaderVariableInfo viewport_pos("dagdp_heightmap__viewport_pos", true);
+static ShaderVariableInfo viewport_max_distance("dagdp_heightmap__viewport_max_distance", true);
+static ShaderVariableInfo viewport_index("dagdp_heightmap__viewport_index", true);
+static ShaderVariableInfo visible_tiles_start_offset("dagdp_heightmap__visible_tiles_start_offset", true);
 } // namespace var
 
 namespace dagdp

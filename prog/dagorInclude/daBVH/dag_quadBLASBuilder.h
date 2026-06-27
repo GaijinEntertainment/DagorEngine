@@ -39,8 +39,9 @@ struct QuadPrim
 };
 
 // Build greedy edge-paired quad primitives from a triangle mesh.
-// Requires meshopt-optimized indices (optIdx) and vertices (verts4).
-// Returns quad+single primitives suitable for BVH building.
+// Expects indices (optIdx) + vertices (verts4) already prepared by build_bvh::leafOrderVertexFetch
+// (SAH-leaf order, quad-window over-spread duplicated; see dag_bvhBuild.h), not the removed meshopt
+// vertex-fetch. Returns quad+single primitives suitable for BVH building.
 // Instantiated for IdxT = uint16_t and uint32_t; QuadPrim::v[] is uint32 internally either way.
 // `prims` uses Tab<T> (MemPtrAllocator) so callers can back it with framemem_ptr() for
 // transient per-worker builds, or the default (midmem) for long-lived storage.

@@ -6,6 +6,8 @@
 
 #include <EASTL/type_traits.h>
 
+#include <drv/3d/dag_samplerHandle.h>
+
 #include <render/daFrameGraph/usage.h>
 #include <render/daFrameGraph/stage.h>
 #include <render/daFrameGraph/virtualResourceHandle.h>
@@ -139,6 +141,52 @@ public:
   {
     using ProjectedType = detail::ProjectedType<projector>;
     Base::bindToShaderVar(shader_var_name, tag_for<ProjectedType>(), detail::erase_projector_type<projector, Res>());
+    return {resUid, nodeId, registry};
+  }
+
+  /**
+   * \brief Requests for this resource to be registered in a bindless
+   * descriptor range and for its bindless index to be set to the int
+   * shader variable with the specified name via ShaderGlobals::set_int().
+   * The shader should consume the index via a `@i1` int var and use it
+   * to index the bindless descriptor array.
+   * The variable is set to -1 when the resource is missing or the
+   * driver does not support bindless resources.
+   * The usage stage MUST have been set beforehand and MUST include all
+   * shader stages that this resource will be accessed from
+   * within this node.
+   *
+   * \param shader_var_name The name of the int shader variable to set.
+   */
+  template <typename = void>
+    requires(is_gpu && hasPolicy(RRP::HasUsageStage, "ERROR: Please call .atStage(usage stage) before .bindlessShaderVar(...)!") &&
+             (!hasPolicy(RRP::HasUsageType, "ERROR: Please don't call .useAs(usage type) before .bindlessShaderVar(...)!") ||
+               hasPolicy(RRP::HasShaderVarBinding)))
+  VirtualResourceRequest<Res, setPolicy(RRP::HasShaderVarBinding | RRP::HasUsageType)> bindlessShaderVar(
+    const char *shader_var_name) &&
+  {
+    Base::bindlessShaderVar(shader_var_name, tag_for<Res>());
+    return {resUid, nodeId, registry};
+  }
+
+  /**
+   * \brief Registers a `d3d::SamplerHandle` blob in the global bindless
+   * sampler table and sets its slot index to the int shader variable with
+   * the specified name via ShaderGlobals::set_int(). The shader should
+   * consume the index via a `@i1` int var and use it to index the bindless
+   * sampler array. The variable is set to -1 when the resource is missing
+   * or the driver does not support bindless resources.
+   *
+   * Unlike the texture/buffer overload, no usage stage is required: a
+   * sampler is not a GPU resource that participates in scheduling.
+   *
+   * \param shader_var_name The name of the int shader variable to set.
+   */
+  template <typename = void>
+    requires(!is_gpu && eastl::is_same_v<eastl::remove_cvref_t<Res>, d3d::SamplerHandle>)
+  VirtualResourceRequest<Res, setPolicy(RRP::HasShaderVarBinding)> bindlessShaderVar(const char *shader_var_name) &&
+  {
+    Base::bindlessShaderVar(shader_var_name, tag_for<Res>());
     return {resUid, nodeId, registry};
   }
 

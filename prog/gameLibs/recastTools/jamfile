@@ -22,6 +22,7 @@ Sources =
   recastBuildJumpLinks.cpp
   recastBuildJumpLinks1.cpp
   recastBuildJumpLinks2.cpp
+  recastTileCacheDetail.cpp
   recastTools.cpp
 ;
 

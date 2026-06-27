@@ -29,7 +29,11 @@ namespace event_log
 char net_assert_version[64] = "";
 
 const char *get_net_assert_version() { return net_assert_version; }
-void set_net_assert_version(const char *s) { strncpy(net_assert_version, s, sizeof(net_assert_version)); }
+void set_net_assert_version(const char *s)
+{
+  strncpy(net_assert_version, s, sizeof(net_assert_version));
+  net_assert_version[sizeof(net_assert_version) - 1] = '\0';
+}
 
 bool fatal_on_net_assert = false;
 

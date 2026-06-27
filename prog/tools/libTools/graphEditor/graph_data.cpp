@@ -678,7 +678,6 @@ void clear_graph_data(GraphData &out)
   out.edges.clear();
   out.mainGraphBlk.reset();
   out.shaderListBlk.reset();
-  out.textureRootDir.clear();
   out.renderDir.clear();
   out.entityDir.clear();
   out.heightmapScale = FLT_MAX;
@@ -988,10 +987,6 @@ bool save_graph_data_blk(const GraphData &d, const char *blk_path)
 
   DataBlock root;
 
-  if (!d.textureRootDir.empty())
-  {
-    root.setStr("textureRootDir", d.textureRootDir.c_str());
-  }
   if (!d.renderDir.empty())
   {
     root.setStr("renderDir", d.renderDir.c_str());
@@ -1142,7 +1137,6 @@ bool load_graph_data_blk(GraphData &out, const char *blk_path, const char * /*sh
     return false;
   }
 
-  out.textureRootDir = root.getStr("textureRootDir", "");
   out.renderDir = root.getStr("renderDir", "");
   out.entityDir = root.getStr("entityDir", "");
   out.heightmapScale = root.getReal("heightmapScale", FLT_MAX);

@@ -1029,15 +1029,11 @@ namespace das {
         }
         // infer
         if (!expr->subexpr->type->isRef()) {
-            if (expr->subexpr->rtti_isConstant()) {
-                reportAstChanged();
-                return expr->subexpr;
-            } else {
-                TextWriter tw;
-                tw << *expr->subexpr;
-                error("can only dereference a reference", tw.str(), "",
-                      expr->at, CompilationError::cant_dereference);
-            }
+            // ref2value of a non-ref is a no-op load: the subexpr is already a value.
+            // Drops a stale R2V left by AST surgery — e.g. flatten's copy-prop substituting
+            // a value into a swizzle base that was a ref local before (else error[30921]).
+            reportAstChanged();
+            return expr->subexpr;
         } else if (!expr->subexpr->type->isSimpleType()) {
             error("can only dereference value types, not a " + describeType(expr->subexpr->type), "", "",
                   expr->at, CompilationError::cant_dereference);

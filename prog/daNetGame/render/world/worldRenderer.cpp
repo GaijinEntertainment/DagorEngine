@@ -618,11 +618,12 @@ void WorldRenderer::unloadLevel()
 void WorldRenderer::setWater(FFTWater *fftWater)
 {
   water = fftWater;
-  waterDistant[fft_water::RenderMode::WATER_SHADER] = PostFxRenderer("water_distant");
-  waterDistant[fft_water::RenderMode::WATER_DEPTH_SHADER] = PostFxRenderer("water_depth_distant");
   waterLevel = 0;
   if (water)
   {
+    waterDistant[fft_water::RenderMode::WATER_SHADER] = PostFxRenderer("water_distant");
+    waterDistant[fft_water::RenderMode::WATER_DEPTH_SHADER] = PostFxRenderer("water_depth_distant");
+
     const DataBlock *graphics = ::dgs_get_settings()->getBlockByNameEx("graphics");
     const char *fftWaterQualitySettingStr = graphics->getStr("fftWaterQuality", "high");
     fftWaterQualitySetting = fft_water::RENDER_GOOD;
@@ -1263,7 +1264,7 @@ void WorldRenderer::setSharpeningFromSettings()
   if (!hasFeature(FeatureRenderFlags::POSTFX))
     return;
 
-  const float sharpening = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("sharpening", 0.f);
+  const float sharpening = bareMinimumPreset ? 0 : ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("sharpening", 0.f);
   ShaderGlobal::set_float(contrast_adaptive_sharpening_strengthVarId, sharpening / 100.f);
 }
 
@@ -1467,7 +1468,7 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
   if (changed_fields.getNameId("graphics/dynamicShadowsMaxUpdatePerFrame") >= 0)
     setDynamicShadowsMaxUpdatePerFrame();
 
-  if (changed_fields.getNameId("graphics/sharpening") >= 0)
+  if (changed_fields.getNameId("graphics/sharpening") >= 0 || changed_fields.getNameId("graphics/preset") >= 0)
     setSharpeningFromSettings();
 
   if (changed_fields.getNameId("graphics/fxaaQuality") >= 0)
@@ -3237,6 +3238,8 @@ void WorldRenderer::setUpView(
   d3d::settm(TM_VIEW, currentFrameCamera.viewTm);
   d3d::settm(TM_PROJ, &currentFrameCamera.noJitterProjTm);
 
+  dynrend::set_prev_view_proj(TMatrix4(prevFrameCamera.viewTm), get_prev_proj_tm_with_cur_jitter(prevFrameCamera, currentFrameCamera));
+
   ShaderGlobal::set_float4(world_view_posVarId, view_pos.x, view_pos.y, view_pos.z, 1);
 
   ShaderGlobal::set_float4(projection_centerVarId, persp.ox, persp.oy, 0, 0);
@@ -4159,7 +4162,8 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   state.wireframeModeEnabled = ::grs_draw_wire;
   state.vrsMaskEnabled = shouldToggleVRS(aimRenderingData);
   dafg::update_external_state(state);
-  if (state.vrsMaskEnabled != (vrsNodeHandles.size() > 2) || vrsNodeHandles.empty())
+  const bool shouldEnableMotionVrs = can_use_motion_vrs() && state.vrsMaskEnabled;
+  if (shouldEnableMotionVrs != (vrsNodeHandles.size() > 2) || vrsNodeHandles.empty())
   {
     vrsNodeHandles = makeCreateVrsTextureNode(!state.vrsMaskEnabled);
   }
@@ -5574,11 +5578,10 @@ void WorldRenderer::renderWaterSSR(const TMatrix &itm, const Driver3dPerspective
 
   TIME_D3D_PROFILE(reflection)
   fft_water::render(water, itm.getcol(3), shoreRenderer.getDistanceFieldTexId(), currentFrameCamera.noJitterFrustum, nullptr, persp,
-    fft_water::GEOM_NORMAL, water_ssr_id, nullptr, fft_water::RenderMode::WATER_SSR_SHADER);
+    fft_water::GEOM_LOD_NORMAL, water_ssr_id, nullptr, fft_water::RenderMode::WATER_SSR_SHADER);
 }
 
 static ShaderVariableInfo far_water_transparencyVarId("far_water_transparency", true);
-static ShaderVariableInfo water_fresnel_reflectanceVarId("water_fresnel_reflectance", true);
 
 void WorldRenderer::renderWater(const CameraParams &camera, DistantWater render_distant_water, bool render_ssr)
 {
@@ -5591,9 +5594,8 @@ void WorldRenderer::renderWater(const CameraParams &camera, DistantWater render_
   if (render_ssr)
     d3d::begin_conditional_render(water_ssr_id);
   ShaderGlobal::set_int(far_water_transparencyVarId, 0);
-  ShaderGlobal::set_float4(water_fresnel_reflectanceVarId, Color4(0.02, 0.2, 0.5, 0)); // TODO: make it configurable
   fft_water::render(water, camera.viewItm.getcol(3), shoreRenderer.getDistanceFieldTexId(), camera.noJitterFrustum, nullptr,
-    camera.jitterPersp, fft_water::GEOM_NORMAL);
+    camera.jitterPersp, fft_water::GEOM_LOD_NORMAL);
   if (render_ssr)
     d3d::end_conditional_render(water_ssr_id);
 

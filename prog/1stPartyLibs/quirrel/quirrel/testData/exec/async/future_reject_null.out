@@ -1,0 +1,5 @@
+faulted state: faulted
+getValue is null: true
+pending state: pending
+pending getValue throws
+script done

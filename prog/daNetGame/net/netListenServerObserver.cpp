@@ -109,7 +109,7 @@ struct ListenServerNetObserver final : public net::INetworkObserver
     }
     else
     {
-      G_ASSERT(get_time_mgr().getMillis() == 0);
+      G_ASSERT(get_sync_millis() == 0);
       flush_new_connection(conn);
     }
   }

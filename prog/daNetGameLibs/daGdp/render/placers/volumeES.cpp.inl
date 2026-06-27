@@ -69,6 +69,35 @@ static inline void local_volume_sphere_ecs_query(ecs::EntityManager &manager, co
 
 static int totalMissingRendInst, totalUsedRendInst;
 
+void debug_draw_volume(const TMatrix &transform, float scale, vec4f extent2, int volume_type)
+{
+  if (debug_volumes)
+  {
+    Point3 center = transform.col[3];
+    Point3 extent;
+    v_stu_p3(&extent.x, extent2);
+    draw_debug_box_buffered(BBox3(center - extent * 0.5, center + extent * 0.5), BOUNDING_BOX_COLOR, 1);
+
+    switch (volume_type)
+    {
+      case VOLUME_TYPE_BOX: draw_debug_box_buffered(BBox3(Point3::ZERO, scale * 2), transform, VOLUME_COLOR, 1); break;
+      case VOLUME_TYPE_CYLINDER:
+        draw_debug_elipse_buffered(transform * Point3(0, -1, 0), transform.getcol(0) * scale, transform.getcol(2) * scale,
+          VOLUME_COLOR, 24, 1);
+        draw_debug_elipse_buffered(transform * Point3(0, +1, 0), transform.getcol(0) * scale, transform.getcol(2) * scale,
+          VOLUME_COLOR, 24, 1);
+        draw_debug_line_buffered(transform * Point3(0, -1, 0), transform * Point3(0, +1, 0), VOLUME_COLOR, 1);
+        break;
+      case VOLUME_TYPE_ELLIPSOID:
+        draw_debug_elipse_buffered(transform.getcol(3), transform.getcol(0) * scale, transform.getcol(1) * scale, VOLUME_COLOR, 24, 1);
+        draw_debug_elipse_buffered(transform.getcol(3), transform.getcol(1) * scale, transform.getcol(2) * scale, VOLUME_COLOR, 24, 1);
+        draw_debug_elipse_buffered(transform.getcol(3), transform.getcol(2) * scale, transform.getcol(0) * scale, VOLUME_COLOR, 24, 1);
+        break;
+      case VOLUME_TYPE_FULL: break;
+    }
+  }
+}
+
 ECS_NO_ORDER
 static inline void volume_view_process_es(
   const dagdp::EventViewProcess &evt, ecs::EntityManager &manager, dagdp::VolumeManager &dagdp__volume_manager)
@@ -208,6 +237,11 @@ void gather_start(DagdpRiexGatherJob &job,
 {
   if (job.launched)
     return;
+
+  // Nothing to render into this frame (e.g. no CSM cascades at wide FOV): don't launch.
+  if (view_per_frame.viewports.empty())
+    return;
+
   job.reset();
 
   for (uint32_t viewportIndex = 0; viewportIndex < view_per_frame.viewports.size(); ++viewportIndex)
@@ -284,6 +318,8 @@ void gather_process(DagdpRiexGatherJob &job,
     for (const auto handle : out_handles)
     {
       const uint32_t resIndex = rendinst::handle_to_ri_type(handle);
+      if (rendinst::isRIGenExtraDynamic(resIndex))
+        continue;
       const RenderableInstanceLodsResource *riLodsRes = rendinst::getRIGenExtraRes(resIndex);
       const int bestLod = riLodsRes->getQlBestLod();
       const int actualLod = min<int>((mesh_lod >= 0 ? mesh_lod : target_mesh_lod), riLodsRes->lods.size() - 1);
@@ -399,34 +435,7 @@ void gather_process(DagdpRiexGatherJob &job,
     if (!frustum.testBoxExtentB(center2, extent2))
       return;
 
-    if (debug_volumes)
-    {
-      Point3 center, extent;
-      v_stu_p3(&center.x, tm44.col3);
-      v_stu_p3(&extent.x, extent2);
-      draw_debug_box_buffered(BBox3(center - extent * 0.5, center + extent * 0.5), BOUNDING_BOX_COLOR, 1);
-
-      switch (volume_type)
-      {
-        case VOLUME_TYPE_BOX: draw_debug_box_buffered(BBox3(Point3::ZERO, scale * 2), transform, VOLUME_COLOR, 1); break;
-        case VOLUME_TYPE_CYLINDER:
-          draw_debug_elipse_buffered(transform * Point3(0, -1, 0), transform.getcol(0) * scale, transform.getcol(2) * scale,
-            VOLUME_COLOR, 24, 1);
-          draw_debug_elipse_buffered(transform * Point3(0, +1, 0), transform.getcol(0) * scale, transform.getcol(2) * scale,
-            VOLUME_COLOR, 24, 1);
-          draw_debug_line_buffered(transform * Point3(0, -1, 0), transform * Point3(0, +1, 0), VOLUME_COLOR, 1);
-          break;
-        case VOLUME_TYPE_ELLIPSOID:
-          draw_debug_elipse_buffered(transform.getcol(3), transform.getcol(0) * scale, transform.getcol(1) * scale, VOLUME_COLOR, 24,
-            1);
-          draw_debug_elipse_buffered(transform.getcol(3), transform.getcol(1) * scale, transform.getcol(2) * scale, VOLUME_COLOR, 24,
-            1);
-          draw_debug_elipse_buffered(transform.getcol(3), transform.getcol(2) * scale, transform.getcol(0) * scale, VOLUME_COLOR, 24,
-            1);
-          break;
-        case VOLUME_TYPE_FULL: break;
-      }
-    }
+    debug_draw_volume(transform, scale, extent2, volume_type);
 
     G_ASSERT(scale > FLT_EPSILON);
     const vec4f invScale = v_splats(1.0f / scale);

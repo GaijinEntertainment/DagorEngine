@@ -22,6 +22,7 @@
 #include <util/dag_watchdog.h>
 #include <ioSys/dag_dataBlock.h>
 #include <libTools/util/iLogWriter.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_direct.h>
 #include <gui/dag_visualLog.h>
@@ -129,6 +130,17 @@ static void init_asset_manager_es(const ecs::Event &, DagorAssetMgr &asset__mana
 {
   DataBlock applicationBlk;
 
+  String app_dir = folders::get_game_dir();
+  app_dir += "/";
+  simplify_fname(app_dir);
+  dd_set_named_mount_path("%gameDir", app_dir);
+
+  app_dir += "../";
+  simplify_fname(app_dir);
+  dd_set_named_mount_path("%appDir", app_dir);
+
+  debug("%s: register %%appDir=%s and %%gameDir=%s", //
+    __FUNCTION__, dd_get_named_mount_path("appDir"), dd_get_named_mount_path("gameDir"));
   if (!applicationBlk.load(asset__applicationBlkPath.c_str()))
   {
     logerr("asset_manager failed to load setup from %s", asset__applicationBlkPath);
@@ -152,12 +164,12 @@ static void init_asset_manager_es(const ecs::Event &, DagorAssetMgr &asset__mana
   String applicationDirectory = folders::get_game_dir();
   applicationBlk.setStr("appDir", applicationDirectory);
   const char *assetCachePath = exportBlock->getStr("assetCache", "/cache");
-  assetlocalprops::init(applicationDirectory, assetCachePath);
+  assetlocalprops::init(assetCachePath);
 
-  DataBlock::setRootIncludeResolver(applicationDirectory + "/..");
+  DataBlock::setRootIncludeResolver(dd_get_named_mount_path("appDir"));
   if (!asset__baseFolder.empty())
   {
-    String assetsBasePath(0, "%s/%s", applicationDirectory, asset__baseFolder);
+    String assetsBasePath = make_eff_app_relative_path(asset__baseFolder.c_str());
     if (!dd_dir_exists(assetsBasePath.c_str()))
     {
       debug("Folder with custom assets %s does not exist. Creating empty folder", assetsBasePath.c_str());
@@ -169,7 +181,7 @@ static void init_asset_manager_es(const ecs::Event &, DagorAssetMgr &asset__mana
 
   for (const ecs::string &additionalFolder : asset__loadAdditionalFolders)
   {
-    String additionalFolderPath(0, "%s/%s", applicationDirectory, additionalFolder.c_str());
+    String additionalFolderPath = make_eff_app_relative_path(additionalFolder.c_str());
     if (!dd_dir_exists(additionalFolderPath.c_str()))
       logerr("'%s' not exist", additionalFolderPath.c_str());
     else

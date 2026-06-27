@@ -364,4 +364,124 @@ int create_bvh_node_sah(Tab<bbox3f> &nodes, bbox3f *boxes, const uint32_t boxes_
   return ret;
 }
 
+// File-local second phase of leafOrderVertexFetch (its only caller) so the prep sequence cannot be
+// skipped or misordered by external callers.
+template <class IdxT>
+static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, unsigned window, dag::Vector<vec4f> &outVerts);
+
+template <class IdxT>
+unsigned leafOrderVertexFetch(IdxT *idx, unsigned idxCount, const vec4f *srcVerts, unsigned srcVertCount, unsigned window,
+  dag::Vector<vec4f> &outVerts)
+{
+  outVerts.clear();
+  const unsigned faceCount = idxCount / 3u;
+  if (faceCount == 0)
+    return 0;
+
+  // Triangle AABBs with the source-tri index in bmin.w (addQuadPrimitivesAABBList / writeQuadLeaf
+  // convention) so the in-place SAH reorder stays traceable back to triangles. Default allocator: bbox3f
+  // needs 16-byte alignment for the vec ops.
+  dag::Vector<bbox3f> triBoxes(faceCount);
+  for (unsigned t = 0; t < faceCount; ++t)
+  {
+    bbox3f bx;
+    v_bbox3_init(bx, srcVerts[idx[t * 3 + 0]]);
+    v_bbox3_add_pt(bx, srcVerts[idx[t * 3 + 1]]);
+    v_bbox3_add_pt(bx, srcVerts[idx[t * 3 + 2]]);
+    bx.bmin = v_perm_xyzd(bx.bmin, v_cast_vec4f(v_splatsi((int)t)));
+    triBoxes[t] = bx;
+  }
+
+  // SAH reorders triBoxes in place into spatial-partition order (one prim per leaf); only the order is
+  // used, so the node table is a throwaway -- framemem per dag_bvhBuild.h's transient-build contract.
+  Tab<bbox3f> sahNodes(framemem_ptr());
+  int maxDepth = 0;
+  create_bvh_node_sah(sahNodes, triBoxes.data(), faceCount, 4, maxDepth);
+
+  // First-reference renumber over the SAH-ordered triangles.
+  dag::Vector<int, framemem_allocator> newIdx(srcVertCount);
+  for (unsigned i = 0; i < srcVertCount; ++i)
+    newIdx[i] = -1;
+  outVerts.reserve(srcVertCount);
+  for (unsigned k = 0; k < faceCount; ++k)
+  {
+    const unsigned t = (unsigned)v_extract_wi(v_cast_vec4i(triBoxes[k].bmin));
+    for (unsigned c = 0; c < 3; ++c)
+    {
+      const unsigned v = idx[t * 3 + c];
+      if (newIdx[v] < 0)
+      {
+        newIdx[v] = (int)outVerts.size();
+        outVerts.push_back(srcVerts[v]);
+      }
+    }
+  }
+  for (unsigned i = 0; i < idxCount; ++i)
+    idx[i] = (IdxT)newIdx[idx[i]];
+  // Second phase: duplicate the residual over-spread verts so every triangle fits the leaf window.
+  return dedupWindowDup(idx, idxCount, window, outVerts);
+}
+
+template <class IdxT>
+static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, unsigned window, dag::Vector<vec4f> &outVerts)
+{
+  const unsigned baseCount = (unsigned)outVerts.size();
+  if (baseCount <= window)
+    return baseCount; // every index is within one window already -- nothing can over-spread
+  const unsigned faceCount = idxCount / 3u;
+  // After the SAH-leaf-order renumber verts are spatially local, so most >window nodes still have
+  // every triangle inside the window. Cheap scan first: skip the O(baseCount) dup state unless a
+  // triangle actually over-spreads.
+  bool anyOverSpread = false;
+  for (unsigned t = 0; t < faceCount; ++t)
+  {
+    const IdxT *tri = idx + (size_t)t * 3u;
+    const unsigned mn = min(min(tri[0], tri[1]), tri[2]);
+    const unsigned mx = max(max(tri[0], tri[1]), tri[2]);
+    if (mx - mn > window)
+    {
+      anyOverSpread = true;
+      break;
+    }
+  }
+  if (!anyOverSpread)
+    return baseCount;
+  dag::Vector<int, framemem_allocator> slot(baseCount), stamp(baseCount);
+  for (unsigned i = 0; i < baseCount; ++i)
+    stamp[i] = -1;
+  int blockId = 0;
+  unsigned blockFill = window; // force a fresh block on the first over-spread triangle
+  for (unsigned t = 0; t < faceCount; ++t)
+  {
+    IdxT *tri = idx + (size_t)t * 3u;
+    const unsigned mn = min(min(tri[0], tri[1]), tri[2]);
+    const unsigned mx = max(max(tri[0], tri[1]), tri[2]);
+    if (mx - mn <= window)
+      continue; // fits in place -- keep the base verts
+    const unsigned need = (stamp[tri[0]] != blockId) + (stamp[tri[1]] != blockId) + (stamp[tri[2]] != blockId);
+    if (blockFill + need > window) // this tri's verts would not fit the open block -- start a new one
+    {
+      ++blockId;
+      blockFill = 0;
+    }
+    for (unsigned c = 0; c < 3; ++c)
+    {
+      const unsigned v = tri[c];
+      if (stamp[v] != blockId)
+      {
+        stamp[v] = blockId;
+        slot[v] = (int)outVerts.size();
+        const vec4f baseVert = outVerts[v]; // v is always a base vert (< baseCount); load by value so a grow can't dangle it
+        outVerts.push_back(baseVert);
+        ++blockFill;
+      }
+      tri[c] = (IdxT)slot[v];
+    }
+  }
+  return (unsigned)outVerts.size();
+}
+
+template unsigned leafOrderVertexFetch<uint16_t>(uint16_t *, unsigned, const vec4f *, unsigned, unsigned, dag::Vector<vec4f> &);
+template unsigned leafOrderVertexFetch<uint32_t>(uint32_t *, unsigned, const vec4f *, unsigned, unsigned, dag::Vector<vec4f> &);
+
 }; // namespace build_bvh

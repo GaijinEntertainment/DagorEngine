@@ -9,9 +9,6 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_versionQuery.h>
 
-#include <EASTL/fixed_string.h>
-#include <EASTL/string_view.h>
-
 
 /**
  * \brief Contains non-volatile info about the currently used GPU.

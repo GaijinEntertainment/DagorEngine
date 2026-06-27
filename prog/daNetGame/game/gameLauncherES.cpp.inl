@@ -152,7 +152,7 @@ void bind_game_launcher(Sqrat::Table &ns) { ns.SquirrelFunc("launch_network_sess
 } // namespace gamelauncher
 
 
-static bool console_handler(const char *argv[], int argc)
+static bool game_launcher_console_handler(const char *argv[], int argc)
 {
   if (argc < 1)
     return false;
@@ -170,4 +170,4 @@ static bool console_handler(const char *argv[], int argc)
   return found;
 }
 
-REGISTER_CONSOLE_HANDLER(console_handler);
+REGISTER_CONSOLE_HANDLER(game_launcher_console_handler);

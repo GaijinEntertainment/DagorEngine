@@ -376,6 +376,10 @@ struct IYuplay2Session
   virtual Yuplay2Status YU2VCALL nvidiaLoginAsync(const char* nvidia_jwt,
                                                   Yuplay2AsyncCall* call) = 0;
 
+  virtual Yuplay2Status YU2VCALL vkLoginSync(const char* vk_token, const char* client_id) = 0;
+  virtual Yuplay2Status YU2VCALL vkLoginAsync(const char* vk_token, const char* client_id,
+                                              Yuplay2AsyncCall* call) = 0;
+
   virtual Yuplay2Status YU2VCALL tokenLoginSync(const char* token) = 0;
   virtual Yuplay2Status YU2VCALL tokenLoginAsync(const char* token,
                                                  Yuplay2AsyncCall* call) = 0;

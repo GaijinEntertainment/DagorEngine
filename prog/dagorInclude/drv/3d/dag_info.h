@@ -244,13 +244,6 @@ DriverCode get_driver_code();
 static inline bool is_stub_driver() { return get_driver_code().is(d3d::stub); }
 
 /**
- * @brief Gets the device driver version.
- * @return The device driver version
- * @note Work only for Vulkan. On other platforms returns "1.0"
- */
-const char *get_device_driver_version();
-
-/**
  * @brief Gets the device name.
  * @return The device name
  */
@@ -307,7 +300,6 @@ bool should_use_compute_for_image_processing(std::initializer_list<unsigned> for
 namespace d3d
 {
 inline const char *get_driver_name() { return d3di.driverName; }
-inline const char *get_device_driver_version() { return d3di.driverVer; }
 inline const char *get_device_name() { return d3di.deviceName; }
 inline const char *get_last_error() { return d3di.get_last_error(); }
 inline uint32_t get_last_error_code() { return d3di.get_last_error_code(); }

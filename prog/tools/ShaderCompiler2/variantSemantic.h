@@ -49,6 +49,14 @@ eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str);
 #define PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX() \
   TYPE(staticTex) TYPE(staticTexCube) TYPE(staticTexArray) TYPE(staticTex3D) TYPE(staticTexCubeArray)
 #define PRESHADER_VARIABLE_TYPE_LIST_OTHER() TYPE(shd) TYPE(shdArray) TYPE(uav) TYPE(tlas)
+#define PRESHADER_VARIABLE_TYPE_LIST_BINDLESS() \
+  TYPE(bindlessTex2D)                           \
+  TYPE(bindlessTex3D)                           \
+  TYPE(bindlessTexCube)                         \
+  TYPE(bindlessTexArray)                        \
+  TYPE(bindlessTexCubeArray)                    \
+  TYPE(bindlessSampler)                         \
+  TYPE(bindlessByteBuffer)
 
 #define PRESHADER_VARIABLE_TYPE_LIST        \
   PRESHADER_VARIABLE_TYPE_LIST_FLOAT()      \
@@ -59,7 +67,8 @@ eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str);
   PRESHADER_VARIABLE_TYPE_LIST_SMP()        \
   PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX() \
   PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP() \
-  PRESHADER_VARIABLE_TYPE_LIST_OTHER()
+  PRESHADER_VARIABLE_TYPE_LIST_OTHER()      \
+  PRESHADER_VARIABLE_TYPE_LIST_BINDLESS()
 
 // @NOTE: disallowing partial vectors due to packing, smpXXX and shdXXX because they are are 2 bindings each, and static textures
 #define ARRAY_ELIGIBLE_PRESHADER_VARIABLE_TYPE_LIST \
@@ -82,6 +91,7 @@ inline constexpr bool vt_is_numeric(VariableType vt)
     PRESHADER_VARIABLE_TYPE_LIST_INT()
     PRESHADER_VARIABLE_TYPE_LIST_UINT()
     PRESHADER_VARIABLE_TYPE_LIST_FLOAT()
+    PRESHADER_VARIABLE_TYPE_LIST_BINDLESS()
     return true;
 
     PRESHADER_VARIABLE_TYPE_LIST_BUF()
@@ -104,6 +114,7 @@ inline constexpr bool vt_is_integer(VariableType vt)
 #define TYPE(type) case VariableType::type:
     PRESHADER_VARIABLE_TYPE_LIST_INT()
     PRESHADER_VARIABLE_TYPE_LIST_UINT()
+    PRESHADER_VARIABLE_TYPE_LIST_BINDLESS()
     return true;
 
     PRESHADER_VARIABLE_TYPE_LIST_FLOAT()
@@ -118,6 +129,95 @@ inline constexpr bool vt_is_integer(VariableType vt)
   }
 
   return false;
+}
+
+inline constexpr bool vt_is_explicit_bindless(VariableType vt)
+{
+  switch (vt)
+  {
+#define TYPE(type) case VariableType::type:
+    PRESHADER_VARIABLE_TYPE_LIST_BINDLESS()
+    return true;
+#undef TYPE
+
+    default: return false;
+  }
+}
+
+// Bindless texture/sampler heaps
+enum class BindlessShape : uint8_t
+{
+  Tex2D,
+  Tex3D,
+  TexCube,
+  TexArray,
+  TexCubeArray,
+  Sampler,
+  ByteBuffer
+};
+
+struct BindlessArrayDesc
+{
+  const char *elemType;  // HLSL type of one heap element
+  const char *arrayName; // global heap array variable name
+};
+
+inline constexpr BindlessArrayDesc bindless_array_desc(BindlessShape shape)
+{
+  switch (shape)
+  {
+    case BindlessShape::Tex2D: return {"Texture2D", "static_textures"};
+    case BindlessShape::Tex3D: return {"Texture3D", "static_textures3d"};
+    case BindlessShape::TexCube: return {"TextureCube", "static_textures_cube"};
+    case BindlessShape::TexArray: return {"Texture2DArray", "static_textures_array"};
+    case BindlessShape::TexCubeArray: return {"TextureCubeArray", "static_textures_cube_array"};
+    case BindlessShape::Sampler: return {"SamplerState", "static_samplers"};
+    case BindlessShape::ByteBuffer: return {"ByteAddressBuffer", "static_buffers"};
+  }
+  return {};
+}
+
+// Heap array name for the current target.
+inline const char *bindless_array_name(BindlessShape shape)
+{
+#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
+
+
+
+
+
+
+
+
+#else
+  return bindless_array_desc(shape).arrayName;
+#endif
+}
+
+// Maps both the static* and bindless* texture/sampler families onto their shared heap shape.
+inline constexpr BindlessShape vt_bindless_shape(VariableType vt)
+{
+  switch (vt)
+  {
+    case VariableType::bindlessTex2D:
+    case VariableType::staticTex:
+    case VariableType::staticSmp: return BindlessShape::Tex2D;
+    case VariableType::bindlessTex3D:
+    case VariableType::staticTex3D:
+    case VariableType::staticSmp3D: return BindlessShape::Tex3D;
+    case VariableType::bindlessTexCube:
+    case VariableType::staticTexCube:
+    case VariableType::staticSmpCube: return BindlessShape::TexCube;
+    case VariableType::bindlessTexArray:
+    case VariableType::staticTexArray:
+    case VariableType::staticSmpArray: return BindlessShape::TexArray;
+    case VariableType::bindlessTexCubeArray:
+    case VariableType::staticTexCubeArray:
+    case VariableType::staticSmpCubeArray: return BindlessShape::TexCubeArray;
+    case VariableType::bindlessSampler: return BindlessShape::Sampler;
+    case VariableType::bindlessByteBuffer: return BindlessShape::ByteBuffer;
+    default: G_ASSERT_RETURN(false, BindlessShape::Tex2D);
+  }
 }
 
 inline constexpr bool vt_is_sampled_texture(VariableType vt)
@@ -187,6 +287,9 @@ inline constexpr int vt_float_size(VariableType vt)
 {
   switch (vt)
   {
+#define TYPE(type) case VariableType::type:
+    PRESHADER_VARIABLE_TYPE_LIST_BINDLESS()
+#undef TYPE
     case VariableType::f1:
     case VariableType::i1:
     case VariableType::u1: return 1;
@@ -305,6 +408,18 @@ struct NamedConstInitializerElement
   }
 };
 
+// Two distinct bindless lowerings share the static_textures*/static_samplers heaps (see bindless_array_desc):
+//   StaticImplicit - @staticTex*/@staticSmp* auto-lowered when enableBindless; one uint2 slot packs
+//                    {texture index, sampler index} and the runtime/material system fills it.
+//   ExplicitApi    - @bindlessTex*/@bindlessSampler; one int slot per resource, the shader author supplies
+//                    the heap index, and texture and sampler are independent.
+enum class BindlessMode : uint8_t
+{
+  None,
+  StaticImplicit,
+  ExplicitApi
+};
+
 // @TODO: maybe reorganize fields, since this thing is >cache line
 struct NamedConstDefInfo
 {
@@ -339,12 +454,16 @@ struct NamedConstDefInfo
 
   Symbol *exprWithDynamicAndMaterialTerms = nullptr;
 
+  BindlessMode bindlessMode = BindlessMode::None;
+
   bool isDynamic : 1 = false;
   bool isArray : 1 = false;
-  bool isBindless : 1 = false;
   bool pairSamplerIsGlobal : 1 = false;
   bool pairSamplerIsShadow : 1 = false;
   bool hasDynStcodeRelyingOnMaterialParams : 1 = false;
+
+  bool isStaticBindless() const { return bindlessMode == BindlessMode::StaticImplicit; }
+  bool isExplicitBindless() const { return bindlessMode == BindlessMode::ExplicitApi; }
 
   bool isHardcodedArray() const { return hardcodedRegister >= 0 && isArray; }
   bool isRegularArray() const { return isArray && !isHardcodedArray(); }

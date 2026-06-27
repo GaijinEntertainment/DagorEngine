@@ -7,6 +7,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_string.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
 
@@ -62,10 +63,7 @@ public:
     const char *p =
       appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("stateGraph")->getStr("cppOutDir", NULL);
     if (p)
-    {
-      sysHelper.sgOutDir = String(260, "%s/%s", appblk.getStr("appDir", "."), p);
-      ::dd_simplify_fname_c(sysHelper.sgOutDir);
-    }
+      sysHelper.sgOutDir = make_eff_app_relative_path(p);
 
     ::page_sys_hlp = &sysHelper;
     return true;

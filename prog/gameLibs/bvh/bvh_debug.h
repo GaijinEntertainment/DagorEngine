@@ -23,6 +23,7 @@ enum class DebugMode
   Paint,
   IntersectionCount,
   Instances,
+  NaN
 };
 
 struct MemoryStatistics

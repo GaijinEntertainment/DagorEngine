@@ -16,8 +16,6 @@
 #include <debug/dag_debug.h>
 #include <EASTL/vector_set.h>
 
-extern const char *daeditor3_get_appblk_fname();
-
 class StubSpacerObjEntity : public IObjEntity
 {
 public:
@@ -953,7 +951,7 @@ bool SharedSplineClassAssetData::loadLoftGeomData(splineclass::LoftGeomGenData &
 
 void SharedSplineClassAssetData::init()
 {
-  DataBlock appBlk(daeditor3_get_appblk_fname());
+  DataBlock appBlk("%appDir/application.blk");
   splineMinStep = appBlk.getBlockByNameEx("assets")->getReal("splineMinStep", splineMinStep);
   inited = true;
 }

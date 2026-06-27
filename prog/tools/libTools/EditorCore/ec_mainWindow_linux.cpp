@@ -43,6 +43,10 @@ public:
 
   void close() override { quit_game(); }
 
+  void loadMainWindowPositionAndSize(const DataBlock &) override {}
+
+  void saveMainWindowPositionAndSize(DataBlock &) override {}
+
   void *getMainWindow() const override { return mainHwnd; }
 
   void setMainWindowCaption(const char *caption) override { win32_set_window_title(caption); }

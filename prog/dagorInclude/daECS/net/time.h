@@ -38,11 +38,10 @@ class DummyTimeManager final : public ITimeManager
 public:
 };
 
-ITimeManager &get_time_mgr();
-
-// 'sync' here means that time is synced between client & server; returns the time in seconds
 float get_sync_time();
 double get_sync_time_d();
+
+ITimeManager &get_time_mgr();
 
 ITimeManager *create_server_time();
 ITimeManager *create_client_time();

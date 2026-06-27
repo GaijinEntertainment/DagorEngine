@@ -336,8 +336,7 @@ static bool func_with_unused_args(const eastl::string &name)
 bool AnimDasPostBlendControlerAnnotation::touch(const das::StructurePtr &st, das::ModuleGroup &,
   const das::AnnotationArgumentList &args, das::string &err)
 {
-  auto program = (*das::daScriptEnvironment::bound)->g_Program;
-  if (program->thisModule->isModule)
+  if (st->module->isModule)
   {
     err = "anim_post_blend_controller shouldn't be placed in a module. Please move the controller to a file without module directive";
     return false;

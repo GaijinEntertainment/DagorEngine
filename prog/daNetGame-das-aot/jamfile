@@ -7,7 +7,7 @@ UseD3DMultiForced ?= windows ;
 CheckedContainers ?= yes ;
 Exceptions        ?= no ;
 UseMemoryAllocator = RTL ;
-if $(UseWholeOpt) != yes { UseLLDLink ?= yes ; }
+UseLLDLink ?= yes ; # faster than default ld/link.exe
 
 Root    ?= ../.. ;
 Location = . ;
@@ -62,6 +62,7 @@ Sources +=
   prog/daNetGame/dasModules/collisionTraces.cpp
   prog/daNetGame/dasModules/dagorDebug3dSolid.cpp
   prog/daNetGame/dasModules/dgNet.cpp
+  prog/daNetGame/dasModules/dngHostedServer.cpp
   prog/daNetGame/dasModules/gameObject.cpp
   prog/daNetGame/dasModules/gridCollision.cpp
   prog/daNetGame/dasModules/level.cpp

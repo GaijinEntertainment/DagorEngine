@@ -1,0 +1,9 @@
+WARNING: w336 (async-return-future) Returning an async call without 'await' settles with the Future, not its value; use 'return await'.
+testData/diagnostics/async_return_future.nut:10:2
+
+async function outer() {
+  return inner()
+  ^-------------
+}
+
+

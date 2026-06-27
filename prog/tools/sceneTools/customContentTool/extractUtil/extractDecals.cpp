@@ -3,6 +3,7 @@
 #include <libTools/util/conLogWriter.h>
 #include <regExp/regExp.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/setupNamedMounts.h>
 #include <assets/assetMgr.h>
 #include <assets/asset.h>
 #include <assets/assetMsgPipe.h>
@@ -104,6 +105,7 @@ int DagorWinMain(bool debugmode)
     assetMgr.setMsgPipe(&pipe);
 
     String app_blk_fn(0, "%s/application.blk", argv[0]);
+    set_canonical_app_dir_mount(argv[0]);
     if (!appblk.load(app_blk_fn))
     {
       printf("ERR: cannot load %s\n", app_blk_fn.str());

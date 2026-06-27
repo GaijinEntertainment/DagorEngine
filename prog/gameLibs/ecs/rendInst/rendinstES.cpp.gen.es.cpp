@@ -199,12 +199,13 @@ static ecs::EntitySystemDesc riextra_em_after_clear_es_event_handler_es_desc
 );
 static constexpr ecs::ComponentDesc riextra_destroyed_es_event_handler_comps[] =
 {
-//start of 5 ro components at [0]
+//start of 6 ro components at [0]
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()},
   {ECS_HASH("ri_extra__destroyed"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("ri_extra__riSyncDesc"), ecs::ComponentTypeInfo<rendinst::RendInstDesc>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("ri_extra__impulseOnDestruction"), ecs::ComponentTypeInfo<Point3>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("ri_extra__impulsePosOnDestruction"), ecs::ComponentTypeInfo<Point3>(), ecs::CDF_OPTIONAL}
+  {ECS_HASH("ri_extra__impulsePosOnDestruction"), ecs::ComponentTypeInfo<Point3>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("ri_extra__destrFx"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void riextra_destroyed_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -215,6 +216,7 @@ static void riextra_destroyed_es_event_handler_all_events(const ecs::Event &__re
     , ECS_RO_COMP_PTR(riextra_destroyed_es_event_handler_comps, "ri_extra__riSyncDesc", rendinst::RendInstDesc)
     , ECS_RO_COMP_OR(riextra_destroyed_es_event_handler_comps, "ri_extra__impulseOnDestruction", Point3(Point3()))
     , ECS_RO_COMP_OR(riextra_destroyed_es_event_handler_comps, "ri_extra__impulsePosOnDestruction", Point3(Point3()))
+    , ECS_RO_COMP_OR(riextra_destroyed_es_event_handler_comps, "ri_extra__destrFx", bool(true))
     );
   while (++comp != compE);
 }
@@ -224,7 +226,7 @@ static ecs::EntitySystemDesc riextra_destroyed_es_event_handler_es_desc
   "prog/gameLibs/ecs/rendInst/./rendinstES.cpp.inl",
   ecs::EntitySystemOps(nullptr, riextra_destroyed_es_event_handler_all_events),
   empty_span(),
-  make_span(riextra_destroyed_es_event_handler_comps+0, 5)/*ro*/,
+  make_span(riextra_destroyed_es_event_handler_comps+0, 6)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityDestroyed,

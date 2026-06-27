@@ -11,6 +11,7 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <3d/ddsxTex.h>
 #include <3d/ddsFormat.h>
 #include <3d/ddsxTexMipOrder.h>
@@ -237,7 +238,7 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
   }
 
   const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
-  cacheBase.printf(260, "%s/%s/ddsx~cvt", appblk.getStr("appDir", startdir), expblk.getStr("cache", "/develop/.cache"));
+  cacheBase.setStrCat(make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache"), true), "ddsx~cvt");
   dd_simplify_fname_c(cacheBase);
   cacheBase.resize(strlen(cacheBase) + 1);
 

@@ -1589,10 +1589,14 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
       typesNavMesh.push_back() = "TileCached";
       int navMeshType = navMeshProps[navMeshIdx].getInt("navMeshType",
         navMeshProps[navMeshIdx].getBool("tiled", false) ? pathfinder::NMT_TILED : pathfinder::NMT_SIMPLE);
+      const bool isTileCachedNavMesh = navMeshType == pathfinder::NMT_TILECACHED;
       grp->createCombo(baseOfs + NM_PARAM_TYPE, "Nav mesh type:", typesNavMesh, navMeshType);
       grp->createEditInt(baseOfs + NM_PARAM_TILE_SZ, "Tile size (XZ), cells", navMeshProps[navMeshIdx].getInt("tileCells", 128));
       grp->createEditFloat(baseOfs + NM_PARAM_BUCKET_SZ, "Bucket size, m", navMeshProps[navMeshIdx].getReal("bucketSize", 200.0f));
-      panel.setEnabledById(baseOfs + NM_PARAM_BUCKET_SZ, navMeshType == pathfinder::NMT_TILECACHED);
+      panel.setEnabledById(baseOfs + NM_PARAM_BUCKET_SZ, isTileCachedNavMesh);
+      grp->createCheckBox(baseOfs + NM_PARAM_INCLUDE_DETAILED_DATA, "Include detailed data",
+        navMeshProps[navMeshIdx].getBool("includeDetailedData", false));
+      panel.setEnabledById(baseOfs + NM_PARAM_INCLUDE_DETAILED_DATA, isTileCachedNavMesh);
       grp->createSeparator(0);
       grp->createCheckBox(baseOfs + NM_PARAM_DROP_RESULT_ON_COLLISION, "Drop navmesh on collision",
         navMeshProps[navMeshIdx].getBool("dropNavmeshOnCollision", false));
@@ -1971,6 +1975,7 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
           PropPanel::ContainerPropertyControl *grp = panel->getById(baseOfs + NM_PARAM_GRP)->getContainer();
           PropPanel::ContainerPropertyControl *areatypeInputContainer =
             grp->createContainer(baseOfs + NM_PARAM_AREAS_INPUT_CONTAINER, true, _pxScaled(2));
+          navmeshAreasProcessing[navMeshIdx].setPropPanel(areatypeInputContainer);
           if (areaType == NM_PARAM_AREATYPE_RECT - NM_PARAM_AREATYPE_MAIN)
           {
             fillAreatypeRectPanel(*areatypeInputContainer, navMeshIdx, baseOfs);
@@ -1989,12 +1994,17 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
       case NM_PARAM_WATER: navMeshProps[navMeshIdx].setBool("hasWater", panel->getBool(pcb_id)); break;
       case NM_PARAM_WATER_LEV: navMeshProps[navMeshIdx].setReal("waterLev", panel->getFloat(pcb_id)); break;
       case NM_PARAM_TYPE:
+      {
+        const bool isTileCachedNavMesh = panel->getInt(pcb_id) == pathfinder::NMT_TILECACHED;
         navMeshProps[navMeshIdx].setInt("navMeshType", panel->getInt(pcb_id));
-        panel->setEnabledById(baseOfs + NM_PARAM_BUCKET_SZ, panel->getInt(pcb_id) == pathfinder::NMT_TILECACHED);
+        panel->setEnabledById(baseOfs + NM_PARAM_BUCKET_SZ, isTileCachedNavMesh);
+        panel->setEnabledById(baseOfs + NM_PARAM_INCLUDE_DETAILED_DATA, isTileCachedNavMesh);
         break;
+      }
       case NM_PARAM_PREFAB_COLLISION: navMeshProps[navMeshIdx].setBool("usePrefabCollision", panel->getBool(pcb_id)); break;
       case NM_PARAM_TILE_SZ: navMeshProps[navMeshIdx].setInt("tileCells", panel->getInt(pcb_id)); break;
       case NM_PARAM_BUCKET_SZ: navMeshProps[navMeshIdx].setReal("bucketSize", panel->getFloat(pcb_id)); break;
+      case NM_PARAM_INCLUDE_DETAILED_DATA: navMeshProps[navMeshIdx].setBool("includeDetailedData", panel->getBool(pcb_id)); break;
       case NM_PARAM_CROSSING_WATER_DEPTH: navMeshProps[navMeshIdx].setReal("crossingWaterDepth", panel->getFloat(pcb_id)); break;
 
       case NM_PARAM_JLK_CVRS_EXTRA_CELLS: navMeshProps[navMeshIdx].setInt("jlkExtraCells", panel->getInt(pcb_id)); break;

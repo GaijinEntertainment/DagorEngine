@@ -19,6 +19,7 @@
 #include <EditorCore/ec_workspace.h>
 #include <EditorCore/ec_confirmation_dialog.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderDbg.h>
 #include <debug/dag_debug.h>
@@ -151,7 +152,7 @@ static void apply_envi_snapshot()
   {
     String loc_path;
     if (envBlkFn[0] && envBlkFn[1] != ':')
-      loc_path.printf(512, "%s%s", DAGORED2->getWorkspace().getAppDir(), envBlkFn);
+      make_eff_app_relative_path(loc_path, envBlkFn);
     else
       loc_path = envBlkFn;
     EDITORCORE->queryEditorInterface<IDynRenderService>()->setEnvironmentSnapshot(loc_path, !envBlkFn.empty());

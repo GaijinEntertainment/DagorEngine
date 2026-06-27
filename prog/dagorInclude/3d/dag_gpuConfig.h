@@ -58,5 +58,9 @@ struct GpuUserConfig
 void d3d_read_gpu_video_settings(const DataBlock &blk, GpuVideoSettings &out_video);
 const GpuUserConfig &d3d_get_gpu_cfg();
 
+// Lets a graphics backend flag the active GPU driver as outdated (e.g. DX12 detecting an
+// old NVIDIA driver) so the shared "outdated driver" message box is shown.
+void d3d_mark_gpu_driver_outdated();
+
 void d3d_apply_gpu_settings(const GpuVideoSettings &video);
 void d3d_apply_gpu_settings(const DataBlock &blk);

@@ -1418,7 +1418,8 @@ inline void Vector<T, Allocator, init_constructing, Counter>::DoInit(Integer n, 
   allocated() = a;
 
   typedef typename eastl::remove_const<T>::type non_const_value_type; // If T is a const type (e.g. const int) then we need to initialize it as if it were non-const.
-  eastl::uninitialized_fill_n<non_const_value_type*, value_type, Integer>(const_cast<non_const_value_type*>(mpBegin()), (size_type)n, value);
+  // uninitialized_fill_n is <ForwardIterator, Count, T>: the middle arg is the count type.
+  eastl::uninitialized_fill_n<non_const_value_type*, size_type, Integer>(const_cast<non_const_value_type*>(mpBegin()), (size_type)n, value);
 }
 
 

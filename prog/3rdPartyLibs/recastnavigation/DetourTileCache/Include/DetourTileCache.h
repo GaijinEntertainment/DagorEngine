@@ -9,6 +9,8 @@ typedef unsigned int dtObstacleRef;
 
 typedef unsigned int dtCompressedTileRef;
 
+struct dtTileCacheLayer;
+
 /// Flags for addTile
 enum dtCompressedTileFlags
 {
@@ -106,7 +108,8 @@ struct dtTileCacheMeshProcess
 	virtual ~dtTileCacheMeshProcess() { }
 
 	virtual void process(struct dtNavMeshCreateParams* params,
-						 unsigned char* polyAreas, unsigned short* polyFlags, dtCompressedTileRef ref) = 0;
+						 unsigned char* polyAreas, unsigned short* polyFlags, dtCompressedTileRef ref,
+						 const dtTileCacheLayer& layer) = 0;
 	virtual void remove(int tx, int ty, int tlayer) = 0;
 };
 

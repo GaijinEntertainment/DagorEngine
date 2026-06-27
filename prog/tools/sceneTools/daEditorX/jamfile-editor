@@ -231,6 +231,14 @@ if $(Platform) = windows {
 else if $(Platform) = linux {
   UseProgLibs +=
     engine/drv/hid_joystick_linux
+    gameLibs/spirv
+  ;
+  # editor texgen compiles node HLSL -> SPIR-V in-process (no driver-side runtime HLSL on Vulkan)
+  Sources += pluginService/texgen_hlsl_compile.cpp ;
+  # drv3d_commonCode: MAX_PS_CONSTS. vulkan/include: vulkan.h, pulled in by spirv/compiler.h.
+  AddIncludes +=
+    $(Root)/prog/engine/drv/drv3d_commonCode
+    $(Root)/prog/3rdPartyLibs/vulkan/include
   ;
   dasStdDlg_UserProvidedPlatform = yes ;
 }

@@ -27,7 +27,7 @@ public:
   static constexpr int CHROMATIC_ABERRATION_PRIORITY = 1;
   static constexpr int VIGNETTE_PRIORITY = 1;
   void setChromaticAberration(Point3 chromatic_aberration);
-  void setFilmGrain(Point4 film_grain);
+  void setFilmGrain(float strength_mul, Point4 film_grain);
   void setFps(int fps);
   void setSubPixels(int sub_pixels);
   void setSuperPixels(int super_pixels);

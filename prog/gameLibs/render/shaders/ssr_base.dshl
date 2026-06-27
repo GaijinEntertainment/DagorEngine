@@ -22,10 +22,6 @@ interval ssr_quality : low<1, medium<2, high<3, highest;
 int ssr_alternate_reflections = 0;
 interval ssr_alternate_reflections : no<1, yes;
 
-int ssr_prev_downsampled_close_depth_tex_assumed = 0;
-interval ssr_prev_downsampled_close_depth_tex_assumed : no < 1, yes;
-assume_if_not_assumed ssr_prev_downsampled_close_depth_tex_assumed = no;
-
 texture ssr_target;
 texture ssr_prev_target;
 texture prev_downsampled_close_depth_tex;
@@ -141,11 +137,10 @@ endmacro
 
 macro SSR_REPROJECTION(code)
   hlsl(code) {
-    ##if prev_downsampled_close_depth_tex != NULL || ssr_prev_downsampled_close_depth_tex_assumed == yes
-      #define USE_PREV_DOWNSAMPLED_CLOSE_DEPTH 1
-      ##if prev_downsampled_normals != NULL
-        #define USE_PREV_DOWNSAMPLED_NORMALS 1
-      ##endif
+    #define USE_PREV_DOWNSAMPLED_CLOSE_DEPTH 1
+
+    ##if prev_downsampled_normals != NULL
+      #define USE_PREV_DOWNSAMPLED_NORMALS 1
     ##endif
   }
   //VIEW_VEC_OPTIMIZED(code)

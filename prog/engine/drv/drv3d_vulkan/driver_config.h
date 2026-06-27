@@ -144,6 +144,9 @@ struct DriverConfig
     bool dumpPipelineExecutableStatistics : 1;
     // on some Android devices, for unclear reasons, memset is required for successful fread to the RUB memory
     bool memsetOnRub : 1;
+    // WSL2 routes the GPU through dxgkrnl, whose host-visible memory rejects a kernel fread; stage
+    // RUB writes through a CPU shadow and memcpy them in instead
+    bool stageRubThroughCpu : 1;
     // use vulkan memory allocation callbacks to track memory consumption
     bool useCustomAllocationCallbacks : 1;
     // do not use QFOT barriers, possible with maintenance 9 or with NV because,
@@ -170,6 +173,8 @@ struct DriverConfig
     bool profileResourceMemUsage : 1;
     // allow loading and using XeSS (Intel super sampling). When disabled, libxess is never loaded
     bool allowXess : 1;
+    // AMD GPUs have broken clears on non-linear (SRGB) views of linear UAV render targets
+    bool brokenClearsOnNonLinearUAVRT : 1;
   };
 
   struct DeviceBits

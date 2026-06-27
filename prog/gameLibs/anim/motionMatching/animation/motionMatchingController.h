@@ -13,12 +13,6 @@
 class MotionMatchingController : public AnimV20::IMotionMatchingController
 {
 public:
-  struct NodePRS
-  {
-    vec3f position = v_zero();
-    quat4f rotation = V_C_UNIT_0001;
-    vec3f scale = V_C_UNIT_1110;
-  };
   struct CurrentClipInfo
   {
     int clip = -1;
@@ -28,7 +22,7 @@ public:
   const AnimationDataBase *dataBase = nullptr; // set by setup
   vec3f rootPosition = v_zero();
   quat4f rootRotation = V_C_UNIT_0001;
-  NodePRS rootPRS; // applied to actual animchar transform which can be not same as `rootPosition` + `rootRotation`
+  vec3f rootScale = V_C_UNIT_1110;
   BoneInertialInfo offset;
   BoneInertialInfo currentAnimation;
   BoneInertialInfo resultAnimation;
@@ -64,7 +58,8 @@ public:
 
   void setup(const AnimationDataBase &data_base, const AnimV20::AnimcharBaseComponent &animchar);
 
-  bool getPose(AnimV20::AnimBlender::TlsContext &tls, const Tab<AnimV20::AnimMap> &anim_map) const override;
+  bool getPose(AnimV20::AnimBlender::TlsContext &tls, const Tab<AnimV20::AnimMap> &anim_map,
+    const GeomNodeTree &node_tree) const override;
 
   void playAnimation(int clip_index, int frame_index, bool need_transition);
 

@@ -36,7 +36,6 @@ static void screen_effect_renderer_init_es_event_handler(const BeforeLoadLevel &
       {
         String texVarName = String(0, "screen_effect_tex%d", i);
         screen_effect__texVars.push_back(get_shader_variable_id(texVarName.c_str()));
-        ShaderGlobal::set_sampler(get_shader_variable_id((texVarName + "_samplerstate").c_str(), true), d3d::request_sampler({}));
       }
 
       screen_effect__buffer = dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<ScreenEffect>(MAX_SCREEN_EFFECTS),

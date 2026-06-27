@@ -1033,14 +1033,12 @@ class DagImporter(Operator, ImportHelper):
         dp_re = "(_dp_\\d\\d|)" if dp else "()"
         dmg_re = "(_dmg|)" if dmg else "()"
         lods_re = "\\.lod\\d\\d" if lods else f"\\.{base_lod}"
-        variants_re = f"^{base_name}{dp_re}{dmg_re}{lods_re}\\.dag$"
+        destr_re = "(_destr|)" if destr else ""
+        variants_re = f"^{base_name}{dp_re}{dmg_re}{destr_re}{lods_re}\\.dag$"
         if dm:
             variants_re = f"({variants_re})|(^{base_name}_dm\\.dag$)"
-        if not destr:
-            return variants_re
-        destr_re = f"^{base_name}{dp_re}{dmg_re}_destr\\.lod00\\.dag$"  # destr is always ".lod00"
-        combined_re = f"({variants_re}|{destr_re})"
-        return combined_re
+        return variants_re
+
 #base mode
     def file_to_filepaths(self):
         filepath = abspath(self.filepath)

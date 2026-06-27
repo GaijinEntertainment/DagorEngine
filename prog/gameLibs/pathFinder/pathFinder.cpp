@@ -77,11 +77,37 @@ struct NavMeshData
 #else
   eastl::unique_ptr<uint8_t[], DtFreer> navData;
 #endif
+  int navDataSize = 0;
 };
 
 static NavMeshData navMeshData[NMS_COUNT];
 static dtNavMesh *&navMesh = navMeshData[NM_MAIN].navMesh;
 static dtNavMeshQuery *&navQuery = navMeshData[NM_MAIN].navQuery;
+
+static bool read_tilecache_detail_settings(unsigned char *&cur_ptr, const unsigned char *end_ptr, TileCacheDetailSettings &settings)
+{
+  if (end_ptr - cur_ptr < sizeof(settings))
+    return false;
+
+  settings.includeDetailedData = *(uint32_t *)cur_ptr;
+  cur_ptr += sizeof(settings.includeDetailedData);
+  settings.detailSampleDist = *(float *)cur_ptr;
+  cur_ptr += sizeof(settings.detailSampleDist);
+  settings.detailSampleMaxError = *(float *)cur_ptr;
+  cur_ptr += sizeof(settings.detailSampleMaxError);
+  return true;
+}
+
+static bool read_tilecache_detail_settings(IGenLoad &crd, TileCacheDetailSettings &settings)
+{
+  if (crd.getBlockRest() < sizeof(settings))
+    return false;
+
+  settings.includeDetailedData = crd.readInt();
+  settings.detailSampleDist = crd.readReal();
+  settings.detailSampleMaxError = crd.readReal();
+  return true;
+}
 
 static Tab<Point3> pathForDebug;
 static Tab<BBox3> navDebugBoxes;
@@ -268,12 +294,14 @@ void clear_nav_mesh(int nav_mesh_idx, bool clear_nav_data)
   nmData.tcMeshProc.setNavMesh(nullptr);
   nmData.tcMeshProc.setNavMeshQuery(nullptr);
   nmData.tcMeshProc.setTileCache(nullptr);
+  nmData.tcMeshProc.setDetailedData(false, 0.0f, 0.0f);
   if (auto navmsh = eastl::exchange(nmData.navMesh, nullptr))
     dtFreeNavMesh(navmsh);
   nmData.tcComp.reset();
   if (clear_nav_data)
   {
     nmData.navData = decltype(nmData.navData)();
+    nmData.navDataSize = 0;
     nmData.tcMeshProc.setLadders(nullptr);
   }
   if (nmData.navQuery)
@@ -389,6 +417,10 @@ static bool loadNavMeshChunked(IGenLoad &crd, NavMeshType type, tile_check_cb_t 
     }
   }
   READ_BYTES(numObsResNameHashes * sizeof(uint32_t));
+  if (crd.getBlockRest() >= sizeof(TileCacheDetailSettings))
+  {
+    READ_BYTES(sizeof(TileCacheDetailSettings));
+  }
 #undef READ_TYPE
 #undef READ_BYTES
   *(int *)&out_buff[numTilesOff] = actualNumTiles;
@@ -533,6 +565,10 @@ static void loadNavMeshBucketFormat(TileCacheCompressor &tc_comp, IGenLoad &crd,
 
     crd.endBlock();
   }
+
+  TileCacheDetailSettings detailSettings;
+  const bool hasDetailSettings = read_tilecache_detail_settings(crd, detailSettings);
+
   const int timeUsec = get_time_usec(refTime);
   const uint32_t blockSize = BlockType::static_size / (1024 * 1024);
   debug("navmesh: tiles loaded: %d; used blocks: %u of %u mb; time %d us", totalNumTiles, tilesBuff.size() + tcTilesBuff.size(),
@@ -546,6 +582,8 @@ static void loadNavMeshBucketFormat(TileCacheCompressor &tc_comp, IGenLoad &crd,
   for (const BlockType *block : tcTilesBuff)
     reqCap += block->size();
   reqCap += obsResNameHashesBuff.size();
+  if (hasDetailSettings)
+    reqCap += sizeof(TileCacheDetailSettings);
   clear_and_shrink(out_buff); // Final buffer is always bigger then temp ones so no need to realloc
   out_buff.reserve(reqCap);   // To consider: use phys mem alloc?
   append_items(out_buff, sizeof(nmParams), (const uint8_t *)&nmParams);
@@ -564,6 +602,8 @@ static void loadNavMeshBucketFormat(TileCacheCompressor &tc_comp, IGenLoad &crd,
     delete block;
   }
   append_items(out_buff, obsResNameHashesBuff.size(), obsResNameHashesBuff.data());
+  if (hasDetailSettings)
+    append_items(out_buff, sizeof(detailSettings), (const uint8_t *)&detailSettings);
   G_ASSERT(reqCap == out_buff.size());
 }
 
@@ -615,10 +655,16 @@ struct PlacementFreer
 
 void tilecache_start_ladders(const scene::TiledScene *ladders) { get_nav_mesh_data(NM_MAIN).tcMeshProc.setLadders(ladders); }
 
-static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int patchedTilesSize, const char *patchNavMeshFileName,
-  int extra_tiles)
+TileCacheDetailSettings tilecache_get_detailed_data_settings()
+{
+  return get_nav_mesh_data(NM_MAIN).tcMeshProc.getDetailedDataSettings();
+}
+
+static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int navDataSize, int patchedTilesSize,
+  const char *patchNavMeshFileName, int extra_tiles)
 {
   NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
+  const unsigned char *endPtr = curPtr + navDataSize;
 #define INIT_BY_PTR(typ, name) \
   typ *name = (typ *)curPtr;   \
   curPtr += sizeof(typ);
@@ -690,6 +736,13 @@ static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int patc
     }
 #undef INIT_BY_PTR
   }
+  TileCacheDetailSettings detailSettings;
+  if (read_tilecache_detail_settings(curPtr, endPtr, detailSettings))
+    nmData.tcMeshProc.setDetailedData(detailSettings.includeDetailedData != 0, detailSettings.detailSampleDist,
+      detailSettings.detailSampleMaxError);
+  else
+    nmData.tcMeshProc.setDetailedData(false, 0.0f, 0.0f);
+
   if (patchedTilesSize > 0)
   {
     nmData.navMesh->reconstructFreeList();
@@ -738,11 +791,12 @@ static bool create_nav_mesh(int nav_mesh_idx)
 bool reload_nav_mesh(int extra_tiles)
 {
   clear_nav_mesh(NM_MAIN, false);
+  NavMeshData &nmData = get_nav_mesh_data(NM_MAIN);
 
   if (!create_nav_mesh(NM_MAIN))
     return false;
 
-  if (!load_nav_mesh_orig(NM_MAIN, &get_nav_mesh_data(NM_MAIN).navData[0], 0, "", extra_tiles))
+  if (!load_nav_mesh_orig(NM_MAIN, &nmData.navData[0], nmData.navDataSize, 0, "", extra_tiles))
     return false;
 
   if (!init_nav_query(NM_MAIN))
@@ -901,13 +955,14 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
 #undef INIT_BY_PTR
   }
   else if (type == NMT_TILECACHED)
-    load_nav_mesh_orig(nav_mesh_idx, &navDataLocal[0], patchedTilesSize, patchNavMeshFileName, patchedExtraTiles);
+    load_nav_mesh_orig(nav_mesh_idx, &navDataLocal[0], (int)navDataSize, patchedTilesSize, patchNavMeshFileName, patchedExtraTiles);
   else
     G_ASSERTF_RETURN(0, false, "Unknown navmesh type %#x", (int)type);
 
   init_nav_query(nav_mesh_idx);
 
   nmData.navData = eastl::move(navDataLocal);
+  nmData.navDataSize = (int)navDataSize;
 
   return true;
 }

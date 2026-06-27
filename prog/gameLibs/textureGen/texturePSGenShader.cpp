@@ -29,6 +29,8 @@
 #include <textureGen/entitiesSaver.h>
 #include <3d/dag_textureIDHolder.h>
 #include <render/blkToConstBuffer.h>
+#include <textureGen/textureGenHlslCompiler.h>
+#include <debug/dag_log.h>
 
 #include <hash/sha1.h>
 #include <EASTL/string.h>
@@ -65,6 +67,11 @@ struct ParticleStruct
 
 
 static int create_constants_param_block(DataBlock &params, const DataBlock &params_, TextureGenLogger &logger);
+
+// Installed by editor/tools builds that can compile HLSL at runtime; null in games. See
+// textureGenHlslCompiler.h. Used on Linux/Vulkan, which has no d3d::create_*_shader_hlsl.
+int (*texgen_compile_hlsl_shader)(const char *hlsl, int len, const char *entry, const char *profile, bool is_vertex,
+  String &out_err) = nullptr;
 
 typedef char sha1_string_type[25];
 
@@ -136,7 +143,12 @@ public:
   {
     G_ASSERT(refCount == 0);
     String outErr;
-#if _TARGET_PC_WIN
+#if _TARGET_PC_LINUX
+    if (texgen_compile_hlsl_shader)
+      shader = static_cast<FSHADER>(texgen_compile_hlsl_shader(shader_text, len, "main_ps", "ps_6_0", false, outErr));
+    else
+      shader = BAD_FSHADER, outErr = "texgen HLSL compiler not registered (editor-only build)";
+#elif _TARGET_PC_WIN
     shader = d3d::create_pixel_shader_hlsl(shader_text, len, "main_ps", "ps_5_0", &outErr);
 #else
     shader = BAD_FSHADER, outErr = "hlsl n/a";
@@ -741,10 +753,19 @@ static void init_cached_vprog(VprogCached &vprog, const char *shader)
   make_sha1_string(shader, len, sha1);
   if (memcmp(vprog.sha1, sha1, sizeof(sha1)) == 0)
     return;
-#if _TARGET_PC_WIN
+#if _TARGET_PC_LINUX
+  vprog.close(); // the runtime hook returns a fresh VPROG on each recompile; drop the previous one first
+  String err;
+  if (texgen_compile_hlsl_shader)
+    vprog.vprog = static_cast<VPROG>(texgen_compile_hlsl_shader(shader, len, "main_vs", "vs_6_0", true, err));
+  else
+    err = "texgen HLSL compiler not registered (editor-only build)";
+  if (vprog.vprog == BAD_VPROG && !err.empty())
+    logerr("texgen vprog compile failed: %s", err.str());
+#elif _TARGET_PC_WIN
   vprog.vprog = d3d::create_vertex_shader_hlsl(shader, len, "main_vs", "vs_5_0");
 #else
-  vprog.vprog = BAD_FSHADER;
+  vprog.vprog = BAD_VPROG;
 #endif
   memcpy(vprog.sha1, sha1, sizeof(sha1));
 }

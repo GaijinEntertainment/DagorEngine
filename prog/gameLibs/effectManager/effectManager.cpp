@@ -1568,9 +1568,12 @@ void EffectManager::updateCmdBuff()
       case FX_CMD_EMM_TM: cmd.mgr->setFxTm(*e, cmd.tm, true); break;
       case FX_CMD_HIDE: cmd.mgr->setFxVisibility(*e, cmd.u, cmd.b); break;
       case FX_CMD_UNLOCK:
+      {
+        OSSpinlockScopedLock lock(&cmd.mgr->mgrSLock);
         e->flags &= ~AcesEffect::IS_LOCKED;
         updateCachedFlags(*e);
-        break;
+      }
+      break;
       case FX_CMD_FAKE_BRIGHTNESS_BACKGROUND_POS: cmd.mgr->setFxFakeBrightnessBackgroundPos(*e, cmd.p3); break;
       case FX_CMD_VELOCITY: cmd.mgr->setFxVelocity(*e, cmd.p3); break;
       case FX_CMD_VELOCITY_SCALE_MIN_MAX: cmd.mgr->setFxVelocityScaleMinMax(*e, cmd.p2); break;
@@ -1596,9 +1599,12 @@ void EffectManager::updateCmdBuff()
       break;
       case FX_CMD_PAUSE_SOUND: cmd.mgr->pauseFxSoundExt(*e, cmd.b); break;
       case FX_CMD_ENABLE_ACTIVE_QUERY:
+      {
+        OSSpinlockScopedLock lock(&cmd.mgr->mgrSLock);
         e->flags |= AcesEffect::ACTIVE_QUERY_ENABLED;
         updateCachedFlags(*e);
-        break;
+      }
+      break;
       default: G_FAST_ASSERT(0); break;
     }
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC

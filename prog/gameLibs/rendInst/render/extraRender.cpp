@@ -819,9 +819,7 @@ static void repopulate_tiled_scenes()
   int repopulated_cnt = 0;
   bbox3f accum_box;
   v_bbox3_init_empty(accum_box);
-  for (int res_idx = 0; res_idx < riExtra.size(); res_idx++)
-  {
-    RiExtraPool &pool = riExtra[res_idx];
+  rendinst::iterateRIExtra([&](int res_idx, RiExtraPool &pool) {
     rendinst::add_ri_pool_to_tiled_scenes(pool, res_idx, nullptr, sqrtf(pool.distSqLOD[rendinst::RiExtraPool::MAX_LODS - 1]));
     for (int idx = 0; idx < pool.tsNodeIdx.size(); idx++)
     {
@@ -839,7 +837,7 @@ static void repopulate_tiled_scenes()
       v_bbox3_init(wabb, tm44, pool.lbb);
       v_bbox3_add_box(accum_box, wabb);
     }
-  }
+  });
   if (repopulated_cnt > 0)
   {
     riutil::world_version_inc(accum_box);
@@ -949,15 +947,16 @@ void rendinst::render::on_ri_mesh_relems_updated(const RenderableInstanceLodsRes
 #endif
   {
     ScopedRIExtraReadLock wr;
-    for (auto &re : riExtra)
+    iterateRIExtra([&](int id, const RiExtraPool &re) {
       if (re.res == r)
-        on_ri_mesh_relems_updated_pool(&re - riExtra.data());
+        on_ri_mesh_relems_updated_pool(id);
+    });
   }
 #if !defined(DAGOR_THREAD_SANITIZER)
   else // Ensure that passed ri res is not present in riExtra (othewise it should be with correct riExtraId)
     G_ASSERT([r] {
       ScopedRIExtraReadLock wr;
-      return eastl::find(riExtra.begin(), riExtra.end(), r, [](auto &re, auto r) { return re.res == r; }) == riExtra.end();
+      return iterateRIExtra([&](int, const RiExtraPool &re) { return re.res != r; });
     }());
 #endif
 }
@@ -1128,14 +1127,14 @@ void rendinst::render::rebuildAllElemsInternal()
 
 void rendinst::render::reinitOnShadersReload()
 {
-  int riExtraCount = rendinst::riExtra.size();
-  if (!riExtraCount)
+  if (riExtra.empty())
     return;
-  for (int i = 0; i < riExtraCount; ++i)
-  {
+  int riExtraCount = 0;
+  iterateRIExtra([&](int i, const auto &) {
     updateShaderElems(i);
     riExtraPoolWasNotSavedToElems[i] = true;
-  }
+    ++riExtraCount;
+  });
   interlocked_release_store(pendingRebuildCnt, riExtraCount);
   rebuildAllElemsInternal();
 }

@@ -42,6 +42,10 @@ KRNLIMP void set_title_utf8(const char *title, const char *tooltip = NULL);
 
 KRNLIMP int get_screen_refresh_rate();
 KRNLIMP void set_fullscreen_mode(bool enable);
+
+// Returns with the full, unclipped size of the client area.
+KRNLIMP bool get_window_client_size(void *w, int &width, int &height);
+
 KRNLIMP bool get_window_screen_rect(void *w, RECT *rect, RECT *rect_unclipped);
 
 KRNLIMP void process_messages();

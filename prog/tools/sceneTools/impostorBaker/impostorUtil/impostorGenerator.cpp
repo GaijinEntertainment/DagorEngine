@@ -28,6 +28,7 @@
 
 #include <libTools/shaderResBuilder/processMat.h>
 #include <libTools/shaderResBuilder/shaderMeshData.h>
+#include <libTools/util/appDirRelativePath.h>
 
 #include <assets/asset.h>
 #include <assets/assetExpCache.h>
@@ -101,7 +102,6 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
   appBlkCopy.setFrom(&app_blk, app_blk.resolveFilename());
   context.app = this;
   assetsBlk = appBlkCopy.getBlockByNameEx("assets");
-  const DataBlock *game_blk = appBlkCopy.getBlockByName("game");
   const DataBlock *impostorBlock = assetsBlk->getBlockByName("impostor");
   const DataBlock *dyanmicDefferedBlk = appBlkCopy.getBlockByName("dynamicDeferred");
 
@@ -123,7 +123,7 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
 
     G_ASSERTF(impostorBlock->paramExists("data_folder"), "Add data_folder:t to the assets/impostor block in %s",
       app_blk.resolveFilename(true));
-    folder = String(0, "%s/%s/", app_dir, impostorBlock->getStr("data_folder"));
+    make_eff_app_relative_path(folder, impostorBlock->getStr("data_folder"), true);
     int readParams = 1; // for data_folder
     int readBlocks = 0;
     if (impostorBlock->paramExists("splitAt"))
@@ -247,7 +247,7 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
   else
   {
     G_ASSERTF(assetsBlk->paramExists("impostor_data_folder"), "Add the assets/impostor block to %s", app_blk.resolveFilename(true));
-    folder = String(0, "%s/%s/", app_dir, assetsBlk->getStr("impostor_data_folder"));
+    make_eff_app_relative_path(folder, assetsBlk->getStr("impostor_data_folder"), true);
   }
 
   context.assetMgr = assetManager;
@@ -487,6 +487,7 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
     }
 
     riDataBlock(asset, *impostorBlk, false);
+    assetManager->notifyAssetChanged(asset);
     return true;
   };
 

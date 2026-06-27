@@ -270,12 +270,13 @@ static constexpr ecs::ComponentDesc cinematic_mode_settings_changed_es_event_han
   {ECS_HASH("cinematic_mode__manager"), ecs::ComponentTypeInfo<CinematicMode>()},
   {ECS_HASH("cinematic_mode__lenseCoveringTex"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("cinematic_mode__lenseRadialTex"), ecs::ComponentTypeInfo<ecs::string>()},
-//start of 12 ro components at [3]
+//start of 13 ro components at [3]
   {ECS_HASH("cinematic_mode__vignetteStrength"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("cinematic_mode__lenseFlareIntensity"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("cinematic_mode__lenseDust"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("cinematic_mode__chromaticAberration"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("cinematic_mode__filmGrain"), ecs::ComponentTypeInfo<Point4>()},
+  {ECS_HASH("cinematic_mode__filmGrainMul"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("cinematic_mode__fps"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("cinematic_mode__subPixels"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("cinematic_mode__superPixels"), ecs::ComponentTypeInfo<int>()},
@@ -296,6 +297,7 @@ static void cinematic_mode_settings_changed_es_event_handler_all_events(const ec
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__lenseDust", bool)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__chromaticAberration", Point3)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__filmGrain", Point4)
+    , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__filmGrainMul", float)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__fps", int)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__subPixels", int)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__superPixels", int)
@@ -312,13 +314,13 @@ static ecs::EntitySystemDesc cinematic_mode_settings_changed_es_event_handler_es
   "prog/daNetGame/render/cinematicModeES.cpp.inl",
   ecs::EntitySystemOps(nullptr, cinematic_mode_settings_changed_es_event_handler_all_events),
   make_span(cinematic_mode_settings_changed_es_event_handler_comps+0, 3)/*rw*/,
-  make_span(cinematic_mode_settings_changed_es_event_handler_comps+3, 12)/*ro*/,
+  make_span(cinematic_mode_settings_changed_es_event_handler_comps+3, 13)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-,nullptr,"cinematic_mode__audioDataFName,cinematic_mode__bitrate,cinematic_mode__chromaticAberration,cinematic_mode__enablePostBloom,cinematic_mode__filmGrain,cinematic_mode__fname,cinematic_mode__fps,cinematic_mode__lenseDust,cinematic_mode__lenseFlareIntensity,cinematic_mode__subPixels,cinematic_mode__superPixels,cinematic_mode__vignetteStrength");
+,nullptr,"cinematic_mode__audioDataFName,cinematic_mode__bitrate,cinematic_mode__chromaticAberration,cinematic_mode__enablePostBloom,cinematic_mode__filmGrain,cinematic_mode__filmGrainMul,cinematic_mode__fname,cinematic_mode__fps,cinematic_mode__lenseDust,cinematic_mode__lenseFlareIntensity,cinematic_mode__subPixels,cinematic_mode__superPixels,cinematic_mode__vignetteStrength");
 static constexpr ecs::ComponentDesc cinematic_mode_save_bloom_threshold_es_comps[] =
 {
 //start of 1 rw components at [0]

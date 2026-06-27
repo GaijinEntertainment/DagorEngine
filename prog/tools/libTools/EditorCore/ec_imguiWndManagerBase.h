@@ -3,6 +3,7 @@
 
 #include "ec_editorCommand.h"
 
+#include <EditorCore/ec_rect.h>
 #include <EditorCore/ec_wndPublic.h>
 #include <dag/dag_vector.h>
 
@@ -12,10 +13,26 @@
 class ImguiWndManagerBase : public IWndManager
 {
 public:
-  int run(int width, int height, const char *caption, const char *icon, WindowSizeInit size) override { return 0; }
+  class WindowPositionAndSize
+  {
+  public:
+    WindowPositionAndSize() { reset(); }
 
-  bool loadLayout(const char *filename) override { return false; }
-  void saveLayout(const char *filename) override {}
+    void reset()
+    {
+      rectangle = EcRect{};
+      maximized = true;
+    }
+
+    bool isValid() const { return rectangle.width() >= MINIMUM_SIZE && rectangle.height() >= MINIMUM_SIZE; }
+
+    static constexpr int MINIMUM_SIZE = 32;
+
+    EcRect rectangle;
+    bool maximized;
+  };
+
+  int run(int width, int height, const char *caption, const char *icon, WindowSizeInit size) override { return 0; }
 
   void registerWindowHandler(IWndManagerWindowHandler *handler) override
   {

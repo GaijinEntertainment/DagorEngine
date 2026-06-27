@@ -16,6 +16,7 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/conLogWriter.h>
 #include <libTools/util/progressInd.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <regExp/regExp.h>
 #include <generic/dag_sort.h>
 #include <libTools/dtx/ddsxPlugin.h>
@@ -615,7 +616,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
   if (jobMem)
     debug("jobMem=%p, jobs=%d", jobMem, jobMem->jobCount);
 
-  String cache_base(260, "%s/%s/", app_dir, expblk.getStr("cache", "/develop/.cache"));
+  String cache_base = make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache"), true);
   String cache_base_patch(260, "%spatch/", cache_base.str());
   String dest_base;
   String nonpatch_dest_base;
@@ -750,6 +751,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
                     debug("  job j%02d: finished %s", get_job_idx(ctx), ctx->data);
                   ctx->setup(targetCode, profile);
                   strncpy(ctx->data, tex->getName(), sizeof(ctx->data));
+                  ctx->data[sizeof(ctx->data) - 1] = '\0';
                   jp.startJob(ctx, 1);
                   tex_cnt++;
                   log.addMessage(ILogWriter::NOTE, "scheduled tex asset <%s> conversion", tex->getName());
@@ -778,6 +780,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
             debug("  job j%02d: finished %s", get_job_idx(ctx), ctx->data);
           ctx->setup(targetCode, profile);
           strncpy(ctx->data, ctex[i]->getName(), sizeof(ctx->data));
+          ctx->data[sizeof(ctx->data) - 1] = '\0';
           jp.startJob(ctx, 1);
           log.addMessage(ILogWriter::NOTE, "scheduled tex asset <%s> conversion", ctex[i]->getName());
 
@@ -858,9 +861,12 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
             ctx->setup(targetCode, profile);
             ctx->pkgId = pkid;
             ctx->packId = i;
-            strncpy(ctx->data, tex_pack[i]->packName, sizeof(ctx->data));
-            strncpy(ctx->data + 500, dest_base, sizeof(ctx->data) - 500);
+            strncpy(ctx->data, tex_pack[i]->packName, 500);
+            ctx->data[499] = '\0';
+            strncpy(ctx->data + 500, dest_base, 300);
+            ctx->data[799] = '\0';
             strncpy(ctx->data + 800, pack_fname_prefix, sizeof(ctx->data) - 800);
+            ctx->data[sizeof(ctx->data) - 1] = '\0';
             ctx->donePk = ++done_tpacks;
             ctx->totalPk = total_tpacks;
             ctx->patchBuild = pkg_patch_build[pkid + 1];
@@ -908,9 +914,12 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
             ctx->setup(targetCode, profile);
             ctx->pkgId = pkid;
             ctx->packId = i;
-            strncpy(ctx->data, grp_pack[i]->packName, sizeof(ctx->data));
-            strncpy(ctx->data + 500, dest_base, sizeof(ctx->data) - 500);
+            strncpy(ctx->data, grp_pack[i]->packName, 500);
+            ctx->data[499] = '\0';
+            strncpy(ctx->data + 500, dest_base, 300);
+            ctx->data[799] = '\0';
             strncpy(ctx->data + 800, pack_fname_prefix, sizeof(ctx->data) - 800);
+            ctx->data[sizeof(ctx->data) - 1] = '\0';
             ctx->donePk = ++done_rpacks;
             ctx->totalPk = total_rpacks;
             ctx->patchBuild = pkg_patch_build[pkid + 1];
@@ -964,8 +973,7 @@ bool exportAssets(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, 
       else
       {
         if (pkid < 0)
-          grpvromfs_fname.printf(260, "%s/%s", app_dir,
-            pkg_patch_build[0] ? to_patch_dir(grpvromfs_dest_fname) : grpvromfs_dest_fname);
+          make_eff_app_relative_path(grpvromfs_fname, pkg_patch_build[0] ? to_patch_dir(grpvromfs_dest_fname) : grpvromfs_dest_fname);
         else
           grpvromfs_fname.printf(260, "%s/%s", dest_base.str(), dd_get_fname(grpvromfs_dest_fname));
         simplify_fname(grpvromfs_fname);
@@ -1410,7 +1418,7 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
     }
   }
 
-  String cache_base(260, "%s/%s/", app_dir, expblk.getStr("cache", "/develop/.cache"));
+  String cache_base = make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache"), true);
   String cache_base_patch(260, "%spatch/", cache_base.str());
   String dest_base;
 

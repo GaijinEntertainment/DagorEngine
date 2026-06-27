@@ -3,11 +3,13 @@
 #include <pathFinder/tileCache.h>
 #include <pathFinder/tileCacheUtil.h>
 #include <pathFinder/pathFinder.h>
+#include <recastTools/recastTileCacheDetail.h>
 #include <scene/dag_tiledScene.h>
 #include <math/dag_mathUtils.h>
 #include <DetourCommon.h>
 #include <DetourNavMesh.h>
 #include <DetourNavMeshQuery.h>
+#include <debug/dag_debug.h>
 
 #ifdef FAST_LZ_SUPPORTED
 #include <arc/fastlz/fastlz.h>
@@ -72,6 +74,24 @@ static inline bool is_obstacle_in_tile(const dtCompressedTileRef *a, const int n
     if (a[i] == v)
       return true;
   return false;
+}
+
+TileCacheMeshProcess::TileCacheMeshProcess() : detailStorage(eastl::make_unique<recastnavmesh::TileCacheDetailStorage>()) {}
+
+TileCacheMeshProcess::~TileCacheMeshProcess() = default;
+
+void TileCacheMeshProcess::setDetailedData(bool include, float sample_dist, float sample_max_error)
+{
+  includeDetailedData = include;
+  detailSampleDist = sample_dist;
+  detailSampleMaxError = sample_max_error;
+  if (!includeDetailedData && detailStorage)
+    detailStorage->clear();
+}
+
+TileCacheDetailSettings TileCacheMeshProcess::getDetailedDataSettings() const
+{
+  return {includeDetailedData ? 1u : 0u, detailSampleDist, detailSampleMaxError};
 }
 
 static inline bool is_pt_in_obstacle(const float *center, const float *half_extents, const float *rot_aux, const float *p)
@@ -452,8 +472,11 @@ void TileCacheMeshProcess::remove(int tx, int ty, int tlayer)
 }
 
 void TileCacheMeshProcess::process(struct dtNavMeshCreateParams *params, unsigned char *polyAreas, unsigned short *polyFlags,
-  dtCompressedTileRef ref)
+  dtCompressedTileRef ref, const dtTileCacheLayer &layer)
 {
+  if (detailStorage)
+    detailStorage->clear();
+
   for (int i = 0; i < params->polyCount; ++i)
   {
     const auto area = polyAreas[i];
@@ -465,6 +488,20 @@ void TileCacheMeshProcess::process(struct dtNavMeshCreateParams *params, unsigne
       case POLYAREA_BLOCKED: flags |= POLYFLAG_BLOCKED; break;
     }
     polyFlags[i] = flags;
+  }
+
+  if (includeDetailedData && detailStorage)
+  {
+    const dtTileCacheParams *tcParams = tc->getParams();
+    const float sampleDist = detailSampleDist < 0.9f ? 0.0f : params->cs * detailSampleDist;
+    const float sampleMaxError = params->ch * detailSampleMaxError;
+    if (detailStorage->build(layer, *params, tcParams->maxSimplificationError, sampleDist, sampleMaxError))
+      detailStorage->apply(*params);
+    else
+      logwarn("navmesh: failed to build tile cache detail mesh for tile (%d, %d, %d), "
+              "(%.3f, %.3f, %.3f)-(%.3f, %.3f, %.3f), detail sample dist %.3f, max error %.3f",
+        params->tileX, params->tileY, params->tileLayer, params->bmin[0], params->bmin[1], params->bmin[2], params->bmax[0],
+        params->bmax[1], params->bmax[2], sampleDist, sampleMaxError);
   }
 
   const dtMeshTile *tile = mesh->getTileAt(params->tileX, params->tileY, params->tileLayer);

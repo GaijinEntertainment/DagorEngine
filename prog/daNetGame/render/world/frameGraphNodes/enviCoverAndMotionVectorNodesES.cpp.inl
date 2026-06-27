@@ -219,7 +219,7 @@ static dafg::NodeHandle makeResolveMotionVectorsNode()
     auto prevViewVecsHndl = registry.historyFor("view_vectors").blob<ViewVecs>().handle();
 
     auto subFrameSampleHndl = registry.read("sub_frame_sample").blob<SubFrameSample>().handle();
-    return [camcamHandle, motionVectorsResolve = PostFxRenderer("motion_vectors_resolve"), subFrameSampleHndl, cameraHndl,
+    return [camcamHandle, motionVectorsResolve = PostFxRenderer("resolve_motion_vectors"), subFrameSampleHndl, cameraHndl,
              prevCameraHndl, viewVecsHndl, prevViewVecsHndl](const dafg::multiplexing::Index multiplexing_index) {
       camera_in_camera::ApplyPostfxState camcam{multiplexing_index, camcamHandle.ref(), camera_in_camera::USE_STENCIL};
 

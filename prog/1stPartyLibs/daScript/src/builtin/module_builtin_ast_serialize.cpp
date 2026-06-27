@@ -2704,11 +2704,6 @@ namespace das {
         exprBlockMap.clear();
     }
 
-    uint32_t AstSerializer::getVersion () {
-        static constexpr uint32_t currentVersion = 191;
-        return currentVersion;
-    }
-
     // Serializes the whole script as opposed to just one module
     bool WIN_EH_NO_ASAN AstSerializer::serializeScript ( ProgramPtr program ) noexcept {
         try {

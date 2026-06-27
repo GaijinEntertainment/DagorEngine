@@ -27,6 +27,7 @@
 #include <libTools/dagFileRW/textureNameResolver.h>
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 #include <libTools/shaderResBuilder/matSubst.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <oldEditor/de_interface.h>
 #include <propPanel/constants.h>
 #include <propPanel/control/panelWindow.h>
@@ -467,7 +468,7 @@ public:
     assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
     for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
       if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-        assetMgr.loadAssetsBase(String::mk_str_cat(app_dir, blk.getStr(i)), "global");
+        assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
     if (!minimize_dabuild_usage) // prefer real texture assets to gameres loaded from *.dxp.bin
     {
       dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();
@@ -493,7 +494,7 @@ public:
       assetMgr.mountFmodEvents(blk.getStr("fmodEvents", NULL));
 
     if (const char *efx_fname = appblk.getBlockByNameEx("assets")->getStr("efxBlk", NULL))
-      mount_efx_assets(assetMgr, String(0, "%s/%s", app_dir, efx_fname));
+      mount_efx_assets(assetMgr, make_eff_app_relative_path(efx_fname));
 
     if (0)
     {
@@ -544,7 +545,7 @@ public:
       if (get_max_managed_texture_id())
         debug("tex/res registered with   AssetBase: %d", get_max_managed_texture_id().index());
     }
-    assetlocalprops::init(app_dir, "develop/.asset-local");
+    assetlocalprops::init("develop/.asset-local");
     AssetExportCache::createSharedData(assetlocalprops::makePath("assets-hash.bin"));
 
     if (!assettags::load(assetMgr))

@@ -54,6 +54,7 @@ dafg::NodeHandle makeGroundNode(bool early, MainNodeRenderPass mode)
       .optional();
 
     return [cameraHndl = cameraHndl, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
+      debug_mesh::activate_mesh_coloring_master_override(); // to avoid lod coloring bleeding through terrain
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
 
       bool enableFeedback =
@@ -68,6 +69,7 @@ dafg::NodeHandle makeGroundNode(bool early, MainNodeRenderPass mode)
         if (wr.clipmap && !debugTriangle)
           wr.clipmap->increaseUAVAtomicPrefix();
       }
+      debug_mesh::deactivate_mesh_coloring_master_override();
     };
   });
 }

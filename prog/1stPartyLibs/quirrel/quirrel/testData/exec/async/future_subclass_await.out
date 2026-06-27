@@ -1,3 +1,2 @@
 script done
 await subclass, value == 7: true
-chain-unwrap subclass, value == 9: true

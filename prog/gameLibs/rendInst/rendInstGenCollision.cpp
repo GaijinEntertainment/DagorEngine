@@ -2391,7 +2391,7 @@ public:
     }
 
     if constexpr (eastl::is_same_v<bounding_type_t, BBox3> || eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
-      return v_bbox3_test_sph_intersect(worldBoxA, bsph_pos, bsph_rad);
+      return v_bbox3_test_sph_intersect(worldBoxA, bsph_pos, v_sqr_x(bsph_rad));
 
     if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
     {
@@ -2633,6 +2633,8 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
                   continue;
                 CollisionResource *collRes = rgl->rtData->riCollRes[p].collRes;
                 bool paletteRotation = (riPaletteRotationData[p / (sizeof(riPosInstBit) * CHAR_BIT)] & riPosInstBit) != 0;
+                vec4f posBoundingRad =
+                  collRes ? v_add_x(v_length3_x(collRes->vBoundingSphere), v_set_x(collRes->getBoundingSphereRad())) : v_zero();
                 const bbox3f vFullBBox = collRes ? collRes->vFullBBox : rgl->rtData->riCollResBb[p];
                 bbox3f vCanopyBBox = {};
                 bool checkCanopy = (ri_types & GatherRiTypeFlag::RiGenCanopy) && riProp.canopyOpacity > 0.f;
@@ -2695,9 +2697,7 @@ static bool forEachRendinstInBounding(int layer, const bounding_type_t &obj_boun
                         continue;
                       if (collRes)
                       {
-                        vec4f posBoundingRad =
-                          v_add_x(v_length3_x(collRes->vBoundingSphere), v_set_x(collRes->getBoundingSphereRad()));
-                        if (!objectBounding.testSphereIntersectionEst(v_pos, posBoundingRad))
+                        if (!objectBounding.testSphereIntersectionEst(v_pos, v_mul_x(posBoundingRad, v_hmax3(v_scale))))
                           continue;
                       }
 

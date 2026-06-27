@@ -532,6 +532,35 @@ public:
   float climbOverMaxHeightBehindObstacle = 2.0f;
   float climbOverStaticVelocity = 2.f;
 
+  struct ClimbTrajectoryPoint
+  {
+    ClimbTrajectoryPoint(Point3 p, float t) : position(p), time(t) {}
+
+    Point3 position;
+    float time;
+  };
+
+  enum ClimbState
+  {
+    CLIMB_STATE_JUMP_UP = 0,
+    CLIMB_STATE_CLIMB = 1,
+    CLIMB_STATE_JUMP_DOWN = 2,
+    CLIMB_STATE_FLY_DOWN = 3,
+    CLIMB_STATE_LANDING = 4,
+  };
+
+  bool useClimbTrajectory = false;
+  Tab<ClimbTrajectoryPoint> climbTrajectory;
+  int climbTrajectoryStage = 0;
+  float climbTime = 0.f;
+  float climbMaxTime = 0.f;
+  float climbTrajectorySpeedCoef = 1.f;
+  Point3 climbTrajectoryStartPositionOffset;
+  Point3 climbTrajectoryPrevPos = {0.f, 0.f, 0.f};
+  Point3 climbTrajectoryNextPos = {0.f, 0.f, 0.f};
+  float climbTrajectoryPrevTime = 0.f;
+  float climbTrajectoryNextTime = 0.f;
+
   CollisionObject torsoCollision;
   CollisionObject climberCollision;
 
@@ -585,6 +614,7 @@ public:
 
   void updateClimbing(float at_time, float dt, const TMatrix &tm, const Point3 &vert_dir, const Point3 &cur_coll_center,
     bool torso_collided, const Point3 &torso_coll_norm);
+  void updateClimbingWithTrajectory(float dt, const TMatrix &tm, const Point3 &vert_dir, const Point3 &cur_coll_center);
 
   bool checkWallClimbing(const TMatrix &tm);
 

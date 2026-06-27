@@ -37,14 +37,19 @@ class StubTimeManager final : public ITimeManager
 
 void auth_get_country_code(ecs::EntityManager &, eastl::string &) { G_ASSERT(0); }
 
+float get_sync_time() { G_ASSERT_RETURN(false, 0.); }
+double get_sync_time_d() { G_ASSERT_RETURN(false, 0.); }
+int get_sync_millis() { G_ASSERT_RETURN(false, 0); }
+int get_async_millis() { G_ASSERT_RETURN(false, 0); }
+double advance_time(float, float &) { G_ASSERT_RETURN(false, 0.); }
+void reset_time_mgr(ITimeManager *) { G_ASSERT(0); }
+bool is_dummy_time() { G_ASSERT_RETURN(false, true); }
 ITimeManager &get_time_mgr()
 {
   G_ASSERT(0);
-  static StubTimeManager stub;
-  return stub;
+  static DummyTimeManager d;
+  return d;
 }
-float get_sync_time() { G_ASSERT_RETURN(false, 0.); }
-double get_sync_time_d() { G_ASSERT_RETURN(false, 0.); }
 
 std::uint32_t get_current_server_route_id() { G_ASSERT_RETURN(false, {}); }
 const char *get_server_route_host(std::uint32_t) { G_ASSERT_RETURN(false, {}); }
@@ -67,6 +72,7 @@ const char *BasePhysActor::getPhysTypeStr() const { return nullptr; }
 
 int send_net_msg(ecs::EntityManager &, ecs::EntityId, net::IMessage &&, const net::MessageNetDesc *) { G_ASSERT_RETURN(false, -1); }
 int send_net_msg(ecs::EntityId, net::IMessage &&, const net::MessageNetDesc *) { G_ASSERT_RETURN(false, -1); }
+int send_net_msg(net::IMessage &&, const net::MessageNetDesc *) { G_ASSERT_RETURN(false, -1); }
 
 void send_transform_snapshots_targeted_event(ecs::EntityId, danet::BitStream &) { G_ASSERT(0); }
 void send_transform_snapshots_event(danet::BitStream &) { G_ASSERT(0); }
@@ -828,6 +834,12 @@ ILagCompensationMgr &get_lag_compensation()
   static StubLagCompensationMgr stub;
   return stub;
 }
+
+#include "main/hostedServerLauncher.h"
+bool is_hosted_internal_server_active() { G_ASSERT_RETURN(false, false); }
+bool try_begin_hosted_server_start() { G_ASSERT_RETURN(false, false); }
+void clear_hosted_server_start_pending() { G_ASSERT(0); }
+bool is_hosted_server_start_pending() { G_ASSERT_RETURN(false, false); }
 
 #include <perFrameStat/perFrameStat.h>
 namespace benchmark_perframe_stat

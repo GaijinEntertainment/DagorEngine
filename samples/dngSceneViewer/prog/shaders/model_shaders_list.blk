@@ -1,4 +1,4 @@
-file:t = "rendinst_glass.dshl"
+file:t = "rendinst_refraction.dshl"
 file:t = "rendinst_simple_glass.dshl"
 file:t = "rendinst_emissive.dshl"
 //file:t = "rendinst_translucent.dshl"

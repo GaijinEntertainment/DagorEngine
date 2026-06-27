@@ -51,10 +51,14 @@ macro USE_DOF_COMPOSITE_FAR(code)
     screen_size@f2 = (rendering_res.zw, 0, 0);
     dof_far_layer@smp2d = dof_far_layer;
     dof_focus_params@f4 = dof_focus_params;
-    dof_blend_tex@smp2d = dof_blend_tex;
+    dof_blend_tex@tex2d = dof_blend_tex;
   }
+
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
+
   hlsl(code) {
     #define HAS_FAR_DOF 1
+    #define dof_blend_tex_samplerstate global_linear_wrap_sampler
     #include <dof/circleOfConfusion.hlsl>
     #include <tex2d_bicubic.hlsl>
     half4 get_dof_far(float2 tc, float2 dof_resolution)

@@ -24,9 +24,7 @@ HaveEmbeddedBrowser ?= no ; # include/skip embedded browser support
 HaveAssetManager ?= no ;    # include/skip asset manager (runtime dabuild-cache) support
 Dedicated ?= no ;           # select dedicated server or client
 
-if $(UseWholeOpt) != yes {
-  UseLLDLink ?= yes ;
-}
+UseLLDLink ?= yes ; # faster than default ld/link.exe
 
 if $(Dedicated) = yes { ContentUpdater ?= no ; }
 else { ContentUpdater ?= yes ; }
@@ -190,7 +188,7 @@ if $(NeedDasAotCompile) = yes && $(AotCompilerBaseName) {
     checkonly on $(jam:G=JAM) = \  ;
     DAS_AOT_COMPILER = $(AotCompilerBaseName)-$(host_platform)-$(host_arch)-c-dev ;
     if $(Platform) = macOS { config on $(jam:G=JAM) += -sMacOSXMinVer=$(MacOSXMinVer) ; }
-    config on $(jam:G=JAM) += -sOutDir=$(AotCompilerBaseName:D) -sTarget=$(AotCompilerBaseName:B) -sCheckedContainers=yes ;
+    config on $(jam:G=JAM) += -sOutDir=$(AotCompilerBaseName:D) -sTarget=$(AotCompilerBaseName:B) -sCheckedContainers=yes -sPlatformSpec=$(PlatformSpec) -sUseLLDLink=$(UseLLDLink) ;
     config on $(jam:G=JAM) += -sProjectLocation=$(Location) ;
     DAS_AOT_COMPILER_OPT ?= -- --config aot_compiler_config.blk -sConfig $(Config) ;
     if $(OS) = NT { DAS_AOT_COMPILER = $(DAS_AOT_COMPILER).exe ; }

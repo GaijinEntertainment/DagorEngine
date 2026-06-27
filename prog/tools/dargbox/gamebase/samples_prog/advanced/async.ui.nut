@@ -20,18 +20,18 @@ function conlog(...){
 
 // Wrap a callback-shape API (gui_scene.setTimeout) into an awaitable Future.
 // Same pattern used to adapt eventbus / httpRequest / file IO callbacks.
-// Plain function returning a Future: chain-unwrap at the await site adopts
-// it transparently. The `: instance` annotation tells the analyzer the
-// return may be a Future, suppressing w328 redundant-await at callers.
+// Plain sync function returning a Future: `await` peels one level, so the
+// await site sees the resolved value. The `: instance` annotation tells the
+// analyzer the return may be a Future, suppressing w328 redundant-await at callers.
 function timeoutFuture(sec, value): instance {
   let p = Future()
   gui_scene.setTimeout(sec, @() p.resolve(value))
   return p
 }
 
-// Async function that throws after a delay -- only way to faulted state
-// from script (script-side has no .reject(); throw inside async surfaces
-// via the await-throw channel for bug-shaped failures).
+// Async function that throws after a delay. A thrown value faults the
+// task-future and surfaces via the await-throw channel for bug-shaped
+// failures; Future.reject(value) is the other way to a faulted state.
 async function delayedThrow(sec, reason) {
   await delay(sec)
   throw reason

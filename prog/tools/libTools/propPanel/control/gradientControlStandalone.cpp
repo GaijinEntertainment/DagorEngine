@@ -153,7 +153,7 @@ bool TrackGradientButton::updateImgui(const Point2 &view_offset, const Point2 &m
 
   for (int i = 0; i < my; ++i)
   {
-    int j = lerp(0, mx, i / (my - 1.0));
+    int j = lerp<float>(0, mx, i / (my - 1.0));
 
     drawList->AddLine(ImVec2(cur_pos.x - j, cur_pos.y - i) + view_offset, ImVec2(cur_pos.x + j, cur_pos.y - i) + view_offset, color);
   }

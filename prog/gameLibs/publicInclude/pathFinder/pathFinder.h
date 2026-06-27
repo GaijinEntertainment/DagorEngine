@@ -321,6 +321,7 @@ obstacle_handle_t tilecache_obstacle_add(const Point3 &c, const Point3 &ext, flo
   bool sync = false);
 
 void rebuildNavMesh_init();
+void rebuildNavMesh_initFromCurrent();
 void rebuildNavMesh_setup(const char *name, float value);
 void rebuildNavMesh_setup(const char *name, const Point2 &value);
 void rebuildNavMesh_addBBox(const BBox3 &);

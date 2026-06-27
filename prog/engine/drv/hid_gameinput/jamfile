@@ -8,6 +8,9 @@ Sources =
   gamepad_classdrv.cpp
   gamepad_device.cpp
   gamepad_composite.cpp
+  flightstick_classdrv.cpp
+  flightstick_device.cpp
+  flightstick_device_impl.cpp
   keyboard_classdrv.cpp
   keyboard_device.cpp
   mouse_emu.cpp

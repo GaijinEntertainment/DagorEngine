@@ -18,6 +18,7 @@ public:
   HeroWetness();
   ~HeroWetness();
 
+  void init(const DataBlock &settings);
   void clearHeroWetnessVolume();
   void calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const BBox3 &hero_box, bool is_ship, bool has_water_3d,
     float water_level);
@@ -34,7 +35,6 @@ public:
   void afterReset() { fillVertexBuffer(getVbSize()); }
 
 protected:
-  void init();
   void close();
   // hero foam
   void initHeroWaterFoam(const DataBlock *options_blk);

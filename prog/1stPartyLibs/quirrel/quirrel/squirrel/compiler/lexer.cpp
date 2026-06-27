@@ -152,6 +152,7 @@ void SQLexer::LexBlockComment()
               ++line;
               nextLine();
               NEXT();
+              _currentcolumn = 0;
               start = _currentcolumn;
               continue;
             case SQUIRREL_EOB:
@@ -413,6 +414,8 @@ SQInteger SQLexer::GetIDType(const char *s,SQInteger len)
 
 SQInteger SQLexer::AddUTF8(SQUnsignedInteger ch)
 {
+    if (ch >= 0xD800 && ch <= 0xDFFF)
+        return 0;
     if (ch < 0x80) {
         APPEND_CHAR((char)ch);
         return 1;
@@ -498,7 +501,8 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim, bool advance)
                         char temp[8 + 1];
                         ProcessStringHexEscape(temp, maxdigits);
                         char *stemp;
-                        AddUTF8(strtoul(temp, &stemp, 16));
+                        if (!AddUTF8(strtoul(temp, &stemp, 16)))
+                            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "invalid unicode escape");
                     }
                     break;
                     case 't': APPEND_CHAR('\t'); NEXT(); break;

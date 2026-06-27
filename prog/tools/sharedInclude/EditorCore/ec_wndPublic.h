@@ -42,8 +42,8 @@ public:
   virtual int run(int width, int height, const char *caption, const char *icon = "", WindowSizeInit size = WSI_NORMAL) = 0;
   virtual void close() = 0;
 
-  virtual bool loadLayout(const char *filename = NULL) = 0;
-  virtual void saveLayout(const char *filename = NULL) = 0;
+  virtual void loadMainWindowPositionAndSize(const DataBlock &blk) = 0;
+  virtual void saveMainWindowPositionAndSize(DataBlock &blk) = 0;
 
   virtual void setMainWindowCaption(const char *caption) = 0;
 

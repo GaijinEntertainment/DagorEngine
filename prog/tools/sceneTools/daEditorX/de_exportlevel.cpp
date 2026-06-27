@@ -23,6 +23,7 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/binDumpUtil.h>
 #include <libTools/util/binDumpReader.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/dagFileRW/textureNameResolver.h>
 
@@ -887,7 +888,6 @@ static bool cmp_data_eq(mkbindump::BinDumpSaveCB &cwr, const char *pack_fname)
 
 static bool loadLevelSettingsBlk(DataBlock &levelSettingsBlk)
 {
-  String app_root(DAGORED2->getWorkspace().getAppDir());
   DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
   String fn(0, "levels/%s", DAGORED2->getProjectFileName());
   remove_trailing_string(fn, ".level.blk");
@@ -896,13 +896,15 @@ static bool loadLevelSettingsBlk(DataBlock &levelSettingsBlk)
   class LevelsFolderIncludeFileResolver : public DataBlock::IIncludeFileResolver
   {
   public:
-    LevelsFolderIncludeFileResolver() : prefix(tmpmem), appDir(NULL) {}
+    LevelsFolderIncludeFileResolver() : prefix(tmpmem) {}
     bool resolveIncludeFile(String &inout_fname) override
     {
       String fn;
       for (int i = 0; i < prefix.size(); i++)
       {
-        fn.printf(0, "%s/%s/levels/%s", appDir, prefix[i], inout_fname);
+        make_eff_app_relative_path(fn, prefix[i]);
+        fn += "/levels/";
+        fn += inout_fname;
         if (dd_file_exists(fn))
         {
           inout_fname = fn;
@@ -911,10 +913,9 @@ static bool loadLevelSettingsBlk(DataBlock &levelSettingsBlk)
       }
       return false;
     }
-    void preparePrefixes(const DataBlock *b, const char *app_dir)
+    void preparePrefixes(const DataBlock *b)
     {
       prefix.clear();
-      appDir = app_dir;
       if (!b)
         return;
       for (int i = 0; i < b->paramCount(); i++)
@@ -922,11 +923,10 @@ static bool loadLevelSettingsBlk(DataBlock &levelSettingsBlk)
           prefix.push_back(b->getStr(i));
     }
     Tab<const char *> prefix;
-    const char *appDir;
   };
   static LevelsFolderIncludeFileResolver inc_resv;
 
-  inc_resv.preparePrefixes(appblk.getBlockByName("levelsBlkPrefix"), app_root);
+  inc_resv.preparePrefixes(appblk.getBlockByName("levelsBlkPrefix"));
   DataBlock::setIncludeResolver(&inc_resv);
 
   debug("Loading level settings from \"%s\"", fn);
@@ -934,14 +934,16 @@ static bool loadLevelSettingsBlk(DataBlock &levelSettingsBlk)
   int prefix_tried = 0;
   for (int i = 0; i < inc_resv.prefix.size(); i++)
   {
-    String fpath(0, "%s/%s/%s", app_root, inc_resv.prefix[i], fn);
+    String fpath = make_eff_app_relative_path(inc_resv.prefix[i], true);
+    fpath.append(fn);
     if (dd_file_exists(fpath) && levelSettingsBlk.load(fpath))
     {
       loaded = true;
       break;
     }
     debug("%s is %s", fpath, dd_file_exists(fpath) ? "CORRUPT" : "MISSING");
-    fpath.printf(0, "%s/%s/%s", app_root, inc_resv.prefix[i], dd_get_fname(fn));
+    make_eff_app_relative_path(fpath, inc_resv.prefix[i], true);
+    fpath.append(dd_get_fname(fn));
     if (dd_file_exists(fpath) && levelSettingsBlk.load(fpath))
     {
       loaded = true;

@@ -4,6 +4,7 @@
 #include <daECS/net/message.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <debug/dag_assert.h>
+#include <util/dag_globDef.h>
 
 namespace net
 {

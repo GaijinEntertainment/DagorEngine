@@ -253,7 +253,8 @@ static void on_relem_changed(ContextId context_id, const DynamicRenderableSceneL
                   PerInstanceDataUse::ALLOWED))
             {
               bool isAnimated = meshInfo->vertexProcessor && !meshInfo->vertexProcessor->isOneTimeOnly();
-              add_object(context_id, objectId, {{eastl::move(meshInfo.value())}, isAnimated, get_tag(resource, true, lodIx)});
+              add_object(context_id, objectId,
+                {{eastl::move(meshInfo.value())}, BvhType::Dyn, isAnimated, get_tag(resource, true, lodIx)});
             }
           }
         }
@@ -283,7 +284,8 @@ static void on_relem_changed(ContextId context_id, const DynamicRenderableSceneL
                   posMul, posAdd, bounding, false, PerInstanceDataUse::ALLOWED))
             {
               bool isAnimated = meshInfo->vertexProcessor && !meshInfo->vertexProcessor->isOneTimeOnly();
-              add_object(context_id, objectId, {{eastl::move(meshInfo.value())}, isAnimated, get_tag(resource, true, lodIx)});
+              add_object(context_id, objectId,
+                {{eastl::move(meshInfo.value())}, BvhType::Dyn, isAnimated, get_tag(resource, true, lodIx)});
             }
           }
         }
@@ -521,6 +523,8 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
   IterCtx *ctx = (IterCtx *)user_data;
   ContextId bvh_context_id = ctx->contextId;
 
+  bool hasVisibility = !all_visibility.empty();
+
   auto bvhId = inst.getLodsResource()->getBvhId();
   if (!bvhId)
   {
@@ -710,7 +714,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
       if (!mesh)
         return;
 
-      if (!all_visibility[visibility_index + node_id] || radius < min_elem_radius)
+      if ((hasVisibility && !all_visibility[visibility_index + node_id]) || radius < min_elem_radius)
         return;
 
       nodeOffsetRenderData += rigid_chunk_size;
@@ -823,7 +827,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
       }
     },
     [&](const ShaderSkinnedMesh *mesh, int node_id, int skin_no) {
-      if (!all_visibility[visibility_index + node_id])
+      if (hasVisibility && !all_visibility[visibility_index + node_id])
         return;
 
       auto elems = mesh->getShaderMesh().getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
@@ -926,14 +930,16 @@ struct DynrendBVHJob : public cpujobs::IJob
   dynrend::ContextId dynrendContextId;
   dynrend::ContextId dynrendNoShadowContextId;
   Point3 viewPosition;
+  dag::Vector<DynamicRenderableSceneInstance *> ogInstances;
 
   void start(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id, dynrend::ContextId dynrend_no_shadow_context_id,
-    const Point3 &view_position)
+    const Point3 &view_position, dag::Vector<DynamicRenderableSceneInstance *> &&og_instances)
   {
     bvhContextId = bvh_context_id;
     dynrendContextId = dynrend_context_id;
     dynrendNoShadowContextId = dynrend_no_shadow_context_id;
     viewPosition = view_position;
+    ogInstances = eastl::move(og_instances);
     threadpool::add(this, threadpool::PRIO_HIGH);
   }
 
@@ -955,6 +961,11 @@ struct DynrendBVHJob : public cpujobs::IJob
 
       dynrend::iterate_instances(dynrendContextId, iterate_instances, &ctx);
       DA_PROFILE_TAG(bvh::update_dynrend_instances, "count: %d", ctx.count);
+
+      dynrend::AddedPerInstanceRenderData emptyPID;
+      for (auto og : ogInstances)
+        if (auto res = og->getCurSceneResource())
+          iterate_instances((dynrend::ContextId)-1, *res, *og, false, emptyPID, {}, 0, 0, 0, 0, nullptr, 0, &ctx);
 
       if (bvhContextId->decalDataHolder)
         d3d::resource_barrier(ResourceBarrierDesc(bvhContextId->decalDataHolder.get(), RB_RO_SRV | RB_STAGE_ALL_SHADERS));
@@ -995,7 +1006,8 @@ struct DynrendBVHJob : public cpujobs::IJob
 } dynrend_bvh_job;
 
 void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
-  dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position)
+  dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position,
+  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances)
 {
   if (!bvh_context_id->has(Features::AnyDynrend))
     return;
@@ -1003,7 +1015,7 @@ void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynre
   static int bvh_decalsVarId = get_shader_variable_id("bvh_decals", true);
   ShaderGlobal::set_int(bvh_decalsVarId, bvh_decals ? 1 : 0);
 
-  dynrend_bvh_job.start(bvh_context_id, dynrend_context_id, dynrend_no_shadow_context_id, view_position);
+  dynrend_bvh_job.start(bvh_context_id, dynrend_context_id, dynrend_no_shadow_context_id, view_position, eastl::move(og_instances));
 }
 
 void wait_dynrend_instances() { dynrend_bvh_job.wait(); }

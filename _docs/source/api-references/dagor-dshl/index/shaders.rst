@@ -375,6 +375,128 @@ These indices are then used to retrieve the corresponding texture and sampler fr
 
 This is what ``get_<texture_name>()`` essentialy does for you.
 
+.. _explicit-bindless-resources:
+
+---------------------------
+Explicit bindless resources
+---------------------------
+
+The ``@static*`` material textures above are an *implicit* bindless path: the
+material system owns the resource and packs its ``uint2 {texture, sampler}`` slot
+into the per-material cbuffer for you.
+
+``@bindless*`` postfixes are the *explicit* counterpart: you bind an arbitrary
+resource into a bindless heap yourself and pass the shader its slot index through
+an ``int`` shader variable. Texture and sampler are independent (one ``int`` slot
+each), and the resource is whatever C++/daFrameGraph registered in the bindless heap
+at that index, rather than a material texture slot.
+
+.. list-table::
+  :header-rows: 1
+
+  * - Postfix
+    - HLSL element type
+  * - @bindlessTex2D
+    - Texture2D
+  * - @bindlessTex3D
+    - Texture3D
+  * - @bindlessTexCube
+    - TextureCube
+  * - @bindlessTexArray
+    - Texture2DArray
+  * - @bindlessTexCubeArray
+    - TextureCubeArray
+  * - @bindlessSampler
+    - SamplerState
+  * - @bindlessByteBuffer
+    - ByteAddressBuffer
+
+The right-hand side of the declaration is an ``int`` shader variable holding the
+bindless slot index; ``-1`` means "no resource bound".
+
+For each ``@bindless*`` declaration the compiler generates two functions: ``get_<name>()``
+fetches the resource from its bindless heap by the slot index (returning the postfix's
+HLSL element type, so ``get_albedo_smp()`` is a ``SamplerState`` and
+``get_albedo_buffer()`` a ``ByteAddressBuffer``), and ``has_<name>()`` returns whether
+a resource is bound (``slot >= 0``). Optional resources must be guarded with
+``has_<name>()`` before calling ``get_<name>()``:
+
+.. code-block:: text
+
+    int albedo_bindless_index = -1;
+    int bindless_sampler_index = -1;
+
+    shader example_bindless
+    {
+      (ps) {
+        albedo_2d@bindlessTex2D = albedo_bindless_index;
+        albedo_smp@bindlessSampler = bindless_sampler_index;
+      }
+
+      hlsl(ps) {
+        float4 main_ps() : SV_Target0
+        {
+          if (!has_albedo_2d())
+            return float4(0, 0, 0, 1);
+
+          SamplerState smp = get_albedo_smp();
+          return get_albedo_2d().SampleLevel(smp, float2(0, 0), 0);
+        }
+      }
+    }
+
+.. note::
+  Unlike ``@static*`` material textures, ``@bindless*`` has no non-bindless fallback:
+  it requires bindless support to be enabled for the target. Using it for a target
+  without bindless enabled is a compile error.
+
+There is no sugar for ``StructuredBuffer<T>``: it needs a per-element type, while the
+shared heap is untyped. Declare such a heap by hand and pass the slot through a plain
+``@i1`` int instead. Heap spaces ``1-6`` (the third argument to ``BINDLESS_*_ARRAY``)
+are reserved by the ``@bindless*`` heaps (textures ``1-5``, ``ByteAddressBuffer`` ``6``);
+use ``7+`` for your own arrays.
+
+.. code-block:: text
+
+    int my_sbuffer_index = -1;
+
+    shader example_bindless_sbuffer
+    {
+      (ps) {
+        my_sbuffer_id@i1 = (my_sbuffer_index);
+      }
+
+      hlsl(ps) {
+        BINDLESS_BUF_ARRAY(StructuredBuffer<float4>, sbufArr, 7);
+
+        float4 main_ps() : SV_Target0
+        {
+          if (my_sbuffer_id < 0)
+            return float4(0, 0, 0, 1);
+          return sbufArr[my_sbuffer_id][0];
+        }
+      }
+    }
+
+The ``int`` slot variable is filled on the CPU side. Manually, the slot index comes
+from the bindless API in ``<drv/3d/dag_bindless.h>`` (see
+:doc:`/api-references/dagor-render/index/d3dAPI/Bindless`):
+``d3d::allocate_bindless_resource_range()`` / ``d3d::update_bindless_resource()`` (or
+the ``d3d::add_bindless_resource()`` shortcut). Pass the returned index to the shader
+variable:
+
+.. code-block:: cpp
+
+    #include <drv/3d/dag_bindless.h>
+
+    // allocate a slot and point it at the resource
+    uint32_t idx = d3d::add_bindless_resource(D3DResourceType::TEX, tex);
+    ShaderGlobal::set_int(get_shader_variable_id("albedo_bindless_index", true), idx);
+
+Alternatively, inside a frame graph node, daFrameGraph's ``bindlessShaderVar()`` request
+does the allocation and sets this variable for you. See
+:cpp:class:`dafg::VirtualResourceRequest` in :doc:`/api-references/dagor-render/index/daFrameGraph/declaringNodes`.
+
 -------
 Buffers
 -------

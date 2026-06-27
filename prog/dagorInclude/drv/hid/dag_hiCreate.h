@@ -17,6 +17,7 @@ IGenPointingClassDrv *createWinMouseClassDriver();
 IGenJoystickClassDrv *createJoystickClassDriver(bool exclude_xinput = false, bool remap_360 = false);
 IGenJoystickClassDrv *createXinputJoystickClassDriver(bool should_mix_input = false);
 IGenJoystickClassDrv *createGameInputJoystickClassDriver(bool should_mix_input = false);
+IGenJoystickClassDrv *createGameInputFlightStickClassDriver();
 IGenKeyboardClassDrv *createGameInputKeyboardClassDriver();
 IGenJoystickClassDrv *createSteamJoystickClassDriver(const char *absolute_path_to_controller_config);
 

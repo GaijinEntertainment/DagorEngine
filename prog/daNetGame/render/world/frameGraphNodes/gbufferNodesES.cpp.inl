@@ -119,6 +119,22 @@ static inline float w_to_depth(float w, const Point2 &zNearFar, float def)
 RESOLVE_GBUFFER_SHADERVARS
 #undef VAR
 
+static inline bool use_single_pass_shading()
+{
+  static bool isDeferredLightShaderMissing = !shader_exists("deferredLight");
+  return isDeferredLightShaderMissing;
+}
+
+static inline bool use_deferred_lighting()
+{
+  return renderer_has_feature(FeatureRenderFlags::DEFERRED_LIGHT) && !use_single_pass_shading();
+}
+
+static inline bool use_deferred_shading()
+{
+  return renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED) && !use_single_pass_shading();
+}
+
 // TODO Restore compute shader version, or delete the shader as a whole
 // CONSOLE_BOOL_VAL("render", deferred_light_on_compute, false);
 // deferredLightCompute = Ptr(new_compute_shader("deferred_light_compute"))
@@ -249,7 +265,7 @@ static void bindResolvePassResources(dafg::Registry registry)
     registry.bindBlob("combined_shadows_sampler", "combined_shadows_samplerstate");
   }
 
-  if (renderer_has_feature(FeatureRenderFlags::DEFERRED_LIGHT))
+  if (use_deferred_lighting())
   {
     registry.readTexture("current_specular").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("specular_tex");
     registry.readTexture("current_ambient").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("current_ambient");
@@ -285,6 +301,59 @@ static dafg::NodeHandle makeClearResolveTargetNode()
         d3d::set_render_target({}, DepthAccess::RW, {{resolveTargetHndl.get(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       }
+    };
+  });
+}
+
+static dafg::NodeHandle makeStubBlackTextureNode()
+{
+  return dafg::register_node("single_pass_shading_prepare_stub_texture_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.createTexture2d("single_pass_shading_stub_black_tex", {TEXFMT_A8R8G8B8 | TEXCF_RTARGET, IPoint2(4, 4)})
+      .withHistory(dafg::History::No);
+    auto stubTexHndl = registry.modifyTexture("single_pass_shading_stub_black_tex")
+                         .atStage(dafg::Stage::POST_RASTER)
+                         .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                         .handle();
+
+    return [stubTexHndl]() {
+      d3d::set_render_target({}, DepthAccess::RW, {{stubTexHndl.get(), 0, 0}});
+      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+    };
+  });
+}
+
+static dafg::NodeHandle makeSinglePassResolveGbufferNode(const char *resolve_pshader_name)
+{
+  return dafg::register_node("resolve_gbuffer_node", DAFG_PP_NODE_SRC, [resolve_pshader_name](dafg::Registry registry) {
+    registry.readBlob("gi_before_frame_lit_token").optional();
+    registry.readBlob("conditional_resolve_target_clear_token").optional();
+
+    registry.requestRenderPass().color({"opaque_resolved"}).depthReadTestAndSample("gbuf_depth", {"depth_gbuf"});
+
+    bindResolvePassResources(registry);
+    registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
+    auto camera = use_current_camera(registry);
+    auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
+    registry.requestState().setFrameBlock("global_frame");
+
+    static constexpr const char *shaderVars[] = {"precomputed_dynamic_lights", "precomputed_dynamic_lights_mask",
+      "precomputed_indoor_probes", "precomputed_indoor_probes_mask", "envi_cover_intensity_map", "droplets_8bit_tex",
+      "distant_fog_result_inscatter"};
+    for (auto shaderVar : shaderVars)
+      registry.readTexture("single_pass_shading_stub_black_tex").atStage(dafg::Stage::PS).bindToShaderVar(shaderVar);
+
+    return [resolveShader = PostFxRenderer(resolve_pshader_name), cameraHndl]() {
+      WRDispatcher::getShadowsManager().setShadowFrameIndex(cameraHndl.ref());
+
+      ShaderGlobal::set_int(get_shader_variable_id("use_precomputed_dynamic_lights"), 1);
+
+      // emulate different sun color on different height feature with constant sun color
+      Color4 sunColor = ShaderGlobal::get_float4(get_shader_variable_id("sun_color_0"));
+      ShaderGlobal::set_float4(get_shader_variable_id("sun_color_0_ht0"), sunColor.r, sunColor.g, sunColor.b, 1.0f);
+      ShaderGlobal::set_float4(get_shader_variable_id("sun_color_0_ht1"), sunColor.r, sunColor.g, sunColor.b, 2.0f);
+      ShaderGlobal::set_float4(get_shader_variable_id("sun_color_0_ht2"), sunColor.r, sunColor.g, sunColor.b, 3.0f);
+
+      resolveShader.render();
     };
   });
 }
@@ -491,20 +560,27 @@ static dafg::NodeHandle makeRenderOtherLightsNode()
 
 static eastl::fixed_vector<dafg::NodeHandle, 3, false> makeResolveGbufferNodes(const char *resolve_pshader_name)
 {
-  const bool isFullDeferred = renderer_has_feature(FULL_DEFERRED);
   const bool useDepthBounds = ::depth_bounds_enabled();
 
   eastl::fixed_vector<dafg::NodeHandle, 3, false> result;
   result.push_back(makeClearResolveTargetNode());
-  if (isFullDeferred)
+  if (use_single_pass_shading())
+  {
+    result.push_back(makeStubBlackTextureNode());
+    result.push_back(makeSinglePassResolveGbufferNode(resolve_pshader_name));
+  }
+  else if (use_deferred_shading())
   {
     result.push_back(makeFullResolveGbufferNode(resolve_pshader_name));
     result.push_back(makeRenderOtherLightsNode());
   }
-  else if (useDepthBounds)
-    result.push_back(makeThinResolveGbufferNodeWithDepthBounds(resolve_pshader_name));
   else
-    result.push_back(makeThinResolveGbufferNode(resolve_pshader_name));
+  {
+    if (useDepthBounds)
+      result.push_back(makeThinResolveGbufferNodeWithDepthBounds(resolve_pshader_name));
+    else
+      result.push_back(makeThinResolveGbufferNode(resolve_pshader_name));
+  }
   return result;
 }
 
@@ -530,7 +606,7 @@ static void create_gbuffer_nodes_es(const OnCameraNodeConstruction &evt)
     evt.nodes->push_back(makePrepareGbufferDepthNode(gbufDepthFormat));
   }
 
-  if (renderer_has_feature(FeatureRenderFlags::DEFERRED_LIGHT))
+  if (use_deferred_lighting())
   {
     auto nodes = makeDeferredLightNode(evt.giNeedsReprojection);
     for (auto &n : nodes)
@@ -539,13 +615,12 @@ static void create_gbuffer_nodes_es(const OnCameraNodeConstruction &evt)
 
   {
     const char *resolve_shader = nullptr;
-
-    const bool thinGBuffer = !renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED);
-
-    if (thinGBuffer)
-      resolve_shader = THIN_GBUFFER_RESOLVE_SHADER;
-    else
+    if (use_single_pass_shading())
+      resolve_shader = "deferred_shadow_to_buffer";
+    else if (use_deferred_shading())
       resolve_shader = evt.isBareMinimum ? "deferred_shadow_bare_minimum" : "deferred_shadow_to_buffer";
+    else
+      resolve_shader = THIN_GBUFFER_RESOLVE_SHADER;
 
     auto nodes = makeResolveGbufferNodes(resolve_shader);
     for (auto &n : nodes)

@@ -40,7 +40,8 @@ public:
   struct BuildSwrtBLASScratch
   {
     dag::Vector<Point3_vec4> verts;
-    dag::Vector<uint32_t> indices; // uint32 to support CollisionResources with > 65536 verts
+    dag::Vector<uint32_t> indices;   // uint32 to support CollisionResources with > 65536 verts
+    dag::Vector<vec4f> orderedVerts; // leafOrderVertexFetch output: SAH-leaf-ordered + window-dedup'd BLAS verts
     dag::Vector<bbox3f> primBoxes;
   };
 

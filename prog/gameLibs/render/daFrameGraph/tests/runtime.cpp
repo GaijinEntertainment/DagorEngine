@@ -4,13 +4,20 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <math/random/dag_random.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_interface_table.h>
 #include <memory/dag_framemem.h>
+#include <shaders/dag_shaderVar.h>
+#include <EASTL/any.h>
 #include <EASTL/vector.h>
 
 
 static D3dInterfaceTable g_interfaceTableCopy;
 
+namespace shader_vars_mock
+{
+void set(const char *name, eastl::any value);
+} // namespace shader_vars_mock
 
 enum class Message
 {
@@ -502,6 +509,77 @@ TEST_CASE("Test optional shader var", "[shader vars]")
     }
     testRuntime.executeGraph();
   }
+}
+
+namespace
+{
+constexpr const char *HISTORY_BINDING_TEST_SHVAR = "fg_history_binding_test_var";
+
+TMatrix4 make_test_matrix(float base)
+{
+  return TMatrix4(base + 0.f, base + 1.f, base + 2.f, base + 3.f, base + 4.f, base + 5.f, base + 6.f, base + 7.f, base + 8.f,
+    base + 9.f, base + 10.f, base + 11.f, base + 12.f, base + 13.f, base + 14.f, base + 15.f);
+}
+
+struct HistoryBindingData
+{
+  int shaderVar = 0;
+  TMatrix4 view = make_test_matrix(100.f);
+  TMatrix4 proj = make_test_matrix(200.f);
+};
+
+HistoryBindingData make_history_binding_data(int value)
+{
+  return HistoryBindingData{value, make_test_matrix(100.f + value * 32.f), make_test_matrix(200.f + value * 32.f)};
+}
+
+bool matrix_equal(const TMatrix4 &lhs, const TMatrix4 &rhs) { return lhs == rhs; }
+} // namespace
+
+TEST_CASE("History blob bindings use previous frame data", "[history requests][shader vars]")
+{
+  TestRuntime testRuntime{};
+  shader_vars_mock::set(HISTORY_BINDING_TEST_SHVAR, -1);
+
+  HistoryBindingData currentData = make_history_binding_data(1);
+  HistoryBindingData expectedHistory = make_history_binding_data(0);
+
+  auto producerHandle = dafg::register_node("history_binding_producer", DAFG_PP_NODE_SRC, [&currentData](dafg::Registry registry) {
+    auto blobHandle = registry.create("binding_data").blob<HistoryBindingData>().withHistory().handle();
+    return [blobHandle, &currentData] { blobHandle.ref() = currentData; };
+  });
+
+  auto consumerHandle =
+    dafg::register_node("history_binding_consumer", DAFG_PP_NODE_SRC, [&currentData, &expectedHistory](dafg::Registry registry) {
+      registry.executionHas(dafg::SideEffects::External);
+
+      auto currentHandle = registry.readBlob<HistoryBindingData>("binding_data").handle();
+      registry.readBlobHistory<HistoryBindingData>("binding_data")
+        .bindToShaderVar<&HistoryBindingData::shaderVar>(HISTORY_BINDING_TEST_SHVAR);
+      registry.readBlobHistory<HistoryBindingData>("binding_data").bindAsView<&HistoryBindingData::view>();
+      registry.readBlobHistory<HistoryBindingData>("binding_data").bindAsProj<&HistoryBindingData::proj>();
+
+      return [currentHandle, &currentData, &expectedHistory] {
+        CHECK(currentHandle.get()->shaderVar == currentData.shaderVar);
+
+        const int shaderVarId = VariableMap::getVariableId(HISTORY_BINDING_TEST_SHVAR);
+        CHECK(ShaderGlobal::get_int(shaderVarId) == expectedHistory.shaderVar);
+
+        TMatrix4 observedView;
+        d3d::gettm(TM_VIEW, &observedView);
+        CHECK(matrix_equal(observedView, expectedHistory.view));
+
+        TMatrix4 observedProj;
+        d3d::gettm(TM_PROJ, &observedProj);
+        CHECK(matrix_equal(observedProj, expectedHistory.proj));
+      };
+    });
+
+  testRuntime.executeGraph();
+
+  expectedHistory = currentData;
+  currentData = make_history_binding_data(2);
+  testRuntime.executeGraph();
 }
 
 TEST_CASE("Simple history request", "[history requests]")
@@ -1536,7 +1614,7 @@ TEST_CASE("Evil renderpass recreation", "[render pass]")
     destroyedRenderPasses.push_back(rp);
   };
 
-  d3di.begin_render_pass = [](d3d::RenderPass *rp, const RenderPassArea, const RenderPassTarget *) {
+  d3di.begin_render_pass = [](d3d::RenderPass *rp, const RenderPassArea, dag::ConstSpan<RenderPassTarget>) {
     CHECK(eastl::find(createdRenderPasses.begin(), createdRenderPasses.end(), rp) != createdRenderPasses.end());
     CHECK(eastl::find(destroyedRenderPasses.begin(), destroyedRenderPasses.end(), rp) == destroyedRenderPasses.end());
   };

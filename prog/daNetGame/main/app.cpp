@@ -10,6 +10,7 @@
 #include <asyncHTTPClient/asyncHTTPClient.h>
 #include <debug/dag_logSys.h>
 #include <debug/dag_textMarks.h>
+#include <debug/dag_debugTextStream.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <generic/dag_carray.h>
@@ -317,7 +318,7 @@ eastl::tuple<float /*rtDt*/, float /*dt*/, double /*curTime*/> updateTime()
   else
     d3d::driver_command(Drv3dCommand::GET_GPU_FRAME_TIME, &rtDt, &rtDt); // Choose the smoothest dt.
 
-  double curTime = get_time_mgr().advance(rtDtNoSmoothing * timeSpeed, /*out*/ rtDt);
+  double curTime = advance_time(rtDtNoSmoothing * timeSpeed, /*out*/ rtDt);
   float dt = rtDt * timeSpeed;
   return eastl::make_tuple(rtDt, dt, curTime);
 }
@@ -715,10 +716,15 @@ static void dump_config_blk(const DataBlock &configBlk)
   dumpBlk.setFrom(&configBlk);
   for (const char *exludeBlockName : excludeConfigBlkDumpNames)
     dumpBlk.removeBlock(exludeBlockName);
+#if _TARGET_PC
   DynamicMemGeneralSaveCB dump(tmpmem);
   dumpBlk.saveToTextStream(dump);
   dump.writeInt(0);
   logmessage(_MAKE4C('SPAM'), "%s:\n%s", "config", dump.data());
+#else
+  DebugTextStream dump{"SPAM  config:"};
+  dumpBlk.saveToTextStream(dump);
+#endif
 #else
   G_UNUSED(configBlk);
 #endif

@@ -555,6 +555,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   // Warning: intentionally not spinlock, since it has extremely bad behaviour
   // in case of high contention (e.g. during several threads of loading etc...)
   WinCritSec mutex;
+  // Held only during processEmergencyDefragmentation; used by frontendSyncFence to block
+  // new buffer locks while GPU memory is being moved, without coupling to the main mutex.
+  WinCritSec defragGuard;
   struct WorkerThread : public DaThread
   {
     WorkerThread(DeviceContext &c) :
@@ -1348,6 +1351,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 public:
   DeviceContext() = delete;
   ~DeviceContext() = default;
+
+  WinCritSec &getDefragGuard();
 
   DeviceContext(const DeviceContext &) = delete;
   DeviceContext &operator=(const DeviceContext &) = delete;

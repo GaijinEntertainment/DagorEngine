@@ -75,35 +75,49 @@ daSWRT::BuiltBLAS RenderSWRT::buildBLAS(const uint16_t *indices, int index_count
   if (build_bvh::checkIfIsBox(indices, index_count, verts4, vertex_count, out.box))
     return out; // isBox() == true, box populated
 
+  // SAH-leaf-order renumber + shared window-block over-spread dup (build_bvh, see dag_bvhBuild.h).
+  // Indices are uint32 so the dup tail can exceed 65536 without truncation (the quad leaf stores a
+  // 32-bit base vertex offset; only the per-vertex window is 10-bit, kept in range by the window dedup).
+  // orderedVerts is the BLAS vert array.
+  Tab<uint32_t> idxCopy(framemem_ptr());
+  idxCopy.resize(index_count);
+  for (int i = 0; i < index_count; ++i)
+    idxCopy[i] = indices[i];
+  dag::Vector<vec4f> orderedVerts;
+  build_bvh::leafOrderVertexFetch(idxCopy.data(), (unsigned)index_count, verts4, (unsigned)vertex_count, QUAD_O1_MAX + 1u,
+    orderedVerts);
+  const vec4f *bverts = orderedVerts.data();
+  const int bvertCount = (int)orderedVerts.size();
+
   // Per-worker transient storage goes through framemem (thread-local stack allocator).
   // Destructors run in LIFO order at function exit, which matches framemem's stack
   // semantics; no heap allocations happen for the inner builders.
   const int faceCount = index_count / 3;
   Tab<build_bvh::QuadPrim> prims(framemem_ptr());
   int quadCount = 0, singleCount = 0;
-  build_bvh::buildQuadPrims(prims, quadCount, singleCount, indices, faceCount, verts4);
+  build_bvh::buildQuadPrims(prims, quadCount, singleCount, idxCopy.data(), faceCount, bverts);
 
   Tab<bbox3f> primBoxes(framemem_ptr());
   primBoxes.resize(prims.size());
-  build_bvh::addQuadPrimitivesAABBList(primBoxes.data(), prims.data(), (int)prims.size(), verts4);
+  build_bvh::addQuadPrimitivesAABBList(primBoxes.data(), prims.data(), (int)prims.size(), bverts);
 
   Tab<bbox3f> nodes(framemem_ptr());
   int maxDepth = 0;
   const int root = build_bvh::create_bvh_node_sah(nodes, primBoxes.data(), (uint32_t)prims.size(), 4, maxDepth);
 
   build_bvh::writeQuadBLAS(out.data, out.box, nodes.data(), root, prims.data(), (int)prims.size(),
-    reinterpret_cast<const uint8_t *>(vertices), (int)sizeof(Point3_vec4), vertex_count);
+    reinterpret_cast<const uint8_t *>(bverts), (int)sizeof(vec4f), bvertCount);
 
-  // writeQuadBLAS packs [tree bytes | vertex_count * 12 bytes of float3] -- subtracting the
-  // vertex payload gives the tree-only span used by reencodeQuadBlasToFP16 and later by
-  // writeTLASLeaf via BLASDataInfo::size.
-  G_ASSERT(out.data.size() > (size_t)vertex_count * 12);
-  out.treeBytes = (uint32_t)(out.data.size() - (size_t)vertex_count * 12);
+  // writeQuadBLAS packs [tree bytes | bvertCount * 12 bytes of float3] -- subtracting the vertex
+  // payload gives the tree-only span used by reencodeQuadBlasToFP16 and later by writeTLASLeaf via
+  // BLASDataInfo::size. bvertCount is the reordered+dup'd count, not the source vertex_count.
+  G_ASSERT(out.data.size() > (size_t)bvertCount * 12);
+  out.treeBytes = (uint32_t)(out.data.size() - (size_t)bvertCount * 12);
 
   // FP16 re-encode runs here (per worker) rather than in copyToGPU: the function walks a
   // single model's tree in place and is fully model-local, so moving it to build time means
   // copyToGPU has no per-model loop and addBuiltModel can just append pre-encoded bytes.
-  build_bvh::reencodeQuadBlasToFP16(out.data.data(), 0, (int)out.treeBytes, vertex_count, BVH_BLAS_LEAF_SIZE);
+  build_bvh::reencodeQuadBlasToFP16(out.data.data(), 0, (int)out.treeBytes, bvertCount, BVH_BLAS_LEAF_SIZE);
   return out;
 }
 

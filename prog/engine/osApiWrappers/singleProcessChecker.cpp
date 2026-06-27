@@ -95,14 +95,15 @@ ExistingInstanceAction check_or_prompt_existing_instance(const char *mutex_name)
   CloseHandle(mutex_wrapper.handle);
   mutex_wrapper.handle = NULL;
 
-  const int btn = os_message_box("Another instance of this executable is already running.\n\n"
-                                 "Yes    -- close this instance.\n"
-                                 "No     -- wait for the previous instance to exit, then continue.\n"
-                                 "Cancel -- run both (may cause slow DX12 startup due to PSO cache contention).",
-    "Another instance is running",
-    GUI_MB_YES_NO_CANCEL | GUI_MB_ICON_WARNING | GUI_MB_NATIVE_DLG | GUI_MB_TOPMOST | GUI_MB_DEF_BUTTON_2);
+  const int btn =
+    os_message_box("Another instance of this executable is already running. Do you want to run this instance on top of it?\n\n"
+                   "Yes -- run on top (may cause slow DX12 startup due to PSO cache contention).\n"
+                   "No -- wait for the previous instance to exit, then continue.\n"
+                   "Cancel -- close this instance.\n",
+      "Another instance is running",
+      GUI_MB_YES_NO_CANCEL | GUI_MB_ICON_WARNING | GUI_MB_NATIVE_DLG | GUI_MB_TOPMOST | GUI_MB_DEF_BUTTON_2);
 
-  if (btn == GUI_MB_BUTTON_1)
+  if (btn == GUI_MB_BUTTON_3)
   {
     debug("single-instance: user chose 'close this instance'");
     return ExistingInstanceAction::ExitProcess;

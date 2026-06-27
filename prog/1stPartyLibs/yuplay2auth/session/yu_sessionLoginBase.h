@@ -26,6 +26,14 @@ protected:
   virtual void onOkStatus(const YuJson& json) {}
 
   void onHttpResponse(const YuString& url, const YuCharTab& data) override;
+
+  bool runLoginAction(const YuString& url, YuStrMap& post, bool common_params = true);
+  bool runLoginAction(const YuString& url, YuStrMap& post, const YuString& game_id);
+  bool runLoginAction(const YuString& url, YuStrMap& post, const YuStrMap& headers);
+  bool runLoginAction(const YuString& url, YuStrMap& post, const YuStrMap& headers,
+                      const YuString& game_id);
+  bool runLoginAction(const YuString& url, YuStrMap& post, const YuString& game_id,
+                      unsigned conn_timeout, unsigned request_timeout);
 };
 
 

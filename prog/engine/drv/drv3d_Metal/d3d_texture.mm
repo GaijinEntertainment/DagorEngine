@@ -41,6 +41,63 @@ namespace drv3d_metal
   extern DriverDesc g_device_desc;
 }
 
+static bool is_depth_format_flg(uint32_t cflg)
+{
+  cflg &= TEXFMT_MASK;
+  return cflg >= TEXFMT_FIRST_DEPTH && cflg <= TEXFMT_LAST_DEPTH;
+}
+
+static const char *resource_type_create_func(D3DResourceType type)
+{
+  switch (type)
+  {
+    case D3DResourceType::CUBETEX:   return "create_cubetex";
+    case D3DResourceType::VOLTEX:    return "create_voltex";
+    case D3DResourceType::ARRTEX:    return "create_array_tex";
+    case D3DResourceType::CUBEARRTEX: return "create_cube_array_tex";
+    default:                          return "create_tex";
+  }
+}
+
+static bool check_texformat(int cflg, D3DResourceType type, bool assert_on_fail = false, const char *tex_name = nullptr)
+{
+  unsigned flags = d3d::get_texformat_usage(cflg, type);
+#define FAIL(reason)                                                                        \
+  {                                                                                         \
+    if (assert_on_fail)                                                                     \
+    {                                                                                       \
+      const char *fmt_name = get_tex_format_name(cflg);                                     \
+      D3D_CONTRACT_ASSERT_FAIL("Metal: %s('%s'): format %s (flags 0x%08X) %s",              \
+        resource_type_create_func(type), tex_name ? tex_name : "<unnamed>",                 \
+        fmt_name ? fmt_name : "unknown", cflg, reason);                                     \
+    }                                                                                       \
+    return false;                                                                           \
+  }
+  if (!(flags & d3d::USAGE_TEXTURE))
+    FAIL("format not supported as texture on this Metal device")
+  if (is_depth_format_flg(cflg))
+  {
+    if (!(flags & d3d::USAGE_DEPTH))
+      FAIL("depth format not supported")
+  }
+  else
+  {
+    if ((cflg & TEXCF_RTARGET) && !(flags & d3d::USAGE_RTARGET))
+      FAIL("format does not support render target")
+    if ((cflg & TEXCF_UNORDERED) && !(flags & d3d::USAGE_UNORDERED))
+      FAIL("format does not support unordered access")
+  }
+#undef FAIL
+  return true;
+}
+
+
+// Texture management
+bool d3d::check_texformat(int cflg)
+{
+  return check_texformat(cflg, D3DResourceType::TEX, false);
+}
+
 /// create texture; if img==NULL, size (w/h) must be specified
 /// if img!=NULL and size==0, dimension will be taken from img
 /// levels specify maximum number of mipmap levels
@@ -50,6 +107,10 @@ namespace drv3d_metal
 ::Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char* name, ResourceTagType)
 {
   check_texture_creation_args(w, h, flg, name);
+
+  if (!check_texformat(flg, D3DResourceType::TEX, true, name))
+    return nullptr;
+
   if (img != NULL)
   {
     w = img->w;
@@ -149,21 +210,29 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int quality_i
 
 CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *name, ResourceTagType)
 {
+  if (!check_texformat(flg, D3DResourceType::CUBETEX, true, name))
+    return nullptr;
   return new drv3d_metal::Texture(size, size, levels, 1, D3DResourceType::CUBETEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
 VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char* name, ResourceTagType)
 {
+  if (!check_texformat(flg, D3DResourceType::VOLTEX, true, name))
+    return nullptr;
   return new drv3d_metal::Texture(w, h, levels, d, D3DResourceType::VOLTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
 ArrayTexture *d3d::create_cube_array_tex(int size, int d, int flg, int levels, const char *name, ResourceTagType)
 {
+  if (!check_texformat(flg, D3DResourceType::CUBEARRTEX, true, name))
+    return nullptr;
   return new drv3d_metal::Texture(size, size, levels, d, D3DResourceType::CUBEARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
 ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char* name, ResourceTagType)
 {
+  if (!check_texformat(flg, D3DResourceType::ARRTEX, true, name))
+    return nullptr;
   return new drv3d_metal::Texture(w, h, levels, d, D3DResourceType::ARRTEX, flg, flg &TEXFMT_MASK, name, false, true);
 }
 
@@ -214,12 +283,6 @@ bool d3d::clear_rwtexf(BaseTexture *tex, const float val[4], uint32_t face, uint
   render.clearTex((drv3d_metal::Texture*)tex, val, mip_level, face);
 
   return true;
-}
-
-static bool is_depth_format_flg(uint32_t cflg)
-{
-  cflg &= TEXFMT_MASK;
-  return cflg >= TEXFMT_FIRST_DEPTH && cflg <= TEXFMT_LAST_DEPTH;
 }
 
 bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
@@ -324,28 +387,39 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
   {
     case TEXFMT_R8:
     case TEXFMT_R8G8:
-    case TEXFMT_A8R8G8B8:
+    case TEXFMT_R8G8B8A8:
         return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE | ret;
+    case TEXFMT_A8R8G8B8:
+      return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE |
+             USAGE_UNORDERED | ret;
     case TEXFMT_A1R5G5B5:
     case TEXFMT_R5G6B5:
     case TEXFMT_A16B16G16R16F:
     case TEXFMT_A32B32G32R32F:
-    case TEXFMT_A2R10G10B10:
     case TEXFMT_R32F:      return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | ret;
 
     case TEXFMT_A8:        return USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | ret;
 
-    case TEXFMT_R11G11B10F: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD | USAGE_SRGBWRITE | USAGE_BLEND | USAGE_VERTEXTEXTURE | ret;
+    case TEXFMT_R11G11B10F: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD | USAGE_SRGBWRITE | USAGE_BLEND | USAGE_VERTEXTEXTURE | USAGE_UNORDERED | ret;
 
-    case TEXFMT_A2B10G10R10:
+    case TEXFMT_A2R10G10B10:
+    case TEXFMT_A2B10G10R10: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | USAGE_UNORDERED | ret;
+
     case TEXFMT_A16B16G16R16:
-    case TEXFMT_G32R32F:
     case TEXFMT_R16F:
-    case TEXFMT_A4R4G4B4:
-    case TEXFMT_L16:
-    case TEXFMT_G16R16:
-    case TEXFMT_G16R16F:     return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | ret;
+    case TEXFMT_A4R4G4B4:  return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | ret;
 
+
+    case TEXFMT_L16: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | USAGE_UNORDERED | ret;
+
+    case TEXFMT_A32B32G32R32UI:
+    case TEXFMT_R32UI:
+    case TEXFMT_R8UI:    return USAGE_RTARGET | USAGE_TEXTURE | USAGE_UNORDERED | ret;
+    case TEXFMT_R32G32UI:   return USAGE_RTARGET | USAGE_TEXTURE | USAGE_UNORDERED | ret;
+    case TEXFMT_G16R16:
+    case TEXFMT_G16R16F: return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_VERTEXTEXTURE | USAGE_BLEND | USAGE_UNORDERED | ret;
+    case TEXFMT_R8G8S:   return USAGE_RTARGET | USAGE_TEXTURE | USAGE_FILTER | USAGE_UNORDERED | ret;
+    case TEXFMT_G32R32F:   return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_UNORDERED | ret;
     case TEXFMT_R9G9B9E5:   return USAGE_TEXTURE | USAGE_FILTER | ([render.device supportsFamily:MTLGPUFamilyMac2] ? 0 : USAGE_UNORDERED | USAGE_RTARGET);
 
     case TEXFMT_DEPTH16:
@@ -366,28 +440,6 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
     default:
         return USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD | USAGE_SRGBWRITE | USAGE_BLEND | USAGE_VERTEXTEXTURE | ret;
   }
-}
-
-bool check_texformat(int cflg, D3DResourceType type)
-{
-  unsigned flags = d3d::get_texformat_usage(cflg, type);
-  unsigned mask = d3d::USAGE_TEXTURE;
-  if (is_depth_format_flg(cflg))
-    mask |= d3d::USAGE_DEPTH;
-  else
-  {
-    if (cflg & TEXCF_RTARGET)
-      mask |= d3d::USAGE_RTARGET;
-    if (cflg & TEXCF_UNORDERED)
-      mask |= d3d::USAGE_UNORDERED;
-  }
-  return (flags & mask) == mask ? true : false;
-}
-
-// Texture management
-bool d3d::check_texformat(int cflg)
-{
-  return check_texformat(cflg, D3DResourceType::TEX);
 }
 
 int d3d::get_max_sample_count(int cflg)

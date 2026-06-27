@@ -58,6 +58,14 @@ eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType v
     case VariableType::f2: varTypeStr = "float2"; break;
     case VariableType::f3: varTypeStr = "float3"; break;
     case VariableType::f4: varTypeStr = "float4"; break;
+    // Bindless consts are bound as a single int slot; the texture/sampler getter type is emitted separately.
+    case VariableType::bindlessTex2D:
+    case VariableType::bindlessTex3D:
+    case VariableType::bindlessTexCube:
+    case VariableType::bindlessTexArray:
+    case VariableType::bindlessTexCubeArray:
+    case VariableType::bindlessSampler:
+    case VariableType::bindlessByteBuffer:
     case VariableType::i1: varTypeStr = "int"; break;
     case VariableType::i2: varTypeStr = "int2"; break;
     case VariableType::i3: varTypeStr = "int3"; break;
@@ -248,10 +256,10 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
     {
       if (!hlsl.definition.empty())
         hlsl.definition += '\n';
-      if (def.isBindless)
-        hlsl.definition.aprintf(0, "uint2 %s%s;", mangledVarName, regSpecification.c_str());
-      else
-        hlsl.definition.aprintf(0, "%s %s%s;", varTypeStr, baseVarName, regSpecification.c_str());
+
+      const char *typeStr = def.isStaticBindless() ? "uint2" : varTypeStr;
+      const char *nameStr = (def.isStaticBindless() || def.isExplicitBindless()) ? mangledVarName : baseVarName;
+      hlsl.definition.aprintf(0, "%s %s%s;", typeStr, nameStr, regSpecification.c_str());
     }
   }
 
@@ -308,22 +316,11 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
     }
   }
 
-  if (def.isBindless)
+  if (def.isStaticBindless())
   {
     G_ASSERT(semantic::vt_is_static_texture(def.type));
-#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
-
-#else
-    const bool isStaticCube = def.type == VariableType::staticTexCube || def.type == VariableType::staticSmpCube;
-    const bool isStaticCubeArray = def.type == VariableType::staticTexCubeArray || def.type == VariableType::staticSmpCubeArray;
-    const bool isStatic3D = def.type == VariableType::staticTex3D || def.type == VariableType::staticSmp3D;
-    const bool isStaticArray = def.type == VariableType::staticTexArray || def.type == VariableType::staticSmpArray;
-    const char *sampleSuffix = isStaticCube        ? "_cube"
-                               : isStaticCubeArray ? "_cube_array"
-                               : isStatic3D        ? "3d"
-                               : isStaticArray     ? "_array"
-                                                   : "";
-#endif
+    const char *texArray = semantic::bindless_array_name(semantic::vt_bindless_shape(def.type));
+    const char *smpArray = semantic::bindless_array_name(semantic::BindlessShape::Sampler);
     if (semantic::vt_is_static_sampled_texture(def.type))
     {
       hlsl.postfix.aprintf(0,
@@ -332,22 +329,37 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
         "%s get_%s()\n"
         "{\n"
         "  %s texSamp;\n"
-        "  texSamp.tex = static_textures%s[get_%s().x];\n"
-        "  texSamp.smp = static_samplers[get_%s().y];\n"
+        "  texSamp.tex = %s[get_%s().x];\n"
+        "  texSamp.smp = %s[get_%s().y];\n"
         "  return texSamp;\n"
         "}\n"
         "#endif\n",
-        baseVarName, baseVarName, samplerTypeStr, baseVarName, samplerTypeStr, sampleSuffix, mangledVarName, mangledVarName);
+        baseVarName, baseVarName, samplerTypeStr, baseVarName, samplerTypeStr, texArray, mangledVarName, smpArray, mangledVarName);
     }
     else
     {
       hlsl.postfix.aprintf(128,
         "#ifndef BINDLESS_GETTER_%s\n"
         "#define BINDLESS_GETTER_%s\n"
-        "%s get_%s() { return static_textures%s[get_%s().x]; }\n"
+        "%s get_%s() { return %s[get_%s().x]; }\n"
         "#endif\n",
-        baseVarName, baseVarName, varTypeStr, baseVarName, sampleSuffix, mangledVarName);
+        baseVarName, baseVarName, varTypeStr, baseVarName, texArray, mangledVarName);
     }
+  }
+  else if (def.isExplicitBindless())
+  {
+    // get_<name>() fetches the resource from its global bindless heap array by the int slot, so usage
+    // mirrors the @staticTex/@staticSmp getters; has_<name>() reports whether a resource is bound (-1 = missing).
+    const semantic::BindlessShape shape = semantic::vt_bindless_shape(def.type);
+    const char *elemType = semantic::bindless_array_desc(shape).elemType;
+    const char *arrayName = semantic::bindless_array_name(shape);
+    hlsl.postfix.aprintf(0, "\nbool has_%s() { return %s >= 0; }", baseVarName, mangledVarName);
+#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
+
+
+#else
+    hlsl.postfix.aprintf(0, "\n%s get_%s() { return %s[%s]; }\n", elemType, baseVarName, arrayName, mangledVarName);
+#endif
   }
   else if (semantic::vt_is_static_texture(def.type)) // Static textures, but not compiled as bindless
   {
@@ -369,7 +381,7 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
     }
   }
 
-  if ((def.shvarType == SHVT_COLOR4 || def.shvarType == SHVT_INT4) && def.isDynamic)
+  if ((def.shvarType == SHVT_COLOR4 || def.shvarType == SHVT_INT4) && def.isDynamic && !def.isExplicitBindless())
   {
     if ((def.type == VariableType::f44 && def.registerSize == 4) || def.initializer.size() == 1)
       hlsl.postfix.aprintf(0, "%s get_%s() { return %s; }", varTypeStr, baseVarName, baseVarName);
@@ -440,7 +452,7 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
     static const int rwtex_to_cod[STAGE_MAX] = {SHCOD_RWTEX_CS, SHCOD_RWTEX_PS, SHCOD_RWTEX_VS};
     static const int rwbuf_to_cod[STAGE_MAX] = {SHCOD_RWBUF_CS, SHCOD_RWBUF_PS, SHCOD_RWBUF_VS};
 
-    if (def.isBindless)
+    if (def.isStaticBindless())
       shcod = SHCOD_REG_BINDLESS;
     else if (def.type == VariableType::uav)
     {

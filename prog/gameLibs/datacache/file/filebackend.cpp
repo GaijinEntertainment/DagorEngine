@@ -134,6 +134,7 @@ void FileBackend::onFoundFiles(dag::ConstSpan<Tab<alefind_t>> fnd_results)
     {
       G_ASSERT(strlen(fnd->fmask) > mountPathLen + 1);
       strncpy(tmpPath, fnd->fmask, sizeof(tmpPath));
+      tmpPath[sizeof(tmpPath) - 1] = '\0';
       tmpPath[strlen(tmpPath) - 1] = '\0'; // trim '*'
       strncat(tmpPath, fnd->name, sizeof(tmpPath) - strlen(tmpPath) - 1);
       const char *fname = tmpPath + mountPathLen + 1; // skip mount path & '/'

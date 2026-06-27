@@ -108,4 +108,37 @@ constexpr bool IsPreXe(uint16_t deviceId)
   return false;
 }
 
+// Xe-LP -- the first Xe generation (Gen12.0/12.1/12.2). Excludes the later Xe
+// branches that share the "Xe" brand: DG2/Arc (Xe-HPG, 0x56xx), Meteor Lake
+// (Xe-LPG, 0x7Dxx) and the Xe2 parts (Battlemage 0xE2xx, Lunar Lake 0x64xx).
+constexpr bool IsXeLP(uint16_t deviceId)
+{
+  // ---- Gen12.0 -- DG1 / SG1 (discrete) ----
+  // 0x4905..0x4909
+  if ((deviceId & 0xFFF0) == 0x4900)
+    return true;
+
+  // ---- Gen12.0 -- Tiger Lake ----
+  // 0x9A40..0x9AF8
+  if ((deviceId & 0xFF00) == 0x9A00)
+    return true;
+
+  // ---- Gen12.0 -- Rocket Lake ----
+  // 0x4C80..0x4C9A
+  if ((deviceId & 0xFFE0) == 0x4C80)
+    return true;
+
+  // ---- Gen12.2 -- Alder Lake (S/P/N) ----
+  // 0x4600..0x46FF
+  if ((deviceId & 0xFF00) == 0x4600)
+    return true;
+
+  // ---- Gen12.2 -- Raptor Lake ----
+  // 0xA720, 0xA721, 0xA780..0xA7AC
+  if ((deviceId & 0xFF00) == 0xA700)
+    return true;
+
+  return false;
+}
+
 } // namespace gpu

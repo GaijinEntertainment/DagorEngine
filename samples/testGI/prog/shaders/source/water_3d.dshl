@@ -148,7 +148,7 @@ shader water_nv2
   {
     (ps)
     {
-      water_foam_tex@smp2d = water_foam_tex;
+      water_foam_tex@tex2d = water_foam_tex;
 
       world_to_foam_x1@f4 = world_to_foam_x1;
       world_to_foam_y1@f4 = world_to_foam_y1;
@@ -157,6 +157,8 @@ shader water_nv2
       world_to_foam_y2@f4 = world_to_foam_y2;
       world_to_foam_w2@f4 = world_to_foam_w2;
     }
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+    hlsl(ps) { #define water_foam_tex_samplerstate global_linear_wrap_sampler }
   }
 
   USE_READ_DEPTH_GBUFFER()

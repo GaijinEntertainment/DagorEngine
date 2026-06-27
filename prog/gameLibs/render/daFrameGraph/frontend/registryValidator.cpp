@@ -9,6 +9,7 @@
 #include "common/genericPoint.h"
 #include <common/resourceUsage.h>
 
+#include <drv/3d/dag_samplerHandle.h>
 #include <EASTL/algorithm.h>
 #include <memory/dag_framemem.h>
 #include <dag/dag_vectorSet.h>
@@ -221,7 +222,7 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
   for (const auto &[bindId, req] : nodeData.bindings)
   {
     // TODO: validate that subtypes match when binding matrices
-    if (req.type != BindingType::ShaderVar)
+    if (req.type != BindingType::ShaderVar && req.type != BindingType::BindlessShaderVar)
       continue;
 
     const auto svType = ShaderGlobal::get_var_type(bindId);
@@ -250,6 +251,20 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
       continue;
 
     const auto resType = createdResourceDataCache[req.resource]->type;
+
+    if (req.type == BindingType::BindlessShaderVar)
+    {
+      if (svType != SHVT_INT)
+        handleMismatch("bindless index of");
+      else if (resType == ResourceType::Blob && req.projectedTag != tag_for<d3d::SamplerHandle>())
+      {
+        logerr("daFG: Node '%s' requested blob '%s' to be registered bindlessly"
+               " for shader variable '%s', but only textures, buffers and sampler blobs can be bindless!",
+          registry.knownNames.getName(nodeId), registry.knownNames.getName(req.resource), VariableMap::getVariableName(bindId));
+        anyBindingTypeMismatches = true;
+      }
+      continue;
+    }
 
     switch (resType)
     {

@@ -88,6 +88,8 @@ public:
   void setIsPreallocBeforeLoad(bool s) { stateBitSet.set(active_binding_is_prealloc_before_load_offset, s); }
   bool isSampleStencil() const { return stateBitSet.test(active_binding_is_sample_stencil); }
   void setIsSampleStencil(bool s) { stateBitSet.set(active_binding_is_sample_stencil, s); }
+  bool isExcludedFromDefragmentation() const { return stateBitSet.test(exclude_from_defragmentation_offset); }
+  void setExcludedFromDefragmentation(bool s) { stateBitSet.set(exclude_from_defragmentation_offset, s); }
 
   DECLARE_TQL_TID_AND_STUB()
 
@@ -244,7 +246,8 @@ private:
   static constexpr uint32_t active_binding_is_prealloc_before_load_offset = 1 + active_binding_was_used_offset;
   static constexpr uint32_t active_binding_is_sample_stencil = 1 + active_binding_is_prealloc_before_load_offset;
   static constexpr uint32_t unlock_image_is_upload_skipped = active_binding_is_sample_stencil + 1;
-  static constexpr uint32_t texture_state_bits_count = unlock_image_is_upload_skipped + 1;
+  static constexpr uint32_t exclude_from_defragmentation_offset = unlock_image_is_upload_skipped + 1;
+  static constexpr uint32_t texture_state_bits_count = exclude_from_defragmentation_offset + 1;
   Bitset<texture_state_bits_count> stateBitSet;
   Bitset<dxil::MAX_T_REGISTERS> srvBindingStages[STAGE_MAX_EXT];
   Bitset<dxil::MAX_U_REGISTERS> uavBindingStages[STAGE_MAX_EXT];

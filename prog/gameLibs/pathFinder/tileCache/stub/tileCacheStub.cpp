@@ -73,6 +73,7 @@ obstacle_handle_t tilecache_obstacle_add(const TMatrix &tm, const BBox3 &oobb, c
 }
 
 void rebuildNavMesh_init() {}
+void rebuildNavMesh_initFromCurrent() {}
 
 void rebuildNavMesh_setup(const char *, const Point2 &) {}
 

@@ -675,9 +675,10 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
   for (int i = 0; i < rtData->riRes.size(); i++)
     if (rtData->riRes[i])
       riRes.push_back(rtData->riRes[i]);
-  for (int i = 0; i < rendinst::riExtra.size(); i++)
-    if (rendinst::riExtra[i].res)
-      riRes.push_back(rendinst::riExtra[i].res);
+  rendinst::iterateRIExtra([&](int, const rendinst::RiExtraPool &pool) {
+    if (pool.res)
+      riRes.push_back(pool.res);
+  });
   unitedvdata::riUnitedVdata.addRes(make_span(riRes));
 
   for (int i = 0; i < rtData->riRes.size(); i++)

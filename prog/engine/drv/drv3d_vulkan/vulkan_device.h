@@ -31,6 +31,13 @@ VULKAN_END_EXTENSION_FUCTION_PACK(ImagelessFramebufferKHR);
 VULKAN_DECLARE_EXTENSION(ImagelessFramebufferKHR, KHR_IMAGELESS_FRAMEBUFFER);
 #endif
 
+#if VK_EXT_scalar_block_layout
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(ScalarBlockLayoutEXT);
+
+VULKAN_DECLARE_EXTENSION(ScalarBlockLayoutEXT, EXT_SCALAR_BLOCK_LAYOUT);
+#endif
+
 #if VK_KHR_shader_draw_parameters
 VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
 VULKAN_END_EXTENSION_FUCTION_PACK(ShaderDrawParametersKHR);
@@ -608,6 +615,12 @@ VULKAN_END_EXTENSION_FUCTION_PACK(ExternalMemoryWin32KHR);
 VULKAN_DECLARE_EXTENSION(ExternalMemoryWin32KHR, KHR_EXTERNAL_MEMORY_WIN32);
 #endif
 
+#if VK_KHR_fragment_shader_barycentric
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(FragmentShaderBarycentricKHR);
+VULKAN_DECLARE_EXTENSION(FragmentShaderBarycentricKHR, KHR_FRAGMENT_SHADER_BARYCENTRIC);
+#endif
+
 #if VK_KHR_fragment_shading_rate
 
 VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdSetFragmentShadingRateKHR)
@@ -900,6 +913,10 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
                        ,
                        ConditionalRenderingEXT
 #endif
+#if VK_EXT_scalar_block_layout
+                       ,
+                       ScalarBlockLayoutEXT
+#endif
 #if VK_NV_device_diagnostic_checkpoints
                        ,
                        DiagnosticCheckpointsNV
@@ -1047,6 +1064,10 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
 #if VK_KHR_external_memory_win32
                        ,
                        ExternalMemoryWin32KHR
+#endif
+#if VK_KHR_fragment_shader_barycentric
+                       ,
+                       FragmentShaderBarycentricKHR
 #endif
 #if VK_KHR_fragment_shading_rate
                        ,

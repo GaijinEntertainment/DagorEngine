@@ -89,7 +89,7 @@ static constexpr ecs::ComponentDesc bvh_manager_appear_es_comps[] =
 //start of 1 rw components at [0]
   {ECS_HASH("dagdp__bvh_manager"), ecs::ComponentTypeInfo<dagdp::BvhManager>()}
 };
-static void bvh_manager_appear_es_all_events(ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void bvh_manager_appear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::bvh_manager_appear_es(evt

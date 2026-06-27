@@ -20,5 +20,9 @@ Sources =
   constraintChainIKSolver.cpp
 ;
 
+if $(PlatformSpec) = clang && $(Platform) = linux && $(PlatformArch) = x86_64 {
+  opt on chainIKSolver.cpp = -mno-avx2 ; # clang 21 ThinLTO SLP miscompiles Chain::solve AVX2 codegen
+}
+
 include $(Root)/prog/_jBuild/build.jam ;
 

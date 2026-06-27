@@ -12,6 +12,7 @@
 #include <util/dag_string.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/array.h>
+#include <EASTL/bitset.h>
 
 struct CryptoHash;
 namespace ShaderTerminal
@@ -49,6 +50,7 @@ struct NamedConstBlock
     int regIndex = -1;
     short size = 0;
     bool isDynamic = false;
+    bool isExplicitBindless = false;
     const Terminal *declTerm = nullptr;
     String hlslDecl, hlslPostfix;
   };
@@ -99,6 +101,22 @@ struct NamedConstBlock
   // @TODO: better (for mt?)
   mutable String cachedPixelOrComputeHlsl, cachedVertexHlsl;
 
+  // Stage group used to index the per-stage caches below: VS uses vertexProps; PS and CS share one
+  // group since they share pixelProps.
+  enum class StageGroup
+  {
+    VS = 0,
+    PS_CS,
+    Count
+  };
+
+  // Cached bottom-up at block construction: does this block's HLSL decl subtree contain an @bindless* const, per stage group?
+  eastl::bitset<size_t(StageGroup::Count)> explicitBindlessSubtree;
+
+  // Same idea for the global-const-block role: does this block's bufferedConstProps (the cbuffer
+  // emitted by buildGlobalConstBufHlslDecl) contain an @bindless* const? Read off globConstBlk.
+  bool bufferedConstsHaveExplicitBindless = false;
+
   BINDUMP_END_NON_SERIALIZABLE();
 
   SerializableTab<bindump::Address<ShaderStateBlock>> suppBlk;
@@ -131,12 +149,18 @@ struct NamedConstBlock
   void buildRefinedBlockBufHlslDecl(String &out_text, ShaderStage stage) const;
   void buildHlslDeclText(String &out_text, ShaderStage stage) const;
 
+  void emitBindlessArraysIfNeeded(String &out_text, ShaderStage stage) const;
+  bool hasExplicitBindlessDecls(ShaderStage stage) const;
+  void cacheExplicitBindlessSubtree();
+  static bool anyExplicitBindless(const RegisterProperties &props);
+
   void buildAllHlsl(String *out_text, const CompiledPreshader &preshader, ShaderStage stage) const
   {
     String &cache = stage == STAGE_VS ? cachedVertexHlsl : cachedPixelOrComputeHlsl;
     if (cache.empty())
     {
       buildDrawcallIdHlslDecl(cache);
+      emitBindlessArraysIfNeeded(cache, stage);
       buildStaticConstBufHlslDecl(cache, preshader);
       buildRefinedBlockBufHlslDecl(cache, stage);
       buildHlslDeclText(cache, stage);

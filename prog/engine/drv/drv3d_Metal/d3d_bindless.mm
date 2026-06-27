@@ -28,7 +28,12 @@ void d3d::free_bindless_resource_range(D3DResourceType type, uint32_t index, uin
 bool d3d::update_bindless_resource(D3DResourceType range_type, uint32_t index, D3dResource *res)
 {
   D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, false, "Bindless resources are not supported on this hardware");
-  return render.updateBindlessResource(range_type, index, res);
+  D3D_CONTRACT_ASSERTF_RETURN(res != nullptr, false, "d3d::update_bindless_resource: 'res' can not be null");
+
+  render.acquireOwnership();
+  bool result = render.updateBindlessResource(range_type, index, res);
+  render.releaseOwnership();
+  return result;
 }
 
 void d3d::update_bindless_resource_range(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *>& resources)

@@ -49,7 +49,7 @@
 extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
 namespace var
 {
-static ShaderVariableInfo num_patches("dagdp_riex__num_patches");
+static ShaderVariableInfo num_patches("dagdp_riex__num_patches", true);
 } // namespace var
 
 namespace material_var

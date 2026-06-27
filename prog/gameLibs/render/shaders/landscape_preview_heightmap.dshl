@@ -99,8 +99,10 @@ shader landscape_preview_heightmap
   }
   (ps) {
     tex_hmap_low@smp2d = tex_hmap_low;
-    heightmap_color@smp2d = heightmap_color;
+    heightmap_color@tex2d = heightmap_color;
   }
+
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   USE_PIXEL_TANGENT_SPACE()
   WRITE_GBUFFER()
@@ -115,6 +117,7 @@ shader landscape_preview_heightmap
   USE_NORMAL_DETAIL()
   hlsl(ps) {
     #define sizeInMeters (sizes.x)
+    #define heightmap_color_samplerstate global_linear_wrap_sampler
   }
   hlsl(ps) {
     float getTexel(float2 p)

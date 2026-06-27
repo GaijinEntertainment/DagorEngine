@@ -15,6 +15,7 @@
 #include <libTools/dtx/ddsxPlugin.h>
 #include <rendInst/rendInstGen.h>
 #include <libTools/util/fileUtils.h>
+#include <libTools/util/appDirRelativePath.h>
 
 #include <libTools/shaderResBuilder/shaderMeshData.h>
 
@@ -105,7 +106,7 @@ bool DaEditor3Engine::initAssetBase(const char *app_dir, const DataBlock &app_bl
   assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
   for (int i = 0; srcAssetsScanAllowed && i < blk.paramCount(); i++)
     if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-      assetMgr.loadAssetsBase(String::mk_str_cat(app_dir, blk.getStr(i)), "global");
+      assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
   if (!minimizeDabuildUsage) // prefer real texture assets to gameres loaded from *.dxp.bin
   {
     dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();
@@ -153,7 +154,7 @@ bool DaEditor3Engine::initAssetBase(const char *app_dir, const DataBlock &app_bl
           add_managed_texture(nm);
       }
   }
-  assetlocalprops::init(app_dir, "develop/.asset-local");
+  assetlocalprops::init("develop/.asset-local");
   AssetExportCache::createSharedData(assetlocalprops::makePath("assets-hash.bin"));
 
   if (dabuildUsageAllowed)

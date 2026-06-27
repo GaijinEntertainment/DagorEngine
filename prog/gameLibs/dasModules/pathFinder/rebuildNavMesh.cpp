@@ -16,6 +16,9 @@ public:
     das::addExtern<DAS_BIND_FUN(pathfinder::rebuildNavMesh_init)>(*this, lib, "rebuildNavMesh_init", das::SideEffects::modifyExternal,
       "pathfinder::rebuildNavMesh_init");
 
+    das::addExtern<DAS_BIND_FUN(pathfinder::rebuildNavMesh_initFromCurrent)>(*this, lib, "rebuildNavMesh_initFromCurrent",
+      das::SideEffects::modifyExternal, "pathfinder::rebuildNavMesh_initFromCurrent");
+
     das::addExtern<void (*)(const char *, float), &pathfinder::rebuildNavMesh_setup>(*this, lib, "rebuildNavMesh_setup",
       das::SideEffects::modifyExternal, "pathfinder::rebuildNavMesh_setup");
 

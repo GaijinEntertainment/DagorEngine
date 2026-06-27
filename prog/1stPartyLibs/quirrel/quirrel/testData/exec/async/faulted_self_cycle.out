@@ -1,7 +1,0 @@
-=== adopt already-faulted ===
-a=faulted b=faulted
-a reason type=string value=Future: chaining cycle detected
-=== adopt then fault ===
-a=faulted b=faulted
-a reason type=string value=Future: chaining cycle detected
-script done

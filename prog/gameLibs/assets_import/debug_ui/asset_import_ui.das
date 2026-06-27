@@ -23,7 +23,7 @@ def asset_import_viewer()
 
     if imgui::Button("load whole develop/assets")
       createEntity("asset_manager") <| $(init)
-        init |> set("asset__baseFolder", "../develop/assets")
+        init |> set("asset__baseFolder", "%appDir/develop/assets")
     imgui::Text("It might take a long time to scanning all assets (half of minute).")
 
     let gameSpecificAssetManagersTemplate = getTemplateByName("game_specific_asset_managers")

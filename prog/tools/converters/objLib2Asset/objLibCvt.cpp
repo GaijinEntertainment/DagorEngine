@@ -148,6 +148,7 @@ static void copyFile(const char *src_name, const char *dst_path, const char *des
     pos -= slashPos + 1;
     char *name = new char[pos + 1];
     strncpy(name, &src_name[slashPos + 1], pos);
+    name[pos] = '\0';
 
     int id = 0;
     int filesCnt = 0;

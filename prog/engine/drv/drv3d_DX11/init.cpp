@@ -89,6 +89,12 @@
 
 #define FREE_LIBRARY 0
 
+#if DAGOR_DBGLEVEL > 0
+#define FORCE_INLINE
+#else
+#define FORCE_INLINE __forceinline
+#endif
+
 extern void close_perf_analysis();
 extern void shutdown_hlsl_d3dcompiler_internal();
 void get_aftermath_status();
@@ -894,6 +900,7 @@ static bool check_support_typed_uav_load_additional_formats()
   return false;
 }
 
+DAGOR_NOINLINE
 static bool validate_feature_level_and_required_features(D3D_FEATURE_LEVEL feature_level, const DataBlock &directx_blk)
 {
   String errorMessage = {};
@@ -941,8 +948,35 @@ static bool validate_feature_level_and_required_features(D3D_FEATURE_LEVEL featu
   return errorMessage.empty();
 }
 
-bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int screen_hgt, int screen_bpp,
-  const char *opt_display_name, int64_t opt_adapter_luid, const char *window_class_name, bool after_reset = false)
+DAGOR_NOINLINE
+static bool report_software_driver()
+{
+  debug("Error initializing video, Microsoft Basic Render Driver is not supported");
+  if (get_d3d_reset_counter() > 1 || get_d3d_full_reset_counter() > 1)
+  {
+    drv_message_box(get_localized_text("msgbox/dx11_reset_failed", "Video device initialization failed. The driver may be outdated."),
+      "Initialization failed", GUI_MB_ICON_ERROR);
+    DAG_FATAL("Failed to restore GPU driver after device resetting");
+  }
+  return false;
+}
+
+DAGOR_NOINLINE
+static void report_blacklisted_device(const DXGI_ADAPTER_DESC &adapter_desc)
+{
+  const auto &gpuPreferences = *dgs_get_settings()->getBlockByNameEx("dx11")->getBlockByNameEx("gpuPreferences");
+  if (gpu::is_blacklisted_device(gpuPreferences, adapter_desc.VendorId, adapter_desc.DeviceId, {}))
+  {
+    drv_message_box(get_localized_text("msgbox/dx11_gpu_blacklisted",
+                      "Your GPU is not recommended for DirectX 11 and may cause rendering issues. Please, switch to DirectX 12."),
+      "Initialization failed", GUI_MB_ICON_ERROR);
+    DAG_FATAL("Incompatible GPU detected: vendor=0x%X, device=0x%X", adapter_desc.VendorId, adapter_desc.DeviceId);
+  }
+}
+
+template <bool after_reset = false>
+FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int screen_hgt, int screen_bpp,
+  const char *opt_display_name, int64_t opt_adapter_luid, const char *window_class_name)
 {
   FloatingPointExceptionsKeeper fkeeper;
 
@@ -1218,7 +1252,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
         D3D11_SDK_VERSION, &featureLevelScd, &dummySwapChain, &tmpDevice, &featureLevel, &dummyContext);
       if (SUCCEEDED(hr))
       {
-        if (after_reset)
+        if constexpr (after_reset)
         {
           compare_feature_levels(featureLevelsSupported, featureLevel);
         }
@@ -1271,7 +1305,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
             nullptr, nullptr, &tmpDevice2, &featureLevel, nullptr);
           if (SUCCEEDED(hr))
           {
-            if (after_reset)
+            if constexpr (after_reset)
             {
               compare_feature_levels(featureLevelsSupported, featureLevel);
             }
@@ -1331,7 +1365,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
       &dx_context);
     if (SUCCEEDED(last_hres))
     {
-      if (after_reset)
+      if constexpr (after_reset)
       {
         compare_feature_levels(featureLevelsSupported, featureLevel);
       }
@@ -1466,7 +1500,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     D3D_FEATURE_LEVEL featureLevel;
     last_hres = createDx11Device(targetAdapter, targetAdapter ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE, NULL, flags,
       &featureLevelsSupported, 1, D3D11_SDK_VERSION, &scd, &swap_chain, &dx_device, &featureLevel, &dx_context);
-    if (after_reset)
+    if constexpr (after_reset)
     {
       compare_feature_levels(featureLevelsSupported, featureLevel);
     }
@@ -1761,27 +1795,12 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
   // Ban Microsoft Basic Render Driver, it is slow and unreliable.
   if (adapterDesc.VendorId == 0x1414 && adapterDesc.DeviceId == 0x8C)
   {
-    debug("Error initializing video, Microsoft Basic Render Driver is not supported");
-    if (get_d3d_reset_counter() > 1 || get_d3d_full_reset_counter() > 1)
-    {
-      drv_message_box(
-        get_localized_text("msgbox/dx11_reset_failed", "Video device initialization failed. The driver may be outdated."),
-        "Initialization failed", GUI_MB_ICON_ERROR);
-      DAG_FATAL("Failed to restore GPU driver after device resetting");
-    }
-    return false;
+    return report_software_driver();
   }
 
-  if (!after_reset)
+  if constexpr (!after_reset)
   {
-    const auto &gpuPreferences = *dgs_get_settings()->getBlockByNameEx("dx11")->getBlockByNameEx("gpuPreferences");
-    if (gpu::is_blacklisted_device(gpuPreferences, adapterDesc.VendorId, adapterDesc.DeviceId, {}))
-    {
-      drv_message_box(get_localized_text("msgbox/dx11_gpu_blacklisted",
-                        "Your GPU is not recommended for DirectX 11 and may cause rendering issues. Please, switch to DirectX 12."),
-        "Initialization failed", GUI_MB_ICON_ERROR);
-      DAG_FATAL("Incompatible GPU detected: vendor=0x%X, device=0x%X", adapterDesc.VendorId, adapterDesc.DeviceId);
-    }
+    report_blacklisted_device(adapterDesc);
   }
 
   g_device_desc.info.isUMA = adapterDesc.DedicatedVideoMemory == 0;
@@ -2626,8 +2645,8 @@ bool d3d::reset_device()
     debug("sysMem used for res copy: tex=%dK vb=%dK ib=%dK", texture_sysmemcopy_usage >> 10, vbuffer_sysmemcopy_usage >> 10,
       ibuffer_sysmemcopy_usage >> 10);
 
-    if (!init_device(stereo_config_callback, main_window_hwnd, resolution.x, resolution.y,
-          blk_video.getBool("bits16", false) ? 16 : 32, displayName, blk_dx.getInt64("adapterLuid", 0), "DagorWClass", true))
+    if (!init_device<true>(stereo_config_callback, main_window_hwnd, resolution.x, resolution.y,
+          blk_video.getBool("bits16", false) ? 16 : 32, displayName, blk_dx.getInt64("adapterLuid", 0), "DagorWClass"))
     {
       DAG_FATAL("Error initializing device(%s):\n%s", d3d::get_driver_name(), d3d::get_last_error());
       resetting_device_now = false;
@@ -2810,7 +2829,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *mwf, const char *wcname, int ncmds
 
   debug("use_dxgi_present_test = %d", (int)use_dxgi_present_test);
   debug("screen = %dx%d", resolution.x, resolution.y);
-  if (!init_device(cb, main_window_hwnd, resolution.x, resolution.y, screenBpp, displayName, adapterLuild, wcname))
+  if (!init_device<false>(cb, main_window_hwnd, resolution.x, resolution.y, screenBpp, displayName, adapterLuild, wcname))
   {
     D3D_ERROR("can't create device");
     close_device(false);
@@ -2843,9 +2862,6 @@ bool d3d::init_video(void *hinst, main_wnd_f *mwf, const char *wcname, int ncmds
 
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::dx11); }
 const char *d3d::get_driver_name() { return "DirectX 11"; }
-
-const char *d3d::get_device_driver_version() { return "1.0"; }
-
 const char *d3d::get_device_name() { return deviceName; }
 
 const char *d3d::get_last_error()

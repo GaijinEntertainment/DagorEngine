@@ -521,6 +521,10 @@ Currently in this node we can't add or remove nodes throuh anim graph viewer.
         static_let_finalize <|
           var newNodeNameFilter = new ImGuiTextFilter
 
+        // Hacky way to not crash when selected anim tree changes
+        if newNodeSelectedIndex >= length(context.nodeNames)
+          newNodeSelectedIndex = 0
+
         let maxComboSize = 200.0
         imgui::SetNextWindowSizeConstraints(ImVec2(0.0, 0.0), ImVec2(FLT_MAX, FLT_MAX))
         if imgui::BeginCombo("Node##hubadd{nodeId}", context.nodeNames[newNodeSelectedIndex])
@@ -1049,7 +1053,6 @@ def class_name_to_anim_tree_class_name(class_name : string)
 
   return "??? (Missing information about this class name)"
 
-[unused_argument(state)]
 def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bool&)
   assume graph = *animchar.animGraph;
   assume state = *animchar.animState;

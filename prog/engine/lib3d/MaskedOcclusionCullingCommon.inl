@@ -1774,7 +1774,7 @@ public:
 
   // Constants from daBVH/swBLASLeafDefs.hlsli (included via dag_swBLAS_ray.h)
   static constexpr int VERT21_STRIDE = 8;
-  static constexpr int BVH_LEAF_EXTRA = 4; // leaf total = BVH_BLAS_NODE_SIZE + BVH_LEAF_EXTRA = 20
+  static constexpr int BVH_LEAF_EXTRA = BVH_BLAS_LEAF_SIZE - BVH_BLAS_NODE_SIZE; // leaf body bytes after the node header
 
   // SoA frustum planes for branchless 5-plane AABB test (portable via vecmath).
   // First 4 planes stored transposed; W values doubled for center2/extent2 form.

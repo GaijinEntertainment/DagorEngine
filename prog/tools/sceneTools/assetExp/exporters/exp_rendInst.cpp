@@ -265,7 +265,7 @@ public:
         }
         DAGOR_CATCH(...)
         {
-          log.addMessage(ILogWriter::ERROR, "failed to load voxel cache from '%s'", fn.c_str());
+          log.addMessage(ILogWriter::ERROR, "failed to load voxel cache from '%s', please bake it first", fn.c_str());
           voxCache.reset();
         }
         if (voxCache and !validate_voxel_cache(voxCache.get(), log))

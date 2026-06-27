@@ -608,7 +608,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
         RenderPassTarget targets[] = {{{cloudsPanoramaSplitTex.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)},
           {{to.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)}};
 
-        d3d::begin_render_pass(cloudsPanoramaSplitRP, rpArea, targets);
+        d3d::begin_render_pass(cloudsPanoramaSplitRP, rpArea, make_span_const(targets));
 
         // clouds trace part
         ShaderGlobal::set_int(clouds_panorama_splitVarId, 1);

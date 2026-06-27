@@ -40,7 +40,8 @@ void set_ri_dist_mul(float) {}
 void override_out_of_camera_ri_dist_mul(float) {}
 
 void update_instances(ContextId, const Point3 &, const Point3 &, const TMatrix &, const TMatrix4 &, const Frustum &, const Frustum &,
-  dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *, threadpool::JobPriority)
+  dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *, dag::Vector<DynamicRenderableSceneInstance *> &&,
+  threadpool::JobPriority)
 {}
 
 void update_instances(ContextId, const Point3 &, const Point3 &, const TMatrix &, const TMatrix4 &, const Frustum &, const Frustum &,

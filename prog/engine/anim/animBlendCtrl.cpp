@@ -1427,7 +1427,10 @@ void AnimBlendCtrl_Hub::addBlendNode(IAnimBlendNode *n, bool active, real wt)
 void AnimBlendCtrl_Hub::setBlendNodeWt(AnimGraphStateHolder &st, IAnimBlendNode *n, real wt)
 {
   if (paramId == -1)
+  {
+    LOGERR_ONCE("Trying to set hub blend node weight but hub was inited with const:b=true");
     return;
+  }
 
   for (int i = 0; i < nodes.size(); i++)
     if (n == nodes[i])
@@ -1435,6 +1438,18 @@ void AnimBlendCtrl_Hub::setBlendNodeWt(AnimGraphStateHolder &st, IAnimBlendNode 
       ((float *)st.getInlinePtr(paramId))[i] = wt;
       return;
     }
+}
+
+void AnimBlendCtrl_Hub::setBlendNodesWt(AnimGraphStateHolder &st, dag::ConstSpan<int> node_indexes, real wt)
+{
+  if (paramId == -1)
+  {
+    LOGERR_ONCE("Trying to set hub blend node weights but hub was inited with const:b=true");
+    return;
+  }
+  float *ptr = (float *)st.getInlinePtr(paramId);
+  for (int nodeIdx : node_indexes)
+    ptr[nodeIdx] = wt;
 }
 
 int AnimBlendCtrl_Hub::getNodeIndex(IAnimBlendNode *n)

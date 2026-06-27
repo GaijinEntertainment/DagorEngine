@@ -9,8 +9,6 @@ struct Color3;
 
 namespace bloom
 {
-void set_input_tex_name(const eastl::string &tex_name);
-
 using RenderFunc = eastl::fixed_function<16, void()>;
 using RenderCallback = eastl::fixed_function<16, void(RenderFunc render_func)>;
 void regenerate_downsample_chain(

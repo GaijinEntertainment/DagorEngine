@@ -246,7 +246,9 @@ static String file_selector_dialog(void *hwnd, const char caption[], const char 
   for (const FileFilter &fileFilter : fileFilters)
   {
     const char *filterTitle = fileFilter.title.empty() ? fileFilter.extension : fileFilter.title;
-    arguments.emplace_back(0, "--file-filter=%s|%s", filterTitle, fileFilter.extension);
+    String patterns(fileFilter.extension);
+    patterns.replaceAll(";", " ");
+    arguments.emplace_back(0, "--file-filter=%s|%s", filterTitle, patterns.str());
   }
 
   if (save_dialog)

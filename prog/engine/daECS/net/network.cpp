@@ -21,6 +21,7 @@
 #include <daECS/net/urlUtils.h>
 #include <daECS/net/netEvent.h>
 #include <daECS/net/netEvents.h>
+#include <daECS/net/msgDispatch.h>
 #include "compression.h"
 #include <daECS/net/encryption.h>
 #include <stdlib.h> // alloca
@@ -69,13 +70,16 @@ enum
   ID_ENTITY_REPLICATION_COMPRESSED,
   ID_ENTITY_CREATION,
   ID_ENTITY_CREATION_COMPRESSED,
-  ID_ENTITY_DESTRUCTION
+  ID_ENTITY_DESTRUCTION,
+  ID_NET_MSG_UNTARGETED,
+  ID_NET_MSG_UNTARGETED_COMPRESSED
 };
 
 #if DAGOR_DBGLEVEL > 0
 #define NET_STAT_ENABLED 1
 static const char *const str_msg_ids[] = {"ID_ENTITY_MSG", "ID_ENTITY_MSG_COMPRESSED", "ID_ENTITY_REPLICATION",
-  "ID_ENTITY_REPLICATION_COMPRESSED", "ID_ENTITY_CREATION", "ID_ENTITY_CREATION_COMPRESSED", "ID_ENTITY_DESTRUCTION"};
+  "ID_ENTITY_REPLICATION_COMPRESSED", "ID_ENTITY_CREATION", "ID_ENTITY_CREATION_COMPRESSED", "ID_ENTITY_DESTRUCTION",
+  "ID_NET_MSG_UNTARGETED", "ID_NET_MSG_UNTARGETED_COMPRESSED"};
 static const char ID_ENTITY_REPLICATION_ACKS_STR[] = "ID_ENTITY_REPLICATION_ACKS";
 struct NetStatRecord
 {
@@ -437,6 +441,42 @@ void CNetwork::syncStateUpdates(int cur_time, uint8_t replication_channel)
 static inline bool calc_parity_bit(int msgid) { return (__popcount(msgid) & 1) != 0; }
 
 extern ecs::EntityId msg_sink_eid;
+bool CNetwork::sendto_untargeted(int cur_time, const IMessage &msg, IConnection *conn_, const MessageNetDesc *msg_net_desc)
+{
+  net::Connection *conn = static_cast<net::Connection *>(conn_);
+  if (!conn)
+    return false;
+  const MessageClass &mcls = msg.getMsgClass();
+  if (MessageClass::shouldIgnoreOutgoingMessage(mcls.classId))
+    return false;
+  int numClassIdBits = MessageClass::getNumClassIdBits();
+#if DAECS_EXTENSIVE_CHECKS
+  G_ASSERTF(numClassIdBits >= 0, "MessageClass::init() wasn't called?");
+  G_ASSERTF(mcls.classId >= 0, "%s", mcls.debugClassName);
+  G_ASSERT(mcls.classId < (1 << numClassIdBits));
+#endif
+  danet::BitStream bs(512, framemem_ptr());
+  bs.Write((char)ID_NET_MSG_UNTARGETED);
+  bs.WriteBits((uint8_t *)&mcls.classId, numClassIdBits);
+  if (numClassIdBits & 7)
+    bs.Write(calc_parity_bit(mcls.classId));
+  bs.AlignWriteToByteBoundary();
+  int headerSize = BITS_TO_BYTES(bs.GetNumberOfBitsUsed());
+
+  msg.pack(bs);
+
+  const net::MessageNetDesc &mdsc = msg_net_desc ? *msg_net_desc : mcls;
+
+  danet::BitStream bsCompressed(framemem_ptr());
+  const danet::BitStream &bsToSend =
+    (mdsc.flags & MF_DONT_COMPRESS)
+      ? bs
+      : bitstream_compress(bs, headerSize, ID_NET_MSG_UNTARGETED_COMPRESSED, bsCompressed, DEFAULT_COMPRESSION_THRESHOLD);
+  TRACE_NET_STAT(tx, mcls.debugClassName, bs, bsToSend, conn);
+  PacketPriority pprio = (mdsc.flags & MF_URGENT) ? SYSTEM_PRIORITY : MEDIUM_PRIORITY;
+  return conn->send(cur_time, bsToSend, pprio, mdsc.reliability, mdsc.channel, mdsc.dupDelay);
+}
+
 bool CNetwork::sendto(int cur_time, ecs::EntityId to_eid, const IMessage &msg, IConnection *conn_, const MessageNetDesc *msg_net_desc)
 {
   net::Connection *conn = static_cast<net::Connection *>(conn_);
@@ -618,6 +658,54 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
       else
         logwarn("Can't resolve network entity by eid %d for connection #%d, with msg = %s/%x. Message will be dropped.", serverEid,
           (int)conn->getId(), msgCls->debugClassName, msgCls->classHash);
+    }
+    break;
+    case ID_NET_MSG_UNTARGETED:
+    case ID_NET_MSG_UNTARGETED_COMPRESSED:
+    {
+      GET_CONN_OR_LEAVE(pkt->systemIndex);
+      int msgId = 0;
+      int nClsIdBits = MessageClass::getNumClassIdBits();
+      if (!bs.ReadBits((uint8_t *)&msgId, nClsIdBits))
+        msgId = -1;
+      else if (nClsIdBits & 7)
+      {
+        bool parityBit = false;
+        if (!bs.Read(parityBit))
+          msgId = -1;
+        else if (parityBit != calc_parity_bit(msgId))
+          msgId = -2;
+      }
+      if (!MessageClass::validateIncomingMessage(msgId, int(conn->getId())))
+        break;
+      const MessageClass *msgCls = MessageClass::getById(msgId);
+      if (!msgCls)
+        break;
+      bs.AlignReadToByteBoundary();
+      const danet::BitStream *bsToRead = readCompressedIfPacketType(ID_NET_MSG_UNTARGETED_COMPRESSED);
+      if (!bsToRead)
+        break;
+      TRACE_NET_STAT(rx, msgCls->debugClassName, *bsToRead, bs, conn);
+      alignas(16) char tmpBuf[256];
+      void *dataPtr = tmpBuf;
+      if (DAGOR_UNLIKELY(msgCls->memSize > sizeof(tmpBuf)))
+        dataPtr = framemem_ptr()->alloc(msgCls->memSize);
+      eastl::unique_ptr<IMessage, MessageDeleter> msg(&msgCls->create(dataPtr), MessageDeleter(/*heap*/ false));
+      if (msg->unpack(*bsToRead, *conn))
+      {
+        if (msgCls->flags & MF_TIMED)
+          static_cast<IMessageTimed *>(msg.get())->rcvTime = pkt->receiveTime;
+        msg->connection = conn;
+        if (!net::dispatch_net_msg_handler(msg.get()))
+          logwarn("Untargeted net msg %s/%x from conn #%d has no handler - dropped", msgCls->debugClassName, msgCls->classHash,
+            (int)conn->getId());
+      }
+      else
+        logerr("Untargeted net msg %s/%x from conn #%d failed to unpack", msgCls->debugClassName, msgCls->classHash,
+          (int)conn->getId());
+      msg.reset();
+      if (dataPtr != tmpBuf)
+        framemem_ptr()->free(dataPtr);
     }
     break;
     case ID_ENTITY_REPLICATION:

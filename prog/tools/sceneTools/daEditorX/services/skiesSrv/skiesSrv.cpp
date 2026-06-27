@@ -35,13 +35,13 @@
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_stereoIndex.h>
 #include <drv/3d/dag_lock.h>
+#include <libTools/util/appDirRelativePath.h>
 
 static const Color4 HORIZONT_COLOR = Color4(0.2f, 0.2f, 0.2f, 0.f);
 static const int SPH_HARM_FACE_WIDTH = 64;
 static carray<int, SphHarmCalc::SH3_COUNT> sphharm_values_varids;
 static carray<int, 3> sphharm_comp_values_varids;
 
-extern const char *daeditor3_get_appblk_fname();
 void interpolate_datablock(const DataBlock &from, DataBlock &to, float t);
 
 static void set_sphharm_values_mono(const SphHarmCalc::values_t &v)
@@ -138,8 +138,8 @@ public:
 
   void setup(const char *app_dir, const DataBlock &env_blk) override
   {
-    basePath = String(260, "%s/%s/", app_dir, env_blk.getStr("skiesFilePathPrefix", "."));
-    weatherTypesFn = String(260, "%s%s", basePath.str(), env_blk.getStr("skiesWeatherTypes", "?"));
+    basePath = make_eff_app_relative_path(env_blk.getStr("skiesFilePathPrefix", "."));
+    weatherTypesFn = String(260, "%s/%s", basePath.str(), env_blk.getStr("skiesWeatherTypes", "?"));
     const char *skies_glob_fn = env_blk.getStr("skiesGlobal", "gameData/environments/global.blk");
     globalFileName = skies_glob_fn;
     if (!dd_file_exists(globalFileName))
@@ -147,7 +147,7 @@ public:
     if (!dd_file_exists(globalFileName))
       globalFileName.printf(0, "%s/develop/gameBase/%s", app_dir, skies_glob_fn);
     if (!dd_file_exists(globalFileName))
-      globalFileName.printf(0, "%s%s", basePath, skies_glob_fn);
+      globalFileName.printf(0, "%s/%s", basePath, skies_glob_fn);
     debug("Skies: globalFileName=<%s> exists=%d", globalFileName, dd_file_exists(globalFileName));
 
     enviNames.reset();
@@ -189,7 +189,7 @@ public:
     if (daSkies)
       return;
 
-    DataBlock appBlk(daeditor3_get_appblk_fname());
+    DataBlock appBlk("%appDir/application.blk");
     const_cast<DataBlock *>(::dgs_get_settings())->removeBlock("skies");
     const_cast<DataBlock *>(::dgs_get_settings())
       ->addNewBlock(appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("envi")->getBlockByNameEx("skies"), "skies");

@@ -8,6 +8,7 @@
 #include <EditorCore/ec_IEditorCore.h>
 #include <gui/dag_stdGuiRenderEx.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <oldEditor/de_workspace.h>
 #include <osApiWrappers/dag_direct.h>
 #include <winGuiWrapper/wgw_dialogs.h>
@@ -213,7 +214,7 @@ String ECSEditorPlugin::getDefaultSceneBlkPath() const
     String name = DAGORED2->getProjectFileName();
     remove_trailing_string(name, ".level.blk");
     String relativePath(DAGOR_MAX_PATH, "%s/%s.blk", sceneFolder.c_str(), name.c_str());
-    String fullPath = make_full_path(DAGORED2->getWorkspace().getAppDir(), relativePath);
+    String fullPath = make_eff_app_relative_path(relativePath);
     if (dd_file_exists(fullPath))
       return fullPath;
 

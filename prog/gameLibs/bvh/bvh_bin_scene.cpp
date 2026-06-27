@@ -21,6 +21,7 @@ static void add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &inf
   ObjectInfo obj;
   obj.meshes.push_back(info);
   obj.tag = "binscene";
+  obj.type = BvhType::RI;
   add_object(context_id, mesh_id, obj);
 }
 
@@ -90,7 +91,7 @@ void update_instances(ContextId context_id)
   for (auto objectId : context_id->binSceneObjectIds)
     bvh::add_instance(context_id, context_id->genericInstances, objectId, instanceTransform, nullptr, false,
       Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-      MeshMetaAllocator::INVALID_ALLOC_ID);
+      MeshMetaAllocator::INVALID_ALLOC_ID, false);
 }
 
 void on_unload_scene(ContextId context_id)

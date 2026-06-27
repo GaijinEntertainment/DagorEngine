@@ -1687,7 +1687,7 @@ void ObjectEditor::closeUi()
 
 void ObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
-  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel();
+  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel(CM_OBJED_TOOLBAR_PANEL_FIRST);
 
   {
     PropPanel::ContainerPropertyControl *modeContainer = tb->createToolbarPanel(0, true);
@@ -1711,7 +1711,7 @@ void ObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
   addEditorCommandButton(tb, CM_OBJED_SELECT_BY_NAME, EditorCommandIds::OBJED_SELECT_BY_NAME, "select_by_name",
     "Select objects by name");
 
-  tb->createSeparator();
+  tb->createSeparator(CM_OBJED_SELECT_BY_NAME_SEPARATOR);
 
   addEditorCommandButton(tb, CM_OBJED_OBJPROP_PANEL, EditorCommandIds::OBJED_OBJPROP_PANEL, "show_panel",
     "Show/hide object props panel", true);
@@ -1719,7 +1719,8 @@ void ObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
   setButton(CM_OBJED_OBJPROP_PANEL, (bool)objectPropBar);
 
   {
-    PropPanel::ContainerPropertyControl *filterContainer = toolbar->createToolbarPanel(0, false, true, 120);
+    PropPanel::ContainerPropertyControl *filterContainer =
+      toolbar->createToolbarPanel(CM_OBJED_TOOLBAR_PANEL_SELECT_FILTER, false, true, 120);
 
     filterContainer->createSearchEditBox(CM_OBJED_SELECT_FILTER, "", filterString);
     PropPanel::PropertyControlBase *filterEdit = filterContainer->getById(CM_OBJED_SELECT_FILTER);

@@ -49,6 +49,9 @@ struct IconAnimchar
   E3DCOLOR silhouette = 0;
   bool silhouetteHasShadow = false;
   float silhouetteMinShadow = 1.0f;
+  float aoIntensity = 0.0f;
+  float aoRadius = 1.0f;
+  float aoBias = 0.02f;
   E3DCOLOR outline = 0;
   bool calcBBox = true;
   bool swapYZ = true;
@@ -137,6 +140,32 @@ private:
   size_t usedSpace = 0;
 };
 
+enum class IconPrepareStatus : uint8_t
+{
+  Failed,
+  RetryAgain,
+  Ready
+};
+
+struct IconAnimcharEnviParams
+{
+  EnviPanoramaCache::Id id;
+  bool prefetched = false;
+  float exposure = 1.0f;
+};
+
+struct IconAnimcharRenderingContext
+{
+  IconPrepareStatus status = IconPrepareStatus::Failed;
+  IconAnimcharWithAttachments iconAnimchars;
+  IconAnimcharEnviParams enviParams;
+};
+
+struct IconSSAA
+{
+  int w, h, ssaa;
+};
+
 class RenderAnimCharIconBase
 {
 public:
@@ -145,29 +174,17 @@ public:
   bool render(const PictureManager::PictureRenderContext &pic_ctx);
   void clearPendReq();
 
+  IconSSAA applySSAA(const int dstw, const int dsth, const DataBlock &info) const;
+  Driver3dPerspective updateAnimcharRenderParams(IconAnimcharRenderingContext &render_ctx,
+    const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA &icon_ssaa);
+  SharedTexWithShaderVar setEnviParams(const IconAnimcharEnviParams &envi_params);
+
+  IconAnimcharRenderingContext beforeRender(const PictureManager::PictureRenderContext &pic_ctx);
+  void afterRender(IconAnimcharWithAttachments &icon_animchars, const PICTUREID pid);
+
 protected:
   DataBlock applyDebugInfo(const DataBlock &info) const;
 
-  enum class IconPrepareStatus : uint8_t
-  {
-    Failed,
-    RetryAgain,
-    Ready
-  };
-
-  struct IconSSAA
-  {
-    int w, h, ssaa;
-  };
-
-  struct IconAnimcharRenderingContext
-  {
-    IconPrepareStatus status = IconPrepareStatus::Failed;
-    IconAnimcharWithAttachments iconAnimchars;
-    eastl::optional<SharedTexWithShaderVar> previousEnviPanoramaScoped;
-  };
-
-  IconSSAA applySSAA(const int dstw, const int dsth, const DataBlock &info) const;
   struct AnimcharPrefetch
   {
     IconPrepareStatus status = IconPrepareStatus::Failed;
@@ -175,15 +192,10 @@ protected:
   };
 
   AnimcharPrefetch prepareAnimchar(const PictureManager::PictureRenderContext &pic_ctx);
-  Driver3dPerspective updateAnimcharRenderParams(IconAnimcharRenderingContext &render_ctx,
-    const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA &icon_ssaa);
-
-  IconAnimcharRenderingContext beforeRender(const PictureManager::PictureRenderContext &pic_ctx);
 
   void resolveFinalTarget(const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA icon_ssaa, const bool use_icon_tonemap);
 
   IconPrepareStatus renderInternal(const PictureManager::PictureRenderContext &pic_ctx);
-  void afterRender(IconAnimcharWithAttachments &icon_animchars, const PICTUREID pid);
 
   virtual bool renderIconAnimChars(const IconAnimcharRenderingContext &render_ctx, const PictureManager::PictureRenderContext &pic_ctx,
     const IconSSAA &icon_ssaa, const Driver3dPerspective &persp) = 0;
@@ -192,7 +204,7 @@ protected:
   virtual void onBeforeRender(const DataBlock &) {};
   virtual void onAfterRender() {};
   virtual void setSunLightParams(const Point4 &lightDir, const Point4 &lightColor) = 0;
-  eastl::optional<SharedTexWithShaderVar> setEnviParams(const DataBlock &info);
+  IconAnimcharEnviParams getEnviParams(const DataBlock &info);
   void setLightParams(const DataBlock &info, bool full_deferred);
   void clear_to(E3DCOLOR col, const PictureManager::PictureRenderContext &pic_ctx) const;
   eastl::unique_ptr<DeferredRenderTarget> target;

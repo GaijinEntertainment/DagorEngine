@@ -314,7 +314,8 @@ protected:
 
   void reportOOMInformation(DXGIAdapter *adapter);
 
-  bool checkForOOM(DXGIAdapter *adapter, const eastl::optional<MemoryAllocationError> &error_info, const OomReportData &report_data);
+  bool checkForOOM(DXGIAdapter *adapter, const eastl::optional<MemoryAllocationError> &error_info, const OomReportData &report_data,
+    bool fatal = true);
 
   template <typename C>
   class ScopeExitChecker

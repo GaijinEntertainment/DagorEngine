@@ -15,7 +15,6 @@
 #include <daBVH/dag_quadBLASBuilder.h>
 #include <daBVH/swBLASLeafDefs.hlsli>
 #include <util/dag_hashedKeyMap.h>
-#include <meshoptimizer/include/meshoptimizer.h>
 
 #if (_TARGET_PC && !_TARGET_STATIC_LIB)
 // Enable FRT for all objects in daEditor for capsule clipping
@@ -1016,14 +1015,14 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
 }
 
 // Build a combined BLAS over every IDENT mesh node matching behavior_flag, flattening per-node
-// geometry into one vertex+index stream fed to daBVH's SAH builder. meshopt vertex-cache + vertex-
-// fetch runs PER NODE only (never on the combined stream), preserving per-node vert21 contiguity so
+// geometry into one vertex+index stream fed to daBVH's SAH builder. A per-node leaf-order vertex
+// renumber runs PER NODE only (never on the combined stream), preserving per-node vert21 contiguity so
 // the trace dispatch recovers a leaf's source CollisionNode from its first vert21 index via
 // blasNodeRanges. Contiguity is enforced by: (1) flattening verts node-by-node (each node a
 // contiguous sub-range); (2) per-node QUAD_O1 over-spread dup at the tail of the same node's block;
-// (3) confining all vertex reordering to per-node index spaces -- the combined-stream cache pass
-// below only permutes triangles, and a GLOBAL fetch-remap (which would shuffle verts across node
-// boundaries) is never run.
+// (3) confining all vertex reordering to per-node index spaces -- no combined-stream reorder runs
+// (buildQuadPrims is triangle-order-independent), and a GLOBAL fetch-remap (which would shuffle verts
+// across node boundaries) is never run.
 //
 // Per-CollisionNode storage (verticesOfs/indicesOfs) is NOT modified -- ownVertices stays the source
 // of truth for non-BLAS paths (capsule trace, FRT-empty fallbacks, intersection tests, public
@@ -1089,22 +1088,22 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     return;
 
   // Flatten matching node geometry. Indices are rebased per node (node 0's verts at [0..vertCount0),
-  // node 1's at [vertCount0..)). Each node is meshopt-optimised in isolation and its QUAD_O1 dup runs
+  // node 1's at [vertCount0..)). Each node is renumbered into leaf order in isolation and its QUAD_O1 dup runs
   // in the same loop, so the fetch reorder and dups stay inside the owning node's sub-range. CollisionNode
   // verticesOfs/indicesOfs are NOT modified -- ownVertices/ownIndices stay source of truth for the
   // per-node fallbacks; trace-time source-node lookup is via blasNodeRanges (filled below).
   dag::Vector<vec4f> allVerts;
   dag::Vector<unsigned> allIdx;
-  // Headroom for QUAD_O1 dups -- near-zero on real assets after per-node fetch-opt (which often shrinks
+  // Headroom for QUAD_O1 dups -- near-zero on real assets after the leaf-order renumber (which often shrinks
   // the live set below totalVerts), so a comfortable upper bound.
   allVerts.reserve((size_t)totalVerts + (size_t)totalVerts / 16u);
   allIdx.reserve((size_t)totalIndices);
 
   // Side table the trace dispatch binary-searches to recover a leaf's source node from its first
-  // vert21 index (contiguity enforced by the flatten + per-node QUAD_O1 dup + per-node-only fetch-opt).
+  // vert21 index (contiguity enforced by the flatten + per-node QUAD_O1 dup + per-node-only renumber).
   blasNodeRanges.reserve(parent->numMeshNodes);
 
-  // Per-node meshopt scratch, hoisted and reused. Default-allocator dag::Vector<vec4f> (as allVerts)
+  // Per-node renumber scratch, hoisted and reused. Default-allocator dag::Vector<vec4f> (as allVerts)
   // so the buffer has the 16-byte alignment v_ld / v_madd need; framemem avoided because these must
   // outlive the per-node framemem index scratch in declaration order.
   dag::Vector<vec4f> nodeVertsSrc, nodeVertsOpt;
@@ -1120,60 +1119,27 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     const unsigned nodeVertCount = (unsigned)node->verticesCount + 1u;
     const unsigned nodeIdxCount = (unsigned)node->indicesCount;
 
-    // Phase 1: meshopt-optimise this node IN ISOLATION -- vertex-cache reorder then vertex-fetch
-    // renumber, both purely inside [0, nodeVertCount), so the node's verts stay one contiguous block
-    // (the per-node vert21 contiguity the BLAS <-> source-node mapping rests on). Payoff is locality:
-    // after fetch-opt each triangle references a tiny index window, keeping the QUAD_O1 dup below at
-    // ~zero. Without it an index-incoherent node (firing_range node #0) over-spreads and the post-dup
-    // block blows past 65536.
-    dag::Vector<unsigned, framemem_allocator> rawIdx((size_t)nodeIdxCount);
-    for (unsigned i = 0; i < nodeIdxCount; ++i)
-      rawIdx[i] = (unsigned)nodeIdx[i];
+    // Phase 1: renumber this node's verts IN ISOLATION into SAH-leaf order, then duplicate the residual
+    // over-spread triangles, both purely inside the node's [0, nodeVertCount) block so its verts stay one
+    // contiguous range (the per-node vert21 contiguity the BLAS <-> source-node mapping rests on).
+    // leafOrderVertexFetch runs its own SAH triangle partition, so it tightens the QUAD_O1 windows
+    // regardless of input index order -- no vertex-cache pre-pass needed. Without it an index-incoherent
+    // node over-spreads and the post-dup block can blow past 65536.
     dag::Vector<unsigned, framemem_allocator> localIdx((size_t)nodeIdxCount);
-    meshopt_optimizeVertexCache(localIdx.data(), rawIdx.data(), (size_t)nodeIdxCount, (size_t)nodeVertCount);
+    for (unsigned i = 0; i < nodeIdxCount; ++i)
+      localIdx[i] = (unsigned)nodeIdx[i];
     nodeVertsSrc.resize(nodeVertCount);
     for (unsigned i = 0; i < nodeVertCount; ++i)
       nodeVertsSrc[i] = v_ld(&nodeVerts[i].x);
-    nodeVertsOpt.resize(nodeVertCount);
-    // Rewrites localIdx to index the reordered verts; returns the live vert count (<= nodeVertCount,
-    // unreferenced verts dropped, which only shrinks the block).
-    const unsigned nodeVertCountOpt = (unsigned)meshopt_optimizeVertexFetch(nodeVertsOpt.data(), localIdx.data(), (size_t)nodeIdxCount,
-      nodeVertsSrc.data(), (size_t)nodeVertCount, sizeof(vec4f));
+    // SAH-leaf-order renumber (drops unreferenced verts, keeps co-leaf verts adjacent) + shared
+    // window-block over-spread dup, both per node so the node's verts stay one contiguous block.
+    const unsigned nodeVertCountOpt = build_bvh::leafOrderVertexFetch(localIdx.data(), nodeIdxCount, nodeVertsSrc.data(),
+      nodeVertCount, QUAD_O1_MAX + 1u, nodeVertsOpt);
 
-    // Phase 2: append the reordered verts. localIdx now indexes [nodeVertStart, +nodeVertCountOpt).
+    // Phase 2: append the reordered + dup'd verts (localIdx is now node-local into nodeVertsOpt).
     const unsigned nodeVertStart = (unsigned)allVerts.size();
     for (unsigned i = 0; i < nodeVertCountOpt; ++i)
       allVerts.push_back(nodeVertsOpt[i]);
-
-    // Phase 3: per-node QUAD_O1 over-spread dup. writeQuadLeaf packs per-vertex offsets into 10-bit
-    // fields (QUAD_O1_MAX = 1023); a tri spanning more than 1023 would be silently truncated into wrong
-    // connectivity. Pre-empt it: dup the over-spread tri's 3 verts at the tail of THIS NODE'S block so
-    // its indices read (postBase, postBase+1, postBase+2) -- spread 2, always fits. Dups must stay
-    // inside the node's block to preserve per-node contiguity. After Phase 1 fetch-opt this fires only
-    // on pathological topology.
-    if (nodeVertCountOpt > QUAD_O1_MAX + 1u)
-    {
-      const unsigned faceCount = nodeIdxCount / 3u;
-      for (unsigned t = 0; t < faceCount; ++t)
-      {
-        unsigned i0 = localIdx[t * 3 + 0], i1 = localIdx[t * 3 + 1], i2 = localIdx[t * 3 + 2];
-        unsigned mn = min(min(i0, i1), i2);
-        unsigned mx = max(max(i0, i1), i2);
-        if (mx - mn > QUAD_O1_MAX)
-        {
-          const vec4f v0 = allVerts[nodeVertStart + i0];
-          const vec4f v1 = allVerts[nodeVertStart + i1];
-          const vec4f v2 = allVerts[nodeVertStart + i2];
-          const unsigned localBase = (unsigned)allVerts.size() - nodeVertStart;
-          allVerts.push_back(v0);
-          allVerts.push_back(v1);
-          allVerts.push_back(v2);
-          localIdx[t * 3 + 0] = localBase;
-          localIdx[t * 3 + 1] = localBase + 1u;
-          localIdx[t * 3 + 2] = localBase + 2u;
-        }
-      }
-    }
 
     // Phase 4: rebase indices to combined-stream space and append.
     for (unsigned i = 0; i < nodeIdxCount; ++i)
@@ -1207,19 +1173,10 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     return; // nothing to build
   }
 
-  // meshopt vertex-cache reorder: improves quad pairing in buildQuadPrims (fewer leaves, shallower
-  // BVH). Reorders triangles only -- vertex set per triangle preserved, so per-node contiguity is
-  // unaffected and no per-leaf source-tri tracking is needed (identity comes from blasNodeRanges).
-  {
-    dag::Vector<unsigned> optIdx(allIdx.size());
-    meshopt_optimizeVertexCache(optIdx.data(), allIdx.data(), allIdx.size(), allVerts.size());
-    allIdx = eastl::move(optIdx);
-  }
-
-  // NOTE: vertex-FETCH opt is intentionally NOT run on the COMBINED stream -- it would reorder verts
-  // globally and break per-node contiguity (a leaf could straddle node sub-ranges and blasNodeRanges
-  // would mis-identify the source). It IS run per node in the flatten loop, safe within one node's
-  // index space.
+  // No combined-stream reorder: buildQuadPrims pairs via an edge hash map (triangle order irrelevant)
+  // and the SAH tree re-partitions, while a GLOBAL vertex-fetch renumber would shuffle verts across node
+  // boundaries and break the per-node vert21 contiguity blasNodeRanges relies on. Vertex order is set
+  // per node in the flatten loop above.
 
   const int faceCount = (int)allIdx.size() / 3;
 

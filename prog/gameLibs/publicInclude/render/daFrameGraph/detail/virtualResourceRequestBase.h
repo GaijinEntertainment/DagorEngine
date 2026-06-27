@@ -24,6 +24,7 @@ namespace dafg
 struct InternalRegistry;
 struct ResourceProvider;
 struct ResourceRequest;
+enum class BindingType : uint8_t;
 } // namespace dafg
 
 
@@ -47,6 +48,7 @@ struct VirtualResourceRequestBase
 
   void optional();
   void bindToShaderVar(const char *shader_var_name, ResourceSubtypeTag projectedTag, TypeErasedProjector projector);
+  void bindlessShaderVar(const char *shader_var_name, ResourceSubtypeTag projected_tag);
   void bindAsView(ResourceSubtypeTag projectedTag, TypeErasedProjector projector);
   void bindAsProj(ResourceSubtypeTag projectedTag, TypeErasedProjector projector);
   void bindAsVertexBuffer(uint32_t stream, uint32_t stride);
@@ -59,6 +61,8 @@ struct VirtualResourceRequestBase
   void clear(ResourceSubtypeTag projectee, const char *blob_name, detail::TypeErasedProjector projector, ResourceClearFlags flags);
   const ResourceProvider *provider();
   ResourceRequest &thisRequest();
+  void recordShaderVarBinding(BindingType binding_type, const char *shader_var_name, ResourceSubtypeTag projectedTag,
+    TypeErasedProjector projector);
 
   ResUid resUid;
   NodeNameId nodeId;

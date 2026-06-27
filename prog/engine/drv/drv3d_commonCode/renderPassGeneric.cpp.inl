@@ -288,14 +288,16 @@ bool is_generic_render_pass_validation_enabled()
 }
 } // namespace
 
-void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
+void begin_render_pass(RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets)
 {
   D3D_CONTRACT_ASSERTF(!activeRP, "render pass %s already started", activeRP->getDebugName());
   D3D_CONTRACT_ASSERTF(nullptr != rp, "'rp' of begin_render_pass was nullptr");
 
   rp_impl::activeRenderArea = area;
   activeRP = rp;
-  for (auto &target : dag::Span{targets, rp->targetCnt})
+  D3D_CONTRACT_ASSERTF(rp->targetCnt == targets.size(), "missing/excessive targets for rp %s, expected %u got %u", rp->getDebugName(),
+    rp->targetCnt, targets.size());
+  for (auto &target : targets)
   {
     if (!target.resource.tex)
       D3D_CONTRACT_ERROR("begin_render_pass for %s received a nullptr texture!", activeRP->getDebugName());
@@ -336,7 +338,7 @@ NO_UBSAN void delete_render_pass(RenderPass *rp)
 {
   render_pass_generic::delete_render_pass(reinterpret_cast<render_pass_generic::RenderPass *>(rp));
 }
-NO_UBSAN void begin_render_pass(RenderPass *rp, const RenderPassArea area, const RenderPassTarget *targets)
+NO_UBSAN void begin_render_pass(RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets)
 {
   render_pass_generic::begin_render_pass(reinterpret_cast<render_pass_generic::RenderPass *>(rp), area, targets);
 }

@@ -88,6 +88,7 @@ private:
   class HuaweiLoginAction;
   class HuaweiPurchaseAction;
   class NvidiaLoginAction;
+  class VkLoginAction;
 
   enum ActionId
   {
@@ -149,6 +150,7 @@ private:
     ACTION_HUAWEI_LOGIN,
     ACTION_HUAWEI_PURCHASE,
     ACTION_NVIDIA_LOGIN,
+    ACTION_VK_LOGIN,
 
     __ACTION_LAST
   };
@@ -275,6 +277,7 @@ private:
   const YuString& getExternalLoginUrl() const { return apiUrls[ACTION_EXTERNAL_LOGIN].str(); }
   const YuString& getHuaweiLoginUrl() const { return apiUrls[ACTION_HUAWEI_LOGIN].str(); }
   const YuString& getNvidiaLoginUrl() const { return apiUrls[ACTION_NVIDIA_LOGIN].str(); }
+  const YuString& getVkLoginUrl() const { return apiUrls[ACTION_VK_LOGIN].str(); }
   const YuString& getWebLoginBrowserUrl() const { return apiUrls[ACTION_WEB_LOGIN_BROWSER].str(); }
   const YuString& getItemInfoUrl() const { return apiUrls[ACTION_ITEM_INFO].str(); }
   const YuString& getBuyItemUrl() const { return apiUrls[ACTION_BUY_ITEM].str(); }
@@ -329,6 +332,7 @@ private:
   void onKongZhongLogin(int fcm);
   void onKongZhongLoginFail(const YuString& msg);
   void onWegameLogin(uint64_t wegame_id);
+  void logoff();
 
   template<bool NEED_LOGIN, class ACTION, ActionId ACT_ID>
   Yuplay2Status createAction(Yuplay2AsyncCall* call, ACTION*& action);
@@ -582,6 +586,10 @@ private:
   virtual Yuplay2Status YU2VCALL nvidiaLoginSync(const char* nvidia_jwt);
   virtual Yuplay2Status YU2VCALL nvidiaLoginAsync(const char* nvidia_jwt,
                                                   Yuplay2AsyncCall* call);
+
+  virtual Yuplay2Status YU2VCALL vkLoginSync(const char* vk_token, const char* client_id);
+  virtual Yuplay2Status YU2VCALL vkLoginAsync(const char* vk_token, const char* client_id,
+                                              Yuplay2AsyncCall* call);
 
   virtual Yuplay2Status YU2VCALL tokenLoginSync(const char* token);
   virtual Yuplay2Status YU2VCALL tokenLoginAsync(const char* token,

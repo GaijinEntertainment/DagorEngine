@@ -35,7 +35,6 @@
 #define REPLAY_CONN_ID         NET_MAX_PLAYERS
 
 extern net::CNetwork &net_ctx_init_client(ecs::EntityManager &mgr, net::INetDriver *drv);
-extern void set_time_internal(ITimeManager *tmgr);
 
 // Server-only -- set only by server_create_replay_record (client recordings leave it empty).
 static SimpleString g_replay_record_filename;
@@ -179,10 +178,23 @@ static void replay_restore_key_frame(const danet::BitStream &bs)
   rendinstdestr::deserialize_destr_data(bs, 0);
 }
 
+void reject_replay_record_offline()
+{
+  auto &recordOpt = app_profile::getRW().replay.record;
+  bool inviteWriteReplay = false;
+  if (auto pModeInfo = jsonutils::get_ptr<rapidjson::Value::ConstObject>(app_profile::get().matchingInviteData, "mode_info"))
+    inviteWriteReplay = jsonutils::get_or(*pModeInfo, "writeReplay", false);
+  if (!recordOpt && !inviteWriteReplay)
+    return;
+  logerr("net: replay recording is not supported on offline sessions (requested '%s'%s); rejecting",
+    recordOpt ? recordOpt->c_str() : "", inviteWriteReplay ? " via matching invite mode_info.writeReplay" : "");
+  if (recordOpt)
+    recordOpt.reset();
+}
+
 void server_create_replay_record()
 {
-  if (!GET_NET())
-    return;
+  G_ASSERT_RETURN(GET_NET(), ); // precondition: caller must gate on NetContext (see net_lifecycle_init_server_es).
   eastl::optional<eastl::string> &recordOpt = app_profile::getRW().replay.record;
   const char *record = recordOpt ? recordOpt->c_str() : nullptr;
   if (!record)
@@ -293,7 +305,7 @@ bool try_create_replay_playback(ecs::EntityManager &mgr)
 
   if (profile.replay.startTime > 0)
     set_timespeed(0);
-  set_time_internal(create_replay_time(profile.replay.startTime));
+  reset_time_mgr(create_replay_time(profile.replay.startTime));
 
   netstat::init();
 
@@ -336,7 +348,7 @@ ECS_ON_EVENT(RequestSaveKeyFrame)
 static void replay_save_key_frame_es(const ecs::Event &)
 {
   if (auto conn = net::get_replay_connection())
-    net::replay_save_keyframe(conn, get_time_mgr().getAsyncMillis());
+    net::replay_save_keyframe(conn, get_async_millis());
   else
     logerr("Tried to save a replay key frame but replay connection was null");
 }

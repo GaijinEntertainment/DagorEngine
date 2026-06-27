@@ -33,7 +33,7 @@ inline void stop(HSQUIRRELVM) {}
 inline void actualStop() {}
 inline void onEnterFunction(HSQUIRRELVM, const HSQOBJECT &) {}
 inline void onLeaveFunction(HSQUIRRELVM) {}
-inline void register_profiler_module(HSQUIRRELVM, SqModules *);
+inline void register_profiler_module(HSQUIRRELVM, SqModules *) {}
 inline void shutdown(HSQUIRRELVM) {}
 #endif
 } // namespace scriptprofile

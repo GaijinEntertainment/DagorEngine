@@ -13,8 +13,6 @@
 #define BUCKET_TIME_MS 1000
 #define HISTORY_COUNT  10u
 
-void timesync_push_rtt(uint32_t rtt) { netstat::set(netstat::CT_RTT, rtt); } // called by timesync's ClientTime impl
-
 namespace netstat
 {
 

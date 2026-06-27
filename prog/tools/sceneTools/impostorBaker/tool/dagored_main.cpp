@@ -33,6 +33,8 @@
 #include <shaders/dag_rendInstRes.h>
 #include <rendInst/rendInstGen.h>
 #include <libTools/util/setupTexStreaming.h>
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <assets/assetPlugin.h>
 #include <assets/texAssetBuilderTextureFactory.h>
 
@@ -185,25 +187,21 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   if (!::symhlp_load("daKernel" DAGOR_DLL))
     DEBUG_CTX("can't load sym for: %s", "daKernel" DAGOR_DLL);
 
-  String path_to_blk;
+  char app_dir[512];
+  dd_get_fname_location(app_dir, options.appBlk.c_str());
+  set_canonical_app_dir_mount(app_dir);
+  if (!app_dir[0])
+    strcpy(app_dir, "./");
+
   DataBlock appblk;
   if (!appblk.load(options.appBlk.c_str()))
   {
     logerr("cannot load %s", options.appBlk.c_str());
     return 1;
   }
-  else
-  {
-    path_to_blk = String(options.appBlk.c_str());
-    ::dd_get_fname_location(path_to_blk, options.appBlk.c_str());
-  }
+  setup_named_mount_points(*appblk.getBlockByNameEx("mountPoints"));
 
   engine.demandInit();
-
-  char app_dir[512];
-  dd_get_fname_location(app_dir, path_to_blk.c_str());
-  if (!app_dir[0])
-    strcpy(app_dir, "./");
 
   DataBlock *global_settings_blk = const_cast<DataBlock *>(::dgs_get_settings());
 
@@ -232,7 +230,6 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
   const DataBlock *exp_blk = blk.getBlockByName("export");
-  const DataBlock *game_blk = appblk.getBlockByName("game");
 
   const char *sh_file = appblk.getStr("impostorbakerShaders", appblk.getStr("shaders", "compiledShaders/tools"));
   appblk.setStr("appDir", app_dir);
@@ -249,7 +246,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::dagor_init_video("DagorWClass", nCmdShow, NULL, "Loading...");
   dagor_install_dev_fatal_handler(NULL);
 
-  ::startup_shaders(String(0, "%s/%s", app_dir, sh_file).c_str());
+  ::startup_shaders(make_eff_app_relative_path(sh_file));
   ::startup_game(RESTART_ALL);
 
   CALL_AT_END_OF_SCOPE(flush_files());
@@ -271,14 +268,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   {
     G_ASSERTF(impostorBlock->paramExists("data_folder"), "Add data_folder:t to the assets/impostor block in %s",
       options.appBlk.c_str());
-    folder = String(0, "%s/%s/", app_dir, impostorBlock->getStr("data_folder"));
+    make_eff_app_relative_path(folder, impostorBlock->getStr("data_folder"), true);
   }
   else
   {
     G_ASSERTF(blk.paramExists("impostor_data_folder"), "Add the assets/impostor block to %s", options.appBlk.c_str());
-    folder = String(0, "%s/%s/", app_dir, blk.getStr("impostor_data_folder"));
+    make_eff_app_relative_path(folder, blk.getStr("impostor_data_folder"), true);
   }
-  simplify_fname(folder);
   String impostorShaderVarsFile = String(0, "%simpostor_shader_vars.blk", folder.c_str());
   debug("impostorShaderVarsFile: looking for a file at <%s>", impostorShaderVarsFile);
   bool impostorShaderVarsLoaded = false;

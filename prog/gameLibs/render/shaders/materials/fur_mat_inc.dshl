@@ -25,14 +25,16 @@ macro INIT_FUR_MAT_STATIC()
   if (fur_tangent_alpha_tex != NULL)
   {
     (ps) {
-      fur_tangent_alpha_tex@smpArray = fur_tangent_alpha_tex;
+      fur_tangent_alpha_tex@texArray = fur_tangent_alpha_tex;
     }
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
   }
   if (fur_diffuse_tex != NULL)
   {
     (ps) {
-      fur_diffuse_tex@smp2d = fur_diffuse_tex;
+      fur_diffuse_tex@tex2d = fur_diffuse_tex;
     }
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
   }
 
   hlsl {
@@ -49,9 +51,11 @@ macro INIT_FUR_MAT_STATIC()
 
   ##if fur_tangent_alpha_tex != NULL
     #define furTangentAlphaTex fur_tangent_alpha_tex
+    #define fur_tangent_alpha_tex_samplerstate global_linear_wrap_sampler
   ##endif
   ##if fur_diffuse_tex != NULL
     #define furDiffuseTex fur_diffuse_tex
+    #define fur_diffuse_tex_samplerstate global_linear_wrap_sampler
   ##endif
   }
 endmacro

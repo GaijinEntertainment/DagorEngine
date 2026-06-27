@@ -60,6 +60,7 @@ ColorOverride colors[ColorOverride::COUNT] = {
   ColorOverride("AxisY", ImGuiCol_COUNT + 1),
   ColorOverride("AxisZ", ImGuiCol_COUNT + 1),
   ColorOverride("EditBoxWrongValueBackground", ImGuiCol_COUNT + 1),
+  ColorOverride("EditBoxEvaluatedValueBackground", ImGuiCol_COUNT + 1),
   ColorOverride("EditBoxNonDefaultValueBackground", ImGuiCol_COUNT + 1),
   ColorOverride("EditBoxIndicatorBackground", ImGuiCol_FrameBg),
   ColorOverride("EditBoxSearchTextSetBackground", ImGuiCol_COUNT + 1),
@@ -68,7 +69,7 @@ ColorOverride colors[ColorOverride::COUNT] = {
   ColorOverride("AssetBrowserItemBackgroundSelected", ImGuiCol_COUNT + 1),
   ColorOverride("KeyboardShortcutsItemNonDefault", ImGuiCol_COUNT + 1)};
 // clang-format on
-G_STATIC_ASSERT(ColorOverride::COUNT == 59);
+G_STATIC_ASSERT(ColorOverride::COUNT == 60);
 
 void applyClassicOverrides()
 {
@@ -122,6 +123,7 @@ void applyClassicOverrides()
   colors[ColorOverride::AXIS_Y].setColorU32(IM_COL32(133, 209, 12, 255));
   colors[ColorOverride::AXIS_Z].setColorU32(IM_COL32(46, 131, 228, 255));
   colors[ColorOverride::EDIT_BOX_WRONG_VALUE_BACKGROUND].setColorU32(IM_COL32(255, 128, 128, 255));
+  colors[ColorOverride::EDIT_BOX_EVALUATED_VALUE_BACKGROUND].setColorU32(IM_COL32(150, 230, 150, 255));
   colors[ColorOverride::EDIT_BOX_NON_DEFAULT_VALUE_BACKGROUND].setColorU32(IM_COL32(255, 242, 217, 255));
   colors[ColorOverride::EDIT_BOX_INDICATOR_BACKGROUND].setColorU32(IM_COL32(0, 255, 0, 255));
   colors[ColorOverride::ASSET_BROWSER_ITEM_BACKGROUND_HOVERED].setColorU32(IM_COL32(229, 243, 255, 255));

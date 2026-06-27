@@ -23,6 +23,8 @@ int rtr_probe_randomize_rays = 1;
 float rtr_back_probes_max_range = 50;
 float rtr_back_front_diff_threshold = 0.5;
 
+int rtr_probes_filter_nans = 1;
+
 hlsl {
   #include <rtr_constants.hlsli>
 }
@@ -246,7 +248,7 @@ shader rt_reflection_probe_color
 
   INIT_MAIN_BVH(cs, false, false)
   USE_BVH_FOR_REFLECTION_PROBE(cs)
-
+  INIT_BVH_BINDLESS_GBUFFER(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_CALC_GEOMETRY_NORMAL(cs)
   USE_CALC_GEOMETRY_NORMAL_HALF(cs)
@@ -260,6 +262,7 @@ shader rt_reflection_probe_color
     world_view_pos@f3 = world_view_pos;
     frame_index@u1 = blue_noise_frame_index;
     randomize_rays@u1 = rtr_probe_randomize_rays;
+    rtr_probes_filter_nans@i1 = rtr_probes_filter_nans;
   }
 
   INIT_RT_LIGHTING(cs, false, true, true, false, rtr_probes_use_csm_shadows, false)
@@ -391,7 +394,10 @@ shader rt_reflection_probe_color
       uint2 tciBase = cell * PROBE_RESOLUTION_WITH_BORDER + PROBE_BORDER;
       uint2 tci = tciBase + gtid;
       float4 oldSample = texture2DAt(probes, tci);
-      texture2DAt(probes, tci) = lerp(oldSample, float4(color, distance), probePosition.w);
+      float4 result = lerp(oldSample, float4(color, distance), probePosition.w);
+      if (rtr_probes_filter_nans)
+        result = all(isfinite(result)) ? result : 0;
+      texture2DAt(probes, tci) = result;
 
 ##if hardware.ps5
       GroupMemoryBarrierWithGroupSync();

@@ -154,19 +154,18 @@ void RIModule::collectInstanceCounts()
   for (const auto &asset : assets)
     riInstanceCounts[asset.name] = 0;
 
-  for (auto [poolIndex, pool] : enumerate(rendinst::riExtra))
-  {
+  rendinst::iterateRIExtra([&](int poolIndex, const rendinst::RiExtraPool &pool) {
     if (!pool.res)
-      continue;
+      return;
     const char *riName = rendinst::riExtraMap.getName(poolIndex);
     if (!riName)
-      continue;
+      return;
     int instanceCount = static_cast<int>(pool.riTm.size());
     riInstanceCounts[ProfilerString(riName)] = instanceCount;
 
     if (instanceCount > maxAssetInstanceCount)
       maxAssetInstanceCount = instanceCount;
-  }
+  });
 }
 
 void RIModule::collectRiDataForProfiling()
@@ -201,14 +200,14 @@ void RIModule::collectRiDataForProfiling()
     }
 
     riDataItem.collision = CollisionInfo{};
-    for (const auto &pool : rendinst::riExtra)
-    {
+    rendinst::iterateRIExtra([&](int, const rendinst::RiExtraPool &pool) {
       if (pool.res == resource)
       {
         riDataItem.collision = analyzeCollision(pool.collRes);
-        break;
+        return false;
       }
-    }
+      return true;
+    });
 
     riData.push_back(riDataItem);
   }

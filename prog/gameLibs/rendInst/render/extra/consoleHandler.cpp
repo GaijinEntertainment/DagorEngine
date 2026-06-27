@@ -70,7 +70,7 @@ static bool rendinst_console_handler(const char *argv[], int argc)
             rendinst::rgLayer[i]->rtData->hiddenIdx.emplace(j);
       }
       hidden_extra_object_ids.clear();
-      iterate_names(rendinst::riExtraMap, [&](int id, const char *name) {
+      rendinst::iterateRIExtraMap([&](int id, const char *name) {
         if (all || strstr(name, argv[1]) == name)
           hidden_extra_object_ids.emplace(id);
       });
@@ -79,7 +79,7 @@ static bool rendinst_console_handler(const char *argv[], int argc)
   }
   CONSOLE_CHECK_NAME("rendinst", "list", 1, 1)
   {
-    iterate_names(rendinst::riExtraMap, [&](int, const char *name) { console::print_d(name); });
+    rendinst::iterateRIExtraMap([&](int, const char *name) { console::print_d(name); });
     for (int i = 0; i < rendinst::rgLayer.size(); ++i)
       if (rendinst::rgLayer[i] && rendinst::rgLayer[i]->rtData)
         for (int j = 0; j < rendinst::rgLayer[i]->rtData->riResName.size(); ++j)
@@ -98,7 +98,7 @@ static bool rendinst_console_handler(const char *argv[], int argc)
     {
       if (strcmp("all", argv[1]) == 0)
       {
-        iterate_names(rendinst::riExtraMap, [&](int id, const char *) { profiled_extra_object_ids.emplace(id); });
+        rendinst::iterateRIExtra([](int id, const auto &) { profiled_extra_object_ids.emplace(id); });
         console::print_d("All rendinst are being profiled.");
       }
       else if (strcmp("none", argv[1]) == 0)
@@ -108,7 +108,7 @@ static bool rendinst_console_handler(const char *argv[], int argc)
       }
       else
       {
-        iterate_names(rendinst::riExtraMap, [&](int id, const char *name) {
+        rendinst::iterateRIExtraMap([&](int id, const char *name) {
           if (String(name).prefix(argv[1]))
           {
             if (profiled_extra_object_ids.count(id))
@@ -142,12 +142,10 @@ static bool rendinst_console_handler(const char *argv[], int argc)
     cvs_dump += "L2 heavy shaders;L3 heavy shaders;"
                 "\n";
 
-    for (uint32_t i = 0, n = rendinst::riExtra.size(); i < n; i++)
-    {
-      const rendinst::RiExtraPool &pool = rendinst::riExtra[i];
+    rendinst::iterateRIExtraMap([&](int id, const char *riName) {
+      const rendinst::RiExtraPool &pool = rendinst::riExtra[id];
       if (!pool.res)
-        continue;
-      const char *riName = rendinst::riExtraMap.getName(i);
+        return;
       Point3 bboxWidth = pool.res->bbox.width();
       float maxBoxEdge = max(max(bboxWidth.x, bboxWidth.y), bboxWidth.z) * 0.5f; // half of edge like a radius
       float bSphereRad = pool.res->bsphRad;
@@ -207,7 +205,7 @@ static bool rendinst_console_handler(const char *argv[], int argc)
         cvs_dump += ";";
       }
       cvs_dump += "\n";
-    }
+    });
     FullFileSaveCB cb("ri_profiling_statistic.csv", DF_WRITE | DF_CREATE);
     cb.write(cvs_dump.c_str(), cvs_dump.size() - 1);
   }

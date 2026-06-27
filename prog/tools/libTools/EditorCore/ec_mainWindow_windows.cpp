@@ -10,6 +10,8 @@
 #include <drv/hid/dag_hiPointing.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_input.h>
+#include <EditorCore/ec_rect.h>
+#include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_wndProcComponent.h>
 #include <startup/dag_globalSettings.h>
@@ -27,6 +29,7 @@
 
 #include <windows.h>
 #include <shellapi.h>
+#include <shellscalingapi.h>
 
 namespace workcycle_internal
 {
@@ -35,6 +38,58 @@ extern bool window_initing;
 
 static IWndManagerEventHandler *editor_main_window_event_handler = nullptr;
 static void (*old_shutdown_handler)() = nullptr;
+static ImguiWndManagerBase::WindowPositionAndSize last_windw_position_and_size;
+
+class WindowsDpiHelper
+{
+public:
+  WindowsDpiHelper()
+  {
+    shcoreDll = LoadLibraryA("Shcore.dll");
+    user32Dll = LoadLibraryA("User32.dll");
+
+    // requires Windows 8.1
+    getDpiForMonitorPointer = shcoreDll ? (GetDpiForMonitorType)GetProcAddress(shcoreDll, "GetDpiForMonitor") : nullptr;
+
+    // requires Windows 10, version 1607
+    getSystemMetricsForDpiPointer =
+      user32Dll ? (GetSystemMetricsForDpiType)GetProcAddress(user32Dll, "GetSystemMetricsForDpi") : nullptr;
+  }
+
+  ~WindowsDpiHelper()
+  {
+    FreeLibrary(shcoreDll);
+    FreeLibrary(user32Dll);
+  }
+
+  UINT getDpiForMonitor(HMONITOR monitor) const
+  {
+    UINT dpi = 96;
+    if (getDpiForMonitorPointer && SUCCEEDED(getDpiForMonitorPointer((HMONITOR)monitor, MDT_EFFECTIVE_DPI, &dpi, &dpi)))
+      return dpi;
+    return dpi;
+  }
+
+  int getSystemMetricsForDpi(int index, UINT dpi) const
+  {
+    if (getSystemMetricsForDpiPointer)
+    {
+      const int result = getSystemMetricsForDpiPointer(index, dpi);
+      if (result != 0)
+        return result;
+    }
+
+    return GetSystemMetrics(index);
+  }
+
+  typedef HRESULT(WINAPI *GetDpiForMonitorType)(HMONITOR, MONITOR_DPI_TYPE, UINT *, UINT *);
+  typedef HRESULT(WINAPI *GetSystemMetricsForDpiType)(int, UINT);
+
+  HINSTANCE shcoreDll;
+  HINSTANCE user32Dll;
+  GetSystemMetricsForDpiType getSystemMetricsForDpiPointer;
+  GetDpiForMonitorType getDpiForMonitorPointer;
+};
 
 class EditorCoreGeneralGuiManager : public IGeneralGuiManager
 {
@@ -59,12 +114,18 @@ public:
         if (ImGui::GetCurrentContext())
           if (ImGuiViewport *imguiViewport = getMainImguiViewport())
             imguiViewport->PlatformRequestMove = true;
+
+        if (!IsIconic((HWND)hwnd))
+          updateLastWindowPositionAndSize(hwnd);
         break;
 
       case WM_SIZE:
         if (ImGui::GetCurrentContext())
           if (ImGuiViewport *imguiViewport = getMainImguiViewport())
             imguiViewport->PlatformRequestResize = true;
+
+        if (!IsIconic((HWND)hwnd))
+          updateLastWindowPositionAndSize(hwnd);
         break;
 
       case WM_DROPFILES:
@@ -111,6 +172,19 @@ private:
     G_ASSERT((platformIo.Viewports[0]->Flags & ImGuiViewportFlags_OwnedByApp) != 0);
     return platformIo.Viewports[0];
   }
+
+  static void updateLastWindowPositionAndSize(void *hwnd)
+  {
+    RECT rect;
+    if (GetWindowRect((HWND)hwnd, &rect) == FALSE)
+    {
+      last_windw_position_and_size.reset();
+      return;
+    }
+
+    last_windw_position_and_size.rectangle = EcRect{.l = rect.left, .t = rect.top, .r = rect.right, .b = rect.bottom};
+    last_windw_position_and_size.maximized = IsZoomed((HWND)hwnd) != 0;
+  }
 };
 
 static EditorCoreWndProcComponent editor_core_wnd_proc_component;
@@ -121,6 +195,27 @@ public:
   explicit ImguiWndManagerWindows(void *main_hwnd) : mainHwnd(main_hwnd) {}
 
   void close() override { quit_game(); }
+
+  void loadMainWindowPositionAndSize(const DataBlock &blk) override
+  {
+    const IPoint2 position = blk.getIPoint2("position", IPoint2::ZERO);
+    const IPoint2 size = blk.getIPoint2("size", IPoint2::ZERO);
+    requestedMainWindowPositionAndSize.rectangle.l = position.x;
+    requestedMainWindowPositionAndSize.rectangle.t = position.y;
+    requestedMainWindowPositionAndSize.rectangle.r = position.x + size.x;
+    requestedMainWindowPositionAndSize.rectangle.b = position.y + size.y;
+    requestedMainWindowPositionAndSize.maximized = blk.getBool("maximized", true);
+  }
+
+  void saveMainWindowPositionAndSize(DataBlock &blk) override
+  {
+    if (!last_windw_position_and_size.isValid())
+      return;
+
+    blk.addIPoint2("position", IPoint2(last_windw_position_and_size.rectangle.l, last_windw_position_and_size.rectangle.t));
+    blk.addIPoint2("size", IPoint2(last_windw_position_and_size.rectangle.width(), last_windw_position_and_size.rectangle.height()));
+    blk.addBool("maximized", IsZoomed((HWND)mainHwnd) != 0);
+  }
 
   void *getMainWindow() const override { return mainHwnd; }
 
@@ -147,8 +242,9 @@ public:
     const bool succeeded = tools3d::init(drv_name, blkTexStreaming, caption, hicon);
     mainHwnd = win32_get_main_wnd();
 
-    // At this point the window has been drawn, so we can show it maximized.
-    ShowWindow((HWND)win32_get_main_wnd(), SW_SHOWMAXIMIZED);
+    // At this point the window has been drawn, so we can show it.
+    restoreWindowPostion(mainHwnd, requestedMainWindowPositionAndSize);
+    requestedMainWindowPositionAndSize.reset();
 
     // Let work cycle process the window sizing. (Because the application might start loading without calling
     // dagor_work_cycle(), and the rendering would be blurry.)
@@ -224,6 +320,59 @@ private:
     return hidden_cursor;
   }
 
+  void clipWindowPositionAndSizeToMonitor(WindowPositionAndSize &wps)
+  {
+    if (!wps.isValid())
+      return;
+
+    const RECT rc{.left = wps.rectangle.l, .top = wps.rectangle.t, .right = wps.rectangle.r, .bottom = wps.rectangle.b};
+    HMONITOR monitor = MonitorFromRect(&rc, MONITOR_DEFAULTTOPRIMARY);
+
+    MONITORINFO info{};
+    info.cbSize = sizeof(MONITORINFO);
+    if (!monitor || GetMonitorInfo(monitor, &info) == FALSE)
+    {
+      wps.reset();
+      return;
+    }
+
+    EcRect monitorRect{.l = info.rcMonitor.left, .t = info.rcMonitor.top, .r = info.rcMonitor.right, .b = info.rcMonitor.bottom};
+
+    // GetWindowRect() returns a rectangle that includes the invisible border around the window.
+    // Compensate for that by extending the monitor's rectangle.
+    const UINT dpi = dpiHelper.getDpiForMonitor(monitor);
+    const int frameX =
+      dpiHelper.getSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + dpiHelper.getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+    const int frameY =
+      dpiHelper.getSystemMetricsForDpi(SM_CYSIZEFRAME, dpi) + dpiHelper.getSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+    monitorRect.l -= frameX;
+    monitorRect.t -= frameY;
+    monitorRect.r += frameX;
+    monitorRect.b += frameY;
+
+    wps.rectangle.l = clamp(wps.rectangle.l, (int)monitorRect.l, (int)monitorRect.r);
+    wps.rectangle.t = clamp(wps.rectangle.t, (int)monitorRect.t, (int)monitorRect.b);
+    wps.rectangle.r = clamp(wps.rectangle.r, (int)monitorRect.l, (int)monitorRect.r);
+    wps.rectangle.b = clamp(wps.rectangle.b, (int)monitorRect.t, (int)monitorRect.b);
+  }
+
+  void restoreWindowPostion(void *hwnd, WindowPositionAndSize wps)
+  {
+    clipWindowPositionAndSizeToMonitor(wps);
+    if (wps.isValid())
+    {
+      ShowWindow((HWND)hwnd, SW_SHOWNORMAL);
+      SetWindowPos((HWND)hwnd, nullptr, wps.rectangle.l, wps.rectangle.t, wps.rectangle.width(), wps.rectangle.height(),
+        SWP_NOZORDER | SWP_NOACTIVATE);
+      if (wps.maximized)
+        ShowWindow((HWND)hwnd, SW_SHOWMAXIMIZED);
+    }
+    else
+    {
+      ShowWindow((HWND)hwnd, SW_SHOWMAXIMIZED);
+    }
+  }
+
   struct CursorParams
   {
     explicit CursorParams(ImGuiMouseCursor imgui_mouse_cursor = ImGuiMouseCursor_None, bool hidden_cursor = false,
@@ -242,6 +391,8 @@ private:
   HANDLE cursorAdditionalClick = 0;
   CursorParams cursorParams;
   bool cursorParamsMakeHiddenCursor = false;
+  WindowPositionAndSize requestedMainWindowPositionAndSize;
+  WindowsDpiHelper dpiHelper;
 };
 
 static void post_shutdown_handler()
