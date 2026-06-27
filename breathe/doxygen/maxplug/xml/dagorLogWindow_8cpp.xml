@@ -1,0 +1,339 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dagorLogWindow_8cpp" kind="file" language="C++">
+    <compoundname>dagorLogWindow.cpp</compoundname>
+    <includes refid="dagorLogWindow_8h" local="yes">dagorLogWindow.h</includes>
+    <includes refid="resource_8h" local="yes">resource.h</includes>
+    <includes local="no">max.h</includes>
+    <includes local="no">tab.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>dagorLogWindow.cpp</label>
+        <link refid="dagorLogWindow_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dagorLogWindow.h</label>
+        <link refid="dagorLogWindow_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>resource.h</label>
+        <link refid="resource_8h"/>
+      </node>
+      <node id="6">
+        <label>max.h</label>
+      </node>
+      <node id="3">
+        <label>strclass.h</label>
+      </node>
+      <node id="7">
+        <label>tab.h</label>
+      </node>
+      <node id="4">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classDagorLogStaticInterface" prot="public">DagorLogStaticInterface</innerclass>
+    <innerclass refid="structDagorLogStaticInterface_1_1FunctionId" prot="public">DagorLogStaticInterface::FunctionId</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dagorLogWindow_8cpp_1a594ca2c841b26aea008d1a36b9ec1f49" prot="public" static="yes" mutable="no">
+        <type><ref refid="classDagorLogStaticInterface" kindref="compound">DagorLogStaticInterface</ref></type>
+        <definition>DagorLogStaticInterface theDagorLogStaticInterface(Interface_ID(0x438b2512, 0xef263531), _T(&quot;dagorLog&quot;), -1, 0, FP_CORE, DagorLogStaticInterface::FunctionId::ShowDialog, _T(&quot;showDialog&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::HideDialog, _T(&quot;hideDialog&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::LogNote, _T(&quot;logNote&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 1, _T(&quot;message&quot;), -1, TYPE_STRING, DagorLogStaticInterface::FunctionId::LogWarning, _T(&quot;logWarning&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 1, _T(&quot;message&quot;), -1, TYPE_STRING, DagorLogStaticInterface::FunctionId::LogError, _T(&quot;logError&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 1, _T(&quot;message&quot;), -1, TYPE_STRING, DagorLogStaticInterface::FunctionId::ClearLog, _T(&quot;clearLog&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::GetLogLines, _T(&quot;getLogLines&quot;), -1, TYPE_STRING_TAB, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::HasWarningOrError, _T(&quot;hasWarningOrError&quot;), -1, TYPE_BOOL, FP_NO_REDRAW, 0, end)</definition>
+        <argsstring>(Interface_ID(0x438b2512, 0xef263531), _T(&quot;dagorLog&quot;), -1, 0, FP_CORE, DagorLogStaticInterface::FunctionId::ShowDialog, _T(&quot;showDialog&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::HideDialog, _T(&quot;hideDialog&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::LogNote, _T(&quot;logNote&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 1, _T(&quot;message&quot;), -1, TYPE_STRING, DagorLogStaticInterface::FunctionId::LogWarning, _T(&quot;logWarning&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 1, _T(&quot;message&quot;), -1, TYPE_STRING, DagorLogStaticInterface::FunctionId::LogError, _T(&quot;logError&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 1, _T(&quot;message&quot;), -1, TYPE_STRING, DagorLogStaticInterface::FunctionId::ClearLog, _T(&quot;clearLog&quot;), -1, TYPE_VOID, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::GetLogLines, _T(&quot;getLogLines&quot;), -1, TYPE_STRING_TAB, FP_NO_REDRAW, 0, DagorLogStaticInterface::FunctionId::HasWarningOrError, _T(&quot;hasWarningOrError&quot;), -1, TYPE_BOOL, FP_NO_REDRAW, 0, end)</argsstring>
+        <name>theDagorLogStaticInterface</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.cpp" line="246" column="32"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="dagorLogWindow_8h" kindref="compound">dagorLogWindow.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="resource_8h" kindref="compound">resource.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;tab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">HWND<sp/>DagorLogWindow::hwnd<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">TSTR<sp/>DagorLogWindow::logText;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>DagorLogWindow::hasWarningOrError<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogWindow_1a65e078c63db9c8fed5094e7a0f24e496" kindref="member">DagorLogWindow::show</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reset_position_and_size)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(reset_position_and_size<sp/>&amp;&amp;<sp/>hwnd)</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/><sp/><sp/>DestroyWindow(hwnd);</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hwnd)</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>ShowWindow(hwnd,<sp/>SW_SHOW);</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/>SetActiveWindow(hwnd);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>Interface<sp/>*ip<sp/>=<sp/>GetCOREInterface();</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>CreateDialog(<ref refid="dagor_8h_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>MAKEINTRESOURCE(<ref refid="resource_8h_1a09a79850c1c4e099ef9623fe3c68ea5b" kindref="member">IDD_DAGOR_LOG_WINDOW</ref>),<sp/>ip-&gt;GetMAXHWnd(),<sp/>&amp;DagorLogWindow::dialogProc);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>ip-&gt;RegisterDlgWnd(hwnd);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>::ShowWindow(hwnd,<sp/>SW_SHOW);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogWindow_1ae93bfb41a34cb2b57505215d25736529" kindref="member">DagorLogWindow::hide</ref>()</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hwnd)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><sp/><sp/>ShowWindow(hwnd,<sp/>SW_HIDE);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogWindow_1a42c9339a383b9d8c8581d81437b3937b" kindref="member">DagorLogWindow::addToLog</ref>(LogLevel<sp/>level,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*format,<sp/>...)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/>va_list<sp/>args;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>va_start(args,<sp/>format);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><ref refid="classDagorLogWindow_1a42c9339a383b9d8c8581d81437b3937b" kindref="member">addToLog</ref>(level,<sp/>format,<sp/>args);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>va_end(args);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogWindow_1a42c9339a383b9d8c8581d81437b3937b" kindref="member">DagorLogWindow::addToLog</ref>(LogLevel<sp/>level,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*format,<sp/>va_list<sp/>args)</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>TSTR<sp/>textToAdd;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>textToAdd.vprintf(format,<sp/>args);</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>logText<sp/>+=<sp/>textToAdd;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(level<sp/>==<sp/><ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa32ae57a69fc892e4e85954eeaeceb376" kindref="member">LogLevel::Warning</ref><sp/>||<sp/>level<sp/>==<sp/><ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa123d64e6b2e73123ce7805de9474e755" kindref="member">LogLevel::Error</ref>)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/>hasWarningOrError<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>updateLogEditBox();</highlight></codeline>
+<codeline lineno="55"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogWindow_1a942c1354a32e315d800e26a47e9341ae" kindref="member">DagorLogWindow::clearLog</ref>()</highlight></codeline>
+<codeline lineno="58"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>logText<sp/>=<sp/>_T(</highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>hasWarningOrError<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/>updateLogEditBox();</highlight></codeline>
+<codeline lineno="62"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDagorLogWindow_1affb59612b951f356758a4bef9126a3b2" kindref="member">DagorLogWindow::getHasWarningOrError</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>hasWarningOrError;<sp/>}</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>DagorLogWindow::updateLogEditBox()</highlight></codeline>
+<codeline lineno="67"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hwnd)</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>SetDlgItemText(hwnd,<sp/><ref refid="resource_8h_1af290a2966b297d3cefddbf476b896cd2" kindref="member">IDC_LOGTEXT</ref>,<sp/>logText);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal">std::vector&lt;TSTR&gt;<sp/><ref refid="classDagorLogWindow_1a4b08942c8a36ba4fddcaedf78899910b" kindref="member">DagorLogWindow::getLogLines</ref>()</highlight></codeline>
+<codeline lineno="73"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/>std::vector&lt;TSTR&gt;<sp/>lines;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>lineStartIndex<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="expanim2_8cpp_1a08a220becd6823469691d6bffd291148" kindref="member">length</ref><sp/>=<sp/>logText.length();</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/><ref refid="expanim2_8cpp_1a08a220becd6823469691d6bffd291148" kindref="member">length</ref>;<sp/>++i)</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(logText[i]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;\r&apos;</highlight><highlight class="normal"><sp/>&amp;&amp;<sp/>(i<sp/>+<sp/>1)<sp/>&lt;<sp/><ref refid="expanim2_8cpp_1a08a220becd6823469691d6bffd291148" kindref="member">length</ref><sp/>&amp;&amp;<sp/>logText[i<sp/>+<sp/>1]<sp/>==<sp/></highlight><highlight class="charliteral">&apos;\n&apos;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_MSC_VER<sp/>&gt;=<sp/>1700</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lines.emplace_back(logText.Substr(lineStartIndex,<sp/>i<sp/>-<sp/>lineStartIndex));</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lines.push_back(logText.Substr(lineStartIndex,<sp/>i<sp/>-<sp/>lineStartIndex));</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>lineStartIndex<sp/>=<sp/>i<sp/>+<sp/>2;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>++i;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(lineStartIndex<sp/>&lt;<sp/><ref refid="expanim2_8cpp_1a08a220becd6823469691d6bffd291148" kindref="member">length</ref>)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_MSC_VER<sp/>&gt;=<sp/>1700</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/>lines.emplace_back(logText.Substr(lineStartIndex,<sp/><ref refid="expanim2_8cpp_1a08a220becd6823469691d6bffd291148" kindref="member">length</ref><sp/>-<sp/>lineStartIndex));</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/>lines.push_back(logText.Substr(lineStartIndex,<sp/><ref refid="expanim2_8cpp_1a08a220becd6823469691d6bffd291148" kindref="member">length</ref><sp/>-<sp/>lineStartIndex));</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>lines;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal">INT_PTR<sp/>CALLBACK<sp/>DagorLogWindow::dialogProc(HWND<sp/>hw,<sp/>UINT<sp/>msg,<sp/>WPARAM<sp/>wParam,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(msg)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_INITDIALOG:</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hwnd<sp/>=<sp/>hw;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>updateLogEditBox();</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"></highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Prevent<sp/>the<sp/>default<sp/>selection<sp/>of<sp/>the<sp/>entire<sp/>contents<sp/>of<sp/>the<sp/>edit<sp/>box.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SendDlgItemMessage(hwnd,<sp/><ref refid="resource_8h_1af290a2966b297d3cefddbf476b896cd2" kindref="member">IDC_LOGTEXT</ref>,<sp/>EM_SETSEL,<sp/>-1,<sp/>-1);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SetFocus(GetDlgItem(hwnd,<sp/><ref refid="resource_8h_1af290a2966b297d3cefddbf476b896cd2" kindref="member">IDC_LOGTEXT</ref>));</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_COMMAND:</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(LOWORD(wParam))</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="resource_8h_1af290a2966b297d3cefddbf476b896cd2" kindref="member">IDC_LOGTEXT</ref>:</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(HIWORD(wParam)<sp/>==<sp/>EN_SETFOCUS)</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>DisableAccelerators();</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(HIWORD(wParam)<sp/>==<sp/>EN_KILLFOCUS)</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>EnableAccelerators();</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_CLOSE:<sp/><ref refid="classDagorLogWindow_1ae93bfb41a34cb2b57505215d25736529" kindref="member">hide</ref>();<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_DESTROY:</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>EndDialog(hwnd,<sp/>FALSE);</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>Interface<sp/>*ip<sp/>=<sp/>GetCOREInterface();</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ip-&gt;UnRegisterDlgWnd(hwnd);</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>hwnd<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_SIZE:</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>HWND<sp/>editBox<sp/>=<sp/>GetDlgItem(hwnd,<sp/><ref refid="resource_8h_1af290a2966b297d3cefddbf476b896cd2" kindref="member">IDC_LOGTEXT</ref>);</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>RECT<sp/>rc;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>GetWindowRect(editBox,<sp/>&amp;rc);</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>POINT<sp/>pt<sp/>=<sp/>{rc.left,<sp/>rc.top};</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ScreenToClient(hwnd,<sp/>&amp;pt);</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>margin<sp/>=<sp/>pt.x;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>width<sp/>=<sp/>LOWORD(lParam);</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>height<sp/>=<sp/>HIWORD(lParam);</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>MoveWindow(editBox,<sp/>margin,<sp/>margin,<sp/>width<sp/>-<sp/>(margin<sp/>*<sp/>2),<sp/>height<sp/>-<sp/>(margin<sp/>*<sp/>2),<sp/>TRUE);</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>FALSE;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="159"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><ref refid="classDagorLogWindowAutoShower_1aabf3e510c8c12097ddc89970102713f4" kindref="member">DagorLogWindowAutoShower::DagorLogWindowAutoShower</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>clear_log)</highlight></codeline>
+<codeline lineno="162"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(clear_log)</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorLogWindow_1a942c1354a32e315d800e26a47e9341ae" kindref="member">DagorLogWindow::clearLog</ref>();</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/>hasWarningOrError<sp/>=<sp/><ref refid="classDagorLogWindow_1affb59612b951f356758a4bef9126a3b2" kindref="member">DagorLogWindow::getHasWarningOrError</ref>();</highlight></codeline>
+<codeline lineno="167"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="168"><highlight class="normal"></highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><ref refid="classDagorLogWindowAutoShower_1a10a2fd3463ae7c9ea6d5b27703c468c0" kindref="member">DagorLogWindowAutoShower::~DagorLogWindowAutoShower</ref>()</highlight></codeline>
+<codeline lineno="170"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!hasWarningOrError<sp/>&amp;&amp;<sp/><ref refid="classDagorLogWindow_1affb59612b951f356758a4bef9126a3b2" kindref="member">DagorLogWindow::getHasWarningOrError</ref>())</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorLogWindow_1a65e078c63db9c8fed5094e7a0f24e496" kindref="member">DagorLogWindow::show</ref>();</highlight></codeline>
+<codeline lineno="173"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175" refid="classDagorLogStaticInterface" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classDagorLogStaticInterface" kindref="compound">DagorLogStaticInterface</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>FPStaticInterface</highlight></codeline>
+<codeline lineno="176"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><ref refid="classDagorLogStaticInterface_1a68df2cb8719a0d0d14db0d12923a4ac5" kindref="member">DECLARE_DESCRIPTOR</ref>(<ref refid="classDagorLogStaticInterface" kindref="compound">DagorLogStaticInterface</ref>);</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"></highlight></codeline>
+<codeline lineno="180" refid="structDagorLogStaticInterface_1_1FunctionId" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDagorLogStaticInterface_1_1FunctionId" kindref="compound">FunctionId</ref></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a577f69ecf773c985b67f3de743187f61" kindref="member">ShowDialog</ref>,</highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45aab044462f9ca017f2aa02712ad9eddb6" kindref="member">HideDialog</ref>,</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45af4f06b0276c4e888c2b76f0970bff6cd" kindref="member">LogNote</ref>,</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a66083dbd31da5791feac489bfe67119f" kindref="member">LogWarning</ref>,</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45add5ea769525a3c232228b33827da89c5" kindref="member">LogError</ref>,</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a666bde238b63305d2307cb955eb6e437" kindref="member">ClearLog</ref>,</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45ad5e17cfc2d9be9b800d5ca554507ac52" kindref="member">GetLogLines</ref>,</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45ab6e6b0466849b14c418f9c23fde442af" kindref="member">HasWarningOrError</ref>,</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/>BEGIN_FUNCTION_MAP</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>VFN_0(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a577f69ecf773c985b67f3de743187f61" kindref="member">FunctionId::ShowDialog</ref>,<sp/><ref refid="classDagorLogStaticInterface_1abd4f1a7b24f8a90c4fb175c91ff98e8f" kindref="member">showDialog</ref>)</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/>VFN_0(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45aab044462f9ca017f2aa02712ad9eddb6" kindref="member">FunctionId::HideDialog</ref>,<sp/><ref refid="classDagorLogStaticInterface_1a38cec779df85f9c6e43439e7e488b912" kindref="member">hideDialog</ref>)</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/>VFN_1(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45af4f06b0276c4e888c2b76f0970bff6cd" kindref="member">FunctionId::LogNote</ref>,<sp/><ref refid="classDagorLogStaticInterface_1a0fe660b159d4f7260f10849e43e14cd9" kindref="member">logNote</ref>,<sp/>TYPE_STRING)</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/>VFN_1(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a66083dbd31da5791feac489bfe67119f" kindref="member">FunctionId::LogWarning</ref>,<sp/><ref refid="classDagorLogStaticInterface_1a703632c951ca1eb779bd17b142209df0" kindref="member">logWarning</ref>,<sp/>TYPE_STRING)</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/>VFN_1(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45add5ea769525a3c232228b33827da89c5" kindref="member">FunctionId::LogError</ref>,<sp/><ref refid="classDagorLogStaticInterface_1ab0d9de5addb8eb1b19679883db6de722" kindref="member">logError</ref>,<sp/>TYPE_STRING)</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/>VFN_0(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a666bde238b63305d2307cb955eb6e437" kindref="member">FunctionId::ClearLog</ref>,<sp/><ref refid="classDagorLogStaticInterface_1aa6de37b7b101cef21c152ef5c64e13fa" kindref="member">clearLog</ref>)</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/>FN_0(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45ad5e17cfc2d9be9b800d5ca554507ac52" kindref="member">FunctionId::GetLogLines</ref>,<sp/>TYPE_STRING_TAB,<sp/><ref refid="classDagorLogStaticInterface_1a9f5c5270f5bb8f1c2f856b0c9fe130fc" kindref="member">getLogLines</ref>)</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"><sp/><sp/>FN_0(<ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45ab6e6b0466849b14c418f9c23fde442af" kindref="member">FunctionId::HasWarningOrError</ref>,<sp/>TYPE_BOOL,<sp/><ref refid="classDagorLogStaticInterface_1ac509ad555a1ad3f284ac0ce4da0216e6" kindref="member">hasWarningOrError</ref>)</highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/>END_FUNCTION_MAP</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"></highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface_1abd4f1a7b24f8a90c4fb175c91ff98e8f" kindref="member">showDialog</ref>()<sp/>{<sp/><ref refid="classDagorLogWindow_1a65e078c63db9c8fed5094e7a0f24e496" kindref="member">DagorLogWindow::show</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface_1a38cec779df85f9c6e43439e7e488b912" kindref="member">hideDialog</ref>()<sp/>{<sp/><ref refid="classDagorLogWindow_1ae93bfb41a34cb2b57505215d25736529" kindref="member">DagorLogWindow::hide</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface_1a0fe660b159d4f7260f10849e43e14cd9" kindref="member">logNote</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*message)<sp/>{<sp/>log(<ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aad382c903dfbb1b22f21b4d110f122adc" kindref="member">DagorLogWindow::LogLevel::Note</ref>,<sp/>message);<sp/>}</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface_1a703632c951ca1eb779bd17b142209df0" kindref="member">logWarning</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*message)<sp/>{<sp/>log(<ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa32ae57a69fc892e4e85954eeaeceb376" kindref="member">DagorLogWindow::LogLevel::Warning</ref>,<sp/>message);<sp/>}</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface_1ab0d9de5addb8eb1b19679883db6de722" kindref="member">logError</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*message)<sp/>{<sp/>log(<ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa123d64e6b2e73123ce7805de9474e755" kindref="member">DagorLogWindow::LogLevel::Error</ref>,<sp/>message);<sp/>}</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface_1aa6de37b7b101cef21c152ef5c64e13fa" kindref="member">clearLog</ref>()<sp/>{<sp/><ref refid="classDagorLogWindow_1a942c1354a32e315d800e26a47e9341ae" kindref="member">DagorLogWindow::clearLog</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/>Tab&lt;TCHAR<sp/>*&gt;<sp/>*<ref refid="classDagorLogStaticInterface_1a9f5c5270f5bb8f1c2f856b0c9fe130fc" kindref="member">getLogLines</ref>()</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::vector&lt;TSTR&gt;<sp/>lines<sp/>=<sp/><ref refid="classDagorLogWindow_1a4b08942c8a36ba4fddcaedf78899910b" kindref="member">DagorLogWindow::getLogLines</ref>();</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"></highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/>Tab&lt;TCHAR<sp/>*&gt;<sp/>*resultLines<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>Tab&lt;TCHAR<sp/>*&gt;();</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>lines.size();<sp/>++i)</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TSTR<sp/>&amp;line<sp/>=<sp/>lines[i];</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>TCHAR<sp/>*resultLine<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/>TCHAR[line.length()<sp/>+<sp/>1];</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>memcpy(resultLine,<sp/>line.data(),<sp/>(line.length()<sp/>+<sp/>1)<sp/>*<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(TCHAR));</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>resultLines-&gt;Append(1,<sp/>&amp;resultLine);</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>resultLines;</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"></highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface_1ac509ad555a1ad3f284ac0ce4da0216e6" kindref="member">hasWarningOrError</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classDagorLogWindow_1affb59612b951f356758a4bef9126a3b2" kindref="member">DagorLogWindow::getHasWarningOrError</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>log(<ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229a" kindref="member">DagorLogWindow::LogLevel</ref><sp/>level,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TCHAR<sp/>*message)</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/>TSTR<sp/>str(message);</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>defined(MAX_RELEASE_R15)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R15</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>\n<sp/>in<sp/>MaxScript<sp/>is<sp/>actually<sp/>\r\n,<sp/>but<sp/>handle<sp/>everything.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/>str.Replace(_T(</highlight><highlight class="stringliteral">&quot;\r\n&quot;</highlight><highlight class="normal">),<sp/>_T(</highlight><highlight class="stringliteral">&quot;\n&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/>str.Replace(_T(</highlight><highlight class="stringliteral">&quot;\r&quot;</highlight><highlight class="normal">),<sp/>_T(</highlight><highlight class="stringliteral">&quot;\n&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/>str.Replace(_T(</highlight><highlight class="stringliteral">&quot;\n&quot;</highlight><highlight class="normal">),<sp/>_T(</highlight><highlight class="stringliteral">&quot;\r\n&quot;</highlight><highlight class="normal">));</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classDagorLogWindow_1a42c9339a383b9d8c8581d81437b3937b" kindref="member">DagorLogWindow::addToLog</ref>(level,<sp/>_T(</highlight><highlight class="stringliteral">&quot;%s\r\n&quot;</highlight><highlight class="normal">),<sp/>str.data());</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="243"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight><highlight class="comment">//<sp/>clang-format<sp/>off</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classDagorLogStaticInterface" kindref="compound">DagorLogStaticInterface</ref><sp/>theDagorLogStaticInterface(</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/>Interface_ID(0x438b2512,<sp/>0xef263531),<sp/>_T(</highlight><highlight class="stringliteral">&quot;dagorLog&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>0,<sp/>FP_CORE,</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"></highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a577f69ecf773c985b67f3de743187f61" kindref="member">DagorLogStaticInterface::FunctionId::ShowDialog</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;showDialog&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_VOID,<sp/>FP_NO_REDRAW,<sp/>0,</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45aab044462f9ca017f2aa02712ad9eddb6" kindref="member">DagorLogStaticInterface::FunctionId::HideDialog</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;hideDialog&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_VOID,<sp/>FP_NO_REDRAW,<sp/>0,</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45af4f06b0276c4e888c2b76f0970bff6cd" kindref="member">DagorLogStaticInterface::FunctionId::LogNote</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;logNote&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_VOID,<sp/>FP_NO_REDRAW,<sp/>1,</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/>_T(</highlight><highlight class="stringliteral">&quot;message&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_STRING,</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a66083dbd31da5791feac489bfe67119f" kindref="member">DagorLogStaticInterface::FunctionId::LogWarning</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;logWarning&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_VOID,<sp/>FP_NO_REDRAW,<sp/>1,</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/>_T(</highlight><highlight class="stringliteral">&quot;message&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_STRING,</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45add5ea769525a3c232228b33827da89c5" kindref="member">DagorLogStaticInterface::FunctionId::LogError</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;logError&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_VOID,<sp/>FP_NO_REDRAW,<sp/>1,</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/>_T(</highlight><highlight class="stringliteral">&quot;message&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_STRING,</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45a666bde238b63305d2307cb955eb6e437" kindref="member">DagorLogStaticInterface::FunctionId::ClearLog</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;clearLog&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_VOID,<sp/>FP_NO_REDRAW,<sp/>0,</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45ad5e17cfc2d9be9b800d5ca554507ac52" kindref="member">DagorLogStaticInterface::FunctionId::GetLogLines</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;getLogLines&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_STRING_TAB,<sp/>FP_NO_REDRAW,<sp/>0,</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><ref refid="structDagorLogStaticInterface_1_1FunctionId_1a16dee1e54f88bb636f21977cb7cdcc45ab6e6b0466849b14c418f9c23fde442af" kindref="member">DagorLogStaticInterface::FunctionId::HasWarningOrError</ref>,<sp/>_T(</highlight><highlight class="stringliteral">&quot;hasWarningOrError&quot;</highlight><highlight class="normal">),<sp/>-1,<sp/>TYPE_BOOL,<sp/>FP_NO_REDRAW,<sp/>0,</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight></codeline>
+<codeline lineno="261"><highlight class="normal">#</highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>defined(MAX_RELEASE_R15)<sp/>&amp;&amp;<sp/>MAX_RELEASE<sp/>&gt;=<sp/>MAX_RELEASE_R15</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/>p_end</highlight></codeline>
+<codeline lineno="263"><highlight class="normal">#</highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/>end</highlight></codeline>
+<codeline lineno="265"><highlight class="normal">#endif</highlight></codeline>
+<codeline lineno="266"><highlight class="normal">);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"></highlight><highlight class="comment">//<sp/>clang-format<sp/>on</highlight></codeline>
+    </programlisting>
+    <location file="dagorLogWindow.cpp"/>
+  </compounddef>
+</doxygen>

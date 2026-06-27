@@ -1,0 +1,406 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFpsCameraElem" kind="class" language="C++" prot="public">
+    <compoundname>FpsCameraElem</compoundname>
+    <basecompoundref refid="classCCameraElem" prot="public" virt="non-virtual">CCameraElem</basecompoundref>
+    <includes refid="ec__camera__elem_8h" local="no">ec_camera_elem.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classFpsCameraElem_1ac114aad02ecca74330022fa1888caf22" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 FpsCameraElem::pos</definition>
+        <argsstring></argsstring>
+        <name>pos</name>
+        <qualifiedname>FpsCameraElem::pos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="211" column="10" bodyfile="ec_camera_elem.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFpsCameraElem_1a3a018eadb0880fc53dff038ef78f1d60" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 FpsCameraElem::prevPos</definition>
+        <argsstring></argsstring>
+        <name>prevPos</name>
+        <qualifiedname>FpsCameraElem::prevPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="211" column="14" bodyfile="ec_camera_elem.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFpsCameraElem_1a6c8e5de12a2fd9d6137680dd79d732df" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 FpsCameraElem::speed</definition>
+        <argsstring></argsstring>
+        <name>speed</name>
+        <qualifiedname>FpsCameraElem::speed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="211" column="22" bodyfile="ec_camera_elem.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFpsCameraElem_1a9651334ef25746c494363c69439dd1a8" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 FpsCameraElem::accelerate</definition>
+        <argsstring></argsstring>
+        <name>accelerate</name>
+        <qualifiedname>FpsCameraElem::accelerate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="211" column="28" bodyfile="ec_camera_elem.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFpsCameraElem_1a8280620f2c9e3284f9f27d20502dbeb4" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool FpsCameraElem::mayJump</definition>
+        <argsstring></argsstring>
+        <name>mayJump</name>
+        <qualifiedname>FpsCameraElem::mayJump</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="212" column="8" bodyfile="ec_camera_elem.h" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFpsCameraElem_1a3e4fc6241823e99933656ca00f53e330" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>FpsCameraElem::FpsCameraElem</definition>
+        <argsstring>()</argsstring>
+        <name>FpsCameraElem</name>
+        <qualifiedname>FpsCameraElem::FpsCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="200" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classFpsCameraElem_1a55147651c18e6361f82287e8f08935c7" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraElem::actInternal</definition>
+        <argsstring>() override</argsstring>
+        <name>actInternal</name>
+        <qualifiedname>FpsCameraElem::actInternal</qualifiedname>
+        <reimplements refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0">actInternal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="202" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFpsCameraElem_1a671b4e0a900cf72d5d636a93dd33f1d3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraElem::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>FpsCameraElem::render</qualifiedname>
+        <reimplements refid="classCCameraElem_1aff44e07a6dc1479af081689f325c3153">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="203" column="8" bodyfile="ec_camera_elem.h" bodystart="203" bodyend="203"/>
+      </memberdef>
+      <memberdef kind="function" id="classFpsCameraElem_1a763dabc61c999eeb5187be465023b5a4" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraElem::clear</definition>
+        <argsstring>() override</argsstring>
+        <name>clear</name>
+        <qualifiedname>FpsCameraElem::clear</qualifiedname>
+        <reimplements refid="classCCameraElem_1a0d860b8d73bccc47e93590921b24c054">clear</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="204" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFpsCameraElem_1ad2431c4fba7014c44b2495a2077d201a" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraElem::handleKeyboardInput</definition>
+        <argsstring>(unsigned viewport_id) override</argsstring>
+        <name>handleKeyboardInput</name>
+        <qualifiedname>FpsCameraElem::handleKeyboardInput</qualifiedname>
+        <reimplements refid="classCCameraElem_1a1ebac4182335e4e7692e13be100aff39">handleKeyboardInput</reimplements>
+        <param>
+          <type>unsigned</type>
+          <declname>viewport_id</declname>
+        </param>
+        <briefdescription>
+<para>Handle keyboard input using polling. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="205" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFpsCameraElem_1a85772a67f1b3f995fca09fc93c7e7ef4" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraElem::moveForward</definition>
+        <argsstring>(real deltaZ, bool multiplySencetive, IGenViewportWnd *wnd) override</argsstring>
+        <name>moveForward</name>
+        <qualifiedname>FpsCameraElem::moveForward</qualifiedname>
+        <reimplements refid="classCCameraElem_1a83ec6cb7676ad19ed38f38a9ba3754f4">moveForward</reimplements>
+        <param>
+          <type>real</type>
+          <declname>dZ</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiplySencetive</declname>
+        </param>
+        <param>
+          <type><ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref> *</type>
+          <declname>wnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Move camera in Z direction. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dZ</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera Z-shift </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiplySencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">wnd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- pointer to viewport window </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="206" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFpsCameraElem_1a915ca547c540086a4b12f451e2222929" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void FpsCameraElem::strife</definition>
+        <argsstring>(real dx, real dy, bool multiply_sencetive, bool config_sencetive) override</argsstring>
+        <name>strife</name>
+        <qualifiedname>FpsCameraElem::strife</qualifiedname>
+        <reimplements refid="classCCameraElem_1ac65c6ffb1a945df9789af34f2eeb2622">strife</reimplements>
+        <param>
+          <type>real</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>dy</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>multiply_sencetive</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>config_sencetive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Strife camera (move along X,Y surface). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">dx</parametername>
+<parametername direction="in">dy</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- camera shift in X,Y directions </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">multiply_sencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use acceleration, <bold>false:</bold> camera is not accelerated </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">config_sencetive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- <bold>true:</bold> use camera&apos;s &apos;Turbo&apos; coefficient (acceleration for &apos;free&apos; / &apos;FPS&apos; camera if [Shift] key pressed), <bold>false:</bold> &apos;Turbo&apos; coefficient is not used </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="207" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classFpsCameraElem_1a3ea044abd4e8a02f80d66f335be5281f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void FpsCameraElem::moveOn</definition>
+        <argsstring>(const Point3 &amp;dpos)</argsstring>
+        <name>moveOn</name>
+        <qualifiedname>FpsCameraElem::moveOn</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>dpos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="208" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+      </node>
+      <node id="1">
+        <label>FpsCameraElem</label>
+        <link refid="classFpsCameraElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>config</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>vpw</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>FpsCameraElem</label>
+        <link refid="classFpsCameraElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>IGenViewportWnd</label>
+        <link refid="classIGenViewportWnd"/>
+      </node>
+      <node id="4">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_elem.h" line="197" column="1" bodyfile="ec_camera_elem.h" bodystart="198" bodyend="213"/>
+    <listofallmembers>
+      <member refid="classCCameraElem_1acd3628630db125b5831cf82498e11e3a" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>aboveSurface</name></member>
+      <member refid="classFpsCameraElem_1a9651334ef25746c494363c69439dd1a8" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>accelerate</name></member>
+      <member refid="classCCameraElem_1a06480a2a89d6e5cc4f074ad5db1a9c27" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>act</name></member>
+      <member refid="classFpsCameraElem_1a55147651c18e6361f82287e8f08935c7" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>actInternal</name></member>
+      <member refid="classCCameraElem_1af0326b52c54411ac2bcfd1a8c213f52c" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>bow</name></member>
+      <member refid="classCCameraElem_1a81e7864071ea6f986484ba115dedf6ff" prot="protected" virt="virtual"><scope>FpsCameraElem</scope><name>canPutCapsule</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fac2ff4940e8a5f8bc3badcc4698103ed6" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>CAR_CAMERA</name></member>
+      <member refid="classCCameraElem_1afa1c38c033aefe33f77d4a0d37627213" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>CCameraElem</name></member>
+      <member refid="classFpsCameraElem_1a763dabc61c999eeb5187be465023b5a4" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>clear</name></member>
+      <member refid="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>config</name></member>
+      <member refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>currentType</name></member>
+      <member refid="classCCameraElem_1ab01a6b40b8daf18c80322cbfae8aaed0" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>forwardZCurrent</name></member>
+      <member refid="classCCameraElem_1a947c639da64517f2a97e2b0e0ebcdffb" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>forwardZFuture</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa23b4130297cf94c00a1270aca853774c" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>FPS_CAMERA</name></member>
+      <member refid="classFpsCameraElem_1a3e4fc6241823e99933656ca00f53e330" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>FpsCameraElem</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>FREE_CAMERA</name></member>
+      <member refid="classCCameraElem_1af34bd26b4b7ae776bf07a8dd657d28b2" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>freeCamEnterPos</name></member>
+      <member refid="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>getCamera</name></member>
+      <member refid="classCCameraElem_1a3bfa48b599d9ac5372f7ffed706e0567" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>getConfig</name></member>
+      <member refid="classCCameraElem_1a4842c1f178de07690f7c3244a472f289" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>getMultiplier</name></member>
+      <member refid="classCCameraElem_1ad99f35d7ca324a569fcee049544fabd1" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>getSurfPos</name></member>
+      <member refid="classFpsCameraElem_1ad2431c4fba7014c44b2495a2077d201a" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>handleKeyboardInput</name></member>
+      <member refid="classCCameraElem_1aea324c522cf58ff9d062e4c72be350a0" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>handleMouseMove</name></member>
+      <member refid="classCCameraElem_1a418af89d19e42524b6652c31bea5bb63" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>handleMouseWheel</name></member>
+      <member refid="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>initPosition</name></member>
+      <member refid="classCCameraElem_1a8bfd483bffe3bb856b8d36138a123c0a" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>load</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>MAX_CAMERA</name></member>
+      <member refid="classFpsCameraElem_1a8280620f2c9e3284f9f27d20502dbeb4" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>mayJump</name></member>
+      <member refid="classFpsCameraElem_1a85772a67f1b3f995fca09fc93c7e7ef4" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>moveForward</name></member>
+      <member refid="classFpsCameraElem_1a3ea044abd4e8a02f80d66f335be5281f" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>moveOn</name></member>
+      <member refid="classCCameraElem_1a8044793f8cb86109ff3aced1f8d55ee2" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>moveUp</name></member>
+      <member refid="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>multiply</name></member>
+      <member refid="classFpsCameraElem_1ac114aad02ecca74330022fa1888caf22" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>pos</name></member>
+      <member refid="classFpsCameraElem_1a3a018eadb0880fc53dff038ef78f1d60" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>prevPos</name></member>
+      <member refid="classFpsCameraElem_1a671b4e0a900cf72d5d636a93dd33f1d3" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>render</name></member>
+      <member refid="classCCameraElem_1a2785cf40d68476457beae35149a99b5c" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>rotate</name></member>
+      <member refid="classCCameraElem_1a818295bb0fc1ecab8f2a3ceb696b1087" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>rotateXCurrent</name></member>
+      <member refid="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>rotateXFuture</name></member>
+      <member refid="classCCameraElem_1ad3d9b94893ec17eae7d902ea3a31e26b" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>rotateYCurrent</name></member>
+      <member refid="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>rotateYFuture</name></member>
+      <member refid="classCCameraElem_1a6bbe769644c901ad64ecf5cf3701e95d" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>save</name></member>
+      <member refid="classCCameraElem_1af3d5f814513547e6f3ea71e1e51c02ae" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>setAboveSurf</name></member>
+      <member refid="classCCameraElem_1a632218d651286b2e6187d778a2cd4b92" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>setAboveSurface</name></member>
+      <member refid="classCCameraElem_1add8e51ce0f764eec1c653b978997758c" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>setAboveSurfFuture</name></member>
+      <member refid="classCCameraElem_1aafd57f8c8735cfe60548c223ddf163af" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>setCamera</name></member>
+      <member refid="classCCameraElem_1a09e3afb9f4c4794d9be60968bb92d0f6" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>setMultiply</name></member>
+      <member refid="classCCameraElem_1ab1269ded3fea5f217e0033bc24bad144" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>setViewportWindow</name></member>
+      <member refid="classCCameraElem_1a3bde2982b67cac7f4cf524153900b273" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>showConfigDlg</name></member>
+      <member refid="classFpsCameraElem_1a6c8e5de12a2fd9d6137680dd79d732df" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>speed</name></member>
+      <member refid="classCCameraElem_1aefe0aea02460329030fa943569b1465e" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>stop</name></member>
+      <member refid="classFpsCameraElem_1a915ca547c540086a4b12f451e2222929" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>strife</name></member>
+      <member refid="classCCameraElem_1aa9294c6b075248811d72bcd3e51ac42d" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>strifeXCurrent</name></member>
+      <member refid="classCCameraElem_1aaf1cea7b4c16e3f7df4466d55e62e44a" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>strifeXFuture</name></member>
+      <member refid="classCCameraElem_1a93fca12593aee136a810777de9f08e61" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>strifeYCurrent</name></member>
+      <member refid="classCCameraElem_1aac82d466dac750ce45eede1f68fb44a5" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>strifeYFuture</name></member>
+      <member refid="classCCameraElem_1a2c9b7929fcb64862abb6995cc35abaf1" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>switchCamera</name></member>
+      <member refid="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>thisCamType</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54faf30e0a6d71a9332f3b1f977c4c42428f" prot="public" virt="non-virtual"><scope>FpsCameraElem</scope><name>TPS_CAMERA</name></member>
+      <member refid="classCCameraElem_1a5816a2a89ffa2907dbb4890a907dd61d" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>upYCurrent</name></member>
+      <member refid="classCCameraElem_1a1a40fd63c6315f070aecff6884d19d5a" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>upYFuture</name></member>
+      <member refid="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" prot="protected" virt="non-virtual"><scope>FpsCameraElem</scope><name>vpw</name></member>
+      <member refid="classCCameraElem_1a6ae132b6f09f937590936be3f8b3b979" prot="public" virt="virtual"><scope>FpsCameraElem</scope><name>~CCameraElem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

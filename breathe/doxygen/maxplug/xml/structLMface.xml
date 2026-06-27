@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structLMface" kind="struct" language="C++" prot="public">
+    <compoundname>LMface</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structLMface_1ac530b21bbe82d118e6235ee3dd8111e1" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 LMface::t[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>t</name>
+        <qualifiedname>LMface::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ltmap.cpp" line="15" column="10" bodyfile="ltmap.cpp" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ltmap.cpp" line="13" column="1" bodyfile="ltmap.cpp" bodystart="14" bodyend="16"/>
+    <listofallmembers>
+      <member refid="structLMface_1ac530b21bbe82d118e6235ee3dd8111e1" prot="public" virt="non-virtual"><scope>LMface</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

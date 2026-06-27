@@ -1,0 +1,376 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classAtlasBlockManager" kind="class" language="C++" prot="public">
+    <compoundname>AtlasBlockManager</compoundname>
+    <innerclass refid="structAtlasBlockManager_1_1Chunk" prot="public">AtlasBlockManager::Chunk</innerclass>
+    <innerclass refid="structAtlasBlockManager_1_1ChunkLocation" prot="public">AtlasBlockManager::ChunkLocation</innerclass>
+    <innerclass refid="structAtlasBlockManager_1_1Config" prot="protected">AtlasBlockManager::Config</innerclass>
+    <innerclass refid="structAtlasBlockManager_1_1Pool" prot="protected">AtlasBlockManager::Pool</innerclass>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classAtlasBlockManager_1ac13e8733cbf29d25eac1fd3d990d425e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t AtlasBlockManager::POOL_BITS</definition>
+        <argsstring></argsstring>
+        <name>POOL_BITS</name>
+        <qualifiedname>AtlasBlockManager::POOL_BITS</qualifiedname>
+        <initializer>= 8</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="18" column="29" bodyfile="dag_atlasBlockManager.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1a80681d603ff273246edc3ba66b906817" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t AtlasBlockManager::MAX_POOLS</definition>
+        <argsstring></argsstring>
+        <name>MAX_POOLS</name>
+        <qualifiedname>AtlasBlockManager::MAX_POOLS</qualifiedname>
+        <initializer>= (1u &lt;&lt; POOL_BITS) - 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="19" column="29" bodyfile="dag_atlasBlockManager.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1a85b6b0fd52c8ba6c9b4419e67e985d9b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t AtlasBlockManager::MAX_POOL_SIZE</definition>
+        <argsstring></argsstring>
+        <name>MAX_POOL_SIZE</name>
+        <qualifiedname>AtlasBlockManager::MAX_POOL_SIZE</qualifiedname>
+        <initializer>= 1u &lt;&lt; (32 - POOL_BITS)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="20" column="29" bodyfile="dag_atlasBlockManager.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classAtlasBlockManager_1ad4b60a469f2f6a4c4d1d5adb413cfd7e" prot="protected" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString AtlasBlockManager::texName</definition>
+        <argsstring></argsstring>
+        <name>texName</name>
+        <qualifiedname>AtlasBlockManager::texName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="86" column="16" bodyfile="dag_atlasBlockManager.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1aabd51c7b266962df5705b89ffe7428de" prot="protected" static="no" mutable="no">
+        <type><ref refid="structAtlasBlockManager_1_1Config" kindref="compound">Config</ref></type>
+        <definition>Config AtlasBlockManager::config</definition>
+        <argsstring></argsstring>
+        <name>config</name>
+        <qualifiedname>AtlasBlockManager::config</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="87" column="10" bodyfile="dag_atlasBlockManager.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1a7a542137c97cbf6f10a30e7607ac8da5" prot="protected" static="no" mutable="yes">
+        <type>std::mutex</type>
+        <definition>std::mutex AtlasBlockManager::configMutex</definition>
+        <argsstring></argsstring>
+        <name>configMutex</name>
+        <qualifiedname>AtlasBlockManager::configMutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="88" column="22" bodyfile="dag_atlasBlockManager.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1af582779a6bf198da671fe4ab0fd80289" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structAtlasBlockManager_1_1Pool" kindref="compound">Pool</ref> &gt;</type>
+        <definition>Tab&lt;Pool&gt; AtlasBlockManager::pools</definition>
+        <argsstring></argsstring>
+        <name>pools</name>
+        <qualifiedname>AtlasBlockManager::pools</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="89" column="7" bodyfile="dag_atlasBlockManager.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1aa583d3f4a52b5dde49086f16481cd4a9" prot="protected" static="no" mutable="yes">
+        <type>std::mutex</type>
+        <definition>std::mutex AtlasBlockManager::poolMutex</definition>
+        <argsstring></argsstring>
+        <name>poolMutex</name>
+        <qualifiedname>AtlasBlockManager::poolMutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="90" column="22" bodyfile="dag_atlasBlockManager.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1a9cb5a5a7b4d4adae233da0143b8d16b8" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int AtlasBlockManager::texFlags</definition>
+        <argsstring></argsstring>
+        <name>texFlags</name>
+        <qualifiedname>AtlasBlockManager::texFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="91" column="7" bodyfile="dag_atlasBlockManager.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAtlasBlockManager_1a11ec8c17af2006ae73e7d2f0dab91b44" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool AtlasBlockManager::needRebuild</definition>
+        <argsstring></argsstring>
+        <name>needRebuild</name>
+        <qualifiedname>AtlasBlockManager::needRebuild</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="92" column="8" bodyfile="dag_atlasBlockManager.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classAtlasBlockManager_1a6ae0b0e55ad7bf49d98f541046488e66" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AtlasBlockManager::AtlasBlockManager</definition>
+        <argsstring>(const char *name, int texture_flags)</argsstring>
+        <name>AtlasBlockManager</name>
+        <qualifiedname>AtlasBlockManager::AtlasBlockManager</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>texture_flags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="44" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtlasBlockManager_1ad6093bf9e5e89ff3104e7917a5a75044" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AtlasBlockManager::setHints</definition>
+        <argsstring>(const DataBlock &amp;hints_blk)</argsstring>
+        <name>setHints</name>
+        <qualifiedname>AtlasBlockManager::setHints</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>hints_blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="46" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtlasBlockManager_1aa5bd764ed171d9f5f3763d0a0063f99f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AtlasBlockManager::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>AtlasBlockManager::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="47" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtlasBlockManager_1abc97461fbb766c25079ca8c1475c4a72" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structAtlasBlockManager_1_1Chunk" kindref="compound">Chunk</ref></type>
+        <definition>Chunk AtlasBlockManager::allocateChunk</definition>
+        <argsstring>(uint32_t block_count)</argsstring>
+        <name>allocateChunk</name>
+        <qualifiedname>AtlasBlockManager::allocateChunk</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>block_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="51" column="9"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtlasBlockManager_1a6ca024a99b37cc608b080a50c98463a6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AtlasBlockManager::releaseChunk</definition>
+        <argsstring>(Chunk chunk)</argsstring>
+        <name>releaseChunk</name>
+        <qualifiedname>AtlasBlockManager::releaseChunk</qualifiedname>
+        <param>
+          <type><ref refid="structAtlasBlockManager_1_1Chunk" kindref="compound">Chunk</ref></type>
+          <declname>chunk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="52" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtlasBlockManager_1af0c9e5c2bb5adb12ac100585a15fa74b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool AtlasBlockManager::loadChunkData</definition>
+        <argsstring>(Chunk chunk, IGenLoad &amp;source)</argsstring>
+        <name>loadChunkData</name>
+        <qualifiedname>AtlasBlockManager::loadChunkData</qualifiedname>
+        <param>
+          <type><ref refid="structAtlasBlockManager_1_1Chunk" kindref="compound">Chunk</ref></type>
+          <declname>chunk</declname>
+        </param>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="54" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtlasBlockManager_1a10f29eb03ea57be49526982ad2c322ba" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::pair&lt; BaseTexture *, uint32_t &gt;</type>
+        <definition>eastl::pair&lt; BaseTexture *, uint32_t &gt; AtlasBlockManager::getChunkPosition</definition>
+        <argsstring>(ChunkLocation chunk) const</argsstring>
+        <name>getChunkPosition</name>
+        <qualifiedname>AtlasBlockManager::getChunkPosition</qualifiedname>
+        <param>
+          <type><ref refid="structAtlasBlockManager_1_1ChunkLocation" kindref="compound">ChunkLocation</ref></type>
+          <declname>chunk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="56" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classAtlasBlockManager_1adb281498b42cb3e8a383723b972d4d30" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void AtlasBlockManager::onAfterD3dReset</definition>
+        <argsstring>()</argsstring>
+        <name>onAfterD3dReset</name>
+        <qualifiedname>AtlasBlockManager::onAfterD3dReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="58" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classAtlasBlockManager_1a11761493f115e0c4afad1615764ddfd3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool AtlasBlockManager::isStreamingEnabled</definition>
+        <argsstring>()</argsstring>
+        <name>isStreamingEnabled</name>
+        <qualifiedname>AtlasBlockManager::isStreamingEnabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="49" column="15" bodyfile="dag_atlasBlockManager.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classAtlasBlockManager_1a26b0162ee0f2972e0630c44ee2cf1a32" prot="protected" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structAtlasBlockManager_1_1Config" kindref="compound">Config</ref></type>
+        <definition>Config AtlasBlockManager::getConfig</definition>
+        <argsstring>() const</argsstring>
+        <name>getConfig</name>
+        <qualifiedname>AtlasBlockManager::getConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="69" column="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>AtlasBlockManager</label>
+        <link refid="classAtlasBlockManager"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>config</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>AtlasBlockManager::Config</label>
+        <link refid="structAtlasBlockManager_1_1Config"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_atlasBlockManager.h" line="15" column="1" bodyfile="dag_atlasBlockManager.h" bodystart="16" bodyend="93"/>
+    <listofallmembers>
+      <member refid="classAtlasBlockManager_1abc97461fbb766c25079ca8c1475c4a72" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>allocateChunk</name></member>
+      <member refid="classAtlasBlockManager_1a6ae0b0e55ad7bf49d98f541046488e66" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>AtlasBlockManager</name></member>
+      <member refid="classAtlasBlockManager_1aa5bd764ed171d9f5f3763d0a0063f99f" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>clear</name></member>
+      <member refid="classAtlasBlockManager_1aabd51c7b266962df5705b89ffe7428de" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>config</name></member>
+      <member refid="classAtlasBlockManager_1a7a542137c97cbf6f10a30e7607ac8da5" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>configMutex</name></member>
+      <member refid="classAtlasBlockManager_1a10f29eb03ea57be49526982ad2c322ba" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>getChunkPosition</name></member>
+      <member refid="classAtlasBlockManager_1a26b0162ee0f2972e0630c44ee2cf1a32" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>getConfig</name></member>
+      <member refid="classAtlasBlockManager_1a11761493f115e0c4afad1615764ddfd3" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>isStreamingEnabled</name></member>
+      <member refid="classAtlasBlockManager_1af0c9e5c2bb5adb12ac100585a15fa74b" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>loadChunkData</name></member>
+      <member refid="classAtlasBlockManager_1a85b6b0fd52c8ba6c9b4419e67e985d9b" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>MAX_POOL_SIZE</name></member>
+      <member refid="classAtlasBlockManager_1a80681d603ff273246edc3ba66b906817" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>MAX_POOLS</name></member>
+      <member refid="classAtlasBlockManager_1a11ec8c17af2006ae73e7d2f0dab91b44" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>needRebuild</name></member>
+      <member refid="classAtlasBlockManager_1adb281498b42cb3e8a383723b972d4d30" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>onAfterD3dReset</name></member>
+      <member refid="classAtlasBlockManager_1ac13e8733cbf29d25eac1fd3d990d425e" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>POOL_BITS</name></member>
+      <member refid="classAtlasBlockManager_1aa583d3f4a52b5dde49086f16481cd4a9" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>poolMutex</name></member>
+      <member refid="classAtlasBlockManager_1af582779a6bf198da671fe4ab0fd80289" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>pools</name></member>
+      <member refid="classAtlasBlockManager_1a6ca024a99b37cc608b080a50c98463a6" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>releaseChunk</name></member>
+      <member refid="classAtlasBlockManager_1ad6093bf9e5e89ff3104e7917a5a75044" prot="public" virt="non-virtual"><scope>AtlasBlockManager</scope><name>setHints</name></member>
+      <member refid="classAtlasBlockManager_1a9cb5a5a7b4d4adae233da0143b8d16b8" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>texFlags</name></member>
+      <member refid="classAtlasBlockManager_1ad4b60a469f2f6a4c4d1d5adb413cfd7e" prot="protected" virt="non-virtual"><scope>AtlasBlockManager</scope><name>texName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

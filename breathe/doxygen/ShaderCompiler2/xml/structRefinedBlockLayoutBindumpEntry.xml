@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRefinedBlockLayoutBindumpEntry" kind="struct" language="C++" prot="public">
+    <compoundname>RefinedBlockLayoutBindumpEntry</compoundname>
+    <includes refid="linkShaders_8h" local="no">linkShaders.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRefinedBlockLayoutBindumpEntry_1a6643122cabdb39f00f3c15b3ccb77d63" prot="public" static="no" mutable="no">
+        <type>bindump::string</type>
+        <definition>bindump::string RefinedBlockLayoutBindumpEntry::varName</definition>
+        <argsstring></argsstring>
+        <name>varName</name>
+        <qualifiedname>RefinedBlockLayoutBindumpEntry::varName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="26" column="19" bodyfile="linkShaders.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRefinedBlockLayoutBindumpEntry_1a0423d504e7ec478a223efd8a1c446e9a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RefinedBlockLayoutBindumpEntry::cbufOffset</definition>
+        <argsstring></argsstring>
+        <name>cbufOffset</name>
+        <qualifiedname>RefinedBlockLayoutBindumpEntry::cbufOffset</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="27" column="7" bodyfile="linkShaders.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRefinedBlockLayoutBindumpEntry_1aa3f0fb418e3bf1a8e709edaff399df9f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RefinedBlockLayoutBindumpEntry::slotCount</definition>
+        <argsstring></argsstring>
+        <name>slotCount</name>
+        <qualifiedname>RefinedBlockLayoutBindumpEntry::slotCount</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="28" column="7" bodyfile="linkShaders.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRefinedBlockLayoutBindumpEntry_1a0a8b321de557c39b3d4905eea254cc8f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RefinedBlockLayoutBindumpEntry::slot[STAGE_MAX]</definition>
+        <argsstring>[STAGE_MAX]</argsstring>
+        <name>slot</name>
+        <qualifiedname>RefinedBlockLayoutBindumpEntry::slot</qualifiedname>
+        <initializer>= {-1, -1, -1}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="29" column="7" bodyfile="linkShaders.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRefinedBlockLayoutBindumpEntry_1acad1fcca64a2431bfc92017886236fa4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int RefinedBlockLayoutBindumpEntry::space</definition>
+        <argsstring></argsstring>
+        <name>space</name>
+        <qualifiedname>RefinedBlockLayoutBindumpEntry::space</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="linkShaders.h" line="30" column="7" bodyfile="linkShaders.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="linkShaders.h" line="24" column="1" bodyfile="linkShaders.h" bodystart="25" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structRefinedBlockLayoutBindumpEntry_1a0423d504e7ec478a223efd8a1c446e9a" prot="public" virt="non-virtual"><scope>RefinedBlockLayoutBindumpEntry</scope><name>cbufOffset</name></member>
+      <member refid="structRefinedBlockLayoutBindumpEntry_1a0a8b321de557c39b3d4905eea254cc8f" prot="public" virt="non-virtual"><scope>RefinedBlockLayoutBindumpEntry</scope><name>slot</name></member>
+      <member refid="structRefinedBlockLayoutBindumpEntry_1aa3f0fb418e3bf1a8e709edaff399df9f" prot="public" virt="non-virtual"><scope>RefinedBlockLayoutBindumpEntry</scope><name>slotCount</name></member>
+      <member refid="structRefinedBlockLayoutBindumpEntry_1acad1fcca64a2431bfc92017886236fa4" prot="public" virt="non-virtual"><scope>RefinedBlockLayoutBindumpEntry</scope><name>space</name></member>
+      <member refid="structRefinedBlockLayoutBindumpEntry_1a6643122cabdb39f00f3c15b3ccb77d63" prot="public" virt="non-virtual"><scope>RefinedBlockLayoutBindumpEntry</scope><name>varName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

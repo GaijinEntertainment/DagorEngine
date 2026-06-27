@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDataSimpleQsort" kind="class" language="C++" prot="public">
+    <compoundname>DataSimpleQsort</compoundname>
+    <includes refid="qsort_8h" local="no">qsort.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+      <param>
+        <type>class C</type>
+      </param>
+      <param>
+        <type>class D</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classDataSimpleQsort_1a6b4607e1f8c08e6e651aa5be40f1f0c5" prot="protected" static="no" mutable="no">
+        <type>D *</type>
+        <definition>D* DataSimpleQsort&lt; T, C, D &gt;::d</definition>
+        <argsstring></argsstring>
+        <name>d</name>
+        <qualifiedname>DataSimpleQsort::d</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="147" column="5" bodyfile="qsort.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDataSimpleQsort_1a853bf33a7a7d8d0aacd0912e2f0089d4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataSimpleQsort&lt; T, C, D &gt;::__sort</definition>
+        <argsstring>(T *a, int n)</argsstring>
+        <name>__sort</name>
+        <qualifiedname>DataSimpleQsort::__sort</qualifiedname>
+        <param>
+          <type>T *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="150" column="8" bodyfile="qsort.h" bodystart="150" bodyend="176"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataSimpleQsort_1a318fd869f589bf46d88a27620de05550" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataSimpleQsort&lt; T, C, D &gt;::sort</definition>
+        <argsstring>(T *p, int n, D *da)</argsstring>
+        <name>sort</name>
+        <qualifiedname>DataSimpleQsort::sort</qualifiedname>
+        <param>
+          <type>T *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>D *</type>
+          <declname>da</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="178" column="8" bodyfile="qsort.h" bodystart="178" bodyend="184"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="qsort.h" line="144" column="1" bodyfile="qsort.h" bodystart="145" bodyend="185"/>
+    <listofallmembers>
+      <member refid="classDataSimpleQsort_1a853bf33a7a7d8d0aacd0912e2f0089d4" prot="public" virt="non-virtual"><scope>DataSimpleQsort</scope><name>__sort</name></member>
+      <member refid="classDataSimpleQsort_1a6b4607e1f8c08e6e651aa5be40f1f0c5" prot="protected" virt="non-virtual"><scope>DataSimpleQsort</scope><name>d</name></member>
+      <member refid="classDataSimpleQsort_1a318fd869f589bf46d88a27620de05550" prot="public" virt="non-virtual"><scope>DataSimpleQsort</scope><name>sort</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

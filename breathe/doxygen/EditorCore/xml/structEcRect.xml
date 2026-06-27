@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structEcRect" kind="struct" language="C++" prot="public">
+    <compoundname>EcRect</compoundname>
+    <includes refid="ec__rect_8h" local="no">ec_rect.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structEcRect_1a8c58b917dcee1207f32b621bff423e23" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int EcRect::l</definition>
+        <argsstring></argsstring>
+        <name>l</name>
+        <qualifiedname>EcRect::l</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="6" column="7" bodyfile="ec_rect.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int EcRect::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>EcRect::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="6" column="9" bodyfile="ec_rect.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int EcRect::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>EcRect::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="6" column="11" bodyfile="ec_rect.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int EcRect::b</definition>
+        <argsstring></argsstring>
+        <name>b</name>
+        <qualifiedname>EcRect::b</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="6" column="13" bodyfile="ec_rect.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structEcRect_1a02d8088d3b433485489eb31bd34af540" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int EcRect::operator!=</definition>
+        <argsstring>(EcRect &amp;r2)</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>EcRect::operator!=</qualifiedname>
+        <param>
+          <type><ref refid="structEcRect" kindref="compound">EcRect</ref> &amp;</type>
+          <declname>r2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="8" column="7" bodyfile="ec_rect.h" bodystart="8" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="structEcRect_1abb2713e5d0ee73cb46c0e225d988ba09" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int EcRect::operator==</definition>
+        <argsstring>(EcRect &amp;r2)</argsstring>
+        <name>operator==</name>
+        <qualifiedname>EcRect::operator==</qualifiedname>
+        <param>
+          <type><ref refid="structEcRect" kindref="compound">EcRect</ref> &amp;</type>
+          <declname>r2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="16" column="7" bodyfile="ec_rect.h" bodystart="16" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="structEcRect_1a88775765776ae0090440f1962c84dc6e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int EcRect::width</definition>
+        <argsstring>() const</argsstring>
+        <name>width</name>
+        <qualifiedname>EcRect::width</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="24" column="7" bodyfile="ec_rect.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="structEcRect_1a46bdb8f0c94d9a284a84cf1389b4060d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int EcRect::height</definition>
+        <argsstring>() const</argsstring>
+        <name>height</name>
+        <qualifiedname>EcRect::height</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_rect.h" line="25" column="7" bodyfile="ec_rect.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_rect.h" line="4" column="1" bodyfile="ec_rect.h" bodystart="5" bodyend="26"/>
+    <listofallmembers>
+      <member refid="structEcRect_1a9f282ba98284f61dfc35fea669c81b6f" prot="public" virt="non-virtual"><scope>EcRect</scope><name>b</name></member>
+      <member refid="structEcRect_1a46bdb8f0c94d9a284a84cf1389b4060d" prot="public" virt="non-virtual"><scope>EcRect</scope><name>height</name></member>
+      <member refid="structEcRect_1a8c58b917dcee1207f32b621bff423e23" prot="public" virt="non-virtual"><scope>EcRect</scope><name>l</name></member>
+      <member refid="structEcRect_1a02d8088d3b433485489eb31bd34af540" prot="public" virt="non-virtual"><scope>EcRect</scope><name>operator!=</name></member>
+      <member refid="structEcRect_1abb2713e5d0ee73cb46c0e225d988ba09" prot="public" virt="non-virtual"><scope>EcRect</scope><name>operator==</name></member>
+      <member refid="structEcRect_1ac7069e9f9a93d0566c3f9cf6a5991f85" prot="public" virt="non-virtual"><scope>EcRect</scope><name>r</name></member>
+      <member refid="structEcRect_1abddaadb375cc6c7f1a206368269bd0ce" prot="public" virt="non-virtual"><scope>EcRect</scope><name>t</name></member>
+      <member refid="structEcRect_1a88775765776ae0090440f1962c84dc6e" prot="public" virt="non-virtual"><scope>EcRect</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

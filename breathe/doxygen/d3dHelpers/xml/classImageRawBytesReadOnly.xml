@@ -1,0 +1,511 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classImageRawBytesReadOnly" kind="class" language="C++" prot="public">
+    <compoundname>ImageRawBytesReadOnly</compoundname>
+    <derivedcompoundref refid="classImageRawBytes" prot="public" virt="non-virtual">ImageRawBytes</derivedcompoundref>
+    <includes refid="dag__lockTexture_8h" local="no">dag_lockTexture.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1ad908375cb7c18c7e70e673adf1ca3055" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>ImageRawBytesReadOnly::width</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="12" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1ae3ef5056ab125e0d1fd5873715f0f993" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>ImageRawBytesReadOnly::height</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="18" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1a545849f612942fe414eaef273c1d0e0b" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::byteStride</definition>
+        <argsstring></argsstring>
+        <name>byteStride</name>
+        <qualifiedname>ImageRawBytesReadOnly::byteStride</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="25" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1a2a254861b4729cb57964a3d0cc3e6fae" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>ImageRawBytesReadOnly::format</qualifiedname>
+        <initializer>{TEXFMT_DEFAULT}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="86" column="36" bodyfile="dag_lockTexture.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1ae1a58424bbb7079e9728e04b46744330" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::widthInElems</definition>
+        <argsstring></argsstring>
+        <name>widthInElems</name>
+        <qualifiedname>ImageRawBytesReadOnly::widthInElems</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="87" column="12" bodyfile="dag_lockTexture.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1a0d8f63902b6e826424c2c53a90ac6e6a" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::heightInElems</definition>
+        <argsstring></argsstring>
+        <name>heightInElems</name>
+        <qualifiedname>ImageRawBytesReadOnly::heightInElems</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="87" column="25" bodyfile="dag_lockTexture.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1a1286d8cfb2caf04d8959f5ac2edfe867" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::bytesPerElement</definition>
+        <argsstring></argsstring>
+        <name>bytesPerElement</name>
+        <qualifiedname>ImageRawBytesReadOnly::bytesPerElement</qualifiedname>
+        <initializer>{0u}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="88" column="12" bodyfile="dag_lockTexture.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1a94624f4dc9fdcef0e081090d791814ef" prot="protected" static="no" mutable="no">
+        <type>uint8_t *</type>
+        <definition>uint8_t* ImageRawBytesReadOnly::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <qualifiedname>ImageRawBytesReadOnly::data</qualifiedname>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="89" column="11" bodyfile="dag_lockTexture.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-attrib">
+      <memberdef kind="variable" id="classImageRawBytesReadOnly_1a1f91bd583abdc4c13868ebe23cae6b4e" prot="protected" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool ImageRawBytesReadOnly::isReadOnly</definition>
+        <argsstring></argsstring>
+        <name>isReadOnly</name>
+        <qualifiedname>ImageRawBytesReadOnly::isReadOnly</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="91" column="25" bodyfile="dag_lockTexture.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1adc99b0d290dba0da41625e8a3cd5f740" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::getWidthInElems</definition>
+        <argsstring>() const</argsstring>
+        <name>getWidthInElems</name>
+        <qualifiedname>ImageRawBytesReadOnly::getWidthInElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="19" column="12" bodyfile="dag_lockTexture.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1ae81a82645a447539b1f0012c41e08b69" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::getHeightInElems</definition>
+        <argsstring>() const</argsstring>
+        <name>getHeightInElems</name>
+        <qualifiedname>ImageRawBytesReadOnly::getHeightInElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="20" column="12" bodyfile="dag_lockTexture.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1a2900e4a891a0888c6c171a212b8cdb99" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::getByteStride</definition>
+        <argsstring>() const</argsstring>
+        <name>getByteStride</name>
+        <qualifiedname>ImageRawBytesReadOnly::getByteStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="21" column="12" bodyfile="dag_lockTexture.h" bodystart="21" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1a26803771d9c54cc4c2197828b959c3f5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ImageRawBytesReadOnly::getBytesPerElement</definition>
+        <argsstring>() const</argsstring>
+        <name>getBytesPerElement</name>
+        <qualifiedname>ImageRawBytesReadOnly::getBytesPerElement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="22" column="12" bodyfile="dag_lockTexture.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1af8d44070e7fa912b24e57306881d7f5f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const uint8_t *</type>
+        <definition>const uint8_t * ImageRawBytesReadOnly::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <qualifiedname>ImageRawBytesReadOnly::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="24" column="17" bodyfile="dag_lockTexture.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1a04918fc9ed54ccda57a0b1879a554d82" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classImage2DView" kindref="compound">Image2DView</ref>&lt; const T &gt;</type>
+        <definition>Image2DView&lt; const T &gt; ImageRawBytesReadOnly::cast</definition>
+        <argsstring>() const</argsstring>
+        <name>cast</name>
+        <qualifiedname>ImageRawBytesReadOnly::cast</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="27" column="15" bodyfile="dag_lockTexture.h" bodystart="27" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1a413c750618ced4209385548df41984ec" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ImageRawBytesReadOnly::readElems</definition>
+        <argsstring>(dag::Span&lt; T &gt; dst, uint32_t row, uint32_t offset_in_elems, uint32_t elems_count) const</argsstring>
+        <name>readElems</name>
+        <qualifiedname>ImageRawBytesReadOnly::readElems</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset_in_elems</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>elems_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="33" column="8" bodyfile="dag_lockTexture.h" bodystart="33" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1acba301fe90605d8f5631ac57c878ddff" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ImageRawBytesReadOnly::readRows</definition>
+        <argsstring>(dag::Span&lt; T &gt; dst, uint32_t first_row, uint32_t row_count) const</argsstring>
+        <name>readRows</name>
+        <qualifiedname>ImageRawBytesReadOnly::readRows</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="41" column="8" bodyfile="dag_lockTexture.h" bodystart="41" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1af0bf1bff8ba232df5d83fae69b2126b7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ImageRawBytesReadOnly::readRows</definition>
+        <argsstring>(dag::Span&lt; T &gt; dst) const</argsstring>
+        <name>readRows</name>
+        <qualifiedname>ImageRawBytesReadOnly::readRows</qualifiedname>
+        <param>
+          <type>dag::Span&lt; T &gt;</type>
+          <declname>dst</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="50" column="8" bodyfile="dag_lockTexture.h" bodystart="50" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1a56f99e9b1f2ef713185d3f5456e5f674" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ImageRawBytesReadOnly::ImageRawBytesReadOnly</definition>
+        <argsstring>()=default</argsstring>
+        <name>ImageRawBytesReadOnly</name>
+        <qualifiedname>ImageRawBytesReadOnly::ImageRawBytesReadOnly</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="56" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1ad915ebfc0dea3b050c9d3dff8bd503fc" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ImageRawBytesReadOnly::ImageRawBytesReadOnly</definition>
+        <argsstring>(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt)</argsstring>
+        <name>ImageRawBytesReadOnly</name>
+        <qualifiedname>ImageRawBytesReadOnly::ImageRawBytesReadOnly</qualifiedname>
+        <param>
+          <type>uint8_t *</type>
+          <declname>pixels</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>byte_stride</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="58" column="3" bodyfile="dag_lockTexture.h" bodystart="58" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1af0d241c1f7e1afb0302005ed877335dc" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImageRawBytesReadOnly::checkRowAccess</definition>
+        <argsstring>(uint32_t first_row, uint32_t row_count, uint32_t bytes_offset, uint32_t row_size_bytes) const</argsstring>
+        <name>checkRowAccess</name>
+        <qualifiedname>ImageRawBytesReadOnly::checkRowAccess</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>bytes_offset</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_size_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="71" column="8" bodyfile="dag_lockTexture.h" bodystart="71" bodyend="84"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1a13acb35625985cb7b4b49fc43ea1109f" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImageRawBytesReadOnly::readElems</definition>
+        <argsstring>(void *dst, uint32_t row, uint32_t offset_in_bytes, uint32_t size_in_bytes) const</argsstring>
+        <name>readElems</name>
+        <qualifiedname>ImageRawBytesReadOnly::readElems</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset_in_bytes</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>size_in_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="94" column="8" bodyfile="dag_lockTexture.h" bodystart="94" bodyend="98"/>
+      </memberdef>
+      <memberdef kind="function" id="classImageRawBytesReadOnly_1af63c8a310822a85a4f3a2658d514508d" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImageRawBytesReadOnly::readRows</definition>
+        <argsstring>(void *dst, uint32_t first_row, uint32_t rows_count, uint32_t row_size_bytes) const</argsstring>
+        <name>readRows</name>
+        <qualifiedname>ImageRawBytesReadOnly::readRows</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>first_row</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>rows_count</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>row_size_bytes</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="100" column="8" bodyfile="dag_lockTexture.h" bodystart="100" bodyend="117"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ImageRawBytes</label>
+        <link refid="classImageRawBytes"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ImageRawBytesReadOnly</label>
+        <link refid="classImageRawBytesReadOnly"/>
+      </node>
+    </inheritancegraph>
+    <location file="dag_lockTexture.h" line="16" column="1" bodyfile="dag_lockTexture.h" bodystart="17" bodyend="118"/>
+    <listofallmembers>
+      <member refid="classImageRawBytesReadOnly_1a1286d8cfb2caf04d8959f5ac2edfe867" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>bytesPerElement</name></member>
+      <member refid="classImageRawBytesReadOnly_1a545849f612942fe414eaef273c1d0e0b" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>byteStride</name></member>
+      <member refid="classImageRawBytesReadOnly_1a04918fc9ed54ccda57a0b1879a554d82" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>cast</name></member>
+      <member refid="classImageRawBytesReadOnly_1af0d241c1f7e1afb0302005ed877335dc" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>checkRowAccess</name></member>
+      <member refid="classImageRawBytesReadOnly_1a94624f4dc9fdcef0e081090d791814ef" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>data</name></member>
+      <member refid="classImageRawBytesReadOnly_1a2a254861b4729cb57964a3d0cc3e6fae" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>format</name></member>
+      <member refid="classImageRawBytesReadOnly_1af8d44070e7fa912b24e57306881d7f5f" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>get</name></member>
+      <member refid="classImageRawBytesReadOnly_1a26803771d9c54cc4c2197828b959c3f5" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>getBytesPerElement</name></member>
+      <member refid="classImageRawBytesReadOnly_1a2900e4a891a0888c6c171a212b8cdb99" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>getByteStride</name></member>
+      <member refid="classImageRawBytesReadOnly_1ae81a82645a447539b1f0012c41e08b69" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>getHeightInElems</name></member>
+      <member refid="classImageRawBytesReadOnly_1adc99b0d290dba0da41625e8a3cd5f740" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>getWidthInElems</name></member>
+      <member refid="classImageRawBytesReadOnly_1ae3ef5056ab125e0d1fd5873715f0f993" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>height</name></member>
+      <member refid="classImageRawBytesReadOnly_1a0d8f63902b6e826424c2c53a90ac6e6a" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>heightInElems</name></member>
+      <member refid="classImageRawBytesReadOnly_1a56f99e9b1f2ef713185d3f5456e5f674" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>ImageRawBytesReadOnly</name></member>
+      <member refid="classImageRawBytesReadOnly_1ad915ebfc0dea3b050c9d3dff8bd503fc" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>ImageRawBytesReadOnly</name></member>
+      <member refid="classImageRawBytesReadOnly_1a1f91bd583abdc4c13868ebe23cae6b4e" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>isReadOnly</name></member>
+      <member refid="classImageRawBytesReadOnly_1a413c750618ced4209385548df41984ec" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>readElems</name></member>
+      <member refid="classImageRawBytesReadOnly_1a13acb35625985cb7b4b49fc43ea1109f" prot="private" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>readElems</name></member>
+      <member refid="classImageRawBytesReadOnly_1acba301fe90605d8f5631ac57c878ddff" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>readRows</name></member>
+      <member refid="classImageRawBytesReadOnly_1af0bf1bff8ba232df5d83fae69b2126b7" prot="public" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>readRows</name></member>
+      <member refid="classImageRawBytesReadOnly_1af63c8a310822a85a4f3a2658d514508d" prot="private" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>readRows</name></member>
+      <member refid="classImageRawBytesReadOnly_1ad908375cb7c18c7e70e673adf1ca3055" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>width</name></member>
+      <member refid="classImageRawBytesReadOnly_1ae1a58424bbb7079e9728e04b46744330" prot="protected" virt="non-virtual"><scope>ImageRawBytesReadOnly</scope><name>widthInElems</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

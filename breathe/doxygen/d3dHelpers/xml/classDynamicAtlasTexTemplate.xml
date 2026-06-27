@@ -1,0 +1,727 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynamicAtlasTexTemplate" kind="class" language="C++" prot="public">
+    <compoundname>DynamicAtlasTexTemplate</compoundname>
+    <includes refid="dag__dynAtlas_8h" local="no">dag_dynAtlas.h</includes>
+    <innerclass refid="structDynamicAtlasTexTemplate_1_1ItemData" prot="public">DynamicAtlasTexTemplate::ItemData</innerclass>
+    <templateparamlist>
+      <param>
+        <type>bool</type>
+        <declname>persistent</declname>
+        <defname>persistent</defname>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classDynamicAtlasTexTemplate_1aa3682480dea4691ef09c46fc1f639a7b" prot="public" static="no">
+        <type>eastl::hash_map&lt; unsigned, int &gt;</type>
+        <definition>typedef eastl::hash_map&lt;unsigned, int&gt; DynamicAtlasTexTemplate&lt; persistent &gt;::HashToIdx</definition>
+        <argsstring></argsstring>
+        <name>HashToIdx</name>
+        <qualifiedname>DynamicAtlasTexTemplate::HashToIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="24" column="27" bodyfile="dag_dynAtlas.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a9ac488c6a6fdbd06b134c2ed7f41e5c3" prot="public" static="no" mutable="no">
+        <type>eastl::pair&lt; <ref refid="classTextureIDHolder" kindref="compound">TextureIDHolder</ref>, d3d::SamplerHandle &gt;</type>
+        <definition>eastl::pair&lt;TextureIDHolder, d3d::SamplerHandle&gt; DynamicAtlasTexTemplate&lt; persistent &gt;::tex</definition>
+        <argsstring></argsstring>
+        <name>tex</name>
+        <qualifiedname>DynamicAtlasTexTemplate::tex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="278" column="15" bodyfile="dag_dynAtlas.h" bodystart="278" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a7fcfa19f26af23a7c665ef41720eda27" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* DynamicAtlasTexTemplate&lt; persistent &gt;::copy_left_top_margin_cb) (void *cb_arg, Texture *tex, const ItemData &amp;d, int m)</definition>
+        <argsstring>)(void *cb_arg, Texture *tex, const ItemData &amp;d, int m)</argsstring>
+        <name>copy_left_top_margin_cb</name>
+        <qualifiedname>DynamicAtlasTexTemplate::copy_left_top_margin_cb</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="279" column="3" bodyfile="dag_dynAtlas.h" bodystart="279" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a1d688c0e24c16795dc7df42ae291b55f" prot="public" static="no" mutable="no">
+        <type>void(*</type>
+        <definition>void(* DynamicAtlasTexTemplate&lt; persistent &gt;::clear_discarded_cb) (void *cb_arg, Texture *tex, const ItemData &amp;d, int m)</definition>
+        <argsstring>)(void *cb_arg, Texture *tex, const ItemData &amp;d, int m)</argsstring>
+        <name>clear_discarded_cb</name>
+        <qualifiedname>DynamicAtlasTexTemplate::clear_discarded_cb</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="280" column="3" bodyfile="dag_dynAtlas.h" bodystart="280" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a2735183a498b9aca6b761dfe0886d18f" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* DynamicAtlasTexTemplate&lt; persistent &gt;::copy_left_top_margin_cb_arg</definition>
+        <argsstring></argsstring>
+        <name>copy_left_top_margin_cb_arg</name>
+        <qualifiedname>DynamicAtlasTexTemplate::copy_left_top_margin_cb_arg</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="281" column="8" bodyfile="dag_dynAtlas.h" bodystart="281" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a5673f74aae09ca8ad0c74422f31eedec" prot="protected" static="no" mutable="no">
+        <type><ref refid="classDynamicAtlasTexTemplate_1aa3682480dea4691ef09c46fc1f639a7b" kindref="member">HashToIdx</ref></type>
+        <definition>HashToIdx DynamicAtlasTexTemplate&lt; persistent &gt;::hash2idx</definition>
+        <argsstring></argsstring>
+        <name>hash2idx</name>
+        <qualifiedname>DynamicAtlasTexTemplate::hash2idx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="284" column="13" bodyfile="dag_dynAtlas.h" bodystart="284" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a0c33eb4103db9d363e9dc87b1693fcf2" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structDynamicAtlasTexTemplate_1_1ItemData" kindref="compound">ItemData</ref> &gt;</type>
+        <definition>Tab&lt;ItemData&gt; DynamicAtlasTexTemplate&lt; persistent &gt;::itemData</definition>
+        <argsstring></argsstring>
+        <name>itemData</name>
+        <qualifiedname>DynamicAtlasTexTemplate::itemData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="285" column="7" bodyfile="dag_dynAtlas.h" bodystart="285" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a777047821767a287a06dca87a1ec16ef" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; DynamicAtlasTexTemplate&lt; persistent &gt;::itemUu</definition>
+        <argsstring></argsstring>
+        <name>itemUu</name>
+        <qualifiedname>DynamicAtlasTexTemplate::itemUu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="286" column="7" bodyfile="dag_dynAtlas.h" bodystart="286" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1aba941a1de60c2e9d8911887bea48bacb" prot="protected" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 DynamicAtlasTexTemplate&lt; persistent &gt;::texSz</definition>
+        <argsstring></argsstring>
+        <name>texSz</name>
+        <qualifiedname>DynamicAtlasTexTemplate::texSz</qualifiedname>
+        <initializer>= IPoint2(1, 1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="287" column="11" bodyfile="dag_dynAtlas.h" bodystart="287" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1abb91cc211ed1ab9641b34fa4d53b0dc5" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::invW</definition>
+        <argsstring></argsstring>
+        <name>invW</name>
+        <qualifiedname>DynamicAtlasTexTemplate::invW</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="288" column="9" bodyfile="dag_dynAtlas.h" bodystart="288" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1adcae67acd4a418bea44a64c041090eaa" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::invH</definition>
+        <argsstring></argsstring>
+        <name>invH</name>
+        <qualifiedname>DynamicAtlasTexTemplate::invH</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="288" column="15" bodyfile="dag_dynAtlas.h" bodystart="288" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1aef238ad5c085feef498bfc69e0f249f3" prot="protected" static="no" mutable="no">
+        <type>rbp::GuillotineBinPack</type>
+        <definition>rbp::GuillotineBinPack DynamicAtlasTexTemplate&lt; persistent &gt;::binPack</definition>
+        <argsstring></argsstring>
+        <name>binPack</name>
+        <qualifiedname>DynamicAtlasTexTemplate::binPack</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="289" column="26" bodyfile="dag_dynAtlas.h" bodystart="289" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1af6b1127389c88715c2440b8dacc57444" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::margin</definition>
+        <argsstring></argsstring>
+        <name>margin</name>
+        <qualifiedname>DynamicAtlasTexTemplate::margin</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="290" column="7" bodyfile="dag_dynAtlas.h" bodystart="290" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1a6e39ea88080cc0716af09783f9309389" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::marginLtOfs</definition>
+        <argsstring></argsstring>
+        <name>marginLtOfs</name>
+        <qualifiedname>DynamicAtlasTexTemplate::marginLtOfs</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="291" column="7" bodyfile="dag_dynAtlas.h" bodystart="291" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicAtlasTexTemplate_1af17f721816d5bf6801479fdda40ba856" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::cornerResv</definition>
+        <argsstring></argsstring>
+        <name>cornerResv</name>
+        <qualifiedname>DynamicAtlasTexTemplate::cornerResv</qualifiedname>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="292" column="7" bodyfile="dag_dynAtlas.h" bodystart="292" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a56fd4e6def92a9d8983775d96a59204e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasTexTemplate&lt; persistent &gt;::init</definition>
+        <argsstring>(const IPoint2 &amp;sz, int resv, int _margin, const char *tex_name, int tex_fmt=TEXFMT_R8|TEXCF_UPDATE_DESTINATION)</argsstring>
+        <name>init</name>
+        <qualifiedname>DynamicAtlasTexTemplate::init</qualifiedname>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>sz</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>resv</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>_margin</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>tex_fmt</declname>
+          <defval>TEXFMT_R8|TEXCF_UPDATE_DESTINATION</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="53" column="8" bodyfile="dag_dynAtlas.h" bodystart="53" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1abb6e7070b08b4015b0809b2acde6e84d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasTexTemplate&lt; persistent &gt;::term</definition>
+        <argsstring>()</argsstring>
+        <name>term</name>
+        <qualifiedname>DynamicAtlasTexTemplate::term</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="101" column="8" bodyfile="dag_dynAtlas.h" bodystart="101" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a6e8f429263ba536654c6e2ef711c8c19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicAtlasTexTemplate&lt; persistent &gt;::isInited</definition>
+        <argsstring>()</argsstring>
+        <name>isInited</name>
+        <qualifiedname>DynamicAtlasTexTemplate::isInited</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="114" column="8" bodyfile="dag_dynAtlas.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1ab302b05dcf4256e56515493699fb5b1e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const IPoint2 &amp;</type>
+        <definition>const IPoint2 &amp; DynamicAtlasTexTemplate&lt; persistent &gt;::getSz</definition>
+        <argsstring>() const</argsstring>
+        <name>getSz</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getSz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="115" column="17" bodyfile="dag_dynAtlas.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a48b7db4e3f20084a944733a2bffd22be" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::getMargin</definition>
+        <argsstring>() const</argsstring>
+        <name>getMargin</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getMargin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="116" column="7" bodyfile="dag_dynAtlas.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a5175cb0e969e60133b3febb2588c66a4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::getMarginLtOfs</definition>
+        <argsstring>() const</argsstring>
+        <name>getMarginLtOfs</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getMarginLtOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="117" column="7" bodyfile="dag_dynAtlas.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a619e2366aa9ad8d11c2e5cbd91331d15" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::getCornerResvSz</definition>
+        <argsstring>() const</argsstring>
+        <name>getCornerResvSz</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getCornerResvSz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="118" column="7" bodyfile="dag_dynAtlas.h" bodystart="118" bodyend="118"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a132eeebdce78de2e98570ec40cd8618d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::getMarginDu</definition>
+        <argsstring>() const</argsstring>
+        <name>getMarginDu</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getMarginDu</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="119" column="9" bodyfile="dag_dynAtlas.h" bodystart="119" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1aac1edc8c9196f330b4cc1f1df0c1c1a4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::getMarginDv</definition>
+        <argsstring>() const</argsstring>
+        <name>getMarginDv</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getMarginDv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="120" column="9" bodyfile="dag_dynAtlas.h" bodystart="120" bodyend="120"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1ac720b064862c3f585a66fb3486601584" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::getInvW</definition>
+        <argsstring>() const</argsstring>
+        <name>getInvW</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getInvW</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="121" column="9" bodyfile="dag_dynAtlas.h" bodystart="121" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a618cb395b766669d130bf3dd4889653c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float DynamicAtlasTexTemplate&lt; persistent &gt;::getInvH</definition>
+        <argsstring>() const</argsstring>
+        <name>getInvH</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getInvH</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="122" column="9" bodyfile="dag_dynAtlas.h" bodystart="122" bodyend="122"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a2a83394f0af6513b6503710142f63083" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::getItemsCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getItemsCount</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getItemsCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="123" column="7" bodyfile="dag_dynAtlas.h" bodystart="123" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a6cb17879826e09033d53e688cf16029b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::getItemsUsed</definition>
+        <argsstring>() const</argsstring>
+        <name>getItemsUsed</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getItemsUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="124" column="7" bodyfile="dag_dynAtlas.h" bodystart="124" bodyend="124"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a830f84fec119fa65079ba6290249859d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structDynamicAtlasTexTemplate_1_1ItemData" kindref="compound">ItemData</ref> *</type>
+        <definition>const ItemData * DynamicAtlasTexTemplate&lt; persistent &gt;::findItem</definition>
+        <argsstring>(unsigned hash, bool update_lru=true)</argsstring>
+        <name>findItem</name>
+        <qualifiedname>DynamicAtlasTexTemplate::findItem</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>update_lru</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="126" column="18" bodyfile="dag_dynAtlas.h" bodystart="126" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a3fa6ef8f7b85bd8f2360b48d14036d43" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structDynamicAtlasTexTemplate_1_1ItemData" kindref="compound">ItemData</ref> *</type>
+        <definition>const ItemData * DynamicAtlasTexTemplate&lt; persistent &gt;::findItemIndexed</definition>
+        <argsstring>(int idx, bool update_lru=true)</argsstring>
+        <name>findItemIndexed</name>
+        <qualifiedname>DynamicAtlasTexTemplate::findItemIndexed</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>update_lru</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="136" column="18" bodyfile="dag_dynAtlas.h" bodystart="136" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1afe3edca9b373cfd09656dbc687765f93" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structDynamicAtlasTexTemplate_1_1ItemData" kindref="compound">ItemData</ref> *</type>
+        <definition>const ItemData * DynamicAtlasTexTemplate&lt; persistent &gt;::addItem</definition>
+        <argsstring>(int bmin_x, int bmin_y, int bmax_x, int bmax_y, unsigned hash, int idx=-1, bool allow_discard=true)</argsstring>
+        <name>addItem</name>
+        <qualifiedname>DynamicAtlasTexTemplate::addItem</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>bmin_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>bmin_y</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>bmax_x</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>bmax_y</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+          <defval>-1</defval>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>allow_discard</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="147" column="18" bodyfile="dag_dynAtlas.h" bodystart="147" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1abdeeabdfaf0d4296b05023237e9d0c21" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicAtlasTexTemplate&lt; persistent &gt;::getItemIdx</definition>
+        <argsstring>(const ItemData *d) const</argsstring>
+        <name>getItemIdx</name>
+        <qualifiedname>DynamicAtlasTexTemplate::getItemIdx</qualifiedname>
+        <param>
+          <type>const <ref refid="structDynamicAtlasTexTemplate_1_1ItemData" kindref="compound">ItemData</ref> *</type>
+          <declname>d</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="203" column="7" bodyfile="dag_dynAtlas.h" bodystart="203" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1ae9a23971813541c5ab92293052bb9198" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasTexTemplate&lt; persistent &gt;::discardItem</definition>
+        <argsstring>(int i, rbp::Rect &amp;r_old)</argsstring>
+        <name>discardItem</name>
+        <qualifiedname>DynamicAtlasTexTemplate::discardItem</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>rbp::Rect &amp;</type>
+          <declname>r_old</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="211" column="8" bodyfile="dag_dynAtlas.h" bodystart="211" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1aa6b0fdaf84f5e32348b97b3d9fdb707a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasTexTemplate&lt; persistent &gt;::discardAllItems</definition>
+        <argsstring>()</argsstring>
+        <name>discardAllItems</name>
+        <qualifiedname>DynamicAtlasTexTemplate::discardAllItems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="231" column="8" bodyfile="dag_dynAtlas.h" bodystart="231" bodyend="244"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a91b899f6759c645e709c876c4d8155d9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structDynamicAtlasTexTemplate_1_1ItemData" kindref="compound">ItemData</ref> *</type>
+        <definition>const ItemData * DynamicAtlasTexTemplate&lt; persistent &gt;::addDirectItemOnly</definition>
+        <argsstring>(unsigned hash, int x0, int y0, int w, int h, bool sched_for_load=false)</argsstring>
+        <name>addDirectItemOnly</name>
+        <qualifiedname>DynamicAtlasTexTemplate::addDirectItemOnly</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>x0</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>y0</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>sched_for_load</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="246" column="18" bodyfile="dag_dynAtlas.h" bodystart="246" bodyend="275"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a75266b771e0f89a6d78a51a935a3cc63" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasTexTemplate&lt; persistent &gt;::initTc</definition>
+        <argsstring>(ItemData &amp;g, unsigned hash, bool update_lru=true)</argsstring>
+        <name>initTc</name>
+        <qualifiedname>DynamicAtlasTexTemplate::initTc</qualifiedname>
+        <param>
+          <type><ref refid="structDynamicAtlasTexTemplate_1_1ItemData" kindref="compound">ItemData</ref> &amp;</type>
+          <declname>g</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>hash</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>update_lru</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="294" column="8" bodyfile="dag_dynAtlas.h" bodystart="294" bodyend="304"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicAtlasTexTemplate_1a1b96f93fdc2b0a62a914fbf016263ea3" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicAtlasTexTemplate&lt; persistent &gt;::reArrangeAndAlloc</definition>
+        <argsstring>(rbp::Rect &amp;r, int need_w, int need_h)</argsstring>
+        <name>reArrangeAndAlloc</name>
+        <qualifiedname>DynamicAtlasTexTemplate::reArrangeAndAlloc</qualifiedname>
+        <param>
+          <type>rbp::Rect &amp;</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>need_w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>need_h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynAtlas.h" line="305" column="8" bodyfile="dag_dynAtlas.h" bodystart="305" bodyend="407"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynAtlas.h" line="21" column="1" bodyfile="dag_dynAtlas.h" bodystart="22" bodyend="408"/>
+    <listofallmembers>
+      <member refid="classDynamicAtlasTexTemplate_1a91b899f6759c645e709c876c4d8155d9" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>addDirectItemOnly</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1afe3edca9b373cfd09656dbc687765f93" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>addItem</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1aef238ad5c085feef498bfc69e0f249f3" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>binPack</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a1d688c0e24c16795dc7df42ae291b55f" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>clear_discarded_cb</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a7fcfa19f26af23a7c665ef41720eda27" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>copy_left_top_margin_cb</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a2735183a498b9aca6b761dfe0886d18f" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>copy_left_top_margin_cb_arg</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1af17f721816d5bf6801479fdda40ba856" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>cornerResv</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1aa6b0fdaf84f5e32348b97b3d9fdb707a" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>discardAllItems</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1ae9a23971813541c5ab92293052bb9198" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>discardItem</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a830f84fec119fa65079ba6290249859d" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>findItem</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a3fa6ef8f7b85bd8f2360b48d14036d43" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>findItemIndexed</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a619e2366aa9ad8d11c2e5cbd91331d15" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getCornerResvSz</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a618cb395b766669d130bf3dd4889653c" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getInvH</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1ac720b064862c3f585a66fb3486601584" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getInvW</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1abdeeabdfaf0d4296b05023237e9d0c21" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getItemIdx</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a2a83394f0af6513b6503710142f63083" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getItemsCount</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a6cb17879826e09033d53e688cf16029b" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getItemsUsed</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a48b7db4e3f20084a944733a2bffd22be" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getMargin</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a132eeebdce78de2e98570ec40cd8618d" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getMarginDu</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1aac1edc8c9196f330b4cc1f1df0c1c1a4" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getMarginDv</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a5175cb0e969e60133b3febb2588c66a4" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getMarginLtOfs</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1ab302b05dcf4256e56515493699fb5b1e" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>getSz</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a5673f74aae09ca8ad0c74422f31eedec" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>hash2idx</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1aa3682480dea4691ef09c46fc1f639a7b" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>HashToIdx</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a56fd4e6def92a9d8983775d96a59204e" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>init</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a75266b771e0f89a6d78a51a935a3cc63" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>initTc</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1adcae67acd4a418bea44a64c041090eaa" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>invH</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1abb91cc211ed1ab9641b34fa4d53b0dc5" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>invW</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a6e8f429263ba536654c6e2ef711c8c19" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>isInited</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a0c33eb4103db9d363e9dc87b1693fcf2" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>itemData</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a777047821767a287a06dca87a1ec16ef" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>itemUu</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1af6b1127389c88715c2440b8dacc57444" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>margin</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a6e39ea88080cc0716af09783f9309389" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>marginLtOfs</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a1b96f93fdc2b0a62a914fbf016263ea3" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>reArrangeAndAlloc</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1abb6e7070b08b4015b0809b2acde6e84d" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>term</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1a9ac488c6a6fdbd06b134c2ed7f41e5c3" prot="public" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>tex</name></member>
+      <member refid="classDynamicAtlasTexTemplate_1aba941a1de60c2e9d8911887bea48bacb" prot="protected" virt="non-virtual"><scope>DynamicAtlasTexTemplate</scope><name>texSz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

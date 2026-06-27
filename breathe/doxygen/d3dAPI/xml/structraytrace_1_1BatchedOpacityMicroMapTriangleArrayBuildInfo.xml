@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1BatchedOpacityMicroMapTriangleArrayBuildInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1BatchedOpacityMicroMapTriangleArrayBuildInfo_1a56db6d08b25da643398ecd1c17f58dde" prot="public" static="no" mutable="no">
+        <type>RaytraceOpacityMicroMapTriangleArray *</type>
+        <definition>RaytraceOpacityMicroMapTriangleArray* raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo::omm</definition>
+        <argsstring></argsstring>
+        <name>omm</name>
+        <qualifiedname>raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo::omm</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+<para>The opacity micro map triangle array for an element of a batched opacity micro map triangle array build. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="559" column="40" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="559" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1BatchedOpacityMicroMapTriangleArrayBuildInfo_1a0e9a1b9907c43da9ea7847d5f060dc5c" prot="public" static="no" mutable="no">
+        <type><ref refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo" kindref="compound">OpacityMicroMapTriangleArrayBuildInfo</ref></type>
+        <definition>OpacityMicroMapTriangleArrayBuildInfo raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo::ommtabi</definition>
+        <argsstring></argsstring>
+        <name>ommtabi</name>
+        <qualifiedname>raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo::ommtabi</qualifiedname>
+        <briefdescription>
+<para>The descriptor for an element of a batched opacity micro map triangle array build. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="561" column="41" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="561" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="5">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="6">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="4">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo</label>
+        <link refid="structraytrace_1_1BatchedOpacityMicroMapTriangleArrayBuildInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>ommtabi</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::OpacityMicroMapTriangleArrayBuildInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>compactedSizeOutputBuffer</edgelabel>
+          <edgelabel>inputBuffer</edgelabel>
+          <edgelabel>perOpacityMicroMapDescriptions</edgelabel>
+          <edgelabel>scratchSpaceBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo"/>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="556" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="557" bodyend="562"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1BatchedOpacityMicroMapTriangleArrayBuildInfo_1a56db6d08b25da643398ecd1c17f58dde" prot="public" virt="non-virtual"><scope>raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo</scope><name>omm</name></member>
+      <member refid="structraytrace_1_1BatchedOpacityMicroMapTriangleArrayBuildInfo_1a0e9a1b9907c43da9ea7847d5f060dc5c" prot="public" virt="non-virtual"><scope>raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo</scope><name>ommtabi</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

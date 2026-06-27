@@ -1,0 +1,341 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTexmaps" kind="class" language="C++" prot="public">
+    <compoundname>Texmaps</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">TexmapContainer</basecompoundref>
+    <includes refid="texmaps_8h" local="no">texmaps.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" prot="public" static="no" mutable="no">
+        <type>Texmap *</type>
+        <definition>Texmap* Texmaps::texmap[NUMTEXMAPS]</definition>
+        <argsstring>[NUMTEXMAPS]</argsstring>
+        <name>texmap</name>
+        <qualifiedname>Texmaps::texmap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="9" column="10" bodyfile="texmaps.h" bodystart="9" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTexmaps_1a94d76f0588a0ae997fd1bb8e88e2d419" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Texmaps::Texmaps</definition>
+        <argsstring>()</argsstring>
+        <name>Texmaps</name>
+        <qualifiedname>Texmaps::Texmaps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="11" column="3" bodyfile="texmaps.h" bodystart="11" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a9a838ff9093c7047c78b605259673a59" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Texmap *</type>
+        <definition>Texmap * Texmaps::gettex</definition>
+        <argsstring>(int i)</argsstring>
+        <name>gettex</name>
+        <qualifiedname>Texmaps::gettex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="16" column="10" bodyfile="texmaps.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a97be2716022e6c3f967821ef346199f2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Texmaps::settex</definition>
+        <argsstring>(int i, Texmap *t)</argsstring>
+        <name>settex</name>
+        <qualifiedname>Texmaps::settex</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>Texmap *</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="17" column="8" bodyfile="texmaps.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a9b36ecde37b2e4f948311ee4c416f6b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID Texmaps::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>Texmaps::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="19" column="12" bodyfile="texmaps.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a276ef8e076b9c6d269990b4ee2b3ae1b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Texmaps::GetClassName</definition>
+        <argsstring>(TSTR &amp;s)</argsstring>
+        <name>GetClassName</name>
+        <qualifiedname>Texmaps::GetClassName</qualifiedname>
+        <param>
+          <type>TSTR &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="23" column="8" bodyfile="texmaps.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1acbb18a3ed76a92244665d0013e1e940f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Texmaps::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>Texmaps::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="25" column="8" bodyfile="texmaps.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a4e9738895d0587ec4bb820809db223ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Texmaps::NumSubs</definition>
+        <argsstring>() override</argsstring>
+        <name>NumSubs</name>
+        <qualifiedname>Texmaps::NumSubs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="26" column="7" bodyfile="texmaps.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1abc6e852d950fc3b2d43e5630b51e6754" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Animatable *</type>
+        <definition>Animatable * Texmaps::SubAnim</definition>
+        <argsstring>(int i) override</argsstring>
+        <name>SubAnim</name>
+        <qualifiedname>Texmaps::SubAnim</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="27" column="14" bodyfile="texmaps.h" bodystart="27" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1aa3c6e447b58449ffc4e081657516a6db" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TSTR</type>
+        <definition>TSTR Texmaps::SubAnimName</definition>
+        <argsstring>(int i)</argsstring>
+        <name>SubAnimName</name>
+        <qualifiedname>Texmaps::SubAnimName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="41" column="8" bodyfile="texmaps.h" bodystart="41" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1aec63bf8d29a35ffed4c5d91dd1240f05" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Texmaps::SubNumToRefNum</definition>
+        <argsstring>(int n) override</argsstring>
+        <name>SubNumToRefNum</name>
+        <qualifiedname>Texmaps::SubNumToRefNum</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="48" column="7" bodyfile="texmaps.h" bodystart="48" bodyend="48"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a979ed6c01d6e2fd25a78f78f4a807dbc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int Texmaps::NumRefs</definition>
+        <argsstring>() override</argsstring>
+        <name>NumRefs</name>
+        <qualifiedname>Texmaps::NumRefs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="49" column="7" bodyfile="texmaps.h" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1ac8138d83f0c50a4db9ae44336194f0b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>RefTargetHandle</type>
+        <definition>RefTargetHandle Texmaps::GetReference</definition>
+        <argsstring>(int i) override</argsstring>
+        <name>GetReference</name>
+        <qualifiedname>Texmaps::GetReference</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="50" column="19" bodyfile="texmaps.h" bodystart="50" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1aaf6e35d5676ad13ee383f1a0b6a7bbab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Texmaps::SetReference</definition>
+        <argsstring>(int i, RefTargetHandle rtarg) override</argsstring>
+        <name>SetReference</name>
+        <qualifiedname>Texmaps::SetReference</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>RefTargetHandle</type>
+          <declname>rtarg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="56" column="8" bodyfile="texmaps.h" bodystart="56" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a9724b023e0a99f205d9fcea606c6ffe9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>RefTargetHandle</type>
+        <definition>RefTargetHandle Texmaps::Clone</definition>
+        <argsstring>(RemapDir &amp;remap) override</argsstring>
+        <name>Clone</name>
+        <qualifiedname>Texmaps::Clone</qualifiedname>
+        <param>
+          <type>RemapDir &amp;</type>
+          <declname>remap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="61" column="19" bodyfile="texmaps.h" bodystart="61" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classTexmaps_1a827e76e841f8dbe76483dab215ac9e5a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>RefResult</type>
+        <definition>RefResult Texmaps::NotifyRefChanged</definition>
+        <argsstring>(Interval changeInt, RefTargetHandle hTarget, PartID &amp;partID, RefMessage message) override</argsstring>
+        <name>NotifyRefChanged</name>
+        <qualifiedname>Texmaps::NotifyRefChanged</qualifiedname>
+        <param>
+          <type>Interval</type>
+          <declname>changeInt</declname>
+        </param>
+        <param>
+          <type>RefTargetHandle</type>
+          <declname>hTarget</declname>
+        </param>
+        <param>
+          <type>PartID &amp;</type>
+          <declname>partID</declname>
+        </param>
+        <param>
+          <type>RefMessage</type>
+          <declname>message</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="texmaps.h" line="76" column="13" bodyfile="texmaps.h" bodystart="76" bodyend="99"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="1">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="1">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="texmaps.h" line="6" column="1" bodyfile="texmaps.h" bodystart="7" bodyend="100"/>
+    <listofallmembers>
+      <member refid="classTexmaps_1a9b36ecde37b2e4f948311ee4c416f6b1" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>ClassID</name></member>
+      <member refid="classTexmaps_1a9724b023e0a99f205d9fcea606c6ffe9" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>Clone</name></member>
+      <member refid="classTexmaps_1acbb18a3ed76a92244665d0013e1e940f" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>DeleteThis</name></member>
+      <member refid="classTexmaps_1a276ef8e076b9c6d269990b4ee2b3ae1b" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>GetClassName</name></member>
+      <member refid="classTexmaps_1ac8138d83f0c50a4db9ae44336194f0b3" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>GetReference</name></member>
+      <member refid="classTexmaps_1a9a838ff9093c7047c78b605259673a59" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>gettex</name></member>
+      <member refid="classTexmaps_1a827e76e841f8dbe76483dab215ac9e5a" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>NotifyRefChanged</name></member>
+      <member refid="classTexmaps_1a979ed6c01d6e2fd25a78f78f4a807dbc" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>NumRefs</name></member>
+      <member refid="classTexmaps_1a4e9738895d0587ec4bb820809db223ad" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>NumSubs</name></member>
+      <member refid="classTexmaps_1aaf6e35d5676ad13ee383f1a0b6a7bbab" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>SetReference</name></member>
+      <member refid="classTexmaps_1a97be2716022e6c3f967821ef346199f2" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>settex</name></member>
+      <member refid="classTexmaps_1abc6e852d950fc3b2d43e5630b51e6754" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>SubAnim</name></member>
+      <member refid="classTexmaps_1aa3c6e447b58449ffc4e081657516a6db" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>SubAnimName</name></member>
+      <member refid="classTexmaps_1aec63bf8d29a35ffed4c5d91dd1240f05" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>SubNumToRefNum</name></member>
+      <member refid="classTexmaps_1af769235e703332ea4a4b1366f7fe8c9f" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>texmap</name></member>
+      <member refid="classTexmaps_1a94d76f0588a0ae997fd1bb8e88e2d419" prot="public" virt="non-virtual"><scope>Texmaps</scope><name>Texmaps</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

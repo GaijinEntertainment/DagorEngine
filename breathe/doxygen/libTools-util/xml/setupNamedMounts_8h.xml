@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="setupNamedMounts_8h" kind="file" language="C++">
+    <compoundname>setupNamedMounts.h</compoundname>
+    <includes local="no">osApiWrappers/dag_basePath.h</includes>
+    <includes local="no">osApiWrappers/dag_direct.h</includes>
+    <includes local="no">ioSys/dag_dataBlock.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">debug/dag_debug.h</includes>
+    <includes local="no">unistd.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>setupNamedMounts.h</label>
+        <link refid="setupNamedMounts_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>debug/dag_debug.h</label>
+      </node>
+      <node id="4">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="2">
+        <label>osApiWrappers/dag_basePath.h</label>
+      </node>
+      <node id="3">
+        <label>osApiWrappers/dag_direct.h</label>
+      </node>
+      <node id="7">
+        <label>unistd.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="setupNamedMounts_8h_1a81a576d5268ce75929987bfe0e00433b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void set_canonical_app_dir_mount</definition>
+        <argsstring>(const char *app_dir)</argsstring>
+        <name>set_canonical_app_dir_mount</name>
+        <param>
+          <type>const char *</type>
+          <declname>app_dir</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="setupNamedMounts.h" line="19" column="14" bodyfile="setupNamedMounts.h" bodystart="19" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="setupNamedMounts_8h_1a527a5380da156b0c9b92ace145114172" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void set_canonical_app_dir_mount_from_fpath</definition>
+        <argsstring>(const char *app_fpath)</argsstring>
+        <name>set_canonical_app_dir_mount_from_fpath</name>
+        <param>
+          <type>const char *</type>
+          <declname>app_fpath</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="setupNamedMounts.h" line="33" column="14" bodyfile="setupNamedMounts.h" bodystart="33" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="setupNamedMounts_8h_1a04cb6f80dd247b971fd79c4cc28bacde" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void setup_named_mount_points</definition>
+        <argsstring>(const DataBlock &amp;mnt, const char *sdk_dir=nullptr)</argsstring>
+        <name>setup_named_mount_points</name>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>mnt</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>sdk_dir</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="setupNamedMounts.h" line="41" column="14" bodyfile="setupNamedMounts.h" bodystart="41" bodyend="69"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_basePath.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;osApiWrappers/dag_direct.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_dataBlock.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;debug/dag_debug.h&gt;</highlight><highlight class="normal"><sp/></highlight><highlight class="comment">//==</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;direct.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;unistd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>build<sp/>and<sp/>simplify<sp/>absolute<sp/>path<sp/>to<sp/>app_dir<sp/>and<sp/>set<sp/>it<sp/>as<sp/>%appDir</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_canonical_app_dir_mount(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*app_dir)</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>String<sp/>path;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strchr(</highlight><highlight class="stringliteral">&quot;\\/%&quot;</highlight><highlight class="normal">,<sp/>app_dir[0])<sp/>||<sp/>strstr(app_dir,<sp/></highlight><highlight class="stringliteral">&quot;:/&quot;</highlight><highlight class="normal">)<sp/>||<sp/>strstr(app_dir,<sp/></highlight><highlight class="stringliteral">&quot;:\\&quot;</highlight><highlight class="normal">)<sp/>||<sp/>strncmp(app_dir,<sp/></highlight><highlight class="stringliteral">&quot;\\\\&quot;</highlight><highlight class="normal">,<sp/>2)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/><sp/><sp/>path<sp/>=<sp/>app_dir;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>curdir[512]<sp/>=<sp/></highlight><highlight class="stringliteral">&quot;.&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/>path.setStrCat3(::getcwd(curdir,<sp/>512),<sp/></highlight><highlight class="stringliteral">&quot;/&quot;</highlight><highlight class="normal">,<sp/>app_dir);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>simplify_fname(path);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>debug(</highlight><highlight class="stringliteral">&quot;set_canonical_app_dir_mount(%s)<sp/>-&gt;<sp/>%s&quot;</highlight><highlight class="normal">,<sp/>app_dir,<sp/>path);<sp/></highlight><highlight class="comment">//==</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>dd_set_named_mount_path(</highlight><highlight class="stringliteral">&quot;%appDir&quot;</highlight><highlight class="normal">,<sp/>path);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_canonical_app_dir_mount_from_fpath(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*app_fpath)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>app_dir[DAGOR_MAX_PATH];</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>dd_get_fname_location(app_dir,<sp/>app_fpath);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>set_canonical_app_dir_mount(app_dir);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="comment">//<sp/>setup<sp/>named<sp/>mounts<sp/>from<sp/>blocks:<sp/>&quot;%lang&quot;{<sp/>forSource:t=&quot;%appDir/prog/gameBase/lang_src/lang&quot;;<sp/>forVromfs:t=&quot;lang&quot;;<sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setup_named_mount_points(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;mnt,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*sdk_dir<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!mnt.blockCount())</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>useAddonVromSrc<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>curdir[512];</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!sdk_dir)</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><sp/><sp/>sdk_dir<sp/>=<sp/>::getcwd(curdir,<sp/>512);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>dblk::iterate_child_blocks(mnt,<sp/>[p<sp/>=<sp/>useAddonVromSrc<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;forSource&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;forVromfs&quot;</highlight><highlight class="normal">,<sp/>dir<sp/>=<sp/>sdk_dir](const<sp/>DataBlock<sp/>&amp;b)<sp/>{</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*path<sp/>=<sp/>b.getStr(p);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>String<sp/>mntPath;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(dd_resolve_named_mount(mntPath,<sp/>path))</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>simplify_fname(mntPath);</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dd_set_named_mount_path(b.getBlockName(),<sp/>mntPath);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(strchr(</highlight><highlight class="stringliteral">&quot;\\/%&quot;</highlight><highlight class="normal">,<sp/>path[0])<sp/>||<sp/>strstr(path,<sp/></highlight><highlight class="stringliteral">&quot;:/&quot;</highlight><highlight class="normal">)<sp/>||<sp/>strstr(path,<sp/></highlight><highlight class="stringliteral">&quot;:\\&quot;</highlight><highlight class="normal">)<sp/>||<sp/>strncmp(path,<sp/></highlight><highlight class="stringliteral">&quot;\\\\&quot;</highlight><highlight class="normal">,<sp/>2)<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dd_set_named_mount_path(b.getBlockName(),<sp/>path);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>mntPath.setStrCat3(dir,<sp/></highlight><highlight class="stringliteral">&quot;/&quot;</highlight><highlight class="normal">,<sp/>path);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>simplify_fname(mntPath);</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dd_set_named_mount_path(b.getBlockName(),<sp/>mntPath);</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/>});</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/>dd_dump_named_mounts();</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="setupNamedMounts.h"/>
+  </compounddef>
+</doxygen>

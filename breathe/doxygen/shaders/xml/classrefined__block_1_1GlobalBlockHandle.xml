@@ -1,0 +1,260 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classrefined__block_1_1GlobalBlockHandle" kind="class" language="C++" prot="public">
+    <compoundname>refined_block::GlobalBlockHandle</compoundname>
+    <basecompoundref refid="classrefined__block_1_1BaseBlockHandle" prot="public" virt="non-virtual">refined_block::BaseBlockHandle&lt; GlobalBlockHandle &gt;</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classrefined__block_1_1GlobalBlockHandle_1a54f24a02d6c927712a91c55cb9ff7031" prot="public" static="no">
+        <type>GlobalBlock</type>
+        <definition>using refined_block::GlobalBlockHandle::BlockType =  GlobalBlock</definition>
+        <argsstring></argsstring>
+        <name>BlockType</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::BlockType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="120" column="3" bodyfile="dag_refinedBlock.h" bodystart="120" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classrefined__block_1_1GlobalBlockHandle_1a83ebe980605eff85ee33e9e991d5ba35" prot="public" static="no">
+        <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref></type>
+        <definition>using refined_block::GlobalBlockHandle::ChildHandle =  ViewBlockHandle</definition>
+        <argsstring></argsstring>
+        <name>ChildHandle</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::ChildHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="121" column="3" bodyfile="dag_refinedBlock.h" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classrefined__block_1_1GlobalBlockHandle_1a14ef6021d200cbfbb2fac1bda99f5776" prot="public" static="yes" mutable="no">
+        <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref></type>
+        <definition>GlobalBlockHandle refined_block::GlobalBlockHandle::invalid</definition>
+        <argsstring></argsstring>
+        <name>invalid</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::invalid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="131" column="28" bodyfile="dag_refinedBlock.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classrefined__block_1_1GlobalBlockHandle_1a16c11e3a040f4f8a1f5d6597c5ec23f9" prot="private" static="no" mutable="no">
+        <type>friend</type>
+        <definition>friend refined_block::GlobalBlockHandle::BaseBlockHandle&lt; GlobalBlockHandle &gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseBlockHandle&lt; GlobalBlockHandle &gt;</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::BaseBlockHandle&lt; GlobalBlockHandle &gt;</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="135" column="3" bodyfile="dag_refinedBlock.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classrefined__block_1_1GlobalBlockHandle_1a71945037cac6e911a6db50a040137d20" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::GlobalBlockHandle::GlobalBlockHandle</definition>
+        <argsstring>()=delete</argsstring>
+        <name>GlobalBlockHandle</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::GlobalBlockHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="123" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1GlobalBlockHandle_1af89d4533ef923e6bec6a8d9e4b9b7738" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::GlobalBlockHandle::GlobalBlockHandle</definition>
+        <argsstring>(const GlobalBlockHandle &amp;)=default</argsstring>
+        <name>GlobalBlockHandle</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::GlobalBlockHandle</qualifiedname>
+        <param>
+          <type>const <ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="124" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1GlobalBlockHandle_1a678b435d38ced6f447d9f3f6ef433d37" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref> &amp;</type>
+        <definition>GlobalBlockHandle &amp; refined_block::GlobalBlockHandle::operator=</definition>
+        <argsstring>(const GlobalBlockHandle &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="125" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1GlobalBlockHandle_1a290915271e2d3fd506667871b39493a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::GlobalBlockHandle::GlobalBlockHandle</definition>
+        <argsstring>(GlobalBlockHandle &amp;&amp;)=default</argsstring>
+        <name>GlobalBlockHandle</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::GlobalBlockHandle</qualifiedname>
+        <param>
+          <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="126" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1GlobalBlockHandle_1a5144b70e257cff9a55e7f2d04222c703" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref> &amp;</type>
+        <definition>GlobalBlockHandle &amp; refined_block::GlobalBlockHandle::operator=</definition>
+        <argsstring>(GlobalBlockHandle &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="127" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1GlobalBlockHandle_1a6a937f6a127eddf34bfde17bce6d21d9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref></type>
+        <definition>ViewBlockHandle refined_block::GlobalBlockHandle::refineBlock</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>refineBlock</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::refineBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="129" column="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classrefined__block_1_1GlobalBlockHandle_1a0fe2226ba9aa575f19230e9387fbc0fe" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref></type>
+        <definition>GlobalBlockHandle get_global</definition>
+        <argsstring>()</argsstring>
+        <name>get_global</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::get_global</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="134" column="28"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classrefined__block_1_1GlobalBlockHandle_1a55da20c505449dd8a81cf192b9b6658b" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::GlobalBlockHandle::GlobalBlockHandle</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>GlobalBlockHandle</name>
+        <qualifiedname>refined_block::GlobalBlockHandle::GlobalBlockHandle</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="137" column="3" bodyfile="dag_refinedBlock.h" bodystart="137" bodyend="137"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>refined_block::BaseBlockHandle&lt; GlobalBlockHandle &gt;</label>
+        <link refid="classrefined__block_1_1BaseBlockHandle"/>
+      </node>
+      <node id="1">
+        <label>refined_block::GlobalBlockHandle</label>
+        <link refid="classrefined__block_1_1GlobalBlockHandle"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>refined_block::BaseBlockHandle&lt; GlobalBlockHandle &gt;</label>
+        <link refid="classrefined__block_1_1BaseBlockHandle"/>
+      </node>
+      <node id="1">
+        <label>refined_block::GlobalBlockHandle</label>
+        <link refid="classrefined__block_1_1GlobalBlockHandle"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>invalid</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_refinedBlock.h" line="117" column="1" bodyfile="dag_refinedBlock.h" bodystart="118" bodyend="138"/>
+    <listofallmembers>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a8948a0257e7aa5a2f98d956d174387de" prot="protected" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>BaseBlockHandle</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a16c11e3a040f4f8a1f5d6597c5ec23f9" prot="private" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>BaseBlockHandle&lt; GlobalBlockHandle &gt;</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a54f24a02d6c927712a91c55cb9ff7031" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>BlockType</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a83ebe980605eff85ee33e9e991d5ba35" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>ChildHandle</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1ab61975468aa7e11020bf5841572dc21a" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a216ca3a8a590ffcf82184466703f48a7" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a0fe2226ba9aa575f19230e9387fbc0fe" prot="private" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>get_global</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a680996064605f50b0a13efc0bc591f96" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>getId</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a4d461abbc209c014d1882c7481d61c08" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>getName</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a71945037cac6e911a6db50a040137d20" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>GlobalBlockHandle</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1af89d4533ef923e6bec6a8d9e4b9b7738" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>GlobalBlockHandle</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a290915271e2d3fd506667871b39493a1" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>GlobalBlockHandle</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a55da20c505449dd8a81cf192b9b6658b" prot="private" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>GlobalBlockHandle</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a14ef6021d200cbfbb2fac1bda99f5776" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>invalid</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a678b435d38ced6f447d9f3f6ef433d37" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>operator=</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a5144b70e257cff9a55e7f2d04222c703" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>operator=</name></member>
+      <member refid="classrefined__block_1_1GlobalBlockHandle_1a6a937f6a127eddf34bfde17bce6d21d9" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>refineBlock</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a965d1ada3b3933681963da8dcd97864c" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>set</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a13a3ebae16f3f6e4ff542a4b1d66a33e" prot="public" virt="non-virtual"><scope>refined_block::GlobalBlockHandle</scope><name>set</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

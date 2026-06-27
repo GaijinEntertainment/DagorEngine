@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structrefined__block_1_1FlushedVar" kind="struct" language="C++" prot="public">
+    <compoundname>refined_block::FlushedVar</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structrefined__block_1_1FlushedVar_1af45022e1f5fd785e367be1f0ceaf52b6" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int refined_block::FlushedVar::stage</definition>
+        <argsstring></argsstring>
+        <name>stage</name>
+        <qualifiedname>refined_block::FlushedVar::stage</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="48" column="7" bodyfile="dag_refinedBlock.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structrefined__block_1_1FlushedVar_1aea51defc6c4d57b8432046e7af4b6271" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int refined_block::FlushedVar::slotOrBindlessId</definition>
+        <argsstring></argsstring>
+        <name>slotOrBindlessId</name>
+        <qualifiedname>refined_block::FlushedVar::slotOrBindlessId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="49" column="7" bodyfile="dag_refinedBlock.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structrefined__block_1_1FlushedVar_1a0d91782ddc19b44204ec02178584a420" prot="public" static="no" mutable="no">
+        <type>VarValue</type>
+        <definition>VarValue refined_block::FlushedVar::var</definition>
+        <argsstring></argsstring>
+        <name>var</name>
+        <qualifiedname>refined_block::FlushedVar::var</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="50" column="12" bodyfile="dag_refinedBlock.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_refinedBlock.h" line="46" column="1" bodyfile="dag_refinedBlock.h" bodystart="47" bodyend="51"/>
+    <listofallmembers>
+      <member refid="structrefined__block_1_1FlushedVar_1aea51defc6c4d57b8432046e7af4b6271" prot="public" virt="non-virtual"><scope>refined_block::FlushedVar</scope><name>slotOrBindlessId</name></member>
+      <member refid="structrefined__block_1_1FlushedVar_1af45022e1f5fd785e367be1f0ceaf52b6" prot="public" virt="non-virtual"><scope>refined_block::FlushedVar</scope><name>stage</name></member>
+      <member refid="structrefined__block_1_1FlushedVar_1a0d91782ddc19b44204ec02178584a420" prot="public" virt="non-virtual"><scope>refined_block::FlushedVar</scope><name>var</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1336 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBumpMapSC" kind="class" language="C++" prot="public">
+    <compoundname>BumpMapSC</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ShadeContext</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classBumpMapSC_1add45d8e09de73aea92552880c281377a" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue BumpMapSC::curtime</definition>
+        <argsstring></argsstring>
+        <name>curtime</name>
+        <qualifiedname>BumpMapSC::curtime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1172" column="13" bodyfile="polyBumpUtil.cpp" bodystart="1172" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1aab18c44f5f188eb781eea2ca108f934d" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* BumpMapSC::node</definition>
+        <argsstring></argsstring>
+        <name>node</name>
+        <qualifiedname>BumpMapSC::node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1173" column="9" bodyfile="polyBumpUtil.cpp" bodystart="1173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1ac4b43a59dc7bcbad76dd682e62647ffe" prot="public" static="no" mutable="no">
+        <type>Mesh *</type>
+        <definition>Mesh* BumpMapSC::mesh</definition>
+        <argsstring></argsstring>
+        <name>mesh</name>
+        <qualifiedname>BumpMapSC::mesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1174" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1af89a40b800600d85368e02005732380b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BumpMapSC::face</definition>
+        <argsstring></argsstring>
+        <name>face</name>
+        <qualifiedname>BumpMapSC::face</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1175" column="7" bodyfile="polyBumpUtil.cpp" bodystart="1175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a4925d54c25dfcaad850ed3c7550a5e66" prot="public" static="no" mutable="no">
+        <type>Box3</type>
+        <definition>Box3 BumpMapSC::objbox</definition>
+        <argsstring></argsstring>
+        <name>objbox</name>
+        <qualifiedname>BumpMapSC::objbox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1177" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1ac30f2904f79e53ccea5d6f9c9a7c4d30" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::bary</definition>
+        <argsstring></argsstring>
+        <name>bary</name>
+        <qualifiedname>BumpMapSC::bary</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a95d91b17d1c5794328cd32b696b6c95f" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::norm</definition>
+        <argsstring></argsstring>
+        <name>norm</name>
+        <qualifiedname>BumpMapSC::norm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="15" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a781ba3bf827d5fba94f07a4437cc9eb7" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::normal</definition>
+        <argsstring></argsstring>
+        <name>normal</name>
+        <qualifiedname>BumpMapSC::normal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="20" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a1a837429f623c435be4970aaf34c5c8b" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::facenorm</definition>
+        <argsstring></argsstring>
+        <name>facenorm</name>
+        <qualifiedname>BumpMapSC::facenorm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="27" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a2a771f5126d64da43ae2494fd4198ef6" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::view</definition>
+        <argsstring></argsstring>
+        <name>view</name>
+        <qualifiedname>BumpMapSC::view</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="36" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a4199aab3ca6e5c0a4f5adde958a02f19" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::orgview</definition>
+        <argsstring></argsstring>
+        <name>orgview</name>
+        <qualifiedname>BumpMapSC::orgview</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="41" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a146cdcb8fcf08ae1f507fa6a7b90a529" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::pt</definition>
+        <argsstring></argsstring>
+        <name>pt</name>
+        <qualifiedname>BumpMapSC::pt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="49" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1ac01e0b984655f622cab3a9303492f560" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::dpt</definition>
+        <argsstring></argsstring>
+        <name>dpt</name>
+        <qualifiedname>BumpMapSC::dpt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="52" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a1e4a181253278bcc76cd6f7094cf7556" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::dpt_dx</definition>
+        <argsstring></argsstring>
+        <name>dpt_dx</name>
+        <qualifiedname>BumpMapSC::dpt_dx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="56" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a315f711836f4fd037bad372d90328499" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::dpt_dy</definition>
+        <argsstring></argsstring>
+        <name>dpt_dy</name>
+        <qualifiedname>BumpMapSC::dpt_dy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="63" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1ac63048874733f85544784d7c743fc232" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::vp[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>vp</name>
+        <qualifiedname>BumpMapSC::vp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="70" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a48f5b779f0a3307874e73e133ae2439c" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::bv[3]</definition>
+        <argsstring>[3]</argsstring>
+        <name>bv</name>
+        <qualifiedname>BumpMapSC::bv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="73" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a3923254596f7a96cfafd735fc6bb1209" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::bo</definition>
+        <argsstring></argsstring>
+        <name>bo</name>
+        <qualifiedname>BumpMapSC::bo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1178" column="76" bodyfile="polyBumpUtil.cpp" bodystart="1178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1aa502830f9062ff9c1241c293add73243" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::tv[MAX_MESHMAPS][3]</definition>
+        <argsstring>[MAX_MESHMAPS][3]</argsstring>
+        <name>tv</name>
+        <qualifiedname>BumpMapSC::tv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1179" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a4b9b8ee14f9a09107b97cbe5409385e4" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float BumpMapSC::curve</definition>
+        <argsstring></argsstring>
+        <name>curve</name>
+        <qualifiedname>BumpMapSC::curve</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1180" column="9" bodyfile="polyBumpUtil.cpp" bodystart="1180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a5f2018a6e6d2ae0733c1a644b0fdeabb" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float BumpMapSC::face_sz</definition>
+        <argsstring></argsstring>
+        <name>face_sz</name>
+        <qualifiedname>BumpMapSC::face_sz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1180" column="15" bodyfile="polyBumpUtil.cpp" bodystart="1180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a3480c4f46cf1da58fc0405396179536a" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float BumpMapSC::sz_ratio</definition>
+        <argsstring></argsstring>
+        <name>sz_ratio</name>
+        <qualifiedname>BumpMapSC::sz_ratio</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1180" column="23" bodyfile="polyBumpUtil.cpp" bodystart="1180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a1d2dec3ba5fa79c7d110e6d7fce86a62" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float BumpMapSC::facecurve</definition>
+        <argsstring></argsstring>
+        <name>facecurve</name>
+        <qualifiedname>BumpMapSC::facecurve</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1180" column="32" bodyfile="polyBumpUtil.cpp" bodystart="1180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a6166e53d13938c5ea875363cf57cf054" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Point3 &gt;</type>
+        <definition>Tab&lt;Point3&gt; BumpMapSC::fnorm</definition>
+        <argsstring></argsstring>
+        <name>fnorm</name>
+        <qualifiedname>BumpMapSC::fnorm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1181" column="7" bodyfile="polyBumpUtil.cpp" bodystart="1181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1ad09fa3ee9494d5cc4542387d2a96b4bc" prot="public" static="no" mutable="no">
+        <type>Point3 *</type>
+        <definition>Point3* BumpMapSC::highvnrm</definition>
+        <argsstring></argsstring>
+        <name>highvnrm</name>
+        <qualifiedname>BumpMapSC::highvnrm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1183" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a3d41f24ddc792e8e5f1a8aa2957fa542" prot="public" static="no" mutable="no">
+        <type><ref refid="polyBumpUtil_8cpp_1a4be4302620be4a0cda3e678fdc4f05fb" kindref="member">FaceNGr</ref> *</type>
+        <definition>FaceNGr* BumpMapSC::facengr</definition>
+        <argsstring></argsstring>
+        <name>facengr</name>
+        <qualifiedname>BumpMapSC::facengr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1184" column="11" bodyfile="polyBumpUtil.cpp" bodystart="1184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBumpMapSC_1a9148ecd23bfd352b25061f5b42272c6e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool BumpMapSC::hastv[MAX_MESHMAPS]</definition>
+        <argsstring>[MAX_MESHMAPS]</argsstring>
+        <name>hastv</name>
+        <qualifiedname>BumpMapSC::hastv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1185" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1185" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBumpMapSC_1a338a3b857a977f124a29f73aaf9dc550" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BumpMapSC::BumpMapSC</definition>
+        <argsstring>(TimeValue t, Interface *ip)</argsstring>
+        <name>BumpMapSC</name>
+        <qualifiedname>BumpMapSC::BumpMapSC</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1187" column="3" bodyfile="polyBumpUtil.cpp" bodystart="1187" bodyend="1197"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1afe63afd6719f0f8c146e1a9ac8f46dea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::setnode</definition>
+        <argsstring>(INode *n)</argsstring>
+        <name>setnode</name>
+        <qualifiedname>BumpMapSC::setnode</qualifiedname>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1198" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1198" bodyend="1205"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ab0e60e1e6cde9aaebaed75098a2ff0e6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::setmesh</definition>
+        <argsstring>(Mesh &amp;m, Point3 *vnr, FaceNGr *ngr)</argsstring>
+        <name>setmesh</name>
+        <qualifiedname>BumpMapSC::setmesh</qualifiedname>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Point3 *</type>
+          <declname>vnr</declname>
+        </param>
+        <param>
+          <type><ref refid="polyBumpUtil_8cpp_1a4be4302620be4a0cda3e678fdc4f05fb" kindref="member">FaceNGr</ref> *</type>
+          <declname>ngr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1206" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1206" bodyend="1217"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ad444197e386845925222f6546f61dfa9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::gettv</definition>
+        <argsstring>(int ch)</argsstring>
+        <name>gettv</name>
+        <qualifiedname>BumpMapSC::gettv</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1218" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1218" bodyend="1236"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a8df7eda4271c131dd146ed706941905a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::setface</definition>
+        <argsstring>(int fi, int ch)</argsstring>
+        <name>setface</name>
+        <qualifiedname>BumpMapSC::setface</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>fi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1237" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1237" bodyend="1260"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a9ae1b73e792e02a9f7c9ef3dd75ab58e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::setpt</definition>
+        <argsstring>(float u, float v, float du, float dv)</argsstring>
+        <name>setpt</name>
+        <qualifiedname>BumpMapSC::setpt</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>u</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>du</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>dv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1261" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1261" bodyend="1275"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a8364a8cafcb5dfb2db32d492e3fe94f1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL BumpMapSC::InMtlEditor</definition>
+        <argsstring>() override</argsstring>
+        <name>InMtlEditor</name>
+        <qualifiedname>BumpMapSC::InMtlEditor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1276" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1276" bodyend="1276"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ae11478982512880248ad1ab64b41b42e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BumpMapSC::Antialias</definition>
+        <argsstring>() override</argsstring>
+        <name>Antialias</name>
+        <qualifiedname>BumpMapSC::Antialias</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1277" column="7" bodyfile="polyBumpUtil.cpp" bodystart="1277" bodyend="1277"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a70e1e9ce86c3f72c470b20bb4be2a5e2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BumpMapSC::ProjType</definition>
+        <argsstring>() override</argsstring>
+        <name>ProjType</name>
+        <qualifiedname>BumpMapSC::ProjType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1278" column="7" bodyfile="polyBumpUtil.cpp" bodystart="1278" bodyend="1278"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a9f94f1904440d908c14a468fd2bb3719" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>LightDesc *</type>
+        <definition>LightDesc * BumpMapSC::Light</definition>
+        <argsstring>(int n) override</argsstring>
+        <name>Light</name>
+        <qualifiedname>BumpMapSC::Light</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1279" column="13" bodyfile="polyBumpUtil.cpp" bodystart="1279" bodyend="1279"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a7a03b513c6188f8dce818c2d7938fb23" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TimeValue</type>
+        <definition>TimeValue BumpMapSC::CurTime</definition>
+        <argsstring>() override</argsstring>
+        <name>CurTime</name>
+        <qualifiedname>BumpMapSC::CurTime</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1280" column="13" bodyfile="polyBumpUtil.cpp" bodystart="1280" bodyend="1280"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a2e26e3f76b67b18937d21db4591304ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>INode *</type>
+        <definition>INode * BumpMapSC::Node</definition>
+        <argsstring>() override</argsstring>
+        <name>Node</name>
+        <qualifiedname>BumpMapSC::Node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1281" column="9" bodyfile="polyBumpUtil.cpp" bodystart="1281" bodyend="1281"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1aee3da44bb375d392574038817e212cc6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Object *</type>
+        <definition>Object * BumpMapSC::GetEvalObject</definition>
+        <argsstring>() override</argsstring>
+        <name>GetEvalObject</name>
+        <qualifiedname>BumpMapSC::GetEvalObject</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1282" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1282" bodyend="1287"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1aee73cb54a9096ce4afd880f3a708e582" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::BarycentricCoords</definition>
+        <argsstring>() override</argsstring>
+        <name>BarycentricCoords</name>
+        <qualifiedname>BumpMapSC::BarycentricCoords</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1288" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1288" bodyend="1288"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ae04bba307b5df965803449f9f6f6d163" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BumpMapSC::FaceNumber</definition>
+        <argsstring>() override</argsstring>
+        <name>FaceNumber</name>
+        <qualifiedname>BumpMapSC::FaceNumber</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1289" column="7" bodyfile="polyBumpUtil.cpp" bodystart="1289" bodyend="1289"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a3a3f8c334f95741fb8a869797d5f122e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::Normal</definition>
+        <argsstring>() override</argsstring>
+        <name>Normal</name>
+        <qualifiedname>BumpMapSC::Normal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1290" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1290" bodyend="1290"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ae4750132c0a1271fc19b717ce72ba8b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::SetNormal</definition>
+        <argsstring>(Point3 p) override</argsstring>
+        <name>SetNormal</name>
+        <qualifiedname>BumpMapSC::SetNormal</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1291" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1291" bodyend="1291"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a1f50a9a5619f693f660a9cffa239a07a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::OrigNormal</definition>
+        <argsstring>() override</argsstring>
+        <name>OrigNormal</name>
+        <qualifiedname>BumpMapSC::OrigNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1292" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1292" bodyend="1292"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a8ecf7214011101f0a103e96f0039224e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float BumpMapSC::Curve</definition>
+        <argsstring>() override</argsstring>
+        <name>Curve</name>
+        <qualifiedname>BumpMapSC::Curve</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1293" column="9" bodyfile="polyBumpUtil.cpp" bodystart="1293" bodyend="1293"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ab30803e53bd3f6d403b252c6c114584f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::GNormal</definition>
+        <argsstring>() override</argsstring>
+        <name>GNormal</name>
+        <qualifiedname>BumpMapSC::GNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1294" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1294" bodyend="1294"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ac098b62e0f878811872e9e9cf37e263d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::CamPos</definition>
+        <argsstring>() override</argsstring>
+        <name>CamPos</name>
+        <qualifiedname>BumpMapSC::CamPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1295" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1295" bodyend="1295"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1add0632ec832ac721d21e65380d0ebd6e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::V</definition>
+        <argsstring>() override</argsstring>
+        <name>V</name>
+        <qualifiedname>BumpMapSC::V</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1296" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1296" bodyend="1296"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a3a88656f5a931b20e9d3227f181b3e02" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::SetView</definition>
+        <argsstring>(Point3 p) override</argsstring>
+        <name>SetView</name>
+        <qualifiedname>BumpMapSC::SetView</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1297" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1297" bodyend="1297"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ac3c978dd469e0745bca77d6200170b5e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::OrigView</definition>
+        <argsstring>() override</argsstring>
+        <name>OrigView</name>
+        <qualifiedname>BumpMapSC::OrigView</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1298" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1298" bodyend="1298"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a35d7f98d14c73b1d57fc094107c7b370" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::ReflectVector</definition>
+        <argsstring>() override</argsstring>
+        <name>ReflectVector</name>
+        <qualifiedname>BumpMapSC::ReflectVector</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1299" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1299" bodyend="1303"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a18cf4776013e260fdf30e5e265d60ce4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::RefractVector</definition>
+        <argsstring>(float ior) override</argsstring>
+        <name>RefractVector</name>
+        <qualifiedname>BumpMapSC::RefractVector</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>ior</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1304" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1304" bodyend="1323"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1af01719fd674fa560f8f2e67ed7a9ecc1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::P</definition>
+        <argsstring>() override</argsstring>
+        <name>P</name>
+        <qualifiedname>BumpMapSC::P</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1324" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1324" bodyend="1324"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1acdf1e6d5678e267dcdb7730b99830ee9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::DP</definition>
+        <argsstring>() override</argsstring>
+        <name>DP</name>
+        <qualifiedname>BumpMapSC::DP</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1325" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1325" bodyend="1325"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ace751bbd29afff04c1ae7fe62b24b694" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::DP</definition>
+        <argsstring>(Point3 &amp;dx, Point3 &amp;dy) override</argsstring>
+        <name>DP</name>
+        <qualifiedname>BumpMapSC::DP</qualifiedname>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>dy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1326" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1326" bodyend="1330"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a6f49d96d3e6fc98cd45952e4303e49c6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::PObj</definition>
+        <argsstring>() override</argsstring>
+        <name>PObj</name>
+        <qualifiedname>BumpMapSC::PObj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1331" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1331" bodyend="1331"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ad5f89bbbf2246c3d614951d3709c2870" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::DPObj</definition>
+        <argsstring>() override</argsstring>
+        <name>DPObj</name>
+        <qualifiedname>BumpMapSC::DPObj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1332" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1332" bodyend="1336"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a27f6b04ff78f9718fcf972564d34d2a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Box3</type>
+        <definition>Box3 BumpMapSC::ObjectBox</definition>
+        <argsstring>() override</argsstring>
+        <name>ObjectBox</name>
+        <qualifiedname>BumpMapSC::ObjectBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1337" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1337" bodyend="1337"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a86ed42035ab8d0f068ea066653f0479a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::PObjRelBox</definition>
+        <argsstring>() override</argsstring>
+        <name>PObjRelBox</name>
+        <qualifiedname>BumpMapSC::PObjRelBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1338" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1338" bodyend="1346"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1adbe434a9f4d07e3fa1c415857535401b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::DPObjRelBox</definition>
+        <argsstring>() override</argsstring>
+        <name>DPObjRelBox</name>
+        <qualifiedname>BumpMapSC::DPObjRelBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1347" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1347" bodyend="1355"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a58dc7968dedecaebce1e3ba29b66af90" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::ScreenUV</definition>
+        <argsstring>(Point2 &amp;uv, Point2 &amp;duv) override</argsstring>
+        <name>ScreenUV</name>
+        <qualifiedname>BumpMapSC::ScreenUV</qualifiedname>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>uv</declname>
+        </param>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>duv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1356" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1356" bodyend="1360"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a985145ff7bc32a16bd4276115a50e4e1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 BumpMapSC::ScreenCoord</definition>
+        <argsstring>() override</argsstring>
+        <name>ScreenCoord</name>
+        <qualifiedname>BumpMapSC::ScreenCoord</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1361" column="11" bodyfile="polyBumpUtil.cpp" bodystart="1361" bodyend="1361"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a1d9487f825b6b5fe945b8b86d740283d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::UVW</definition>
+        <argsstring>(int ch) override</argsstring>
+        <name>UVW</name>
+        <qualifiedname>BumpMapSC::UVW</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1362" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1362" bodyend="1366"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a22955c940983fcd15c93b84b3db85a34" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::DUVW</definition>
+        <argsstring>(int ch) override</argsstring>
+        <name>DUVW</name>
+        <qualifiedname>BumpMapSC::DUVW</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1367" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1367" bodyend="1371"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a8a79f2fa9bc10d7bc41c6c03e8ca4538" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int BumpMapSC::BumpBasisVectors</definition>
+        <argsstring>(Point3 dP[2], int axis, int channel) override</argsstring>
+        <name>BumpBasisVectors</name>
+        <qualifiedname>BumpMapSC::BumpBasisVectors</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>dP</declname>
+          <array>[2]</array>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>axis</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1372" column="7" bodyfile="polyBumpUtil.cpp" bodystart="1372" bodyend="1372"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a639d4cd87d6ed0f7e2e0874ce65f3c26" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::UVWNormal</definition>
+        <argsstring>(int channel=0) override</argsstring>
+        <name>UVWNormal</name>
+        <qualifiedname>BumpMapSC::UVWNormal</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>channel</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1373" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1373" bodyend="1373"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1ae43c445a25a9675483c70468ef239bd0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::DPdUVW</definition>
+        <argsstring>(Point3 dP[3], int ch) override</argsstring>
+        <name>DPdUVW</name>
+        <qualifiedname>BumpMapSC::DPdUVW</qualifiedname>
+        <param>
+          <type>Point3</type>
+          <declname>dP</declname>
+          <array>[3]</array>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1375" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1375" bodyend="1382"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a2067dab1085d1efcd1b65835447c2cbe" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void BumpMapSC::GetBGColor</definition>
+        <argsstring>(Color &amp;co, Color &amp;tr, int fogBG) override</argsstring>
+        <name>GetBGColor</name>
+        <qualifiedname>BumpMapSC::GetBGColor</qualifiedname>
+        <param>
+          <type>Color &amp;</type>
+          <declname>co</declname>
+        </param>
+        <param>
+          <type>Color &amp;</type>
+          <declname>tr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fogBG</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1383" column="8" bodyfile="polyBumpUtil.cpp" bodystart="1383" bodyend="1387"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1aaa532de9aefd1cfb86badb0d44fc2903" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::PointTo</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>PointTo</name>
+        <qualifiedname>BumpMapSC::PointTo</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1388" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1388" bodyend="1399"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a0b95e7d5af8378756a13845e108440b9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::PointFrom</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>PointFrom</name>
+        <qualifiedname>BumpMapSC::PointFrom</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1400" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1400" bodyend="1411"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a90988cbf7a2d79e251a37b6eaf5cabc5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::VectorTo</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>VectorTo</name>
+        <qualifiedname>BumpMapSC::VectorTo</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1412" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1412" bodyend="1423"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1a1f3a2edee74d0892acfd09309efcb4e2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 BumpMapSC::VectorFrom</definition>
+        <argsstring>(const Point3 &amp;p, RefFrame ito) override</argsstring>
+        <name>VectorFrom</name>
+        <qualifiedname>BumpMapSC::VectorFrom</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1424" column="10" bodyfile="polyBumpUtil.cpp" bodystart="1424" bodyend="1435"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1aa36dabb99e6754cb1351de053d728e32" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>Matrix3 BumpMapSC::MatrixTo</definition>
+        <argsstring>(RefFrame ito)</argsstring>
+        <name>MatrixTo</name>
+        <qualifiedname>BumpMapSC::MatrixTo</qualifiedname>
+        <param>
+          <type>RefFrame</type>
+          <declname>ito</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1436" column="11" bodyfile="polyBumpUtil.cpp" bodystart="1436" bodyend="1436"/>
+      </memberdef>
+      <memberdef kind="function" id="classBumpMapSC_1aa3f811699c5f1463cfd9eb7431177618" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Matrix3</type>
+        <definition>Matrix3 BumpMapSC::MatrixFrom</definition>
+        <argsstring>(RefFrame ifrom)</argsstring>
+        <name>MatrixFrom</name>
+        <qualifiedname>BumpMapSC::MatrixFrom</qualifiedname>
+        <param>
+          <type>RefFrame</type>
+          <declname>ifrom</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="1437" column="11" bodyfile="polyBumpUtil.cpp" bodystart="1437" bodyend="1437"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>BumpMapSC</label>
+        <link refid="classBumpMapSC"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShadeContext</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>BumpMapSC</label>
+        <link refid="classBumpMapSC"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShadeContext</label>
+      </node>
+    </collaborationgraph>
+    <location file="polyBumpUtil.cpp" line="1169" column="1" bodyfile="polyBumpUtil.cpp" bodystart="1170" bodyend="1438"/>
+    <listofallmembers>
+      <member refid="classBumpMapSC_1ae11478982512880248ad1ab64b41b42e" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>Antialias</name></member>
+      <member refid="classBumpMapSC_1ac30f2904f79e53ccea5d6f9c9a7c4d30" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>bary</name></member>
+      <member refid="classBumpMapSC_1aee73cb54a9096ce4afd880f3a708e582" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>BarycentricCoords</name></member>
+      <member refid="classBumpMapSC_1a3923254596f7a96cfafd735fc6bb1209" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>bo</name></member>
+      <member refid="classBumpMapSC_1a8a79f2fa9bc10d7bc41c6c03e8ca4538" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>BumpBasisVectors</name></member>
+      <member refid="classBumpMapSC_1a338a3b857a977f124a29f73aaf9dc550" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>BumpMapSC</name></member>
+      <member refid="classBumpMapSC_1a48f5b779f0a3307874e73e133ae2439c" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>bv</name></member>
+      <member refid="classBumpMapSC_1ac098b62e0f878811872e9e9cf37e263d" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>CamPos</name></member>
+      <member refid="classBumpMapSC_1add45d8e09de73aea92552880c281377a" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>curtime</name></member>
+      <member refid="classBumpMapSC_1a7a03b513c6188f8dce818c2d7938fb23" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>CurTime</name></member>
+      <member refid="classBumpMapSC_1a4b9b8ee14f9a09107b97cbe5409385e4" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>curve</name></member>
+      <member refid="classBumpMapSC_1a8ecf7214011101f0a103e96f0039224e" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>Curve</name></member>
+      <member refid="classBumpMapSC_1acdf1e6d5678e267dcdb7730b99830ee9" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>DP</name></member>
+      <member refid="classBumpMapSC_1ace751bbd29afff04c1ae7fe62b24b694" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>DP</name></member>
+      <member refid="classBumpMapSC_1ae43c445a25a9675483c70468ef239bd0" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>DPdUVW</name></member>
+      <member refid="classBumpMapSC_1ad5f89bbbf2246c3d614951d3709c2870" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>DPObj</name></member>
+      <member refid="classBumpMapSC_1adbe434a9f4d07e3fa1c415857535401b" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>DPObjRelBox</name></member>
+      <member refid="classBumpMapSC_1ac01e0b984655f622cab3a9303492f560" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>dpt</name></member>
+      <member refid="classBumpMapSC_1a1e4a181253278bcc76cd6f7094cf7556" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>dpt_dx</name></member>
+      <member refid="classBumpMapSC_1a315f711836f4fd037bad372d90328499" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>dpt_dy</name></member>
+      <member refid="classBumpMapSC_1a22955c940983fcd15c93b84b3db85a34" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>DUVW</name></member>
+      <member refid="classBumpMapSC_1af89a40b800600d85368e02005732380b" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>face</name></member>
+      <member refid="classBumpMapSC_1a5f2018a6e6d2ae0733c1a644b0fdeabb" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>face_sz</name></member>
+      <member refid="classBumpMapSC_1a1d2dec3ba5fa79c7d110e6d7fce86a62" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>facecurve</name></member>
+      <member refid="classBumpMapSC_1a3d41f24ddc792e8e5f1a8aa2957fa542" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>facengr</name></member>
+      <member refid="classBumpMapSC_1a1a837429f623c435be4970aaf34c5c8b" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>facenorm</name></member>
+      <member refid="classBumpMapSC_1ae04bba307b5df965803449f9f6f6d163" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>FaceNumber</name></member>
+      <member refid="classBumpMapSC_1a6166e53d13938c5ea875363cf57cf054" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>fnorm</name></member>
+      <member refid="classBumpMapSC_1a2067dab1085d1efcd1b65835447c2cbe" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>GetBGColor</name></member>
+      <member refid="classBumpMapSC_1aee3da44bb375d392574038817e212cc6" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>GetEvalObject</name></member>
+      <member refid="classBumpMapSC_1ad444197e386845925222f6546f61dfa9" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>gettv</name></member>
+      <member refid="classBumpMapSC_1ab30803e53bd3f6d403b252c6c114584f" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>GNormal</name></member>
+      <member refid="classBumpMapSC_1a9148ecd23bfd352b25061f5b42272c6e" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>hastv</name></member>
+      <member refid="classBumpMapSC_1ad09fa3ee9494d5cc4542387d2a96b4bc" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>highvnrm</name></member>
+      <member refid="classBumpMapSC_1a8364a8cafcb5dfb2db32d492e3fe94f1" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>InMtlEditor</name></member>
+      <member refid="classBumpMapSC_1a9f94f1904440d908c14a468fd2bb3719" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>Light</name></member>
+      <member refid="classBumpMapSC_1aa3f811699c5f1463cfd9eb7431177618" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>MatrixFrom</name></member>
+      <member refid="classBumpMapSC_1aa36dabb99e6754cb1351de053d728e32" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>MatrixTo</name></member>
+      <member refid="classBumpMapSC_1ac4b43a59dc7bcbad76dd682e62647ffe" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>mesh</name></member>
+      <member refid="classBumpMapSC_1aab18c44f5f188eb781eea2ca108f934d" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>node</name></member>
+      <member refid="classBumpMapSC_1a2e26e3f76b67b18937d21db4591304ae" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>Node</name></member>
+      <member refid="classBumpMapSC_1a95d91b17d1c5794328cd32b696b6c95f" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>norm</name></member>
+      <member refid="classBumpMapSC_1a3a3f8c334f95741fb8a869797d5f122e" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>Normal</name></member>
+      <member refid="classBumpMapSC_1a781ba3bf827d5fba94f07a4437cc9eb7" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>normal</name></member>
+      <member refid="classBumpMapSC_1a4925d54c25dfcaad850ed3c7550a5e66" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>objbox</name></member>
+      <member refid="classBumpMapSC_1a27f6b04ff78f9718fcf972564d34d2a5" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>ObjectBox</name></member>
+      <member refid="classBumpMapSC_1a4199aab3ca6e5c0a4f5adde958a02f19" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>orgview</name></member>
+      <member refid="classBumpMapSC_1a1f50a9a5619f693f660a9cffa239a07a" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>OrigNormal</name></member>
+      <member refid="classBumpMapSC_1ac3c978dd469e0745bca77d6200170b5e" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>OrigView</name></member>
+      <member refid="classBumpMapSC_1af01719fd674fa560f8f2e67ed7a9ecc1" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>P</name></member>
+      <member refid="classBumpMapSC_1a6f49d96d3e6fc98cd45952e4303e49c6" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>PObj</name></member>
+      <member refid="classBumpMapSC_1a86ed42035ab8d0f068ea066653f0479a" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>PObjRelBox</name></member>
+      <member refid="classBumpMapSC_1a0b95e7d5af8378756a13845e108440b9" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>PointFrom</name></member>
+      <member refid="classBumpMapSC_1aaa532de9aefd1cfb86badb0d44fc2903" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>PointTo</name></member>
+      <member refid="classBumpMapSC_1a70e1e9ce86c3f72c470b20bb4be2a5e2" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>ProjType</name></member>
+      <member refid="classBumpMapSC_1a146cdcb8fcf08ae1f507fa6a7b90a529" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>pt</name></member>
+      <member refid="classBumpMapSC_1a35d7f98d14c73b1d57fc094107c7b370" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>ReflectVector</name></member>
+      <member refid="classBumpMapSC_1a18cf4776013e260fdf30e5e265d60ce4" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>RefractVector</name></member>
+      <member refid="classBumpMapSC_1a985145ff7bc32a16bd4276115a50e4e1" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>ScreenCoord</name></member>
+      <member refid="classBumpMapSC_1a58dc7968dedecaebce1e3ba29b66af90" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>ScreenUV</name></member>
+      <member refid="classBumpMapSC_1a8df7eda4271c131dd146ed706941905a" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>setface</name></member>
+      <member refid="classBumpMapSC_1ab0e60e1e6cde9aaebaed75098a2ff0e6" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>setmesh</name></member>
+      <member refid="classBumpMapSC_1afe63afd6719f0f8c146e1a9ac8f46dea" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>setnode</name></member>
+      <member refid="classBumpMapSC_1ae4750132c0a1271fc19b717ce72ba8b3" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>SetNormal</name></member>
+      <member refid="classBumpMapSC_1a9ae1b73e792e02a9f7c9ef3dd75ab58e" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>setpt</name></member>
+      <member refid="classBumpMapSC_1a3a88656f5a931b20e9d3227f181b3e02" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>SetView</name></member>
+      <member refid="classBumpMapSC_1a3480c4f46cf1da58fc0405396179536a" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>sz_ratio</name></member>
+      <member refid="classBumpMapSC_1aa502830f9062ff9c1241c293add73243" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>tv</name></member>
+      <member refid="classBumpMapSC_1a1d9487f825b6b5fe945b8b86d740283d" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>UVW</name></member>
+      <member refid="classBumpMapSC_1a639d4cd87d6ed0f7e2e0874ce65f3c26" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>UVWNormal</name></member>
+      <member refid="classBumpMapSC_1add0632ec832ac721d21e65380d0ebd6e" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>V</name></member>
+      <member refid="classBumpMapSC_1a1f3a2edee74d0892acfd09309efcb4e2" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>VectorFrom</name></member>
+      <member refid="classBumpMapSC_1a90988cbf7a2d79e251a37b6eaf5cabc5" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>VectorTo</name></member>
+      <member refid="classBumpMapSC_1a2a771f5126d64da43ae2494fd4198ef6" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>view</name></member>
+      <member refid="classBumpMapSC_1ac63048874733f85544784d7c743fc232" prot="public" virt="non-virtual"><scope>BumpMapSC</scope><name>vp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

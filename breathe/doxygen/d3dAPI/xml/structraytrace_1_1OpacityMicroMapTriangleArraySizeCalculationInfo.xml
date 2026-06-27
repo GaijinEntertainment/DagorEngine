@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</compoundname>
+    <derivedcompoundref refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo" prot="public" virt="non-virtual">raytrace::OpacityMicroMapTriangleArrayBuildInfo</derivedcompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo_1a8022189ac3f597c57dc8fc2a7f0f1388" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const <ref refid="namespaceraytrace_1a5e10ee9e661e1536b9ab1296d2780c9c" kindref="member">OpacityMicroMapDescription</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;const OpacityMicroMapDescription&gt; raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo::ommDesc</definition>
+        <argsstring></argsstring>
+        <name>ommDesc</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo::ommDesc</qualifiedname>
+        <briefdescription>
+<para>Description of micro maps the triangle array should be able to hold. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="497" column="18" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="497" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo_1afb07d9360dba273e17408b9f3338ed9a" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8" kindref="member">RaytraceBuildFlags</ref></type>
+        <definition>RaytraceBuildFlags raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo::flags</qualifiedname>
+        <initializer>= <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ab50339a10e1de285ac99d4c3990b8693" kindref="member">RaytraceBuildFlags::NONE</ref></initializer>
+        <briefdescription>
+<para>Build flags that may be used with the OMMAS, they may influence some sizes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="499" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="499" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>raytrace::OpacityMicroMapTriangleArrayBuildInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo"/>
+      </node>
+    </inheritancegraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="494" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="495" bodyend="500"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo_1afb07d9360dba273e17408b9f3338ed9a" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</scope><name>flags</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo_1a8022189ac3f597c57dc8fc2a7f0f1388" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</scope><name>ommDesc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

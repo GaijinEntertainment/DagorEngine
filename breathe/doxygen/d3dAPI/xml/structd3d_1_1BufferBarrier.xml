@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1BufferBarrier" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::BufferBarrier</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1BufferBarrier_1aee8e59c7650d1782a38844128cd74b60" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1PipelineSyncOperation" kindref="compound">PipelineSyncOperation</ref></type>
+        <definition>PipelineSyncOperation d3d::BufferBarrier::pipelineSync</definition>
+        <argsstring></argsstring>
+        <name>pipelineSync</name>
+        <qualifiedname>d3d::BufferBarrier::pipelineSync</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="205" column="25" bodyfile="dag_enhanced_barrier.h" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1BufferBarrier_1a96c3c7b7cede0dd0ce633ece2a7b591c" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1MemorySyncOperation" kindref="compound">MemorySyncOperation</ref></type>
+        <definition>MemorySyncOperation d3d::BufferBarrier::memorySync</definition>
+        <argsstring></argsstring>
+        <name>memorySync</name>
+        <qualifiedname>d3d::BufferBarrier::memorySync</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="206" column="23" bodyfile="dag_enhanced_barrier.h" bodystart="206" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>d3d::BufferBarrier</label>
+        <link refid="structd3d_1_1BufferBarrier"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pipelineSync</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>memorySync</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>d3d::MemorySyncOperation</label>
+        <link refid="structd3d_1_1MemorySyncOperation"/>
+      </node>
+      <node id="2">
+        <label>d3d::PipelineSyncOperation</label>
+        <link refid="structd3d_1_1PipelineSyncOperation"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_enhanced_barrier.h" line="203" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="204" bodyend="216"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1BufferBarrier_1a96c3c7b7cede0dd0ce633ece2a7b591c" prot="public" virt="non-virtual"><scope>d3d::BufferBarrier</scope><name>memorySync</name></member>
+      <member refid="structd3d_1_1BufferBarrier_1aee8e59c7650d1782a38844128cd74b60" prot="public" virt="non-virtual"><scope>d3d::BufferBarrier</scope><name>pipelineSync</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

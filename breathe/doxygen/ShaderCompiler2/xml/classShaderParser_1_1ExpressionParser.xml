@@ -1,0 +1,248 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderParser_1_1ExpressionParser" kind="class" language="C++" prot="public">
+    <compoundname>ShaderParser::ExpressionParser</compoundname>
+    <includes refid="shExprParser_8h" local="no">shExprParser.h</includes>
+    <innerclass refid="structShaderParser_1_1ExpressionParser_1_1Context" prot="public">ShaderParser::ExpressionParser::Context</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderParser_1_1ExpressionParser_1ad3c7d38fb72d60a063f44cd341228b28" prot="private" static="no" mutable="no">
+        <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> *</type>
+        <definition>shc::VariantContext* ShaderParser::ExpressionParser::variantCtx</definition>
+        <argsstring></argsstring>
+        <name>variantCtx</name>
+        <qualifiedname>ShaderParser::ExpressionParser::variantCtx</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="51" column="23" bodyfile="shExprParser.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderParser_1_1ExpressionParser_1af8ac95ea59d51ada7453c3439052ce41" prot="private" static="no" mutable="no">
+        <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+        <definition>Parser&amp; ShaderParser::ExpressionParser::parser</definition>
+        <argsstring></argsstring>
+        <name>parser</name>
+        <qualifiedname>ShaderParser::ExpressionParser::parser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="52" column="10" bodyfile="shExprParser.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1aec9f396458f409a27c66b9b208e07f1d" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ExpressionParser::ExpressionParser</definition>
+        <argsstring>(shc::VariantContext &amp;ctx)</argsstring>
+        <name>ExpressionParser</name>
+        <qualifiedname>ShaderParser::ExpressionParser::ExpressionParser</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="41" column="12" bodyfile="shExprParser.cpp" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1a9085b7eeeaa376548bba93457786f708" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderParser::ExpressionParser::ExpressionParser</definition>
+        <argsstring>(Parser &amp;parser)</argsstring>
+        <name>ExpressionParser</name>
+        <qualifiedname>ShaderParser::ExpressionParser::ExpressionParser</qualifiedname>
+        <param>
+          <type><ref refid="structParser" kindref="compound">Parser</ref> &amp;</type>
+          <declname>parser</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="42" column="12" bodyfile="shExprParser.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1a107fbfb633c8a18c8f24fac035605fe6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExpressionParser::parseExpression</definition>
+        <argsstring>(ShaderTerminal::arithmetic_expr &amp;s, ComplexExpression *e, const Context &amp;ctx) const</argsstring>
+        <name>parseExpression</name>
+        <qualifiedname>ShaderParser::ExpressionParser::parseExpression</qualifiedname>
+        <param>
+          <type>ShaderTerminal::arithmetic_expr &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ComplexExpression</ref> *</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1ExpressionParser_1_1Context" kindref="compound">Context</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="45" column="8" bodyfile="shExprParser.cpp" bodystart="74" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1af038fb80abc17ef3c6f532a36642b8d7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExpressionParser::parseConstExpression</definition>
+        <argsstring>(ShaderTerminal::arithmetic_expr &amp;s, Color4 &amp;ret_value, const Context &amp;ctx) const</argsstring>
+        <name>parseConstExpression</name>
+        <qualifiedname>ShaderParser::ExpressionParser::parseConstExpression</qualifiedname>
+        <param>
+          <type>ShaderTerminal::arithmetic_expr &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>Color4 &amp;</type>
+          <declname>ret_value</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1ExpressionParser_1_1Context" kindref="compound">Context</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="48" column="8" bodyfile="shExprParser.cpp" bodystart="120" bodyend="159"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1a86877e5317d70ff6e13ce5aa97c58fbf" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExpressionParser::parseSubExpression</definition>
+        <argsstring>(ShaderTerminal::arithmetic_expr_md &amp;s, ComplexExpression *e, const Context &amp;ctx) const</argsstring>
+        <name>parseSubExpression</name>
+        <qualifiedname>ShaderParser::ExpressionParser::parseSubExpression</qualifiedname>
+        <param>
+          <type>ShaderTerminal::arithmetic_expr_md &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ComplexExpression</ref> *</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1ExpressionParser_1_1Context" kindref="compound">Context</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="55" column="8" bodyfile="shExprParser.cpp" bodystart="33" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1a8c8e5fdd80fce794cc8760e30cbb6b9c" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExpressionParser::parseOperand</definition>
+        <argsstring>(ShaderTerminal::arithmetic_operand &amp;s, shexpr::OperandType op_type, ComplexExpression *e, const Context &amp;ctx) const</argsstring>
+        <name>parseOperand</name>
+        <qualifiedname>ShaderParser::ExpressionParser::parseOperand</qualifiedname>
+        <param>
+          <type>ShaderTerminal::arithmetic_operand &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>shexpr::OperandType</type>
+          <declname>op_type</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ComplexExpression</ref> *</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1ExpressionParser_1_1Context" kindref="compound">Context</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="58" column="8" bodyfile="shExprParser.cpp" bodystart="177" bodyend="593"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1aeab4d87dca7f4d27c381777a5bb7b356" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ExpressionParser::parseColor</definition>
+        <argsstring>(ShaderTerminal::arithmetic_color &amp;s, ColorValueExpression *e, const Context &amp;ctx) const</argsstring>
+        <name>parseColor</name>
+        <qualifiedname>ShaderParser::ExpressionParser::parseColor</qualifiedname>
+        <param>
+          <type>ShaderTerminal::arithmetic_color &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderParser_1_1ColorValueExpression" kindref="compound">ColorValueExpression</ref> *</type>
+          <declname>e</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structShaderParser_1_1ExpressionParser_1_1Context" kindref="compound">Context</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="62" column="8" bodyfile="shExprParser.cpp" bodystart="597" bodyend="643"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderParser_1_1ExpressionParser_1a42b20bafea51363509c70baecc6841f5" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>shexpr::ColorChannel</type>
+        <definition>shexpr::ColorChannel ExpressionParser::parseColorMask</definition>
+        <argsstring>(char channel) const</argsstring>
+        <name>parseColorMask</name>
+        <qualifiedname>ShaderParser::ExpressionParser::parseColorMask</qualifiedname>
+        <param>
+          <type>char</type>
+          <declname>channel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shExprParser.h" line="65" column="24" bodyfile="shExprParser.cpp" bodystart="162" bodyend="173"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shExprParser.h" line="30" column="1" bodyfile="shExprParser.h" bodystart="31" bodyend="66"/>
+    <listofallmembers>
+      <member refid="classShaderParser_1_1ExpressionParser_1aec9f396458f409a27c66b9b208e07f1d" prot="public" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>ExpressionParser</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1a9085b7eeeaa376548bba93457786f708" prot="public" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>ExpressionParser</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1aeab4d87dca7f4d27c381777a5bb7b356" prot="private" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>parseColor</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1a42b20bafea51363509c70baecc6841f5" prot="private" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>parseColorMask</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1af038fb80abc17ef3c6f532a36642b8d7" prot="public" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>parseConstExpression</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1a107fbfb633c8a18c8f24fac035605fe6" prot="public" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>parseExpression</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1a8c8e5fdd80fce794cc8760e30cbb6b9c" prot="private" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>parseOperand</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1af8ac95ea59d51ada7453c3439052ce41" prot="private" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>parser</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1a86877e5317d70ff6e13ce5aa97c58fbf" prot="private" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>parseSubExpression</name></member>
+      <member refid="classShaderParser_1_1ExpressionParser_1ad3c7d38fb72d60a063f44cd341228b28" prot="private" virt="non-virtual"><scope>ShaderParser::ExpressionParser</scope><name>variantCtx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

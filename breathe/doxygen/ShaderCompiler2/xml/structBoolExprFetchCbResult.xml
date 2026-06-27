@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBoolExprFetchCbResult" kind="struct" language="C++" prot="public">
+    <compoundname>BoolExprFetchCbResult</compoundname>
+    <includes refid="boolExpr_8h" local="no">boolExpr.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBoolExprFetchCbResult_1adab333bceb9975e19e0dcc1410e22ecc" prot="public" static="no" mutable="no">
+        <type><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref></type>
+        <definition>BoolExprEvalProgram BoolExprFetchCbResult::program</definition>
+        <argsstring></argsstring>
+        <name>program</name>
+        <qualifiedname>BoolExprFetchCbResult::program</qualifiedname>
+        <initializer>= {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="135" column="23" bodyfile="boolExpr.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBoolExprFetchCbResult_1a933773a6faccb03350c591eeaf6acd1e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool BoolExprFetchCbResult::erred</definition>
+        <argsstring></argsstring>
+        <name>erred</name>
+        <qualifiedname>BoolExprFetchCbResult::erred</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="136" column="8" bodyfile="boolExpr.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BoolExprEvalProgram</label>
+        <link refid="structBoolExprEvalProgram"/>
+      </node>
+      <node id="1">
+        <label>BoolExprFetchCbResult</label>
+        <link refid="structBoolExprFetchCbResult"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>program</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="boolExpr.h" line="133" column="1" bodyfile="boolExpr.h" bodystart="134" bodyend="137"/>
+    <listofallmembers>
+      <member refid="structBoolExprFetchCbResult_1a933773a6faccb03350c591eeaf6acd1e" prot="public" virt="non-virtual"><scope>BoolExprFetchCbResult</scope><name>erred</name></member>
+      <member refid="structBoolExprFetchCbResult_1adab333bceb9975e19e0dcc1410e22ecc" prot="public" virt="non-virtual"><scope>BoolExprFetchCbResult</scope><name>program</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

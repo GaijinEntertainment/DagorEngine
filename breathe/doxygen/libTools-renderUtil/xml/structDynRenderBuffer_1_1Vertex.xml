@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynRenderBuffer_1_1Vertex" kind="struct" language="C++" prot="public">
+    <compoundname>DynRenderBuffer::Vertex</compoundname>
+    <includes refid="dynRenderBuf_8h" local="no">dynRenderBuf.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynRenderBuffer_1_1Vertex_1a6622ce7e12633ed4e25739b37490aad0" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 DynRenderBuffer::Vertex::pos</definition>
+        <argsstring></argsstring>
+        <name>pos</name>
+        <qualifiedname>DynRenderBuffer::Vertex::pos</qualifiedname>
+        <briefdescription>
+<para>Spatial coordinates. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="26" column="12" bodyfile="dynRenderBuf.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynRenderBuffer_1_1Vertex_1ad422a1dee49850cd77f98e92e95c43c2" prot="public" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR DynRenderBuffer::Vertex::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <qualifiedname>DynRenderBuffer::Vertex::color</qualifiedname>
+        <briefdescription>
+<para>Color. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="27" column="14" bodyfile="dynRenderBuf.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynRenderBuffer_1_1Vertex_1a090b53e8f616bba0bbc9c80d12d372b9" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 DynRenderBuffer::Vertex::tc</definition>
+        <argsstring></argsstring>
+        <name>tc</name>
+        <qualifiedname>DynRenderBuffer::Vertex::tc</qualifiedname>
+        <briefdescription>
+<para>Texture coordinates. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dynRenderBuf.h" line="28" column="12" bodyfile="dynRenderBuf.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para><ref refid="structDynRenderBuffer_1_1Vertex" kindref="compound">Vertex</ref>. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dynRenderBuf.h" line="24" column="3" bodyfile="dynRenderBuf.h" bodystart="25" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structDynRenderBuffer_1_1Vertex_1ad422a1dee49850cd77f98e92e95c43c2" prot="public" virt="non-virtual"><scope>DynRenderBuffer::Vertex</scope><name>color</name></member>
+      <member refid="structDynRenderBuffer_1_1Vertex_1a6622ce7e12633ed4e25739b37490aad0" prot="public" virt="non-virtual"><scope>DynRenderBuffer::Vertex</scope><name>pos</name></member>
+      <member refid="structDynRenderBuffer_1_1Vertex_1a090b53e8f616bba0bbc9c80d12d372b9" prot="public" virt="non-virtual"><scope>DynRenderBuffer::Vertex</scope><name>tc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

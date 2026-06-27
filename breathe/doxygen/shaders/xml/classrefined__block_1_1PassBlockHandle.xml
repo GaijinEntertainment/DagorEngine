@@ -1,0 +1,284 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classrefined__block_1_1PassBlockHandle" kind="class" language="C++" prot="public">
+    <compoundname>refined_block::PassBlockHandle</compoundname>
+    <basecompoundref refid="classrefined__block_1_1BaseBlockHandle" prot="public" virt="non-virtual">refined_block::BaseBlockHandle&lt; PassBlockHandle &gt;</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classrefined__block_1_1PassBlockHandle_1a6faa0e62826ac35a1ba7c075d6adecea" prot="public" static="no">
+        <type>PassBlock</type>
+        <definition>using refined_block::PassBlockHandle::BlockType =  PassBlock</definition>
+        <argsstring></argsstring>
+        <name>BlockType</name>
+        <qualifiedname>refined_block::PassBlockHandle::BlockType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="169" column="3" bodyfile="dag_refinedBlock.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classrefined__block_1_1PassBlockHandle_1a01a69a2200a602ab41c22121937d406c" prot="public" static="no">
+        <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref></type>
+        <definition>using refined_block::PassBlockHandle::ParentHandle =  ViewBlockHandle</definition>
+        <argsstring></argsstring>
+        <name>ParentHandle</name>
+        <qualifiedname>refined_block::PassBlockHandle::ParentHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="170" column="3" bodyfile="dag_refinedBlock.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classrefined__block_1_1PassBlockHandle_1ac5ad8dd7daf023daf78af1106b9c69fe" prot="public" static="yes" mutable="no">
+        <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref></type>
+        <definition>PassBlockHandle refined_block::PassBlockHandle::invalid</definition>
+        <argsstring></argsstring>
+        <name>invalid</name>
+        <qualifiedname>refined_block::PassBlockHandle::invalid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="180" column="26" bodyfile="dag_refinedBlock.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classrefined__block_1_1PassBlockHandle_1adf2b1dc4de6d55c9b8cb3eb0b4907fab" prot="private" static="no" mutable="no">
+        <type>friend</type>
+        <definition>friend refined_block::PassBlockHandle::BaseBlockHandle&lt; PassBlockHandle &gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseBlockHandle&lt; PassBlockHandle &gt;</name>
+        <qualifiedname>refined_block::PassBlockHandle::BaseBlockHandle&lt; PassBlockHandle &gt;</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="185" column="3" bodyfile="dag_refinedBlock.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classrefined__block_1_1PassBlockHandle_1a661a6100d140b911094390b2c023215f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::PassBlockHandle::PassBlockHandle</definition>
+        <argsstring>()=delete</argsstring>
+        <name>PassBlockHandle</name>
+        <qualifiedname>refined_block::PassBlockHandle::PassBlockHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="172" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1PassBlockHandle_1a0a118c1f8fed6187d373ef22e5148e27" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::PassBlockHandle::PassBlockHandle</definition>
+        <argsstring>(const PassBlockHandle &amp;)=default</argsstring>
+        <name>PassBlockHandle</name>
+        <qualifiedname>refined_block::PassBlockHandle::PassBlockHandle</qualifiedname>
+        <param>
+          <type>const <ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="173" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1PassBlockHandle_1a0967debe2db1b7be5dade82c5a33afe2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref> &amp;</type>
+        <definition>PassBlockHandle &amp; refined_block::PassBlockHandle::operator=</definition>
+        <argsstring>(const PassBlockHandle &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>refined_block::PassBlockHandle::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="174" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1PassBlockHandle_1a66133ae31dfb8346e418593e4dd8c36f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::PassBlockHandle::PassBlockHandle</definition>
+        <argsstring>(PassBlockHandle &amp;&amp;)=default</argsstring>
+        <name>PassBlockHandle</name>
+        <qualifiedname>refined_block::PassBlockHandle::PassBlockHandle</qualifiedname>
+        <param>
+          <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="175" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1PassBlockHandle_1aee074f7a336e8548f6e33719671f710e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref> &amp;</type>
+        <definition>PassBlockHandle &amp; refined_block::PassBlockHandle::operator=</definition>
+        <argsstring>(PassBlockHandle &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>refined_block::PassBlockHandle::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="176" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1PassBlockHandle_1aaa2c42cee397c7bc9f93488910453492" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void refined_block::PassBlockHandle::setState</definition>
+        <argsstring>() const</argsstring>
+        <name>setState</name>
+        <qualifiedname>refined_block::PassBlockHandle::setState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="178" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classrefined__block_1_1PassBlockHandle_1a519a783025c3601b964b799f4e877fcc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename <ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ParentHandle</ref></type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">ParentHandle::ChildHandle</ref></type>
+        <definition>ParentHandle::ChildHandle refine_block</definition>
+        <argsstring>(const char *name, ParentHandle parent)</argsstring>
+        <name>refine_block</name>
+        <qualifiedname>refined_block::PassBlockHandle::refine_block</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ParentHandle</ref></type>
+          <declname>parent</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="184" column="45"/>
+      </memberdef>
+      <memberdef kind="friend" id="classrefined__block_1_1PassBlockHandle_1adac116554b543b7c4228c018a85882f5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void flush</definition>
+        <argsstring>()</argsstring>
+        <name>flush</name>
+        <qualifiedname>refined_block::PassBlockHandle::flush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="187" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classrefined__block_1_1PassBlockHandle_1ad9b318f747156458b95c19b5479ab857" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::PassBlockHandle::PassBlockHandle</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>PassBlockHandle</name>
+        <qualifiedname>refined_block::PassBlockHandle::PassBlockHandle</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="189" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>refined_block::BaseBlockHandle&lt; PassBlockHandle &gt;</label>
+        <link refid="classrefined__block_1_1BaseBlockHandle"/>
+      </node>
+      <node id="1">
+        <label>refined_block::PassBlockHandle</label>
+        <link refid="classrefined__block_1_1PassBlockHandle"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>refined_block::BaseBlockHandle&lt; PassBlockHandle &gt;</label>
+        <link refid="classrefined__block_1_1BaseBlockHandle"/>
+      </node>
+      <node id="1">
+        <label>refined_block::PassBlockHandle</label>
+        <link refid="classrefined__block_1_1PassBlockHandle"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>invalid</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_refinedBlock.h" line="166" column="1" bodyfile="dag_refinedBlock.h" bodystart="167" bodyend="190"/>
+    <listofallmembers>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a8948a0257e7aa5a2f98d956d174387de" prot="protected" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>BaseBlockHandle</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1adf2b1dc4de6d55c9b8cb3eb0b4907fab" prot="private" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>BaseBlockHandle&lt; PassBlockHandle &gt;</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1a6faa0e62826ac35a1ba7c075d6adecea" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>BlockType</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1adac116554b543b7c4228c018a85882f5" prot="private" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>flush</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1ab61975468aa7e11020bf5841572dc21a" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a216ca3a8a590ffcf82184466703f48a7" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a680996064605f50b0a13efc0bc591f96" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>getId</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a4d461abbc209c014d1882c7481d61c08" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>getName</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1ac5ad8dd7daf023daf78af1106b9c69fe" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>invalid</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1a0967debe2db1b7be5dade82c5a33afe2" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>operator=</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1aee074f7a336e8548f6e33719671f710e" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>operator=</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1a01a69a2200a602ab41c22121937d406c" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>ParentHandle</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1a661a6100d140b911094390b2c023215f" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>PassBlockHandle</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1a0a118c1f8fed6187d373ef22e5148e27" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>PassBlockHandle</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1a66133ae31dfb8346e418593e4dd8c36f" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>PassBlockHandle</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1ad9b318f747156458b95c19b5479ab857" prot="private" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>PassBlockHandle</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1a519a783025c3601b964b799f4e877fcc" prot="private" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>refine_block</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a965d1ada3b3933681963da8dcd97864c" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>set</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a13a3ebae16f3f6e4ff542a4b1d66a33e" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>set</name></member>
+      <member refid="classrefined__block_1_1PassBlockHandle_1aaa2c42cee397c7bc9f93488910453492" prot="public" virt="non-virtual"><scope>refined_block::PassBlockHandle</scope><name>setState</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

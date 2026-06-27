@@ -1,0 +1,288 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classshc_1_1RefinedBlockLayout" kind="class" language="C++" prot="public">
+    <compoundname>shc::RefinedBlockLayout</compoundname>
+    <includes refid="refinedBlockLayout_8h" local="no">refinedBlockLayout.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classshc_1_1RefinedBlockLayout_1abefbe6e51a751fe43fb62985af3741ce" prot="private" static="no" mutable="no">
+        <type>dag::VectorMap&lt; int, <ref refid="structshc_1_1RefinedBlockVar" kindref="compound">RefinedBlockVar</ref> &gt;</type>
+        <definition>dag::VectorMap&lt;int, RefinedBlockVar&gt; shc::RefinedBlockLayout::vars</definition>
+        <argsstring></argsstring>
+        <name>vars</name>
+        <qualifiedname>shc::RefinedBlockLayout::vars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="84" column="18" bodyfile="refinedBlockLayout.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1RefinedBlockLayout_1aa9b11cc9b4a66bf3630f8f881531f1fa" prot="private" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; shc::RefinedBlockLayout::stcode</definition>
+        <argsstring></argsstring>
+        <name>stcode</name>
+        <qualifiedname>shc::RefinedBlockLayout::stcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="85" column="7" bodyfile="refinedBlockLayout.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classshc_1_1RefinedBlockLayout_1a70ae8029be59d83c1fea0a6bd29783c5" prot="private" static="no" mutable="no">
+        <type>eastl::optional&lt; int &gt;</type>
+        <definition>eastl::optional&lt;int&gt; shc::RefinedBlockLayout::cppStcodeId</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeId</name>
+        <qualifiedname>shc::RefinedBlockLayout::cppStcodeId</qualifiedname>
+        <initializer>= eastl::nullopt</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="86" column="19" bodyfile="refinedBlockLayout.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a4198860afc70daf895486843b6570529" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::pair&lt; <ref refid="structshc_1_1RefinedBlockVar" kindref="compound">RefinedBlockVar</ref> &amp;, bool &gt;</type>
+        <definition>eastl::pair&lt; RefinedBlockVar &amp;, bool &gt; shc::RefinedBlockLayout::addVar</definition>
+        <argsstring>(int varId, const RefinedBlockVar &amp;decl)</argsstring>
+        <name>addVar</name>
+        <qualifiedname>shc::RefinedBlockLayout::addVar</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>varId</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structshc_1_1RefinedBlockVar" kindref="compound">RefinedBlockVar</ref> &amp;</type>
+          <declname>decl</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="61" column="15" bodyfile="refinedBlockLayout.cpp" bodystart="17" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a36e7aca5367e7b252b0a6f92441a5443" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shc::RefinedBlockLayout::empty</definition>
+        <argsstring>() const</argsstring>
+        <name>empty</name>
+        <qualifiedname>shc::RefinedBlockLayout::empty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="62" column="8" bodyfile="refinedBlockLayout.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a435ec0f6aed3a0a1d3cdafb78a7cd57a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::RefinedBlockLayout::link</definition>
+        <argsstring>(dag::ConstSpan&lt; int &gt; global_var_link_table)</argsstring>
+        <name>link</name>
+        <qualifiedname>shc::RefinedBlockLayout::link</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; int &gt;</type>
+          <declname>global_var_link_table</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="63" column="8" bodyfile="refinedBlockLayout.cpp" bodystart="23" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a60bb7aa0e295f873451580c47ef6c23c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::RefinedBlockLayout::mergeFrom</definition>
+        <argsstring>(const RefinedBlockLayout &amp;other)</argsstring>
+        <name>mergeFrom</name>
+        <qualifiedname>shc::RefinedBlockLayout::mergeFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="classshc_1_1RefinedBlockLayout" kindref="compound">RefinedBlockLayout</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="64" column="8" bodyfile="refinedBlockLayout.cpp" bodystart="57" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a2292a5c91c5820e4ee8eafc9ffa64a20" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::RefinedBlockLayout::generateStcode</definition>
+        <argsstring>()</argsstring>
+        <name>generateStcode</name>
+        <qualifiedname>shc::RefinedBlockLayout::generateStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="66" column="8" bodyfile="refinedBlockLayout.cpp" bodystart="86" bodyend="214"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a62939f1743d25acb70842e33daccaebc" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt; int &gt; shc::RefinedBlockLayout::getStcode</definition>
+        <argsstring>() const</argsstring>
+        <name>getStcode</name>
+        <qualifiedname>shc::RefinedBlockLayout::getStcode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="67" column="18" bodyfile="refinedBlockLayout.cpp" bodystart="216" bodyend="216"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a87b5c17f756c57597685e0df94d9331d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::RefinedBlockLayout::generateCppStcode</definition>
+        <argsstring>(TargetContext &amp;ctx)</argsstring>
+        <name>generateCppStcode</name>
+        <qualifiedname>shc::RefinedBlockLayout::generateCppStcode</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="69" column="8" bodyfile="refinedBlockLayout.cpp" bodystart="295" bodyend="466"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a02bca5e7e0105f49fc09100ed4f06a00" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::optional&lt; int &gt;</type>
+        <definition>eastl::optional&lt; int &gt; shc::RefinedBlockLayout::getCppStcodeId</definition>
+        <argsstring>() const</argsstring>
+        <name>getCppStcodeId</name>
+        <qualifiedname>shc::RefinedBlockLayout::getCppStcodeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="70" column="19" bodyfile="refinedBlockLayout.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1a3dd908c061422697b089f87045dbe134" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::RefinedBlockLayout::serializeToBindump</definition>
+        <argsstring>(Tab&lt; SerializedRefinedBlockVar &gt; &amp;out, Tab&lt; int &gt; &amp;out_computed_stcode, Tab&lt; char &gt; &amp;out_computed_cpp_exprs) const</argsstring>
+        <name>serializeToBindump</name>
+        <qualifiedname>shc::RefinedBlockLayout::serializeToBindump</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="structshc_1_1SerializedRefinedBlockVar" kindref="compound">SerializedRefinedBlockVar</ref> &gt; &amp;</type>
+          <declname>out</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>out_computed_stcode</declname>
+        </param>
+        <param>
+          <type>Tab&lt; char &gt; &amp;</type>
+          <declname>out_computed_cpp_exprs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="72" column="8" bodyfile="refinedBlockLayout.cpp" bodystart="218" bodyend="253"/>
+      </memberdef>
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1ac119655054518163435fbcd661d38a27" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Fn</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void shc::RefinedBlockLayout::forEachVar</definition>
+        <argsstring>(Fn &amp;&amp;fn) const</argsstring>
+        <name>forEachVar</name>
+        <qualifiedname>shc::RefinedBlockLayout::forEachVar</qualifiedname>
+        <param>
+          <type>Fn &amp;&amp;</type>
+          <declname>fn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="77" column="8" bodyfile="refinedBlockLayout.h" bodystart="77" bodyend="81"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classshc_1_1RefinedBlockLayout_1ada6a33c1bb8e52f4b08f7ff97dac3514" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classshc_1_1RefinedBlockLayout" kindref="compound">RefinedBlockLayout</ref></type>
+        <definition>RefinedBlockLayout shc::RefinedBlockLayout::deserializeFromBindump</definition>
+        <argsstring>(const VarNameMap &amp;rbVarNameMap, const Tab&lt; SerializedRefinedBlockVar &gt; &amp;entries, const Tab&lt; int &gt; &amp;computed_stcode, const Tab&lt; char &gt; &amp;computed_cpp_exprs)</argsstring>
+        <name>deserializeFromBindump</name>
+        <qualifiedname>shc::RefinedBlockLayout::deserializeFromBindump</qualifiedname>
+        <param>
+          <type>const <ref refid="classVarNameMap" kindref="compound">VarNameMap</ref> &amp;</type>
+          <declname>rbVarNameMap</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; <ref refid="structshc_1_1SerializedRefinedBlockVar" kindref="compound">SerializedRefinedBlockVar</ref> &gt; &amp;</type>
+          <declname>entries</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; int &gt; &amp;</type>
+          <declname>computed_stcode</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; char &gt; &amp;</type>
+          <declname>computed_cpp_exprs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="refinedBlockLayout.h" line="73" column="29" bodyfile="refinedBlockLayout.cpp" bodystart="255" bodyend="293"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="refinedBlockLayout.h" line="58" column="1" bodyfile="refinedBlockLayout.h" bodystart="59" bodyend="87"/>
+    <listofallmembers>
+      <member refid="classshc_1_1RefinedBlockLayout_1a4198860afc70daf895486843b6570529" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>addVar</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a70ae8029be59d83c1fea0a6bd29783c5" prot="private" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>cppStcodeId</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1ada6a33c1bb8e52f4b08f7ff97dac3514" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>deserializeFromBindump</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a36e7aca5367e7b252b0a6f92441a5443" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>empty</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1ac119655054518163435fbcd661d38a27" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>forEachVar</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a87b5c17f756c57597685e0df94d9331d" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>generateCppStcode</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a2292a5c91c5820e4ee8eafc9ffa64a20" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>generateStcode</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a02bca5e7e0105f49fc09100ed4f06a00" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>getCppStcodeId</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a62939f1743d25acb70842e33daccaebc" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>getStcode</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a435ec0f6aed3a0a1d3cdafb78a7cd57a" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>link</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a60bb7aa0e295f873451580c47ef6c23c" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>mergeFrom</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1a3dd908c061422697b089f87045dbe134" prot="public" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>serializeToBindump</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1aa9b11cc9b4a66bf3630f8f881531f1fa" prot="private" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>stcode</name></member>
+      <member refid="classshc_1_1RefinedBlockLayout_1abefbe6e51a751fe43fb62985af3741ce" prot="private" virt="non-virtual"><scope>shc::RefinedBlockLayout</scope><name>vars</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

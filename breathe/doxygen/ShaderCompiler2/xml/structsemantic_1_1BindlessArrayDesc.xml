@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1BindlessArrayDesc" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::BindlessArrayDesc</compoundname>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1BindlessArrayDesc_1ab70bd90be1e12fc8a78b5cfe175f7ef0" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* semantic::BindlessArrayDesc::elemType</definition>
+        <argsstring></argsstring>
+        <name>elemType</name>
+        <qualifiedname>semantic::BindlessArrayDesc::elemType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="161" column="14" bodyfile="variantSemantic.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1BindlessArrayDesc_1a00b5c201b2eedcc69a4b1f3c56efa076" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* semantic::BindlessArrayDesc::arrayName</definition>
+        <argsstring></argsstring>
+        <name>arrayName</name>
+        <qualifiedname>semantic::BindlessArrayDesc::arrayName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="162" column="14" bodyfile="variantSemantic.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variantSemantic.h" line="159" column="1" bodyfile="variantSemantic.h" bodystart="160" bodyend="163"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1BindlessArrayDesc_1a00b5c201b2eedcc69a4b1f3c56efa076" prot="public" virt="non-virtual"><scope>semantic::BindlessArrayDesc</scope><name>arrayName</name></member>
+      <member refid="structsemantic_1_1BindlessArrayDesc_1ab70bd90be1e12fc8a78b5cfe175f7ef0" prot="public" virt="non-virtual"><scope>semantic::BindlessArrayDesc</scope><name>elemType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

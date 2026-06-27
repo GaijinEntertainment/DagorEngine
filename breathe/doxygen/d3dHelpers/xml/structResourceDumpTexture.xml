@@ -1,0 +1,241 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResourceDumpTexture" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceDumpTexture</compoundname>
+    <basecompoundref refid="structResourceDumpBase" prot="public" virt="non-virtual">ResourceDumpBase</basecompoundref>
+    <includes refid="dag__resourceDump_8h" local="no">dag_resourceDump.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResourceDumpTexture_1a20f938d5cd2c699ce1d702ca9d73a6e4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpTexture::resX</definition>
+        <argsstring></argsstring>
+        <name>resX</name>
+        <qualifiedname>ResourceDumpTexture::resX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="36" column="7" bodyfile="dag_resourceDump.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a31d94ad4b67744e1f6ce60a6576b6d63" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpTexture::resY</definition>
+        <argsstring></argsstring>
+        <name>resY</name>
+        <qualifiedname>ResourceDumpTexture::resY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="36" column="12" bodyfile="dag_resourceDump.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a31d675a9435c98f0a1971d5feb2f92ea" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpTexture::mip</definition>
+        <argsstring></argsstring>
+        <name>mip</name>
+        <qualifiedname>ResourceDumpTexture::mip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="36" column="17" bodyfile="dag_resourceDump.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1ac1ee9bc6d2ff497ee1c847bb1e41b5c8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpTexture::depth</definition>
+        <argsstring></argsstring>
+        <name>depth</name>
+        <qualifiedname>ResourceDumpTexture::depth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="36" column="21" bodyfile="dag_resourceDump.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a05352dc6d331c258d8d11e8dbcbd13c3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ResourceDumpTexture::layers</definition>
+        <argsstring></argsstring>
+        <name>layers</name>
+        <qualifiedname>ResourceDumpTexture::layers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="36" column="27" bodyfile="dag_resourceDump.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a243ae3ee56a9b85fbfaf6360c75c9712" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceDumpTexture::memSize</definition>
+        <argsstring></argsstring>
+        <name>memSize</name>
+        <qualifiedname>ResourceDumpTexture::memSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="37" column="12" bodyfile="dag_resourceDump.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a9d9f95438b6488cee6aaeacafa04f814" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceDumpTexture::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>ResourceDumpTexture::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="37" column="20" bodyfile="dag_resourceDump.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1aa42ee30f67f550b013a321f9c1cef969" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ResourceDumpTexture::formatFlags</definition>
+        <argsstring></argsstring>
+        <name>formatFlags</name>
+        <qualifiedname>ResourceDumpTexture::formatFlags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="37" column="26" bodyfile="dag_resourceDump.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1ada062231a55d3c6c6b99e855436738e9" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3" kindref="member">resource_dump_types::TextureTypes</ref></type>
+        <definition>resource_dump_types::TextureTypes ResourceDumpTexture::texType</definition>
+        <argsstring></argsstring>
+        <name>texType</name>
+        <qualifiedname>ResourceDumpTexture::texType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="38" column="37" bodyfile="dag_resourceDump.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a5b5ff9c5884a80f9f3dd668cdd4d33e9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceDumpTexture::isColor</definition>
+        <argsstring></argsstring>
+        <name>isColor</name>
+        <qualifiedname>ResourceDumpTexture::isColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="39" column="8" bodyfile="dag_resourceDump.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a09f6a35036f986fd61ddbe38a092cd44" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string ResourceDumpTexture::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ResourceDumpTexture::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="40" column="17" bodyfile="dag_resourceDump.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceDumpTexture_1a819f220647736b390401757fa573b39d" prot="public" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string ResourceDumpTexture::heapNamePS</definition>
+        <argsstring></argsstring>
+        <name>heapNamePS</name>
+        <qualifiedname>ResourceDumpTexture::heapNamePS</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="41" column="17" bodyfile="dag_resourceDump.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structResourceDumpTexture_1a5c3a4d2665ad8e2c9e48cc5a0e550b2c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ResourceDumpTexture::getTypeInString</definition>
+        <argsstring>() const</argsstring>
+        <name>getTypeInString</name>
+        <qualifiedname>ResourceDumpTexture::getTypeInString</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="43" column="14" bodyfile="dag_resourceDump.h" bodystart="43" bodyend="53"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ResourceDumpBase</label>
+        <link refid="structResourceDumpBase"/>
+      </node>
+      <node id="1">
+        <label>ResourceDumpTexture</label>
+        <link refid="structResourceDumpTexture"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ResourceDumpBase</label>
+        <link refid="structResourceDumpBase"/>
+      </node>
+      <node id="1">
+        <label>ResourceDumpTexture</label>
+        <link refid="structResourceDumpTexture"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resourceDump.h" line="34" column="1" bodyfile="dag_resourceDump.h" bodystart="35" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structResourceDumpTexture_1ac1ee9bc6d2ff497ee1c847bb1e41b5c8" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>depth</name></member>
+      <member refid="structResourceDumpTexture_1a9d9f95438b6488cee6aaeacafa04f814" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>flags</name></member>
+      <member refid="structResourceDumpTexture_1aa42ee30f67f550b013a321f9c1cef969" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>formatFlags</name></member>
+      <member refid="structResourceDumpTexture_1a5c3a4d2665ad8e2c9e48cc5a0e550b2c" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>getTypeInString</name></member>
+      <member refid="structResourceDumpBase_1a58332b23d52a6790cebd16c171432c95" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>gpuAddress</name></member>
+      <member refid="structResourceDumpBase_1af8a4e6b6711232665ec91c0a3c1c20d5" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>heapId</name></member>
+      <member refid="structResourceDumpTexture_1a819f220647736b390401757fa573b39d" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>heapNamePS</name></member>
+      <member refid="structResourceDumpBase_1abca6d33bbc67e481aa88b05882f3a48d" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>heapOffset</name></member>
+      <member refid="structResourceDumpTexture_1a5b5ff9c5884a80f9f3dd668cdd4d33e9" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>isColor</name></member>
+      <member refid="structResourceDumpTexture_1a05352dc6d331c258d8d11e8dbcbd13c3" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>layers</name></member>
+      <member refid="structResourceDumpTexture_1a243ae3ee56a9b85fbfaf6360c75c9712" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>memSize</name></member>
+      <member refid="structResourceDumpTexture_1a31d675a9435c98f0a1971d5feb2f92ea" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>mip</name></member>
+      <member refid="structResourceDumpTexture_1a09f6a35036f986fd61ddbe38a092cd44" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>name</name></member>
+      <member refid="structResourceDumpTexture_1a20f938d5cd2c699ce1d702ca9d73a6e4" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>resX</name></member>
+      <member refid="structResourceDumpTexture_1a31d94ad4b67744e1f6ce60a6576b6d63" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>resY</name></member>
+      <member refid="structResourceDumpTexture_1ada062231a55d3c6c6b99e855436738e9" prot="public" virt="non-virtual"><scope>ResourceDumpTexture</scope><name>texType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

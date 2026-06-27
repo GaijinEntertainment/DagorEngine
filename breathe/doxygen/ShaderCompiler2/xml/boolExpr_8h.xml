@@ -1,0 +1,966 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="boolExpr_8h" kind="file" language="C++">
+    <compoundname>boolExpr.h</compoundname>
+    <includes refid="intervals_8h" local="yes">intervals.h</includes>
+    <includes refid="shLog_8h" local="yes">shLog.h</includes>
+    <includedby refid="boolExpr_8cpp" local="yes">boolExpr.cpp</includedby>
+    <includedby refid="shsem_8cpp" local="yes">shsem.cpp</includedby>
+    <includedby refid="variantSemantic_8cpp" local="yes">variantSemantic.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>boolExpr.h</label>
+        <link refid="boolExpr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="3">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>boolExpr.cpp</label>
+        <link refid="boolExpr_8cpp"/>
+      </node>
+      <node id="1">
+        <label>boolExpr.h</label>
+        <link refid="boolExpr_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="4">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structBoolExprEvalInstruction" prot="public">BoolExprEvalInstruction</innerclass>
+    <innerclass refid="structBoolExprEvalProgram" prot="public">BoolExprEvalProgram</innerclass>
+    <innerclass refid="structBoolExprEvalCbResult" prot="public">BoolExprEvalCbResult</innerclass>
+    <innerclass refid="structBoolExprFetchCbResult" prot="public">BoolExprFetchCbResult</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8" prot="public" static="no" strong="no">
+        <type>uint8_t</type>
+        <name>BoolExprEvalInstructionType</name>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5926576bfb865b35be5782822e7cfbcb" prot="public">
+          <name>BE_IT_PLACEHOLDER</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a4a68700e03f044a7ca9e848d9ff20517" prot="public">
+          <name>BE_IT_INTERVAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5b59a8f76a7b47dcbaedc615de7260cf" prot="public">
+          <name>BE_IT_TEXINTERVAL</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5f212ebed0e66f32a67523854c2f8125" prot="public">
+          <name>BE_IT_BOOL_VAR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a8a9008a8b0022984a1dbba496cdf582e" prot="public">
+          <name>BE_IT_BOOL_VAR_MAYBE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a333377d9fc0bb71fc7c4d12b9a4759df" prot="public">
+          <name>BE_IT_TWOSIDED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a28d853c14a6d67813242d0f1209d5ce3" prot="public">
+          <name>BE_IT_REALTWOSIDED</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8aaabe3554a48edd0a71891c5562d36e85" prot="public">
+          <name>BE_IT_SHADER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a02920e3f8091953b6c51cb00179e425c" prot="public">
+          <name>BE_IT_COUNT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="27" column="1" bodyfile="boolExpr.h" bodystart="28" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="enum" id="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3b" prot="public" static="no" strong="no">
+        <type>uint8_t</type>
+        <name>BoolExprEvalLinkType</name>
+        <enumvalue id="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba586dc7c465df8b9369602279b59e486b" prot="public">
+          <name>BE_ILT_PLACEHOLDER</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba97e484d877d1c446eecc6a143533c6a1" prot="public">
+          <name>BE_ILT_AND</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba0257235b1c80102435f6217fea8a73cd" prot="public">
+          <name>BE_ILT_OR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba725fd4a3d3fb4681794eb2e3c156628b" prot="public">
+          <name>BE_ILT_EOE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3bab0178fdfc87ce6d5c776acb5d435b992" prot="public">
+          <name>BE_ILT_COUNT</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="45" column="1" bodyfile="boolExpr.h" bodystart="46" bodyend="54"/>
+      </memberdef>
+      <memberdef kind="enum" id="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0" prot="public" static="no" strong="no">
+        <type>uint16_t</type>
+        <name>ShortCircuitJumpLabel</name>
+        <enumvalue id="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0ac66518d95af3566974d2bdbc6bc9d970" prot="public">
+          <name>BE_SCJ_PLACEHOLDER</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" prot="public">
+          <name>BE_SCJ_EOE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" prot="public">
+          <name>BE_SCJ_ENUMERATED_BASE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="58" column="1" bodyfile="boolExpr.h" bodystart="59" bodyend="64"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" prot="public" static="no">
+        <type>void(*)(const char *)</type>
+        <definition>using bool_expr_compiler_error_cb_t =  void (*)(const char *)</definition>
+        <argsstring></argsstring>
+        <name>bool_expr_compiler_error_cb_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="363" column="1" bodyfile="boolExpr.h" bodystart="363" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="boolExpr_8h_1ae5aab0bd821cdb6716d81892a97619d2" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr eastl::array&lt; const char *, <ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a02920e3f8091953b6c51cb00179e425c" kindref="member">BE_IT_COUNT</ref> &gt;</type>
+        <definition>constexpr eastl::array&lt;const char *, BE_IT_COUNT&gt; BE_IT_NAMES</definition>
+        <argsstring></argsstring>
+        <name>BE_IT_NAMES</name>
+        <initializer>= {
+  &quot;PLACEHOLDER&quot;, &quot;INTERVAL&quot;, &quot;TEXINTERVAL&quot;, &quot;BOOL_VAR&quot;, &quot;BOOL_VAR_MAYBE&quot;, &quot;TWOSIDED&quot;, &quot;REALTWOSIDED&quot;, &quot;SHADER&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="42" column="31" bodyfile="boolExpr.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="boolExpr_8h_1a0f0d283cb3014939d6fc546422631550" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr eastl::array&lt; const char *, <ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3bab0178fdfc87ce6d5c776acb5d435b992" kindref="member">BE_ILT_COUNT</ref> &gt;</type>
+        <definition>constexpr eastl::array&lt;const char *, BE_ILT_COUNT&gt; BE_ILT_NAMES</definition>
+        <argsstring></argsstring>
+        <name>BE_ILT_NAMES</name>
+        <initializer>= {&quot;PLACEHOLDER&quot;, &quot;AND&quot;, &quot;OR&quot;, &quot;EOE&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="56" column="31" bodyfile="boolExpr.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="boolExpr_8h_1a033ec9b14a66955c4a5fb56eebac9b0d" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr eastl::array&lt; const char *, <ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" kindref="member">BE_SCJ_ENUMERATED_BASE</ref> &gt;</type>
+        <definition>constexpr eastl::array&lt;const char *, BE_SCJ_ENUMERATED_BASE&gt; SCJ_NAMES</definition>
+        <argsstring></argsstring>
+        <name>SCJ_NAMES</name>
+        <initializer>= {&quot;VACANT&quot;, &quot;EOE&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="66" column="31" bodyfile="boolExpr.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="boolExpr_8h_1a050e5ed15cec99807e38245f31ddd8c8" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t MAX_BE_SCJ_VALUE</definition>
+        <argsstring></argsstring>
+        <name>MAX_BE_SCJ_VALUE</name>
+        <initializer>= (1 &lt;&lt; 15) - 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="80" column="27" bodyfile="boolExpr.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="boolExpr_8h_1a4acad19ea63bae345016eacf9d6c312a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int32_t</type>
+        <definition>constexpr int32_t MAX_BE_ARGID_VALUE</definition>
+        <argsstring></argsstring>
+        <name>MAX_BE_ARGID_VALUE</name>
+        <initializer>= eastl::numeric_limits&lt;int16_t&gt;::max()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="81" column="26" bodyfile="boolExpr.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="boolExpr_8h_1acfb6bc2fa0b90dd2f0d2ee11cc24478e" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int32_t</type>
+        <definition>constexpr int32_t MAX_BE_VALID_VALUE</definition>
+        <argsstring></argsstring>
+        <name>MAX_BE_VALID_VALUE</name>
+        <initializer>= eastl::numeric_limits&lt;int16_t&gt;::max()</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="82" column="26" bodyfile="boolExpr.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="boolExpr_8h_1af111a3dfddf4ee3bfb411f1cd02c5fcf" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* IBE_NAMES[Interval::EXPR_COUNT]</definition>
+        <argsstring>[Interval::EXPR_COUNT]</argsstring>
+        <name>IBE_NAMES</name>
+        <initializer>= {
+  &quot;NOTINIT&quot;, &quot;EQ&quot;, &quot;GREATER&quot;, &quot;GREATER_EQ&quot;, &quot;SMALLER&quot;, &quot;SMALLER_EQ&quot;, &quot;NOT_EQ&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="92" column="29" bodyfile="boolExpr.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="boolExpr_8h_1aae318973f1f7907cdffad07a95ac8f60" prot="public" static="no" mutable="no">
+        <type>const <ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+        <definition>const bool_expr_compiler_error_cb_t default_bool_expr_compiler_error_cb</definition>
+        <argsstring></argsstring>
+        <name>default_bool_expr_compiler_error_cb</name>
+        <initializer>=
+  +[](const char *msg) { <ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>, &quot;%s&quot;, msg); }</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="364" column="44" bodyfile="boolExpr.h" bodystart="364" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="boolExpr_8h_1abf40edd1cdefa32d1d0d1b66dbf99b27" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dump_compiled_bool_expr_bytecode</definition>
+        <argsstring>(dag::ConstSpan&lt; BoolExprEvalInstruction &gt; code, const char *tag, ShLogMode shlog_level)</argsstring>
+        <name>dump_compiled_bool_expr_bytecode</name>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref> &gt;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tag</declname>
+        </param>
+        <param>
+          <type><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref></type>
+          <declname>shlog_level</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="95" column="13" bodyfile="boolExpr.h" bodystart="95" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8h_1a7b0365ae750f48a4339714a9b232ef24" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::optional&lt; bool &gt;</type>
+        <definition>eastl::optional&lt; bool &gt; evaluate_compiled_bool_expr</definition>
+        <argsstring>(const BoolExprEvalProgram &amp;program, auto &amp;&amp;eval_interval, auto &amp;&amp;eval_texinterval, auto &amp;&amp;fetch_boolvar_prog, auto &amp;&amp;fetch_boolvar_prog_maybe, auto &amp;&amp;eval_twosided, auto &amp;&amp;eval_realtwosided, auto &amp;&amp;eval_shader)</argsstring>
+        <name>evaluate_compiled_bool_expr</name>
+        <param>
+          <type>const <ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref> &amp;</type>
+          <declname>program</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>eval_interval</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>eval_texinterval</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>fetch_boolvar_prog</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>fetch_boolvar_prog_maybe</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>eval_twosided</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>eval_realtwosided</declname>
+        </param>
+        <param>
+          <type>auto &amp;&amp;</type>
+          <declname>eval_shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="139" column="24" bodyfile="boolExpr.h" bodystart="139" bodyend="361"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8h_1a346a84bee6b58151ee0481c84ff94005" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool compile_bool_expr_to_bytecode</definition>
+        <argsstring>(eastl::vector&lt; BoolExprEvalInstruction &gt; &amp;out_bytecode, eastl::optional&lt; bool &gt; &amp;out_constvalue, ShaderTerminal::bool_expr &amp;expr, shc::TargetContext &amp;ctx, bool_expr_compiler_error_cb_t error_cb=default_bool_expr_compiler_error_cb)</argsstring>
+        <name>compile_bool_expr_to_bytecode</name>
+        <param>
+          <type>eastl::vector&lt; <ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref> &gt; &amp;</type>
+          <declname>out_bytecode</declname>
+        </param>
+        <param>
+          <type>eastl::optional&lt; bool &gt; &amp;</type>
+          <declname>out_constvalue</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+          <declname>error_cb</declname>
+          <defval><ref refid="boolExpr_8h_1aae318973f1f7907cdffad07a95ac8f60" kindref="member">default_bool_expr_compiler_error_cb</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="367" column="6" bodyfile="boolExpr.cpp" bodystart="293" bodyend="303" declfile="boolExpr.h" declline="367" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8h_1aa6a351b719d7f49706de0a855a0a6a41" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dump_compiled_bool_expr_bytecode</definition>
+        <argsstring>(dag::ConstSpan&lt; uint64_t &gt; code, const char *tag, ShLogMode shlog_level)</argsstring>
+        <name>dump_compiled_bool_expr_bytecode</name>
+        <param>
+          <type>dag::ConstSpan&lt; uint64_t &gt;</type>
+          <declname>code</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tag</declname>
+        </param>
+        <param>
+          <type><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref></type>
+          <declname>shlog_level</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="376" column="13" bodyfile="boolExpr.h" bodystart="376" bodyend="380"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8h_1a24bea4abba64fb8d514234510eb5018f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool compile_bool_expr_to_bytecode</definition>
+        <argsstring>(eastl::vector&lt; uint64_t &gt; &amp;out_bytecode, eastl::optional&lt; bool &gt; &amp;out_constvalue, ShaderTerminal::bool_expr &amp;expr, shc::TargetContext &amp;ctx, bool_expr_compiler_error_cb_t error_cb=default_bool_expr_compiler_error_cb)</argsstring>
+        <name>compile_bool_expr_to_bytecode</name>
+        <param>
+          <type>eastl::vector&lt; uint64_t &gt; &amp;</type>
+          <declname>out_bytecode</declname>
+        </param>
+        <param>
+          <type>eastl::optional&lt; bool &gt; &amp;</type>
+          <declname>out_constvalue</declname>
+        </param>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>expr</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref></type>
+          <declname>error_cb</declname>
+          <defval><ref refid="boolExpr_8h_1aae318973f1f7907cdffad07a95ac8f60" kindref="member">default_bool_expr_compiler_error_cb</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="381" column="13" bodyfile="boolExpr.h" bodystart="381" bodyend="391"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8h_1a33ba001d2d958c5565d6be65829454da" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool compile_bool_expr_cached</definition>
+        <argsstring>(ShaderTerminal::bool_expr &amp;node, shc::TargetContext &amp;ctx)</argsstring>
+        <name>compile_bool_expr_cached</name>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="393" column="13" bodyfile="boolExpr.h" bodystart="393" bodyend="401"/>
+      </memberdef>
+      <memberdef kind="function" id="boolExpr_8h_1a17a0d06646d4c50faac7bedd663f81ca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref></type>
+        <definition>BoolExprEvalProgram bytecode_from_expr</definition>
+        <argsstring>(ShaderTerminal::bool_expr &amp;node)</argsstring>
+        <name>bytecode_from_expr</name>
+        <param>
+          <type>ShaderTerminal::bool_expr &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="boolExpr.h" line="403" column="28" bodyfile="boolExpr.h" bodystart="403" bodyend="409"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="intervals_8h" kindref="compound">intervals.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shLog_8h" kindref="compound">shLog.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;shsyn.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_relocatableFixedVector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_enumerate.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/>@TODO(boolvar_opt):</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Further<sp/>optimization<sp/>opportunities:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/>-<sp/>SCJ<sp/>folding<sp/>pass<sp/>--<sp/>if<sp/>a<sp/>short-circuiting<sp/>evaluation<sp/>leads<sp/>to<sp/>multiple<sp/>scj-s,<sp/>coalesce<sp/>into<sp/>one<sp/>jump<sp/>to<sp/>the<sp/>end<sp/>of<sp/>the<sp/>chain</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/>-<sp/>Boolvar<sp/>inlining<sp/>pass<sp/>--<sp/>if<sp/>a<sp/>bool<sp/>var<sp/>is<sp/>statically<sp/>resolvable<sp/>at<sp/>compilation<sp/>time,<sp/>inline<sp/>it&apos;s<sp/>code.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//<sp/>-<sp/>Priority<sp/>reordering<sp/>pass<sp/>--<sp/>shader<sp/>checks<sp/>are<sp/>better<sp/>done<sp/>first,<sp/>global<sp/>boolvar<sp/>as<sp/>well,<sp/>to<sp/>exit<sp/>earlier.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/>-<sp/>Per-shader<sp/>caching<sp/>of<sp/>const<sp/>results<sp/>(broken<sp/>by<sp/>assumes<sp/>atm)<sp/>--<sp/>cache<sp/>gatherVar<sp/>results<sp/>per-shader.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="namespaceshc" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="23"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classshc_1_1TargetContext" kindref="compound">TargetContext</ref>;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8" kindref="member">BoolExprEvalInstructionType</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5926576bfb865b35be5782822e7cfbcb" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5926576bfb865b35be5782822e7cfbcb" kindref="member">BE_IT_PLACEHOLDER</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a4a68700e03f044a7ca9e848d9ff20517" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a4a68700e03f044a7ca9e848d9ff20517" kindref="member">BE_IT_INTERVAL</ref>,</highlight></codeline>
+<codeline lineno="32" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5b59a8f76a7b47dcbaedc615de7260cf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5b59a8f76a7b47dcbaedc615de7260cf" kindref="member">BE_IT_TEXINTERVAL</ref>,</highlight></codeline>
+<codeline lineno="33" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5f212ebed0e66f32a67523854c2f8125" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5f212ebed0e66f32a67523854c2f8125" kindref="member">BE_IT_BOOL_VAR</ref>,</highlight></codeline>
+<codeline lineno="34" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a8a9008a8b0022984a1dbba496cdf582e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a8a9008a8b0022984a1dbba496cdf582e" kindref="member">BE_IT_BOOL_VAR_MAYBE</ref>,</highlight></codeline>
+<codeline lineno="35" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a333377d9fc0bb71fc7c4d12b9a4759df" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a333377d9fc0bb71fc7c4d12b9a4759df" kindref="member">BE_IT_TWOSIDED</ref>,</highlight></codeline>
+<codeline lineno="36" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a28d853c14a6d67813242d0f1209d5ce3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a28d853c14a6d67813242d0f1209d5ce3" kindref="member">BE_IT_REALTWOSIDED</ref>,</highlight></codeline>
+<codeline lineno="37" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8aaabe3554a48edd0a71891c5562d36e85" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8aaabe3554a48edd0a71891c5562d36e85" kindref="member">BE_IT_SHADER</ref>,</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a02920e3f8091953b6c51cb00179e425c" kindref="member">BE_IT_COUNT</ref></highlight></codeline>
+<codeline lineno="40" refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a02920e3f8091953b6c51cb00179e425c" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="boolExpr_8h_1ae5aab0bd821cdb6716d81892a97619d2" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>eastl::array&lt;const<sp/>char<sp/>*,<sp/>BE_IT_COUNT&gt;<sp/><ref refid="boolExpr_8h_1ae5aab0bd821cdb6716d81892a97619d2" kindref="member">BE_IT_NAMES</ref><sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="stringliteral">&quot;PLACEHOLDER&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;INTERVAL&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;TEXINTERVAL&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;BOOL_VAR&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;BOOL_VAR_MAYBE&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;TWOSIDED&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;REALTWOSIDED&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;SHADER&quot;</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3b" kindref="member">BoolExprEvalLinkType</ref><sp/>:<sp/>uint8_t</highlight></codeline>
+<codeline lineno="46"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47" refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba586dc7c465df8b9369602279b59e486b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba586dc7c465df8b9369602279b59e486b" kindref="member">BE_ILT_PLACEHOLDER</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba97e484d877d1c446eecc6a143533c6a1" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba97e484d877d1c446eecc6a143533c6a1" kindref="member">BE_ILT_AND</ref>,</highlight></codeline>
+<codeline lineno="50" refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba0257235b1c80102435f6217fea8a73cd" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba0257235b1c80102435f6217fea8a73cd" kindref="member">BE_ILT_OR</ref>,</highlight></codeline>
+<codeline lineno="51" refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba725fd4a3d3fb4681794eb2e3c156628b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba725fd4a3d3fb4681794eb2e3c156628b" kindref="member">BE_ILT_EOE</ref>,<sp/></highlight><highlight class="comment">//<sp/>end<sp/>of<sp/>expression</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3bab0178fdfc87ce6d5c776acb5d435b992" kindref="member">BE_ILT_COUNT</ref></highlight></codeline>
+<codeline lineno="54" refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3bab0178fdfc87ce6d5c776acb5d435b992" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="boolExpr_8h_1a0f0d283cb3014939d6fc546422631550" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>eastl::array&lt;const<sp/>char<sp/>*,<sp/>BE_ILT_COUNT&gt;<sp/><ref refid="boolExpr_8h_1a0f0d283cb3014939d6fc546422631550" kindref="member">BE_ILT_NAMES</ref><sp/>=<sp/>{</highlight><highlight class="stringliteral">&quot;PLACEHOLDER&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;AND&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;OR&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;EOE&quot;</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0" kindref="member">ShortCircuitJumpLabel</ref><sp/>:<sp/>uint16_t</highlight></codeline>
+<codeline lineno="59"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="60" refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0ac66518d95af3566974d2bdbc6bc9d970" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0ac66518d95af3566974d2bdbc6bc9d970" kindref="member">BE_SCJ_PLACEHOLDER</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="61" refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" kindref="member">BE_SCJ_EOE</ref>,<sp/></highlight><highlight class="comment">//<sp/>end<sp/>of<sp/>expression</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" kindref="member">BE_SCJ_ENUMERATED_BASE</ref><sp/></highlight><highlight class="comment">//<sp/>subtract<sp/>from<sp/>value</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" refkind="member"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="boolExpr_8h_1a033ec9b14a66955c4a5fb56eebac9b0d" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>eastl::array&lt;const<sp/>char<sp/>*,<sp/>BE_SCJ_ENUMERATED_BASE&gt;<sp/><ref refid="boolExpr_8h_1a033ec9b14a66955c4a5fb56eebac9b0d" kindref="member">SCJ_NAMES</ref><sp/>=<sp/>{</highlight><highlight class="stringliteral">&quot;VACANT&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;EOE&quot;</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="structBoolExprEvalInstruction" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">alignas(uint64_t)<sp/><ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref><sp/></highlight><highlight class="comment">//<sp/>aligned<sp/>for<sp/>type<sp/>erasure<sp/>to<sp/>uint64_t</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="70" refid="structBoolExprEvalInstruction_1a8643de3db9d285d3daad69860d729b5d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8" kindref="member">BoolExprEvalInstructionType</ref><sp/>opcode<sp/>=<sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5926576bfb865b35be5782822e7cfbcb" kindref="member">BE_IT_PLACEHOLDER</ref>;</highlight></codeline>
+<codeline lineno="71" refid="structBoolExprEvalInstruction_1a08f95d16b580637d6718f4b8a518bbfe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3b" kindref="member">BoolExprEvalLinkType</ref><sp/><ref refid="structBoolExprEvalInstruction_1a08f95d16b580637d6718f4b8a518bbfe" kindref="member">link</ref><sp/>:<sp/>4<sp/>=<sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba586dc7c465df8b9369602279b59e486b" kindref="member">BE_ILT_PLACEHOLDER</ref>;</highlight></codeline>
+<codeline lineno="72" refid="structBoolExprEvalInstruction_1a6e776b5096cce0e87fb89f7bfeffbbd7" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebf" kindref="member">Interval::BooleanExpr</ref><sp/><ref refid="structBoolExprEvalInstruction_1a6e776b5096cce0e87fb89f7bfeffbbd7" kindref="member">comp</ref><sp/>:<sp/>4<sp/>=<sp/><ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfaad8bdddaa11d62c8b7b24431bfc1a202" kindref="member">Interval::EXPR_NOTINIT</ref>;</highlight></codeline>
+<codeline lineno="73" refid="structBoolExprEvalInstruction_1a61cfedb91bd9ea97dd835cd675d7ef38" refkind="member"><highlight class="normal"><sp/><sp/>uint16_t<sp/><ref refid="structBoolExprEvalInstruction_1a61cfedb91bd9ea97dd835cd675d7ef38" kindref="member">valueIsNegated</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="74" refid="structBoolExprEvalInstruction_1acbd3d01abf2ea977b1c5f59d7c345ef2" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0" kindref="member">ShortCircuitJumpLabel</ref><sp/><ref refid="structBoolExprEvalInstruction_1acbd3d01abf2ea977b1c5f59d7c345ef2" kindref="member">shortCircuitJump</ref><sp/>:<sp/>15<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0ac66518d95af3566974d2bdbc6bc9d970" kindref="member">BE_SCJ_PLACEHOLDER</ref>;</highlight></codeline>
+<codeline lineno="75" refid="structBoolExprEvalInstruction_1ab2a51d6ac51fcc41cd0bf46a733a2c9c" refkind="member"><highlight class="normal"><sp/><sp/>int16_t<sp/>argumentId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="76" refid="structBoolExprEvalInstruction_1a397f2df0ea5b634a89d1ff0497889d8c" refkind="member"><highlight class="normal"><sp/><sp/>int16_t<sp/>valueId<sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Place<sp/>limit<sp/>of<sp/>32k<sp/>on<sp/>interval/bool<sp/>var/etc<sp/>count,<sp/>seems<sp/>reasonable</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="boolExpr_8h_1a050e5ed15cec99807e38245f31ddd8c8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="boolExpr_8h_1a050e5ed15cec99807e38245f31ddd8c8" kindref="member">MAX_BE_SCJ_VALUE</ref><sp/>=<sp/>(1<sp/>&lt;&lt;<sp/>15)<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="81" refid="boolExpr_8h_1a4acad19ea63bae345016eacf9d6c312a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>int32_t<sp/><ref refid="boolExpr_8h_1a4acad19ea63bae345016eacf9d6c312a" kindref="member">MAX_BE_ARGID_VALUE</ref><sp/>=<sp/>eastl::numeric_limits&lt;int16_t&gt;::max();</highlight></codeline>
+<codeline lineno="82" refid="boolExpr_8h_1acfb6bc2fa0b90dd2f0d2ee11cc24478e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>int32_t<sp/><ref refid="boolExpr_8h_1acfb6bc2fa0b90dd2f0d2ee11cc24478e" kindref="member">MAX_BE_VALID_VALUE</ref><sp/>=<sp/>eastl::numeric_limits&lt;int16_t&gt;::max();</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref>)<sp/>==<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint64_t)<sp/>&amp;&amp;<sp/></highlight><highlight class="keyword">alignof</highlight><highlight class="normal">(<ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref>)<sp/>==<sp/></highlight><highlight class="keyword">alignof</highlight><highlight class="normal">(uint64_t));</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="structBoolExprEvalProgram" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref></highlight></codeline>
+<codeline lineno="87"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="88" refid="structBoolExprEvalProgram_1a3074b44bf3b18eb158162ae61d14c5bb" refkind="member"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;BoolExprEvalInstruction&gt;<sp/>code{};</highlight></codeline>
+<codeline lineno="89" refid="structBoolExprEvalProgram_1aa624223e7402898f8adfe36f579eafbb" refkind="member"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>constvalue{};</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="boolExpr_8h_1af111a3dfddf4ee3bfb411f1cd02c5fcf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="boolExpr_8h_1af111a3dfddf4ee3bfb411f1cd02c5fcf" kindref="member">IBE_NAMES</ref>[<ref refid="classInterval_1a62cc94f67e3c53979160b44f53c5cebfa1ceaf81edfd0da93abd5969e96c0ba27" kindref="member">Interval::EXPR_COUNT</ref>]<sp/>=<sp/>{</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/></highlight><highlight class="stringliteral">&quot;NOTINIT&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;EQ&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;GREATER&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;GREATER_EQ&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;SMALLER&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;SMALLER_EQ&quot;</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;NOT_EQ&quot;</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="boolExpr_8h_1abf40edd1cdefa32d1d0d1b66dbf99b27" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1abf40edd1cdefa32d1d0d1b66dbf99b27" kindref="member">dump_compiled_bool_expr_bytecode</ref>(dag::ConstSpan&lt;BoolExprEvalInstruction&gt;<sp/>code,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*tag,<sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref><sp/>shlog_level)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>eastl::string<sp/>dump;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>dump.append_sprintf(</highlight><highlight class="stringliteral">&quot;===<sp/>begin<sp/>dump<sp/>(%s)<sp/>===\n&quot;</highlight><highlight class="normal">,<sp/>tag);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[i,<sp/>instr]<sp/>:<sp/>enumerate(code))</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/>dump.append_sprintf(</highlight><highlight class="stringliteral">&quot;[%d]:<sp/>%s<sp/>link&lt;%s&gt;<sp/>comp&lt;%s&gt;%s&quot;</highlight><highlight class="normal">,<sp/>i,<sp/><ref refid="boolExpr_8h_1ae5aab0bd821cdb6716d81892a97619d2" kindref="member">BE_IT_NAMES</ref>[instr.opcode],<sp/><ref refid="boolExpr_8h_1a0f0d283cb3014939d6fc546422631550" kindref="member">BE_ILT_NAMES</ref>[instr.link],<sp/><ref refid="boolExpr_8h_1af111a3dfddf4ee3bfb411f1cd02c5fcf" kindref="member">IBE_NAMES</ref>[instr.comp],</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>instr.valueIsNegated<sp/>?<sp/></highlight><highlight class="stringliteral">&quot;<sp/>!val&quot;</highlight><highlight class="normal"><sp/>:<sp/></highlight><highlight class="stringliteral">&quot;&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(instr.shortCircuitJump<sp/>&gt;=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" kindref="member">BE_SCJ_ENUMERATED_BASE</ref>)</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>An<sp/>additional<sp/>+1<sp/>for<sp/>readability<sp/>of<sp/>the<sp/>dump<sp/>--</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>actual<sp/>labels<sp/>is<sp/>calculated<sp/>inside<sp/>()<sp/>and<sp/>jumps<sp/>into<sp/>the<sp/>middle<sp/>of<sp/>instr<sp/>to<sp/>use<sp/>it&apos;s<sp/>link.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>initial<sp/>+1<sp/>is<sp/>done<sp/>so<sp/>that<sp/>we<sp/>don&apos;t<sp/>frame<sp/>around<sp/>&apos;++ip&apos;<sp/>in<sp/>vm<sp/>code<sp/>(code<sp/>does<sp/>ip<sp/>+=<sp/>shortCircuitJump<sp/>and<sp/>then<sp/>++ip).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>With<sp/>this<sp/>additional<sp/>+1<sp/>we<sp/>display<sp/>the<sp/>index<sp/>of<sp/>the<sp/>actual<sp/>next<sp/>fully<sp/>evaluated<sp/>instruction.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tgt<sp/>=<sp/>(i<sp/>+<sp/>1<sp/>+<sp/>instr.shortCircuitJump<sp/>-<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" kindref="member">BE_SCJ_ENUMERATED_BASE</ref>)<sp/>+<sp/>1;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tgt<sp/>==<sp/>code.size())</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dump.append(</highlight><highlight class="stringliteral">&quot;<sp/>scj-&gt;EOE&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>dump.append_sprintf(</highlight><highlight class="stringliteral">&quot;<sp/>scj-&gt;[%d]&quot;</highlight><highlight class="normal">,<sp/>tgt);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(instr.shortCircuitJump<sp/>==<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" kindref="member">BE_SCJ_EOE</ref>)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dump.append(</highlight><highlight class="stringliteral">&quot;<sp/>scj-&gt;EOE&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(instr.argumentId<sp/>!=<sp/>-1)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dump.append_sprintf(</highlight><highlight class="stringliteral">&quot;<sp/>argid=%d&quot;</highlight><highlight class="normal">,<sp/>instr.argumentId);</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(instr.valueId<sp/>!=<sp/>-1)</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dump.append_sprintf(</highlight><highlight class="stringliteral">&quot;<sp/>valid=%d&quot;</highlight><highlight class="normal">,<sp/>instr.valueId);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/>dump.append(</highlight><highlight class="stringliteral">&quot;\n&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/>dump.append(</highlight><highlight class="stringliteral">&quot;===<sp/>end<sp/>dump<sp/>===&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(shlog_level,<sp/></highlight><highlight class="stringliteral">&quot;%s&quot;</highlight><highlight class="normal">,<sp/>dump.c_str());</highlight></codeline>
+<codeline lineno="125"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"></highlight></codeline>
+<codeline lineno="127" refid="structBoolExprEvalCbResult" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structBoolExprEvalCbResult" kindref="compound">BoolExprEvalCbResult</ref></highlight></codeline>
+<codeline lineno="128"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="129" refid="structBoolExprEvalCbResult_1ad2e83c5b2442dd76cffb795cbe04778b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>res<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="130" refid="structBoolExprEvalCbResult_1a2b0d569cc057ce7c3350379b3378af54" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>erred<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="131"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133" refid="structBoolExprFetchCbResult" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structBoolExprFetchCbResult" kindref="compound">BoolExprFetchCbResult</ref></highlight></codeline>
+<codeline lineno="134"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="135" refid="structBoolExprFetchCbResult_1adab333bceb9975e19e0dcc1410e22ecc" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref><sp/>program<sp/>=<sp/>{};</highlight></codeline>
+<codeline lineno="136" refid="structBoolExprFetchCbResult_1a933773a6faccb03350c591eeaf6acd1e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>erred<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139" refid="boolExpr_8h_1a7b0365ae750f48a4339714a9b232ef24" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>eastl::optional&lt;bool&gt;<sp/><ref refid="boolExpr_8h_1a7b0365ae750f48a4339714a9b232ef24" kindref="member">evaluate_compiled_bool_expr</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref><sp/>&amp;program,<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;eval_interval,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;eval_texinterval,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;fetch_boolvar_prog,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;fetch_boolvar_prog_maybe,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;eval_twosided,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;eval_realtwosided,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;&amp;eval_shader)</highlight></codeline>
+<codeline lineno="147"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(program.<ref refid="structBoolExprEvalProgram_1aa624223e7402898f8adfe36f579eafbb" kindref="member">constvalue</ref>)</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>program.<ref refid="structBoolExprEvalProgram_1aa624223e7402898f8adfe36f579eafbb" kindref="member">constvalue</ref>.value();</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>G_ASSERT(!program.<ref refid="structBoolExprEvalProgram_1a3074b44bf3b18eb158162ae61d14c5bb" kindref="member">code</ref>.empty());</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">StackFrame</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;BoolExprEvalInstruction&gt;<sp/>code{};</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>ip<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>lastEvalResult<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>jump<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/>dag::RelocatableFixedVector&lt;StackFrame,<sp/>16&gt;<sp/>stack{};</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"></highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref><sp/>fetchedProgram{};</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>err<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164"><highlight class="normal"><sp/><sp/>stack.emplace_back(program.<ref refid="structBoolExprEvalProgram_1a3074b44bf3b18eb158162ae61d14c5bb" kindref="member">code</ref>,<sp/>0);</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"></highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>frame<sp/>=<sp/>stack.back();</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(;;)</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>instr<sp/>=<sp/>frame.<ref refid="structBoolExprEvalProgram_1a3074b44bf3b18eb158162ae61d14c5bb" kindref="member">code</ref>[frame.ip];</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"></highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Because<sp/>c++<sp/>is<sp/>too<sp/>dumb<sp/>to<sp/>do<sp/>CTAD<sp/>over<sp/>assignment,<sp/>I<sp/>can&apos;t<sp/>use<sp/>tie<sp/>to<sp/>assign<sp/>from<sp/>structs.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="173"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CALL_EVAL_CB(cb_,<sp/>...)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="174"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="175"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="176"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>auto<sp/>[r_,<sp/>e_]<sp/>=<sp/>(cb_)(__VA_ARGS__);<sp/>\</highlight></codeline>
+<codeline lineno="177"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>frame.lastEvalResult<sp/>=<sp/>r_;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="178"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>err<sp/>=<sp/>e_;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="179"><highlight class="preprocessor"><sp/><sp/>}<sp/>while<sp/>(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="180"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CALL_FETCH_CB(cb_,<sp/>...)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="181"><highlight class="preprocessor"><sp/><sp/>do<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="182"><highlight class="preprocessor"><sp/><sp/>{<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="183"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>auto<sp/>[p_,<sp/>e_]<sp/>=<sp/>(cb_)(__VA_ARGS__);<sp/>\</highlight></codeline>
+<codeline lineno="184"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>fetchedProgram<sp/>=<sp/>p_;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="185"><highlight class="preprocessor"><sp/><sp/><sp/><sp/>err<sp/>=<sp/>e_;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="186"><highlight class="preprocessor"><sp/><sp/>}<sp/>while<sp/>(0)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!frame.jump)</highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(instr.opcode)</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a4a68700e03f044a7ca9e848d9ff20517" kindref="member">BE_IT_INTERVAL</ref>:</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CALL_EVAL_CB(eval_interval,<sp/>instr.argumentId,<sp/>instr.valueId,<sp/>instr.comp);</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5b59a8f76a7b47dcbaedc615de7260cf" kindref="member">BE_IT_TEXINTERVAL</ref>:</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CALL_EVAL_CB(eval_texinterval,<sp/>instr.argumentId,<sp/>instr.comp);</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a5f212ebed0e66f32a67523854c2f8125" kindref="member">BE_IT_BOOL_VAR</ref>:</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CALL_FETCH_CB(fetch_boolvar_prog,<sp/>instr.argumentId);</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fetchedProgram.constvalue)</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.lastEvalResult<sp/>=<sp/>fetchedProgram.constvalue.value();</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Need<sp/>to<sp/>process<sp/>error<sp/>here,<sp/>because<sp/>we<sp/>need<sp/>to<sp/>go<sp/>back<sp/>to<sp/>loop<sp/>start</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(err))</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>stack.back()<sp/>=<sp/>frame;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame<sp/>=<sp/>stack.emplace_back(fetchedProgram.code,<sp/>0,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"></highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Back<sp/>to<sp/>loop<sp/>start<sp/>--<sp/>start<sp/>processing<sp/>pushed<sp/>frame</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"></highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a8a9008a8b0022984a1dbba496cdf582e" kindref="member">BE_IT_BOOL_VAR_MAYBE</ref>:</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CALL_FETCH_CB(fetch_boolvar_prog_maybe,<sp/>instr.argumentId);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(fetchedProgram.constvalue)</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.lastEvalResult<sp/>=<sp/>fetchedProgram.constvalue.value();</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Need<sp/>to<sp/>process<sp/>error<sp/>here,<sp/>because<sp/>we<sp/>need<sp/>to<sp/>go<sp/>back<sp/>to<sp/>loop<sp/>start</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(err))</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"></highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>stack.back()<sp/>=<sp/>frame;</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame<sp/>=<sp/>stack.emplace_back(fetchedProgram.code,<sp/>0,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"></highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Back<sp/>to<sp/>loop<sp/>start<sp/>--<sp/>start<sp/>processing<sp/>pushed<sp/>frame</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a333377d9fc0bb71fc7c4d12b9a4759df" kindref="member">BE_IT_TWOSIDED</ref>:</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CALL_EVAL_CB(eval_twosided);</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"></highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8a28d853c14a6d67813242d0f1209d5ce3" kindref="member">BE_IT_REALTWOSIDED</ref>:</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CALL_EVAL_CB(eval_realtwosided);</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2dd971c706f16ec1f648946fbdbc51a8aaabe3554a48edd0a71891c5562d36e85" kindref="member">BE_IT_SHADER</ref>:</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>CALL_EVAL_CB(eval_shader,<sp/>instr.argumentId,<sp/>instr.comp);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERTF_RETURN(0,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;Invalid<sp/>instruction<sp/>opc=%x<sp/>at<sp/>ip=%d<sp/>in<sp/>bool<sp/>stream&quot;</highlight><highlight class="normal">,<sp/>uint32_t(instr.opcode),<sp/>frame.ip);</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"></highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(err))</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>eastl::nullopt;</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(instr.valueIsNegated)</highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.lastEvalResult<sp/>=<sp/>!frame.lastEvalResult;</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"></highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>CALL_EVAL_CB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>CALL_FETCH_CB</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="282"><highlight class="normal"></highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(instr.link)</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba97e484d877d1c446eecc6a143533c6a1" kindref="member">BE_ILT_AND</ref>:</highlight></codeline>
+<codeline lineno="286"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.jump<sp/>=<sp/>!frame.lastEvalResult;</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"></highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba0257235b1c80102435f6217fea8a73cd" kindref="member">BE_ILT_OR</ref>:</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.jump<sp/>=<sp/>frame.lastEvalResult;</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="296"><highlight class="normal"></highlight></codeline>
+<codeline lineno="297"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a3c60db89d795f4815d33ba982101ed3ba725fd4a3d3fb4681794eb2e3c156628b" kindref="member">BE_ILT_EOE</ref>:</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.jump<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>instr.shortCircuitJump<sp/>=<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" kindref="member">BE_SCJ_EOE</ref>;</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"></highlight></codeline>
+<codeline lineno="304"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERTF_RETURN(0,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;Invalid<sp/>instruction<sp/>link<sp/>opc=%x<sp/>at<sp/>ip=%d<sp/>in<sp/>bool<sp/>stream&quot;</highlight><highlight class="normal">,<sp/>uint32_t(instr.opcode),<sp/>frame.ip);</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"></highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(frame.jump)</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(instr.shortCircuitJump)</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0a505d704fcd220285b08597bc638cf7f3" kindref="member">BE_SCJ_EOE</ref>:</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.ip<sp/>=<sp/>frame.code.size()<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="318"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="320"><highlight class="normal"></highlight></codeline>
+<codeline lineno="321"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0ac66518d95af3566974d2bdbc6bc9d970" kindref="member">BE_SCJ_PLACEHOLDER</ref>:</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERTF_RETURN(0,<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">,<sp/></highlight><highlight class="stringliteral">&quot;Invalid<sp/>instruction<sp/>short<sp/>circuit<sp/>jump<sp/>opc=%x<sp/>at<sp/>ip=%d<sp/>in<sp/>bool<sp/>stream&quot;</highlight><highlight class="normal">,<sp/>uint32_t(instr.opcode),</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.ip);</highlight></codeline>
+<codeline lineno="325"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="327"><highlight class="normal"></highlight></codeline>
+<codeline lineno="328"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.ip<sp/>+=<sp/>instr.shortCircuitJump<sp/>-<sp/><ref refid="boolExpr_8h_1a563a1e5e57e837ffced01ab00aa918e0abca275000d872042eaf736b4580c0e9c" kindref="member">BE_SCJ_ENUMERATED_BASE</ref>;<sp/></highlight><highlight class="comment">//<sp/>Not<sp/>mutually<sp/>exclusive<sp/>with<sp/>++ip<sp/>--<sp/>min<sp/>jump<sp/>of<sp/>0<sp/>is</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>to-next-instr</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/>++frame.ip;</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"></highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(frame.ip<sp/>&gt;=<sp/>frame.code.size())</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(stack.size()<sp/>==<sp/>1)</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>stack.pop_back();</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>stack.back().lastEvalResult<sp/>=<sp/>frame.lastEvalResult;</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame<sp/>=<sp/>stack.back();</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"></highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Having<sp/>calculated<sp/>the<sp/>bool<sp/>var<sp/>res,<sp/>apply<sp/>negation<sp/>from<sp/>parent<sp/>frame<sp/>stop<sp/>point</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="352"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(frame.code[frame.ip].valueIsNegated)</highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.lastEvalResult<sp/>=<sp/>!frame.lastEvalResult;</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>And<sp/>force<sp/>jump<sp/>without<sp/>advancing<sp/>ip<sp/>--<sp/>we<sp/>still<sp/>need<sp/>to<sp/>use<sp/>the<sp/>link<sp/>from<sp/>the<sp/>stop<sp/>point</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>frame.jump<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"></highlight></codeline>
+<codeline lineno="360"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>frame.lastEvalResult;</highlight></codeline>
+<codeline lineno="361"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="362"><highlight class="normal"></highlight></codeline>
+<codeline lineno="363" refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>=<sp/>void<sp/>(*)(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*);</highlight></codeline>
+<codeline lineno="364" refid="boolExpr_8h_1aae318973f1f7907cdffad07a95ac8f60" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/><ref refid="boolExpr_8h_1aae318973f1f7907cdffad07a95ac8f60" kindref="member">default_bool_expr_compiler_error_cb</ref><sp/>=</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/>+[](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*msg)<sp/>{<sp/><ref refid="shLog_8cpp_1a2926179632c7c86265007652d3d30b14" kindref="member">sh_debug</ref>(<ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5caae3b70b41400c8a36e8a094ac1dbe43c" kindref="member">SHLOG_ERROR</ref>,<sp/></highlight><highlight class="stringliteral">&quot;%s&quot;</highlight><highlight class="normal">,<sp/>msg);<sp/>};</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"></highlight></codeline>
+<codeline lineno="367"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8cpp_1a3568233a51b352cc87077fd69119efe4" kindref="member">compile_bool_expr_to_bytecode</ref>(<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="368"><highlight class="normal"><sp/><sp/>eastl::vector&lt;BoolExprEvalInstruction&gt;<sp/>&amp;out_bytecode,<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="369"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>&amp;out_constvalue,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="370"><highlight class="normal"><sp/><sp/>ShaderTerminal::bool_expr<sp/>&amp;expr,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="371"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>error_cb<sp/>=<sp/><ref refid="boolExpr_8h_1aae318973f1f7907cdffad07a95ac8f60" kindref="member">default_bool_expr_compiler_error_cb</ref>);</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"></highlight></codeline>
+<codeline lineno="374"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Type<sp/>erased<sp/>for<sp/>usage<sp/>with<sp/>generated<sp/>code</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="375"><highlight class="normal"></highlight></codeline>
+<codeline lineno="376" refid="boolExpr_8h_1aa6a351b719d7f49706de0a855a0a6a41" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1abf40edd1cdefa32d1d0d1b66dbf99b27" kindref="member">dump_compiled_bool_expr_bytecode</ref>(dag::ConstSpan&lt;uint64_t&gt;<sp/>code,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*tag,<sp/><ref refid="shLog_8h_1a66042048eb3ce30a1dccb2ebf8c2fd5c" kindref="member">ShLogMode</ref><sp/>shlog_level)</highlight></codeline>
+<codeline lineno="377"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="378"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint64_t)<sp/>==<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref>));</highlight></codeline>
+<codeline lineno="379"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1abf40edd1cdefa32d1d0d1b66dbf99b27" kindref="member">dump_compiled_bool_expr_bytecode</ref>(</highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">dag::ConstSpan&lt;BoolExprEvalInstruction&gt;<sp/>&amp;</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(code),<sp/>tag,<sp/>shlog_level);</highlight></codeline>
+<codeline lineno="380"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="381" refid="boolExpr_8h_1a24bea4abba64fb8d514234510eb5018f" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8cpp_1a3568233a51b352cc87077fd69119efe4" kindref="member">compile_bool_expr_to_bytecode</ref>(<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="382"><highlight class="normal"><sp/><sp/>eastl::vector&lt;uint64_t&gt;<sp/>&amp;out_bytecode,<sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="383"><highlight class="normal"><sp/><sp/>eastl::optional&lt;bool&gt;<sp/>&amp;out_constvalue,<sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="384"><highlight class="normal"><sp/><sp/>ShaderTerminal::bool_expr<sp/>&amp;expr,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="385"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx,<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="386"><highlight class="normal"><sp/><sp/><ref refid="boolExpr_8h_1a2a5cc0f8e1200107a358a615375540b8" kindref="member">bool_expr_compiler_error_cb_t</ref><sp/>error_cb<sp/>=<sp/><ref refid="boolExpr_8h_1aae318973f1f7907cdffad07a95ac8f60" kindref="member">default_bool_expr_compiler_error_cb</ref>)</highlight></codeline>
+<codeline lineno="387"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="388"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint64_t)<sp/>==<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(<ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref>));</highlight></codeline>
+<codeline lineno="389"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8cpp_1a3568233a51b352cc87077fd69119efe4" kindref="member">compile_bool_expr_to_bytecode</ref>(</highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">eastl::vector&lt;BoolExprEvalInstruction&gt;<sp/>&amp;</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(out_bytecode),<sp/>out_constvalue,<sp/>expr,</highlight></codeline>
+<codeline lineno="390"><highlight class="normal"><sp/><sp/><sp/><sp/>ctx,<sp/>error_cb);</highlight></codeline>
+<codeline lineno="391"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="392"><highlight class="normal"></highlight></codeline>
+<codeline lineno="393" refid="boolExpr_8h_1a33ba001d2d958c5565d6be65829454da" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="boolExpr_8h_1a33ba001d2d958c5565d6be65829454da" kindref="member">compile_bool_expr_cached</ref>(ShaderTerminal::bool_expr<sp/>&amp;node,<sp/><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref><sp/>&amp;ctx)</highlight></codeline>
+<codeline lineno="394"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="395"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(node.compiled)</highlight></codeline>
+<codeline lineno="396"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="397"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="boolExpr_8cpp_1a3568233a51b352cc87077fd69119efe4" kindref="member">compile_bool_expr_to_bytecode</ref>(node.bytecode,<sp/>node.constvalue,<sp/>node,<sp/>ctx))</highlight></codeline>
+<codeline lineno="398"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="399"><highlight class="normal"><sp/><sp/>node.compiled<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="400"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="401"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="402"><highlight class="normal"></highlight></codeline>
+<codeline lineno="403" refid="boolExpr_8h_1a17a0d06646d4c50faac7bedd663f81ca" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref><sp/><ref refid="boolExpr_8h_1a17a0d06646d4c50faac7bedd663f81ca" kindref="member">bytecode_from_expr</ref>(ShaderTerminal::bool_expr<sp/>&amp;node)</highlight></codeline>
+<codeline lineno="404"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="405"><highlight class="normal"><sp/><sp/>G_ASSERT(node.compiled);</highlight></codeline>
+<codeline lineno="406"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structBoolExprEvalProgram" kindref="compound">BoolExprEvalProgram</ref>{</highlight></codeline>
+<codeline lineno="407"><highlight class="normal"><sp/><sp/><sp/><sp/>dag::ConstSpan&lt;BoolExprEvalInstruction&gt;{(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structBoolExprEvalInstruction" kindref="compound">BoolExprEvalInstruction</ref><sp/>*)node.bytecode.data(),<sp/>intptr_t(node.bytecode.size())},</highlight></codeline>
+<codeline lineno="408"><highlight class="normal"><sp/><sp/><sp/><sp/>node.<ref refid="structBoolExprEvalProgram_1aa624223e7402898f8adfe36f579eafbb" kindref="member">constvalue</ref>};</highlight></codeline>
+<codeline lineno="409"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="boolExpr.h"/>
+  </compounddef>
+</doxygen>

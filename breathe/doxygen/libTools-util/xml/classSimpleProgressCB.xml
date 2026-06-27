@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSimpleProgressCB" kind="class" language="C++" prot="public">
+    <compoundname>SimpleProgressCB</compoundname>
+    <basecompoundref refid="classIProgressCB" prot="public" virt="non-virtual">IProgressCB</basecompoundref>
+    <includes refid="progressInd_8h" local="no">progressInd.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classSimpleProgressCB_1a22c822f259afe793a36023e9607f07f9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool SimpleProgressCB::mustStop</definition>
+        <argsstring></argsstring>
+        <name>mustStop</name>
+        <qualifiedname>SimpleProgressCB::mustStop</qualifiedname>
+        <briefdescription>
+<para>indicate a need to stop current process </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="24" column="8" bodyfile="progressInd.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSimpleProgressCB_1aee9729d0390e7b274e9a5388cc87bfbb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SimpleProgressCB::SimpleProgressCB</definition>
+        <argsstring>()</argsstring>
+        <name>SimpleProgressCB</name>
+        <qualifiedname>SimpleProgressCB::SimpleProgressCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="26" column="3" bodyfile="progressInd.h" bodystart="26" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classSimpleProgressCB_1a6c574f8aea3798731697a86820dedf24" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>void SimpleProgressCB::onCancel</definition>
+        <argsstring>() override</argsstring>
+        <name>onCancel</name>
+        <qualifiedname>SimpleProgressCB::onCancel</qualifiedname>
+        <reimplements refid="classIProgressCB_1a3e6f85179a67dce57a01ffd3c9fdf1d4">onCancel</reimplements>
+        <briefdescription>
+<para>calls on user press &quot;Cancel&quot; button </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="progressInd.h" line="28" column="8" bodyfile="progressInd.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Simple progress callback implementation. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>IProgressCB</label>
+        <link refid="classIProgressCB"/>
+      </node>
+      <node id="1">
+        <label>SimpleProgressCB</label>
+        <link refid="classSimpleProgressCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IProgressCB</label>
+        <link refid="classIProgressCB"/>
+      </node>
+      <node id="1">
+        <label>SimpleProgressCB</label>
+        <link refid="classSimpleProgressCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="progressInd.h" line="20" column="1" bodyfile="progressInd.h" bodystart="21" bodyend="29"/>
+    <listofallmembers>
+      <member refid="classSimpleProgressCB_1a22c822f259afe793a36023e9607f07f9" prot="public" virt="non-virtual"><scope>SimpleProgressCB</scope><name>mustStop</name></member>
+      <member refid="classSimpleProgressCB_1a6c574f8aea3798731697a86820dedf24" prot="public" virt="virtual"><scope>SimpleProgressCB</scope><name>onCancel</name></member>
+      <member refid="classSimpleProgressCB_1aee9729d0390e7b274e9a5388cc87bfbb" prot="public" virt="non-virtual"><scope>SimpleProgressCB</scope><name>SimpleProgressCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

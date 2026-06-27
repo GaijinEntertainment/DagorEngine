@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1OpacityMicroMapTriangleArrayPlacementInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::OpacityMicroMapTriangleArrayPlacementInfo</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayPlacementInfo_1ae53044e74b097bd00ac961f4dca6d824" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayPlacementInfo::offsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>offsetInBytes</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayPlacementInfo::offsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Offset where to place the OMMAS in the pool. Has to be aligned to <ref refid="structDeviceDriverRaytraceProperties_1a67ab90cf145c8a47633308a6353c8fc7" kindref="member">DeviceDriverRaytraceProperties::accelerationStructurePoolOffsetAlignment</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="605" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="605" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayPlacementInfo_1a4b05868bbb286dbab1c19b1f98ff304e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayPlacementInfo::sizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>sizeInBytes</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayPlacementInfo::sizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Size if the OMMAS to place in the pool. offsetInBytes + this value can not exceed the size of the target pool. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="607" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="607" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Placement information of a OMMs in a raytrace acceleration structure pool. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="601" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="602" bodyend="608"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayPlacementInfo_1ae53044e74b097bd00ac961f4dca6d824" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayPlacementInfo</scope><name>offsetInBytes</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayPlacementInfo_1a4b05868bbb286dbab1c19b1f98ff304e" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayPlacementInfo</scope><name>sizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

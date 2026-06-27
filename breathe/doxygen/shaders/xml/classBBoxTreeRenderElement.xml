@@ -1,0 +1,169 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBBoxTreeRenderElement" kind="class" language="C++" prot="public">
+    <compoundname>BBoxTreeRenderElement</compoundname>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1a1f72e263752ed88462dd92bbb228e3a2" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int BBoxTreeRenderElement::FLAG_ATEST</definition>
+        <argsstring></argsstring>
+        <name>FLAG_ATEST</name>
+        <qualifiedname>BBoxTreeRenderElement::FLAG_ATEST</qualifiedname>
+        <initializer>= 0x00000001</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="19" column="24" bodyfile="dag_bboxTreeRElem.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1affbba14e8fd23d8ee8dc8b15ac8540f1" prot="public" static="no" mutable="no">
+        <type>Vbuffer *</type>
+        <definition>Vbuffer* BBoxTreeRenderElement::vBuf</definition>
+        <argsstring></argsstring>
+        <name>vBuf</name>
+        <qualifiedname>BBoxTreeRenderElement::vBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="25" column="15" bodyfile="dag_bboxTreeRElem.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1ab29e3484c4f0f264166ae0742a7cdb17" prot="public" static="no" mutable="no">
+        <type>Ibuffer *</type>
+        <definition>Ibuffer* BBoxTreeRenderElement::iBuf</definition>
+        <argsstring></argsstring>
+        <name>iBuf</name>
+        <qualifiedname>BBoxTreeRenderElement::iBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="26" column="15" bodyfile="dag_bboxTreeRElem.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1a4080b29190f7782d5e08c94837e244c8" prot="public" static="no" mutable="no">
+        <type>VDECL</type>
+        <definition>VDECL BBoxTreeRenderElement::vDecl</definition>
+        <argsstring></argsstring>
+        <name>vDecl</name>
+        <qualifiedname>BBoxTreeRenderElement::vDecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="27" column="13" bodyfile="dag_bboxTreeRElem.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1a334b23890974b24b84d8f8db957934b7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BBoxTreeRenderElement::stride</definition>
+        <argsstring></argsstring>
+        <name>stride</name>
+        <qualifiedname>BBoxTreeRenderElement::stride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="28" column="11" bodyfile="dag_bboxTreeRElem.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1a104accdc938db275dc61025e08b01e3c" prot="public" static="no" mutable="no">
+        <type>GlobalVertexDataSrc *</type>
+        <definition>GlobalVertexDataSrc* BBoxTreeRenderElement::vDataSrc</definition>
+        <argsstring></argsstring>
+        <name>vDataSrc</name>
+        <qualifiedname>BBoxTreeRenderElement::vDataSrc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="33" column="27" bodyfile="dag_bboxTreeRElem.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1ab5989a7743947ac3f27e3ac541569866" prot="public" static="no" mutable="no">
+        <type>union <ref refid="classBBoxTreeRenderElement" kindref="compound">BBoxTreeRenderElement</ref></type>
+        <definition>union BBoxTreeRenderElement BBoxTreeRenderElement</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>BBoxTreeRenderElement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="35" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1ab8b5776ff81da34e7d1adcd0c04ebcb5" prot="public" static="no" mutable="no">
+        <type>Tab&lt; unsigned short int &gt;</type>
+        <definition>Tab&lt;unsigned short int&gt; BBoxTreeRenderElement::faceList_</definition>
+        <argsstring></argsstring>
+        <name>faceList_</name>
+        <qualifiedname>BBoxTreeRenderElement::faceList_</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="40" column="7" bodyfile="dag_bboxTreeRElem.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBBoxTreeRenderElement_1aec104d1c0b28a02356ca836ca28a0c08" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int BBoxTreeRenderElement::flags</definition>
+        <argsstring></argsstring>
+        <name>flags</name>
+        <qualifiedname>BBoxTreeRenderElement::flags</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="41" column="16" bodyfile="dag_bboxTreeRElem.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBBoxTreeRenderElement_1a878e847d1c50498f9edeab312570808c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BBoxTreeRenderElement::BBoxTreeRenderElement</definition>
+        <argsstring>()</argsstring>
+        <name>BBoxTreeRenderElement</name>
+        <qualifiedname>BBoxTreeRenderElement::BBoxTreeRenderElement</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="37" column="3" bodyfile="dag_bboxTreeRElem.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_bboxTreeRElem.h" line="16" column="1" bodyfile="dag_bboxTreeRElem.h" bodystart="17" bodyend="42"/>
+    <listofallmembers>
+      <member refid="classBBoxTreeRenderElement_1a878e847d1c50498f9edeab312570808c" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>BBoxTreeRenderElement</name></member>
+      <member refid="classBBoxTreeRenderElement_1ab8b5776ff81da34e7d1adcd0c04ebcb5" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>faceList_</name></member>
+      <member refid="classBBoxTreeRenderElement_1a1f72e263752ed88462dd92bbb228e3a2" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>FLAG_ATEST</name></member>
+      <member refid="classBBoxTreeRenderElement_1aec104d1c0b28a02356ca836ca28a0c08" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>flags</name></member>
+      <member refid="classBBoxTreeRenderElement_1ab29e3484c4f0f264166ae0742a7cdb17" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>iBuf</name></member>
+      <member refid="classBBoxTreeRenderElement_1a334b23890974b24b84d8f8db957934b7" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>stride</name></member>
+      <member refid="classBBoxTreeRenderElement_1affbba14e8fd23d8ee8dc8b15ac8540f1" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>vBuf</name></member>
+      <member refid="classBBoxTreeRenderElement_1a104accdc938db275dc61025e08b01e3c" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>vDataSrc</name></member>
+      <member refid="classBBoxTreeRenderElement_1a4080b29190f7782d5e08c94837e244c8" prot="public" virt="non-virtual"><scope>BBoxTreeRenderElement</scope><name>vDecl</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

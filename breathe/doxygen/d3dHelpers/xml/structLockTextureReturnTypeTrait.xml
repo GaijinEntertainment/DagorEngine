@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structLockTextureReturnTypeTrait" kind="struct" language="C++" prot="public">
+    <compoundname>LockTextureReturnTypeTrait</compoundname>
+    <includes refid="dag__lockTexture_8h" local="no">dag_lockTexture.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structLockTextureReturnTypeTrait_1a39041f7a71553b683bafdec3e52a1dc4" prot="public" static="no">
+        <type><ref refid="dag__lockTexture_8h_1a3b8070462fce75296b968f3e13daf208" kindref="member">LockedImage2DView</ref>&lt; T &gt;</type>
+        <definition>using LockTextureReturnTypeTrait&lt; T &gt;::type =  LockedImage2DView&lt;T&gt;</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>LockTextureReturnTypeTrait::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_lockTexture.h" line="407" column="3" bodyfile="dag_lockTexture.h" bodystart="407" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_lockTexture.h" line="405" column="1" bodyfile="dag_lockTexture.h" bodystart="406" bodyend="408"/>
+    <listofallmembers>
+      <member refid="structLockTextureReturnTypeTrait_1a39041f7a71553b683bafdec3e52a1dc4" prot="public" virt="non-virtual"><scope>LockTextureReturnTypeTrait</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

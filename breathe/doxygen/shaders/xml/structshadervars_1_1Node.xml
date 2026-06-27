@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshadervars_1_1Node" kind="struct" language="C++" prot="public">
+    <compoundname>shadervars::Node</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshadervars_1_1Node_1a4372499140a558c2991b398b41c67f32" prot="public" static="no" mutable="no">
+        <type><ref refid="structshadervars_1_1Node" kindref="compound">Node</ref> *</type>
+        <definition>Node* shadervars::Node::next</definition>
+        <argsstring></argsstring>
+        <name>next</name>
+        <qualifiedname>shadervars::Node::next</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linkedListOfShadervars.h" line="23" column="8" bodyfile="dag_linkedListOfShadervars.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshadervars_1_1Node_1a20c357a80035fefbddf6a966a5a3c881" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* shadervars::Node::shadervarName</definition>
+        <argsstring></argsstring>
+        <name>shadervarName</name>
+        <qualifiedname>shadervars::Node::shadervarName</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linkedListOfShadervars.h" line="24" column="14" bodyfile="dag_linkedListOfShadervars.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshadervars_1_1Node_1ad475610b7e1d3ad3f363709c09e71876" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shadervars::Node::shadervarId</definition>
+        <argsstring></argsstring>
+        <name>shadervarId</name>
+        <qualifiedname>shadervars::Node::shadervarId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linkedListOfShadervars.h" line="25" column="7" bodyfile="dag_linkedListOfShadervars.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshadervars_1_1Node_1aa36f920f8548cf7c64e3d746f72e16b3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shadervars::Node::Node</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>Node</name>
+        <qualifiedname>shadervars::Node::Node</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_linkedListOfShadervars.h" line="26" column="3" bodyfile="dag_linkedListOfShadervars.h" bodystart="26" bodyend="30"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>shadervars::Node</label>
+        <link refid="structshadervars_1_1Node"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>next</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_linkedListOfShadervars.h" line="21" column="1" bodyfile="dag_linkedListOfShadervars.h" bodystart="22" bodyend="31"/>
+    <listofallmembers>
+      <member refid="structshadervars_1_1Node_1a4372499140a558c2991b398b41c67f32" prot="public" virt="non-virtual"><scope>shadervars::Node</scope><name>next</name></member>
+      <member refid="structshadervars_1_1Node_1aa36f920f8548cf7c64e3d746f72e16b3" prot="public" virt="non-virtual"><scope>shadervars::Node</scope><name>Node</name></member>
+      <member refid="structshadervars_1_1Node_1ad475610b7e1d3ad3f363709c09e71876" prot="public" virt="non-virtual"><scope>shadervars::Node</scope><name>shadervarId</name></member>
+      <member refid="structshadervars_1_1Node_1a20c357a80035fefbddf6a966a5a3c881" prot="public" virt="non-virtual"><scope>shadervars::Node</scope><name>shadervarName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,383 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__voxelSurfaceData_8h" kind="file" language="C++">
+    <compoundname>dag_voxelSurfaceData.h</compoundname>
+    <includes local="no">generic/dag_DObject.h</includes>
+    <includes refid="dag__atlasBlockManager_8h" local="no">shaders/dag_atlasBlockManager.h</includes>
+    <includes refid="dag__shaderResUnitedData_8h" local="no">shaders/dag_shaderResUnitedData.h</includes>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includes local="no">EASTL/array.h</includes>
+    <includedby refid="dag__rendInstRes_8h" local="no">dag_rendInstRes.h</includedby>
+    <incdepgraph>
+      <node id="3">
+        <label>shaders/dag_atlasBlockManager.h</label>
+        <link refid="dag__atlasBlockManager_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="24">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>shaders/dag_shaderMesh.h</label>
+        <link refid="dag__shaderMesh_8h_source"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shaders/dag_shaderResUnitedData.h</label>
+        <link refid="dag__shaderResUnitedData_8h_source"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+      </node>
+      <node id="28">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="30">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>shaders/dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_voxelSurfaceData.h</label>
+        <link refid="dag__voxelSurfaceData_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>3d/dag_resPtr.h</label>
+      </node>
+      <node id="16">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="51">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="22">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="43">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="41">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="42">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="44">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="45">
+        <label>dag/dag_vectorSet.h</label>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="25">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="40">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_draw.h</label>
+      </node>
+      <node id="10">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="29">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="23">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+      </node>
+      <node id="2">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="46">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="19">
+        <label>generic/dag_patchTab.h</label>
+      </node>
+      <node id="12">
+        <label>generic/dag_ptrTab.h</label>
+      </node>
+      <node id="7">
+        <label>generic/dag_relocatableFixedVector.h</label>
+      </node>
+      <node id="14">
+        <label>generic/dag_smallTab.h</label>
+      </node>
+      <node id="26">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="11">
+        <label>generic/dag_staticTab.h</label>
+      </node>
+      <node id="13">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="36">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="33">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="37">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="6">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="35">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="20">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="8">
+        <label>mutex</label>
+      </node>
+      <node id="32">
+        <label>stdint.h</label>
+      </node>
+      <node id="49">
+        <label>util/dag_delayedAction.h</label>
+      </node>
+      <node id="47">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="50">
+        <label>util/dag_multicastEvent.h</label>
+      </node>
+      <node id="5">
+        <label>util/dag_simpleString.h</label>
+      </node>
+      <node id="48">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="38">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="34">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_rendInstRes.h</label>
+        <link refid="dag__rendInstRes_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_voxelSurfaceData.h</label>
+        <link refid="dag__voxelSurfaceData_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classVoxelSurfaceData" prot="public">VoxelSurfaceData</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_DObject.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_atlasBlockManager.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderResUnitedData.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/array.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classVoxelSurfaceData" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>DObject</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>decl_class_name(<ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref>);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>DAG_DECLARE_NEW(midmem)</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref><sp/>*load(IGenLoad<sp/>&amp;crd,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>size);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref><sp/>*getById(uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onAfterD3dReset();</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><ref refid="classVoxelSurfaceData" kindref="compound">~VoxelSurfaceData</ref>();</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint32_t<sp/>INVALID_ID<sp/>=<sp/>~0u;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>uint32_t<sp/>getId()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>id;<sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>On<sp/>failure,<sp/>returns<sp/>number<sp/>of<sp/>rgba<sp/>and<sp/>norm<sp/>blocks<sp/>needed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>eastl::array&lt;uint32_t,<sp/>2&gt;<sp/>allocateAtlas();</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Returns<sp/>number<sp/>of<sp/>rgba<sp/>and<sp/>norm<sp/>blocks<sp/>released.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/>eastl::array&lt;uint32_t,<sp/>2&gt;<sp/>releaseAtlas();</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>isLoadedToAtlas()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>loadedToTex;<sp/>}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>loadToAtlas();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setToShader()<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>setToShader(uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>dag::Span&lt;char&gt;<sp/>compressed;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>uint32_t<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>INVALID_ID;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><ref refid="structAtlasBlockManager_1_1ChunkLocation" kindref="compound">AtlasBlockManager::ChunkLocation</ref><sp/>rgbaLoc,<sp/>normLoc;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>loadedToTex<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>uint32_t<sp/>numRgbaBlocks<sp/>=<sp/>0,<sp/>numNormBlocks<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>uint32_t<sp/>normCompressedOffset<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref>();</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>dumpStartOfs()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>offsetof(<ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref>,<sp/>numRgbaBlocks);<sp/>}</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dumpStartPtr()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;numRgbaBlocks;<sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*dataStartPtr()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>&amp;normCompressedOffset<sp/>+<sp/>1;<sp/>}</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref>&lt;RenderableInstanceLodsResource&gt;;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_voxelSurfaceData.h"/>
+  </compounddef>
+</doxygen>

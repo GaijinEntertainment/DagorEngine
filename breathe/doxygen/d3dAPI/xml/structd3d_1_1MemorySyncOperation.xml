@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1MemorySyncOperation" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::MemorySyncOperation</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1MemorySyncOperation_1a3c142a3e09c6392dbc7d9b9c3bbd5562" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1ad429b802c42bd2273a5f9fafc345d7cf" kindref="member">AccessFlags</ref></type>
+        <definition>AccessFlags d3d::MemorySyncOperation::src</definition>
+        <argsstring></argsstring>
+        <name>src</name>
+        <qualifiedname>d3d::MemorySyncOperation::src</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="179" column="15" bodyfile="dag_enhanced_barrier.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1MemorySyncOperation_1aa9db7330d7988b86c6edd64e38552918" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1ad429b802c42bd2273a5f9fafc345d7cf" kindref="member">AccessFlags</ref></type>
+        <definition>AccessFlags d3d::MemorySyncOperation::dst</definition>
+        <argsstring></argsstring>
+        <name>dst</name>
+        <qualifiedname>d3d::MemorySyncOperation::dst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="180" column="15" bodyfile="dag_enhanced_barrier.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_enhanced_barrier.h" line="177" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="178" bodyend="181"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1MemorySyncOperation_1aa9db7330d7988b86c6edd64e38552918" prot="public" virt="non-virtual"><scope>d3d::MemorySyncOperation</scope><name>dst</name></member>
+      <member refid="structd3d_1_1MemorySyncOperation_1a3c142a3e09c6392dbc7d9b9c3bbd5562" prot="public" virt="non-virtual"><scope>d3d::MemorySyncOperation</scope><name>src</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

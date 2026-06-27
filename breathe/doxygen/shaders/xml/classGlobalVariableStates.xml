@@ -1,0 +1,196 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classGlobalVariableStates" kind="class" language="C++" prot="public">
+    <compoundname>GlobalVariableStates</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classGlobalVariableStates_1aa6f7aa5323b79214b26899900a5b145c" prot="private" static="no" mutable="no">
+        <type>Tab&lt; uint8_t &gt;</type>
+        <definition>Tab&lt;uint8_t&gt; GlobalVariableStates::globIntervalNormValues</definition>
+        <argsstring></argsstring>
+        <name>globIntervalNormValues</name>
+        <qualifiedname>GlobalVariableStates::globIntervalNormValues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="21" column="7" bodyfile="dag_shaderVarsUtils.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classGlobalVariableStates_1adeaaec3c288beaa2ced1d5a9becc4d7c" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t GlobalVariableStates::generation</definition>
+        <argsstring></argsstring>
+        <name>generation</name>
+        <qualifiedname>GlobalVariableStates::generation</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="22" column="12" bodyfile="dag_shaderVarsUtils.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classGlobalVariableStates_1a859a8daf954cae74d5c3b973f39c10e5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void copy_current_global_variables_states</definition>
+        <argsstring>(GlobalVariableStates &amp;gv)</argsstring>
+        <name>copy_current_global_variables_states</name>
+        <qualifiedname>GlobalVariableStates::copy_current_global_variables_states</qualifiedname>
+        <param>
+          <type><ref refid="classGlobalVariableStates" kindref="compound">GlobalVariableStates</ref> &amp;</type>
+          <declname>gv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="24" column="15"/>
+      </memberdef>
+      <memberdef kind="friend" id="classGlobalVariableStates_1a6f63be5abf9dfb629afac85ea370ca9f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int get_dynamic_variant_states</definition>
+        <argsstring>(const GlobalVariableStates &amp;global_variants_state, const ScriptedShaderElement &amp;s, uint32_t &amp;program, ShaderStateBlockId &amp;state_index, shaders::RenderStateId &amp;render_state, shaders::ConstStateIdx &amp;const_state, shaders::TexStateIdx &amp;tex_state)</argsstring>
+        <name>get_dynamic_variant_states</name>
+        <qualifiedname>GlobalVariableStates::get_dynamic_variant_states</qualifiedname>
+        <param>
+          <type>const <ref refid="classGlobalVariableStates" kindref="compound">GlobalVariableStates</ref> &amp;</type>
+          <declname>global_variants_state</declname>
+        </param>
+        <param>
+          <type>const ScriptedShaderElement &amp;</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>program</declname>
+        </param>
+        <param>
+          <type>ShaderStateBlockId &amp;</type>
+          <declname>state_index</declname>
+        </param>
+        <param>
+          <type>shaders::RenderStateId &amp;</type>
+          <declname>render_state</declname>
+        </param>
+        <param>
+          <type>shaders::ConstStateIdx &amp;</type>
+          <declname>const_state</declname>
+        </param>
+        <param>
+          <type>shaders::TexStateIdx &amp;</type>
+          <declname>tex_state</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="25" column="14"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classGlobalVariableStates_1adc06f409fd36d30a818b75e806a57d4b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>GlobalVariableStates::GlobalVariableStates</definition>
+        <argsstring>(IMemAlloc *mem=defaultmem)</argsstring>
+        <name>GlobalVariableStates</name>
+        <qualifiedname>GlobalVariableStates::GlobalVariableStates</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>mem</declname>
+          <defval>defaultmem</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="30" column="3" bodyfile="dag_shaderVarsUtils.h" bodystart="30" bodyend="30"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVariableStates_1a913dfd6e4d9f0ec3144dc102e604bd4a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool GlobalVariableStates::empty</definition>
+        <argsstring>() const</argsstring>
+        <name>empty</name>
+        <qualifiedname>GlobalVariableStates::empty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="31" column="8" bodyfile="dag_shaderVarsUtils.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVariableStates_1ab1c97ac672d415326f4ab9efdcc1fbda" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVariableStates::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>GlobalVariableStates::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="32" column="8" bodyfile="dag_shaderVarsUtils.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVariableStates_1add33803afb62c1352ce41254da6e14fd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void GlobalVariableStates::set_allocator</definition>
+        <argsstring>(IMemAlloc *a)</argsstring>
+        <name>set_allocator</name>
+        <qualifiedname>GlobalVariableStates::set_allocator</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="33" column="8" bodyfile="dag_shaderVarsUtils.h" bodystart="33" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classGlobalVariableStates_1af09d057ae3293912308db948a316fbf1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>IMemAlloc *</type>
+        <definition>IMemAlloc * GlobalVariableStates::get_allocator</definition>
+        <argsstring>() const</argsstring>
+        <name>get_allocator</name>
+        <qualifiedname>GlobalVariableStates::get_allocator</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderVarsUtils.h" line="34" column="13" bodyfile="dag_shaderVarsUtils.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderVarsUtils.h" line="19" column="1" bodyfile="dag_shaderVarsUtils.h" bodystart="20" bodyend="35"/>
+    <listofallmembers>
+      <member refid="classGlobalVariableStates_1ab1c97ac672d415326f4ab9efdcc1fbda" prot="public" virt="non-virtual"><scope>GlobalVariableStates</scope><name>clear</name></member>
+      <member refid="classGlobalVariableStates_1a859a8daf954cae74d5c3b973f39c10e5" prot="private" virt="non-virtual"><scope>GlobalVariableStates</scope><name>copy_current_global_variables_states</name></member>
+      <member refid="classGlobalVariableStates_1a913dfd6e4d9f0ec3144dc102e604bd4a" prot="public" virt="non-virtual"><scope>GlobalVariableStates</scope><name>empty</name></member>
+      <member refid="classGlobalVariableStates_1adeaaec3c288beaa2ced1d5a9becc4d7c" prot="private" virt="non-virtual"><scope>GlobalVariableStates</scope><name>generation</name></member>
+      <member refid="classGlobalVariableStates_1af09d057ae3293912308db948a316fbf1" prot="public" virt="non-virtual"><scope>GlobalVariableStates</scope><name>get_allocator</name></member>
+      <member refid="classGlobalVariableStates_1a6f63be5abf9dfb629afac85ea370ca9f" prot="private" virt="non-virtual"><scope>GlobalVariableStates</scope><name>get_dynamic_variant_states</name></member>
+      <member refid="classGlobalVariableStates_1adc06f409fd36d30a818b75e806a57d4b" prot="public" virt="non-virtual"><scope>GlobalVariableStates</scope><name>GlobalVariableStates</name></member>
+      <member refid="classGlobalVariableStates_1aa6f7aa5323b79214b26899900a5b145c" prot="private" virt="non-virtual"><scope>GlobalVariableStates</scope><name>globIntervalNormValues</name></member>
+      <member refid="classGlobalVariableStates_1add33803afb62c1352ce41254da6e14fd" prot="public" virt="non-virtual"><scope>GlobalVariableStates</scope><name>set_allocator</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceresptr__detail_1_1resizeable__detail" kind="namespace" language="C++">
+    <compoundname>resptr_detail::resizeable_detail</compoundname>
+    <innerclass refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter" prot="public">resptr_detail::resizeable_detail::D3dDeleter</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceresptr__detail_1_1resizeable__detail_1af6b240ee725630e27b9c32ec6ec63f1a" prot="public" static="no">
+        <type>eastl::unique_ptr&lt; BaseTexture, <ref refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter" kindref="compound">D3dDeleter</ref> &gt;</type>
+        <definition>using resptr_detail::resizeable_detail::UniqueBaseTex = typedef eastl::unique_ptr&lt;BaseTexture, D3dDeleter&gt;</definition>
+        <argsstring></argsstring>
+        <name>UniqueBaseTex</name>
+        <qualifiedname>resptr_detail::resizeable_detail::UniqueBaseTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="25" column="1" bodyfile="dag_resizableTex.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resizableTex.h" line="19" column="1"/>
+  </compounddef>
+</doxygen>

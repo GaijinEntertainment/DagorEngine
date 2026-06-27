@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIDagorMat2_1_1EnumParamCB" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorMat2::EnumParamCB</compoundname>
+    <derivedcompoundref refid="structExpEnumParamCB" prot="public" virt="non-virtual">ExpEnumParamCB</derivedcompoundref>
+    <includes refid="mater_8h" local="no">mater.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structIDagorMat2_1_1EnumParamCB_1ae84459c39c0caa21aed81845869980c2" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorMat2::EnumParamCB::proc</definition>
+        <argsstring>(const TCHAR *group, const TCHAR *name, int type, const TCHAR *value)=0</argsstring>
+        <name>proc</name>
+        <qualifiedname>IDagorMat2::EnumParamCB::proc</qualifiedname>
+        <reimplementedby refid="structExpEnumParamCB_1aec1948f9dcb1ab835da2887b94407482">proc</reimplementedby>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.h" line="53" column="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ExpEnumParamCB</label>
+        <link refid="structExpEnumParamCB"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IDagorMat2::EnumParamCB</label>
+        <link refid="structIDagorMat2_1_1EnumParamCB"/>
+      </node>
+    </inheritancegraph>
+    <location file="mater.h" line="51" column="3" bodyfile="mater.h" bodystart="52" bodyend="54"/>
+    <listofallmembers>
+      <member refid="structIDagorMat2_1_1EnumParamCB_1ae84459c39c0caa21aed81845869980c2" prot="public" virt="pure-virtual"><scope>IDagorMat2::EnumParamCB</scope><name>proc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

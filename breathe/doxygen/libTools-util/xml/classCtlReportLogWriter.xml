@@ -1,0 +1,305 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCtlReportLogWriter" kind="class" language="C++" prot="public">
+    <compoundname>CtlReportLogWriter</compoundname>
+    <basecompoundref refid="classILogWriter" prot="public" virt="non-virtual">ILogWriter</basecompoundref>
+    <includes refid="ctlReportLogWriter_8h" local="no">ctlReportLogWriter.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classCtlReportLogWriter_1aabf0ea00c3c73b2e8964978154a19815" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; SimpleString &gt;</type>
+        <definition>Tab&lt;SimpleString&gt; CtlReportLogWriter::list</definition>
+        <argsstring></argsstring>
+        <name>list</name>
+        <qualifiedname>CtlReportLogWriter::list</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="58" column="7" bodyfile="ctlReportLogWriter.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCtlReportLogWriter_1aa46fead97787e143d920e3ef54a40386" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CtlReportLogWriter::errors</definition>
+        <argsstring></argsstring>
+        <name>errors</name>
+        <qualifiedname>CtlReportLogWriter::errors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="59" column="8" bodyfile="ctlReportLogWriter.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCtlReportLogWriter_1a6586f15b232d272255be46aa0e0094e8" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CtlReportLogWriter::warnings</definition>
+        <argsstring></argsstring>
+        <name>warnings</name>
+        <qualifiedname>CtlReportLogWriter::warnings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="59" column="15" bodyfile="ctlReportLogWriter.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCtlReportLogWriter_1a9160cbe44cc6eeba8b7a0b9d565e750b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>CtlReportLogWriter::CtlReportLogWriter</definition>
+        <argsstring>()</argsstring>
+        <name>CtlReportLogWriter</name>
+        <qualifiedname>CtlReportLogWriter::CtlReportLogWriter</qualifiedname>
+        <briefdescription>
+<para>Constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="22" column="3" bodyfile="ctlReportLogWriter.h" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1a7d4e1fbcd1372200914d5dd54ac9f36c" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CtlReportLogWriter::addMessageFmt</definition>
+        <argsstring>(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum)</argsstring>
+        <name>addMessageFmt</name>
+        <qualifiedname>CtlReportLogWriter::addMessageFmt</qualifiedname>
+        <reimplements refid="classILogWriter_1a80768c18cfed7409e639f2167e78f799">addMessageFmt</reimplements>
+        <param>
+          <type><ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" kindref="member">MessageType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+<para>Add formatted message. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="25" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1aa6f0bc7fe2883e40ae47e5b7b6346a77" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool CtlReportLogWriter::hasErrors</definition>
+        <argsstring>() const</argsstring>
+        <name>hasErrors</name>
+        <qualifiedname>CtlReportLogWriter::hasErrors</qualifiedname>
+        <reimplements refid="classILogWriter_1a7741a6fa40073605a2e147c3d6343463">hasErrors</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether messages list has error messages. <simplesect kind="return"><para><bold>true</bold> if messages list has error messages, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="29" column="16" bodyfile="ctlReportLogWriter.h" bodystart="29" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1acc9c558dbc7fa1a296c2a8f4f312cd8b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CtlReportLogWriter::startLog</definition>
+        <argsstring>()</argsstring>
+        <name>startLog</name>
+        <qualifiedname>CtlReportLogWriter::startLog</qualifiedname>
+        <reimplements refid="classILogWriter_1aa6fe6e79751839ef761bdb6bef385be9">startLog</reimplements>
+        <briefdescription>
+<para>starts log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="31" column="16" bodyfile="ctlReportLogWriter.h" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1ac0b27d9d598c16b5df0e93e864577eed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CtlReportLogWriter::endLog</definition>
+        <argsstring>()</argsstring>
+        <name>endLog</name>
+        <qualifiedname>CtlReportLogWriter::endLog</qualifiedname>
+        <reimplements refid="classILogWriter_1a2775a6fcde87e5cb6ed3baa3f87b1062">endLog</reimplements>
+        <briefdescription>
+<para>finishes log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="32" column="16" bodyfile="ctlReportLogWriter.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1a82acda73c9e1b92a45588d5352f3f5a7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CtlReportLogWriter::clearMessages</definition>
+        <argsstring>()</argsstring>
+        <name>clearMessages</name>
+        <qualifiedname>CtlReportLogWriter::clearMessages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Clear messages list. (for reusing one log writer object for several operations) </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="36" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1ae7461c1d717ec743d8c3793b718748fd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CtlReportLogWriter::hasWarnings</definition>
+        <argsstring>() const</argsstring>
+        <name>hasWarnings</name>
+        <qualifiedname>CtlReportLogWriter::hasWarnings</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether messages list has warning messages. <simplesect kind="return"><para><bold>true</bold> if messages list has warning messages, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="41" column="9" bodyfile="ctlReportLogWriter.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1a1c78d3895f57f23b2e6f14891f9b72e2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CtlReportLogWriter::hasMessages</definition>
+        <argsstring>() const</argsstring>
+        <name>hasMessages</name>
+        <qualifiedname>CtlReportLogWriter::hasMessages</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test whether messages list has messages. <simplesect kind="return"><para><bold>true</bold> if messages list is not empty, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="45" column="9" bodyfile="ctlReportLogWriter.h" bodystart="45" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classCtlReportLogWriter_1ae9c4d7a668c939996979a0932005feac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CtlReportLogWriter::showReport</definition>
+        <argsstring>(const char *title, const char *error_msg, const char *ok_msg)</argsstring>
+        <name>showReport</name>
+        <qualifiedname>CtlReportLogWriter::showReport</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>title</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>error_msg</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>ok_msg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Show dialog window with messages list. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">title</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- window title </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">error_msg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- message displayed at the end of window if there are error messages in messages list </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">ok_msg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- message displayed at the end of window if there are no error messages in messages list </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if user pressed &apos;OK&apos; button, <bold>false</bold> if user pressed &apos;Cancel&apos; button </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ctlReportLogWriter.h" line="55" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Used to output log messages in special dialog window. A color of text messages depends on their types. At the end of window summary info is represented with number of errors and warnings. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CtlReportLogWriter</label>
+        <link refid="classCtlReportLogWriter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>CtlReportLogWriter</label>
+        <link refid="classCtlReportLogWriter"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+    </collaborationgraph>
+    <location file="ctlReportLogWriter.h" line="18" column="1" bodyfile="ctlReportLogWriter.h" bodystart="19" bodyend="60"/>
+    <listofallmembers>
+      <member refid="classCtlReportLogWriter_1a7d4e1fbcd1372200914d5dd54ac9f36c" prot="public" virt="virtual"><scope>CtlReportLogWriter</scope><name>addMessageFmt</name></member>
+      <member refid="classCtlReportLogWriter_1a82acda73c9e1b92a45588d5352f3f5a7" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>clearMessages</name></member>
+      <member refid="classCtlReportLogWriter_1a9160cbe44cc6eeba8b7a0b9d565e750b" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>CtlReportLogWriter</name></member>
+      <member refid="classILogWriter_1a6f376edfaedd194fa2ce0c81e675ac43" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name></member>
+      <member refid="classCtlReportLogWriter_1ac0b27d9d598c16b5df0e93e864577eed" prot="public" virt="virtual"><scope>CtlReportLogWriter</scope><name>endLog</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>ERROR</name></member>
+      <member refid="classCtlReportLogWriter_1aa46fead97787e143d920e3ef54a40386" prot="protected" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>errors</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca8dfca79f44e456b8d8a29daf286f21fb" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>FATAL</name></member>
+      <member refid="classCtlReportLogWriter_1aa6f0bc7fe2883e40ae47e5b7b6346a77" prot="public" virt="virtual"><scope>CtlReportLogWriter</scope><name>hasErrors</name></member>
+      <member refid="classCtlReportLogWriter_1a1c78d3895f57f23b2e6f14891f9b72e2" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>hasMessages</name></member>
+      <member refid="classCtlReportLogWriter_1ae7461c1d717ec743d8c3793b718748fd" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>hasWarnings</name></member>
+      <member refid="classCtlReportLogWriter_1aabf0ea00c3c73b2e8964978154a19815" prot="protected" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>list</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>MessageType</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>NOTE</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca15621ed2c8316c8cebdb5c9ef93cb8f7" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>REMARK</name></member>
+      <member refid="classCtlReportLogWriter_1ae9c4d7a668c939996979a0932005feac" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>showReport</name></member>
+      <member refid="classCtlReportLogWriter_1acc9c558dbc7fa1a296c2a8f4f312cd8b" prot="public" virt="virtual"><scope>CtlReportLogWriter</scope><name>startLog</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca4bd38cd4423708118f22a18366767cb0" prot="public" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>WARNING</name></member>
+      <member refid="classCtlReportLogWriter_1a6586f15b232d272255be46aa0e0094e8" prot="protected" virt="non-virtual"><scope>CtlReportLogWriter</scope><name>warnings</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

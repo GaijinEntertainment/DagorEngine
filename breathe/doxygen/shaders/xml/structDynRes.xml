@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDynRes" kind="struct" language="C++" prot="public">
+    <compoundname>DynRes</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDynRes_1ae3b5b1c93e1f01ee27be60f26cc1e598" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 DynRes::dynamicResolution</definition>
+        <argsstring></argsstring>
+        <name>dynamicResolution</name>
+        <qualifiedname>DynRes::dynamicResolution</qualifiedname>
+        <initializer>= Point2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynamicResolutionStcode.h" line="15" column="10" bodyfile="dag_dynamicResolutionStcode.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDynRes_1af68d7425111b507be775c953b2ea0042" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 DynRes::renderingResolution</definition>
+        <argsstring></argsstring>
+        <name>renderingResolution</name>
+        <qualifiedname>DynRes::renderingResolution</qualifiedname>
+        <initializer>= Point2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynamicResolutionStcode.h" line="16" column="10" bodyfile="dag_dynamicResolutionStcode.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDynRes_1a9b815c998a784285faf1625d17e3d799" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point2</type>
+        <definition>Point2 DynRes::CalcCurrentRate</definition>
+        <argsstring>() const</argsstring>
+        <name>CalcCurrentRate</name>
+        <qualifiedname>DynRes::CalcCurrentRate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynamicResolutionStcode.h" line="18" column="17" bodyfile="dag_dynamicResolutionStcode.h" bodystart="18" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="structDynRes_1a8165fc3ec0ba2b635a611f45cafb1c33" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 DynRes::CalcScaledResolution</definition>
+        <argsstring>(int w, int h) const</argsstring>
+        <name>CalcScaledResolution</name>
+        <qualifiedname>DynRes::CalcScaledResolution</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynamicResolutionStcode.h" line="22" column="18" bodyfile="dag_dynamicResolutionStcode.h" bodystart="22" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynamicResolutionStcode.h" line="13" column="1" bodyfile="dag_dynamicResolutionStcode.h" bodystart="14" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structDynRes_1a9b815c998a784285faf1625d17e3d799" prot="public" virt="non-virtual"><scope>DynRes</scope><name>CalcCurrentRate</name></member>
+      <member refid="structDynRes_1a8165fc3ec0ba2b635a611f45cafb1c33" prot="public" virt="non-virtual"><scope>DynRes</scope><name>CalcScaledResolution</name></member>
+      <member refid="structDynRes_1ae3b5b1c93e1f01ee27be60f26cc1e598" prot="public" virt="non-virtual"><scope>DynRes</scope><name>dynamicResolution</name></member>
+      <member refid="structDynRes_1af68d7425111b507be775c953b2ea0042" prot="public" virt="non-virtual"><scope>DynRes</scope><name>renderingResolution</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

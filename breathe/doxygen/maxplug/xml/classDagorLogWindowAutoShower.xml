@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagorLogWindowAutoShower" kind="class" language="C++" prot="public">
+    <compoundname>DagorLogWindowAutoShower</compoundname>
+    <includes refid="dagorLogWindow_8h" local="no">dagorLogWindow.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDagorLogWindowAutoShower_1a4e02d93fe8169e8eac62ff41e2d61915" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool DagorLogWindowAutoShower::hasWarningOrError</definition>
+        <argsstring></argsstring>
+        <name>hasWarningOrError</name>
+        <qualifiedname>DagorLogWindowAutoShower::hasWarningOrError</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="48" column="8" bodyfile="dagorLogWindow.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagorLogWindowAutoShower_1aabf3e510c8c12097ddc89970102713f4" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DagorLogWindowAutoShower::DagorLogWindowAutoShower</definition>
+        <argsstring>(bool clear_log)</argsstring>
+        <name>DagorLogWindowAutoShower</name>
+        <qualifiedname>DagorLogWindowAutoShower::DagorLogWindowAutoShower</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>clear_log</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="44" column="12" bodyfile="dagorLogWindow.cpp" bodystart="161" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindowAutoShower_1a10a2fd3463ae7c9ea6d5b27703c468c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DagorLogWindowAutoShower::~DagorLogWindowAutoShower</definition>
+        <argsstring>()</argsstring>
+        <name>~DagorLogWindowAutoShower</name>
+        <qualifiedname>DagorLogWindowAutoShower::~DagorLogWindowAutoShower</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="45" column="3" bodyfile="dagorLogWindow.cpp" bodystart="169" bodyend="173"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagorLogWindow.h" line="41" column="1" bodyfile="dagorLogWindow.h" bodystart="42" bodyend="49"/>
+    <listofallmembers>
+      <member refid="classDagorLogWindowAutoShower_1aabf3e510c8c12097ddc89970102713f4" prot="public" virt="non-virtual"><scope>DagorLogWindowAutoShower</scope><name>DagorLogWindowAutoShower</name></member>
+      <member refid="classDagorLogWindowAutoShower_1a4e02d93fe8169e8eac62ff41e2d61915" prot="private" virt="non-virtual"><scope>DagorLogWindowAutoShower</scope><name>hasWarningOrError</name></member>
+      <member refid="classDagorLogWindowAutoShower_1a10a2fd3463ae7c9ea6d5b27703c468c0" prot="public" virt="non-virtual"><scope>DagorLogWindowAutoShower</scope><name>~DagorLogWindowAutoShower</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

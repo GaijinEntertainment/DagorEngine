@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDriver3dInitCallback_1_1RenderSize" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dInitCallback::RenderSize</compoundname>
+    <includes refid="dag__info_8h" local="no">dag_info.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDriver3dInitCallback_1_1RenderSize_1a56e85ce940d574ce8a6eb781589270a2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dInitCallback::RenderSize::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>Driver3dInitCallback::RenderSize::width</qualifiedname>
+        <briefdescription>
+<para>The width of the render area. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_info.h" line="37" column="9" bodyfile="dag_info.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dInitCallback_1_1RenderSize_1a2a826ae26910f509edc9cecc4b923ed0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Driver3dInitCallback::RenderSize::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>Driver3dInitCallback::RenderSize::height</qualifiedname>
+        <briefdescription>
+<para>The height of the render area. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_info.h" line="38" column="9" bodyfile="dag_info.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Struct representing the size of the render area. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_info.h" line="35" column="3" bodyfile="dag_info.h" bodystart="36" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structDriver3dInitCallback_1_1RenderSize_1a2a826ae26910f509edc9cecc4b923ed0" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::RenderSize</scope><name>height</name></member>
+      <member refid="structDriver3dInitCallback_1_1RenderSize_1a56e85ce940d574ce8a6eb781589270a2" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::RenderSize</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

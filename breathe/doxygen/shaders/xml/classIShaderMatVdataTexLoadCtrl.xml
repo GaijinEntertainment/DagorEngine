@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIShaderMatVdataTexLoadCtrl" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IShaderMatVdataTexLoadCtrl</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIShaderMatVdataTexLoadCtrl_1a7bc64c9d7fc1e122afa29a605b2d1bbc" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IShaderMatVdataTexLoadCtrl::preprocessMatVdataTexName</definition>
+        <argsstring>(const char *original_tex_name, unsigned ctx_obj_type, const char *ctx_obj_name, String &amp;tmp_storage)=0</argsstring>
+        <name>preprocessMatVdataTexName</name>
+        <qualifiedname>IShaderMatVdataTexLoadCtrl::preprocessMatVdataTexName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>original_tex_name</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>ctx_obj_type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>ctx_obj_name</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>tmp_storage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>receives original requested texture name, context (obj type/name) and string storage; shall return one of: 1) original_tex_name - when no texture subst/ignore not needed; 2) NULL - when texture must be ignored (not loaded); 3) tmp_storage.str() - when substituting texture name with another, written to tmp_storage </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshTexLoadCtrl.h" line="19" column="22"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classIShaderMatVdataTexLoadCtrl_1a9c2b980a312391bbe695efa3920a0e60" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * IShaderMatVdataTexLoadCtrl::preprocess_tex_name</definition>
+        <argsstring>(const char *original_tex_name, String &amp;tmp_storage)</argsstring>
+        <name>preprocess_tex_name</name>
+        <qualifiedname>IShaderMatVdataTexLoadCtrl::preprocess_tex_name</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>original_tex_name</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>tmp_storage</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMeshTexLoadCtrl.h" line="22" column="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMeshTexLoadCtrl.h" line="11" column="1" bodyfile="dag_shaderMeshTexLoadCtrl.h" bodystart="12" bodyend="23"/>
+    <listofallmembers>
+      <member refid="classIShaderMatVdataTexLoadCtrl_1a9c2b980a312391bbe695efa3920a0e60" prot="public" virt="non-virtual"><scope>IShaderMatVdataTexLoadCtrl</scope><name>preprocess_tex_name</name></member>
+      <member refid="classIShaderMatVdataTexLoadCtrl_1a7bc64c9d7fc1e122afa29a605b2d1bbc" prot="public" virt="pure-virtual"><scope>IShaderMatVdataTexLoadCtrl</scope><name>preprocessMatVdataTexName</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

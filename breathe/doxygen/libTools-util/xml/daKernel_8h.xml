@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="daKernel_8h" kind="file" language="C++">
+    <compoundname>daKernel.h</compoundname>
+    <includes local="no">supp/dag_define_KRNLIMP.h</includes>
+    <includes local="no">supp/dag_undef_KRNLIMP.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>daKernel.h</label>
+        <link refid="daKernel_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>supp/dag_define_KRNLIMP.h</label>
+      </node>
+      <node id="3">
+        <label>supp/dag_undef_KRNLIMP.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespacedakernel">dakernel</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;supp/dag_define_KRNLIMP.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="namespacedakernel" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacedakernel" kindref="compound">dakernel</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11" refid="namespacedakernel_1a7d540b655a8b53db90407ec57171b3b5" refkind="member"><highlight class="normal">KRNLIMP<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacedakernel_1a7d540b655a8b53db90407ec57171b3b5" kindref="member">reset_named_pointers</ref>();</highlight></codeline>
+<codeline lineno="12" refid="namespacedakernel_1a24095506e57d1373c192568217dba8e0" refkind="member"><highlight class="normal">KRNLIMP<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespacedakernel_1a24095506e57d1373c192568217dba8e0" kindref="member">set_named_pointer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*p);</highlight></codeline>
+<codeline lineno="13" refid="namespacedakernel_1a77b4966983524685ec64cc00d6729ae3" refkind="member"><highlight class="normal">KRNLIMP<sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="namespacedakernel_1a77b4966983524685ec64cc00d6729ae3" kindref="member">get_named_pointer</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>dakernel</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;supp/dag_undef_KRNLIMP.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="daKernel.h"/>
+  </compounddef>
+</doxygen>

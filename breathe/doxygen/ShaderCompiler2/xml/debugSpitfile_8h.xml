@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="debugSpitfile_8h" kind="file" language="C++">
+    <compoundname>debugSpitfile.h</compoundname>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includedby refid="debugSpitfile_8cpp" local="yes">debugSpitfile.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>debugSpitfile.h</label>
+        <link refid="debugSpitfile_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>debugSpitfile.cpp</label>
+        <link refid="debugSpitfile_8cpp"/>
+      </node>
+      <node id="1">
+        <label>debugSpitfile.h</label>
+        <link refid="debugSpitfile_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="debugSpitfile_8h_1a0130be742a19d47f9cfa5de379799b2f" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* debug_output_dir</definition>
+        <argsstring></argsstring>
+        <name>debug_output_dir</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debugSpitfile.h" line="6" column="19" bodyfile="debugSpitfile.cpp" bodystart="8" bodyend="-1" declfile="debugSpitfile.h" declline="6" declcolumn="19"/>
+      </memberdef>
+      <memberdef kind="variable" id="debugSpitfile_8h_1adee5e5812073317d58c113be5cead4e3" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* debug_output_dir_shader_name</definition>
+        <argsstring></argsstring>
+        <name>debug_output_dir_shader_name</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debugSpitfile.h" line="7" column="19" bodyfile="debugSpitfile.cpp" bodystart="9" bodyend="-1" declfile="debugSpitfile.h" declline="7" declcolumn="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="debugSpitfile_8h_1a191ea1d6d5f8d414eaa35a293f8705b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void spitfile</definition>
+        <argsstring>(const char *name, const char *entry, const char *postfix, uint64_t shader_variant_hash, const void *ptr, size_t len, const char *output=debug_output_dir)</argsstring>
+        <name>spitfile</name>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>entry</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>postfix</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>shader_variant_hash</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>ptr</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>len</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>output</declname>
+          <defval><ref refid="debugSpitfile_8cpp_1a0130be742a19d47f9cfa5de379799b2f" kindref="member">debug_output_dir</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="debugSpitfile.h" line="9" column="6" bodyfile="debugSpitfile.cpp" bodystart="11" bodyend="28" declfile="debugSpitfile.h" declline="9" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="debugSpitfile_8h_1a0130be742a19d47f9cfa5de379799b2f" kindref="member">debug_output_dir</ref>;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="debugSpitfile_8h_1adee5e5812073317d58c113be5cead4e3" kindref="member">debug_output_dir_shader_name</ref>;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="debugSpitfile_8h_1a191ea1d6d5f8d414eaa35a293f8705b6" kindref="member">spitfile</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*entry,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*postfix,<sp/>uint64_t<sp/>shader_variant_hash,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*ptr,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>len,</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*output<sp/>=<sp/><ref refid="debugSpitfile_8h_1a0130be742a19d47f9cfa5de379799b2f" kindref="member">debug_output_dir</ref>);</highlight></codeline>
+    </programlisting>
+    <location file="debugSpitfile.h"/>
+  </compounddef>
+</doxygen>

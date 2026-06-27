@@ -1,0 +1,109 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1TextureBarrierBatchItem" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::TextureBarrierBatchItem</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1TextureBarrierBatchItem_1a066f55fa95a7af67f2102ad2e2937373" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1TextureBarrier" kindref="compound">TextureBarrier</ref></type>
+        <definition>TextureBarrier d3d::TextureBarrierBatchItem::barrier</definition>
+        <argsstring></argsstring>
+        <name>barrier</name>
+        <qualifiedname>d3d::TextureBarrierBatchItem::barrier</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="220" column="18" bodyfile="dag_enhanced_barrier.h" bodystart="220" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1TextureBarrierBatchItem_1abf097838c1616ef3ff594642095d9070" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* d3d::TextureBarrierBatchItem::texture</definition>
+        <argsstring></argsstring>
+        <name>texture</name>
+        <qualifiedname>d3d::TextureBarrierBatchItem::texture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="221" column="15" bodyfile="dag_enhanced_barrier.h" bodystart="221" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="8">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="5">
+        <label>d3d::LayoutTransitionOperation</label>
+        <link refid="structd3d_1_1LayoutTransitionOperation"/>
+      </node>
+      <node id="4">
+        <label>d3d::MemorySyncOperation</label>
+        <link refid="structd3d_1_1MemorySyncOperation"/>
+      </node>
+      <node id="3">
+        <label>d3d::PipelineSyncOperation</label>
+        <link refid="structd3d_1_1PipelineSyncOperation"/>
+      </node>
+      <node id="7">
+        <label>d3d::Range</label>
+        <link refid="structd3d_1_1Range"/>
+      </node>
+      <node id="2">
+        <label>d3d::TextureBarrier</label>
+        <link refid="structd3d_1_1TextureBarrier"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>pipelineSync</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>memorySync</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>layoutTransition</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>subresources</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>d3d::TextureBarrierBatchItem</label>
+        <link refid="structd3d_1_1TextureBarrierBatchItem"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>barrier</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>texture</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>d3d::TextureSubresourceRange</label>
+        <link refid="structd3d_1_1TextureSubresourceRange"/>
+        <childnode refid="7" relation="usage">
+          <edgelabel>layers</edgelabel>
+          <edgelabel>mips</edgelabel>
+          <edgelabel>planes</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_enhanced_barrier.h" line="218" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="219" bodyend="222"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1TextureBarrierBatchItem_1a066f55fa95a7af67f2102ad2e2937373" prot="public" virt="non-virtual"><scope>d3d::TextureBarrierBatchItem</scope><name>barrier</name></member>
+      <member refid="structd3d_1_1TextureBarrierBatchItem_1abf097838c1616ef3ff594642095d9070" prot="public" virt="non-virtual"><scope>d3d::TextureBarrierBatchItem</scope><name>texture</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPhysExportENodeCB_1_1MomjNode" kind="struct" language="C++" prot="public">
+    <compoundname>PhysExportENodeCB::MomjNode</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPhysExportENodeCB_1_1MomjNode_1ac3044d3253b2a1c32809723f40c15ee6" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 PhysExportENodeCB::MomjNode::cmPos</definition>
+        <argsstring></argsstring>
+        <name>cmPos</name>
+        <qualifiedname>PhysExportENodeCB::MomjNode::cmPos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="606" column="12" bodyfile="physExport.cpp" bodystart="606" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPhysExportENodeCB_1_1MomjNode_1aea0691ba39b0f8eb226684ac92edca0e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float PhysExportENodeCB::MomjNode::mass</definition>
+        <argsstring></argsstring>
+        <name>mass</name>
+        <qualifiedname>PhysExportENodeCB::MomjNode::mass</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="607" column="11" bodyfile="physExport.cpp" bodystart="607" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPhysExportENodeCB_1_1MomjNode_1ac1c84ef088d65aa981fe82c5f5f8cc64" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 PhysExportENodeCB::MomjNode::momj</definition>
+        <argsstring></argsstring>
+        <name>momj</name>
+        <qualifiedname>PhysExportENodeCB::MomjNode::momj</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="608" column="13" bodyfile="physExport.cpp" bodystart="608" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="physExport.cpp" line="604" column="3" bodyfile="physExport.cpp" bodystart="605" bodyend="609"/>
+    <listofallmembers>
+      <member refid="structPhysExportENodeCB_1_1MomjNode_1ac3044d3253b2a1c32809723f40c15ee6" prot="public" virt="non-virtual"><scope>PhysExportENodeCB::MomjNode</scope><name>cmPos</name></member>
+      <member refid="structPhysExportENodeCB_1_1MomjNode_1aea0691ba39b0f8eb226684ac92edca0e" prot="public" virt="non-virtual"><scope>PhysExportENodeCB::MomjNode</scope><name>mass</name></member>
+      <member refid="structPhysExportENodeCB_1_1MomjNode_1ac1c84ef088d65aa981fe82c5f5f8cc64" prot="public" virt="non-virtual"><scope>PhysExportENodeCB::MomjNode</scope><name>momj</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

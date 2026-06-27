@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSimpleQsort" kind="class" language="C++" prot="public">
+    <compoundname>SimpleQsort</compoundname>
+    <includes refid="qsort_8h" local="no">qsort.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+      <param>
+        <type>class C</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classSimpleQsort_1af08481393f9364bb652ee3bc5d494791" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void SimpleQsort&lt; T, C &gt;::__sort</definition>
+        <argsstring>(T *a, int n)</argsstring>
+        <name>__sort</name>
+        <qualifiedname>SimpleQsort::__sort</qualifiedname>
+        <param>
+          <type>T *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="56" column="15" bodyfile="qsort.h" bodystart="56" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="classSimpleQsort_1a3aa09a384ee0fae5f1b5f455ea9379df" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void SimpleQsort&lt; T, C &gt;::sort</definition>
+        <argsstring>(T *p, int n)</argsstring>
+        <name>sort</name>
+        <qualifiedname>SimpleQsort::sort</qualifiedname>
+        <param>
+          <type>T *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="84" column="15" bodyfile="qsort.h" bodystart="84" bodyend="89"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="qsort.h" line="53" column="1" bodyfile="qsort.h" bodystart="54" bodyend="90"/>
+    <listofallmembers>
+      <member refid="classSimpleQsort_1af08481393f9364bb652ee3bc5d494791" prot="public" virt="non-virtual"><scope>SimpleQsort</scope><name>__sort</name></member>
+      <member refid="classSimpleQsort_1a3aa09a384ee0fae5f1b5f455ea9379df" prot="public" virt="non-virtual"><scope>SimpleQsort</scope><name>sort</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

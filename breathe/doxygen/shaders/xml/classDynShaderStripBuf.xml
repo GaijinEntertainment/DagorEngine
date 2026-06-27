@@ -1,0 +1,446 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynShaderStripBuf" kind="class" language="C++" prot="public">
+    <compoundname>DynShaderStripBuf</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDynShaderStripBuf_1a3722a08a27d4cb11a36c40e8835c2c83" prot="private" static="no" mutable="no">
+        <type>SmallTab&lt; uint8_t, InimemAlloc &gt;</type>
+        <definition>SmallTab&lt;uint8_t, InimemAlloc&gt; DynShaderStripBuf::vBuf</definition>
+        <argsstring></argsstring>
+        <name>vBuf</name>
+        <qualifiedname>DynShaderStripBuf::vBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="233" column="12" bodyfile="dag_dynShaderBuf.h" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderStripBuf_1a800400b96067d55f44868b2d95f75ad2" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; DynShaderStripBuf::currentShader</definition>
+        <argsstring></argsstring>
+        <name>currentShader</name>
+        <qualifiedname>DynShaderStripBuf::currentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="234" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="234" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderStripBuf_1ad33da8cbfbf0601fef9d34c41db57a50" prot="private" static="no" mutable="no">
+        <type>RingDynamicVB *</type>
+        <definition>RingDynamicVB* DynShaderStripBuf::vb</definition>
+        <argsstring></argsstring>
+        <name>vb</name>
+        <qualifiedname>DynShaderStripBuf::vb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="235" column="17" bodyfile="dag_dynShaderBuf.h" bodystart="235" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderStripBuf_1acb95d1c4dbbb720f7533190fb4917296" prot="private" static="no" mutable="no">
+        <type>VDECL</type>
+        <definition>VDECL DynShaderStripBuf::vdecl</definition>
+        <argsstring></argsstring>
+        <name>vdecl</name>
+        <qualifiedname>DynShaderStripBuf::vdecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="236" column="9" bodyfile="dag_dynShaderBuf.h" bodystart="236" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderStripBuf_1a02b4a46aba9918009d2b7edf77851741" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderStripBuf::pStride</definition>
+        <argsstring></argsstring>
+        <name>pStride</name>
+        <qualifiedname>DynShaderStripBuf::pStride</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="237" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="237" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynShaderStripBuf_1a1abc0cd99f88081fdb0afa63e06e7668" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynShaderStripBuf::pUsed</definition>
+        <argsstring></argsstring>
+        <name>pUsed</name>
+        <qualifiedname>DynShaderStripBuf::pUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="238" column="7" bodyfile="dag_dynShaderBuf.h" bodystart="238" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynShaderStripBuf_1abb72608c179e5614c0f874d1fe3703e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DynShaderStripBuf::DynShaderStripBuf</definition>
+        <argsstring>()</argsstring>
+        <name>DynShaderStripBuf</name>
+        <qualifiedname>DynShaderStripBuf::DynShaderStripBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="166" column="3" bodyfile="dag_dynShaderBuf.h" bodystart="166" bodyend="166"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a5439621b14920e4a884c3819f5c17701" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DynShaderStripBuf::~DynShaderStripBuf</definition>
+        <argsstring>()</argsstring>
+        <name>~DynShaderStripBuf</name>
+        <qualifiedname>DynShaderStripBuf::~DynShaderStripBuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="167" column="3" bodyfile="dag_dynShaderBuf.h" bodystart="167" bodyend="167"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a94d9413959fe584b1b306a66aec30b0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::setRingBuf</definition>
+        <argsstring>(RingDynamicVB *_vb)</argsstring>
+        <name>setRingBuf</name>
+        <qualifiedname>DynShaderStripBuf::setRingBuf</qualifiedname>
+        <param>
+          <type>RingDynamicVB *</type>
+          <declname>_vb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="169" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a86ec8c4b07866e5906846f657401da79" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::init</definition>
+        <argsstring>(dag::ConstSpan&lt; CompiledShaderChannelId &gt; ch, int max_v_pairs)</argsstring>
+        <name>init</name>
+        <qualifiedname>DynShaderStripBuf::init</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structCompiledShaderChannelId" kindref="compound">CompiledShaderChannelId</ref> &gt;</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_v_pairs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="171" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a87f19b528aa0e6c0e614b62f705ab192" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::initCopy</definition>
+        <argsstring>(const DynShaderStripBuf &amp;b)</argsstring>
+        <name>initCopy</name>
+        <qualifiedname>DynShaderStripBuf::initCopy</qualifiedname>
+        <param>
+          <type>const <ref refid="classDynShaderStripBuf" kindref="compound">DynShaderStripBuf</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="172" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a8d183fc042781a2b3c3a6bbe30899b8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>DynShaderStripBuf::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="173" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a5d665c61d9766ce041ca6501d80c83ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+        <definition>ShaderElement * DynShaderStripBuf::getCurrentShader</definition>
+        <argsstring>()</argsstring>
+        <name>getCurrentShader</name>
+        <qualifiedname>DynShaderStripBuf::getCurrentShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="175" column="24" bodyfile="dag_dynShaderBuf.h" bodystart="175" bodyend="175"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a81e1ba5060eca6ce20a52ee4e1bdf435" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::setCurrentShader</definition>
+        <argsstring>(ShaderElement *shader)</argsstring>
+        <name>setCurrentShader</name>
+        <qualifiedname>DynShaderStripBuf::setCurrentShader</qualifiedname>
+        <param>
+          <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+          <declname>shader</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="176" column="15" bodyfile="dag_dynShaderBuf.h" bodystart="176" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a75ab8aeb4bc1b30fb3f625fc4b204ce7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynShaderStripBuf::fillRawVertPairs</definition>
+        <argsstring>(void **out_vdata, int v_pair_num)</argsstring>
+        <name>fillRawVertPairs</name>
+        <qualifiedname>DynShaderStripBuf::fillRawVertPairs</qualifiedname>
+        <param>
+          <type>void **</type>
+          <declname>out_vdata</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>v_pair_num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="187" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1ac9646417a437be5a0861986bc535dd65" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool DynShaderStripBuf::fillRawVertPairsEx</definition>
+        <argsstring>(T **ov, int vpn)</argsstring>
+        <name>fillRawVertPairsEx</name>
+        <qualifiedname>DynShaderStripBuf::fillRawVertPairsEx</qualifiedname>
+        <param>
+          <type>T **</type>
+          <declname>ov</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vpn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="189" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="189" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1acef58b1af5242e1bcbcd5741d5f086b7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynShaderStripBuf::fillRawVertPairsDetached</definition>
+        <argsstring>(void **__restrict out_vdata, int v_pair_num, void **out_lastv)</argsstring>
+        <name>fillRawVertPairsDetached</name>
+        <qualifiedname>DynShaderStripBuf::fillRawVertPairsDetached</qualifiedname>
+        <param>
+          <type>void **__restrict</type>
+          <declname>out_vdata</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>v_pair_num</declname>
+        </param>
+        <param>
+          <type>void **</type>
+          <declname>out_lastv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="202" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="202" bodyend="212"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a85a63039d2b828699e86edf174fc1737" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>bool</type>
+        <definition>bool DynShaderStripBuf::fillRawVertPairsDetachedEx</definition>
+        <argsstring>(T **__restrict ov, int vpn, T **out_lastv)</argsstring>
+        <name>fillRawVertPairsDetachedEx</name>
+        <qualifiedname>DynShaderStripBuf::fillRawVertPairsDetachedEx</qualifiedname>
+        <param>
+          <type>T **__restrict</type>
+          <declname>ov</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vpn</declname>
+        </param>
+        <param>
+          <type>T **</type>
+          <declname>out_lastv</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="214" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="214" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a507cd070e88e65b9c54b101fdc80cdd5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::addVertPairs</definition>
+        <argsstring>(const void *__restrict vertices, int v_pair_num, bool detached)</argsstring>
+        <name>addVertPairs</name>
+        <qualifiedname>DynShaderStripBuf::addVertPairs</qualifiedname>
+        <param>
+          <type>const void *__restrict</type>
+          <declname>vertices</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>v_pair_num</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>detached</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="226" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a850fd22414e08d8c1f1199eff58b140f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::flush</definition>
+        <argsstring>()</argsstring>
+        <name>flush</name>
+        <qualifiedname>DynShaderStripBuf::flush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="227" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1a2ccc26503252b50e54313e30526363ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>DynShaderStripBuf::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="228" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="228" bodyend="228"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynShaderStripBuf_1aebc6c71f360a9331a6d30d74ab8a5fe3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>VDECL</type>
+        <definition>VDECL DynShaderStripBuf::getVDecl</definition>
+        <argsstring>() const</argsstring>
+        <name>getVDecl</name>
+        <qualifiedname>DynShaderStripBuf::getVDecl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="230" column="9" bodyfile="dag_dynShaderBuf.h" bodystart="230" bodyend="230"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDynShaderStripBuf_1a31f1c01a088bede507c9d90a4e9b619e" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynShaderStripBuf::ctorInit</definition>
+        <argsstring>()</argsstring>
+        <name>ctorInit</name>
+        <qualifiedname>DynShaderStripBuf::ctorInit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynShaderBuf.h" line="240" column="8" bodyfile="dag_dynShaderBuf.h" bodystart="240" bodyend="246"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynShaderBuf.h" line="163" column="1" bodyfile="dag_dynShaderBuf.h" bodystart="164" bodyend="247"/>
+    <listofallmembers>
+      <member refid="classDynShaderStripBuf_1a507cd070e88e65b9c54b101fdc80cdd5" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>addVertPairs</name></member>
+      <member refid="classDynShaderStripBuf_1a2ccc26503252b50e54313e30526363ae" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>clear</name></member>
+      <member refid="classDynShaderStripBuf_1a8d183fc042781a2b3c3a6bbe30899b8a" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>close</name></member>
+      <member refid="classDynShaderStripBuf_1a31f1c01a088bede507c9d90a4e9b619e" prot="private" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>ctorInit</name></member>
+      <member refid="classDynShaderStripBuf_1a800400b96067d55f44868b2d95f75ad2" prot="private" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>currentShader</name></member>
+      <member refid="classDynShaderStripBuf_1abb72608c179e5614c0f874d1fe3703e4" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>DynShaderStripBuf</name></member>
+      <member refid="classDynShaderStripBuf_1a75ab8aeb4bc1b30fb3f625fc4b204ce7" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>fillRawVertPairs</name></member>
+      <member refid="classDynShaderStripBuf_1acef58b1af5242e1bcbcd5741d5f086b7" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>fillRawVertPairsDetached</name></member>
+      <member refid="classDynShaderStripBuf_1a85a63039d2b828699e86edf174fc1737" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>fillRawVertPairsDetachedEx</name></member>
+      <member refid="classDynShaderStripBuf_1ac9646417a437be5a0861986bc535dd65" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>fillRawVertPairsEx</name></member>
+      <member refid="classDynShaderStripBuf_1a850fd22414e08d8c1f1199eff58b140f" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>flush</name></member>
+      <member refid="classDynShaderStripBuf_1a5d665c61d9766ce041ca6501d80c83ce" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>getCurrentShader</name></member>
+      <member refid="classDynShaderStripBuf_1aebc6c71f360a9331a6d30d74ab8a5fe3" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>getVDecl</name></member>
+      <member refid="classDynShaderStripBuf_1a86ec8c4b07866e5906846f657401da79" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>init</name></member>
+      <member refid="classDynShaderStripBuf_1a87f19b528aa0e6c0e614b62f705ab192" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>initCopy</name></member>
+      <member refid="classDynShaderStripBuf_1a02b4a46aba9918009d2b7edf77851741" prot="private" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>pStride</name></member>
+      <member refid="classDynShaderStripBuf_1a1abc0cd99f88081fdb0afa63e06e7668" prot="private" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>pUsed</name></member>
+      <member refid="classDynShaderStripBuf_1a81e1ba5060eca6ce20a52ee4e1bdf435" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>setCurrentShader</name></member>
+      <member refid="classDynShaderStripBuf_1a94d9413959fe584b1b306a66aec30b0b" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>setRingBuf</name></member>
+      <member refid="classDynShaderStripBuf_1ad33da8cbfbf0601fef9d34c41db57a50" prot="private" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>vb</name></member>
+      <member refid="classDynShaderStripBuf_1a3722a08a27d4cb11a36c40e8835c2c83" prot="private" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>vBuf</name></member>
+      <member refid="classDynShaderStripBuf_1acb95d1c4dbbb720f7533190fb4917296" prot="private" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>vdecl</name></member>
+      <member refid="classDynShaderStripBuf_1a5439621b14920e4a884c3819f5c17701" prot="public" virt="non-virtual"><scope>DynShaderStripBuf</scope><name>~DynShaderStripBuf</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

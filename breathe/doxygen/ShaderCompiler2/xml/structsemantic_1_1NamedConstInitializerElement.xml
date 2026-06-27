@@ -1,0 +1,325 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1NamedConstInitializerElement" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::NamedConstInitializerElement</compoundname>
+    <includes refid="variantSemantic_8h" local="no">variantSemantic.h</includes>
+    <innerclass refid="structsemantic_1_1NamedConstInitializerElement_1_1BuiltinVar" prot="public">semantic::NamedConstInitializerElement::BuiltinVar</innerclass>
+    <innerclass refid="structsemantic_1_1NamedConstInitializerElement_1_1GlobalVar" prot="public">semantic::NamedConstInitializerElement::GlobalVar</innerclass>
+    <innerclass refid="structsemantic_1_1NamedConstInitializerElement_1_1MaterialVar" prot="public">semantic::NamedConstInitializerElement::MaterialVar</innerclass>
+    <innerclass refid="structsemantic_1_1NamedConstInitializerElement_1_1VarBase" prot="public">semantic::NamedConstInitializerElement::VarBase</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structsemantic_1_1NamedConstInitializerElement_1aac9b60470a71043a4d02c0208d0406c7" prot="public" static="no">
+        <type><ref refid="classShaderParser_1_1ComplexExpression" kindref="compound">ShaderParser::ComplexExpression</ref></type>
+        <definition>using semantic::NamedConstInitializerElement::ArithmeticExpr =  ShaderParser::ComplexExpression</definition>
+        <argsstring></argsstring>
+        <name>ArithmeticExpr</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::ArithmeticExpr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="340" column="3" bodyfile="variantSemantic.h" bodystart="340" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="structsemantic_1_1NamedConstInitializerElement_1a0d5cb232589dc25fbc5156cc24f412df" prot="public" static="no">
+        <type>Color4</type>
+        <definition>using semantic::NamedConstInitializerElement::ArithmeticConst =  Color4</definition>
+        <argsstring></argsstring>
+        <name>ArithmeticConst</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::ArithmeticConst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="341" column="3" bodyfile="variantSemantic.h" bodystart="341" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstInitializerElement_1af160684b647e0387d394b1ce75a11cfa" prot="public" static="no" mutable="no">
+        <type>eastl::variant&lt; <ref refid="structsemantic_1_1NamedConstInitializerElement_1aac9b60470a71043a4d02c0208d0406c7" kindref="member">ArithmeticExpr</ref>, <ref refid="structsemantic_1_1NamedConstInitializerElement_1a0d5cb232589dc25fbc5156cc24f412df" kindref="member">ArithmeticConst</ref>, <ref refid="structsemantic_1_1NamedConstInitializerElement_1_1GlobalVar" kindref="compound">GlobalVar</ref>, <ref refid="structsemantic_1_1NamedConstInitializerElement_1_1MaterialVar" kindref="compound">MaterialVar</ref>, <ref refid="structsemantic_1_1NamedConstInitializerElement_1_1BuiltinVar" kindref="compound">BuiltinVar</ref> &gt;</type>
+        <definition>eastl::variant&lt;ArithmeticExpr, ArithmeticConst, GlobalVar, MaterialVar, BuiltinVar&gt; semantic::NamedConstInitializerElement::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="357" column="18" bodyfile="variantSemantic.h" bodystart="357" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structsemantic_1_1NamedConstInitializerElement_1a76f671d07429fc35ba4f1229eefc71d9" prot="public" static="no" mutable="no">
+        <type>Symbol *</type>
+        <definition>Symbol* semantic::NamedConstInitializerElement::symbol</definition>
+        <argsstring></argsstring>
+        <name>symbol</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::symbol</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="358" column="10" bodyfile="variantSemantic.h" bodystart="358" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a23a64d6d469520cb60deaca36c821d6a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>semantic::NamedConstInitializerElement::NamedConstInitializerElement</definition>
+        <argsstring>(T &amp;&amp;val, Symbol *symbol)</argsstring>
+        <name>NamedConstInitializerElement</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::NamedConstInitializerElement</qualifiedname>
+        <param>
+          <type>T &amp;&amp;</type>
+          <declname>val</declname>
+        </param>
+        <param>
+          <type>Symbol *</type>
+          <declname>symbol</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="361" column="3" bodyfile="variantSemantic.h" bodystart="361" bodyend="362"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1ad6d98b63d7f71e581eea89d01e18533c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>semantic::NamedConstInitializerElement::MOVE_ONLY_TYPE</definition>
+        <argsstring>(NamedConstInitializerElement)</argsstring>
+        <name>MOVE_ONLY_TYPE</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::MOVE_ONLY_TYPE</qualifiedname>
+        <param>
+          <type><ref refid="structsemantic_1_1NamedConstInitializerElement" kindref="compound">NamedConstInitializerElement</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="364" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1ab6d57a5aea9c86e21574fb1d65d32d80" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstInitializerElement::isArithmExpr</definition>
+        <argsstring>() const</argsstring>
+        <name>isArithmExpr</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::isArithmExpr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="366" column="8" bodyfile="variantSemantic.h" bodystart="366" bodyend="366"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a40e89972d1bd7ec4db9a96e29f47f854" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstInitializerElement::isArithmConst</definition>
+        <argsstring>() const</argsstring>
+        <name>isArithmConst</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::isArithmConst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="367" column="8" bodyfile="variantSemantic.h" bodystart="367" bodyend="367"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a0ab08fac8e11c63def949d4d049afad0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstInitializerElement::isGlobalVar</definition>
+        <argsstring>() const</argsstring>
+        <name>isGlobalVar</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::isGlobalVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="368" column="8" bodyfile="variantSemantic.h" bodystart="368" bodyend="368"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1aaaf0de3c344f286a47b76bc3d1d590d8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstInitializerElement::isMaterialVar</definition>
+        <argsstring>() const</argsstring>
+        <name>isMaterialVar</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::isMaterialVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="369" column="8" bodyfile="variantSemantic.h" bodystart="369" bodyend="369"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1aac51906d4da1a5ce64776922c091492b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstInitializerElement::isBuiltinVar</definition>
+        <argsstring>() const</argsstring>
+        <name>isBuiltinVar</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::isBuiltinVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="370" column="8" bodyfile="variantSemantic.h" bodystart="370" bodyend="370"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a90d542dc8f9d3a7d439692b4212e6251" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semantic::NamedConstInitializerElement::isShVar</definition>
+        <argsstring>() const</argsstring>
+        <name>isShVar</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::isShVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="372" column="8" bodyfile="variantSemantic.h" bodystart="372" bodyend="372"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a49dc6e99f87b0ec00bf2d3eb7d10ae50" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structsemantic_1_1NamedConstInitializerElement_1aac9b60470a71043a4d02c0208d0406c7" kindref="member">ArithmeticExpr</ref> &amp;</type>
+        <definition>const ArithmeticExpr &amp; semantic::NamedConstInitializerElement::arithmExpr</definition>
+        <argsstring>() const</argsstring>
+        <name>arithmExpr</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::arithmExpr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="374" column="24" bodyfile="variantSemantic.h" bodystart="374" bodyend="378"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a72941db14d1cb41b7bca52a1ce473ca3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structsemantic_1_1NamedConstInitializerElement_1a0d5cb232589dc25fbc5156cc24f412df" kindref="member">ArithmeticConst</ref> &amp;</type>
+        <definition>const ArithmeticConst &amp; semantic::NamedConstInitializerElement::arithmConst</definition>
+        <argsstring>() const</argsstring>
+        <name>arithmConst</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::arithmConst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="379" column="25" bodyfile="variantSemantic.h" bodystart="379" bodyend="383"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1aa78365c5ca396d350accea1f9a9822bc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int semantic::NamedConstInitializerElement::globVarId</definition>
+        <argsstring>() const</argsstring>
+        <name>globVarId</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::globVarId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="384" column="7" bodyfile="variantSemantic.h" bodystart="384" bodyend="388"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a62a3e9a7d630002acf1717cc7d0f483f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int semantic::NamedConstInitializerElement::materialVarId</definition>
+        <argsstring>() const</argsstring>
+        <name>materialVarId</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::materialVarId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="389" column="7" bodyfile="variantSemantic.h" bodystart="389" bodyend="393"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1a2d3e477ad74bc6a1400d9f9f6f8181e2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * semantic::NamedConstInitializerElement::varName</definition>
+        <argsstring>() const</argsstring>
+        <name>varName</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::varName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="394" column="14" bodyfile="variantSemantic.h" bodystart="394" bodyend="398"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1ab2ff899df3d22246d49ff97adcfc869e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>ShaderVarType</type>
+        <definition>ShaderVarType semantic::NamedConstInitializerElement::varType</definition>
+        <argsstring>() const</argsstring>
+        <name>varType</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::varType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="399" column="17" bodyfile="variantSemantic.h" bodystart="399" bodyend="403"/>
+      </memberdef>
+      <memberdef kind="function" id="structsemantic_1_1NamedConstInitializerElement_1ad45dafd9c499726c13ce832c7a80877f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int semantic::NamedConstInitializerElement::builtinVarNum</definition>
+        <argsstring>() const</argsstring>
+        <name>builtinVarNum</name>
+        <qualifiedname>semantic::NamedConstInitializerElement::builtinVarNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variantSemantic.h" line="404" column="7" bodyfile="variantSemantic.h" bodystart="404" bodyend="408"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variantSemantic.h" line="338" column="1" bodyfile="variantSemantic.h" bodystart="339" bodyend="409"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a72941db14d1cb41b7bca52a1ce473ca3" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>arithmConst</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a0d5cb232589dc25fbc5156cc24f412df" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>ArithmeticConst</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1aac9b60470a71043a4d02c0208d0406c7" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>ArithmeticExpr</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a49dc6e99f87b0ec00bf2d3eb7d10ae50" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>arithmExpr</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1ad45dafd9c499726c13ce832c7a80877f" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>builtinVarNum</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1aa78365c5ca396d350accea1f9a9822bc" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>globVarId</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a40e89972d1bd7ec4db9a96e29f47f854" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>isArithmConst</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1ab6d57a5aea9c86e21574fb1d65d32d80" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>isArithmExpr</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1aac51906d4da1a5ce64776922c091492b" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>isBuiltinVar</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a0ab08fac8e11c63def949d4d049afad0" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>isGlobalVar</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1aaaf0de3c344f286a47b76bc3d1d590d8" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>isMaterialVar</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a90d542dc8f9d3a7d439692b4212e6251" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>isShVar</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a62a3e9a7d630002acf1717cc7d0f483f" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>materialVarId</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1ad6d98b63d7f71e581eea89d01e18533c" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>MOVE_ONLY_TYPE</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a23a64d6d469520cb60deaca36c821d6a" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>NamedConstInitializerElement</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a76f671d07429fc35ba4f1229eefc71d9" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>symbol</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1af160684b647e0387d394b1ce75a11cfa" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>value</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1a2d3e477ad74bc6a1400d9f9f6f8181e2" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>varName</name></member>
+      <member refid="structsemantic_1_1NamedConstInitializerElement_1ab2ff899df3d22246d49ff97adcfc869e" prot="public" virt="non-virtual"><scope>semantic::NamedConstInitializerElement</scope><name>varType</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

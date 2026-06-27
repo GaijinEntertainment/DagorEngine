@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGridSettingChangeEventHandler" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGridSettingChangeEventHandler</compoundname>
+    <derivedcompoundref refid="classGenericEditorAppWindow" prot="public" virt="non-virtual">GenericEditorAppWindow</derivedcompoundref>
+    <includes refid="ec__gridobject_8h" local="no">ec_gridobject.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIGridSettingChangeEventHandler_1ad22e76b3e3043df881c0d3808980a3b4" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned IGridSettingChangeEventHandler::HUID</definition>
+        <argsstring></argsstring>
+        <name>HUID</name>
+        <qualifiedname>IGridSettingChangeEventHandler::HUID</qualifiedname>
+        <initializer>= 0xBF98FF84u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="22" column="29" bodyfile="ec_gridobject.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIGridSettingChangeEventHandler_1aa8daec023f3de07bd2aaf1d7b4040eaa" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGridSettingChangeEventHandler::onSnapSettingChanged</definition>
+        <argsstring>()=0</argsstring>
+        <name>onSnapSettingChanged</name>
+        <qualifiedname>IGridSettingChangeEventHandler::onSnapSettingChanged</qualifiedname>
+        <reimplementedby refid="classGenericEditorAppWindow_1a6b14afcdc7269e5f3a2b09792c14e5d3">onSnapSettingChanged</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_gridobject.h" line="20" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>GenericEditorAppWindow</label>
+        <link refid="classGenericEditorAppWindow"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IGridSettingChangeEventHandler</label>
+        <link refid="classIGridSettingChangeEventHandler"/>
+      </node>
+    </inheritancegraph>
+    <location file="ec_gridobject.h" line="16" column="1" bodyfile="ec_gridobject.h" bodystart="17" bodyend="23"/>
+    <listofallmembers>
+      <member refid="classIGridSettingChangeEventHandler_1ad22e76b3e3043df881c0d3808980a3b4" prot="public" virt="non-virtual"><scope>IGridSettingChangeEventHandler</scope><name>HUID</name></member>
+      <member refid="classIGridSettingChangeEventHandler_1aa8daec023f3de07bd2aaf1d7b4040eaa" prot="public" virt="pure-virtual"><scope>IGridSettingChangeEventHandler</scope><name>onSnapSettingChanged</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

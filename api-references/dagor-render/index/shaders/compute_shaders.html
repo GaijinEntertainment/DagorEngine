@@ -1,0 +1,600 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compute Shaders</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Global Shader Variables" href="global_shader_variables.html" />
+    <link rel="prev" title="Render State Overrides" href="Overrides.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Engine Render</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../d3dAPI.html">D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../d3dHelpers.html">Helper Classes for D3D API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daFrameGraph.html">daFrameGraph API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resMgr.html">Managed Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resourceSlot.html">Resource Slots</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../resource_and_execution_barriers.html">Resource and Execution Barriers</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../shaders.html">Shaders</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="Overrides.html">Render State Overrides</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Compute Shaders</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#creating-a-compute-shader">Creating a compute shader</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#setting-parameters">Setting parameters</a></li>
+<li class="toctree-l6"><a class="reference internal" href="#dispatching-work">Dispatching work</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv418new_compute_shaderPKcb"><code class="docutils literal notranslate"><span class="pre">new_compute_shader()</span></code></a></li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv420ComputeShaderElement"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement13set_int_paramEKiKi"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::set_int_param()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement14set_real_paramEKiK4real"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::set_real_param()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement16set_color4_paramEKiRK6Color4"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::set_color4_param()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement17set_texture_paramEKiK9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::set_texture_param()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement17set_sampler_paramEKiN3d3d13SamplerHandleE"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::set_sampler_param()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement11hasVariableEKi"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::hasVariable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement17getColor4VariableEKiR6Color4"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getColor4Variable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement15getRealVariableEKiR4real"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getRealVariable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement14getIntVariableEKiRi"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getIntVariable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement18getTextureVariableEKiR9TEXTUREID"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getTextureVariable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement18getSamplerVariableEKiRN3d3d13SamplerHandleE"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getSamplerVariable()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement19getThreadGroupSizesEv"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getThreadGroupSizes()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement8dispatchEiii11GpuPipelineb"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::dispatch()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement15dispatchThreadsEiii11GpuPipelineb"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::dispatchThreads()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement11getWaveSizeEv"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getWaveSize()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement8dispatchE11GpuPipelineb"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::dispatch()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement17dispatch_indirectEP7Sbufferi11GpuPipelineb"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::dispatch_indirect()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement20ComputeShaderElementEP22ScriptedShaderMaterialP13ShaderElement"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::ComputeShaderElement()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElementD0Ev"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::~ComputeShaderElement()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement18getShaderClassNameEv"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getShaderClassName()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement9setStatesEv"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::setStates()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK20ComputeShaderElement17getComputeProgramEv"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::getComputeProgram()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement3matE"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::mat</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N20ComputeShaderElement4elemE"><code class="docutils literal notranslate"><span class="pre">ComputeShaderElement::elem</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l6"><a class="reference internal" href="#_CPPv413ComputeShader"><code class="docutils literal notranslate"><span class="pre">ComputeShader</span></code></a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N13ComputeShader13ComputeShaderEv"><code class="docutils literal notranslate"><span class="pre">ComputeShader::ComputeShader()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N13ComputeShader13ComputeShaderEPKcb"><code class="docutils literal notranslate"><span class="pre">ComputeShader::ComputeShader()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK13ComputeShader15dispatchThreadsEiii"><code class="docutils literal notranslate"><span class="pre">ComputeShader::dispatchThreads()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK13ComputeShader14dispatchGroupsEiii"><code class="docutils literal notranslate"><span class="pre">ComputeShader::dispatchGroups()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK13ComputeShader16dispatchIndirectEP7Sbufferi"><code class="docutils literal notranslate"><span class="pre">ComputeShader::dispatchIndirect()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK13ComputeShader17getComputeProgramEv"><code class="docutils literal notranslate"><span class="pre">ComputeShader::getComputeProgram()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4NK13ComputeShadercvbEv"><code class="docutils literal notranslate"><span class="pre">ComputeShader::operator</span> <span class="pre">bool()</span></code></a></li>
+<li class="toctree-l7"><a class="reference internal" href="#_CPPv4N13ComputeShader4elemE"><code class="docutils literal notranslate"><span class="pre">ComputeShader::elem</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="global_shader_variables.html">Global Shader Variables</a></li>
+<li class="toctree-l4"><a class="reference internal" href="shader_material_system.html">Shader Material System</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../quirrel-modules/index.html">Dagor Quirrel Modules Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Engine Render</a></li>
+          <li class="breadcrumb-item"><a href="../shaders.html">Shaders</a></li>
+      <li class="breadcrumb-item active">Compute Shaders</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/dagor-render/index/shaders/compute_shaders.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="compute-shaders">
+<h1>Compute Shaders<a class="headerlink" href="#compute-shaders" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The compute shader API provides two classes for dispatching GPU compute work:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#_CPPv420ComputeShaderElement" title="ComputeShaderElement"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ComputeShaderElement</span></code></a> – low-level compute shader element with full control
+over parameter binding, dispatch modes, and GPU pipeline selection.</p></li>
+<li><p><a class="reference internal" href="#_CPPv413ComputeShader" title="ComputeShader"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ComputeShader</span></code></a> – lightweight RAII wrapper for the common case of
+creating a shader by name and dispatching work.</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Avoid using <a class="reference internal" href="#_CPPv420ComputeShaderElement" title="ComputeShaderElement"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ComputeShaderElement</span></code></a> directly. It returns a raw
+pointer from <a class="reference internal" href="#_CPPv418new_compute_shaderPKcb" title="new_compute_shader"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">new_compute_shader()</span></code></a> that must be manually deleted,
+making it easy to leak memory. Prefer <a class="reference internal" href="#_CPPv413ComputeShader" title="ComputeShader"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ComputeShader</span></code></a> which
+manages lifetime automatically via <code class="docutils literal notranslate"><span class="pre">eastl::unique_ptr</span></code>.</p>
+</div>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<section id="creating-a-compute-shader">
+<h3>Creating a compute shader<a class="headerlink" href="#creating-a-compute-shader" title="Link to this heading"></a></h3>
+<p>Use the <a class="reference internal" href="#_CPPv413ComputeShader" title="ComputeShader"><code class="xref cpp cpp-class docutils literal notranslate"><span class="pre">ComputeShader</span></code></a> RAII wrapper:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;shaders/dag_computeShaders.h&gt;</span>
+
+<span class="n">ComputeShader</span><span class="w"> </span><span class="n">cs</span><span class="p">(</span><span class="s">&quot;my_compute_shader&quot;</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cs</span><span class="p">)</span>
+<span class="w">  </span><span class="n">cs</span><span class="p">.</span><span class="n">dispatchThreads</span><span class="p">(</span><span class="n">width</span><span class="p">,</span><span class="w"> </span><span class="n">height</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="setting-parameters">
+<h3>Setting parameters<a class="headerlink" href="#setting-parameters" title="Link to this heading"></a></h3>
+<p>Shader parameters are set via variable IDs obtained from
+<a class="reference internal" href="shader_material_system.html#_CPPv422get_shader_variable_idPKcb" title="get_shader_variable_id"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">get_shader_variable_id()</span></code></a>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">varId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_shader_variable_id</span><span class="p">(</span><span class="s">&quot;some_param&quot;</span><span class="p">);</span>
+<span class="n">cs</span><span class="o">-&gt;</span><span class="n">set_color4_param</span><span class="p">(</span><span class="n">varId</span><span class="p">,</span><span class="w"> </span><span class="n">Color4</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">));</span>
+<span class="n">cs</span><span class="o">-&gt;</span><span class="n">set_texture_param</span><span class="p">(</span><span class="n">texVarId</span><span class="p">,</span><span class="w"> </span><span class="n">textureId</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="dispatching-work">
+<h3>Dispatching work<a class="headerlink" href="#dispatching-work" title="Link to this heading"></a></h3>
+<p>There are three dispatch modes:</p>
+<ul class="simple">
+<li><p><strong>By thread groups</strong> – <a class="reference internal" href="#_CPPv4NK20ComputeShaderElement8dispatchEiii11GpuPipelineb" title="ComputeShaderElement::dispatch"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">ComputeShaderElement::dispatch()</span></code></a> dispatches
+the specified number of thread groups directly.</p></li>
+<li><p><strong>By total threads</strong> – <a class="reference internal" href="#_CPPv4NK20ComputeShaderElement15dispatchThreadsEiii11GpuPipelineb" title="ComputeShaderElement::dispatchThreads"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">ComputeShaderElement::dispatchThreads()</span></code></a>
+takes the desired total thread count and automatically divides by the shader’s
+thread group sizes (rounding up).</p></li>
+<li><p><strong>Indirect</strong> – <a class="reference internal" href="#_CPPv4NK20ComputeShaderElement17dispatch_indirectEP7Sbufferi11GpuPipelineb" title="ComputeShaderElement::dispatch_indirect"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">ComputeShaderElement::dispatch_indirect()</span></code></a> reads
+dispatch arguments from a GPU buffer. The buffer must contain 3 <code class="docutils literal notranslate"><span class="pre">uint32_t</span></code>
+values (<code class="docutils literal notranslate"><span class="pre">groupCountX</span></code>, <code class="docutils literal notranslate"><span class="pre">groupCountY</span></code>, <code class="docutils literal notranslate"><span class="pre">groupCountZ</span></code>) at the given byte
+offset. The buffer must be created with <code class="docutils literal notranslate"><span class="pre">SBCF_BIND_UNORDERED</span></code> and
+<code class="docutils literal notranslate"><span class="pre">SBCF_MISC_DRAWINDIRECT</span></code> flags (e.g. via <code class="docutils literal notranslate"><span class="pre">d3d::buffers::create_ua_indirect</span></code>
+with <code class="docutils literal notranslate"><span class="pre">Indirect::Dispatch</span></code>). When storing multiple dispatch entries in a single
+buffer, the byte offset should be a multiple of <code class="docutils literal notranslate"><span class="pre">DISPATCH_INDIRECT_BUFFER_SIZE</span></code>
+(12 bytes).</p></li>
+</ul>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Dispatch by thread groups</span>
+<span class="n">cs</span><span class="o">-&gt;</span><span class="n">dispatch</span><span class="p">(</span><span class="n">groupsX</span><span class="p">,</span><span class="w"> </span><span class="n">groupsY</span><span class="p">,</span><span class="w"> </span><span class="n">groupsZ</span><span class="p">);</span>
+
+<span class="c1">// Dispatch by total thread count (auto-divides by thread group size)</span>
+<span class="n">cs</span><span class="o">-&gt;</span><span class="n">dispatchThreads</span><span class="p">(</span><span class="n">totalX</span><span class="p">,</span><span class="w"> </span><span class="n">totalY</span><span class="p">,</span><span class="w"> </span><span class="n">totalZ</span><span class="p">);</span>
+
+<span class="c1">// Indirect dispatch from a GPU buffer</span>
+<span class="n">cs</span><span class="o">-&gt;</span><span class="n">dispatch_indirect</span><span class="p">(</span><span class="n">argsBuffer</span><span class="p">,</span><span class="w"> </span><span class="n">byteOffset</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h2>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-functions">Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv418new_compute_shaderPKcb">
+<span id="_CPPv318new_compute_shaderPKcb"></span><span id="_CPPv218new_compute_shaderPKcb"></span><span id="new_compute_shader__cCP.b"></span><span class="target" id="dag__computeShaders_8h_1ac94fc8f56572fb878cd0b34253210050"></span><a class="reference internal" href="#_CPPv420ComputeShaderElement" title="ComputeShaderElement"><span class="n"><span class="pre">ComputeShaderElement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">new_compute_shader</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">shader_name</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">optional</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv418new_compute_shaderPKcb" title="Link to this definition"></a><br /></dt>
+<dd><p>Creates a <a class="reference internal" href="#classComputeShaderElement"><span class="std std-ref">ComputeShaderElement</span></a> from a DSHL shader class name. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shader_name</strong> – Name of the compute shader class defined in DSHL. </p></li>
+<li><p><strong>optional</strong> – If true, returns nullptr instead of asserting when the shader is not found. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pointer to a new <a class="reference internal" href="#classComputeShaderElement"><span class="std std-ref">ComputeShaderElement</span></a>, or nullptr if <code class="docutils literal notranslate"><span class="pre">optional</span></code> is true and the shader was not found. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv420ComputeShaderElement">
+<span id="_CPPv320ComputeShaderElement"></span><span id="_CPPv220ComputeShaderElement"></span><span id="ComputeShaderElement"></span><span class="target" id="classComputeShaderElement"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ComputeShaderElement</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">DObject</span></span><a class="headerlink" href="#_CPPv420ComputeShaderElement" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_computeShaders.h&gt;</em></div>
+<p>Compute shader element with full control over parameter binding and dispatch.</p>
+<p>Created via new_compute_shader(). Wraps a ScriptedShaderMaterial and provides methods to set shader parameters, query thread group sizes, and dispatch compute work on the GPU. </p>
+<p>Subclassed by MeshShaderElement</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-parameter-setters">Parameter setters</p>
+<p>Set shader parameters by variable ID (obtained from get_shader_variable_id()). <dl class="field-list simple">
+<dt class="field-odd">return<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the variable was found and set successfully. </p>
+</dd>
+</dl>
+</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement13set_int_paramEKiKi">
+<span id="_CPPv3N20ComputeShaderElement13set_int_paramEKiKi"></span><span id="_CPPv2N20ComputeShaderElement13set_int_paramEKiKi"></span><span id="ComputeShaderElement::set_int_param__iC.iC"></span><span class="target" id="classComputeShaderElement_1a8e44076ffcb44659abe7f688844bd46a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_int_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement13set_int_paramEKiKi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement14set_real_paramEKiK4real">
+<span id="_CPPv3N20ComputeShaderElement14set_real_paramEKiK4real"></span><span id="_CPPv2N20ComputeShaderElement14set_real_paramEKiK4real"></span><span id="ComputeShaderElement::set_real_param__iC.realC"></span><span class="target" id="classComputeShaderElement_1a40b64dc37e30fbca83b413bdabcd8559"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_real_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv44real" title="real"><span class="n"><span class="pre">real</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement14set_real_paramEKiK4real" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement16set_color4_paramEKiRK6Color4">
+<span id="_CPPv3N20ComputeShaderElement16set_color4_paramEKiRK6Color4"></span><span id="_CPPv2N20ComputeShaderElement16set_color4_paramEKiRK6Color4"></span><span id="ComputeShaderElement::set_color4_param__iC.Color4CR"></span><span class="target" id="classComputeShaderElement_1a6dd7d75054611f2b0fb2a63615560e76"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_color4_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="n"><span class="pre">Color4</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement16set_color4_paramEKiRK6Color4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement17set_texture_paramEKiK9TEXTUREID">
+<span id="_CPPv3N20ComputeShaderElement17set_texture_paramEKiK9TEXTUREID"></span><span id="_CPPv2N20ComputeShaderElement17set_texture_paramEKiK9TEXTUREID"></span><span id="ComputeShaderElement::set_texture_param__iC.TEXTUREIDC"></span><span class="target" id="classComputeShaderElement_1a838353d33ef499b4900de748e31ad53f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_texture_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement17set_texture_paramEKiK9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement17set_sampler_paramEKiN3d3d13SamplerHandleE">
+<span id="_CPPv3N20ComputeShaderElement17set_sampler_paramEKiN3d3d13SamplerHandleE"></span><span id="_CPPv2N20ComputeShaderElement17set_sampler_paramEKiN3d3d13SamplerHandleE"></span><span id="ComputeShaderElement::set_sampler_param__iC.d3d::SamplerHandle"></span><span class="target" id="classComputeShaderElement_1ae26a9a9301a449d8e92e28b157536ce3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_sampler_param</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <a class="reference internal" href="../d3dAPI/Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SamplerHandle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement17set_sampler_paramEKiN3d3d13SamplerHandleE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-parameter-getters">Parameter getters</p>
+<p>Query current parameter values. <dl class="field-list simple">
+<dt class="field-odd">return<span class="colon">:</span></dt>
+<dd class="field-odd"><p>true if the variable exists. </p>
+</dd>
+</dl>
+</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement11hasVariableEKi">
+<span id="_CPPv3NK20ComputeShaderElement11hasVariableEKi"></span><span id="_CPPv2NK20ComputeShaderElement11hasVariableEKi"></span><span id="ComputeShaderElement::hasVariable__iCC"></span><span class="target" id="classComputeShaderElement_1a9553e3df5df9b69a31284c01a7b0aae9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hasVariable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement11hasVariableEKi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement17getColor4VariableEKiR6Color4">
+<span id="_CPPv3NK20ComputeShaderElement17getColor4VariableEKiR6Color4"></span><span id="_CPPv2NK20ComputeShaderElement17getColor4VariableEKiR6Color4"></span><span id="ComputeShaderElement::getColor4Variable__iC.Color4RC"></span><span class="target" id="classComputeShaderElement_1a3b7028a2fadd615294c5bcd1cf0a31d1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getColor4Variable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="n"><span class="pre">Color4</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement17getColor4VariableEKiR6Color4" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement15getRealVariableEKiR4real">
+<span id="_CPPv3NK20ComputeShaderElement15getRealVariableEKiR4real"></span><span id="_CPPv2NK20ComputeShaderElement15getRealVariableEKiR4real"></span><span id="ComputeShaderElement::getRealVariable__iC.realRC"></span><span class="target" id="classComputeShaderElement_1afca9c7e40fa66153f9db32881d97a0ab"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRealVariable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <a class="reference internal" href="../../../dagor-tools/maxplug/maxplug.html#_CPPv44real" title="real"><span class="n"><span class="pre">real</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement15getRealVariableEKiR4real" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement14getIntVariableEKiRi">
+<span id="_CPPv3NK20ComputeShaderElement14getIntVariableEKiRi"></span><span id="_CPPv2NK20ComputeShaderElement14getIntVariableEKiRi"></span><span id="ComputeShaderElement::getIntVariable__iC.iRC"></span><span class="target" id="classComputeShaderElement_1a7875e9beabf1698628af1d0bed014177"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getIntVariable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement14getIntVariableEKiRi" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement18getTextureVariableEKiR9TEXTUREID">
+<span id="_CPPv3NK20ComputeShaderElement18getTextureVariableEKiR9TEXTUREID"></span><span id="_CPPv2NK20ComputeShaderElement18getTextureVariableEKiR9TEXTUREID"></span><span id="ComputeShaderElement::getTextureVariable__iC.TEXTUREIDRC"></span><span class="target" id="classComputeShaderElement_1a23f6c7b341dd214b2612aeb0e9dd2f83"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getTextureVariable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <a class="reference internal" href="../resMgr/resid.html#_CPPv49TEXTUREID" title="TEXTUREID"><span class="n"><span class="pre">TEXTUREID</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement18getTextureVariableEKiR9TEXTUREID" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement18getSamplerVariableEKiRN3d3d13SamplerHandleE">
+<span id="_CPPv3NK20ComputeShaderElement18getSamplerVariableEKiRN3d3d13SamplerHandleE"></span><span id="_CPPv2NK20ComputeShaderElement18getSamplerVariableEKiRN3d3d13SamplerHandleE"></span><span id="ComputeShaderElement::getSamplerVariable__iC.d3d::SamplerHandleRC"></span><span class="target" id="classComputeShaderElement_1a37a3cd4e32756d8df07111a448badb7c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getSamplerVariable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">variable_id</span></span>, <a class="reference internal" href="../d3dAPI/Bindless.html#_CPPv43d3d" title="d3d"><span class="n"><span class="pre">d3d</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SamplerHandle</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement18getSamplerVariableEKiRN3d3d13SamplerHandleE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-dispatch">Dispatch</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement19getThreadGroupSizesEv">
+<span id="_CPPv3NK20ComputeShaderElement19getThreadGroupSizesEv"></span><span id="_CPPv2NK20ComputeShaderElement19getThreadGroupSizesEv"></span><span id="ComputeShaderElement::getThreadGroupSizesC"></span><span class="target" id="classComputeShaderElement_1af3e0e4b39959c4bb1ceeeb4c55420168"></span><a class="reference internal" href="../d3dAPI/Heap.html#_CPPv45eastl" title="eastl"><span class="n"><span class="pre">eastl</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint16_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getThreadGroupSizes</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement19getThreadGroupSizesEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the thread group sizes (X, Y, Z) declared in the shader. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement8dispatchEiii11GpuPipelineb">
+<span id="_CPPv3NK20ComputeShaderElement8dispatchEiii11GpuPipelineb"></span><span id="_CPPv2NK20ComputeShaderElement8dispatchEiii11GpuPipelineb"></span><span id="ComputeShaderElement::dispatch__i.i.i.GpuPipeline.bC"></span><span class="target" id="classComputeShaderElement_1a86fe1a57e83377e47c218aa4feeaf84b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatch</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tgx</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tgy</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tgz</span></span>, <a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">set_states</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement8dispatchEiii11GpuPipelineb" title="Link to this definition"></a><br /></dt>
+<dd><p>Dispatches the specified number of thread groups. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tgx</strong> – Number of thread groups in X. </p></li>
+<li><p><strong>tgy</strong> – Number of thread groups in Y. </p></li>
+<li><p><strong>tgz</strong> – Number of thread groups in Z. </p></li>
+<li><p><strong>gpu_pipeline</strong> – GPU pipeline to dispatch on. </p></li>
+<li><p><strong>set_states</strong> – If true, binds shader states before dispatch. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement15dispatchThreadsEiii11GpuPipelineb">
+<span id="_CPPv3NK20ComputeShaderElement15dispatchThreadsEiii11GpuPipelineb"></span><span id="_CPPv2NK20ComputeShaderElement15dispatchThreadsEiii11GpuPipelineb"></span><span id="ComputeShaderElement::dispatchThreads__i.i.i.GpuPipeline.bC"></span><span class="target" id="classComputeShaderElement_1a8b7e29e926c38836c1e49f5319d6dd31"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatchThreads</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">threads_x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">threads_y</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">threads_z</span></span>, <a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">set_states</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement15dispatchThreadsEiii11GpuPipelineb" title="Link to this definition"></a><br /></dt>
+<dd><p>Dispatches by total thread count, automatically dividing by thread group sizes (rounding up). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>threads_x</strong> – Total threads in X. </p></li>
+<li><p><strong>threads_y</strong> – Total threads in Y. </p></li>
+<li><p><strong>threads_z</strong> – Total threads in Z. </p></li>
+<li><p><strong>gpu_pipeline</strong> – GPU pipeline to dispatch on. </p></li>
+<li><p><strong>set_states</strong> – If true, binds shader states before dispatch. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement11getWaveSizeEv">
+<span id="_CPPv3NK20ComputeShaderElement11getWaveSizeEv"></span><span id="_CPPv2NK20ComputeShaderElement11getWaveSizeEv"></span><span id="ComputeShaderElement::getWaveSizeC"></span><span class="target" id="classComputeShaderElement_1afdab12d747f458137d42df5987a1f586"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getWaveSize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement11getWaveSizeEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the wave/warp size for this shader. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement8dispatchE11GpuPipelineb">
+<span id="_CPPv3NK20ComputeShaderElement8dispatchE11GpuPipelineb"></span><span id="_CPPv2NK20ComputeShaderElement8dispatchE11GpuPipelineb"></span><span id="ComputeShaderElement::dispatch__GpuPipeline.bC"></span><span class="target" id="classComputeShaderElement_1a38ac36f8537bd052d3e29695c5b91204"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatch</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">set_states</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement8dispatchE11GpuPipelineb" title="Link to this definition"></a><br /></dt>
+<dd><p>Dispatches a single thread group (1, 1, 1). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement17dispatch_indirectEP7Sbufferi11GpuPipelineb">
+<span id="_CPPv3NK20ComputeShaderElement17dispatch_indirectEP7Sbufferi11GpuPipelineb"></span><span id="_CPPv2NK20ComputeShaderElement17dispatch_indirectEP7Sbufferi11GpuPipelineb"></span><span id="ComputeShaderElement::dispatch_indirect__SbufferP.i.GpuPipeline.bC"></span><span class="target" id="classComputeShaderElement_1a955c06d787ea766003061d7741ae66db"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatch_indirect</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../d3dAPI/Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">args</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs</span></span>, <a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">gpu_pipeline</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv411GpuPipeline" title="GpuPipeline"><span class="n"><span class="pre">GpuPipeline</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv4N11GpuPipeline8GRAPHICSE" title="GpuPipeline::GRAPHICS"><span class="n"><span class="pre">GRAPHICS</span></span></a>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">set_states</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement17dispatch_indirectEP7Sbufferi11GpuPipelineb" title="Link to this definition"></a><br /></dt>
+<dd><p>Dispatches using indirect arguments read from a GPU buffer. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – Buffer containing dispatch arguments (3 uint32_t values: groupCountX, groupCountY, groupCountZ). Must be created with SBCF_BIND_UNORDERED and SBCF_MISC_DRAWINDIRECT flags (e.g. via d3d::buffers::create_ua_indirect with Indirect::Dispatch). </p></li>
+<li><p><strong>ofs</strong> – Byte offset into <code class="docutils literal notranslate"><span class="pre">args</span></code> where the arguments start. Must be a multiple of DISPATCH_INDIRECT_BUFFER_SIZE (12 bytes) when accessing sequential dispatch entries in the buffer. </p></li>
+<li><p><strong>gpu_pipeline</strong> – GPU pipeline to dispatch on. </p></li>
+<li><p><strong>set_states</strong> – If true, binds shader states before dispatch. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>true on success. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement20ComputeShaderElementEP22ScriptedShaderMaterialP13ShaderElement">
+<span id="_CPPv3N20ComputeShaderElement20ComputeShaderElementEP22ScriptedShaderMaterialP13ShaderElement"></span><span id="_CPPv2N20ComputeShaderElement20ComputeShaderElementEP22ScriptedShaderMaterialP13ShaderElement"></span><span id="ComputeShaderElement::ComputeShaderElement__ScriptedShaderMaterialP.ShaderElementP"></span><span class="target" id="classComputeShaderElement_1aa52828ddb2a7f2bfe86aeaf291f501b2"></span><span class="sig-name descname"><span class="n"><span class="pre">ComputeShaderElement</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ScriptedShaderMaterial</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ssm</span></span>, <a class="reference internal" href="shader_material_system.html#_CPPv413ShaderElement" title="ShaderElement"><span class="n"><span class="pre">ShaderElement</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">selem</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement20ComputeShaderElementEP22ScriptedShaderMaterialP13ShaderElement" title="Link to this definition"></a><br /></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ssm</strong> – Scripted shader material that defines this compute shader. </p></li>
+<li><p><strong>selem</strong> – Optional shader element override; if null, created from <code class="docutils literal notranslate"><span class="pre">ssm</span></code>. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElementD0Ev">
+<span id="_CPPv3N20ComputeShaderElementD0Ev"></span><span id="_CPPv2N20ComputeShaderElementD0Ev"></span><span id="ComputeShaderElement::~ComputeShaderElement"></span><span class="target" id="classComputeShaderElement_1aca1d0189aa7ae363f382504186f0bcfc"></span><span class="sig-name descname"><span class="n"><span class="pre">~ComputeShaderElement</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N20ComputeShaderElementD0Ev" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement18getShaderClassNameEv">
+<span id="_CPPv3NK20ComputeShaderElement18getShaderClassNameEv"></span><span id="_CPPv2NK20ComputeShaderElement18getShaderClassNameEv"></span><span id="ComputeShaderElement::getShaderClassNameC"></span><span class="target" id="classComputeShaderElement_1ad73f21b28186fcefb8f0e9c2da08e8bf"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getShaderClassName</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement18getShaderClassNameEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the DSHL shader class name. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement9setStatesEv">
+<span id="_CPPv3NK20ComputeShaderElement9setStatesEv"></span><span id="_CPPv2NK20ComputeShaderElement9setStatesEv"></span><span id="ComputeShaderElement::setStatesC"></span><span class="target" id="classComputeShaderElement_1ab7238a3654b4fe7305d316fd90e536c1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setStates</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement9setStatesEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Binds shader states without dispatching. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK20ComputeShaderElement17getComputeProgramEv">
+<span id="_CPPv3NK20ComputeShaderElement17getComputeProgramEv"></span><span id="_CPPv2NK20ComputeShaderElement17getComputeProgramEv"></span><span id="ComputeShaderElement::getComputeProgramC"></span><span class="target" id="classComputeShaderElement_1a2ef12b2d6df4e1efd0f6a7232baad47b"></span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv47PROGRAM" title="PROGRAM"><span class="n"><span class="pre">PROGRAM</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getComputeProgram</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK20ComputeShaderElement17getComputeProgramEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the underlying compute program handle. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-attributes">Protected Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement3matE">
+<span id="_CPPv3N20ComputeShaderElement3matE"></span><span id="_CPPv2N20ComputeShaderElement3matE"></span><span id="ComputeShaderElement::mat__ScriptedShaderMaterialP"></span><span class="target" id="classComputeShaderElement_1a21ffc6410251876b9e1ab6c143ad73df"></span><span class="n"><span class="pre">ScriptedShaderMaterial</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">mat</span></span></span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement3matE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N20ComputeShaderElement4elemE">
+<span id="_CPPv3N20ComputeShaderElement4elemE"></span><span id="_CPPv2N20ComputeShaderElement4elemE"></span><span id="ComputeShaderElement::elem__ScriptedShaderElementP"></span><span class="target" id="classComputeShaderElement_1a9f6f0fb75c7fb291924ecef4f18d9fae"></span><span class="n"><span class="pre">ScriptedShaderElement</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">elem</span></span></span><a class="headerlink" href="#_CPPv4N20ComputeShaderElement4elemE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv413ComputeShader">
+<span id="_CPPv313ComputeShader"></span><span id="_CPPv213ComputeShader"></span><span id="ComputeShader"></span><span class="target" id="classComputeShader"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ComputeShader</span></span></span><a class="headerlink" href="#_CPPv413ComputeShader" title="Link to this definition"></a><br /></dt>
+<dd><div class="docutils container">
+<em>#include &lt;dag_computeShaders.h&gt;</em></div>
+<p>Lightweight RAII wrapper around <a class="reference internal" href="#classComputeShaderElement"><span class="std std-ref">ComputeShaderElement</span></a> for common dispatch patterns.</p>
+<p>Manages the lifetime of the underlying <a class="reference internal" href="#classComputeShaderElement"><span class="std std-ref">ComputeShaderElement</span></a> and provides a simplified dispatch interface that always uses GpuPipeline::GRAPHICS. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N13ComputeShader13ComputeShaderEv">
+<span id="_CPPv3N13ComputeShader13ComputeShaderEv"></span><span id="_CPPv2N13ComputeShader13ComputeShaderEv"></span><span id="ComputeShader::ComputeShader"></span><span class="target" id="classComputeShader_1a5ed49609315692c5fefb4559e4d868a1"></span><span class="sig-name descname"><span class="n"><span class="pre">ComputeShader</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N13ComputeShader13ComputeShaderEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N13ComputeShader13ComputeShaderEPKcb">
+<span id="_CPPv3N13ComputeShader13ComputeShaderEPKcb"></span><span id="_CPPv2N13ComputeShader13ComputeShaderEPKcb"></span><span id="ComputeShader::ComputeShader__cCP.b"></span><span class="target" id="classComputeShader_1af5c38bff47f19f34d7ee340068467390"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ComputeShader</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">shader_name</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">optional</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N13ComputeShader13ComputeShaderEPKcb" title="Link to this definition"></a><br /></dt>
+<dd><p>Constructs a compute shader from a DSHL shader class name. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shader_name</strong> – Name of the compute shader class. If nullptr, creates an empty (invalid) shader. </p></li>
+<li><p><strong>optional</strong> – If true, silently handles missing shaders instead of asserting. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK13ComputeShader15dispatchThreadsEiii">
+<span id="_CPPv3NK13ComputeShader15dispatchThreadsEiii"></span><span id="_CPPv2NK13ComputeShader15dispatchThreadsEiii"></span><span id="ComputeShader::dispatchThreads__i.i.iC"></span><span class="target" id="classComputeShader_1aac0aed13e2087c10800043314849ed3d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatchThreads</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">threads_x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">threads_y</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">threads_z</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK13ComputeShader15dispatchThreadsEiii" title="Link to this definition"></a><br /></dt>
+<dd><p>Dispatches by total thread count, auto-dividing by thread group sizes. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK13ComputeShader14dispatchGroupsEiii">
+<span id="_CPPv3NK13ComputeShader14dispatchGroupsEiii"></span><span id="_CPPv2NK13ComputeShader14dispatchGroupsEiii"></span><span id="ComputeShader::dispatchGroups__i.i.iC"></span><span class="target" id="classComputeShader_1a24da4264ae40e3254b8bd35623ed4944"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatchGroups</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">groups_x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">groups_y</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">groups_z</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK13ComputeShader14dispatchGroupsEiii" title="Link to this definition"></a><br /></dt>
+<dd><p>Dispatches the specified number of thread groups. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK13ComputeShader16dispatchIndirectEP7Sbufferi">
+<span id="_CPPv3NK13ComputeShader16dispatchIndirectEP7Sbufferi"></span><span id="_CPPv2NK13ComputeShader16dispatchIndirectEP7Sbufferi"></span><span id="ComputeShader::dispatchIndirect__SbufferP.iC"></span><span class="target" id="classComputeShader_1ae5773a4292509486176283254175bda1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dispatchIndirect</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../d3dAPI/Buffers.html#_CPPv47Sbuffer" title="Sbuffer"><span class="n"><span class="pre">Sbuffer</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">args</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ofs</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK13ComputeShader16dispatchIndirectEP7Sbufferi" title="Link to this definition"></a><br /></dt>
+<dd><p>Dispatches using indirect arguments from a GPU buffer. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK13ComputeShader17getComputeProgramEv">
+<span id="_CPPv3NK13ComputeShader17getComputeProgramEv"></span><span id="_CPPv2NK13ComputeShader17getComputeProgramEv"></span><span id="ComputeShader::getComputeProgramC"></span><span class="target" id="classComputeShader_1af8bc3b455d708029fc7660e0a8e34da8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="../d3dAPI/constants.html#_CPPv47PROGRAM" title="PROGRAM"><span class="n"><span class="pre">PROGRAM</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getComputeProgram</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK13ComputeShader17getComputeProgramEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns the underlying compute program handle. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK13ComputeShadercvbEv">
+<span id="_CPPv3NK13ComputeShadercvbEv"></span><span id="_CPPv2NK13ComputeShadercvbEv"></span><span id="ComputeShader::castto-b-operatorC"></span><span class="target" id="classComputeShader_1af8ba99e8f76ef61c1f20023a0d993174"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK13ComputeShadercvbEv" title="Link to this definition"></a><br /></dt>
+<dd><p>Returns true if the shader was loaded successfully. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-private-members">Private Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N13ComputeShader4elemE">
+<span id="_CPPv3N13ComputeShader4elemE"></span><span id="_CPPv2N13ComputeShader4elemE"></span><span id="ComputeShader::elem__eastl::unique_ptr:ComputeShaderElement:"></span><span class="target" id="classComputeShader_1ae572025e5e13f21bcf138df1f7e689e2"></span><a class="reference internal" href="../d3dAPI/Heap.html#_CPPv45eastl" title="eastl"><span class="n"><span class="pre">eastl</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv420ComputeShaderElement" title="ComputeShaderElement"><span class="n"><span class="pre">ComputeShaderElement</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">elem</span></span></span><a class="headerlink" href="#_CPPv4N13ComputeShader4elemE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Overrides.html" class="btn btn-neutral float-left" title="Render State Overrides" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="global_shader_variables.html" class="btn btn-neutral float-right" title="Global Shader Variables" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2026.
+      <span class="lastupdated">Last updated on Jun 27, 2026.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

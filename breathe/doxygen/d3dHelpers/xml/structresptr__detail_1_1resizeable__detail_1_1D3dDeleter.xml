@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter" kind="struct" language="C++" prot="public">
+    <compoundname>resptr_detail::resizeable_detail::D3dDeleter</compoundname>
+    <includes refid="dag__resizableTex_8h" local="no">dag_resizableTex.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter_1a7beacd0ce20df72a8a30e525965e6881" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::resizeable_detail::D3dDeleter::operator()</definition>
+        <argsstring>(BaseTexture *tex) const</argsstring>
+        <name>operator()</name>
+        <qualifiedname>resptr_detail::resizeable_detail::D3dDeleter::operator()</qualifiedname>
+        <param>
+          <type>BaseTexture *</type>
+          <declname>tex</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resizableTex.h" line="23" column="8" bodyfile="dag_resizableTex.h" bodystart="23" bodyend="23"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resizableTex.h" line="21" column="1" bodyfile="dag_resizableTex.h" bodystart="22" bodyend="24"/>
+    <listofallmembers>
+      <member refid="structresptr__detail_1_1resizeable__detail_1_1D3dDeleter_1a7beacd0ce20df72a8a30e525965e6881" prot="public" virt="non-virtual"><scope>resptr_detail::resizeable_detail::D3dDeleter</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

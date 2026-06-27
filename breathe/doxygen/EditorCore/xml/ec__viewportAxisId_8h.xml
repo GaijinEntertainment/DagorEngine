@@ -1,0 +1,139 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__viewportAxisId_8h" kind="file" language="C++">
+    <compoundname>ec_viewportAxisId.h</compoundname>
+    <includedby refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includedby>
+    <invincdepgraph>
+      <node id="7">
+        <label>ec_IGizmoObject.h</label>
+        <link refid="ec__IGizmoObject_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_ViewportWindow.h</label>
+        <link refid="ec__ViewportWindow_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="4">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ec_geneditordata.h</label>
+        <link refid="ec__geneditordata_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>ec_gizmofilter.h</label>
+        <link refid="ec__gizmofilter_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_viewportAxisId.h</label>
+        <link refid="ec__viewportAxisId_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ViewportAxisId</name>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a6adf97f83acf6453d4a6a4b1070f3754" prot="public">
+          <name>None</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a02129bb861061d1a052c592e2dc6b383" prot="public">
+          <name>X</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a57cec4137b614c87cb4e24a3d003a3e0" prot="public">
+          <name>Y</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a21c2e59531c8710156d34a3c30ac81d5" prot="public">
+          <name>Z</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a963a8a64a09d54efc81b136ca6be21b2" prot="public">
+          <name>NegativeX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3ae4d5f02ceecd15caf66e9f0b2393c86b" prot="public">
+          <name>NegativeY</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3ada76df034cd139bd515761c8bb8e3090" prot="public">
+          <name>NegativeZ</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a36ab4213119ec4f81774878b8d6f3806" prot="public">
+          <name>RotatorCircle</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_viewportAxisId.h" line="4" column="1" bodyfile="ec_viewportAxisId.h" bodystart="5" bodyend="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3" kindref="member">ViewportAxisId</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a6adf97f83acf6453d4a6a4b1070f3754" kindref="member">None</ref>,</highlight></codeline>
+<codeline lineno="7"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a02129bb861061d1a052c592e2dc6b383" kindref="member">X</ref>,</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a57cec4137b614c87cb4e24a3d003a3e0" kindref="member">Y</ref>,</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a21c2e59531c8710156d34a3c30ac81d5" kindref="member">Z</ref>,</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a963a8a64a09d54efc81b136ca6be21b2" kindref="member">NegativeX</ref>,</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3ae4d5f02ceecd15caf66e9f0b2393c86b" kindref="member">NegativeY</ref>,</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3ada76df034cd139bd515761c8bb8e3090" kindref="member">NegativeZ</ref>,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/><ref refid="ec__viewportAxisId_8h_1a4acff20fd3f2d85d62c924ce892d82e3a36ab4213119ec4f81774878b8d6f3806" kindref="member">RotatorCircle</ref>,</highlight></codeline>
+<codeline lineno="14"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_viewportAxisId.h"/>
+  </compounddef>
+</doxygen>

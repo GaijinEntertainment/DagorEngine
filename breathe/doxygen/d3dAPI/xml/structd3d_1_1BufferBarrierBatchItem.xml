@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1BufferBarrierBatchItem" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::BufferBarrierBatchItem</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1BufferBarrierBatchItem_1a4735f89ed85f8b80358c206fd86dc7bf" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1BufferBarrier" kindref="compound">BufferBarrier</ref></type>
+        <definition>BufferBarrier d3d::BufferBarrierBatchItem::barrier</definition>
+        <argsstring></argsstring>
+        <name>barrier</name>
+        <qualifiedname>d3d::BufferBarrierBatchItem::barrier</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="226" column="17" bodyfile="dag_enhanced_barrier.h" bodystart="226" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1BufferBarrierBatchItem_1a2768eb0a87c34fd8b7310d8ada6c4d07" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* d3d::BufferBarrierBatchItem::buffer</definition>
+        <argsstring></argsstring>
+        <name>buffer</name>
+        <qualifiedname>d3d::BufferBarrierBatchItem::buffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="227" column="11" bodyfile="dag_enhanced_barrier.h" bodystart="227" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="6">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="7">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="5">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>d3d::BufferBarrier</label>
+        <link refid="structd3d_1_1BufferBarrier"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>pipelineSync</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>memorySync</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>d3d::BufferBarrierBatchItem</label>
+        <link refid="structd3d_1_1BufferBarrierBatchItem"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>barrier</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>buffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>d3d::MemorySyncOperation</label>
+        <link refid="structd3d_1_1MemorySyncOperation"/>
+      </node>
+      <node id="3">
+        <label>d3d::PipelineSyncOperation</label>
+        <link refid="structd3d_1_1PipelineSyncOperation"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_enhanced_barrier.h" line="224" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="225" bodyend="228"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1BufferBarrierBatchItem_1a4735f89ed85f8b80358c206fd86dc7bf" prot="public" virt="non-virtual"><scope>d3d::BufferBarrierBatchItem</scope><name>barrier</name></member>
+      <member refid="structd3d_1_1BufferBarrierBatchItem_1a2768eb0a87c34fd8b7310d8ada6c4d07" prot="public" virt="non-virtual"><scope>d3d::BufferBarrierBatchItem</scope><name>buffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

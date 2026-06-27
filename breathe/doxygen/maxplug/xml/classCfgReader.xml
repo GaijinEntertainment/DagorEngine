@@ -1,0 +1,314 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCfgReader" kind="class" language="C++" prot="public">
+    <compoundname>CfgReader</compoundname>
+    <derivedcompoundref refid="classCfgShader" prot="public" virt="non-virtual">CfgShader</derivedcompoundref>
+    <includes refid="cfg_8h" local="no">cfg.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgReader::section_names</definition>
+        <argsstring></argsstring>
+        <name>section_names</name>
+        <qualifiedname>CfgReader::section_names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="46" column="16" bodyfile="cfg.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCfgReader_1a206fa92a391db69d9231547bb69220a3" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgReader::section_datas</definition>
+        <argsstring></argsstring>
+        <name>section_datas</name>
+        <qualifiedname>CfgReader::section_datas</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="47" column="16" bodyfile="cfg.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCfgReader_1abeeaf1240482d67170c1243ad984dbe6" prot="public" static="no" mutable="no">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref></type>
+        <definition>StringVector CfgReader::section_keys</definition>
+        <argsstring></argsstring>
+        <name>section_keys</name>
+        <qualifiedname>CfgReader::section_keys</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="48" column="16" bodyfile="cfg.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCfgReader_1a44ce811a3ca7ee7279e54da42e8d1448" prot="public" static="no" mutable="no">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING CfgReader::filename</definition>
+        <argsstring></argsstring>
+        <name>filename</name>
+        <qualifiedname>CfgReader::filename</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="51" column="16" bodyfile="cfg.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCfgReader_1ad79a9527a47b2a9bdc4b91d5e197e504" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgReader::CfgReader</definition>
+        <argsstring>()</argsstring>
+        <name>CfgReader</name>
+        <qualifiedname>CfgReader::CfgReader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="53" column="3" bodyfile="cfg.cpp" bodystart="14" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a4e307fef803e9965ee07108fb5ec867b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgReader::CfgReader</definition>
+        <argsstring>(M_STD_STRING name)</argsstring>
+        <name>CfgReader</name>
+        <qualifiedname>CfgReader::CfgReader</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="55" column="3" bodyfile="cfg.cpp" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a8782aa5589495a4ca6fdac31ceb8e4f1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CfgReader::~CfgReader</definition>
+        <argsstring>()</argsstring>
+        <name>~CfgReader</name>
+        <qualifiedname>CfgReader::~CfgReader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="57" column="3" bodyfile="cfg.cpp" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgReader::GetSectionNames</definition>
+        <argsstring>()</argsstring>
+        <name>GetSectionNames</name>
+        <qualifiedname>CfgReader::GetSectionNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="60" column="16" bodyfile="cfg.cpp" bodystart="79" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1aa4a382e9af173b41cf92a612a1e156d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgReader::GetSectionDatas</definition>
+        <argsstring>(M_STD_STRING sec)</argsstring>
+        <name>GetSectionDatas</name>
+        <qualifiedname>CfgReader::GetSectionDatas</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>sec</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="61" column="16" bodyfile="cfg.cpp" bodystart="52" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1acb058d3e530f33e0a193ee8ec0e5ec61" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="cfg_8h_1ae5ef8cc5d6614eca03380f7efa3eaea5" kindref="member">StringVector</ref> *</type>
+        <definition>StringVector * CfgReader::GetSectionKeys</definition>
+        <argsstring>(M_STD_STRING sec)</argsstring>
+        <name>GetSectionKeys</name>
+        <qualifiedname>CfgReader::GetSectionKeys</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>sec</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="64" column="16" bodyfile="cfg.cpp" bodystart="20" bodyend="50"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a3ffc11138ad6220f6ab2656468c9da92" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL CfgReader::FindSection</definition>
+        <argsstring>(M_STD_STRING sec)</argsstring>
+        <name>FindSection</name>
+        <qualifiedname>CfgReader::FindSection</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>sec</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="67" column="8" bodyfile="cfg.cpp" bodystart="107" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a50748b567edd53f77e1c7b1ad841fcf9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING CfgReader::GetKeyValue</definition>
+        <argsstring>(M_STD_STRING key, M_STD_STRING sec)</argsstring>
+        <name>GetKeyValue</name>
+        <qualifiedname>CfgReader::GetKeyValue</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>sec</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="70" column="16" bodyfile="cfg.cpp" bodystart="116" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1a1b855f546b31eb2792efa54f1ca9ca56" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CfgReader::WriteKeyVal</definition>
+        <argsstring>(M_STD_STRING key, M_STD_STRING sec, const TCHAR *new_val)</argsstring>
+        <name>WriteKeyVal</name>
+        <qualifiedname>CfgReader::WriteKeyVal</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>sec</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>new_val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="73" column="8" bodyfile="cfg.cpp" bodystart="126" bodyend="130"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classCfgReader_1a4e8db9c514a510167a0d87959b824748" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING CfgReader::Replace</definition>
+        <argsstring>(M_STD_STRING str, M_STD_STRING dst, M_STD_STRING src)</argsstring>
+        <name>Replace</name>
+        <qualifiedname>CfgReader::Replace</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>dst</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>src</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="76" column="23" bodyfile="cfg.cpp" bodystart="133" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="classCfgReader_1aaab34e760450150e8b1a2bd4a3d7b0d4" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING CfgReader::Remove</definition>
+        <argsstring>(M_STD_STRING str, M_STD_STRING seq)</argsstring>
+        <name>Remove</name>
+        <qualifiedname>CfgReader::Remove</qualifiedname>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+          <declname>seq</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cfg.h" line="78" column="23" bodyfile="cfg.cpp" bodystart="150" bodyend="172"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CfgReader</label>
+        <link refid="classCfgReader"/>
+      </node>
+      <node id="2">
+        <label>CfgShader</label>
+        <link refid="classCfgShader"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="cfg.h" line="42" column="1" bodyfile="cfg.h" bodystart="43" bodyend="79"/>
+    <listofallmembers>
+      <member refid="classCfgReader_1ad79a9527a47b2a9bdc4b91d5e197e504" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>CfgReader</name></member>
+      <member refid="classCfgReader_1a4e307fef803e9965ee07108fb5ec867b" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>CfgReader</name></member>
+      <member refid="classCfgReader_1a44ce811a3ca7ee7279e54da42e8d1448" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>filename</name></member>
+      <member refid="classCfgReader_1a3ffc11138ad6220f6ab2656468c9da92" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>FindSection</name></member>
+      <member refid="classCfgReader_1a50748b567edd53f77e1c7b1ad841fcf9" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>GetKeyValue</name></member>
+      <member refid="classCfgReader_1aa4a382e9af173b41cf92a612a1e156d6" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>GetSectionDatas</name></member>
+      <member refid="classCfgReader_1acb058d3e530f33e0a193ee8ec0e5ec61" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>GetSectionKeys</name></member>
+      <member refid="classCfgReader_1a51b911e3719d0f30b704a0ba76f0e4e3" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>GetSectionNames</name></member>
+      <member refid="classCfgReader_1aaab34e760450150e8b1a2bd4a3d7b0d4" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>Remove</name></member>
+      <member refid="classCfgReader_1a4e8db9c514a510167a0d87959b824748" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>Replace</name></member>
+      <member refid="classCfgReader_1a206fa92a391db69d9231547bb69220a3" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>section_datas</name></member>
+      <member refid="classCfgReader_1abeeaf1240482d67170c1243ad984dbe6" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>section_keys</name></member>
+      <member refid="classCfgReader_1a70e16c85f1d1c82c5c994d9de5ac90b8" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>section_names</name></member>
+      <member refid="classCfgReader_1a1b855f546b31eb2792efa54f1ca9ca56" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>WriteKeyVal</name></member>
+      <member refid="classCfgReader_1a8782aa5589495a4ca6fdac31ceb8e4f1" prot="public" virt="non-virtual"><scope>CfgReader</scope><name>~CfgReader</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

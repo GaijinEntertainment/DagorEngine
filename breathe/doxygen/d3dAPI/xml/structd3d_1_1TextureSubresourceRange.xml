@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1TextureSubresourceRange" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::TextureSubresourceRange</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1TextureSubresourceRange_1a36b83ff0477f31edb719918671560613" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1Range" kindref="compound">Range</ref></type>
+        <definition>Range d3d::TextureSubresourceRange::mips</definition>
+        <argsstring></argsstring>
+        <name>mips</name>
+        <qualifiedname>d3d::TextureSubresourceRange::mips</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="166" column="9" bodyfile="dag_enhanced_barrier.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1TextureSubresourceRange_1afa5383ce97aa8c6a8d82f9867a7352e4" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1Range" kindref="compound">Range</ref></type>
+        <definition>Range d3d::TextureSubresourceRange::layers</definition>
+        <argsstring></argsstring>
+        <name>layers</name>
+        <qualifiedname>d3d::TextureSubresourceRange::layers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="167" column="9" bodyfile="dag_enhanced_barrier.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1TextureSubresourceRange_1aac64a6fb3f1a408a53e3891b215b7af4" prot="public" static="no" mutable="no">
+        <type><ref refid="structd3d_1_1Range" kindref="compound">Range</ref></type>
+        <definition>Range d3d::TextureSubresourceRange::planes</definition>
+        <argsstring></argsstring>
+        <name>planes</name>
+        <qualifiedname>d3d::TextureSubresourceRange::planes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="168" column="9" bodyfile="dag_enhanced_barrier.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>d3d::Range</label>
+        <link refid="structd3d_1_1Range"/>
+      </node>
+      <node id="1">
+        <label>d3d::TextureSubresourceRange</label>
+        <link refid="structd3d_1_1TextureSubresourceRange"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>layers</edgelabel>
+          <edgelabel>mips</edgelabel>
+          <edgelabel>planes</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_enhanced_barrier.h" line="164" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="165" bodyend="169"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1TextureSubresourceRange_1afa5383ce97aa8c6a8d82f9867a7352e4" prot="public" virt="non-virtual"><scope>d3d::TextureSubresourceRange</scope><name>layers</name></member>
+      <member refid="structd3d_1_1TextureSubresourceRange_1a36b83ff0477f31edb719918671560613" prot="public" virt="non-virtual"><scope>d3d::TextureSubresourceRange</scope><name>mips</name></member>
+      <member refid="structd3d_1_1TextureSubresourceRange_1aac64a6fb3f1a408a53e3891b215b7af4" prot="public" virt="non-virtual"><scope>d3d::TextureSubresourceRange</scope><name>planes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

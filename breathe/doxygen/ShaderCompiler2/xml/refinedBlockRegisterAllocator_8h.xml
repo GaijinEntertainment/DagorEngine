@@ -1,0 +1,589 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="refinedBlockRegisterAllocator_8h" kind="file" language="C++">
+    <compoundname>refinedBlockRegisterAllocator.h</compoundname>
+    <includes local="no">dag/dag_vector.h</includes>
+    <includes local="no">drv/3d/dag_consts.h</includes>
+    <includes local="no">EASTL/utility.h</includes>
+    <includes local="no">EASTL/fixed_list.h</includes>
+    <includes refid="hlslRegisters_8h" local="yes">hlslRegisters.h</includes>
+    <includedby refid="refinedBlockRegisterAllocator_8cpp" local="yes">refinedBlockRegisterAllocator.cpp</includedby>
+    <includedby refid="shCompContext_8h" local="yes">shCompContext.h</includedby>
+    <incdepgraph>
+      <node id="8">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>refinedBlockRegisterAllocator.h</label>
+        <link refid="refinedBlockRegisterAllocator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="18">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/fixed_list.h</label>
+      </node>
+      <node id="13">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="12">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/utility.h</label>
+      </node>
+      <node id="19">
+        <label>cstdint</label>
+      </node>
+      <node id="2">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="15">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="3">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="14">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="16">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="17">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="10">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="9">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="11">
+        <label>binDumpUtils.cpp</label>
+        <link refid="binDumpUtils_8cpp"/>
+      </node>
+      <node id="10">
+        <label>binDumpUtils.h</label>
+        <link refid="binDumpUtils_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>codeBlocks.cpp</label>
+        <link refid="codeBlocks_8cpp"/>
+      </node>
+      <node id="13">
+        <label>codeBlocks.h</label>
+        <link refid="codeBlocks_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="50">
+        <label>condParser.cpp</label>
+        <link refid="condParser_8cpp"/>
+      </node>
+      <node id="30">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="18">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="17">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="34">
+        <label>deSerializationContext.cpp</label>
+        <link refid="deSerializationContext_8cpp"/>
+      </node>
+      <node id="33">
+        <label>deSerializationContext.h</label>
+        <link refid="deSerializationContext_8h"/>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>globvar.cpp</label>
+        <link refid="globvar_8cpp"/>
+      </node>
+      <node id="4">
+        <label>hwAssembly.cpp</label>
+        <link refid="hwAssembly_8cpp"/>
+      </node>
+      <node id="6">
+        <label>hwSemantic.cpp</label>
+        <link refid="hwSemantic_8cpp"/>
+      </node>
+      <node id="5">
+        <label>hwSemantic.h</label>
+        <link refid="hwSemantic_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="35">
+        <label>intervals.cpp</label>
+        <link refid="intervals_8cpp"/>
+      </node>
+      <node id="39">
+        <label>linkShaders.cpp</label>
+        <link refid="linkShaders_8cpp"/>
+      </node>
+      <node id="38">
+        <label>linkShaders.h</label>
+        <link refid="linkShaders_8h"/>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="42">
+        <label>loadShaders.cpp</label>
+        <link refid="loadShaders_8cpp"/>
+      </node>
+      <node id="41">
+        <label>loadShaders.h</label>
+        <link refid="loadShaders_8h"/>
+        <childnode refid="42" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>makeShBinDump.cpp</label>
+        <link refid="makeShBinDump_8cpp"/>
+      </node>
+      <node id="26">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="20">
+        <label>preshaderCompilation.cpp</label>
+        <link refid="preshaderCompilation_8cpp"/>
+      </node>
+      <node id="31">
+        <label>refinedBlockLayout.cpp</label>
+        <link refid="refinedBlockLayout_8cpp"/>
+      </node>
+      <node id="2">
+        <label>refinedBlockRegisterAllocator.cpp</label>
+        <link refid="refinedBlockRegisterAllocator_8cpp"/>
+      </node>
+      <node id="1">
+        <label>refinedBlockRegisterAllocator.h</label>
+        <link refid="refinedBlockRegisterAllocator_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>semUtils.cpp</label>
+        <link refid="semUtils_8cpp"/>
+      </node>
+      <node id="46">
+        <label>shCode.cpp</label>
+        <link refid="shCode_8cpp"/>
+      </node>
+      <node id="3">
+        <label>shCompContext.h</label>
+        <link refid="shCompContext_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>shCompiler.cpp</label>
+        <link refid="shCompiler_8cpp"/>
+      </node>
+      <node id="47">
+        <label>shExpr.cpp</label>
+        <link refid="shExpr_8cpp"/>
+      </node>
+      <node id="23">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="21">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="15">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>shTargetContext.h</label>
+        <link refid="shTargetContext_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+      </node>
+      <node id="48">
+        <label>shTargetStorage.cpp</label>
+        <link refid="shTargetStorage_8cpp"/>
+      </node>
+      <node id="16">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>sh_stat.cpp</label>
+        <link refid="sh__stat_8cpp"/>
+      </node>
+      <node id="36">
+        <label>shaderSave.cpp</label>
+        <link refid="shaderSave_8cpp"/>
+      </node>
+      <node id="24">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="22">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="44">
+        <label>shaderVariant.cpp</label>
+        <link refid="shaderVariant_8cpp"/>
+      </node>
+      <node id="43">
+        <label>shaderVariant.h</label>
+        <link refid="shaderVariant_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="32">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="45">
+        <label>shcode.h</label>
+        <link refid="shcode_8h"/>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+      </node>
+      <node id="52">
+        <label>shlexterm.cpp</label>
+        <link refid="shlexterm_8cpp"/>
+      </node>
+      <node id="19">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="49">
+        <label>shsem.h</label>
+        <link refid="shsem_8h"/>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="28">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="25">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="29">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structshc_1_1RefinedBlockRegister" prot="public">shc::RefinedBlockRegister</innerclass>
+    <innerclass refid="classshc_1_1RefinedBlockRegisterAllocator" prot="public">shc::RefinedBlockRegisterAllocator</innerclass>
+    <innerclass refid="structshc_1_1RefinedBlockRegisterAllocator_1_1Allocation" prot="private">shc::RefinedBlockRegisterAllocator::Allocation</innerclass>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;dag/dag_vector.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_consts.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/utility.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/fixed_list.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="hlslRegisters_8h" kindref="compound">hlslRegisters.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="structshc_1_1RefinedBlockRegister" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structshc_1_1RefinedBlockRegister" kindref="compound">RefinedBlockRegister</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16" refid="structshc_1_1RefinedBlockRegister_1a952fd6f1d58a2e46a83cc8dd0ca9d9a8" refkind="member"><highlight class="normal"><sp/><sp/>eastl::optional&lt;eastl::pair&lt;int,<sp/>int&gt;&gt;<sp/><ref refid="structshc_1_1RefinedBlockRegister_1a952fd6f1d58a2e46a83cc8dd0ca9d9a8" kindref="member">cbufOffsetAndCount</ref>;</highlight></codeline>
+<codeline lineno="17" refid="structshc_1_1RefinedBlockRegister_1a67a9bc999b10182a8c8dc214cbce7a9c" refkind="member"><highlight class="normal"><sp/><sp/>eastl::array&lt;eastl::optional&lt;int&gt;,<sp/>STAGE_MAX&gt;<sp/><ref refid="structshc_1_1RefinedBlockRegister_1a67a9bc999b10182a8c8dc214cbce7a9c" kindref="member">slot</ref>{};</highlight></codeline>
+<codeline lineno="18" refid="structshc_1_1RefinedBlockRegister_1ab667a9f7ed86171dc1d6b5782a0ca73d" refkind="member"><highlight class="normal"><sp/><sp/>eastl::optional&lt;HlslRegisterSpace&gt;<sp/><ref refid="structshc_1_1RefinedBlockRegister_1ab667a9f7ed86171dc1d6b5782a0ca73d" kindref="member">space</ref>;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="classshc_1_1RefinedBlockRegisterAllocator" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classshc_1_1RefinedBlockRegisterAllocator" kindref="compound">RefinedBlockRegisterAllocator</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1RefinedBlockRegisterAllocator_1a6b61beaa9b75b0853982afadaf457cf2" kindref="member">RefinedBlockRegisterAllocator</ref>();</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Allocate<sp/>N<sp/>cbuf<sp/>vec4<sp/>slots;<sp/>returns<sp/>the<sp/>base<sp/>offset.<sp/>Used<sp/>for<sp/>numeric<sp/>vars<sp/>and<sp/>bindless<sp/>IDs.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1RefinedBlockRegisterAllocator_1a83a7c380a0984789831f62fb007a7d19" kindref="member">allocCbufSlot</ref>(uint32_t<sp/>slotCount);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1RefinedBlockRegisterAllocator_1aa9f9ea0124824166cf71e0451550597d" kindref="member">reserveCbufSlot</ref>(uint32_t<sp/>offset,<sp/>uint32_t<sp/>count);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Allocate<sp/>a<sp/>slot<sp/>in<sp/>register<sp/>space</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>VS<sp/>and<sp/>PS/CS<sp/>have<sp/>independent<sp/>register<sp/>spaces.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1RefinedBlockRegisterAllocator_1a8e62a159cbb8760cf3a6370d576578a9" kindref="member">allocSlot</ref>(ShaderStage<sp/>stage,<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>space);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classshc_1_1RefinedBlockRegisterAllocator_1acf7475c49efff694ba046bd3ad133015" kindref="member">reserveSlot</ref>(ShaderStage<sp/>stage,<sp/><ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>space,<sp/><ref refid="hlslRegisters_8h_1affe2e38eb7f3eb318b7e3b88697f8a42" kindref="member">HlslSlotSemantic</ref><sp/><ref refid="namespacesemantic" kindref="compound">semantic</ref>,<sp/>uint32_t<sp/>slot,<sp/>uint32_t<sp/>count<sp/>=<sp/>1);</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Expose<sp/>T-slot<sp/>allocators<sp/>so<sp/>preshader<sp/>can<sp/>call<sp/>reserveAllFrom().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="classshc_1_1RefinedBlockRegisterAllocator_1a33a0159610f58e338fabc419ddfa7a4e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/>&amp;<ref refid="classshc_1_1RefinedBlockRegisterAllocator_1a33a0159610f58e338fabc419ddfa7a4e" kindref="member">vsAllocator</ref>(<ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>space)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>vsSlotAllocator[space];<sp/>}</highlight></codeline>
+<codeline lineno="37" refid="classshc_1_1RefinedBlockRegisterAllocator_1ab14b42205261a04b1c61f5dcffc68c00" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/>&amp;<ref refid="classshc_1_1RefinedBlockRegisterAllocator_1ab14b42205261a04b1c61f5dcffc68c00" kindref="member">psOrCsAllocator</ref>(<ref refid="hlslRegisters_8h_1aa3a591153956a0cd6630e2d20870fb9b" kindref="member">HlslRegisterSpace</ref><sp/>space)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>psOrCsSlotAllocator[space];<sp/>}</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><ref refid="classHlslRegAllocator" kindref="compound">HlslRegAllocator</ref><sp/>cRegAllocator;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>eastl::array&lt;HlslRegAllocator,<sp/>HlslRegisterSpace::HLSL_RSPACE_COUNT&gt;<sp/>vsSlotAllocator;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>eastl::array&lt;HlslRegAllocator,<sp/>HlslRegisterSpace::HLSL_RSPACE_COUNT&gt;<sp/>psOrCsSlotAllocator;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Allocation</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>slot<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><sp/><sp/>uint32_t<sp/>count<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Sub-register<sp/>packing<sp/>state:<sp/>tracks<sp/>partial<sp/>register<sp/>usage.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>eastl::fixed_list&lt;Allocation,<sp/>128&gt;<sp/>cbufFreeAllocations;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>shc</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="refinedBlockRegisterAllocator.h"/>
+  </compounddef>
+</doxygen>

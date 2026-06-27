@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="uniontPixel" kind="union" language="C++" prot="public">
+    <compoundname>tPixel</compoundname>
+    <includes refid="tPixel_8h" local="no">tPixel.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="uniontPixel_1a736cc9507f4f99858a37c5f3b3793cc2" prot="public" static="no" mutable="no">
+        <type>unsigned long</type>
+        <definition>unsigned long tPixel::u</definition>
+        <argsstring></argsstring>
+        <name>u</name>
+        <qualifiedname>tPixel::u</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="12" column="17" bodyfile="tPixel.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="uniontPixel_1ad964df05d86005db82ad217d97cd2cbc" prot="public" static="no" mutable="no">
+        <type><ref refid="structrgba__t" kindref="compound">rgba_t</ref></type>
+        <definition>rgba_t tPixel::c</definition>
+        <argsstring></argsstring>
+        <name>c</name>
+        <qualifiedname>tPixel::c</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="13" column="10" bodyfile="tPixel.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="uniontPixel_1a774cc7c2c270667ae5a901d8a8ba6c1b" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float tPixel::fp</definition>
+        <argsstring></argsstring>
+        <name>fp</name>
+        <qualifiedname>tPixel::fp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="14" column="9" bodyfile="tPixel.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>rgba_t</label>
+        <link refid="structrgba__t"/>
+      </node>
+      <node id="1">
+        <label>tPixel</label>
+        <link refid="uniontPixel"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>c</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="tPixel.h" line="10" column="1" bodyfile="tPixel.h" bodystart="11" bodyend="15"/>
+    <listofallmembers>
+      <member refid="uniontPixel_1ad964df05d86005db82ad217d97cd2cbc" prot="public" virt="non-virtual"><scope>tPixel</scope><name>c</name></member>
+      <member refid="uniontPixel_1a774cc7c2c270667ae5a901d8a8ba6c1b" prot="public" virt="non-virtual"><scope>tPixel</scope><name>fp</name></member>
+      <member refid="uniontPixel_1a736cc9507f4f99858a37c5f3b3793cc2" prot="public" virt="non-virtual"><scope>tPixel</scope><name>u</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

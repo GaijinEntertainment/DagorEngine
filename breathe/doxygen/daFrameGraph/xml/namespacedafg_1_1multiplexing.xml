@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacedafg_1_1multiplexing" kind="namespace" language="C++">
+    <compoundname>dafg::multiplexing</compoundname>
+    <innerclass refid="structdafg_1_1multiplexing_1_1Extents" prot="public">dafg::multiplexing::Extents</innerclass>
+    <innerclass refid="structdafg_1_1multiplexing_1_1Index" prot="public">dafg::multiplexing::Index</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" prot="public" static="no" strong="yes">
+        <type>uint32_t</type>
+        <name>Mode</name>
+        <qualifiedname>dafg::multiplexing::Mode</qualifiedname>
+        <enumvalue id="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba6adf97f83acf6453d4a6a4b1070f3754" prot="public">
+          <name>None</name>
+          <initializer>= 0b000</initializer>
+          <briefdescription>
+<para>Run once, ignore multiplexing (i.e. global setup) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba600b8d8735a061492ac0b8210b82f080" prot="public">
+          <name>SuperSampling</name>
+          <initializer>= 0b001</initializer>
+          <briefdescription>
+<para>Run the node for every super-sample. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba19266e60c709d32887ced4bc7d7f0f12" prot="public">
+          <name>SubSampling</name>
+          <initializer>= 0b010</initializer>
+          <briefdescription>
+<para>Run the node for every sub-sample. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba8d6f3510a5cca2c1281c9c6afe7e0da2" prot="public">
+          <name>Viewport</name>
+          <initializer>= 0b100</initializer>
+          <briefdescription>
+<para>Run the node once for every viewport. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132baa5ef4f3aa876da9be4cd78b41c529551" prot="public">
+          <name>CameraInCamera</name>
+          <initializer>= 0b1000</initializer>
+          <briefdescription>
+<para>Run the node for every sub area in the main camera. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132ba2003b59fbe2d4c9acbce237f9a129de5" prot="public">
+          <name>FullMultiplex</name>
+          <initializer>= SuperSampling | SubSampling | Viewport | CameraInCamera</initializer>
+          <briefdescription>
+<para>Default: everything is multiplexed (normal scene rendering nodes) </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Describes the dimensions along which a node shall be multiplexed. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="63" column="1" bodyfile="multiplexing.h" bodystart="64" bodyend="80"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacedafg_1_1multiplexing_1a5fc71487a287702f079f789236a5038c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></type>
+        <definition>Mode dafg::multiplexing::operator|</definition>
+        <argsstring>(Mode a, Mode b)</argsstring>
+        <name>operator|</name>
+        <qualifiedname>dafg::multiplexing::operator|</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+<para>Bitwise OR operator for combining several modes. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="83" column="13" bodyfile="multiplexing.h" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacedafg_1_1multiplexing_1a0dcc5b505509d902f5401b8264131f76" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></type>
+        <definition>Mode dafg::multiplexing::operator&amp;</definition>
+        <argsstring>(Mode a, Mode b)</argsstring>
+        <name>operator&amp;</name>
+        <qualifiedname>dafg::multiplexing::operator&amp;</qualifiedname>
+        <param>
+          <type><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type><ref refid="namespacedafg_1_1multiplexing_1acdb81a336d4701a3bfdf9f8f5139132b" kindref="member">Mode</ref></type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+<para>Bitwise AND operator to check if mode set. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="multiplexing.h" line="86" column="13" bodyfile="multiplexing.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Multiplexing allows a single run_nodes call to result in several consequent executions of frameGraph with some nodes being run only once. As an example, when rendering for VR, shadows need to be rendered only once, not for every eye/viewport, while most scene geometry should be rendered for every viewport/eye. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="multiplexing.h" line="18" column="1"/>
+  </compounddef>
+</doxygen>

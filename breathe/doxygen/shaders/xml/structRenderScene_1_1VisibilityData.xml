@@ -1,0 +1,240 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderScene_1_1VisibilityData" kind="struct" language="C++" prot="public">
+    <compoundname>RenderScene::VisibilityData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderScene_1_1VisibilityData_1a311375b8843d9b7069864fb3867a69e0" prot="public" static="no" mutable="no">
+        <type>SmallTab&lt; unsigned, MidmemAlloc &gt;</type>
+        <definition>SmallTab&lt;unsigned, MidmemAlloc&gt; RenderScene::VisibilityData::usedElems</definition>
+        <argsstring></argsstring>
+        <name>usedElems</name>
+        <qualifiedname>RenderScene::VisibilityData::usedElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="188" column="14" bodyfile="dag_renderScene.h" bodystart="188" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1VisibilityData_1a7eeb7c734856b62a895d7e43c6558cdc" prot="public" static="no" mutable="no">
+        <type>carray&lt; uint16_t, 7 &gt;</type>
+        <definition>carray&lt;uint16_t, 7&gt; RenderScene::VisibilityData::lastElemNum</definition>
+        <argsstring></argsstring>
+        <name>lastElemNum</name>
+        <qualifiedname>RenderScene::VisibilityData::lastElemNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="189" column="12" bodyfile="dag_renderScene.h" bodystart="189" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderScene_1_1VisibilityData_1aa86e441865f46418dbdc2a4d61ac4834" prot="public" static="no" mutable="no">
+        <type><ref refid="structRenderScene_1_1OptimizedScene" kindref="compound">OptimizedScene</ref> *</type>
+        <definition>OptimizedScene* RenderScene::VisibilityData::scn</definition>
+        <argsstring></argsstring>
+        <name>scn</name>
+        <qualifiedname>RenderScene::VisibilityData::scn</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="190" column="20" bodyfile="dag_renderScene.h" bodystart="190" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1aa06b42f6979475327266cbeada7d2891" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderScene::VisibilityData::VisibilityData</definition>
+        <argsstring>()</argsstring>
+        <name>VisibilityData</name>
+        <qualifiedname>RenderScene::VisibilityData::VisibilityData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="193" column="5" bodyfile="dag_renderScene.h" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1ab06f2a92258f626b75d6a0f49ebc7ceb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderScene::VisibilityData::VisibilityData</definition>
+        <argsstring>(const VisibilityData &amp;)=default</argsstring>
+        <name>VisibilityData</name>
+        <qualifiedname>RenderScene::VisibilityData::VisibilityData</qualifiedname>
+        <param>
+          <type>const <ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="194" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1ab0538a433bee916d4c1ed017e31d7b08" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>RenderScene::VisibilityData::VisibilityData</definition>
+        <argsstring>(VisibilityData &amp;&amp;)=default</argsstring>
+        <name>VisibilityData</name>
+        <qualifiedname>RenderScene::VisibilityData::VisibilityData</qualifiedname>
+        <param>
+          <type><ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="195" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1a0158fd14d19458b232235f59f5e21dab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>RenderScene::VisibilityData::~VisibilityData</definition>
+        <argsstring>()</argsstring>
+        <name>~VisibilityData</name>
+        <qualifiedname>RenderScene::VisibilityData::~VisibilityData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="196" column="5" bodyfile="dag_renderScene.h" bodystart="196" bodyend="196"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1a8ed23587bc5f0460678e4b649ef1cc13" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref> &amp;</type>
+        <definition>VisibilityData &amp; RenderScene::VisibilityData::operator=</definition>
+        <argsstring>(const VisibilityData &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>RenderScene::VisibilityData::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="197" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1aaf4a2810f1ce31eeba9854c95e901e0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref> &amp;</type>
+        <definition>VisibilityData &amp; RenderScene::VisibilityData::operator=</definition>
+        <argsstring>(VisibilityData &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>RenderScene::VisibilityData::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structRenderScene_1_1VisibilityData" kindref="compound">VisibilityData</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="198" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1aaebb3cee1a105bbf6e7938f1c5c1fe3d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::VisibilityData::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>RenderScene::VisibilityData::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="200" column="10" bodyfile="dag_renderScene.h" bodystart="200" bodyend="206"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1a70a6b8fda9055117ff49889fbe081430" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::VisibilityData::setAll</definition>
+        <argsstring>()</argsstring>
+        <name>setAll</name>
+        <qualifiedname>RenderScene::VisibilityData::setAll</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="207" column="10" bodyfile="dag_renderScene.h" bodystart="207" bodyend="212"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1a203bd48a93a5239f765a4e2f5c5443df" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void RenderScene::VisibilityData::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>RenderScene::VisibilityData::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="213" column="10" bodyfile="dag_renderScene.h" bodystart="213" bodyend="218"/>
+      </memberdef>
+      <memberdef kind="function" id="structRenderScene_1_1VisibilityData_1a94999f8d1c7d38d8ebeafa6e6c33ae01" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool RenderScene::VisibilityData::allocated</definition>
+        <argsstring>() const</argsstring>
+        <name>allocated</name>
+        <qualifiedname>RenderScene::VisibilityData::allocated</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderScene.h" line="219" column="10" bodyfile="dag_renderScene.h" bodystart="219" bodyend="219"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>RenderScene::OptimizedScene</label>
+        <link refid="structRenderScene_1_1OptimizedScene"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>visData</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>RenderScene::VisibilityData</label>
+        <link refid="structRenderScene_1_1VisibilityData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>scn</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_renderScene.h" line="184" column="3" bodyfile="dag_renderScene.h" bodystart="185" bodyend="220"/>
+    <listofallmembers>
+      <member refid="structRenderScene_1_1VisibilityData_1a94999f8d1c7d38d8ebeafa6e6c33ae01" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>allocated</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1aaebb3cee1a105bbf6e7938f1c5c1fe3d" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>clear</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1a7eeb7c734856b62a895d7e43c6558cdc" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>lastElemNum</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1a8ed23587bc5f0460678e4b649ef1cc13" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>operator=</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1aaf4a2810f1ce31eeba9854c95e901e0b" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>operator=</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1a203bd48a93a5239f765a4e2f5c5443df" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>reset</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1aa86e441865f46418dbdc2a4d61ac4834" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>scn</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1a70a6b8fda9055117ff49889fbe081430" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>setAll</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1a311375b8843d9b7069864fb3867a69e0" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>usedElems</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1aa06b42f6979475327266cbeada7d2891" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>VisibilityData</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1ab06f2a92258f626b75d6a0f49ebc7ceb" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>VisibilityData</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1ab0538a433bee916d4c1ed017e31d7b08" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>VisibilityData</name></member>
+      <member refid="structRenderScene_1_1VisibilityData_1a0158fd14d19458b232235f59f5e21dab" prot="public" virt="non-virtual"><scope>RenderScene::VisibilityData</scope><name>~VisibilityData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,458 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classVoxelSurfaceData" kind="class" language="C++" prot="public">
+    <compoundname>VoxelSurfaceData</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">DObject</basecompoundref>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classVoxelSurfaceData_1ace6b671960d518de07065b31fe0a7dcf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint32_t</type>
+        <definition>constexpr uint32_t VoxelSurfaceData::INVALID_ID</definition>
+        <argsstring></argsstring>
+        <name>INVALID_ID</name>
+        <qualifiedname>VoxelSurfaceData::INVALID_ID</qualifiedname>
+        <initializer>= ~0u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="27" column="29" bodyfile="dag_voxelSurfaceData.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classVoxelSurfaceData_1ae225bbd99f11f33dfecb13fe9d3cfaeb" prot="protected" static="no" mutable="no">
+        <type>dag::Span&lt; char &gt;</type>
+        <definition>dag::Span&lt;char&gt; VoxelSurfaceData::compressed</definition>
+        <argsstring></argsstring>
+        <name>compressed</name>
+        <qualifiedname>VoxelSurfaceData::compressed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="43" column="13" bodyfile="dag_voxelSurfaceData.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVoxelSurfaceData_1a37e69b7fbfd7f10728888b568b03ab7e" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t VoxelSurfaceData::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>VoxelSurfaceData::id</qualifiedname>
+        <initializer>= INVALID_ID</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="44" column="12" bodyfile="dag_voxelSurfaceData.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVoxelSurfaceData_1a372abccce3e09fd269878f5b2ee38ed1" prot="protected" static="no" mutable="no">
+        <type><ref refid="structAtlasBlockManager_1_1ChunkLocation" kindref="compound">AtlasBlockManager::ChunkLocation</ref></type>
+        <definition>AtlasBlockManager::ChunkLocation VoxelSurfaceData::rgbaLoc</definition>
+        <argsstring></argsstring>
+        <name>rgbaLoc</name>
+        <qualifiedname>VoxelSurfaceData::rgbaLoc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="45" column="36" bodyfile="dag_voxelSurfaceData.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVoxelSurfaceData_1a0a82993d67293fec5af1e377a3f7dd26" prot="protected" static="no" mutable="no">
+        <type><ref refid="structAtlasBlockManager_1_1ChunkLocation" kindref="compound">AtlasBlockManager::ChunkLocation</ref></type>
+        <definition>AtlasBlockManager::ChunkLocation VoxelSurfaceData::normLoc</definition>
+        <argsstring></argsstring>
+        <name>normLoc</name>
+        <qualifiedname>VoxelSurfaceData::normLoc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="45" column="44" bodyfile="dag_voxelSurfaceData.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVoxelSurfaceData_1adf99f8e8ace4e7d112d4f5498efc6a92" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool VoxelSurfaceData::loadedToTex</definition>
+        <argsstring></argsstring>
+        <name>loadedToTex</name>
+        <qualifiedname>VoxelSurfaceData::loadedToTex</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="46" column="8" bodyfile="dag_voxelSurfaceData.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVoxelSurfaceData_1aa22c42038a0ca6998bc7e2a68ba0a911" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t VoxelSurfaceData::numRgbaBlocks</definition>
+        <argsstring></argsstring>
+        <name>numRgbaBlocks</name>
+        <qualifiedname>VoxelSurfaceData::numRgbaBlocks</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="48" column="12" bodyfile="dag_voxelSurfaceData.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVoxelSurfaceData_1a3f457a44c4c2a17c317a8ea37ca8b4a8" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t VoxelSurfaceData::numNormBlocks</definition>
+        <argsstring></argsstring>
+        <name>numNormBlocks</name>
+        <qualifiedname>VoxelSurfaceData::numNormBlocks</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="48" column="27" bodyfile="dag_voxelSurfaceData.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVoxelSurfaceData_1abe1eee9f0df40a244d102f9ca1558e67" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t VoxelSurfaceData::normCompressedOffset</definition>
+        <argsstring></argsstring>
+        <name>normCompressedOffset</name>
+        <qualifiedname>VoxelSurfaceData::normCompressedOffset</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="49" column="12" bodyfile="dag_voxelSurfaceData.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classVoxelSurfaceData_1a8b4936f1f15a387f2448a40aef80fe73" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</definition>
+        <argsstring></argsstring>
+        <name>ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</name>
+        <qualifiedname>VoxelSurfaceData::ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</qualifiedname>
+        <param>
+          <type><ref refid="classShaderResUnitedVdata" kindref="compound">ShaderResUnitedVdata</ref>&lt; RenderableInstanceLodsResource &gt;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="54" column="8" bodyfile="dag_voxelSurfaceData.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classVoxelSurfaceData_1ae75e299c878d28e982e368d0bce1c2ed" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref> *</type>
+        <definition>static VoxelSurfaceData * VoxelSurfaceData::load</definition>
+        <argsstring>(IGenLoad &amp;crd, int size)</argsstring>
+        <name>load</name>
+        <qualifiedname>VoxelSurfaceData::load</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="20" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1a61f7b6bf522678145e2b1d75741c908d" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classVoxelSurfaceData" kindref="compound">VoxelSurfaceData</ref> *</type>
+        <definition>static VoxelSurfaceData * VoxelSurfaceData::getById</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>getById</name>
+        <qualifiedname>VoxelSurfaceData::getById</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="21" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1afafce518546db1b7fe53d33866763a92" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void VoxelSurfaceData::onAfterD3dReset</definition>
+        <argsstring>()</argsstring>
+        <name>onAfterD3dReset</name>
+        <qualifiedname>VoxelSurfaceData::onAfterD3dReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="23" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1ad4b569e3a901457d5f6fe9f863ecef34" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void VoxelSurfaceData::setToShader</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>setToShader</name>
+        <qualifiedname>VoxelSurfaceData::setToShader</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="40" column="15"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classVoxelSurfaceData_1a9bc4c263d5eb4c30cf1568f86306fcba" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>VoxelSurfaceData::~VoxelSurfaceData</definition>
+        <argsstring>()</argsstring>
+        <name>~VoxelSurfaceData</name>
+        <qualifiedname>VoxelSurfaceData::~VoxelSurfaceData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="25" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1ad430e51e9a4ea5eaf4818176ead64324" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t VoxelSurfaceData::getId</definition>
+        <argsstring>() const</argsstring>
+        <name>getId</name>
+        <qualifiedname>VoxelSurfaceData::getId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="28" column="12" bodyfile="dag_voxelSurfaceData.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1a1cb48c4ae56b68403cb597f87e1732cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::array&lt; uint32_t, 2 &gt;</type>
+        <definition>eastl::array&lt; uint32_t, 2 &gt; VoxelSurfaceData::allocateAtlas</definition>
+        <argsstring>()</argsstring>
+        <name>allocateAtlas</name>
+        <qualifiedname>VoxelSurfaceData::allocateAtlas</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="31" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1a2c08107652b99366cd39c560397f3c8e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::array&lt; uint32_t, 2 &gt;</type>
+        <definition>eastl::array&lt; uint32_t, 2 &gt; VoxelSurfaceData::releaseAtlas</definition>
+        <argsstring>()</argsstring>
+        <name>releaseAtlas</name>
+        <qualifiedname>VoxelSurfaceData::releaseAtlas</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="34" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1a3c3d79b9b54eee0b0d6c0d272f7a9f5f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool VoxelSurfaceData::isLoadedToAtlas</definition>
+        <argsstring>() const</argsstring>
+        <name>isLoadedToAtlas</name>
+        <qualifiedname>VoxelSurfaceData::isLoadedToAtlas</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="36" column="8" bodyfile="dag_voxelSurfaceData.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1a6485f470294d71f35e2b070c1aa93dbb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool VoxelSurfaceData::loadToAtlas</definition>
+        <argsstring>()</argsstring>
+        <name>loadToAtlas</name>
+        <qualifiedname>VoxelSurfaceData::loadToAtlas</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1a5f400cbae2f95fc257eca365856906ec" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void VoxelSurfaceData::setToShader</definition>
+        <argsstring>() const</argsstring>
+        <name>setToShader</name>
+        <qualifiedname>VoxelSurfaceData::setToShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="39" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classVoxelSurfaceData_1a973dc52b055a24f2d9da28dae1093c75" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>VoxelSurfaceData::VoxelSurfaceData</definition>
+        <argsstring>()</argsstring>
+        <name>VoxelSurfaceData</name>
+        <qualifiedname>VoxelSurfaceData::VoxelSurfaceData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="51" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1a32c3b510b565120d5501f4e899117b94" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * VoxelSurfaceData::dumpStartPtr</definition>
+        <argsstring>()</argsstring>
+        <name>dumpStartPtr</name>
+        <qualifiedname>VoxelSurfaceData::dumpStartPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="53" column="8" bodyfile="dag_voxelSurfaceData.h" bodystart="53" bodyend="53"/>
+      </memberdef>
+      <memberdef kind="function" id="classVoxelSurfaceData_1ada5dcaac2b4b0d02cb289e8a022f5d49" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * VoxelSurfaceData::dataStartPtr</definition>
+        <argsstring>()</argsstring>
+        <name>dataStartPtr</name>
+        <qualifiedname>VoxelSurfaceData::dataStartPtr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="54" column="8" bodyfile="dag_voxelSurfaceData.h" bodystart="54" bodyend="54"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-func">
+      <memberdef kind="function" id="classVoxelSurfaceData_1a62123fdc5c08faebac8143875ccb4011" prot="protected" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr int</type>
+        <definition>static constexpr int VoxelSurfaceData::dumpStartOfs</definition>
+        <argsstring>()</argsstring>
+        <name>dumpStartOfs</name>
+        <qualifiedname>VoxelSurfaceData::dumpStartOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_voxelSurfaceData.h" line="52" column="24" bodyfile="dag_voxelSurfaceData.h" bodystart="52" bodyend="52"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>VoxelSurfaceData</label>
+        <link refid="classVoxelSurfaceData"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>AtlasBlockManager::ChunkLocation</label>
+        <link refid="structAtlasBlockManager_1_1ChunkLocation"/>
+      </node>
+      <node id="2">
+        <label>DObject</label>
+      </node>
+      <node id="1">
+        <label>VoxelSurfaceData</label>
+        <link refid="classVoxelSurfaceData"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>normLoc</edgelabel>
+          <edgelabel>rgbaLoc</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_voxelSurfaceData.h" line="14" column="1" bodyfile="dag_voxelSurfaceData.h" bodystart="15" bodyend="57"/>
+    <listofallmembers>
+      <member refid="classVoxelSurfaceData_1a1cb48c4ae56b68403cb597f87e1732cc" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>allocateAtlas</name></member>
+      <member refid="classVoxelSurfaceData_1ae225bbd99f11f33dfecb13fe9d3cfaeb" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>compressed</name></member>
+      <member refid="classVoxelSurfaceData_1ada5dcaac2b4b0d02cb289e8a022f5d49" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>dataStartPtr</name></member>
+      <member refid="classVoxelSurfaceData_1a62123fdc5c08faebac8143875ccb4011" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>dumpStartOfs</name></member>
+      <member refid="classVoxelSurfaceData_1a32c3b510b565120d5501f4e899117b94" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>dumpStartPtr</name></member>
+      <member refid="classVoxelSurfaceData_1a61f7b6bf522678145e2b1d75741c908d" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>getById</name></member>
+      <member refid="classVoxelSurfaceData_1ad430e51e9a4ea5eaf4818176ead64324" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>getId</name></member>
+      <member refid="classVoxelSurfaceData_1a37e69b7fbfd7f10728888b568b03ab7e" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>id</name></member>
+      <member refid="classVoxelSurfaceData_1ace6b671960d518de07065b31fe0a7dcf" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>INVALID_ID</name></member>
+      <member refid="classVoxelSurfaceData_1a3c3d79b9b54eee0b0d6c0d272f7a9f5f" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>isLoadedToAtlas</name></member>
+      <member refid="classVoxelSurfaceData_1ae75e299c878d28e982e368d0bce1c2ed" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>load</name></member>
+      <member refid="classVoxelSurfaceData_1adf99f8e8ace4e7d112d4f5498efc6a92" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>loadedToTex</name></member>
+      <member refid="classVoxelSurfaceData_1a6485f470294d71f35e2b070c1aa93dbb" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>loadToAtlas</name></member>
+      <member refid="classVoxelSurfaceData_1abe1eee9f0df40a244d102f9ca1558e67" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>normCompressedOffset</name></member>
+      <member refid="classVoxelSurfaceData_1a0a82993d67293fec5af1e377a3f7dd26" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>normLoc</name></member>
+      <member refid="classVoxelSurfaceData_1a3f457a44c4c2a17c317a8ea37ca8b4a8" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>numNormBlocks</name></member>
+      <member refid="classVoxelSurfaceData_1aa22c42038a0ca6998bc7e2a68ba0a911" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>numRgbaBlocks</name></member>
+      <member refid="classVoxelSurfaceData_1afafce518546db1b7fe53d33866763a92" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>onAfterD3dReset</name></member>
+      <member refid="classVoxelSurfaceData_1a2c08107652b99366cd39c560397f3c8e" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>releaseAtlas</name></member>
+      <member refid="classVoxelSurfaceData_1a372abccce3e09fd269878f5b2ee38ed1" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>rgbaLoc</name></member>
+      <member refid="classVoxelSurfaceData_1a5f400cbae2f95fc257eca365856906ec" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>setToShader</name></member>
+      <member refid="classVoxelSurfaceData_1ad4b569e3a901457d5f6fe9f863ecef34" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>setToShader</name></member>
+      <member refid="classVoxelSurfaceData_1a8b4936f1f15a387f2448a40aef80fe73" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>ShaderResUnitedVdata&lt; RenderableInstanceLodsResource &gt;</name></member>
+      <member refid="classVoxelSurfaceData_1a973dc52b055a24f2d9da28dae1093c75" prot="protected" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>VoxelSurfaceData</name></member>
+      <member refid="classVoxelSurfaceData_1a9bc4c263d5eb4c30cf1568f86306fcba" prot="public" virt="non-virtual"><scope>VoxelSurfaceData</scope><name>~VoxelSurfaceData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

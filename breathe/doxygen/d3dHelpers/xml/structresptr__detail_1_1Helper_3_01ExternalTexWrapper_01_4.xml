@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</compoundname>
+    <basecompoundref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4" prot="public" virt="non-virtual">resptr_detail::Helper&lt; BaseTexture &gt;</basecompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4_1a3787a90c8aac73cef0fab0ce3a69e1be" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool resptr_detail::Helper&lt; ExternalTexWrapper &gt;::release</definition>
+        <argsstring>(resid_t &amp;res_id, BaseTexture *)</argsstring>
+        <name>release</name>
+        <qualifiedname>resptr_detail::Helper&lt; ExternalTexWrapper &gt;::release</qualifiedname>
+        <param>
+          <type><ref refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" kindref="member">resid_t</ref> &amp;</type>
+          <declname>res_id</declname>
+        </param>
+        <param>
+          <type>BaseTexture *</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="130" column="15" bodyfile="dag_resPtr.h" bodystart="130" bodyend="139"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>resptr_detail::Helper&lt; BaseTexture &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>resptr_detail::Helper&lt; BaseTexture &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4"/>
+      </node>
+      <node id="1">
+        <label>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</label>
+        <link refid="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="128" column="1" bodyfile="dag_resPtr.h" bodystart="129" bodyend="140"/>
+    <listofallmembers>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1acf8850e84736b2ec08b52fdc1a2cd80b" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>acquire</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aa0d6706ea279db553b779520082c7c6e" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>BAD_ID</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ab5eb476379bc0864a212342ddd646c8a" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>can_bind</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a9998caa6ab696ee9ba435b6935e778a3" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>getManagedRefCount</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a68d1d7c33a5ee0ef56710e40438e94b9" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>getName</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1a8bffe963ca5a8ff74fdb65efc8b7dc49" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>getNameById</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aaa16231e0dee536147915988c3bf7db4" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>isManagedFactorySet</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1aba51278009aeb1485b1c7fb7f0694795" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>registerRes</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01ExternalTexWrapper_01_4_1a3787a90c8aac73cef0fab0ce3a69e1be" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>release</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ae22048ac7fac9e338a55acf6f5d4f74c" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>resid_t</name></member>
+      <member refid="structresptr__detail_1_1Helper_3_01BaseTexture_01_4_1ad92bbfd45cf55405b7512b4e5755af08" prot="public" virt="non-virtual"><scope>resptr_detail::Helper&lt; ExternalTexWrapper &gt;</scope><name>setVar</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

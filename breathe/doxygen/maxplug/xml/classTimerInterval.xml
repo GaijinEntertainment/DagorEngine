@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTimerInterval" kind="class" language="C++" prot="public">
+    <compoundname>TimerInterval</compoundname>
+    <includes refid="Timer_8hpp" local="no">Timer.hpp</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTimerInterval_1afbf7231f803661b7379e04bb28005259" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* TimerInterval::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>TimerInterval::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="36" column="14" bodyfile="Timer.hpp" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTimerInterval_1ae95419602cf29816285f3dccfb580ee8" prot="private" static="no" mutable="no">
+        <type>double</type>
+        <definition>double TimerInterval::start</definition>
+        <argsstring></argsstring>
+        <name>start</name>
+        <qualifiedname>TimerInterval::start</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="37" column="10" bodyfile="Timer.hpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTimerInterval_1a5a9f3a19bea5ef973532061c4caa5d3d" prot="private" static="no" mutable="no">
+        <type>double &amp;</type>
+        <definition>double &amp; TimerInterval::elapsed</definition>
+        <argsstring></argsstring>
+        <name>elapsed</name>
+        <qualifiedname>TimerInterval::elapsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="37" column="16" bodyfile="Timer.hpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTimerInterval_1ac56a9e1a43d50b4a44f7895b0aa90d7b" prot="private" static="no" mutable="no">
+        <type><ref refid="Timer_8hpp_1a458fa3211b9143beeaff9ac927d7d301" kindref="member">TimerIntervalType</ref></type>
+        <definition>TimerIntervalType TimerInterval::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>TimerInterval::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="38" column="21" bodyfile="Timer.hpp" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTimerInterval_1aa7b211331a610664dd9886116dd126ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TimerInterval::TimerInterval</definition>
+        <argsstring>(const char *name, double &amp;elapsed, TimerIntervalType type=TimerIntervalType::ACC)</argsstring>
+        <name>TimerInterval</name>
+        <qualifiedname>TimerInterval::TimerInterval</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>elapsed</declname>
+        </param>
+        <param>
+          <type><ref refid="Timer_8hpp_1a458fa3211b9143beeaff9ac927d7d301" kindref="member">TimerIntervalType</ref></type>
+          <declname>type</declname>
+          <defval><ref refid="Timer_8hpp_1a458fa3211b9143beeaff9ac927d7d301ac4fd1ef4041f00039def6df0331841de" kindref="member">TimerIntervalType::ACC</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="41" column="3" bodyfile="Timer.hpp" bodystart="41" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classTimerInterval_1a1b195dd2f3d08dc89522b1d2fae533e9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TimerInterval::~TimerInterval</definition>
+        <argsstring>()</argsstring>
+        <name>~TimerInterval</name>
+        <qualifiedname>TimerInterval::~TimerInterval</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="48" column="3" bodyfile="Timer.hpp" bodystart="48" bodyend="54"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Timer.hpp" line="34" column="1" bodyfile="Timer.hpp" bodystart="35" bodyend="55"/>
+    <listofallmembers>
+      <member refid="classTimerInterval_1a5a9f3a19bea5ef973532061c4caa5d3d" prot="private" virt="non-virtual"><scope>TimerInterval</scope><name>elapsed</name></member>
+      <member refid="classTimerInterval_1afbf7231f803661b7379e04bb28005259" prot="private" virt="non-virtual"><scope>TimerInterval</scope><name>name</name></member>
+      <member refid="classTimerInterval_1ae95419602cf29816285f3dccfb580ee8" prot="private" virt="non-virtual"><scope>TimerInterval</scope><name>start</name></member>
+      <member refid="classTimerInterval_1aa7b211331a610664dd9886116dd126ad" prot="public" virt="non-virtual"><scope>TimerInterval</scope><name>TimerInterval</name></member>
+      <member refid="classTimerInterval_1ac56a9e1a43d50b4a44f7895b0aa90d7b" prot="private" virt="non-virtual"><scope>TimerInterval</scope><name>type</name></member>
+      <member refid="classTimerInterval_1a1b195dd2f3d08dc89522b1d2fae533e9" prot="public" virt="non-virtual"><scope>TimerInterval</scope><name>~TimerInterval</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

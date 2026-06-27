@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDriver3dInitCallback_1_1VersionRange" kind="struct" language="C++" prot="public">
+    <compoundname>Driver3dInitCallback::VersionRange</compoundname>
+    <includes refid="dag__info_8h" local="no">dag_info.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDriver3dInitCallback_1_1VersionRange_1a6c9b11dfec09f18c814704ccbb3f2e72" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t Driver3dInitCallback::VersionRange::minVersion</definition>
+        <argsstring></argsstring>
+        <name>minVersion</name>
+        <qualifiedname>Driver3dInitCallback::VersionRange::minVersion</qualifiedname>
+        <briefdescription>
+<para>The minimum driver version. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_info.h" line="28" column="14" bodyfile="dag_info.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDriver3dInitCallback_1_1VersionRange_1a4445ead727482a8d37cbba5b4c35686e" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t Driver3dInitCallback::VersionRange::maxVersion</definition>
+        <argsstring></argsstring>
+        <name>maxVersion</name>
+        <qualifiedname>Driver3dInitCallback::VersionRange::maxVersion</qualifiedname>
+        <briefdescription>
+<para>The maximum driver version. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_info.h" line="29" column="14" bodyfile="dag_info.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Struct representing a range of driver versions. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_info.h" line="26" column="3" bodyfile="dag_info.h" bodystart="27" bodyend="30"/>
+    <listofallmembers>
+      <member refid="structDriver3dInitCallback_1_1VersionRange_1a4445ead727482a8d37cbba5b4c35686e" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::VersionRange</scope><name>maxVersion</name></member>
+      <member refid="structDriver3dInitCallback_1_1VersionRange_1a6c9b11dfec09f18c814704ccbb3f2e72" prot="public" virt="non-virtual"><scope>Driver3dInitCallback::VersionRange</scope><name>minVersion</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

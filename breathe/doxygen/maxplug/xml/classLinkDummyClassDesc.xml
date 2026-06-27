@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLinkDummyClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>LinkDummyClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLinkDummyClassDesc_1a912a83a637d5c6a0729ac1dce485c7c5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int LinkDummyClassDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>LinkDummyClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="143" column="7" bodyfile="dummy.cpp" bodystart="143" bodyend="143"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummyClassDesc_1ae807938ea17d419f385b10a9a4d505a3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * LinkDummyClassDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>LinkDummyClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="144" column="8" bodyfile="dummy.cpp" bodystart="144" bodyend="144"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummyClassDesc_1a8d08be4adfbded20241b0b8dea142c2c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * LinkDummyClassDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>LinkDummyClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="145" column="15" bodyfile="dummy.cpp" bodystart="145" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummyClassDesc_1a458447c5c96fa2f409571a5363a9c10a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * LinkDummyClassDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>LinkDummyClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="149" column="15" bodyfile="dummy.cpp" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummyClassDesc_1a94db7585154bab6c99245907973f9415" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID LinkDummyClassDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>LinkDummyClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="151" column="13" bodyfile="dummy.cpp" bodystart="151" bodyend="151"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummyClassDesc_1a9bcec6e0e73e41b054f90565ec894943" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID LinkDummyClassDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>LinkDummyClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="152" column="12" bodyfile="dummy.cpp" bodystart="152" bodyend="152"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummyClassDesc_1a74dba8f86a45e2e76fcac79d8c8f4841" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * LinkDummyClassDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>LinkDummyClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="153" column="15" bodyfile="dummy.cpp" bodystart="153" bodyend="153"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>LinkDummyClassDesc</label>
+        <link refid="classLinkDummyClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>LinkDummyClassDesc</label>
+        <link refid="classLinkDummyClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dummy.cpp" line="140" column="1" bodyfile="dummy.cpp" bodystart="141" bodyend="154"/>
+    <listofallmembers>
+      <member refid="classLinkDummyClassDesc_1a74dba8f86a45e2e76fcac79d8c8f4841" prot="public" virt="non-virtual"><scope>LinkDummyClassDesc</scope><name>Category</name></member>
+      <member refid="classLinkDummyClassDesc_1a9bcec6e0e73e41b054f90565ec894943" prot="public" virt="non-virtual"><scope>LinkDummyClassDesc</scope><name>ClassID</name></member>
+      <member refid="classLinkDummyClassDesc_1a8d08be4adfbded20241b0b8dea142c2c" prot="public" virt="non-virtual"><scope>LinkDummyClassDesc</scope><name>ClassName</name></member>
+      <member refid="classLinkDummyClassDesc_1ae807938ea17d419f385b10a9a4d505a3" prot="public" virt="non-virtual"><scope>LinkDummyClassDesc</scope><name>Create</name></member>
+      <member refid="classLinkDummyClassDesc_1a912a83a637d5c6a0729ac1dce485c7c5" prot="public" virt="non-virtual"><scope>LinkDummyClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classLinkDummyClassDesc_1a458447c5c96fa2f409571a5363a9c10a" prot="public" virt="non-virtual"><scope>LinkDummyClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classLinkDummyClassDesc_1a94db7585154bab6c99245907973f9415" prot="public" virt="non-virtual"><scope>LinkDummyClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

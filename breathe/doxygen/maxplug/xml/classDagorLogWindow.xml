@@ -1,0 +1,285 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagorLogWindow" kind="class" language="C++" prot="public">
+    <compoundname>DagorLogWindow</compoundname>
+    <includes refid="dagorLogWindow_8h" local="no">dagorLogWindow.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classDagorLogWindow_1a459098ccdd150144790891abc9e6229a" prot="public" static="no" strong="no">
+        <type></type>
+        <name>LogLevel</name>
+        <qualifiedname>DagorLogWindow::LogLevel</qualifiedname>
+        <enumvalue id="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aad382c903dfbb1b22f21b4d110f122adc" prot="public">
+          <name>Note</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa32ae57a69fc892e4e85954eeaeceb376" prot="public">
+          <name>Warning</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa123d64e6b2e73123ce7805de9474e755" prot="public">
+          <name>Error</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="13" column="3" bodyfile="dagorLogWindow.h" bodystart="15" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classDagorLogWindow_1a08e59cb81254d8c7cf9741198be23a2b" prot="private" static="yes" mutable="no">
+        <type>HWND</type>
+        <definition>HWND DagorLogWindow::hwnd</definition>
+        <argsstring></argsstring>
+        <name>hwnd</name>
+        <qualifiedname>DagorLogWindow::hwnd</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="35" column="15" bodyfile="dagorLogWindow.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorLogWindow_1ad46a2a50b95be429785e792e1e173380" prot="private" static="yes" mutable="no">
+        <type>TSTR</type>
+        <definition>TSTR DagorLogWindow::logText</definition>
+        <argsstring></argsstring>
+        <name>logText</name>
+        <qualifiedname>DagorLogWindow::logText</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="36" column="15" bodyfile="dagorLogWindow.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagorLogWindow_1a3cf628d3c6fa60ac6ea8506fc5f52c78" prot="private" static="yes" mutable="no">
+        <type>bool</type>
+        <definition>bool DagorLogWindow::hasWarningOrError</definition>
+        <argsstring></argsstring>
+        <name>hasWarningOrError</name>
+        <qualifiedname>DagorLogWindow::hasWarningOrError</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="37" column="15" bodyfile="dagorLogWindow.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classDagorLogWindow_1a65e078c63db9c8fed5094e7a0f24e496" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorLogWindow::show</definition>
+        <argsstring>(bool reset_position_and_size=false)</argsstring>
+        <name>show</name>
+        <qualifiedname>DagorLogWindow::show</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>reset_position_and_size</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="21" column="15" bodyfile="dagorLogWindow.cpp" bodystart="12" bodyend="29"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindow_1ae93bfb41a34cb2b57505215d25736529" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorLogWindow::hide</definition>
+        <argsstring>()</argsstring>
+        <name>hide</name>
+        <qualifiedname>DagorLogWindow::hide</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="22" column="15" bodyfile="dagorLogWindow.cpp" bodystart="31" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindow_1a42c9339a383b9d8c8581d81437b3937b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorLogWindow::addToLog</definition>
+        <argsstring>(LogLevel level, const TCHAR *format,...)</argsstring>
+        <name>addToLog</name>
+        <qualifiedname>DagorLogWindow::addToLog</qualifiedname>
+        <param>
+          <type><ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229a" kindref="member">LogLevel</ref></type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="24" column="15" bodyfile="dagorLogWindow.cpp" bodystart="37" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindow_1ab863dc3cc365b47ab074843db62289e2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorLogWindow::addToLog</definition>
+        <argsstring>(LogLevel level, const TCHAR *format, va_list args)</argsstring>
+        <name>addToLog</name>
+        <qualifiedname>DagorLogWindow::addToLog</qualifiedname>
+        <param>
+          <type><ref refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229a" kindref="member">LogLevel</ref></type>
+          <declname>level</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>va_list</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="25" column="15" bodyfile="dagorLogWindow.cpp" bodystart="45" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindow_1a942c1354a32e315d800e26a47e9341ae" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorLogWindow::clearLog</definition>
+        <argsstring>()</argsstring>
+        <name>clearLog</name>
+        <qualifiedname>DagorLogWindow::clearLog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="26" column="15" bodyfile="dagorLogWindow.cpp" bodystart="57" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindow_1affb59612b951f356758a4bef9126a3b2" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagorLogWindow::getHasWarningOrError</definition>
+        <argsstring>()</argsstring>
+        <name>getHasWarningOrError</name>
+        <qualifiedname>DagorLogWindow::getHasWarningOrError</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="28" column="15" bodyfile="dagorLogWindow.cpp" bodystart="64" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindow_1a4b08942c8a36ba4fddcaedf78899910b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; TSTR &gt;</type>
+        <definition>std::vector&lt; TSTR &gt; DagorLogWindow::getLogLines</definition>
+        <argsstring>()</argsstring>
+        <name>getLogLines</name>
+        <qualifiedname>DagorLogWindow::getLogLines</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="29" column="22" bodyfile="dagorLogWindow.cpp" bodystart="72" bodyend="100"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classDagorLogWindow_1a6a62bf819f3f2c5e83abaef78cfab0ef" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagorLogWindow::updateLogEditBox</definition>
+        <argsstring>()</argsstring>
+        <name>updateLogEditBox</name>
+        <qualifiedname>DagorLogWindow::updateLogEditBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="32" column="15" bodyfile="dagorLogWindow.cpp" bodystart="66" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagorLogWindow_1aed4f2576e9995fccf28dabcd56ca2bb6" prot="private" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR CALLBACK</type>
+        <definition>INT_PTR CALLBACK DagorLogWindow::dialogProc</definition>
+        <argsstring>(HWND hw, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>dialogProc</name>
+        <qualifiedname>DagorLogWindow::dialogProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagorLogWindow.h" line="33" column="27" bodyfile="dagorLogWindow.cpp" bodystart="102" bodyend="159"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagorLogWindow.h" line="7" column="1" bodyfile="dagorLogWindow.h" bodystart="8" bodyend="38"/>
+    <listofallmembers>
+      <member refid="classDagorLogWindow_1a42c9339a383b9d8c8581d81437b3937b" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>addToLog</name></member>
+      <member refid="classDagorLogWindow_1ab863dc3cc365b47ab074843db62289e2" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>addToLog</name></member>
+      <member refid="classDagorLogWindow_1a942c1354a32e315d800e26a47e9341ae" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>clearLog</name></member>
+      <member refid="classDagorLogWindow_1aed4f2576e9995fccf28dabcd56ca2bb6" prot="private" virt="non-virtual"><scope>DagorLogWindow</scope><name>dialogProc</name></member>
+      <member refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa123d64e6b2e73123ce7805de9474e755" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>Error</name></member>
+      <member refid="classDagorLogWindow_1affb59612b951f356758a4bef9126a3b2" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>getHasWarningOrError</name></member>
+      <member refid="classDagorLogWindow_1a4b08942c8a36ba4fddcaedf78899910b" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>getLogLines</name></member>
+      <member refid="classDagorLogWindow_1a3cf628d3c6fa60ac6ea8506fc5f52c78" prot="private" virt="non-virtual"><scope>DagorLogWindow</scope><name>hasWarningOrError</name></member>
+      <member refid="classDagorLogWindow_1ae93bfb41a34cb2b57505215d25736529" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>hide</name></member>
+      <member refid="classDagorLogWindow_1a08e59cb81254d8c7cf9741198be23a2b" prot="private" virt="non-virtual"><scope>DagorLogWindow</scope><name>hwnd</name></member>
+      <member refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229a" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>LogLevel</name></member>
+      <member refid="classDagorLogWindow_1ad46a2a50b95be429785e792e1e173380" prot="private" virt="non-virtual"><scope>DagorLogWindow</scope><name>logText</name></member>
+      <member refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aad382c903dfbb1b22f21b4d110f122adc" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>Note</name></member>
+      <member refid="classDagorLogWindow_1a65e078c63db9c8fed5094e7a0f24e496" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>show</name></member>
+      <member refid="classDagorLogWindow_1a6a62bf819f3f2c5e83abaef78cfab0ef" prot="private" virt="non-virtual"><scope>DagorLogWindow</scope><name>updateLogEditBox</name></member>
+      <member refid="classDagorLogWindow_1a459098ccdd150144790891abc9e6229aa32ae57a69fc892e4e85954eeaeceb376" prot="public" virt="non-virtual"><scope>DagorLogWindow</scope><name>Warning</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

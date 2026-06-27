@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderStageData" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderStageData</compoundname>
+    <includes refid="compileResult_8h" local="no">compileResult.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderStageData_1ab4b8651768745facb464c62a60b55f8c" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; uint8_t &gt;</type>
+        <definition>dag::ConstSpan&lt;uint8_t&gt; ShaderStageData::metadata</definition>
+        <argsstring></argsstring>
+        <name>metadata</name>
+        <qualifiedname>ShaderStageData::metadata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="compileResult.h" line="31" column="18" bodyfile="compileResult.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderStageData_1aeb2ddafdef086f001671f513aae22abe" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; unsigned &gt;</type>
+        <definition>dag::ConstSpan&lt;unsigned&gt; ShaderStageData::bytecode</definition>
+        <argsstring></argsstring>
+        <name>bytecode</name>
+        <qualifiedname>ShaderStageData::bytecode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="compileResult.h" line="32" column="18" bodyfile="compileResult.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderStageData_1ae4450cc538616178213100ef1234ff84" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderStageData::empty</definition>
+        <argsstring>() const</argsstring>
+        <name>empty</name>
+        <qualifiedname>ShaderStageData::empty</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="compileResult.h" line="34" column="8" bodyfile="compileResult.h" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderStageData_1ad0a7cbb69d6e5c703947afa215625d85" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderStageData::operator!=</definition>
+        <argsstring>(const ShaderStageData &amp;rhs) const</argsstring>
+        <name>operator!=</name>
+        <qualifiedname>ShaderStageData::operator!=</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderStageData" kindref="compound">ShaderStageData</ref> &amp;</type>
+          <declname>rhs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="compileResult.h" line="36" column="8" bodyfile="compileResult.h" bodystart="36" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderStageData_1a729c23951d45c4c24e1ea05ef3dcee2f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderStageData::type</definition>
+        <argsstring>() const</argsstring>
+        <name>type</name>
+        <qualifiedname>ShaderStageData::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="compileResult.h" line="51" column="12" bodyfile="compileResult.h" bodystart="51" bodyend="57"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="compileResult.h" line="29" column="1" bodyfile="compileResult.h" bodystart="30" bodyend="58"/>
+    <listofallmembers>
+      <member refid="structShaderStageData_1aeb2ddafdef086f001671f513aae22abe" prot="public" virt="non-virtual"><scope>ShaderStageData</scope><name>bytecode</name></member>
+      <member refid="structShaderStageData_1ae4450cc538616178213100ef1234ff84" prot="public" virt="non-virtual"><scope>ShaderStageData</scope><name>empty</name></member>
+      <member refid="structShaderStageData_1ab4b8651768745facb464c62a60b55f8c" prot="public" virt="non-virtual"><scope>ShaderStageData</scope><name>metadata</name></member>
+      <member refid="structShaderStageData_1ad0a7cbb69d6e5c703947afa215625d85" prot="public" virt="non-virtual"><scope>ShaderStageData</scope><name>operator!=</name></member>
+      <member refid="structShaderStageData_1a729c23951d45c4c24e1ea05ef3dcee2f" prot="public" virt="non-virtual"><scope>ShaderStageData</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

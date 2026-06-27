@@ -1,0 +1,89 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDlgExInfo" kind="struct" language="C++" prot="public">
+    <compoundname>DlgExInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDlgExInfo_1ab40ea4ca4769fbe087194918f5e603d7" prot="public" static="no" mutable="no">
+        <type>short</type>
+        <definition>short DlgExInfo::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>DlgExInfo::w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="136" column="9" bodyfile="layout.cpp" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDlgExInfo_1a0d842689182d862e3eb3a28845c60ed2" prot="public" static="no" mutable="no">
+        <type>short</type>
+        <definition>short DlgExInfo::h</definition>
+        <argsstring></argsstring>
+        <name>h</name>
+        <qualifiedname>DlgExInfo::h</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="136" column="11" bodyfile="layout.cpp" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDlgExInfo_1abadee5e9d2c156f74636f42d757f3a1d" prot="public" static="no" mutable="no">
+        <type>WORD</type>
+        <definition>WORD DlgExInfo::num_items</definition>
+        <argsstring></argsstring>
+        <name>num_items</name>
+        <qualifiedname>DlgExInfo::num_items</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="137" column="8" bodyfile="layout.cpp" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDlgExInfo_1ab123a5eac203ce5819c1f66cb9c651a1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DlgExInfo::DlgExInfo</definition>
+        <argsstring>(short w_, short h_, WORD n_)</argsstring>
+        <name>DlgExInfo</name>
+        <qualifiedname>DlgExInfo::DlgExInfo</qualifiedname>
+        <param>
+          <type>short</type>
+          <declname>w_</declname>
+        </param>
+        <param>
+          <type>short</type>
+          <declname>h_</declname>
+        </param>
+        <param>
+          <type>WORD</type>
+          <declname>n_</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="138" column="3" bodyfile="layout.cpp" bodystart="138" bodyend="138"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="layout.cpp" line="134" column="1" bodyfile="layout.cpp" bodystart="135" bodyend="139"/>
+    <listofallmembers>
+      <member refid="structDlgExInfo_1ab123a5eac203ce5819c1f66cb9c651a1" prot="public" virt="non-virtual"><scope>DlgExInfo</scope><name>DlgExInfo</name></member>
+      <member refid="structDlgExInfo_1a0d842689182d862e3eb3a28845c60ed2" prot="public" virt="non-virtual"><scope>DlgExInfo</scope><name>h</name></member>
+      <member refid="structDlgExInfo_1abadee5e9d2c156f74636f42d757f3a1d" prot="public" virt="non-virtual"><scope>DlgExInfo</scope><name>num_items</name></member>
+      <member refid="structDlgExInfo_1ab40ea4ca4769fbe087194918f5e603d7" prot="public" virt="non-virtual"><scope>DlgExInfo</scope><name>w</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

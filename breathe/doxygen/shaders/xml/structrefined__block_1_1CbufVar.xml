@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structrefined__block_1_1CbufVar" kind="struct" language="C++" prot="public">
+    <compoundname>refined_block::CbufVar</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structrefined__block_1_1CbufVar_1a985bea1f5571e2f73362a89ac354cc17" prot="public" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* refined_block::CbufVar::buf</definition>
+        <argsstring></argsstring>
+        <name>buf</name>
+        <qualifiedname>refined_block::CbufVar::buf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="25" column="11" bodyfile="dag_refinedBlock.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_refinedBlock.h" line="23" column="1" bodyfile="dag_refinedBlock.h" bodystart="24" bodyend="26"/>
+    <listofallmembers>
+      <member refid="structrefined__block_1_1CbufVar_1a985bea1f5571e2f73362a89ac354cc17" prot="public" virt="non-virtual"><scope>refined_block::CbufVar</scope><name>buf</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

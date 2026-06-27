@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTAClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>TAClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTAClassDesc_1a5d9fed5baa614bd7b0c8e87db1a6b97d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int TAClassDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>TAClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="16" column="7" bodyfile="ta.cpp" bodystart="16" bodyend="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classTAClassDesc_1a7aa4da1fbf44330ef9495b5c19e2b8a1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * TAClassDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>TAClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="17" column="8" bodyfile="ta.cpp" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classTAClassDesc_1a7e8256c224e5576baca9916d04ae0237" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * TAClassDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>TAClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="18" column="15" bodyfile="ta.cpp" bodystart="18" bodyend="18"/>
+      </memberdef>
+      <memberdef kind="function" id="classTAClassDesc_1a46d510babf6093200ceb7cc17edeb3b1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * TAClassDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>TAClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="22" column="15" bodyfile="ta.cpp" bodystart="22" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classTAClassDesc_1aac99b5675b69dcf5561f478b200d3417" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID TAClassDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>TAClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="24" column="13" bodyfile="ta.cpp" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classTAClassDesc_1a2a75aaf9445dd2c08d9b0f8e01befe88" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID TAClassDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>TAClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="25" column="12" bodyfile="ta.cpp" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="classTAClassDesc_1a5d6c69ed9f2b5024afe2f476780aa1b9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * TAClassDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>TAClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ta.cpp" line="26" column="15" bodyfile="ta.cpp" bodystart="26" bodyend="26"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>TAClassDesc</label>
+        <link refid="classTAClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>TAClassDesc</label>
+        <link refid="classTAClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ta.cpp" line="13" column="1" bodyfile="ta.cpp" bodystart="14" bodyend="27"/>
+    <listofallmembers>
+      <member refid="classTAClassDesc_1a5d6c69ed9f2b5024afe2f476780aa1b9" prot="public" virt="non-virtual"><scope>TAClassDesc</scope><name>Category</name></member>
+      <member refid="classTAClassDesc_1a2a75aaf9445dd2c08d9b0f8e01befe88" prot="public" virt="non-virtual"><scope>TAClassDesc</scope><name>ClassID</name></member>
+      <member refid="classTAClassDesc_1a7e8256c224e5576baca9916d04ae0237" prot="public" virt="non-virtual"><scope>TAClassDesc</scope><name>ClassName</name></member>
+      <member refid="classTAClassDesc_1a7aa4da1fbf44330ef9495b5c19e2b8a1" prot="public" virt="non-virtual"><scope>TAClassDesc</scope><name>Create</name></member>
+      <member refid="classTAClassDesc_1a5d9fed5baa614bd7b0c8e87db1a6b97d" prot="public" virt="non-virtual"><scope>TAClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classTAClassDesc_1a46d510babf6093200ceb7cc17edeb3b1" prot="public" virt="non-virtual"><scope>TAClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classTAClassDesc_1aac99b5675b69dcf5561f478b200d3417" prot="public" virt="non-virtual"><scope>TAClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

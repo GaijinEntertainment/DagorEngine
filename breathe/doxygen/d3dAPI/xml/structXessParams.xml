@@ -1,0 +1,203 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structXessParams" kind="struct" language="C++" prot="public">
+    <compoundname>XessParams</compoundname>
+    <includes refid="dag__decl_8h" local="no">dag_decl.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structXessParams_1a434b49db8d3822599491a9654681cb6f" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::inColor</definition>
+        <argsstring></argsstring>
+        <name>inColor</name>
+        <qualifiedname>XessParams::inColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="330" column="15" bodyfile="dag_decl.h" bodystart="330" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1a542c7bec9f111509d56c531dc573fc53" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::inDepth</definition>
+        <argsstring></argsstring>
+        <name>inDepth</name>
+        <qualifiedname>XessParams::inDepth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="331" column="15" bodyfile="dag_decl.h" bodystart="331" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1ab7b9e2539139172a09d39043303cf422" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::inMotionVectors</definition>
+        <argsstring></argsstring>
+        <name>inMotionVectors</name>
+        <qualifiedname>XessParams::inMotionVectors</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="332" column="15" bodyfile="dag_decl.h" bodystart="332" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1a2779575a74ba1a1e019146669794801f" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inJitterOffsetX</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetX</name>
+        <qualifiedname>XessParams::inJitterOffsetX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="333" column="9" bodyfile="dag_decl.h" bodystart="333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1a0bce148466951ed94c04bac525de60b1" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inJitterOffsetY</definition>
+        <argsstring></argsstring>
+        <name>inJitterOffsetY</name>
+        <qualifiedname>XessParams::inJitterOffsetY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="334" column="9" bodyfile="dag_decl.h" bodystart="334" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1a79df7a75347563d2e1db85cdf0f361bc" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inInputWidth</definition>
+        <argsstring></argsstring>
+        <name>inInputWidth</name>
+        <qualifiedname>XessParams::inInputWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="335" column="9" bodyfile="dag_decl.h" bodystart="335" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1aa54de62f5afceb0571c9f4b1169c3fe4" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float XessParams::inInputHeight</definition>
+        <argsstring></argsstring>
+        <name>inInputHeight</name>
+        <qualifiedname>XessParams::inInputHeight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="336" column="9" bodyfile="dag_decl.h" bodystart="336" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1ab833d07c037603a14330b7d99064a3a9" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int XessParams::inColorDepthOffsetX</definition>
+        <argsstring></argsstring>
+        <name>inColorDepthOffsetX</name>
+        <qualifiedname>XessParams::inColorDepthOffsetX</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="337" column="7" bodyfile="dag_decl.h" bodystart="337" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1a122c28d8ed8004deb7c0887197ead547" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int XessParams::inColorDepthOffsetY</definition>
+        <argsstring></argsstring>
+        <name>inColorDepthOffsetY</name>
+        <qualifiedname>XessParams::inColorDepthOffsetY</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="338" column="7" bodyfile="dag_decl.h" bodystart="338" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1a4647f4221d6749bb0d1f47515509bba2" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool XessParams::inReset</definition>
+        <argsstring></argsstring>
+        <name>inReset</name>
+        <qualifiedname>XessParams::inReset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="339" column="8" bodyfile="dag_decl.h" bodystart="339" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structXessParams_1a91d336ff60e4bc4f9ff0bfe9018e5b69" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* XessParams::outColor</definition>
+        <argsstring></argsstring>
+        <name>outColor</name>
+        <qualifiedname>XessParams::outColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_decl.h" line="341" column="15" bodyfile="dag_decl.h" bodystart="341" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>XessParams</label>
+        <link refid="structXessParams"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>inColor</edgelabel>
+          <edgelabel>inDepth</edgelabel>
+          <edgelabel>inMotionVectors</edgelabel>
+          <edgelabel>outColor</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_decl.h" line="328" column="1" bodyfile="dag_decl.h" bodystart="329" bodyend="342"/>
+    <listofallmembers>
+      <member refid="structXessParams_1a434b49db8d3822599491a9654681cb6f" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inColor</name></member>
+      <member refid="structXessParams_1ab833d07c037603a14330b7d99064a3a9" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inColorDepthOffsetX</name></member>
+      <member refid="structXessParams_1a122c28d8ed8004deb7c0887197ead547" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inColorDepthOffsetY</name></member>
+      <member refid="structXessParams_1a542c7bec9f111509d56c531dc573fc53" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inDepth</name></member>
+      <member refid="structXessParams_1aa54de62f5afceb0571c9f4b1169c3fe4" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inInputHeight</name></member>
+      <member refid="structXessParams_1a79df7a75347563d2e1db85cdf0f361bc" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inInputWidth</name></member>
+      <member refid="structXessParams_1a2779575a74ba1a1e019146669794801f" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inJitterOffsetX</name></member>
+      <member refid="structXessParams_1a0bce148466951ed94c04bac525de60b1" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inJitterOffsetY</name></member>
+      <member refid="structXessParams_1ab7b9e2539139172a09d39043303cf422" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inMotionVectors</name></member>
+      <member refid="structXessParams_1a4647f4221d6749bb0d1f47515509bba2" prot="public" virt="non-virtual"><scope>XessParams</scope><name>inReset</name></member>
+      <member refid="structXessParams_1a91d336ff60e4bc4f9ff0bfe9018e5b69" prot="public" virt="non-virtual"><scope>XessParams</scope><name>outColor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

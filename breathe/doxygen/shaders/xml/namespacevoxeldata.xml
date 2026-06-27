@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacevoxeldata" kind="namespace" language="C++">
+    <compoundname>voxeldata</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__atlasBlockManager_8h_1ac5bdfdfa85f7fb574a0baf8868b07314" prot="public" static="no" mutable="no">
+        <type><ref refid="classAtlasBlockManager" kindref="compound">AtlasBlockManager</ref></type>
+        <definition>AtlasBlockManager voxeldata::rgbaAtlasManager</definition>
+        <argsstring></argsstring>
+        <name>rgbaAtlasManager</name>
+        <qualifiedname>voxeldata::rgbaAtlasManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="98" column="26" declfile="dag_atlasBlockManager.h" declline="98" declcolumn="26"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__atlasBlockManager_8h_1a96d8aa03f4d95871e6bed6e1fbecf60f" prot="public" static="no" mutable="no">
+        <type><ref refid="classAtlasBlockManager" kindref="compound">AtlasBlockManager</ref></type>
+        <definition>AtlasBlockManager voxeldata::normAtlasManager</definition>
+        <argsstring></argsstring>
+        <name>normAtlasManager</name>
+        <qualifiedname>voxeldata::normAtlasManager</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_atlasBlockManager.h" line="98" column="43" bodyfile="dag_atlasBlockManager.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_atlasBlockManager.h" line="96" column="1"/>
+  </compounddef>
+</doxygen>

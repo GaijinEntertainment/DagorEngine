@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1LayoutTransitionOperation" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::LayoutTransitionOperation</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1LayoutTransitionOperation_1ad4c3b57b6732fb5dff9737780abb7cbe" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2a" kindref="member">TextureLayout</ref></type>
+        <definition>TextureLayout d3d::LayoutTransitionOperation::src</definition>
+        <argsstring></argsstring>
+        <name>src</name>
+        <qualifiedname>d3d::LayoutTransitionOperation::src</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="185" column="17" bodyfile="dag_enhanced_barrier.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1LayoutTransitionOperation_1a51d04f67d5a34b49723799e7cacc6d6e" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2a" kindref="member">TextureLayout</ref></type>
+        <definition>TextureLayout d3d::LayoutTransitionOperation::dst</definition>
+        <argsstring></argsstring>
+        <name>dst</name>
+        <qualifiedname>d3d::LayoutTransitionOperation::dst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="186" column="17" bodyfile="dag_enhanced_barrier.h" bodystart="186" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_enhanced_barrier.h" line="183" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="184" bodyend="187"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1LayoutTransitionOperation_1a51d04f67d5a34b49723799e7cacc6d6e" prot="public" virt="non-virtual"><scope>d3d::LayoutTransitionOperation</scope><name>dst</name></member>
+      <member refid="structd3d_1_1LayoutTransitionOperation_1ad4c3b57b6732fb5dff9737780abb7cbe" prot="public" virt="non-virtual"><scope>d3d::LayoutTransitionOperation</scope><name>src</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacerefined__block" kind="namespace" language="C++">
+    <compoundname>refined_block</compoundname>
+    <innerclass refid="classrefined__block_1_1BaseBlockHandle" prot="public">refined_block::BaseBlockHandle</innerclass>
+    <innerclass refid="structrefined__block_1_1BindlessSamplerVar" prot="public">refined_block::BindlessSamplerVar</innerclass>
+    <innerclass refid="structrefined__block_1_1BindlessTexVar" prot="public">refined_block::BindlessTexVar</innerclass>
+    <innerclass refid="structrefined__block_1_1CbufVar" prot="public">refined_block::CbufVar</innerclass>
+    <innerclass refid="structrefined__block_1_1FlushedVar" prot="public">refined_block::FlushedVar</innerclass>
+    <innerclass refid="classrefined__block_1_1GlobalBlockHandle" prot="public">refined_block::GlobalBlockHandle</innerclass>
+    <innerclass refid="classrefined__block_1_1PassBlockHandle" prot="public">refined_block::PassBlockHandle</innerclass>
+    <innerclass refid="structrefined__block_1_1RWBufVar" prot="public">refined_block::RWBufVar</innerclass>
+    <innerclass refid="structrefined__block_1_1RWTexVar" prot="public">refined_block::RWTexVar</innerclass>
+    <innerclass refid="classrefined__block_1_1ViewBlockHandle" prot="public">refined_block::ViewBlockHandle</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__refinedBlock_8h_1af3cd23b3028c03997fe2cc8fde95a7ee" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>GetError</name>
+        <qualifiedname>refined_block::GetError</qualifiedname>
+        <enumvalue id="dag__refinedBlock_8h_1af3cd23b3028c03997fe2cc8fde95a7eeaff69de7f8815f520694bccaadaae52c6" prot="public">
+          <name>VarNotFound</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__refinedBlock_8h_1af3cd23b3028c03997fe2cc8fde95a7eea9a3e3870357421c0349f1b6328fe5bc7" prot="public">
+          <name>WrongVarType</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="53" column="1" bodyfile="dag_refinedBlock.h" bodystart="54" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="enum" id="dag__refinedBlock_8h_1a43d33641fe4ba5b341444f7e21f87caf" prot="public" static="no" strong="yes">
+        <type>uint8_t</type>
+        <name>FlushError</name>
+        <qualifiedname>refined_block::FlushError</qualifiedname>
+        <enumvalue id="dag__refinedBlock_8h_1a43d33641fe4ba5b341444f7e21f87cafa73a538ada6ebc0865a6f3cb80a0edcef" prot="public">
+          <name>NoDump</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__refinedBlock_8h_1a43d33641fe4ba5b341444f7e21f87cafaa635747c439b8a2582bb5e2986708786" prot="public">
+          <name>InvalidStcodeId</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__refinedBlock_8h_1a43d33641fe4ba5b341444f7e21f87cafa258b86f4e8dd25dd49698f78828eccd8" prot="public">
+          <name>EmptyStcode</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__refinedBlock_8h_1a43d33641fe4ba5b341444f7e21f87cafac77619c8ad6909742c85c77557e692c3" prot="public">
+          <name>CbufCreationFailed</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__refinedBlock_8h_1a43d33641fe4ba5b341444f7e21f87cafa1873bf3bea9aec83a0625111092aab98" prot="public">
+          <name>CbufUpdateFailed</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="59" column="1" bodyfile="dag_refinedBlock.h" bodystart="60" bodyend="66"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__refinedBlock_8h_1a316901aa40947c85989057184b5b01c3" prot="public" static="no">
+        <type>eastl::variant&lt; int, float, Color4, IPoint4, TMatrix4, BaseTexture *, <ref refid="structrefined__block_1_1BindlessTexVar" kindref="compound">BindlessTexVar</ref>, Sbuffer *, <ref refid="structrefined__block_1_1CbufVar" kindref="compound">CbufVar</ref>, d3d::SamplerHandle, <ref refid="structrefined__block_1_1BindlessSamplerVar" kindref="compound">BindlessSamplerVar</ref>, RaytraceTopAccelerationStructure *, <ref refid="structrefined__block_1_1RWTexVar" kindref="compound">RWTexVar</ref>, <ref refid="structrefined__block_1_1RWBufVar" kindref="compound">RWBufVar</ref> &gt;</type>
+        <definition>using refined_block::VarValue = typedef eastl::variant&lt;int, float, Color4, IPoint4, TMatrix4, BaseTexture *, BindlessTexVar, Sbuffer *, CbufVar, d3d::SamplerHandle, BindlessSamplerVar, RaytraceTopAccelerationStructure *, RWTexVar, RWBufVar&gt;</definition>
+        <argsstring></argsstring>
+        <name>VarValue</name>
+        <qualifiedname>refined_block::VarValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="43" column="1" bodyfile="dag_refinedBlock.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__refinedBlock_8h_1a66421ce20f92b3e335c7dd68b7e0dd87" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref></type>
+        <definition>GlobalBlockHandle refined_block::get_global</definition>
+        <argsstring>()</argsstring>
+        <name>get_global</name>
+        <qualifiedname>refined_block::get_global</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="192" column="19" declfile="dag_refinedBlock.h" declline="192" declcolumn="19"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__refinedBlock_8h_1aedad5f29edf9053f84f4ae6bfe028ede" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void refined_block::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>refined_block::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="193" column="6" declfile="dag_refinedBlock.h" declline="193" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__refinedBlock_8h_1a697e6e3c8060592f0d2d808ba123ac40" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void refined_block::flush</definition>
+        <argsstring>()</argsstring>
+        <name>flush</name>
+        <qualifiedname>refined_block::flush</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="194" column="6" declfile="dag_refinedBlock.h" declline="194" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_refinedBlock.h" line="15" column="1"/>
+  </compounddef>
+</doxygen>

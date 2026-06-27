@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1Range" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::Range</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1Range_1af8bca8c20f0fc8579a902c4fb26f1d75" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t d3d::Range::first</definition>
+        <argsstring></argsstring>
+        <name>first</name>
+        <qualifiedname>d3d::Range::first</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="160" column="12" bodyfile="dag_enhanced_barrier.h" bodystart="160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1Range_1ac7100d969b233a252d1fe8004123dc0a" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t d3d::Range::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>d3d::Range::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="161" column="12" bodyfile="dag_enhanced_barrier.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_enhanced_barrier.h" line="158" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="159" bodyend="162"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1Range_1ac7100d969b233a252d1fe8004123dc0a" prot="public" virt="non-virtual"><scope>d3d::Range</scope><name>count</name></member>
+      <member refid="structd3d_1_1Range_1af8bca8c20f0fc8579a902c4fb26f1d75" prot="public" virt="non-virtual"><scope>d3d::Range</scope><name>first</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

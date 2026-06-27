@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshc_1_1Int4" kind="struct" language="C++" prot="public">
+    <compoundname>shc::Int4</compoundname>
+    <includes refid="shVarVecTypes_8h" local="no">shVarVecTypes.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structshc_1_1Int4_1a939a03678af61ffa3df60dda8bd641c2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::Int4::x</definition>
+        <argsstring></argsstring>
+        <name>x</name>
+        <qualifiedname>shc::Int4::x</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="20" column="7" bodyfile="shVarVecTypes.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1Int4_1ab6e12d7b1b4ab46f7893732af1360a72" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::Int4::y</definition>
+        <argsstring></argsstring>
+        <name>y</name>
+        <qualifiedname>shc::Int4::y</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="20" column="9" bodyfile="shVarVecTypes.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1Int4_1a5c73214356dacfc24ccab48e2976b781" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::Int4::z</definition>
+        <argsstring></argsstring>
+        <name>z</name>
+        <qualifiedname>shc::Int4::z</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="20" column="11" bodyfile="shVarVecTypes.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structshc_1_1Int4_1a7781f08581090b0ff4efc2799f0beaaa" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int shc::Int4::w</definition>
+        <argsstring></argsstring>
+        <name>w</name>
+        <qualifiedname>shc::Int4::w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="20" column="13" bodyfile="shVarVecTypes.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshc_1_1Int4_1a78f800b2861fff2fe06354e711660537" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void shc::Int4::set</definition>
+        <argsstring>(const T &amp;p)</argsstring>
+        <name>set</name>
+        <qualifiedname>shc::Int4::set</qualifiedname>
+        <param>
+          <type>const T &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="23" column="8" bodyfile="shVarVecTypes.h" bodystart="23" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="structshc_1_1Int4_1a2d0ddf06714699cc360b45a285bd1eeb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shc::Int4::set</definition>
+        <argsstring>(float _x, float _y, float _z, float _w)</argsstring>
+        <name>set</name>
+        <qualifiedname>shc::Int4::set</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>_x</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_y</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_z</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>_w</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shVarVecTypes.h" line="27" column="8" bodyfile="shVarVecTypes.h" bodystart="27" bodyend="27"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shVarVecTypes.h" line="18" column="1" bodyfile="shVarVecTypes.h" bodystart="19" bodyend="28"/>
+    <listofallmembers>
+      <member refid="structshc_1_1Int4_1a78f800b2861fff2fe06354e711660537" prot="public" virt="non-virtual"><scope>shc::Int4</scope><name>set</name></member>
+      <member refid="structshc_1_1Int4_1a2d0ddf06714699cc360b45a285bd1eeb" prot="public" virt="non-virtual"><scope>shc::Int4</scope><name>set</name></member>
+      <member refid="structshc_1_1Int4_1a7781f08581090b0ff4efc2799f0beaaa" prot="public" virt="non-virtual"><scope>shc::Int4</scope><name>w</name></member>
+      <member refid="structshc_1_1Int4_1a939a03678af61ffa3df60dda8bd641c2" prot="public" virt="non-virtual"><scope>shc::Int4</scope><name>x</name></member>
+      <member refid="structshc_1_1Int4_1ab6e12d7b1b4ab46f7893732af1360a72" prot="public" virt="non-virtual"><scope>shc::Int4</scope><name>y</name></member>
+      <member refid="structshc_1_1Int4_1a5c73214356dacfc24ccab48e2976b781" prot="public" virt="non-virtual"><scope>shc::Int4</scope><name>z</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

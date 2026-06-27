@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResource" kind="struct" language="C++" prot="public">
+    <compoundname>Resource</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" prot="public" static="no" mutable="no">
+        <type>const <ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref> *</type>
+        <definition>const uint8_t* Resource::ptr</definition>
+        <argsstring></argsstring>
+        <name>ptr</name>
+        <qualifiedname>Resource::ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="90" column="17" bodyfile="layout.cpp" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResource_1a662d060c43aa0c3df46747cbde322098" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t Resource::num</definition>
+        <argsstring></argsstring>
+        <name>num</name>
+        <qualifiedname>Resource::num</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="91" column="10" bodyfile="layout.cpp" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structResource_1a9c8b44b7c81e57a5d32e8b1987bf18ec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Resource::Resource</definition>
+        <argsstring>(const uint8_t *p, size_t n)</argsstring>
+        <name>Resource</name>
+        <qualifiedname>Resource::Resource</qualifiedname>
+        <param>
+          <type>const <ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="92" column="3" bodyfile="layout.cpp" bodystart="92" bodyend="92"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="layout.cpp" line="88" column="1" bodyfile="layout.cpp" bodystart="89" bodyend="93"/>
+    <listofallmembers>
+      <member refid="structResource_1a662d060c43aa0c3df46747cbde322098" prot="public" virt="non-virtual"><scope>Resource</scope><name>num</name></member>
+      <member refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" prot="public" virt="non-virtual"><scope>Resource</scope><name>ptr</name></member>
+      <member refid="structResource_1a9c8b44b7c81e57a5d32e8b1987bf18ec" prot="public" virt="non-virtual"><scope>Resource</scope><name>Resource</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

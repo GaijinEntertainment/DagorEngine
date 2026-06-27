@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__keyboardShortcutsPanel_8h" kind="file" language="C++">
+    <compoundname>ec_keyboardShortcutsPanel.h</compoundname>
+    <innerclass refid="classKeyboardShortcutsPanel" prot="public">KeyboardShortcutsPanel</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="classKeyboardShortcutsPanel" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classKeyboardShortcutsPanel" kindref="compound">KeyboardShortcutsPanel</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="7" refid="classKeyboardShortcutsPanel_1a69b7c463e7f52ddc17db73983c67f492" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classKeyboardShortcutsPanel_1a69b7c463e7f52ddc17db73983c67f492" kindref="member">KeyboardShortcutsPanel</ref>();</highlight></codeline>
+<codeline lineno="8" refid="classKeyboardShortcutsPanel_1ae578fa569592ea7a034968eddca3e4d8" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classKeyboardShortcutsPanel_1ae578fa569592ea7a034968eddca3e4d8" kindref="member">~KeyboardShortcutsPanel</ref>();</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="classKeyboardShortcutsPanel_1a137b4bba0ddf76054ae18bd23e1f8295" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classKeyboardShortcutsPanel_1a137b4bba0ddf76054ae18bd23e1f8295" kindref="member">updateImgui</ref>();</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">State;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/>State<sp/>*state;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_keyboardShortcutsPanel.h"/>
+  </compounddef>
+</doxygen>

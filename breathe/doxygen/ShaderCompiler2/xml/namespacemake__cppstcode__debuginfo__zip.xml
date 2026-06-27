@@ -1,0 +1,71 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacemake__cppstcode__debuginfo__zip" kind="namespace" language="Python">
+    <compoundname>make_cppstcode_debuginfo_zip</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespacemake__cppstcode__debuginfo__zip_1aff248fb0d43ee9a1b7ac793b14f65246" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>make_cppstcode_debuginfo_zip.file</definition>
+        <argsstring></argsstring>
+        <name>file</name>
+        <qualifiedname>make_cppstcode_debuginfo_zip.file</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="make_cppstcode_debuginfo_zip.py" line="6" column="1" bodyfile="make_cppstcode_debuginfo_zip.py" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacemake__cppstcode__debuginfo__zip_1a2846c5ddbc4d9259bf02c899453ddcc5" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>make_cppstcode_debuginfo_zip.arcname</definition>
+        <argsstring></argsstring>
+        <name>arcname</name>
+        <qualifiedname>make_cppstcode_debuginfo_zip.arcname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="make_cppstcode_debuginfo_zip.py" line="13" column="1" bodyfile="make_cppstcode_debuginfo_zip.py" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacemake__cppstcode__debuginfo__zip_1a4b1d78fbd917a6e0c3735d2076c39a6e" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>make_cppstcode_debuginfo_zip.full_path</definition>
+        <argsstring></argsstring>
+        <name>full_path</name>
+        <qualifiedname>make_cppstcode_debuginfo_zip.full_path</qualifiedname>
+        <initializer>=  os.path.join(root, <ref refid="namespacemake__cppstcode__debuginfo__zip_1aff248fb0d43ee9a1b7ac793b14f65246" kindref="member">file</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="make_cppstcode_debuginfo_zip.py" line="17" column="1" bodyfile="make_cppstcode_debuginfo_zip.py" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespacemake__cppstcode__debuginfo__zip_1aa8ed1c7dbaef0625e5ad1eff89710346" prot="public" static="no" mutable="no">
+        <type></type>
+        <definition>make_cppstcode_debuginfo_zip.arc_path</definition>
+        <argsstring></argsstring>
+        <name>arc_path</name>
+        <qualifiedname>make_cppstcode_debuginfo_zip.arc_path</qualifiedname>
+        <initializer>=  os.path.join(os.path.basename(root), <ref refid="namespacemake__cppstcode__debuginfo__zip_1aff248fb0d43ee9a1b7ac793b14f65246" kindref="member">file</ref>)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="make_cppstcode_debuginfo_zip.py" line="18" column="1" bodyfile="make_cppstcode_debuginfo_zip.py" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="make_cppstcode_debuginfo_zip.py" line="1" column="1"/>
+  </compounddef>
+</doxygen>

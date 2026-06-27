@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDagUUID" kind="struct" language="C++" prot="public">
+    <compoundname>DagUUID</compoundname>
+    <includes refid="dagUuid_8h" local="no">dagUuid.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned DagUUID::uuid[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>uuid</name>
+        <qualifiedname>DagUUID::uuid</qualifiedname>
+        <briefdescription>
+<para>Array for storing UUID data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagUuid.h" line="16" column="12" bodyfile="dagUuid.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDagUUID_1a8cf8847712128b149e908186a86fa386" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DagUUID::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>DagUUID::clear</qualifiedname>
+        <briefdescription>
+<para>Clear UUID (set all bitts to 0). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagUuid.h" line="19" column="9" bodyfile="dagUuid.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="structDagUUID_1a6eb3342a3534307c3b81ce926f1bb3dc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DagUUID::equal</definition>
+        <argsstring>(const DagUUID &amp;id)</argsstring>
+        <name>equal</name>
+        <qualifiedname>DagUUID::equal</qualifiedname>
+        <param>
+          <type>const <ref refid="structDagUUID" kindref="compound">DagUUID</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Test for equality with specified UUID. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- reference to UUID to test </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><bold>true</bold> if UUID equals specified UUID, <bold>false</bold> in other case </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagUuid.h" line="24" column="9" bodyfile="dagUuid.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structDagUUID_1a9fdf89c88f7304232c685d1b6b0d129d" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void DagUUID::generate</definition>
+        <argsstring>(DagUUID &amp;out)</argsstring>
+        <name>generate</name>
+        <qualifiedname>DagUUID::generate</qualifiedname>
+        <param>
+          <type><ref refid="structDagUUID" kindref="compound">DagUUID</ref> &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Generate UUID. The function uses Windows SDK&apos;s UuidCreate(). <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">out</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- created UUID </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagUuid.h" line="28" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>128-bit Universally unique ID. </para>
+    </detaileddescription>
+    <location file="dagUuid.h" line="13" column="1" bodyfile="dagUuid.h" bodystart="14" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structDagUUID_1a8cf8847712128b149e908186a86fa386" prot="public" virt="non-virtual"><scope>DagUUID</scope><name>clear</name></member>
+      <member refid="structDagUUID_1a6eb3342a3534307c3b81ce926f1bb3dc" prot="public" virt="non-virtual"><scope>DagUUID</scope><name>equal</name></member>
+      <member refid="structDagUUID_1a9fdf89c88f7304232c685d1b6b0d129d" prot="public" virt="non-virtual"><scope>DagUUID</scope><name>generate</name></member>
+      <member refid="structDagUUID_1ad8451509ea5b97c0afa2a7d3b0bb2b71" prot="public" virt="non-virtual"><scope>DagUUID</scope><name>uuid</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDebugPrimitivesVbuffer_1_1Pass" kind="struct" language="C++" prot="private">
+    <compoundname>DebugPrimitivesVbuffer::Pass</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Pass_1a367b98049a156ae0775eea4851b87e75" prot="public" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR DebugPrimitivesVbuffer::Pass::color</definition>
+        <argsstring></argsstring>
+        <name>color</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Pass::color</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="56" column="14" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Pass_1ad41da775551a161fdc6dd4e0c647caa2" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::Pass::firstPrimitive</definition>
+        <argsstring></argsstring>
+        <name>firstPrimitive</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Pass::firstPrimitive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="57" column="9" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Pass_1a066d08c270d7b8bc087c769616280bdb" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::Pass::lastPrimitive</definition>
+        <argsstring></argsstring>
+        <name>lastPrimitive</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Pass::lastPrimitive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="58" column="9" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_DebugPrimitivesVbuffer.h" line="54" column="3" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="55" bodyend="59"/>
+    <listofallmembers>
+      <member refid="structDebugPrimitivesVbuffer_1_1Pass_1a367b98049a156ae0775eea4851b87e75" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Pass</scope><name>color</name></member>
+      <member refid="structDebugPrimitivesVbuffer_1_1Pass_1ad41da775551a161fdc6dd4e0c647caa2" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Pass</scope><name>firstPrimitive</name></member>
+      <member refid="structDebugPrimitivesVbuffer_1_1Pass_1a066d08c270d7b8bc087c769616280bdb" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Pass</scope><name>lastPrimitive</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structstcode_1_1Context" kind="struct" language="C++" prot="public">
+    <compoundname>stcode::Context</compoundname>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_stcode.h" line="105" column="1" bodyfile="dag_stcode.h" bodystart="106" bodyend="106"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

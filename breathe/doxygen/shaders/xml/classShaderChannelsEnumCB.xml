@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderChannelsEnumCB" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ShaderChannelsEnumCB</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderChannelsEnumCB_1a43c443e11b53f143cbf7c250a184689e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ShaderChannelsEnumCB::enum_shader_channel</definition>
+        <argsstring>(int usage, int usage_index, int type, int vb_usage, int vb_usage_index, ChannelModifier mod, int stream=0)=0</argsstring>
+        <name>enum_shader_channel</name>
+        <qualifiedname>ShaderChannelsEnumCB::enum_shader_channel</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>usage</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>usage_index</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vb_usage</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>vb_usage_index</declname>
+        </param>
+        <param>
+          <type>ChannelModifier</type>
+          <declname>mod</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>stream</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderCommon.h" line="177" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderCommon.h" line="174" column="1" bodyfile="dag_shaderCommon.h" bodystart="175" bodyend="179"/>
+    <listofallmembers>
+      <member refid="classShaderChannelsEnumCB_1a43c443e11b53f143cbf7c250a184689e" prot="public" virt="pure-virtual"><scope>ShaderChannelsEnumCB</scope><name>enum_shader_channel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,365 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__enhanced__barrier_8h" kind="file" language="C++">
+    <compoundname>dag_enhanced_barrier.h</compoundname>
+    <includes local="no">util/dag_stdint.h</includes>
+    <includes local="no">util/dag_bitFlagsMask.h</includes>
+    <includes local="no">generic/dag_span.h</includes>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includedby refid="dag__driver_8h" local="no">dag_driver.h</includedby>
+    <includedby refid="dag__interface__table_8h" local="no">dag_interface_table.h</includedby>
+    <incdepgraph>
+      <node id="5">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_enhanced_barrier.h</label>
+        <link refid="dag__enhanced__barrier_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="6">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_bitFlagsMask.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_stdint.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>dag_async_pipeline.h</label>
+        <link refid="dag__async__pipeline_8h"/>
+      </node>
+      <node id="2">
+        <label>dag_driver.h</label>
+        <link refid="dag__driver_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>dag_drv3d_multi.h</label>
+        <link refid="dag__drv3d__multi_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_enhanced_barrier.h</label>
+        <link refid="dag__enhanced__barrier_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="9">
+        <label>dag_interface_table.h</label>
+        <link refid="dag__interface__table_8h"/>
+      </node>
+      <node id="5">
+        <label>dag_lock.h</label>
+        <link refid="dag__lock_8h"/>
+      </node>
+      <node id="7">
+        <label>dag_platform.h</label>
+        <link refid="dag__platform_8h"/>
+      </node>
+      <node id="6">
+        <label>dag_platform_pc.h</label>
+        <link refid="dag__platform__pc_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>dag_platform_ps.h</label>
+        <link refid="dag__platform__ps_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structd3d_1_1Range" prot="public">d3d::Range</innerclass>
+    <innerclass refid="structd3d_1_1TextureSubresourceRange" prot="public">d3d::TextureSubresourceRange</innerclass>
+    <innerclass refid="structd3d_1_1PipelineSyncOperation" prot="public">d3d::PipelineSyncOperation</innerclass>
+    <innerclass refid="structd3d_1_1MemorySyncOperation" prot="public">d3d::MemorySyncOperation</innerclass>
+    <innerclass refid="structd3d_1_1LayoutTransitionOperation" prot="public">d3d::LayoutTransitionOperation</innerclass>
+    <innerclass refid="structd3d_1_1TextureBarrier" prot="public">d3d::TextureBarrier</innerclass>
+    <innerclass refid="structd3d_1_1BufferBarrier" prot="public">d3d::BufferBarrier</innerclass>
+    <innerclass refid="structd3d_1_1TextureBarrierBatchItem" prot="public">d3d::TextureBarrierBatchItem</innerclass>
+    <innerclass refid="structd3d_1_1BufferBarrierBatchItem" prot="public">d3d::BufferBarrierBatchItem</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_stdint.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_bitFlagsMask.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_span.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__consts_8h" kindref="compound">drv/3d/dag_consts.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classSbuffer" kindref="compound">Sbuffer</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="namespaced3d_1a83575d13d980a87318680affe191db2a" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2a" kindref="member">TextureLayout</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Transitions<sp/>from<sp/>UNDEFINED<sp/>to<sp/>anything<sp/>else<sp/>always<sp/>cause<sp/>a<sp/>discard</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>(other<sp/>usages<sp/>of<sp/>this<sp/>transition<sp/>are<sp/>pointless)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>makes<sp/>this<sp/>type<sp/>of<sp/>barrier<sp/>equivalent<sp/>to<sp/>activating<sp/>a<sp/>placed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>resource.<sp/>It&apos;s<sp/>also<sp/>mandatory<sp/>to<sp/>dispatch<sp/>this<sp/>type<sp/>of<sp/>barrier</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>before<sp/>a<sp/>placed<sp/>texture<sp/>is<sp/>first<sp/>used.<sp/>Must<sp/>be<sp/>paired<sp/>with<sp/>NoAccess.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aaec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">Undefined</ref>,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Sometimes,<sp/>situations<sp/>in<sp/>daBfg<sp/>occur<sp/>where<sp/>we<sp/>can<sp/>replace<sp/>a<sp/>few</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>RO-&gt;RO<sp/>barriers<sp/>with<sp/>a<sp/>single<sp/>GenericRead<sp/>layout<sp/>barrier,<sp/>which</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>can<sp/>make<sp/>perf<sp/>better<sp/>due<sp/>to<sp/>less<sp/>pipeline<sp/>stalls<sp/>and<sp/>better<sp/>SP</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>occupancy.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aae94aab556e7fb8e739eeb1d24ce5db63" kindref="member">GenericRead</ref>,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>RTV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aa9b0bffda4bcb312168c0d6537cb04b4d" kindref="member">RenderTarget</ref>,</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>UAV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aa11c4aac157309541bd3fc4735e727683" kindref="member">UnorderedAccess</ref>,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DSV<sp/>(a<sp/>bit<sp/>overly<sp/>detailed<sp/>to<sp/>cover<sp/>all<sp/>cases<sp/>in<sp/>vk/dx12)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aadadab243e0ba960dadb59d2b918293b6" kindref="member">DepthRwStencilRw</ref>,</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aa9f9a1eb0ae110bd4aaf95057d02519d4" kindref="member">DepthRwStencilRo</ref>,</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aac31bddb284cbf7ea6997e02fdaa902c4" kindref="member">DepthRoStencilRw</ref>,</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aad90559c7f68af4512143f7f05669bf03" kindref="member">DepthRoStencilRo</ref>,</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aaa7a869f93efbf0c814d364316f5f3994" kindref="member">DepthRw</ref>,</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aae232f3406538dad6125e95b8b858373f" kindref="member">DepthRo</ref>,</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>SRV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aada4ef1bdf2d2fce1cfc6fd62870a44ef" kindref="member">ShaderResource</ref>,</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aaecadd2bfc4f324796b72c8d1e4511a9d" kindref="member">CopySource</ref>,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aac46da1ab89fbccdb37dc1847070acf06" kindref="member">CopyDest</ref>,</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Need<sp/>to<sp/>distinguish<sp/>between<sp/>them<sp/>as<sp/>on<sp/>dx<sp/>blits<sp/>are<sp/>implemented</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>through<sp/>shaders<sp/>and<sp/>on<sp/>vk<sp/>they<sp/>are<sp/>natively<sp/>supported</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aae67049ae12adc361177166c67d8800a1" kindref="member">BlitSource</ref>,</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aa4d131d7e201f1f1911d4b4334cc62b2d" kindref="member">BlitDest</ref>,</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aa256ff6a4e48f8d0275e644fafd4dcb0d" kindref="member">ResolveSource</ref>,</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aab3133d71abc67b70230c484300388292" kindref="member">ResolveDest</ref>,</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>VRS<sp/>rate<sp/>texture</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aa4c89615d23613a070145a5529f58a4a5" kindref="member">ShadingRateSource</ref></highlight></codeline>
+<codeline lineno="61"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69" kindref="member">PipelineStageFlag</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="64"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a767352b788f422b452df064df32a9972" kindref="member">NoStage</ref><sp/>=<sp/>0u,</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Reading<sp/>an<sp/>indirect<sp/>command<sp/>buffer</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a41d3bc947bcd387a1deb57d73d68bb6b" kindref="member">ExecuteIndirect</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>0,</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>IB<sp/>read<sp/>access</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69ad30d077004b72514eece7ad6cb137e9c" kindref="member">IndexInput</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>VB<sp/>read<sp/>access</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a25ae6c09e36c60e235111e40c7c33b73" kindref="member">VertexAttributeInput</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>2,</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Vertex,<sp/>geometry,<sp/>tessellation,<sp/>task<sp/>and<sp/>mesh<sp/>shaders</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a6f1d562cc01239b98a4137078d9a849c" kindref="member">AllVertexShading</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>3,</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Specifically<sp/>for<sp/>VRS<sp/>rate<sp/>texture<sp/>usage</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>(or<sp/>fragment<sp/>density<sp/>map<sp/>on<sp/>vk<sp/>if<sp/>we<sp/>ever<sp/>need<sp/>it)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a024043b5092c2e1c0698220fadf8db9e" kindref="member">Rasterization</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>4,</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Early<sp/>depth/stencil<sp/>tests</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a5ad09049db5ad41b32b78a92294484c7" kindref="member">EarlyFragmentTests</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>5,</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Pixel/fragment<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69aeb0331da83117987126f4ce7f12d5bbe" kindref="member">PixelShading</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>6,</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Late<sp/>depth/stencil<sp/>tests</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69aeada3dda11ce9944c5f92e0d721f9394" kindref="member">LateFragmentTests</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>7,</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>RT<sp/>output,<sp/>blending,<sp/>etc.<sp/>Also,<sp/>surprisingly,<sp/>d3d::clearview.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a53a5ac710c62be20dee306db642794de" kindref="member">OutputMerging</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>8,</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Compute<sp/>shader</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a04d71949c00f9afd37b4ca81dcee5b41" kindref="member">ComputeShading</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>9,</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a5fb63579fc981698f97d55bfecb213ea" kindref="member">Copy</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>12,</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a981400fbb4e01f43fd7bd7962d184e60" kindref="member">Blit</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>13,</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Any<sp/>clear<sp/>that<sp/>operates<sp/>on<sp/>an<sp/>arbitrary<sp/>resource.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Note<sp/>that<sp/>d3d::clearview<sp/>is<sp/>NOT<sp/>part<sp/>of<sp/>this<sp/>stage,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>it<sp/>is<sp/>part<sp/>of<sp/>the<sp/>OutputMerging<sp/>stage.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69adc30bc0c7914db5918da4263fce93ad2" kindref="member">Clear</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>14,</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>HW<sp/>MSAA<sp/>resolve</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69a05d26e7d7c53744b903ae1f6f8a8c7ed" kindref="member">Resolve</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>15,</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>All<sp/>commands</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69ab1c94ca2fbc3e78fc30069c8d0f01680" kindref="member">All</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>31,</highlight></codeline>
+<codeline lineno="104"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106" refid="namespaced3d_1a5d523f6e8e43e278ec212ae330f93ca4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaced3d_1a5d523f6e8e43e278ec212ae330f93ca4" kindref="member">PipelineStageFlags</ref><sp/>=<sp/>BitFlagsMask&lt;PipelineStageFlag&gt;;</highlight></codeline>
+<codeline lineno="107" refid="namespaced3d_1a9e8640a2b3b63b3d908fbf7a1cc0f6c7" refkind="member"><highlight class="normal"><ref refid="namespaced3d_1a9e8640a2b3b63b3d908fbf7a1cc0f6c7" kindref="member">BITMASK_DECLARE_FLAGS_OPERATORS</ref>(<ref refid="namespaced3d_1afd764787c12898dc1ebbaf9a53deed69" kindref="member">PipelineStageFlag</ref>);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight></codeline>
+<codeline lineno="109" refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22" kindref="member">AccessFlag</ref><sp/>:<sp/>uint32_t</highlight></codeline>
+<codeline lineno="110"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a88a12f09800c497f30b98781952b50f2" kindref="member">NoAccess</ref><sp/>=<sp/>0,</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Buffer<sp/>for<sp/>draw/dispatch<sp/>indirect<sp/>(RO)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a524d085ce6a6a41af0773e42b73aa99d" kindref="member">IndirectArgument</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>1,</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>VBV<sp/>(RO)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a10461f19cdb5aadba2fc9986be6400bd" kindref="member">VertexBuffer</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>2,</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>IBV<sp/>(RO)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a7c3895116254ff0417e58b6286de27c0" kindref="member">IndexBuffer</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>3,</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>CBV<sp/>(RO)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22af09d0dd3c08eeabc5b432609f31d0a8c" kindref="member">ConstantBuffer</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>4,</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>RTV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a4fea95ae9dbffba1a2a70e2518d77d08" kindref="member">RenderTargetRead</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>5,</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a9319eed0b6422e1371e1baf3b623a102" kindref="member">RenderTargetWrite</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>6,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>UAV<sp/>(RW)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aa11c4aac157309541bd3fc4735e727683" kindref="member">UnorderedAccess</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>7,</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>DSV</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22aaab1a48a275c112d160f5b28d0d3a123" kindref="member">DepthStencilWrite</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>8,</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22aa7419f15f4d15322a98d29734b8e48b4" kindref="member">DepthStencilRead</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>9,</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>For<sp/>subpass<sp/>dependencies</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a261d965f5dd43c6873489b68730dbe57" kindref="member">InputAttachment</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>10,</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"></highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>SRV<sp/>(RO)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2aada4ef1bdf2d2fce1cfc6fd62870a44ef" kindref="member">ShaderResource</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>11,</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a3a23dd1e2979213e268b02eca78f1093" kindref="member">CopyRead</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>12,</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22aac0d23bb3afb6d4ffb725d00de2b3ffb" kindref="member">CopyWrite</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>13,</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a8ad00aa9ac857a35f52083b4162250fb" kindref="member">BlitRead</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>14,</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22ac1e5f6a9865fc125c28c99d1646ca11d" kindref="member">BlitWrite</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>15,</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a39259427eafa0b50e55f2899dc7608fc" kindref="member">ResolveRead</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>16,</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22a1e4863fcdbc036ee0a22680d4181963e" kindref="member">ResolveWrite</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>17,</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>VRS<sp/>rate<sp/>texture<sp/>(RO)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22ad06880ee51f422722682d4ff5a35dc30" kindref="member">ShadingRate</ref><sp/>=<sp/>1u<sp/>&lt;&lt;<sp/>23</highlight></codeline>
+<codeline lineno="153"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155" refid="namespaced3d_1ad429b802c42bd2273a5f9fafc345d7cf" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="namespaced3d_1ad429b802c42bd2273a5f9fafc345d7cf" kindref="member">AccessFlags</ref><sp/>=<sp/>BitFlagsMask&lt;AccessFlag&gt;;</highlight></codeline>
+<codeline lineno="156" refid="namespaced3d_1aa32d8c2281f33c54466b2eb6cdb5ddec" refkind="member"><highlight class="normal"><ref refid="namespaced3d_1a9e8640a2b3b63b3d908fbf7a1cc0f6c7" kindref="member">BITMASK_DECLARE_FLAGS_OPERATORS</ref>(<ref refid="namespaced3d_1ae0528a5d9bcc76ed66dc6508b1f39e22" kindref="member">AccessFlag</ref>);</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158" refid="structd3d_1_1Range" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1Range" kindref="compound">Range</ref></highlight></codeline>
+<codeline lineno="159"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="160" refid="structd3d_1_1Range_1af8bca8c20f0fc8579a902c4fb26f1d75" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structd3d_1_1Range_1af8bca8c20f0fc8579a902c4fb26f1d75" kindref="member">first</ref>;</highlight></codeline>
+<codeline lineno="161" refid="structd3d_1_1Range_1ac7100d969b233a252d1fe8004123dc0a" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structd3d_1_1Range_1ac7100d969b233a252d1fe8004123dc0a" kindref="member">count</ref>;</highlight></codeline>
+<codeline lineno="162"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"></highlight></codeline>
+<codeline lineno="164" refid="structd3d_1_1TextureSubresourceRange" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1TextureSubresourceRange" kindref="compound">TextureSubresourceRange</ref></highlight></codeline>
+<codeline lineno="165"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="166" refid="structd3d_1_1TextureSubresourceRange_1a36b83ff0477f31edb719918671560613" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1Range" kindref="compound">Range</ref><sp/><ref refid="structd3d_1_1TextureSubresourceRange_1a36b83ff0477f31edb719918671560613" kindref="member">mips</ref>;</highlight></codeline>
+<codeline lineno="167" refid="structd3d_1_1TextureSubresourceRange_1afa5383ce97aa8c6a8d82f9867a7352e4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1Range" kindref="compound">Range</ref><sp/><ref refid="structd3d_1_1TextureSubresourceRange_1afa5383ce97aa8c6a8d82f9867a7352e4" kindref="member">layers</ref>;</highlight></codeline>
+<codeline lineno="168" refid="structd3d_1_1TextureSubresourceRange_1aac64a6fb3f1a408a53e3891b215b7af4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1Range" kindref="compound">Range</ref><sp/><ref refid="structd3d_1_1TextureSubresourceRange_1aac64a6fb3f1a408a53e3891b215b7af4" kindref="member">planes</ref>;</highlight></codeline>
+<codeline lineno="169"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"></highlight></codeline>
+<codeline lineno="171" refid="structd3d_1_1PipelineSyncOperation" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1PipelineSyncOperation" kindref="compound">PipelineSyncOperation</ref></highlight></codeline>
+<codeline lineno="172"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="173" refid="structd3d_1_1PipelineSyncOperation_1a2ee31294a8be45688aa5559fbda76c76" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a5d523f6e8e43e278ec212ae330f93ca4" kindref="member">PipelineStageFlags</ref><sp/><ref refid="structd3d_1_1PipelineSyncOperation_1a2ee31294a8be45688aa5559fbda76c76" kindref="member">src</ref>;</highlight></codeline>
+<codeline lineno="174" refid="structd3d_1_1PipelineSyncOperation_1ac868eebdfebac9cf92dfb7590a7e49ff" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a5d523f6e8e43e278ec212ae330f93ca4" kindref="member">PipelineStageFlags</ref><sp/><ref refid="structd3d_1_1PipelineSyncOperation_1ac868eebdfebac9cf92dfb7590a7e49ff" kindref="member">dst</ref>;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177" refid="structd3d_1_1MemorySyncOperation" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1MemorySyncOperation" kindref="compound">MemorySyncOperation</ref></highlight></codeline>
+<codeline lineno="178"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="179" refid="structd3d_1_1MemorySyncOperation_1a3c142a3e09c6392dbc7d9b9c3bbd5562" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ad429b802c42bd2273a5f9fafc345d7cf" kindref="member">AccessFlags</ref><sp/><ref refid="structd3d_1_1MemorySyncOperation_1a3c142a3e09c6392dbc7d9b9c3bbd5562" kindref="member">src</ref>;</highlight></codeline>
+<codeline lineno="180" refid="structd3d_1_1MemorySyncOperation_1aa9db7330d7988b86c6edd64e38552918" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1ad429b802c42bd2273a5f9fafc345d7cf" kindref="member">AccessFlags</ref><sp/><ref refid="structd3d_1_1MemorySyncOperation_1aa9db7330d7988b86c6edd64e38552918" kindref="member">dst</ref>;</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"></highlight></codeline>
+<codeline lineno="183" refid="structd3d_1_1LayoutTransitionOperation" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1LayoutTransitionOperation" kindref="compound">LayoutTransitionOperation</ref></highlight></codeline>
+<codeline lineno="184"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="185" refid="structd3d_1_1LayoutTransitionOperation_1ad4c3b57b6732fb5dff9737780abb7cbe" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2a" kindref="member">TextureLayout</ref><sp/><ref refid="structd3d_1_1LayoutTransitionOperation_1ad4c3b57b6732fb5dff9737780abb7cbe" kindref="member">src</ref>;</highlight></codeline>
+<codeline lineno="186" refid="structd3d_1_1LayoutTransitionOperation_1a51d04f67d5a34b49723799e7cacc6d6e" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespaced3d_1a83575d13d980a87318680affe191db2a" kindref="member">TextureLayout</ref><sp/><ref refid="structd3d_1_1LayoutTransitionOperation_1a51d04f67d5a34b49723799e7cacc6d6e" kindref="member">dst</ref>;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="188"><highlight class="normal"></highlight></codeline>
+<codeline lineno="189" refid="structd3d_1_1TextureBarrier" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1TextureBarrier" kindref="compound">TextureBarrier</ref></highlight></codeline>
+<codeline lineno="190"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="191" refid="structd3d_1_1TextureBarrier_1a0c5603c6e2a258588a97522d8ff51f3a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1PipelineSyncOperation" kindref="compound">PipelineSyncOperation</ref><sp/><ref refid="structd3d_1_1TextureBarrier_1a0c5603c6e2a258588a97522d8ff51f3a" kindref="member">pipelineSync</ref>;</highlight></codeline>
+<codeline lineno="192" refid="structd3d_1_1TextureBarrier_1a98cad2ed8b442ab115a9c376f3675329" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1MemorySyncOperation" kindref="compound">MemorySyncOperation</ref><sp/><ref refid="structd3d_1_1TextureBarrier_1a98cad2ed8b442ab115a9c376f3675329" kindref="member">memorySync</ref>;</highlight></codeline>
+<codeline lineno="193" refid="structd3d_1_1TextureBarrier_1ac5096278779ae34b0ba2ff5b81ab94c9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1LayoutTransitionOperation" kindref="compound">LayoutTransitionOperation</ref><sp/><ref refid="structd3d_1_1TextureBarrier_1ac5096278779ae34b0ba2ff5b81ab94c9" kindref="member">layoutTransition</ref>;</highlight></codeline>
+<codeline lineno="194"><highlight class="normal"></highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>later<sp/>on<sp/>we<sp/>can<sp/>add<sp/>srcQueue<sp/>and<sp/>dstQueue<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>while<sp/>we<sp/>don&apos;t<sp/>have<sp/>explicit<sp/>command<sp/>lists</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>implementations<sp/>can<sp/>chose<sp/>the<sp/>queue<sp/>to<sp/>execute<sp/>on</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>based<sp/>on<sp/>the<sp/>srcQueue<sp/>field.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200" refid="structd3d_1_1TextureBarrier_1a3fdafba08b03ce56cb3a9295cade95d9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1TextureSubresourceRange" kindref="compound">TextureSubresourceRange</ref><sp/><ref refid="structd3d_1_1TextureBarrier_1a3fdafba08b03ce56cb3a9295cade95d9" kindref="member">subresources</ref>;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203" refid="structd3d_1_1BufferBarrier" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1BufferBarrier" kindref="compound">BufferBarrier</ref></highlight></codeline>
+<codeline lineno="204"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="205" refid="structd3d_1_1BufferBarrier_1aee8e59c7650d1782a38844128cd74b60" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1PipelineSyncOperation" kindref="compound">PipelineSyncOperation</ref><sp/><ref refid="structd3d_1_1BufferBarrier_1aee8e59c7650d1782a38844128cd74b60" kindref="member">pipelineSync</ref>;</highlight></codeline>
+<codeline lineno="206" refid="structd3d_1_1BufferBarrier_1a96c3c7b7cede0dd0ce633ece2a7b591c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1MemorySyncOperation" kindref="compound">MemorySyncOperation</ref><sp/><ref refid="structd3d_1_1BufferBarrier_1a96c3c7b7cede0dd0ce633ece2a7b591c" kindref="member">memorySync</ref>;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"></highlight></codeline>
+<codeline lineno="208"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>later<sp/>on<sp/>we<sp/>can<sp/>add<sp/>srcQueue<sp/>and<sp/>dstQueue<sp/>and</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>while<sp/>we<sp/>don&apos;t<sp/>have<sp/>explicit<sp/>command<sp/>lists</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>implementations<sp/>can<sp/>chose<sp/>the<sp/>queue<sp/>to<sp/>execute<sp/>on</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>based<sp/>on<sp/>the<sp/>srcQueue<sp/>field.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="212"><highlight class="normal"></highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Note<sp/>that<sp/>barriers<sp/>on<sp/>parts<sp/>of<sp/>a<sp/>buffer<sp/>are<sp/>not<sp/>supported,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>as<sp/>according<sp/>to<sp/>microsoft<sp/>they<sp/>are<sp/>underspecified<sp/>even<sp/>in<sp/>vulkan,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>and<sp/>it&apos;s<sp/>not<sp/>clear<sp/>whether<sp/>they<sp/>can<sp/>have<sp/>any<sp/>perf<sp/>benefit<sp/>at<sp/>all.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"></highlight></codeline>
+<codeline lineno="218" refid="structd3d_1_1TextureBarrierBatchItem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1TextureBarrierBatchItem" kindref="compound">TextureBarrierBatchItem</ref></highlight></codeline>
+<codeline lineno="219"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="220" refid="structd3d_1_1TextureBarrierBatchItem_1a066f55fa95a7af67f2102ad2e2937373" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1TextureBarrier" kindref="compound">TextureBarrier</ref><sp/><ref refid="structd3d_1_1TextureBarrierBatchItem_1a066f55fa95a7af67f2102ad2e2937373" kindref="member">barrier</ref>;</highlight></codeline>
+<codeline lineno="221" refid="structd3d_1_1TextureBarrierBatchItem_1abf097838c1616ef3ff594642095d9070" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*<ref refid="structd3d_1_1TextureBarrierBatchItem_1abf097838c1616ef3ff594642095d9070" kindref="member">texture</ref>;</highlight></codeline>
+<codeline lineno="222"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224" refid="structd3d_1_1BufferBarrierBatchItem" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structd3d_1_1BufferBarrierBatchItem" kindref="compound">BufferBarrierBatchItem</ref></highlight></codeline>
+<codeline lineno="225"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="226" refid="structd3d_1_1BufferBarrierBatchItem_1a4735f89ed85f8b80358c206fd86dc7bf" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structd3d_1_1BufferBarrier" kindref="compound">BufferBarrier</ref><sp/><ref refid="structd3d_1_1BufferBarrierBatchItem_1a4735f89ed85f8b80358c206fd86dc7bf" kindref="member">barrier</ref>;</highlight></codeline>
+<codeline lineno="227" refid="structd3d_1_1BufferBarrierBatchItem_1a2768eb0a87c34fd8b7310d8ada6c4d07" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*<ref refid="structd3d_1_1BufferBarrierBatchItem_1a2768eb0a87c34fd8b7310d8ada6c4d07" kindref="member">buffer</ref>;</highlight></codeline>
+<codeline lineno="228"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"></highlight></codeline>
+<codeline lineno="230"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>!_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="231"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1a20a0e1bd5d9ca96a73c25eec50b59ed4" kindref="member">enhanced_texture_barrier</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structd3d_1_1TextureBarrier" kindref="compound">TextureBarrier</ref><sp/>&amp;barrier,<sp/><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref><sp/>*texture);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1aa8db9b23e3b9270c2bb54eae8a97d6f9" kindref="member">enhanced_buffer_barrier</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structd3d_1_1BufferBarrier" kindref="compound">BufferBarrier</ref><sp/>&amp;barrier,<sp/><ref refid="classSbuffer" kindref="compound">Sbuffer</ref><sp/>*buffer);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Will<sp/>check<sp/>performance<sp/>and<sp/>remove<sp/>the<sp/>batch<sp/>versions<sp/>if<sp/>they<sp/>don&apos;t<sp/>provide<sp/>any<sp/>benefit.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Otherwise,<sp/>remove<sp/>the<sp/>non-batch<sp/>versions<sp/>and<sp/>use<sp/>these<sp/>exclusively.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1abc65a8394618302908d8c0998a4ca3d1" kindref="member">enhanced_barrier_batch</ref>(dag::ConstSpan&lt;TextureBarrierBatchItem&gt;<sp/>texture_barriers,</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/>dag::ConstSpan&lt;BufferBarrierBatchItem&gt;<sp/>buffer_barriers);</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"></highlight></codeline>
+<codeline lineno="239"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_enhanced_barrier.h"/>
+  </compounddef>
+</doxygen>

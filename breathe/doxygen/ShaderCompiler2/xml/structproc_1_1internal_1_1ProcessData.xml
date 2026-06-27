@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structproc_1_1internal_1_1ProcessData" kind="struct" language="C++" prot="public">
+    <compoundname>proc::internal::ProcessData</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PROCESS_INFORMATION</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ProcessData_1abe98ab9f75e100fd1a4d9b0e45ea48f4" prot="public" static="no" mutable="no">
+        <type>pid_t</type>
+        <definition>pid_t proc::internal::ProcessData::pid</definition>
+        <argsstring></argsstring>
+        <name>pid</name>
+        <qualifiedname>proc::internal::ProcessData::pid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="41" column="9" bodyfile="processes_unix.cpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ProcessData_1a21cfcdfc3cc891c74c604d7a69f0a1da" prot="public" static="no" mutable="no">
+        <type><ref refid="unionproc_1_1internal_1_1Pipe" kindref="compound">Pipe</ref></type>
+        <definition>Pipe proc::internal::ProcessData::outputPipe</definition>
+        <argsstring></argsstring>
+        <name>outputPipe</name>
+        <qualifiedname>proc::internal::ProcessData::outputPipe</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="42" column="8" bodyfile="processes_unix.cpp" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structproc_1_1internal_1_1ProcessData_1a37897c39053cd54ac7e3ff159ba3a868" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>proc::internal::ProcessData::ProcessData</definition>
+        <argsstring>(const PROCESS_INFORMATION &amp;pi, Pipe output_pipe)</argsstring>
+        <name>ProcessData</name>
+        <qualifiedname>proc::internal::ProcessData::ProcessData</qualifiedname>
+        <param>
+          <type>const PROCESS_INFORMATION &amp;</type>
+          <declname>pi</declname>
+        </param>
+        <param>
+          <type><ref refid="unionproc_1_1internal_1_1Pipe" kindref="compound">Pipe</ref></type>
+          <declname>output_pipe</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_win.cpp" line="32" column="3" bodyfile="processes_win.cpp" bodystart="32" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>PROCESS_INFORMATION</label>
+      </node>
+      <node id="1">
+        <label>proc::internal::ProcessData</label>
+        <link refid="structproc_1_1internal_1_1ProcessData"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>PROCESS_INFORMATION</label>
+      </node>
+      <node id="3">
+        <label>proc::internal::Pipe</label>
+        <link refid="unionproc_1_1internal_1_1Pipe"/>
+      </node>
+      <node id="1">
+        <label>proc::internal::ProcessData</label>
+        <link refid="structproc_1_1internal_1_1ProcessData"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>outputPipe</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="processes_unix.cpp" line="39" column="1" bodyfile="processes_unix.cpp" bodystart="40" bodyend="43"/>
+    <listofallmembers>
+      <member refid="structproc_1_1internal_1_1ProcessData_1a21cfcdfc3cc891c74c604d7a69f0a1da" prot="public" virt="non-virtual"><scope>proc::internal::ProcessData</scope><name>outputPipe</name></member>
+      <member refid="structproc_1_1internal_1_1ProcessData_1abe98ab9f75e100fd1a4d9b0e45ea48f4" prot="public" virt="non-virtual"><scope>proc::internal::ProcessData</scope><name>pid</name></member>
+      <member refid="structproc_1_1internal_1_1ProcessData_1a37897c39053cd54ac7e3ff159ba3a868" prot="public" virt="non-virtual"><scope>proc::internal::ProcessData</scope><name>ProcessData</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

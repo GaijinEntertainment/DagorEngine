@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__newProjDlg_8h" kind="file" language="C++">
+    <compoundname>ec_newProjDlg.h</compoundname>
+    <includes local="no">math/dag_math3d.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_newProjDlg.h</label>
+        <link refid="ec__newProjDlg_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="4">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="3">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classNewProjectDialog" prot="public">NewProjectDialog</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_math3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="classNewProjectDialog" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classNewProjectDialog" kindref="compound">NewProjectDialog</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>PropPanel::DialogWindow</highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="12" refid="classNewProjectDialog_1a66a72979a5f5fd608290d456d345d950" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classNewProjectDialog_1a66a72979a5f5fd608290d456d345d950" kindref="member">NewProjectDialog</ref>(</highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*phandle,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*caption,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name_label<sp/>=<sp/>NULL,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*_note<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="classNewProjectDialog_1a7b4a2f9fffe6584f32bad52e0807b5c9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classNewProjectDialog_1a7b4a2f9fffe6584f32bad52e0807b5c9" kindref="member">getName</ref>();</highlight></codeline>
+<codeline lineno="15" refid="classNewProjectDialog_1abbf2db01ef41e9c97317879e7c87d558" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classNewProjectDialog_1abbf2db01ef41e9c97317879e7c87d558" kindref="member">getLocation</ref>();</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="classNewProjectDialog_1a7ae81ea69247726a4f54284c61f083a9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classNewProjectDialog_1a7ae81ea69247726a4f54284c61f083a9" kindref="member">setName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="18" refid="classNewProjectDialog_1ae28c469539e830666544f72bce491315" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classNewProjectDialog_1ae28c469539e830666544f72bce491315" kindref="member">setLocation</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*s);</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="classNewProjectDialog_1ad3188e412d3b9001dd32a71572e8e8b9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classNewProjectDialog_1ad3188e412d3b9001dd32a71572e8e8b9" kindref="member">onChange</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>pcb_id,<sp/>PropPanel::ContainerPropertyControl<sp/>*panel)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21" refid="classNewProjectDialog_1a27964549717724f5a2e246e10388ed36" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classNewProjectDialog_1a27964549717724f5a2e246e10388ed36" kindref="member">onOk</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>String<sp/>mName,<sp/>mLocation;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_newProjDlg.h"/>
+  </compounddef>
+</doxygen>

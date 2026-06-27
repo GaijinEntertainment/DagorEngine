@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structd3d_1_1PipelineSyncOperation" kind="struct" language="C++" prot="public">
+    <compoundname>d3d::PipelineSyncOperation</compoundname>
+    <includes refid="dag__enhanced__barrier_8h" local="no">dag_enhanced_barrier.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structd3d_1_1PipelineSyncOperation_1a2ee31294a8be45688aa5559fbda76c76" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1a5d523f6e8e43e278ec212ae330f93ca4" kindref="member">PipelineStageFlags</ref></type>
+        <definition>PipelineStageFlags d3d::PipelineSyncOperation::src</definition>
+        <argsstring></argsstring>
+        <name>src</name>
+        <qualifiedname>d3d::PipelineSyncOperation::src</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="173" column="22" bodyfile="dag_enhanced_barrier.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structd3d_1_1PipelineSyncOperation_1ac868eebdfebac9cf92dfb7590a7e49ff" prot="public" static="no" mutable="no">
+        <type><ref refid="namespaced3d_1a5d523f6e8e43e278ec212ae330f93ca4" kindref="member">PipelineStageFlags</ref></type>
+        <definition>PipelineStageFlags d3d::PipelineSyncOperation::dst</definition>
+        <argsstring></argsstring>
+        <name>dst</name>
+        <qualifiedname>d3d::PipelineSyncOperation::dst</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_enhanced_barrier.h" line="174" column="22" bodyfile="dag_enhanced_barrier.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_enhanced_barrier.h" line="171" column="1" bodyfile="dag_enhanced_barrier.h" bodystart="172" bodyend="175"/>
+    <listofallmembers>
+      <member refid="structd3d_1_1PipelineSyncOperation_1ac868eebdfebac9cf92dfb7590a7e49ff" prot="public" virt="non-virtual"><scope>d3d::PipelineSyncOperation</scope><name>dst</name></member>
+      <member refid="structd3d_1_1PipelineSyncOperation_1a2ee31294a8be45688aa5559fbda76c76" prot="public" virt="non-virtual"><scope>d3d::PipelineSyncOperation</scope><name>src</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

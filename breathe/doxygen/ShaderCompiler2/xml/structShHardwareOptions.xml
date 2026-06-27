@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShHardwareOptions" kind="struct" language="C++" prot="public">
+    <compoundname>ShHardwareOptions</compoundname>
+    <includes refid="shCompilationInfo_8h" local="no">shCompilationInfo.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShHardwareOptions_1a4762074f79c1638ccf8bab0dd76db8c5" prot="public" static="no" mutable="no">
+        <type>d3d::shadermodel::Version</type>
+        <definition>d3d::shadermodel::Version ShHardwareOptions::fshVersion</definition>
+        <argsstring></argsstring>
+        <name>fshVersion</name>
+        <qualifiedname>ShHardwareOptions::fshVersion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="15" column="29" bodyfile="shCompilationInfo.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShHardwareOptions_1a6f310def38b990eacf57075b5beca1b2" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShHardwareOptions::enableHalfProfile</definition>
+        <argsstring></argsstring>
+        <name>enableHalfProfile</name>
+        <qualifiedname>ShHardwareOptions::enableHalfProfile</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="16" column="8" bodyfile="shCompilationInfo.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShHardwareOptions_1aee14159a3ef4d3a5beca61ed1bdd9c5e" prot="public" static="no" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr</type>
+        <definition>constexpr ShHardwareOptions::ShHardwareOptions</definition>
+        <argsstring>(d3d::shadermodel::Version _fsh)</argsstring>
+        <name>ShHardwareOptions</name>
+        <qualifiedname>ShHardwareOptions::ShHardwareOptions</qualifiedname>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>_fsh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="19" column="13" bodyfile="shCompilationInfo.h" bodystart="19" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="function" id="structShHardwareOptions_1a40b3f6ee176b01628919bf7785a625e3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShHardwareOptions::appendOptsTo</definition>
+        <argsstring>(String &amp;fname) const</argsstring>
+        <name>appendOptsTo</name>
+        <qualifiedname>ShHardwareOptions::appendOptsTo</qualifiedname>
+        <param>
+          <type>String &amp;</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="24" column="8" bodyfile="shCompilationInfo.cpp" bodystart="8" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="structShHardwareOptions_1ae09ce6b24618d08ee4e1f8af91ff1b0b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShHardwareOptions::dumpInfo</definition>
+        <argsstring>() const</argsstring>
+        <name>dumpInfo</name>
+        <qualifiedname>ShHardwareOptions::dumpInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shCompilationInfo.h" line="27" column="8" bodyfile="shCompilationInfo.cpp" bodystart="16" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shCompilationInfo.h" line="11" column="1" bodyfile="shCompilationInfo.h" bodystart="12" bodyend="28"/>
+    <listofallmembers>
+      <member refid="structShHardwareOptions_1a40b3f6ee176b01628919bf7785a625e3" prot="public" virt="non-virtual"><scope>ShHardwareOptions</scope><name>appendOptsTo</name></member>
+      <member refid="structShHardwareOptions_1ae09ce6b24618d08ee4e1f8af91ff1b0b" prot="public" virt="non-virtual"><scope>ShHardwareOptions</scope><name>dumpInfo</name></member>
+      <member refid="structShHardwareOptions_1a6f310def38b990eacf57075b5beca1b2" prot="public" virt="non-virtual"><scope>ShHardwareOptions</scope><name>enableHalfProfile</name></member>
+      <member refid="structShHardwareOptions_1a4762074f79c1638ccf8bab0dd76db8c5" prot="public" virt="non-virtual"><scope>ShHardwareOptions</scope><name>fshVersion</name></member>
+      <member refid="structShHardwareOptions_1aee14159a3ef4d3a5beca61ed1bdd9c5e" prot="public" virt="non-virtual"><scope>ShHardwareOptions</scope><name>ShHardwareOptions</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,295 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classrefined__block_1_1BaseBlockHandle" kind="class" language="C++" prot="public">
+    <compoundname>refined_block::BaseBlockHandle</compoundname>
+    <templateparamlist>
+      <param>
+        <type>typename BlockHandle</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classrefined__block_1_1BaseBlockHandle_1af79073f2669c2bea2067fe2c959a72c5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename</type>
+          </param>
+        </templateparamlist>
+        <type>class</type>
+        <definition>friend class BaseBlockHandle</definition>
+        <argsstring></argsstring>
+        <name>BaseBlockHandle</name>
+        <qualifiedname>refined_block::BaseBlockHandle::BaseBlockHandle</qualifiedname>
+        <param>
+          <type><ref refid="classrefined__block_1_1BaseBlockHandle" kindref="compound">BaseBlockHandle</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="79" column="16" bodyfile="dag_refinedBlock.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="friend" id="classrefined__block_1_1BaseBlockHandle_1aada1c20622c60cdb1611d01074511ccd" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>T</type>
+        <definition>T stcode_get_from_block</definition>
+        <argsstring>(const PassBlockHandle &amp;block, int id)</argsstring>
+        <name>stcode_get_from_block</name>
+        <qualifiedname>refined_block::BaseBlockHandle::stcode_get_from_block</qualifiedname>
+        <param>
+          <type>const <ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref> &amp;</type>
+          <declname>block</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="82" column="12"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classrefined__block_1_1BaseBlockHandle_1a26c6876e41ba86b4eb56ca3a202e5e51" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t refined_block::BaseBlockHandle&lt; BlockHandle &gt;::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>refined_block::BaseBlockHandle::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="84" column="12" bodyfile="dag_refinedBlock.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1a183fdb8e3072c4958a63ab21b39af870" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>dag::Expected&lt; T, GetError &gt;</type>
+        <definition>dag::Expected&lt; T, GetError &gt; refined_block::BaseBlockHandle&lt; BlockHandle &gt;::getByGid</definition>
+        <argsstring>(int gid) const</argsstring>
+        <name>getByGid</name>
+        <qualifiedname>refined_block::BaseBlockHandle::getByGid</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>gid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="86" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1ae7a563f783e02d97612067f26ea58c0b" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>dag::Expected&lt; T, GetError &gt;</type>
+        <definition>dag::Expected&lt; T, GetError &gt; refined_block::BaseBlockHandle&lt; BlockHandle &gt;::getById</definition>
+        <argsstring>(int var_id) const</argsstring>
+        <name>getById</name>
+        <qualifiedname>refined_block::BaseBlockHandle::getById</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="88" column="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1a8948a0257e7aa5a2f98d956d174387de" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::BaseBlockHandle&lt; BlockHandle &gt;::BaseBlockHandle</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>BaseBlockHandle</name>
+        <qualifiedname>refined_block::BaseBlockHandle::BaseBlockHandle</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="91" column="3" bodyfile="dag_refinedBlock.h" bodystart="91" bodyend="91"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1a680996064605f50b0a13efc0bc591f96" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t refined_block::BaseBlockHandle&lt; BlockHandle &gt;::getId</definition>
+        <argsstring>() const</argsstring>
+        <name>getId</name>
+        <qualifiedname>refined_block::BaseBlockHandle::getId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="94" column="12" bodyfile="dag_refinedBlock.h" bodystart="94" bodyend="94"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1a4d461abbc209c014d1882c7481d61c08" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * refined_block::BaseBlockHandle&lt; BlockHandle &gt;::getName</definition>
+        <argsstring>() const</argsstring>
+        <name>getName</name>
+        <qualifiedname>refined_block::BaseBlockHandle::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="96" column="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1a965d1ada3b3933681963da8dcd97864c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>BlockHandle</type>
+        <definition>BlockHandle refined_block::BaseBlockHandle&lt; BlockHandle &gt;::set</definition>
+        <argsstring>(int var_id, const T &amp;val)</argsstring>
+        <name>set</name>
+        <qualifiedname>refined_block::BaseBlockHandle::set</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <param>
+          <type>const T &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="99" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1a13a3ebae16f3f6e4ff542a4b1d66a33e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>BlockHandle</type>
+        <definition>BlockHandle refined_block::BaseBlockHandle&lt; BlockHandle &gt;::set</definition>
+        <argsstring>(const ShaderVariableInfo &amp;var_info, const T &amp;val)</argsstring>
+        <name>set</name>
+        <qualifiedname>refined_block::BaseBlockHandle::set</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>var_info</declname>
+        </param>
+        <param>
+          <type>const T &amp;</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="102" column="15" bodyfile="dag_refinedBlock.h" bodystart="102" bodyend="105"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1ab61975468aa7e11020bf5841572dc21a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>dag::Expected&lt; T, GetError &gt;</type>
+        <definition>dag::Expected&lt; T, GetError &gt; refined_block::BaseBlockHandle&lt; BlockHandle &gt;::get</definition>
+        <argsstring>(int var_id) const</argsstring>
+        <name>get</name>
+        <qualifiedname>refined_block::BaseBlockHandle::get</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>var_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="108" column="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1BaseBlockHandle_1a216ca3a8a590ffcf82184466703f48a7" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>dag::Expected&lt; T, GetError &gt;</type>
+        <definition>dag::Expected&lt; T, GetError &gt; refined_block::BaseBlockHandle&lt; BlockHandle &gt;::get</definition>
+        <argsstring>(const ShaderVariableInfo &amp;var_info) const</argsstring>
+        <name>get</name>
+        <qualifiedname>refined_block::BaseBlockHandle::get</qualifiedname>
+        <param>
+          <type>const <ref refid="structShaderVariableInfo" kindref="compound">ShaderVariableInfo</ref> &amp;</type>
+          <declname>var_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="111" column="17" bodyfile="dag_refinedBlock.h" bodystart="111" bodyend="114"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_refinedBlock.h" line="76" column="1" bodyfile="dag_refinedBlock.h" bodystart="77" bodyend="115"/>
+    <listofallmembers>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1af79073f2669c2bea2067fe2c959a72c5" prot="private" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>BaseBlockHandle</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a8948a0257e7aa5a2f98d956d174387de" prot="protected" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>BaseBlockHandle</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1ab61975468aa7e11020bf5841572dc21a" prot="public" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a216ca3a8a590ffcf82184466703f48a7" prot="public" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a183fdb8e3072c4958a63ab21b39af870" prot="private" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>getByGid</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1ae7a563f783e02d97612067f26ea58c0b" prot="private" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>getById</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a680996064605f50b0a13efc0bc591f96" prot="public" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>getId</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a4d461abbc209c014d1882c7481d61c08" prot="public" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>getName</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a26c6876e41ba86b4eb56ca3a202e5e51" prot="private" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>id</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a965d1ada3b3933681963da8dcd97864c" prot="public" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>set</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a13a3ebae16f3f6e4ff542a4b1d66a33e" prot="public" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>set</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1aada1c20622c60cdb1611d01074511ccd" prot="private" virt="non-virtual"><scope>refined_block::BaseBlockHandle</scope><name>stcode_get_from_block</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

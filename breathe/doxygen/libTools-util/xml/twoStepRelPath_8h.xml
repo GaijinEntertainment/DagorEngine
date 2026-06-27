@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="twoStepRelPath_8h" kind="file" language="C++">
+    <compoundname>twoStepRelPath.h</compoundname>
+    <includes local="no">util/dag_simpleString.h</includes>
+    <includedby refid="genericCache_8h" local="no">genericCache.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>twoStepRelPath.h</label>
+        <link refid="twoStepRelPath_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>util/dag_simpleString.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>genericCache.h</label>
+        <link refid="genericCache_8h"/>
+      </node>
+      <node id="1">
+        <label>twoStepRelPath.h</label>
+        <link refid="twoStepRelPath_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structTwoStepRelPath" prot="public">TwoStepRelPath</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_simpleString.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="structTwoStepRelPath" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTwoStepRelPath" kindref="compound">TwoStepRelPath</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11" refid="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" kindref="member">storage_t</ref>[512];</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="structTwoStepRelPath_1a381c774dd151fd936cd0d5f2ee5ff697" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structTwoStepRelPath_1a381c774dd151fd936cd0d5f2ee5ff697" kindref="member">setSdkRoot</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*root_dir,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*subdir<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="structTwoStepRelPath_1a4409a76c58b0d3c602445562e7d3f5e9" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structTwoStepRelPath_1a4409a76c58b0d3c602445562e7d3f5e9" kindref="member">mkRelPath</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fpath,<sp/><ref refid="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" kindref="member">storage_t</ref><sp/>&amp;stor);</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="18" refid="structTwoStepRelPath_1ac9bc36157412913cdb4746b933d54d54" refkind="member"><highlight class="normal"><sp/><sp/>SimpleString<sp/><ref refid="structTwoStepRelPath_1ac9bc36157412913cdb4746b933d54d54" kindref="member">sdkRoot</ref>;</highlight></codeline>
+<codeline lineno="19" refid="structTwoStepRelPath_1aa04da768a991035129bc465eee3153de" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structTwoStepRelPath_1aa04da768a991035129bc465eee3153de" kindref="member">sdkRootLen</ref><sp/>=<sp/>0,<sp/><ref refid="structTwoStepRelPath_1a163f32acf5f808baedc48dd574f2b75d" kindref="member">sdkRootLen1</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="twoStepRelPath.h"/>
+  </compounddef>
+</doxygen>

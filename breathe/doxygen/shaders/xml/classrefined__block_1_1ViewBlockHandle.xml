@@ -1,0 +1,288 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classrefined__block_1_1ViewBlockHandle" kind="class" language="C++" prot="public">
+    <compoundname>refined_block::ViewBlockHandle</compoundname>
+    <basecompoundref refid="classrefined__block_1_1BaseBlockHandle" prot="public" virt="non-virtual">refined_block::BaseBlockHandle&lt; ViewBlockHandle &gt;</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classrefined__block_1_1ViewBlockHandle_1a2856fad5b6e1cf32c2a9de0cb12010f8" prot="public" static="no">
+        <type>ViewBlock</type>
+        <definition>using refined_block::ViewBlockHandle::BlockType =  ViewBlock</definition>
+        <argsstring></argsstring>
+        <name>BlockType</name>
+        <qualifiedname>refined_block::ViewBlockHandle::BlockType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="144" column="3" bodyfile="dag_refinedBlock.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classrefined__block_1_1ViewBlockHandle_1a5a10c60659ed561443c5773861d3d08d" prot="public" static="no">
+        <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">GlobalBlockHandle</ref></type>
+        <definition>using refined_block::ViewBlockHandle::ParentHandle =  GlobalBlockHandle</definition>
+        <argsstring></argsstring>
+        <name>ParentHandle</name>
+        <qualifiedname>refined_block::ViewBlockHandle::ParentHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="145" column="3" bodyfile="dag_refinedBlock.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classrefined__block_1_1ViewBlockHandle_1ab40892a25c8f28923a2358467325cf06" prot="public" static="no">
+        <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref></type>
+        <definition>using refined_block::ViewBlockHandle::ChildHandle =  PassBlockHandle</definition>
+        <argsstring></argsstring>
+        <name>ChildHandle</name>
+        <qualifiedname>refined_block::ViewBlockHandle::ChildHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="146" column="3" bodyfile="dag_refinedBlock.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classrefined__block_1_1ViewBlockHandle_1ac62640994d5b99b8251718095e84f19a" prot="public" static="yes" mutable="no">
+        <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref></type>
+        <definition>ViewBlockHandle refined_block::ViewBlockHandle::invalid</definition>
+        <argsstring></argsstring>
+        <name>invalid</name>
+        <qualifiedname>refined_block::ViewBlockHandle::invalid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="156" column="26" bodyfile="dag_refinedBlock.h" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classrefined__block_1_1ViewBlockHandle_1a69da269ac78d750df5872cdd599c13f3" prot="private" static="no" mutable="no">
+        <type>friend</type>
+        <definition>friend refined_block::ViewBlockHandle::BaseBlockHandle&lt; ViewBlockHandle &gt;</definition>
+        <argsstring></argsstring>
+        <name>BaseBlockHandle&lt; ViewBlockHandle &gt;</name>
+        <qualifiedname>refined_block::ViewBlockHandle::BaseBlockHandle&lt; ViewBlockHandle &gt;</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="161" column="3" bodyfile="dag_refinedBlock.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classrefined__block_1_1ViewBlockHandle_1aad12667d9504c194f3cc625901d7e4f3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::ViewBlockHandle::ViewBlockHandle</definition>
+        <argsstring>()=delete</argsstring>
+        <name>ViewBlockHandle</name>
+        <qualifiedname>refined_block::ViewBlockHandle::ViewBlockHandle</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="148" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1ViewBlockHandle_1a477d704fc0b342eabcfcc544ebc0bd63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::ViewBlockHandle::ViewBlockHandle</definition>
+        <argsstring>(const ViewBlockHandle &amp;)=default</argsstring>
+        <name>ViewBlockHandle</name>
+        <qualifiedname>refined_block::ViewBlockHandle::ViewBlockHandle</qualifiedname>
+        <param>
+          <type>const <ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="149" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1ViewBlockHandle_1a92cdd570c4f3362bcb42d9bf8e86e472" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref> &amp;</type>
+        <definition>ViewBlockHandle &amp; refined_block::ViewBlockHandle::operator=</definition>
+        <argsstring>(const ViewBlockHandle &amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>refined_block::ViewBlockHandle::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="150" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1ViewBlockHandle_1aa8f3a6bedc2cb04c664adeed1b090f4d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::ViewBlockHandle::ViewBlockHandle</definition>
+        <argsstring>(ViewBlockHandle &amp;&amp;)=default</argsstring>
+        <name>ViewBlockHandle</name>
+        <qualifiedname>refined_block::ViewBlockHandle::ViewBlockHandle</qualifiedname>
+        <param>
+          <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="151" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1ViewBlockHandle_1addfed15d0d6f18f2845fda2247e3f4f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref> &amp;</type>
+        <definition>ViewBlockHandle &amp; refined_block::ViewBlockHandle::operator=</definition>
+        <argsstring>(ViewBlockHandle &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>refined_block::ViewBlockHandle::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ViewBlockHandle</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="152" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classrefined__block_1_1ViewBlockHandle_1a9403a821f17f4606a6914545204b8b58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classrefined__block_1_1PassBlockHandle" kindref="compound">PassBlockHandle</ref></type>
+        <definition>PassBlockHandle refined_block::ViewBlockHandle::refineBlock</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>refineBlock</name>
+        <qualifiedname>refined_block::ViewBlockHandle::refineBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="154" column="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classrefined__block_1_1ViewBlockHandle_1a519a783025c3601b964b799f4e877fcc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename <ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">ParentHandle</ref></type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classrefined__block_1_1ViewBlockHandle" kindref="compound">ParentHandle::ChildHandle</ref></type>
+        <definition>ParentHandle::ChildHandle refine_block</definition>
+        <argsstring>(const char *name, ParentHandle parent)</argsstring>
+        <name>refine_block</name>
+        <qualifiedname>refined_block::ViewBlockHandle::refine_block</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="classrefined__block_1_1GlobalBlockHandle" kindref="compound">ParentHandle</ref></type>
+          <declname>parent</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="160" column="45"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classrefined__block_1_1ViewBlockHandle_1a9bd90ed5c819abb8836ab789808d11be" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>refined_block::ViewBlockHandle::ViewBlockHandle</definition>
+        <argsstring>(uint32_t id)</argsstring>
+        <name>ViewBlockHandle</name>
+        <qualifiedname>refined_block::ViewBlockHandle::ViewBlockHandle</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_refinedBlock.h" line="163" column="3" bodyfile="dag_refinedBlock.h" bodystart="163" bodyend="163"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>refined_block::BaseBlockHandle&lt; ViewBlockHandle &gt;</label>
+        <link refid="classrefined__block_1_1BaseBlockHandle"/>
+      </node>
+      <node id="1">
+        <label>refined_block::ViewBlockHandle</label>
+        <link refid="classrefined__block_1_1ViewBlockHandle"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>refined_block::BaseBlockHandle&lt; ViewBlockHandle &gt;</label>
+        <link refid="classrefined__block_1_1BaseBlockHandle"/>
+      </node>
+      <node id="1">
+        <label>refined_block::ViewBlockHandle</label>
+        <link refid="classrefined__block_1_1ViewBlockHandle"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>invalid</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_refinedBlock.h" line="141" column="1" bodyfile="dag_refinedBlock.h" bodystart="142" bodyend="164"/>
+    <listofallmembers>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a8948a0257e7aa5a2f98d956d174387de" prot="protected" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>BaseBlockHandle</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a69da269ac78d750df5872cdd599c13f3" prot="private" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>BaseBlockHandle&lt; ViewBlockHandle &gt;</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a2856fad5b6e1cf32c2a9de0cb12010f8" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>BlockType</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1ab40892a25c8f28923a2358467325cf06" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>ChildHandle</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1ab61975468aa7e11020bf5841572dc21a" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a216ca3a8a590ffcf82184466703f48a7" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>get</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a680996064605f50b0a13efc0bc591f96" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>getId</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a4d461abbc209c014d1882c7481d61c08" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>getName</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1ac62640994d5b99b8251718095e84f19a" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>invalid</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a92cdd570c4f3362bcb42d9bf8e86e472" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>operator=</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1addfed15d0d6f18f2845fda2247e3f4f0" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>operator=</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a5a10c60659ed561443c5773861d3d08d" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>ParentHandle</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a519a783025c3601b964b799f4e877fcc" prot="private" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>refine_block</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a9403a821f17f4606a6914545204b8b58" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>refineBlock</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a965d1ada3b3933681963da8dcd97864c" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>set</name></member>
+      <member refid="classrefined__block_1_1BaseBlockHandle_1a13a3ebae16f3f6e4ff542a4b1d66a33e" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>set</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1aad12667d9504c194f3cc625901d7e4f3" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>ViewBlockHandle</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a477d704fc0b342eabcfcc544ebc0bd63" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>ViewBlockHandle</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1aa8f3a6bedc2cb04c664adeed1b090f4d" prot="public" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>ViewBlockHandle</name></member>
+      <member refid="classrefined__block_1_1ViewBlockHandle_1a9bd90ed5c819abb8836ab789808d11be" prot="private" virt="non-virtual"><scope>refined_block::ViewBlockHandle</scope><name>ViewBlockHandle</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

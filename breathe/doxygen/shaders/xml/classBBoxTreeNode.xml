@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBBoxTreeNode" kind="class" language="C++" prot="public">
+    <compoundname>BBoxTreeNode</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">BBox3</basecompoundref>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classBBoxTreeNode_1a489aaee4b340f5257d867e8533125c54" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int BBoxTreeNode::CHILDREN_PER_NODE</definition>
+        <argsstring></argsstring>
+        <name>CHILDREN_PER_NODE</name>
+        <qualifiedname>BBoxTreeNode::CHILDREN_PER_NODE</qualifiedname>
+        <initializer>= 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="58" column="24" bodyfile="dag_bboxTreeRElem.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classBBoxTreeNode_1ac8d39bea379671f4d60b76acb620cc51" prot="public" static="no" mutable="no">
+        <type>BBox3 *</type>
+        <definition>BBox3* BBoxTreeNode::childArray_[CHILDREN_PER_NODE]</definition>
+        <argsstring>[CHILDREN_PER_NODE]</argsstring>
+        <name>childArray_</name>
+        <qualifiedname>BBoxTreeNode::childArray_</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="65" column="9" bodyfile="dag_bboxTreeRElem.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBBoxTreeNode_1a38739008544e26a02ee6d0addd118c13" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BBoxTreeNode::BBoxTreeNode</definition>
+        <argsstring>()</argsstring>
+        <name>BBoxTreeNode</name>
+        <qualifiedname>BBoxTreeNode::BBoxTreeNode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="60" column="3" bodyfile="dag_bboxTreeRElem.h" bodystart="60" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="classBBoxTreeNode_1a4a7f054ebc4d2c7f6073fb1a768fa146" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void BBoxTreeNode::recursiveDelete</definition>
+        <argsstring>(unsigned int current_depth, unsigned int tree_depth)</argsstring>
+        <name>recursiveDelete</name>
+        <qualifiedname>BBoxTreeNode::recursiveDelete</qualifiedname>
+        <param>
+          <type>unsigned int</type>
+          <declname>current_depth</declname>
+        </param>
+        <param>
+          <type>unsigned int</type>
+          <declname>tree_depth</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="62" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classBBoxTreeNode_1ab1eb8b67373c3716ed24628d7f1c7695" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BBoxTreeNode::~BBoxTreeNode</definition>
+        <argsstring>()</argsstring>
+        <name>~BBoxTreeNode</name>
+        <qualifiedname>BBoxTreeNode::~BBoxTreeNode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_bboxTreeRElem.h" line="68" column="3" bodyfile="dag_bboxTreeRElem.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BBox3</label>
+      </node>
+      <node id="1">
+        <label>BBoxTreeNode</label>
+        <link refid="classBBoxTreeNode"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BBox3</label>
+      </node>
+      <node id="1">
+        <label>BBoxTreeNode</label>
+        <link refid="classBBoxTreeNode"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_bboxTreeRElem.h" line="55" column="1" bodyfile="dag_bboxTreeRElem.h" bodystart="56" bodyend="69"/>
+    <listofallmembers>
+      <member refid="classBBoxTreeNode_1a38739008544e26a02ee6d0addd118c13" prot="public" virt="non-virtual"><scope>BBoxTreeNode</scope><name>BBoxTreeNode</name></member>
+      <member refid="classBBoxTreeNode_1ac8d39bea379671f4d60b76acb620cc51" prot="public" virt="non-virtual"><scope>BBoxTreeNode</scope><name>childArray_</name></member>
+      <member refid="classBBoxTreeNode_1a489aaee4b340f5257d867e8533125c54" prot="public" virt="non-virtual"><scope>BBoxTreeNode</scope><name>CHILDREN_PER_NODE</name></member>
+      <member refid="classBBoxTreeNode_1a4a7f054ebc4d2c7f6073fb1a768fa146" prot="public" virt="non-virtual"><scope>BBoxTreeNode</scope><name>recursiveDelete</name></member>
+      <member refid="classBBoxTreeNode_1ab1eb8b67373c3716ed24628d7f1c7695" prot="protected" virt="non-virtual"><scope>BBoxTreeNode</scope><name>~BBoxTreeNode</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
