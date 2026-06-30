@@ -1,0 +1,6 @@
+<RCC>
+      <qresource prefix="/">
+         <file alias="Icons/BlkEditor_logo.ico">../BlkEditor_logo.ico</file>
+         <file alias="Icons/BlkEditor_logo.png">../BlkEditor_logo.png</file>
+      </qresource>
+</RCC>
