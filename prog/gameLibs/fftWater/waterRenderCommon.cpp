@@ -111,7 +111,7 @@ void WaterRenderCommon::setWind(float wind_dir_x, float wind_dir_y, float wind_s
   windSpeed = wind_speed;
 }
 
-void WaterRenderCommon::setMaxWave(float max_wave_height) { maxWaveHeight = max_wave_height; }
+void WaterRenderCommon::setMaxWaveHeight(float max_wave_height) { maxWaveHeight = max_wave_height; }
 
 void WaterRenderCommon::setShoreWaveThreshold(float value) { shoreWaveThreshold = value; }
 

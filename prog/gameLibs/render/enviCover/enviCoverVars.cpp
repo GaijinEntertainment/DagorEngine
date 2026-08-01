@@ -37,6 +37,8 @@ static ShaderVariableInfo intensity_map_scale_offset("envi_cover_intensity_map_s
 
 void set_envi_cover(bool envi_cover) { ShaderGlobal::set_int(var::envi_cover, envi_cover); }
 
+void unset_intensity_map() { ShaderGlobal::set_texture(var::intensity_map, nullptr); }
+
 void set_params(const Point4 &envi_cover_intensity_map_left_top_right_bottom, const char *envi_cover_intensity_map,
   const Point4 &envi_cover_albedo, const Point4 &envi_cover_normal, float envi_cover_reflectance, float envi_cover_translucency,
   float envi_cover_smoothness, float envi_cover_normal_infl, float envi_cover_depth_smoothstep_max,

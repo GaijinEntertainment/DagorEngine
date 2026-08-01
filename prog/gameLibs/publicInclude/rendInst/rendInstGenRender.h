@@ -11,6 +11,7 @@
 #include <rendInst/riExtraRenderer.h>
 
 #include <generic/dag_span.h>
+#include <generic/dag_tab.h>
 
 
 struct RiGenVisibility;
@@ -34,6 +35,8 @@ extern float riExtraMinSizeForReflection;
 extern float riExtraMinSizeForDraftDepth;
 extern int instancingTexRegNo;
 extern int additionalInstancingTexRegNo;
+
+bool areImpostorsUpToDate();
 
 bool useRiDepthPrepass(bool use); // returns previous state
 void useRiCellsDepthPrepass(bool use);
@@ -76,6 +79,7 @@ void renderRITreeDepth(const RiGenVisibility *visibility, const TMatrix &view_it
 
 bool renderRIGenClipmapShadowsToTextures(const Point3 &sunDir0, bool for_sli, bool force_update = true);
 bool notRenderedClipmapShadowsBBox(BBox2 &box, int cascadeNo);
+bool notRenderedStaticShadowsBBoxes(Tab<BBox3> &boxes, bool add_instance_box = true);
 bool notRenderedStaticShadowsBBox(BBox3 &box, bool add_instance_box = true);
 void setClipmapShadowsRendered(int cascadeNo);
 void renderRIGenShadowsToClipmap(const BBox2 &region, int renderNewForCascadeNo); //-1 - render all, not only new

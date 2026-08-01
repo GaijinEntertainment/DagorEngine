@@ -39,6 +39,7 @@ typedef void (*apex_force_remove_actor_callback)(const int);
 typedef void (*on_destr_changed_callback)(const rendinst::RendInstDesc &desc, const TMatrix &ri_tm, const Point3 &pos,
   const Point3 &impulse, bool create_destr);
 typedef void (*on_rendinst_destroyed_callback)(rendinst::riex_handle_t riex_handle, const TMatrix &tm, const BBox3 &box);
+typedef void (*on_ri_restored_callback)(const rendinst::RendInstDesc &restorable_desc);
 typedef void (*on_tree_destr_created_callback)(const rendinst::RendInstDesc &old_desc, rendinst::riex_handle_t tree_destr_riex_handle);
 typedef eastl::function<void(const rendinst::riex_handle_t)> on_riextra_destroyed_callback;
 typedef eastl::function<void(const rendinst::RendInstDesc &)> on_destr_callback;
@@ -195,6 +196,7 @@ void damage_ri_in_sphere(const Point3 &pos, float rad, const Point2 &dmg_near_fa
   bool create_destr_effects, on_riextra_destroyed_callback &&riex_destr_cb, riextra_should_damage &&should_damage);
 
 void set_on_rendinst_destroyed_cb(on_rendinst_destroyed_callback cb);
+void set_on_ri_restored_cb(on_ri_restored_callback cb);
 void call_on_rendinst_destroyed_cb(rendinst::riex_handle_t riex_handle, const TMatrix &tm, const BBox3 &box);
 rendinst::ri_damage_effect_cb get_ri_damage_effect_cb();
 void set_ri_damage_effect_cb(rendinst::ri_damage_effect_cb effect_cb);

@@ -21,6 +21,14 @@ A scope is flagged a regression/improvement only when q < alpha AND the mean
 per-frame change clears both a relative (%) and an absolute (ms) floor, so noise
 and trivial deltas are filtered. Convention: OLD = baseline, NEW = the change.
 
+Rare/bursty work that the per-frame timeline cannot resolve (ECS entity creation,
+etc.) is instrumented with DA_PROFILE_UNIQUE_EVENT and dumped as cumulative per-run
+counters. Those are compared in a separate section by count, total/avg cost and
+per-call min/max; a large count gap between the two runs is flagged as a workload
+mismatch (read the per-call avg, not the total, for those). --events/--filter
+narrows every named-event section (scope timelines and unique events) to matching
+names.
+
 If scipy is importable it is NOT required; everything here is stdlib.
 """
 import sys, os, json, math, argparse, re
@@ -283,10 +291,65 @@ class Stat:
         self.q = self.p          # replaced by BH later for scopes
 
 
+# -------------------------------------------------------------- unique events
+
+
+def _pct(new, old):
+    """Relative change of new vs old, in percent (inf if old is 0 and new isn't)."""
+    if old:
+        return 100.0 * (new - old) / old
+    return math.inf if new else 0.0
+
+
+def unique_row(name, a, b, count_mismatch_pct):
+    """One comparison row for a DA_PROFILE_UNIQUE_EVENT. a/b are the OLD/NEW records
+    (either may be None when the event fired in only one capture). Totals are ms,
+    per-call averages and min/max are us -- matching how the JSON stores them."""
+    ca = a['count'] if a else 0
+    cb = b['count'] if b else 0
+    ta = (a['totalUs'] / 1000.0) if a else 0.0
+    tb = (b['totalUs'] / 1000.0) if b else 0.0
+    ava = (a['totalUs'] / ca) if (a and ca) else 0.0
+    avb = (b['totalUs'] / cb) if (b and cb) else 0.0
+    only = 'OLD' if (a and not b) else ('NEW' if (b and not a) else '')
+    # A big count gap means the two runs did different amounts of this event, so the
+    # total delta is a workload difference, not a per-call regression -- read avg then.
+    if only:
+        mismatch = True
+    else:
+        mismatch = abs(cb - ca) * 100.0 / max(ca, cb, 1) > count_mismatch_pct
+    return {
+        'name': name, 'src': (b.get('src') if b else '') or (a.get('src') if a else ''),
+        'countOld': ca, 'countNew': cb,
+        'totalMsOld': ta, 'totalMsNew': tb, 'dTotalMs': tb - ta, 'dTotalPct': _pct(tb, ta),
+        'avgUsOld': ava, 'avgUsNew': avb, 'dAvgPct': _pct(avb, ava),
+        'minUsOld': (a['minUs'] if a else 0), 'minUsNew': (b['minUs'] if b else 0),
+        'maxUsOld': (a['maxUs'] if a else 0), 'maxUsNew': (b['maxUs'] if b else 0),
+        'onlyIn': only, 'countMismatch': mismatch,
+    }
+
+
+def compare_unique_events(old_doc, new_doc, name_matches, count_mismatch_pct):
+    om, nm = old_doc.get('meta', {}), new_doc.get('meta', {})
+    # A capture predating this field simply has no uniqueEvents section; treat a present
+    # (even empty) list as "board present" so a genuinely absent board is reported apart
+    # from a present-but-empty one.
+    o_has = om.get('hasUniqueEvents', 'uniqueEvents' in old_doc)
+    n_has = nm.get('hasUniqueEvents', 'uniqueEvents' in new_doc)
+    o = {e['name']: e for e in old_doc.get('uniqueEvents', [])}
+    n = {e['name']: e for e in new_doc.get('uniqueEvents', [])}
+    rows = [unique_row(k, o.get(k), n.get(k), count_mismatch_pct)
+            for k in sorted(set(o) | set(n)) if name_matches(k)]
+    rows.sort(key=lambda r: -abs(r['dTotalMs']))
+    return {'oldHas': bool(o_has), 'newHas': bool(n_has),
+            'oldCount': len(o), 'newCount': len(n), 'rows': rows}
+
+
 # ------------------------------------------------------------------ compare
 
 
-def compare(old_doc, new_doc, skip=0, alpha=0.05, min_pct=2.0, min_ms=0.05):
+def compare(old_doc, new_doc, skip=0, alpha=0.05, min_pct=2.0, min_ms=0.05,
+            event_filter=None, count_mismatch_pct=5.0):
     # Validate --skip-warmup before it reaches any slice: a negative skip keeps only
     # the tail frames, and skip >= frame count yields empty series that the stats
     # helpers silently report as 0 ms / p=1 instead of failing.
@@ -298,7 +361,18 @@ def compare(old_doc, new_doc, skip=0, alpha=0.05, min_pct=2.0, min_ms=0.05):
         raise SystemExit("--skip-warmup %d drops every frame (captures have %d and %d "
                          "frames)" % (skip, n_old, n_new))
     res = {'old': old_doc['meta'], 'new': new_doc['meta'], 'skip': skip,
-           'alpha': alpha, 'min_pct': min_pct, 'min_ms': min_ms}
+           'alpha': alpha, 'min_pct': min_pct, 'min_ms': min_ms,
+           'event_filter': event_filter, 'count_mismatch_pct': count_mismatch_pct}
+
+    # --events/--filter narrows every named-event section (scope timelines and unique
+    # events) to names containing any of these case-insensitive substrings. Overall
+    # frame time, the CPU/GPU attribution and draw-stat counters are not named events,
+    # so they are always reported.
+    def name_matches(nm):
+        if not event_filter:
+            return True
+        low = nm.lower()
+        return any(f in low for f in event_filter)
 
     # overall frame time
     res['frame'] = Stat('frame CPU time',
@@ -371,6 +445,8 @@ def compare(old_doc, new_doc, skip=0, alpha=0.05, min_pct=2.0, min_ms=0.05):
         for s in doc.get('scopes', []) + doc.get('scopesTail', []):
             if s.get('idle'):        # synthetic idle-thread placeholder, not real work
                 continue
+            if not name_matches(s['name']):
+                continue
             d[match_key(s)] = s
         return d
     oi, ni = index(old_doc), index(new_doc)
@@ -388,7 +464,10 @@ def compare(old_doc, new_doc, skip=0, alpha=0.05, min_pct=2.0, min_ms=0.05):
                 # Prefer the NEW src: scopes are matched by (thread, name), so if the
                 # instrumentation moved between captures the actionable file:line is the
                 # change side, not the baseline (fall back to OLD when NEW has none).
-                st.thread = o['thread']; st.type = o['type']
+                # GPU scopes are matched under a canonical thread, so the two sides can
+                # carry different GPU display names (plain "GPU" vs "GPU:<adapter>");
+                # keep the more descriptive one regardless of which side it came from.
+                st.thread = max(o['thread'], n['thread'], key=len); st.type = o['type']
                 st.src = n.get('src', '') or o.get('src', '')
                 st.kind = classify_kind(o['name'], o['type'],
                                         o.get('isWait', False) or n.get('isWait', False))
@@ -468,6 +547,7 @@ def compare(old_doc, new_doc, skip=0, alpha=0.05, min_pct=2.0, min_ms=0.05):
     res['crossing'] = sorted([crossing_row(o, n) for (o, n) in crossing],
                              key=lambda r: -abs(r['newMsPerFrame'] - r['oldMsPerFrame']))
     res['n_tested'] = len(matched)
+    res['unique'] = compare_unique_events(old_doc, new_doc, name_matches, count_mismatch_pct)
     return res
 
 
@@ -498,6 +578,46 @@ def _attribution_verdict(res):
     side = "GPU-bound" if abs(dgw) >= abs(dcw) else "CPU-bound"
     return ("**Attribution: NEW is %s** -- CPU-blocked-on-GPU %+.2f ms, CPU work "
             "%+.2f ms (of %+.2f ms frame).%s" % (side, dgw, dcw, f.d_mean, gpu_line))
+
+
+def unique_events_lines(res):
+    """Markdown for the unique (rare-event) comparison. OLD=A (baseline), NEW=B."""
+    u = res.get('unique')
+    L = ["## Unique (rare) events\n"]
+    if u is None:
+        return []
+    if not u['oldHas'] and not u['newHas']:
+        L.append("_Neither capture carries a UniqueEventsBoard (no DA_PROFILE_UNIQUE_EVENT "
+                 "instrumentation reached this dump). Nothing to compare._\n")
+        return L
+    if not u['oldHas']:
+        L.append("_OLD (A) has no UniqueEventsBoard; only NEW (B) values are shown._\n")
+    if not u['newHas']:
+        L.append("_NEW (B) has no UniqueEventsBoard; only OLD (A) values are shown._\n")
+    rows = u['rows']
+    if not rows:
+        L.append("_No unique events matched%s._\n" %
+                 (" the --events filter" if res.get('event_filter') else ""))
+        return L
+    L.append("_Cumulative per-run counters for DA_PROFILE_UNIQUE_EVENT sites (rare/bursty "
+             "work the per-frame timeline cannot resolve). `count` = occurrences over the "
+             "run, `total ms` = summed cost, `avg us` = per-call cost. A `!` in the flag "
+             "column means the two runs' counts differ by >%g%% (workload mismatch): the "
+             "total delta then tracks call count, so read `avg us` for the per-call change. "
+             "`O`/`N` mark an event seen only in OLD/NEW. Sorted by |total ms delta|._\n"
+             % res['count_mismatch_pct'])
+    L.append("| event | count O->N | total ms O->N | d_tot% | avg us O->N | d_avg% | "
+             "min us O/N | max us O/N | flag | src |")
+    L.append("|---|--:|--:|--:|--:|--:|--:|--:|:-:|---|")
+    for r in rows:
+        flag = ('O' if r['onlyIn'] == 'OLD' else 'N' if r['onlyIn'] == 'NEW'
+                else '!' if r['countMismatch'] else '')
+        L.append("| %s | %d->%d | %.2f->%.2f | %s | %.1f->%.1f | %s | %d/%d | %d/%d | %s | %s |" %
+                 (r['name'], r['countOld'], r['countNew'], r['totalMsOld'], r['totalMsNew'],
+                  _fpct(r['dTotalPct']), r['avgUsOld'], r['avgUsNew'], _fpct(r['dAvgPct']),
+                  r['minUsOld'], r['minUsNew'], r['maxUsOld'], r['maxUsNew'], flag, r['src']))
+    L.append("")
+    return L
 
 
 def format_md(res):
@@ -564,6 +684,8 @@ def format_md(res):
             L.append("| %s | %.0f | %.0f | %s | %.1e |" %
                      (s.label, s.mean_old, s.mean_new, _fpct(s.pct), s.p))
         L.append("")
+
+    L.extend(unique_events_lines(res))
 
     # A GPU-timeline regression and a CPU-thread regression need opposite fixes, so
     # the scopes are reported in separate GPU and CPU sections (the attribution above
@@ -720,6 +842,7 @@ def result_to_json(res):
         'newScopes': [one_sided_json(s) for s in res['new_only']],
         'removedScopes': [one_sided_json(s) for s in res['removed']],
         'crossingScopes': res.get('crossing', []),
+        'uniqueEvents': res.get('unique'),
     }
 
 
@@ -735,6 +858,13 @@ def main(argv=None):
                     help="minimum mean per-frame change (percent) to flag a scope")
     ap.add_argument('--min-delta-ms', type=float, default=0.05,
                     help="minimum mean per-frame change (ms) to flag a scope")
+    ap.add_argument('--events', '--filter', dest='events', default=None,
+                    help="comma-separated case-insensitive substrings; narrows every "
+                         "named-event section (scope timelines and unique events) to "
+                         "matching names")
+    ap.add_argument('--count-mismatch-pct', type=float, default=5.0,
+                    help="flag a unique event whose A/B occurrence counts differ by more "
+                         "than this percent as a workload mismatch (default 5)")
     ap.add_argument('--format', choices=('md', 'json', 'both'), default='md')
     ap.add_argument('--out', default=None, help="write report here (default: stdout for md)")
     ap.add_argument('--json-out', default=None, help="also write machine-readable JSON here")
@@ -747,10 +877,14 @@ def main(argv=None):
     except Exception:
         pass
 
+    event_filter = [t.strip().lower() for t in args.events.split(',')
+                    if t.strip()] if args.events else None
+
     old_doc = load_capture(args.old)
     new_doc = load_capture(args.new)
     res = compare(old_doc, new_doc, args.skip_warmup, args.alpha,
-                  args.min_change_pct, args.min_delta_ms)
+                  args.min_change_pct, args.min_delta_ms,
+                  event_filter, args.count_mismatch_pct)
 
     if args.format in ('md', 'both'):
         md = format_md(res)
@@ -784,11 +918,18 @@ def main(argv=None):
     if 'gpu_wait' in res and 'cpu_work' in res:
         split = " | GPU-wait %+.2f ms, CPU work %+.2f ms" % (
             res['gpu_wait'].d_mean, res['cpu_work'].d_mean)
+    u = res.get('unique')
+    uline = ""
+    if u is not None and (u['oldHas'] or u['newHas']):
+        flagged = sum(1 for r in u['rows'] if r['countMismatch'])
+        uline = " | unique-events=%d (workload-mismatch=%d)" % (len(u['rows']), flagged)
+    elif u is not None:
+        uline = " | unique-events: neither capture has a UniqueEventsBoard"
     sys.stderr.write("\nframe: NEW is %s%s | regressions=%d (out-of-step=%d) improvements=%d "
-                     "new=%d removed=%d\n"
+                     "new=%d removed=%d%s\n"
                      % (_verdict(f, args.alpha), split, len(res['regressions']),
                         len(res['disproportionate']), len(res['improvements']),
-                        len(res['new_only']), len(res['removed'])))
+                        len(res['new_only']), len(res['removed']), uline))
     return 0
 
 

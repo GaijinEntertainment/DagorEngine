@@ -103,7 +103,7 @@ static void create_transparents_ecs_nodes_es(const OnCameraNodeConstruction &evt
 
   // We expose the transparent attachements to the outside world
   evt.nodes->push_back(dafg::register_node("transparent_publish_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.orderMeBefore("water_ssr_late_node");
+    registry.orderMeBefore("water_normal_late_node");
     auto prevNs = registry.root() / "transparent" / "close";
     prevNs.rename("color_target_done", "target_for_transparency");
     prevNs.rename("depth_done", "depth_before_water_late");

@@ -122,7 +122,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 {
   memreport::dump_memory_usage_report(0);
   ::measure_cpu_freq();
-  ::dgs_dont_use_cpu_in_background = true;
+  ::dgs_dont_use_cpu_in_background = false;
   ::dgs_post_shutdown_handler = post_shutdown_handler;
 
 #if _TARGET_C3
@@ -162,8 +162,10 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
 
 #else
+#if _TARGET_XBOX == 0
   ::dagor_init_mouse_null();
   ::dagor_init_keyboard_null();
+#endif
 
   ::dagor_init_joystick();
   if (global_cls_drv_joy)

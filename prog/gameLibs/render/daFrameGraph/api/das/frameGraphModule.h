@@ -50,6 +50,7 @@ DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dafg::Stage, Stage);
 
 DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dafg::ResourceType, ResourceType);
 DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dafg::AutoResTypeNameId, AutoResTypeNameId);
+DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dafg::RefinedBlockNameId, RefinedBlockNameId);
 DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(VariableRateShadingCombiner, VariableRateShadingCombiner);
 DAS_BASE_BIND_ENUM_CAST_AND_FACTORY(dafg::BindingType, BindingType);
 

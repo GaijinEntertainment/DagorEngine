@@ -15,6 +15,7 @@
 #include <3d/dag_render.h>
 #include <memory/dag_framemem.h>
 #include <math/dag_catmullRom.h>
+#include <EASTL/type_traits.h>
 
 inline Point3 sq_matrix_to_euler(const TMatrix &tm)
 {
@@ -187,6 +188,34 @@ static SQInteger op_cross(HSQUIRRELVM vm)
   return 1;
 }
 
+template <typename T>
+static inline bool math_value_equal(const T &a, const T &b)
+{
+  return a == b;
+}
+static inline bool math_value_equal(const E3DCOLOR &a, const E3DCOLOR &b) { return a.u == b.u; } // no operator== on E3DCOLOR
+
+// Delegates to the class operator==; any other argument type is not-equal
+// rather than an error, so script code may compare heterogeneous values freely.
+// IEEE unordered rules apply: a NaN component makes a value not-equal to
+// anything, itself included.
+template <typename T>
+static SQInteger op_is_equal(HSQUIRRELVM vm)
+{
+  if (!Sqrat::check_signature<T *>(vm))
+    return SQ_ERROR;
+
+  Sqrat::Var<const T *> a(vm, 1);
+  HSQOBJECT ho;
+  G_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, 2, &ho)));
+
+  bool equal = false;
+  if (sq_type(ho) == OT_INSTANCE && Sqrat::ClassType<T>::IsObjectOfClass(&ho))
+    equal = math_value_equal(*a.value, *Sqrat::Var<const T *>(vm, 2).value);
+  sq_pushbool(vm, equal);
+  return 1;
+}
+
 static SQInteger c3_set(HSQUIRRELVM vm)
 {
   if (!Sqrat::check_signature<Color3 *>(vm))
@@ -290,7 +319,9 @@ static SQInteger math_flt_vector_ctor(HSQUIRRELVM vm)
     for (int i = 0; i < n_comp; ++i)
     {
       sq_getfloat(vm, i + 2, &f);
-      (*obj)[i] = (decltype((*obj)[0]))f;
+      // cast to the element value type: decltype((*obj)[0]) is a reference,
+      // and a C-style cast to it reinterprets bits instead of converting
+      (*obj)[i] = (eastl::remove_reference_t<decltype((*obj)[0])>)f;
     }
   }
   return 0;
@@ -317,7 +348,7 @@ static SQInteger math_int_vector_ctor(HSQUIRRELVM vm)
     for (int i = 0; i < n_comp; ++i)
     {
       sq_getinteger(vm, i + 2, &n);
-      (*obj)[i] = (decltype((*obj)[0]))n;
+      (*obj)[i] = (eastl::remove_reference_t<decltype((*obj)[0])>)n;
     }
   }
   return 0;
@@ -639,6 +670,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_sub<Point2>, "instance._sub(other: instance): instance")
     .SquirrelFuncDeclString(op_mul<Point2>, "instance._mul(other: instance|number): instance")
     .SquirrelFuncDeclString(op_unm<Point2>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(op_is_equal<Point2>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_float_setstate<Point2>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_float_getstate<Point2>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -659,6 +691,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_mul<Point3>, "instance._mul(other: instance|number): instance")
     .SquirrelFuncDeclString(op_cross<Point3>, "instance._modulo(other: instance): instance")
     .SquirrelFuncDeclString(op_unm<Point3>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(op_is_equal<Point3>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_float_setstate<Point3>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_float_getstate<Point3>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -674,6 +707,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .Func("lengthSq", &DPoint3::lengthSq)
     .Func("length", &DPoint3::length)
     .Func("normalize", &DPoint3::normalize)
+    .SquirrelFuncDeclString(op_is_equal<DPoint3>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_int32_setstate<DPoint3>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_int32_getstate<DPoint3>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -694,6 +728,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_mul<Point4>, "instance._mul(other: instance|number): instance")
     .SquirrelFuncDeclString(op_cross<Point4>, "instance._modulo(other: instance): instance")
     .SquirrelFuncDeclString(op_unm<Point4>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(op_is_equal<Point4>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_float_setstate<Point4>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_float_getstate<Point4>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -714,6 +749,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .GlobalFunc("inverse", (TMatrix(*)(const TMatrix &))inverse)
     .SquirrelFuncDeclString(tm_getcol, "instance._get(idx: any): instance")
     .SquirrelFuncDeclString(tm_getcol, "instance.getcol(idx: any): instance")
+    .SquirrelFuncDeclString(op_is_equal<TMatrix>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_float_setstate<TMatrix>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_float_getstate<TMatrix>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -731,6 +767,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_mul_tm<Quat, Point3>, "instance._mul(other: instance): instance")
     .SquirrelFuncDeclString(op_unm<Quat>, "instance._unm(): instance")
     .Func("normalize", &Quat::normalize)
+    .SquirrelFuncDeclString(op_is_equal<Quat>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_float_setstate<Quat>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_float_getstate<Quat>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -745,6 +782,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_add<IPoint2>, "instance._add(other: instance): instance")
     .SquirrelFuncDeclString(op_sub<IPoint2>, "instance._sub(other: instance): instance")
     .SquirrelFuncDeclString(op_unm<IPoint2>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(op_is_equal<IPoint2>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_int32_setstate<IPoint2>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_int32_getstate<IPoint2>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -760,6 +798,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_add<IPoint3>, "instance._add(other: instance): instance")
     .SquirrelFuncDeclString(op_sub<IPoint3>, "instance._sub(other: instance): instance")
     .SquirrelFuncDeclString(op_unm<IPoint3>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(op_is_equal<IPoint3>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_int32_setstate<IPoint3>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_int32_getstate<IPoint3>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -776,6 +815,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_add<IPoint4>, "instance._add(other: instance): instance")
     .SquirrelFuncDeclString(op_sub<IPoint4>, "instance._sub(other: instance): instance")
     .SquirrelFuncDeclString(op_unm<IPoint4>, "instance._unm(): instance")
+    .SquirrelFuncDeclString(op_is_equal<IPoint4>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_int32_setstate<IPoint4>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_int32_getstate<IPoint4>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -790,6 +830,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .Var("b", &E3DCOLOR::b)
     .Var("a", &E3DCOLOR::a)
     .Var("u", &E3DCOLOR::u)
+    .SquirrelFuncDeclString(op_is_equal<E3DCOLOR>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_int32_setstate<E3DCOLOR>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_int32_getstate<E3DCOLOR>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -806,6 +847,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_sub<Color3>, "instance._sub(other: instance): instance")
     .SquirrelFuncDeclString(op_mul<Color3, Color3>, "instance._mul(other: instance|number): instance")
     .SquirrelFuncDeclString(c3_set, "instance.set(r: number, g: number, b: number): any")
+    .SquirrelFuncDeclString(op_is_equal<Color3>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_float_setstate<Color3>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_float_getstate<Color3>, "instance.__getstate([dummy: any]): array")
     /**/;
@@ -823,6 +865,7 @@ void sqrat_bind_dagor_math(SqModules *module_mgr)
     .SquirrelFuncDeclString(op_sub<Color4>, "instance._sub(other: instance): instance")
     .SquirrelFuncDeclString(op_mul<Color4, Color4>, "instance._mul(other: instance|number): instance")
     .SquirrelFuncDeclString(c4_set, "instance.set(r: number, g: number, b: number, a: number): any")
+    .SquirrelFuncDeclString(op_is_equal<Color4>, "instance.isEqual(other: any): bool")
     .SquirrelFuncDeclString(raw_float_setstate<Color4>, "instance.__setstate(state: array, [dummy: any]): null")
     .SquirrelFuncDeclString(raw_float_getstate<Color4>, "instance.__getstate([dummy: any]): array")
     /**/;

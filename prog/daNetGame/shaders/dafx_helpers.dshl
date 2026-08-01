@@ -241,14 +241,16 @@ macro DAFXEX_USE_PARTICLE_PLACEMENT()
   (vs)
   {
     water_level@f1 = (water_level);
-    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    water_heightmap_lowres@tex2d = water_heightmap_lowres;
     water_heightmap_lowres_exists@i1 = exists_tex(water_heightmap_lowres);
     world_to_water_heightmap@f4 = (world_to_water_heightmap);
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(vs)
   DAFXEX_USE_DEPTH_ABOVE(vs)
   DAFXEX_USE_HMAP(vs)
   hlsl (vs)
   {
+    #define water_heightmap_lowres_samplerstate global_linear_wrap_sampler
     #include "modfx/modfx_gpu_placement_flags.hlsli"
 
     bool place_fx_above(inout float3 wpos, float placement_threshold, uint flags)

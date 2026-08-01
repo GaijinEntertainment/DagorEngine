@@ -30,7 +30,10 @@ namespace bvh::dyn
 
 static constexpr float bvh_dyn_lod_range_exception_threshold = 10000.0f;
 
-static eastl::unordered_set<ContextId> relem_changed_contexts;
+using RelemChangedContextsReadLock = ScopedLockReadTemplate<NoWritersSpinLockReadWriteLock>;
+using RelemChangedContextsWriteLock = ScopedLockWriteTemplate<NoWritersSpinLockReadWriteLock>;
+static NoWritersSpinLockReadWriteLock relem_changed_contexts_lock;
+static eastl::unordered_set<ContextId> relem_changed_contexts DAG_TS_GUARDED_BY(relem_changed_contexts_lock);
 static CallbackToken relem_changed_token;
 static constexpr float bvh_force_anim_distance = 30.0f;
 
@@ -220,10 +223,10 @@ static void on_relem_changed(ContextId context_id, const DynamicRenderableSceneL
       [&](const ShaderMesh *mesh, int node_id, float radius, int rigid_no) {
         if (!mesh)
           return;
-        if (!context_id->has(Features::DynrendRigidBaked | Features::DynrendRigidFull))
+        if (!context_id->hasAny(Features::DynrendRigidBaked | Features::DynrendRigidFull))
           return;
 
-        if (context_id->has(Features::DynrendRigidBaked) && lodIxLocal < (resource->lods.size() - 1))
+        if (context_id->hasAny(Features::DynrendRigidBaked) && lodIxLocal < (resource->lods.size() - 1))
           return;
 
         TIME_PROFILE(rigid);
@@ -260,7 +263,7 @@ static void on_relem_changed(ContextId context_id, const DynamicRenderableSceneL
         }
       },
       [&](const ShaderSkinnedMesh *mesh, int node_id, int skin_no) {
-        if (!context_id->has(Features::DynrendSkinnedFull))
+        if (!context_id->hasAny(Features::DynrendSkinnedFull))
           return;
 
         TIME_PROFILE(skinned);
@@ -306,8 +309,11 @@ static void on_relem_changed_all(const DynamicRenderableSceneLodsResource *resou
   if (is_main_thread())
     optionalGpuLock.emplace();
 
-  for (auto &contextId : relem_changed_contexts)
-    on_relem_changed(contextId, resource, deleted, upper_lod);
+  {
+    RelemChangedContextsReadLock contextsGuard(relem_changed_contexts_lock);
+    for (auto &contextId : relem_changed_contexts)
+      on_relem_changed(contextId, resource, deleted, upper_lod);
+  }
 }
 
 void wait_dynrend_instances();
@@ -340,9 +346,12 @@ void teardown(bool device_reset, bool zero_bvh_ids)
 
 void init(ContextId context_id)
 {
-  if (context_id->has(Features::AnyDynrend))
+  if (context_id->hasAny(Features::AnyDynrend))
   {
-    relem_changed_contexts.insert(context_id);
+    {
+      RelemChangedContextsWriteLock contextsGuard(relem_changed_contexts_lock);
+      relem_changed_contexts.insert(context_id);
+    }
     unitedvdata::dmUnitedVdata.availableRElemsAccessor([](dag::Span<DynamicRenderableSceneLodsResource *> resources) {
       for (DynamicRenderableSceneLodsResource *resource : resources)
         on_relem_changed_all(resource, false, 0);
@@ -355,12 +364,15 @@ void enable_dynamic_planar_decals(bool enable) { bvh_decals = enable; }
 void teardown(ContextId context_id)
 {
   on_unload_scene(context_id);
-  relem_changed_contexts.erase(context_id);
+  {
+    RelemChangedContextsWriteLock contextsGuard(relem_changed_contexts_lock);
+    relem_changed_contexts.erase(context_id);
+  }
 }
 
 void on_unload_scene(ContextId context_id)
 {
-  if (!context_id->has(Features::AnyDynrend))
+  if (!context_id->hasAny(Features::AnyDynrend))
     return;
 
   wait_dynrend_instances();
@@ -719,7 +731,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
 
       nodeOffsetRenderData += rigid_chunk_size;
 
-      if (!bvh_context_id->has(Features::DynrendRigidBaked | Features::DynrendRigidFull))
+      if (!bvh_context_id->hasAny(Features::DynrendRigidBaked | Features::DynrendRigidFull))
         return;
 
       if (rigids[rigid_no].uniqueRefId > 0)
@@ -832,7 +844,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
 
       auto elems = mesh->getShaderMesh().getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
 
-      if (!elems.empty() && bvh_context_id->has(Features::DynrendSkinnedFull))
+      if (!elems.empty() && bvh_context_id->hasAny(Features::DynrendSkinnedFull))
       {
         auto tm = inst.getNodeWtmRelToOrigin(0);
 
@@ -879,8 +891,8 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           auto &bvhMesh = bvhObject->meshes[0];
 
           auto &data = bvh_context_id->uniqueSkinBuffers[inst.getUniqueId()];
-          data.age = -1;
           auto &meshElem = data.elems[meshId];
+          meshElem.age = -1;
 
           if (!meshElem.buffer && dyn_enable_caching)
           {
@@ -1009,7 +1021,7 @@ void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynre
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position,
   dag::Vector<DynamicRenderableSceneInstance *> &&og_instances)
 {
-  if (!bvh_context_id->has(Features::AnyDynrend))
+  if (!bvh_context_id->hasAny(Features::AnyDynrend))
     return;
 
   static int bvh_decalsVarId = get_shader_variable_id("bvh_decals", true);
@@ -1171,7 +1183,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
       if (!isVisible)
         return;
       int currMeshIndex = meshIndexCounter++;
-      if (!bvh_context_id->has(Features::DynrendRigidBaked | Features::DynrendRigidFull))
+      if (!bvh_context_id->hasAny(Features::DynrendRigidBaked | Features::DynrendRigidFull))
         return;
 
       if (rigids[rigid_no].uniqueRefId > 0)
@@ -1240,7 +1252,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
       if (!isVisible)
         return;
       int currMeshIndex = meshIndexCounter++;
-      if (!bvh_context_id->has(Features::DynrendSkinnedFull))
+      if (!bvh_context_id->hasAny(Features::DynrendSkinnedFull))
         return;
 
       auto elems = mesh->getShaderMesh().getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
@@ -1288,8 +1300,8 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
         auto &bvhMesh = bvhObject->meshes[0];
 
         auto &data = bvh_context_id->uniqueSkinBuffers[inst.getUniqueId()];
-        data.age = -1;
         auto &meshElem = data.elems[meshId];
+        meshElem.age = -1;
 
         if (!meshElem.buffer && dyn_enable_caching)
         {
@@ -1394,7 +1406,7 @@ void update_animchar_instances(ContextId bvh_context_id, dynrend::ContextId dynr
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position, dynrend::BVHIterateCallback iterate_callback)
 {
   G_UNUSED(dynrend_no_shadow_context_id); // Currently not supported
-  if (!bvh_context_id->has(Features::AnyDynrend))
+  if (!bvh_context_id->hasAny(Features::AnyDynrend))
     return;
 
   animchar_bvh_job.start(bvh_context_id, dynrend_context_id, view_position, iterate_callback);
@@ -1428,29 +1440,28 @@ static struct TidyUpSkinsJob : public cpujobs::IJob
 
     for (auto iter = eastl::begin(contextId->uniqueSkinBuffers); iter != eastl::end(contextId->uniqueSkinBuffers);)
     {
-      // Reset the used flags, so in the next frame, all start fresh
-      for (auto &elem : iter->second.elems)
-        elem.second.used = false;
-
-      iter->second.age++;
-      if (iter->second.age < 1)
+      auto &elems = iter->second.elems;
+      for (auto elemIter = eastl::begin(elems); elemIter != eastl::end(elems);)
       {
-        ++iter;
-        continue;
-      }
-
-      for (auto &elem : iter->second.elems)
-      {
-        if (dyn_enable_caching)
+        if (++elemIter->second.age < 1)
         {
-          auto &storage = contextId->freeUniqueSkinBLASes[elem.first].blases.push_back();
-          storage.swap(elem.second.blas);
+          ++elemIter;
+          continue;
         }
 
-        if (elem.second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
+        auto meshId = elemIter->first;
+        auto &elem = elemIter->second;
+
+        if (dyn_enable_caching)
+        {
+          auto &storage = contextId->freeUniqueSkinBLASes[meshId].blases.push_back();
+          storage.swap(elem.blas);
+        }
+
+        if (elem.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
         {
           TIME_PROFILE(meta_lock_skin_tidy);
-          LockedMetaAccess lockedMeta(*contextId, elem.second.metaAllocId);
+          LockedMetaAccess lockedMeta(*contextId, elem.metaAllocId);
           const auto &meta = lockedMeta[0];
           if (meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures)
           {
@@ -1461,16 +1472,21 @@ static struct TidyUpSkinsJob : public cpujobs::IJob
           }
         }
 
-        contextId->freeMetaRegion(elem.second.metaAllocId);
+        contextId->freeMetaRegion(elem.metaAllocId);
 
-        if (elem.second.buffer)
+        if (elem.buffer)
         {
           WinAutoLock lock(contextId->processBufferAllocatorLock);
-          contextId->processBufferAllocator[elem.second.buffer.allocator].first.free(elem.second.buffer.allocId);
+          contextId->processBufferAllocator[elem.buffer.allocator].first.free(elem.buffer.allocId);
         }
+
+        elemIter = elems.erase(elemIter);
       }
 
-      iter = contextId->uniqueSkinBuffers.erase(iter);
+      if (elems.empty())
+        iter = contextId->uniqueSkinBuffers.erase(iter);
+      else
+        ++iter;
     }
 
     if (dyn_enable_caching)

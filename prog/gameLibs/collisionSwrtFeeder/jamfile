@@ -9,7 +9,6 @@ Target      = gameLibs/collisionSwrtFeeder.lib ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/engine/daBVH
 ;
 
 Sources =

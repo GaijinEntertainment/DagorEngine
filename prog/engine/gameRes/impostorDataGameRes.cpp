@@ -10,7 +10,7 @@
 #include <ioSys/dag_roDataBlock.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/vector.h>
+#include <dag/dag_vector.h>
 
 class ImpostorDataGameResFactory final : public GameResourceFactory
 {
@@ -22,7 +22,7 @@ public:
     eastl::unique_ptr<DataBlock> data;
   };
 
-  eastl::vector<Data> resList;
+  dag::Vector<Data> resList;
 
   int findRes(int res_id) const
   {
@@ -150,6 +150,7 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(resList, resId, refCount)
 };
+DAG_DECLARE_RELOCATABLE(ImpostorDataGameResFactory::Data);
 
 static InitOnDemand<ImpostorDataGameResFactory> impostor_data_factory;
 

@@ -490,6 +490,9 @@ public:
 ECS_REGISTER_MANAGED_TYPE(RiExtraComponent, nullptr, RendInstCTM);
 ECS_AUTO_REGISTER_COMPONENT_DEPS(RiExtraComponent, "ri_extra", nullptr, 0, "?ri_extra__riSyncDesc");
 
+ECS_REGISTER_RELOCATABLE_TYPE(rendinst::ClientRiexPool, nullptr);
+ECS_REGISTER_RELOCATABLE_TYPE(ClientRiexPoolList, nullptr);
+
 struct RendInstDescSerializer : ecs::ComponentSerializer
 {
   void serialize(ecs::SerializerCb &, const void *, size_t, ecs::component_type_t) override { G_ASSERTF(0, "not implemented!"); }

@@ -162,7 +162,7 @@ void teardown()
 
 void init(ContextId context_id)
 {
-  if (!context_id->has(Features::SmokeTracers))
+  if (!context_id->hasAny(Features::SmokeTracers))
     return;
 
   G_ASSERT(smokeTracersBvhConnection.contexts.empty());
@@ -195,7 +195,7 @@ void init(ContextId context_id)
 
 void teardown(ContextId context_id)
 {
-  if (!context_id->has(Features::SmokeTracers))
+  if (!context_id->hasAny(Features::SmokeTracers))
     return;
 
   smokeTracersBvhConnection.contexts.erase(context_id);
@@ -258,7 +258,7 @@ void update_instances()
 
 void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count)
 {
-  if (context_id->has(Features::SmokeTracers))
+  if (context_id->hasAny(Features::SmokeTracers))
   {
     instances = smokeTracersBvhConnection.instancesSnap;
     instance_count = smokeTracersBvhConnection.counterSnap;

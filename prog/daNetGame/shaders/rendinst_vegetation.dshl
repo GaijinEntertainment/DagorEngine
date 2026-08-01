@@ -250,8 +250,8 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         ##endif
         float4 localPos                    : TEXCOORD4;
         #ifdef MOTION_VECTORS_ENABLED
-          float4 out_pos                   : TEXCOORD5;
-          float4 out_pos_prev              : TEXCOORD6;
+          float3 out_pos                   : TEXCOORD5;
+          float3 out_pos_prev              : TEXCOORD6;
         #endif
         ##if need_burnt_grass
           nointerpolation float4 instance_pos__burnt_progress : TEXCOORD8;
@@ -483,8 +483,8 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
         #ifdef MOTION_VECTORS_ENABLED
-          output.out_pos = mulPointTm(currWorldPos + vegetationInteractionOffset + camera_base_offset, globtm);
-          output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+          output.out_pos = mulPointTm(currWorldPos + vegetationInteractionOffset + camera_base_offset, globtm).xyw;
+          output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip).xyw;
         #endif
         ##if rendinst_render_pass != rendinst_render_pass_depth
           #if COLOR_NEEDED

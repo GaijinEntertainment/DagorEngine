@@ -1,0 +1,195 @@
+wait.progress
+wait.time 500
+
+//animchar
+app.select_asset "mg42_char"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.2
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "hurricane_mk2b_ussr_char"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 500
+screenshot.window Viewport
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.2
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//collision
+app.select_asset "town_hall_collision"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "ussr_hopper_wagon_1933_coal_collision"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//composit
+app.select_asset "fx_background_scene"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "air_island_arch_a_cmp"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "israel_roof_set_a_cmp"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//dynmodel
+app.select_asset "mg42_dynmodel"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "arctic_base_dome_ladder_a_destr"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//fastPhys
+app.select_asset "unit_hangar_technic_fastphys"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "torpedo_533mm_spearfish_fastphys"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//fx
+app.select_asset "hit_ground_wave_big_fx"
+editor.command Main.AutoZoomAndCenter
+wait.time 500
+screenshot.window
+wait.time 500
+app.select_asset "dust_tank_track_large_p_falling_ground_group_vel_fx"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "dust_rotor_drone_dust_cmps_fx"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//gameobj
+app.select_asset "ad_water_supply_medium"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "fire_torch"
+wait.time 1500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//prefab
+app.select_asset "asian_skyscraper_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "doghouse_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//physobj
+app.select_asset "af_conveyor_front_b_r_destr_phobj"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "arctic_base_dome_ladder_a_destr_phobj"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//rendInst
+app.select_asset "gpu_ancient_brick_debris_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.2
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "roots_large_d"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.2
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//skeleton
+app.select_asset "damage_test_wagon_destr_skeleton"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+//tex
+app.select_asset "berlin_airfield_2_tex"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "bush_hedge_a_aa"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+app.select_asset "tree_hedges_branches_b_tex_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window Viewport
+wait.time 500
+
+app.terminate 0

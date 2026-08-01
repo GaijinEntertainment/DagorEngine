@@ -438,20 +438,25 @@ struct RecompileJobBase : shc::Job
   size_t compileTarget;
   uint8_t ilHash[HASH_SIZE];
   char ilPath[420];
+  char ilHashString[HASH_TEMP_STRING_BUFSIZE];
+  wchar_t ilHashWstring[HASH_TEMP_STRING_BUFSIZE];
   shc::TargetContext &ctx;
   RecompileJobBase(size_t ct, shc::TargetContext &cref) : compileTarget{ct}, ctx{cref} {}
 
   dx12::dxil::CombinedShaderStorage load_cache(dx12::dxil::CombinedShaderData uncompiled, const char *type_name)
   {
-    if (!shc::config().useSha1Cache)
-      return {};
-
     const char *profile_name = dx12::dxil::Platform::XBOX_ONE == shc::config().targetPlatform ? "x" : "xs";
     HASH_CONTEXT ctx;
     HASH_INIT(&ctx);
     HASH_UPDATE(&ctx, uncompiled.metadata.data(), data_size(uncompiled.metadata));
     HASH_UPDATE(&ctx, reinterpret_cast<const unsigned char *>(uncompiled.bytecode.data()), data_size(uncompiled.bytecode));
     HASH_FINISH(&ctx, ilHash);
+    SNPRINTF(ilHashString, sizeof(ilHashString), HASH_TEMP_STRING, HASH_LIST(ilHash));
+    swprintf_s(ilHashWstring, sizeof(ilHashWstring) / sizeof(wchar_t), HASH_TEMP_WSTRING, HASH_LIST(ilHash));
+
+    if (!shc::config().useSha1Cache)
+      return {};
+
     SNPRINTF(ilPath, sizeof(ilPath), "%s/il/%s/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir, type_name, profile_name,
       HASH_LIST(ilHash));
     auto file = df_open(ilPath, DF_READ);
@@ -582,6 +587,14 @@ struct RecompileJobBase : shc::Job
       dd_erase(ilPath);
     }
   }
+
+  void releaseJobBody()
+  {
+    // @TODO(pdb): it seems like per shader debug level elevation (pragma dfull) is lost in 2-phase compilation.
+    // Verify, resore, add here as well.
+    if (shc::config().hlslDebugLevel != DebugLevel::NONE)
+      ctx.storage().usedSepDebugInfoNames.emplace_back(ilHashString);
+  }
 };
 
 static eastl::optional<size_t> lookup_comp_prog(const dx12::dxil::CombinedShaderData &uncompiled, const shc::TargetContext &ctx)
@@ -618,7 +631,7 @@ struct RecompileVPRogJob : RecompileJobBase
     {
       writeCache = true;
       auto recompiledVProg = dx12::dxil::recompileVertexProgram(uncompiled.metadata, shc::config().targetPlatform,
-        shc::config().dx12PdbCacheDir, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
+        shc::config().dx12PdbCacheDir, ilHashWstring, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
       if (!recompiledVProg)
       {
         sh_debug(SHLOG_FATAL, "Recompilation of vprog failed");
@@ -652,7 +665,6 @@ struct RecompileVPRogJob : RecompileJobBase
       }
     }
   }
-  void releaseJobBody() {}
 };
 
 struct RecompilePShJob : RecompileJobBase
@@ -674,7 +686,7 @@ struct RecompilePShJob : RecompileJobBase
     {
       writeCache = true;
       auto recompiledFSh = dx12::dxil::recompilePixelShader(uncompiled.metadata, shc::config().targetPlatform,
-        shc::config().dx12PdbCacheDir, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
+        shc::config().dx12PdbCacheDir, ilHashWstring, shc::config().hlslDebugLevel, shc::config().hlslEmbedSource);
       if (!recompiledFSh)
       {
         sh_debug(SHLOG_FATAL, "Recompilation of fsh failed");
@@ -708,7 +720,6 @@ struct RecompilePShJob : RecompileJobBase
       }
     }
   }
-  void releaseJobBody() override {}
 };
 
 static eastl::optional<RecompileVPRogJob> make_recompile_vpr_job(size_t ct, shc::TargetContext &ctx)
@@ -1154,7 +1165,8 @@ static void link_shaders_fsh_and_vpr(ShadersBindump &bindump, Tab<int> &fsh_lnkt
     vpr_lnktbl[i] = ld_add_vprog(bindump.shadersVpr[i], bindump.shadersVprMetadata[i], upper, ctx);
 }
 
-bool load_shaders_bindump(ShadersBindump &shaders, bindump::IReader &full_file_reader, shc::TargetContext &ctx)
+bool load_shaders_bindump(ShadersBindump &shaders, ShadersBindumpHeader &header, bindump::IReader &full_file_reader,
+  shc::TargetContext &ctx)
 {
   ShadersDeSerializationScope deSerScope{ctx};
 
@@ -1179,6 +1191,8 @@ bool load_shaders_bindump(ShadersBindump &shaders, bindump::IReader &full_file_r
 
   bindump::MemoryReader reader(decompressed_data.data(), decompressed_data.size());
   bindump::streamRead(shaders, reader);
+
+  header = eastl::move(static_cast<ShadersBindumpHeader &>(compressed));
   return true;
 }
 
@@ -1186,8 +1200,9 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
   shc::TargetContext &ctx)
 {
   ShadersBindump shaders;
+  ShadersBindumpHeader header;
   bindump::MemoryReader compressed_reader(mapped_data, data_size);
-  if (!load_shaders_bindump(shaders, compressed_reader, ctx))
+  if (!load_shaders_bindump(shaders, header, compressed_reader, ctx))
     sh_debug(SHLOG_FATAL, "corrupted OBJ file: %s", filename);
 
   // Load render states
@@ -1237,6 +1252,9 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
     if (ptr)
       delete eastl::exchange(ptr, nullptr);
   }
+
+  for (auto &debugInfoName : header.usedSepDebugInfoNames)
+    ctx.storage().usedSepDebugInfoNames.emplace_back(eastl::move(debugInfoName));
 
   // Link cpp stcode, and save routine remapping table to fill pass indices
   auto [dynamicCppStcodeRemappingTable, staticCppStcodeRemappingTable] =
@@ -1476,6 +1494,8 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
   for (auto &&t : ctx.cppStcode().regTable.combinedTable)
     shaders.cppcodeRegisterTables.push_back(eastl::move(t));
   shaders.cppcodeRegisterTableOffsets = eastl::move(ctx.cppStcode().regTable.offsets);
+
+  compressed.usedSepDebugInfoNames = eastl::move(ctx.storage().usedSepDebugInfoNames);
 
   // save FSH
   for (size_t i = 0; i < ctx.storage().shadersFsh.size(); ++i)

@@ -16,7 +16,9 @@ public:
     maxDistance,
     clampToBorder,
     dirRotate,
-    hideOutside);
+    hideOutside,
+    avoidOverlap,
+    overlapPadding);
 
   BhvTiledMap();
   virtual int update(UpdateStage stage, darg::Element *elem, float dt) override;

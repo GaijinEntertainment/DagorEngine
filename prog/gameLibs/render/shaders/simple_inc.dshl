@@ -1,3 +1,5 @@
+include "voxel_baking.dshl"
+
 macro USE_SIMPLE_PS_IMPL(is_writing_gbuffer, order, has_microdetail_sampler)
   if (is_writing_gbuffer)
   {
@@ -8,6 +10,7 @@ macro USE_SIMPLE_PS_IMPL(is_writing_gbuffer, order, has_microdetail_sampler)
     normal_tex@staticSmp = normal;
   }
   USE_CHARACTER_MICRODETAIL_IMPL(has_microdetail_sampler, true)
+  USE_VOXEL_BAKING()
 
 hlsl(ps)
 {
@@ -15,12 +18,7 @@ hlsl(ps)
     #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
   #endif
 #if RENDINST_IMPOSTOR_VOXEL
-      void simple_ps(VsOutput input,
-        out float4 out_0 : SV_Target0,
-        out float4 out_1 : SV_Target1,
-        out float4 out_2 : SV_Target2,
-        out float  out_3 : SV_Target3
-        INPUT_VFACE HW_USE_SCREEN_POS)
+      VOXEL_BAKER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
 #else
   #if VOXELIZE_ALBEDO_PASS
     void simple_ps(VsOutput input INPUT_VFACE)
@@ -135,7 +133,7 @@ hlsl(ps)
     init_order(gbuffer, order);
 
     #ifdef MOTION_VECTORS_ENABLED
-      float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+      float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
       init_motion_vector(gbuffer, motion);
     #endif
     #ifdef PLOD_PS_GEN
@@ -148,24 +146,16 @@ hlsl(ps)
     ##endif
 
     ##if shader == rendinst_simple_colored
-      half coloring = 1;
+      const half3 coloringMul = 1;
     ##else
-      half coloring = 0;
+      const half3 coloringMul = 0;
     ##endif
 
-    float depth = dot(impostor_depth_proj, float4(worldPos, 1));
-    float sliceDepth = texelFetch(impostor_depth_slice, int2(GET_SCREEN_POS(input.pos).xy), 0).r;
-    if (depth < sliceDepth + 1) discard;
-
-    out_0.a = alpha;
-    out_0.rgb = gbuffer.albedo.rgb;
-    out_1.rgb = normalize(gbuffer.normal.xyz)*0.5+0.5;
-    out_1.a = coloring;
-    out_2.r = gbuffer.smoothness;
-    out_2.g = gbuffer.reflectance;
-    out_2.b = gbuffer.metalness;
-    out_2.a = gbuffer.translucency;
-    out_3 = depth;
+    const float depth = voxel_baker_depth(worldPos, GET_SCREEN_POS(input.pos).xy);
+    const uint palRow = 0;
+    const uint palIndex = 1;
+    return baker_output_from_gbuffer(gbuffer, depth, alpha,
+      coloringMul, palRow, palIndex);
 #else
     return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
 #endif

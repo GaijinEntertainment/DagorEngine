@@ -188,31 +188,21 @@ void CameraViewVisibilityMgr::startVisibility(const CameraParams &cur_frame_came
     occlusionMaskApplier.hasScheduledTasks() ? &occlusionMaskApplier : nullptr);
 }
 
-void CameraViewVisibilityMgr::startGroundVisibility(LandMeshManager *lmesh_mgr,
-  LandMeshRenderer *lmesh_renderer,
-  const float water_level,
-  const int displacement_sub_div,
-  const float displacement_radius,
-  const CameraParams &cur_frame_camera)
+void CameraViewVisibilityMgr::startGroundVisibility(
+  LandMeshManager *lmesh_mgr, const int displacement_sub_div, const float displacement_radius, const CameraParams &cur_frame_camera)
 {
   Occlusion *occl = getOcclusion();
 
   // Norm prio to be executed before dafx jobs
-  lmeshCullingData.heightmapData.useHWTesselation = true; // will be switched off by frustumCulling
-  groundCullJob.start(&jobsCtx, &lmeshCullingData, lmesh_mgr, lmesh_renderer, occl, cur_frame_camera.noJitterFrustum,
-    cur_frame_camera.viewItm.getcol(3), cur_frame_camera.noJitterProjTm, water_level, displacement_sub_div, displacement_radius,
+  groundCullJob.start(&jobsCtx, &lmeshCullingData, lmesh_mgr, occl, cur_frame_camera.noJitterFrustum,
+    cur_frame_camera.viewItm.getcol(3), cur_frame_camera.noJitterProjTm, displacement_sub_div, displacement_radius,
     threadpool::PRIO_NORMAL);
 }
 
-void CameraViewVisibilityMgr::startGroundReflectionVisibility(LandMeshManager *lmesh_mgr,
-  LandMeshRenderer *lmesh_renderer,
-  const Frustum &frustum,
-  const Point3 &viewPos,
-  const TMatrix4 &viewProj,
-  const float water_level)
+void CameraViewVisibilityMgr::startGroundReflectionVisibility(
+  LandMeshManager *lmesh_mgr, const Frustum &frustum, const Point3 &viewPos, const TMatrix4 &viewProj)
 {
-  groundReflectionCullJob.start(&jobsCtx, &lmeshReflectionCullingData, lmesh_mgr, lmesh_renderer, frustum, viewPos, viewProj,
-    water_level, threadpool::PRIO_LOW);
+  groundReflectionCullJob.start(&jobsCtx, &lmeshReflectionCullingData, lmesh_mgr, frustum, viewPos, viewProj, threadpool::PRIO_LOW);
 }
 
 void CameraViewVisibilityMgr::startLightsCullingJob(const CameraParams &cur_frame_camera, const bool use_occlusion_culling)

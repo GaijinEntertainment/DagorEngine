@@ -3,7 +3,7 @@ from "math" import max
 const bytes_per_allocation = 16
 const bytes_per_object = 16
 
-function calculate_allocated_memory(obj) {
+function calculate_allocated_memory(obj): int {
   local sum = 0
   local items = 0
 

@@ -32,6 +32,8 @@
 #include <math/dag_hlsl_floatx.h>
 #include "shaders/bvh_mesh_meta.hlsli"
 
+#include <render/omm.h>
+
 class LandMeshManager;
 
 struct PerInstanceData
@@ -255,10 +257,11 @@ struct BVHHeapAllocator
 
   void free(AllocId allocation)
   {
-    if (allocation.slabIndex * SlabSize + allocation.offset + allocation.size > manager.size())
+    if (!is_valid(allocation) || allocation.slabIndex * SlabSize + allocation.offset + allocation.size > manager.size())
     {
-      logerr("[BVH] Meta (index, offset, size) is (%d, %d, %d), which is invalid for free (manager size: %d)", allocation.slabIndex,
-        allocation.offset, allocation.size, manager.size());
+      if (allocation != INVALID_ALLOC_ID)
+        logerr("[BVH] Meta (index, offset, size) is (%d, %d, %d), which is invalid for free (manager size: %d)", allocation.slabIndex,
+          allocation.offset, allocation.size, manager.size());
       return;
     }
 
@@ -619,6 +622,31 @@ struct Mesh
   BVHGeometryBufferWithOffset geometry;
   UniqueBVHBufferWithOffset ahsVertices;
 
+  enum class OmmState : uint8_t
+  {
+    None,
+    Baking,
+    Ready,
+    Built,
+    Failed
+  };
+
+  // Bake-state fields are unsynchronized: the build pipeline that mutates them and the debug memory
+  // stats that read them both run on the render thread, never concurrently. Moving either off that
+  // thread requires adding synchronization here.
+  struct OmmSlot
+  {
+    OmmState state = OmmState::None;
+    // Frame of the last bake poll. A Baking slot with a stale stamp belongs to an object that is no
+    // longer processed, and its bake is discarded to free the pending bake slot.
+    uint32_t lastPollFrame = 0;
+    render::omm::BakeHandle bakeHandle;
+    render::omm::BakeResult bakeResult;
+    UniqueOMM omm;
+  };
+
+  OmmSlot ommSlots[2];
+
   uint32_t piBindlessIndex = -1;
   uint32_t pvBindlessIndex = -1;
 
@@ -629,7 +657,22 @@ struct Mesh
 
   bool isHeliRotor = false;
   bool isPaintedHeightLocked = false;
+  bool isCamoNet = false;
   bool hasColorMod = false;
+  // Captured at mesh setup because vertexProcessor is nulled after the first build pass, while
+  // the BLAS descriptor layout must stay stable across the frames an OMM bake keeps the mesh waiting.
+  bool hasSecondaryGeometry = false;
+
+  // Progress of a half-baked mesh through process_meshes. Each stage runs exactly once; a mesh can
+  // linger in ResolvingOmm for several frames while its bake completes. OmmSlot::state remains the
+  // authoritative record of OMM progress; this only tracks which processing loop owns the mesh.
+  enum class BuildStage : uint8_t
+  {
+    NeedsProcessing,
+    ResolvingOmm,
+    NeedsBlasBuild
+  };
+  BuildStage buildStage = BuildStage::NeedsProcessing;
 
   eastl::optional<bool> needWindingFlip;
 
@@ -710,13 +753,12 @@ struct ReferencedTransformData
   BVHBufferReference buffer;
   UniqueBLAS blas;
   MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
-  bool used = false;
+  int age = 0;
 };
 
-struct ReferencedTransformDataWithAge
+struct ReferencedTransformDatasForInstance
 {
   eastl::unordered_map<uint64_t, ReferencedTransformData> elems;
-  int age = 0;
   int animIndex = 0;
 };
 
@@ -737,7 +779,6 @@ struct DECLSPEC_ALIGN(16) HWInstance
 } ATTRIBUTE_ALIGN(16);
 
 #if _TARGET_C2
-
 
 
 
@@ -926,7 +967,8 @@ struct Context
   void holdBuffer(Sbuffer *buffer, uint32_t &bindless_index);
   bool releaseBuffer(Sbuffer *buffer);
 
-  bool has(uint32_t feature) const { return (features & feature) != 0; }
+  bool hasAny(uint32_t featureBits) const { return (features & featureBits) != 0; }
+  bool hasAll(uint32_t featureBits) const { return (features & featureBits) == featureBits; }
 
   BLASCompaction *beginBLASCompaction(uint64_t object_id, BvhType type);
   void cancelCompaction(uint64_t object_id);
@@ -934,6 +976,7 @@ struct Context
   String name;
 
   Features features = static_cast<Features>(0);
+  Features designatedDynFeatures = static_cast<Features>(0);
 
   float grassRange = 100;
   float grassFraction = 1;
@@ -1014,6 +1057,19 @@ struct Context
   bool tlasParticlesValid = false;
 
   eastl::unordered_set<TEXTUREID, TextureIdHash> texturesWaitingForLoad;
+
+  render::omm::Context ommContext;
+  bool ommEnabled = false;
+  eastl::unordered_map<TEXTUREID, uint32_t, TextureIdHash> ommTextureWaitRefs;
+  struct OmmTextureWaits
+  {
+    eastl::vector<TEXTUREID> textures;
+    uint32_t attempts = 0;
+  };
+  eastl::unordered_map<uint64_t, OmmTextureWaits> ommTextureWaitsByObject;
+  // Objects that may hold a slot in OmmState::Baking. Lazily cleaned while discarding inactive
+  // bakes. Unsynchronized under the same render-thread contract as Mesh::OmmSlot.
+  eastl::unordered_set<uint64_t> objectsWithBakingOmm;
   eastl::unordered_map<TEXTUREID, BindlessTexture, TextureIdHash> usedTextures;
   eastl::unordered_map<Sbuffer *, BindlessBuffer> usedBuffers;
 
@@ -1037,7 +1093,7 @@ struct Context
   uint32_t compactedSizeBufferCursor = 0;
   EventQueryHolder compactedSizeQuery;
   bool compactedSizeQueryRunning = false;
-  eastl::array<uint64_t, compactedSizeBufferSize> compactedSizeBufferValues;
+  eastl::array<uint64_t, compactedSizeBufferSize> compactedSizeBufferValues = {};
 
   HeightProvider *heightProvider = nullptr;
   dag::Vector<TerrainLOD> terrainLods;
@@ -1060,11 +1116,11 @@ struct Context
 
   eastl::unordered_map<uint32_t, eastl::unordered_map<uint64_t, ReferencedTransformData>> uniqueHeliRotorBuffers;
   eastl::unordered_map<uint32_t, eastl::unordered_map<uint64_t, ReferencedTransformData>> uniqueDeformedBuffers;
-  eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> uniqueRiExtraTreeBuffers[maxUniqueLods];
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> uniqueRiExtraTreeBuffers[maxUniqueLods];
   eastl::unordered_map<uint64_t, eastl::unordered_map<uint64_t, ReferencedTransformData>> uniqueRiExtraFlagBuffers;
   eastl::unordered_map<uint64_t, ReferencedTransformData> uniqueSplinegenBuffers;
-  eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> uniqueTreeBuffers[maxUniqueLods];
-  eastl::unordered_map<uint32_t, ReferencedTransformDataWithAge> uniqueSkinBuffers;
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> uniqueTreeBuffers[maxUniqueLods];
+  eastl::unordered_map<uint32_t, ReferencedTransformDatasForInstance> uniqueSkinBuffers;
 
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> freeUniqueTreeBLASes;
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> freeUniqueRiExtraTreeBLASes;
@@ -1140,7 +1196,8 @@ struct Context
   };
   dag::Vector<WaterPatches> water_patches;
   UniqueBuf waterFlatIb;
-  UniqueBuf waterHeightIb;
+  UniqueBuf waterHeightHighDetailIb;
+  UniqueBuf waterHeightLowDetailIb;
 
   struct BindlessTexHolder
   {
@@ -1271,6 +1328,8 @@ inline String ccn(ContextId context_id, const char *name)
 {
   return String(context_id->name.length() + 64, "%s_%s", context_id->name.c_str(), name);
 }
+
+Object *find_half_baked_object(ContextId context_id, uint64_t object_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock);
 
 void bvh_yield();
 

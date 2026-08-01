@@ -23,21 +23,28 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <EASTL/unique_ptr.h>
 
+#define NBS_PERM_CONST(VAR, VALUE) static constexpr int VAR = VALUE
+#include <nbsPermutations/node_based_perm_inc.hlsli>
+#undef NBS_PERM_CONST
 
 ShaderGraphRecompiler *create_fog_shader_recompiler();
 ShaderGraphRecompiler *create_envi_cover_shader_recompiler();
+ShaderGraphRecompiler *create_clouds_shader_recompiler();
 
 ShaderGraphRecompiler *ShaderGraphRecompiler::activeInstance = nullptr;
 
 #if !NBSM_COMPILE_ONLY
 static eastl::unique_ptr<ShaderGraphRecompiler> g_fog_instance;
 static eastl::unique_ptr<ShaderGraphRecompiler> g_envi_cover_instance;
+static eastl::unique_ptr<ShaderGraphRecompiler> g_clouds_instance;
 #endif
 
 String get_template_text_src_fog(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
 String get_template_text_src_envi_cover(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
+String get_template_text_src_clouds(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
 String get_dshl_template_text_src_fog();
 String get_dshl_template_text_src_envi_cover();
+String get_dshl_template_text_src_clouds();
 
 String find_shader_editors_path()
 {
@@ -117,6 +124,7 @@ static String get_template_text_src(NodeBasedShaderType shader, uint32_t variant
   {
     case NodeBasedShaderType::Fog: return get_template_text_src_fog(variant_id, nbs_quality);
     case NodeBasedShaderType::EnviCover: return get_template_text_src_envi_cover(variant_id, nbs_quality);
+    case NodeBasedShaderType::Clouds: return get_template_text_src_clouds(variant_id, nbs_quality);
     default: G_ASSERTF(false, "Implement this shader type here!"); return String("");
   }
 }
@@ -127,6 +135,7 @@ static String get_dshl_template_text_src(NodeBasedShaderType shader)
   {
     case NodeBasedShaderType::Fog: return get_dshl_template_text_src_fog();
     case NodeBasedShaderType::EnviCover: return get_dshl_template_text_src_envi_cover();
+    case NodeBasedShaderType::Clouds: return get_dshl_template_text_src_clouds();
     default: G_ASSERTF(false, "Implement this shader type here!"); return String("");
   }
 }
@@ -188,6 +197,7 @@ void ShaderGraphRecompiler::activate(NodeBasedShaderType shader)
   switch (shader)
   {
     case NodeBasedShaderType::Fog: activeInstance = g_fog_instance.get(); break;
+    case NodeBasedShaderType::Clouds: activeInstance = g_clouds_instance.get(); break;
 
     default: G_ASSERTF(false, "Implement activating this shader here"); return;
   }
@@ -216,14 +226,14 @@ static String get_default_user_script()
 }
 
 void ShaderGraphRecompiler::initialize(NodeBasedShaderType shader, ShaderCompilerCallback compiler_callback,
-  const char *root_graph_filename, const char *subgraphs_dir, String user_script, const char *optional_graphs_dir)
+  const char *root_graph_filename, const char *subgraphs_dir, String user_script, const char *permutations_blk_filename)
 {
   if (subgraphs_dir == nullptr)
     subgraphs_dir = "../develop/assets/loc_shaders/__subgraphs";
   if (user_script.empty())
     user_script = get_default_user_script();
-  if (optional_graphs_dir == nullptr)
-    optional_graphs_dir = "../develop/assets/loc_shaders";
+  if (permutations_blk_filename == nullptr)
+    permutations_blk_filename = "../develop/assets/loc_shaders/permutations.blk";
 
   ShaderGraphRecompiler *instance = nullptr;
 
@@ -239,17 +249,23 @@ void ShaderGraphRecompiler::initialize(NodeBasedShaderType shader, ShaderCompile
       instance = g_envi_cover_instance.get();
       break;
 
+    case NodeBasedShaderType::Clouds:
+      g_clouds_instance.reset(create_clouds_shader_recompiler());
+      instance = g_clouds_instance.get();
+      break;
+
     default: G_ASSERTF(false, "This shader recompiler is not yet implemented!"); break;
   }
 
   if (instance)
-    instance->init(shader, subgraphs_dir, user_script, root_graph_filename, optional_graphs_dir, compiler_callback);
+    instance->init(shader, subgraphs_dir, user_script, root_graph_filename, permutations_blk_filename, compiler_callback);
 }
 
 ShaderGraphRecompiler *ShaderGraphRecompiler::getInstance() { return activeInstance; }
 
 void init_fog_shader_graph_plugin();
 void init_envi_cover_graph_plugin();
+void init_clouds_shader_graph_plugin();
 
 void ShaderGraphRecompiler::onShaderGraphEditor(webui::RequestInfo *params)
 {
@@ -277,6 +293,18 @@ void ShaderGraphRecompiler::onShaderGraphEditor(webui::RequestInfo *params)
                                              "Wait for game loading to finish! If issue persists after that<br>"
                                              "maybe 'envi_cover_nbs' template/entity is missing from scene");
   }
+  else if (strcmp(params->plugin->name, CLOUDS_SHADER_EDITOR_PLUGIN_NAME) == 0)
+  {
+    if (!g_clouds_instance)
+      init_clouds_shader_graph_plugin();
+
+    if (g_clouds_instance && g_clouds_instance->shader_editor)
+      g_clouds_instance->shader_editor->processRequest(params);
+    else
+      webui::html_response_raw(params->conn, "Error: ShaderGraphRecompiler::shader_editor == null<br>"
+                                             "Wait for game loading to finish! If issue persists after that<br>"
+                                             "maybe 'clouds_nbs' template/entity is missing from scene");
+  }
   else
   {
     G_ASSERT(false); // Implement handling this shader type
@@ -290,12 +318,85 @@ ShaderGraphRecompiler::ShaderGraphRecompiler(const char *editor_name, ShaderGetS
 
 ShaderGraphRecompiler::~ShaderGraphRecompiler() { del_it(shader_editor); }
 
-void ShaderGraphRecompiler::getIncludeFileNames(Tab<String> &includeGraphNames)
+static const char *getPermutationBlockName(NodeBasedShaderType shader)
 {
-  String descriptions(tmpmem);
-  shader_editor->collectGraphs(optionalGraphsDir, "*.json", editorName, "Shaders", includeGraphNames, descriptions, false, false);
-  for (String &incGraph : includeGraphNames)
-    incGraph = optionalGraphsDir + "/" + incGraph + ".json";
+  switch (shader)
+  {
+    case NodeBasedShaderType::Fog: return "volfog";
+    case NodeBasedShaderType::EnviCover: return "envi_cover";
+    default: return nullptr;
+  }
+}
+
+bool ShaderGraphRecompiler::gatherPermutationGraphs(Tab<String> &out_graph_filenames, String &out_permutation_table_json)
+{
+  out_graph_filenames.clear();
+
+  const char *typeBlockName = getPermutationBlockName(shaderType);
+
+  if (!typeBlockName || permutationsBlkFileName.empty() || !dd_file_exists(permutationsBlkFileName))
+    return false;
+
+  DataBlock permutationsBlk;
+  if (!permutationsBlk.load(permutationsBlkFileName))
+    return false;
+
+  const DataBlock *typeBlock = nullptr;
+  for (int i = 0; i < permutationsBlk.blockCount() && !typeBlock; i++)
+    typeBlock = permutationsBlk.getBlock(i)->getBlockByName(typeBlockName);
+  if (!typeBlock)
+    return false;
+
+  const int groupNameId = typeBlock->getNameId("group");
+  const int subgraphNameId = typeBlock->getNameId("subgraph");
+
+  Tab<Tab<String>> permGroups;
+  for (int i = 0; i < typeBlock->blockCount(); i++)
+  {
+    const DataBlock *groupBlk = typeBlock->getBlock(i);
+    if (groupBlk->getBlockNameId() != groupNameId)
+      continue;
+
+    Tab<String> groupGraphs;
+    for (int j = 0; j < groupBlk->paramCount(); j++)
+      if (groupBlk->getParamNameId(j) == subgraphNameId && groupBlk->getParamType(j) == DataBlock::TYPE_STRING)
+        groupGraphs.push_back(String(0, "../develop/%s", groupBlk->getStr(j)));
+
+    if (groupGraphs.empty())
+      continue;
+
+    if (groupBlk->getBool("isExclusive", true))
+      permGroups.push_back(groupGraphs);
+    else
+      for (const String &g : groupGraphs)
+        permGroups.push_back().push_back(g);
+  }
+
+  out_permutation_table_json = "[";
+  int emittedGroups = 0;
+  for (int g = 0; g < permGroups.size(); g++)
+  {
+    if (emittedGroups >= MAX_GROUP_COUNT)
+    {
+      logerr("NBS editor: '%s' declares more than %d permutation groups; extra groups ignored", typeBlockName, MAX_GROUP_COUNT);
+      break;
+    }
+    for (int p = 0; p < permGroups[g].size(); p++)
+    {
+      if (p >= MAX_PERMS_PER_GROUP)
+      {
+        logerr("NBS editor: permutation group %d of '%s' has more than %d graphs; extras ignored", g, typeBlockName,
+          MAX_PERMS_PER_GROUP);
+        break;
+      }
+      out_graph_filenames.push_back(permGroups[g][p]);
+      out_permutation_table_json.aprintf(32, "%s{\"g\":%d,\"p\":%d}", out_graph_filenames.size() > 1 ? "," : "", emittedGroups, p);
+    }
+    emittedGroups++;
+  }
+  out_permutation_table_json += "]";
+
+  return !out_graph_filenames.empty();
 }
 
 void ShaderGraphRecompiler::refreshShaders() // find all subgraphs on attach
@@ -313,7 +414,7 @@ void ShaderGraphRecompiler::refreshShaders() // find all subgraphs on attach
 }
 
 void ShaderGraphRecompiler::init(NodeBasedShaderType shader, const char *subgraphs_dir, const char *user_script,
-  const char *root_graph_filename, const char *optional_graphs_dir, ShaderCompilerCallback compiler_callback)
+  const char *root_graph_filename, const char *permutations_blk_filename, ShaderCompilerCallback compiler_callback)
 {
   if (shader_editor == nullptr)
     shader_editor = new webui::GraphEditor(editorName);
@@ -322,11 +423,16 @@ void ShaderGraphRecompiler::init(NodeBasedShaderType shader, const char *subgrap
   subgraphsDir = subgraphs_dir;
   rootGraphFileName = root_graph_filename;
   shaderCompilerCallback = compiler_callback;
-  optionalGraphsDir = optional_graphs_dir;
+  permutationsBlkFileName = permutations_blk_filename;
 
-  Tab<String> includeNames;
-  getIncludeFileNames(includeNames);
-  shader_editor->setIncludeFilenames(includeNames);
+  char nameBuf[260];
+  rootShaderName = dd_get_fname_without_path_and_ext(nameBuf, sizeof(nameBuf), root_graph_filename);
+
+  String permTable;
+  Tab<String> permGraphs;
+  gatherPermutationGraphs(permGraphs, permTable);
+  shader_editor->setIncludeFilenames(permGraphs);
+  shader_editor->setPermutationTable(permTable.str());
 
   shader_editor->setRootGraphFileName(root_graph_filename); // will be created if does not exist
   shader_editor->setSaveDir(subgraphs_dir);
@@ -345,6 +451,10 @@ void ShaderGraphRecompiler::init(NodeBasedShaderType shader, const char *subgrap
     case NodeBasedShaderType::EnviCover:
       addonFName =
         webui::GraphEditor::findFileInParentDir("prog/gameLibs/webui/plugins/shaderEditors/shaderNodes/shaderNodesEnviCover.js");
+      break;
+    case NodeBasedShaderType::Clouds:
+      addonFName =
+        webui::GraphEditor::findFileInParentDir("prog/gameLibs/webui/plugins/shaderEditors/shaderNodes/shaderNodesClouds.js");
       break;
   }
   String inlinedShaderNodes = webui::GraphEditor::readFileToString(addonFName);
@@ -380,10 +490,8 @@ void ShaderGraphRecompiler::recompile()
   for (uint32_t variantId = 0; variantId < variantCnt; ++variantId)
     for (uint32_t nbsQuality = 0; nbsQuality < static_cast<uint32_t>(NodeBasedShaderQuality::COUNT); nbsQuality++)
     {
-      String shaderTemplateText = (String)shaderGetSrcCallback(variantId, static_cast<NodeBasedShaderQuality>(nbsQuality));
-      String code = substitute(shaderBlk, shaderTemplateText);
       String errors;
-      bool ok = shaderCompilerCallback(variantCnt, currentShaderName, code, shaderBlk, errors);
+      bool ok = shaderCompilerCallback(currentShaderName, shaderBlk, errors);
       if (!ok)
       {
         shader_editor->sendCommand(String(1024, "error: in shader #%d, variant #%d: %s", (int)shaderType, variantId, errors.str()));
@@ -424,18 +532,16 @@ void ShaderGraphRecompiler::update(float dt)
         shader_editor->sendCommand(String(128, "error: cannot save graph to '%s'", tmp.str()));
       }
     }
+  }
 
-    {
-      shaderBlkText = webui::GraphEditor::getSubstring(s.str(), "/*SHADER_BLK_START*/", "/*SHADER_BLK_END*/");
-      String shaderCode = webui::GraphEditor::getSubstring(s.str(), "/*HLSL_GRAPH_START*/", "/*HLSL_GRAPH_END*/");
-      shaderBlkText.replaceAll("[[shader_name]]", currentShaderName.str());
+  String compileJson(tmpmem);
+  if (shader_editor->getCompileGraphJson(compileJson, true))
+  {
+    shaderBlkText = webui::GraphEditor::getSubstring(compileJson.str(), "/*SHADER_BLK_START*/", "/*SHADER_BLK_END*/");
+    shaderBlkText.replaceAll("[[shader_name]]", currentShaderName.str());
 
-      if (inessentional == false)
-        shouldRecompile = true;
-    }
-
-    // TODO: update graph
-    // createCompilerProcess();
+    if (inessentional == false)
+      shouldRecompile = true;
   }
 
 
@@ -477,6 +583,7 @@ void ShaderGraphRecompiler::update(float dt)
         bool isRoot = false;
 
         String path(128, "%s/%s.json", subgraphsDir, filename.str());
+        bool isPermutation = false;
 
         if (strstr(filename.str(), "ROOT: ") == filename.str())
         {
@@ -489,6 +596,7 @@ void ShaderGraphRecompiler::update(float dt)
         {
           path = shader_editor->getFullIncludeFileName(filename);
           filename.replaceAll("INCL: ", "");
+          isPermutation = true;
         }
 
         if (!dd_file_exists(path.str()))
@@ -499,11 +607,24 @@ void ShaderGraphRecompiler::update(float dt)
         else
         {
           Tab<String> includeNames;
-          if (isRoot)
-            getIncludeFileNames(includeNames);
+          String _unusedPermTable;
+          gatherPermutationGraphs(includeNames, _unusedPermTable);
           shader_editor->gatherAdditionalIncludes(includeNames);
 
-          currentShaderName = filename;
+          editedPermutationIdx = -1;
+          if (isPermutation)
+            for (int idx = 0; idx < includeNames.size(); idx++)
+              if (!strcmp(dd_get_fname(includeNames[idx]), dd_get_fname(path.str())))
+              {
+                editedPermutationIdx = idx;
+                break;
+              }
+
+          shader_editor->setRootGraphJson(webui::GraphEditor::readFileToString(rootGraphFileName).str());
+          currentShaderName = rootShaderName;
+
+          shader_editor->setEditedPermutation(editedPermutationIdx);
+
           String graphStr = webui::GraphEditor::readFileToString(path.str());
           shader_editor->setGraphJson(graphStr.str());
           shader_editor->setCurrentFileName(path.str());
@@ -518,6 +639,7 @@ void ShaderGraphRecompiler::cleanUp()
 {
   g_fog_instance.reset();
   g_envi_cover_instance.reset();
+  g_clouds_instance.reset();
 }
 #else
 void ShaderGraphRecompiler::cleanUp() {}

@@ -76,10 +76,10 @@ static inline void riex_object_group_process_es(
       {
         // Expected to be preloaded by RiexPreload -> GameresPreLoaded flag is applicable
         const auto riAddFlag = rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::GameresPreLoaded;
-        const int riExId = get_or_add_ri_extra_res_id(assetName.c_str(), riAddFlag);
+        const rendinst::ClientRiexPool riExId = rendinst::ClientRiexPool::add(assetName.c_str(), riAddFlag);
         eastl::shared_ptr<GameResource> gameRes(get_game_resource_ex(assetName.c_str(), RendInstGameResClassId), GameResDeleter());
 
-        if (!gameRes.get() || riExId < 0)
+        if (!gameRes.get() || !riExId.valid())
         {
           logerr("daGdp: object group with EID %u has invalid RendInstExtra asset with name %s.", static_cast<unsigned int>(eid),
             assetName.c_str());
@@ -157,11 +157,11 @@ static inline void riex_object_group_process_es(
         // PoolOffset is calculated by: poolIdx * (sizeof(rendinst::render::RiShaderConstBuffers) / sizeof(vec4f)) + 1;
         // Where RiShaderConstBuffers is a struct with all extra data for a single RI (type).
         // PER_DRAW_VECS_COUNT should be equal to (sizeof(rendinst::render::RiShaderConstBuffers) / sizeof(vec4f)).
-        resource->riPoolOffset = riExId * rendinst::render::PER_DRAW_VECS_COUNT + 1;
+        resource->riPoolOffset = riExId.id() * rendinst::render::PER_DRAW_VECS_COUNT + 1;
         for (int lodIndex = 0; lodIndex < numMeshLods; lodIndex++)
           resource->lods_rId.push_back(rulesBuilder.nextRenderableId++);
 
-        update_per_draw_gathered_data(riExId);
+        update_per_draw_gathered_data(riExId.id());
       }
 
       G_ASSERT(resource);
@@ -176,7 +176,7 @@ static inline void riex_object_group_process_es(
         RiexRenderableInfo rInfo;
         rInfo.lodsRes = lodsRes;
         rInfo.lodIndex = lodIndex;
-        rInfo.isTree = rendinst::riExtra[resource->riExId].isTree;
+        rInfo.isTree = rendinst::riExtra[resource->riExId.id()].isTree;
 
         const RenderableId rId = resource->lods_rId[lodIndex];
         builder.renderablesInfo.emplace(rId, rInfo);

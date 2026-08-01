@@ -8,8 +8,6 @@
 #include <3d/dag_resizableTex.h>
 #include <resourcePool/resourcePool.h>
 
-struct DynRes;
-
 class UpscaleSamplingTex
 {
   RTargetPool::Ptr upscaleTexRTPool;
@@ -25,7 +23,7 @@ public:
   }
   ~UpscaleSamplingTex();
 
-  void render(float goffset_x = 0, float goffset_y = 0, const DynRes *dynamic_resolution = nullptr);
+  void render(float goffset_x = 0, float goffset_y = 0);
   void onReset() {}
   void releaseRTs();
 };

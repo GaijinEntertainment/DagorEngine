@@ -36,6 +36,22 @@ ValidateUsageResult validate_usage(ResourceUsage usage, ResourceType res_type, D
 
 ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before, intermediate::ResourceUsage usage_after);
 
+d3d::BufferBarrier enhanced_buffer_barrier_for_transition(intermediate::ResourceUsage usage_before,
+  intermediate::ResourceUsage usage_after);
+
+d3d::BufferBarrier enhanced_buffer_barrier_for_release(intermediate::ResourceUsage last_usage);
+
+d3d::BufferBarrier enhanced_buffer_barrier_for_activation(intermediate::ResourceUsage first_usage);
+
+inline constexpr d3d::TextureSubresourceRange ENTIRE_TEXTURE_SUBRESOURCE_RANGE{{0xffffffffu, 0}, {0, 0}, {0, 0}};
+
+d3d::TextureBarrier enhanced_texture_barrier_for_transition(intermediate::ResourceUsage usage_before,
+  intermediate::ResourceUsage usage_after);
+
+d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage);
+
+d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage);
+
 eastl::optional<ResourceActivationAction> get_activation_from_usage(DesiredActivationBehaviour behavior,
   intermediate::ResourceUsage usage, ResourceType res_type, bool is_int);
 __forceinline eastl::optional<ResourceActivationAction> get_activation_from_usage(DesiredActivationBehaviour history,

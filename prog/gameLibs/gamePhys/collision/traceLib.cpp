@@ -20,6 +20,31 @@
 static const float invalid_water_height = -1e10f;
 static void first_mirroring_transform(float &in_out_x, float &in_out_z, float &out_x_k, float &out_z_k);
 
+// The RI tracer always adds Destructible|Meshes; these are the caller-selected extras.
+static rendinst::TraceFlags etf_to_ri_additional_flags(int flags)
+{
+  rendinst::TraceFlags f = {};
+  if (flags & dacoll::ETF_RI_TREES)
+    f |= rendinst::TraceFlag::Trees;
+  if (flags & dacoll::ETF_RI_PHYS)
+    f |= rendinst::TraceFlag::Phys;
+  return f;
+}
+
+// Gate a warmed trace-mesh cache for a ray batch: if it can't serve this box, null the
+// handle so the caller falls back to a full trace. Emits the cache-hit debug draw.
+static void gate_trace_cache(dag::Span<Trace> traces, const TraceMeshFaces *&handle)
+{
+  if (!handle)
+    return;
+  bbox3f rayBox;
+  trace_utils::prepare_traces_box(traces, rayBox);
+  bool res = dacoll::try_use_trace_cache(rayBox, handle);
+  trace_utils::draw_trace_handle_debug_cast_result(handle, traces, res, false);
+  if (!res)
+    handle = nullptr;
+}
+
 
 bool dacoll::traceray_normalized_frt(const Point3 &p, const Point3 &dir, real &t, int *out_pmid, Point3 *out_norm)
 {
@@ -81,56 +106,28 @@ bool dacoll::rayhit_normalized_ri(const Point3 &p, const Point3 &dir, real t, re
   // we don't have proper rayhit with handle and ray mat support yet in rendinst lib, but we'll surely add it in future.
   // TODO: add rayhit with handles and ray mat to rensinst library
   rendinst::TraceFlags traceFlags = rendinst::TraceFlag::Destructible | rendinst::TraceFlag::Meshes | additional_trace_flags;
-  if (handle)
-  {
-    bbox3f rayBox;
-    trace_utils::prepare_traces_box(traceDataSlice, rayBox);
-    bool res = try_use_trace_cache(rayBox, handle);
-    trace_utils::draw_trace_handle_debug_cast_result(handle, traceDataSlice, res, false);
-    if (!res)
-      handle = nullptr;
-  }
+  gate_trace_cache(traceDataSlice, handle);
   return rendinst::traceRayRIGenNormalized(traceDataSlice, traceFlags, ray_mat_id, nullptr, handle, skip_riex_handle);
 }
 
 bool dacoll::rayhit_normalized(const Point3 &p, const Point3 &dir, real t, int flags, int ray_mat_id, const TraceMeshFaces *handle,
   rendinst::riex_handle_t skip_riex_handle)
 {
-#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
-  auto do_rayhit = [&]() {
-#endif
-    if (flags & (ETF_FRT))
-      if (rayhit_normalized_frt(p, dir, t))
-        return true;
+  TIME_PROFILE_NAME(rayhit, handle ? "rayhit_handle" : "rayhit");
 
-    if (flags & (ETF_LMESH | ETF_HEIGHTMAP))
-      if (rayhit_normalized_lmesh(p, dir, t))
-        return true;
+  if (flags & (ETF_FRT))
+    if (rayhit_normalized_frt(p, dir, t))
+      return true;
 
-    if (flags & ETF_RI)
-    {
-      rendinst::TraceFlags additionalTraceFlags = {};
-      if ((flags & ETF_RI_TREES) != 0)
-        additionalTraceFlags |= rendinst::TraceFlag::Trees;
-      if ((flags & ETF_RI_PHYS) != 0)
-        additionalTraceFlags |= rendinst::TraceFlag::Phys;
-      if (rayhit_normalized_ri(p, dir, t, additionalTraceFlags, ray_mat_id, handle, skip_riex_handle))
-        return true;
-    }
-    return false;
-#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
-  };
-  if (handle)
-  {
-    TIME_PROFILE(rayhit_handle);
-    return do_rayhit();
-  }
-  else
-  {
-    TIME_PROFILE(rayhit);
-    return do_rayhit();
-  }
-#endif
+  if (flags & (ETF_LMESH | ETF_HEIGHTMAP))
+    if (rayhit_normalized_lmesh(p, dir, t))
+      return true;
+
+  if (flags & ETF_RI)
+    if (rayhit_normalized_ri(p, dir, t, etf_to_ri_additional_flags(flags), ray_mat_id, handle, skip_riex_handle))
+      return true;
+
+  return false;
 }
 
 bool dacoll::rayhit_normalized_transparency(const Point3 &p, const Point3 &dir, float t, float threshold, int ray_mat_id)
@@ -153,15 +150,7 @@ bool dacoll::traceray_normalized_ri(const Point3 &p, const Point3 &dir, real &t,
   if (out_norm)
     traceData.outNorm = *out_norm;
   rendinst::TraceFlags traceFlags = rendinst::TraceFlag::Destructible | rendinst::TraceFlag::Meshes | additional_trace_flags;
-  if (handle)
-  {
-    bbox3f rayBox;
-    trace_utils::prepare_traces_box(traceDataSlice, rayBox);
-    bool res = try_use_trace_cache(rayBox, handle);
-    trace_utils::draw_trace_handle_debug_cast_result(handle, traceDataSlice, res, false);
-    if (!res)
-      handle = nullptr;
-  }
+  gate_trace_cache(traceDataSlice, handle);
   bool res = rendinst::traceRayRIGenNormalized(traceDataSlice, traceFlags, ray_mat_id, out_desc, handle, skip_riex_handle);
   if (res)
   {
@@ -185,69 +174,90 @@ bool dacoll::traceray_normalized_coll_type(const Point3 &p, const Point3 &dir, r
 {
   G_ASSERTF(!check_nan(p) && p.lengthSq() < 1e11f && !check_nan(dir) && !check_nan(t), "%@ %@ %f", p, dir, t);
 
+  TIME_PROFILE_NAME(traceray, handle ? "traceray_handle" : "traceray");
+
   bool res = false;
-#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
-  auto do_traceray = [&]() {
-#endif
-    if (flags & ETF_FRT)
-    {
-      bool trace_res = traceray_normalized_frt(p, dir, t, out_pmid, out_norm);
-      if (trace_res && out_coll_type)
-        *out_coll_type = ETF_FRT;
-      res |= trace_res;
-    }
-    if (flags & (ETF_LMESH | ETF_HEIGHTMAP))
-    {
-      bool trace_res = traceray_normalized_lmesh(p, dir, t, out_pmid, out_norm);
-      if (trace_res && out_coll_type)
-        *out_coll_type = ETF_LMESH;
-      if (trace_res && handle && out_pmid)
-        *out_pmid = handle->matMapCache.getMatAt(Point2::xz(p));
-      res |= trace_res;
-    }
-    if (flags & ETF_RI)
-    {
-      rendinst::TraceFlags additionalTraceFlags = {};
-      if ((flags & ETF_RI_TREES) != 0)
-        additionalTraceFlags |= rendinst::TraceFlag::Trees;
-      if ((flags & ETF_RI_PHYS) != 0)
-        additionalTraceFlags |= rendinst::TraceFlag::Phys;
-      bool trace_res = traceray_normalized_ri(p, dir, t, out_pmid, out_norm, additionalTraceFlags, out_desc, ray_mat_id, handle);
-      if (trace_res && out_coll_type)
-        *out_coll_type = ETF_RI;
-      res |= trace_res;
-    }
-#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
-  };
-  if (handle)
+  if (flags & ETF_FRT)
   {
-    TIME_PROFILE(traceray_handle);
-    do_traceray();
+    bool trace_res = traceray_normalized_frt(p, dir, t, out_pmid, out_norm);
+    if (trace_res && out_coll_type)
+      *out_coll_type = ETF_FRT;
+    res |= trace_res;
   }
-  else
+  if (flags & (ETF_LMESH | ETF_HEIGHTMAP))
   {
-    TIME_PROFILE(traceray);
-    do_traceray();
+    bool trace_res = traceray_normalized_lmesh(p, dir, t, out_pmid, out_norm);
+    if (trace_res && out_coll_type)
+      *out_coll_type = ETF_LMESH;
+    if (trace_res && handle && out_pmid)
+      *out_pmid = handle->matMapCache.getMatAt(Point2::xz(p));
+    res |= trace_res;
   }
-#endif
+  if (flags & ETF_RI)
+  {
+    bool trace_res =
+      traceray_normalized_ri(p, dir, t, out_pmid, out_norm, etf_to_ri_additional_flags(flags), out_desc, ray_mat_id, handle);
+    if (trace_res && out_coll_type)
+      *out_coll_type = ETF_RI;
+    res |= trace_res;
+  }
   return res;
 }
 
 bool dacoll::traceray_normalized_multiray(dag::Span<Trace> traces, dag::Span<rendinst::RendInstDesc> ri_desc, int flags,
   int ray_mat_id, const TraceMeshFaces *handle)
 {
-  // TODO: add multiray where possible
   G_ASSERT(traces.size() == ri_desc.size());
+  if (traces.empty())
+    return false;
+
   bool res = false;
-  int i = 0;
-  for (auto &trace : traces)
+  // FRT and LMESH have no batch API, so run them per ray; each shrinks the ray's outT that
+  // the RI stage then uses as its max distance (same closest-hit composition as single-ray).
+  for (Trace &trace : traces)
   {
-    if (dacoll::traceray_normalized(trace.pos, trace.dir, trace.pos.outT, &trace.outMatId, &trace.outNorm, flags, &ri_desc[i],
-          ray_mat_id, handle))
+    if (flags & ETF_FRT)
+      res |= traceray_normalized_frt(trace.pos, trace.dir, trace.pos.outT, &trace.outMatId, &trace.outNorm);
+    if (flags & (ETF_LMESH | ETF_HEIGHTMAP))
+      if (traceray_normalized_lmesh(trace.pos, trace.dir, trace.pos.outT, &trace.outMatId, &trace.outNorm))
+      {
+        res = true;
+        if (handle)
+          trace.outMatId = handle->matMapCache.getMatAt(Point2::xz(trace.pos));
+      }
+  }
+
+  // RI is genuinely batched: one gather + grid traversal over the union box for the whole
+  // span, filling one RendInstDesc per ray. The cache is gated once on the union box.
+  if (flags & ETF_RI)
+  {
+    rendinst::TraceFlags riFlags = rendinst::TraceFlag::Destructible | rendinst::TraceFlag::Meshes | etf_to_ri_additional_flags(flags);
+    // Batching amortizes the RI gather only while the rays are spatially coherent; with
+    // far-apart origins the union box covers a huge region and testing every gathered
+    // instance against every ray loses to per-ray traces. Real callers (animchar legs,
+    // wheels, gear) stay within meters; the threshold only guards pathological batches.
+    const float maxBatchedOriginSpread = 256.f;
+    BBox3 originsBox;
+    for (const Trace &trace : traces)
+      originsBox += trace.pos;
+    if (traces.size() > 1 && originsBox.width().length() > maxBatchedOriginSpread)
+    {
+      int i = 0;
+      for (Trace &trace : traces)
+      {
+        if (!traceray_normalized_ri(trace.pos, trace.dir, trace.pos.outT, &trace.outMatId, &trace.outNorm,
+              etf_to_ri_additional_flags(flags), &ri_desc[i], ray_mat_id, handle))
+          ri_desc[i].invalidate();
+        else
+          res = true;
+        i++;
+      }
+      return res;
+    }
+    const TraceMeshFaces *riHandle = handle;
+    gate_trace_cache(traces, riHandle);
+    if (rendinst::traceRayRIGenNormalizedMultiRay(traces, riFlags, ri_desc, ray_mat_id, riHandle))
       res = true;
-    else if (flags & ETF_RI)
-      ri_desc[i].invalidate();
-    i++;
   }
   return res;
 }
@@ -268,6 +278,38 @@ bool dacoll::tracedown_normalized(const Point3 &p, real &t, int *out_pmid, Point
   if (out_desc)
     *out_desc = desc;
   return true;
+}
+
+// The cached down kernels (tracedown_hmap_cache_multiray + traceDownTrianglesMultiRay) pack
+// the hit heightmap/triangle index into the integer w lane of the SoA normal. Resolve it to
+// a phys material id per ray; an out-of-range index means no static-mesh face was hit and the
+// material comes from the handle's material map instead.
+static void resolve_down_matids(dag::Span<Trace> traces, const TraceMeshFaces *handle, const vec4f *v_out_norm)
+{
+  for (int i = 0; i < traces.size(); ++i)
+  {
+    int faceNo = v_extract_wi(v_cast_vec4i(v_out_norm[i]));
+    if (faceNo < 0 || faceNo >= dacoll::get_pmid().size())
+      traces[i].outMatId = handle->matMapCache.getMatAt(Point2::xz(traces[i].pos));
+    else
+      traces[i].outMatId = dacoll::get_pmid()[faceNo];
+  }
+}
+
+// RI stage of a cached down trace. traceDownMultiRay omits Trees/Meshes on purpose (perf).
+static bool tracedown_ri_multiray(dag::Span<Trace> traces, bbox3f_cref ray_box, dag::Span<rendinst::RendInstDesc> ri_desc,
+  const TraceMeshFaces *handle, int ray_mat_id, int flags, bool rendinsts_valid)
+{
+  if (!rendinsts_valid)
+  {
+    TRACE_HANDLE_DEBUG_STAT(handle, numRIMisses++);
+    trace_utils::draw_trace_handle_debug_cast_result(handle, traces, false, true);
+    return false;
+  }
+  rendinst::TraceFlags traceFlags = rendinst::TraceFlag::Destructible;
+  if ((flags & dacoll::ETF_RI_PHYS) != 0)
+    traceFlags |= rendinst::TraceFlag::Phys;
+  return rendinst::traceDownMultiRay(traces, ray_box, ri_desc, handle, ray_mat_id, traceFlags);
 }
 
 bool dacoll::tracedown_normalized_multiray(dag::Span<Trace> traces, dag::Span<rendinst::RendInstDesc> ri_desc, int flags,
@@ -308,46 +350,31 @@ bool dacoll::tracedown_normalized_multiray(dag::Span<Trace> traces, dag::Span<re
 
   bool res = false;
 
+  // Down-specialized cached pipeline over the SoA scratch: heightmap cache, then static
+  // triangles, then resolve per-ray materials, then rendinsts. Each stage only shrinks outT.
   res |= dacoll::tracedown_hmap_cache_multiray(traces, handle, reinterpret_cast<Point3_vec4 *>(rayStartPosVec),
     reinterpret_cast<Point3_vec4 *>(v_outNorm));
   res |= traceDownTrianglesMultiRay(handle->triangles.data(), handle->trianglesCount, // array of vert0, edge1, edge2
     rayStartPosVec, trcnt4a / 4, v_outNorm, tempSOA);
 
   trace_utils::store_traces(traces, dag::Span<vec4f>(rayStartPosVec, trcnt), dag::Span<vec4f>(v_outNorm, trcnt));
-  for (int i = 0; i < trcnt; ++i)
-  {
-    int faceNo = v_extract_wi(v_cast_vec4i(v_outNorm[i]));
-    if (faceNo < 0 || faceNo >= get_pmid().size())
-    {
-      traces[i].outMatId = handle->matMapCache.getMatAt(Point2::xz(traces[i].pos));
-      continue;
-    }
+  resolve_down_matids(traces, handle, v_outNorm);
 
-    traces[i].outMatId = get_pmid()[faceNo];
-  }
   if (flags & ETF_RI)
-  {
-    if (rendinstsValid)
-    {
-      // In general traceDownMultiRay is a bit inconsistent with traceray_normalized_multiray,
-      // it doesn't support TraceFlag::Trees and TraceFlag::Meshes, but we don't care for the
-      // sake of perf.
-      rendinst::TraceFlags traceFlags = rendinst::TraceFlag::Destructible;
-      if ((flags & ETF_RI_PHYS) != 0)
-        traceFlags |= rendinst::TraceFlag::Phys;
-      res |= rendinst::traceDownMultiRay(traces, rayBox, ri_desc, handle, ray_mat_id, traceFlags);
-    }
-    else
-    {
-      TRACE_HANDLE_DEBUG_STAT(handle, numRIMisses++);
-      trace_utils::draw_trace_handle_debug_cast_result(handle, traces, false, true);
-    }
-  }
+    res |= tracedown_ri_multiray(traces, rayBox, ri_desc, handle, ray_mat_id, flags, rendinstsValid);
 
-  int fallbackFlags = flags & (handle->isLandmeshValid ? ~ETF_LMESH : 0xffffffff) & (handle->isStaticValid ? ~ETF_FRT : 0xffffffff) &
-                      (rendinstsValid ? ~(ETF_RI | ETF_RI_TREES | ETF_RI_PHYS) : 0xffffffff) &
-                      (handle->heightmap.width >= 0 ? ~ETF_HEIGHTMAP : 0xffffffff) &
-                      (!handle->hasObjectGroups ? ~ETF_OBJECTS_GROUP : 0xffffffff);
+  // Fall back to a full trace only for the subsystems the cache did not already cover.
+  int fallbackFlags = flags;
+  if (handle->isLandmeshValid)
+    fallbackFlags &= ~ETF_LMESH;
+  if (handle->isStaticValid)
+    fallbackFlags &= ~ETF_FRT;
+  if (rendinstsValid)
+    fallbackFlags &= ~(ETF_RI | ETF_RI_TREES | ETF_RI_PHYS);
+  if (handle->heightmap.width >= 0)
+    fallbackFlags &= ~ETF_HEIGHTMAP;
+  if (!handle->hasObjectGroups)
+    fallbackFlags &= ~ETF_OBJECTS_GROUP;
   res |= dacoll::traceray_normalized_multiray(traces, ri_desc, fallbackFlags, ray_mat_id, handle);
 
   return res;
@@ -545,12 +572,21 @@ bool dacoll::trace_sphere_cast_ex(const Point3 &from, const Point3 &to, float ra
     res = true;
   }
 
+  float phi = 0.f;
+  // NOTE: use negative number of casts to re-orient circular traces by PI/2 (tweak)
+  if (num_casts < 0)
+  {
+    num_casts = -num_casts;
+    phi = PI * 0.5f;
+  }
   const float invNumCasts = safeinv(float(num_casts));
+  const float phiStep = TWOPI * invNumCasts;
   float minT = t;
   float minNorm = res ? out.norm * dir : 1.f;
   for (int i = 0; i < num_casts; ++i)
   {
-    Point3 start = from + transform % Point3(0.f, cosf(TWOPI * invNumCasts * i), sinf(TWOPI * invNumCasts * i)) * rad;
+    Point3 start = from + transform % Point3(0.f, cosf(phi), sinf(phi)) * rad;
+    phi += phiStep;
     float outT = t;
     if (dacoll::traceray_normalized(start, dir, outT, &matId, &norm, flags, nullptr, cast_mat_id, handle))
     {
@@ -821,9 +857,8 @@ static float traceht_water_at_time_internal(const Point3 &pos, float t, float ti
   FFTWater *water = dacoll::get_water();
   if (water)
   {
-    const float waterMaxLevel = fft_water::get_max_level(water);
     float toY = pos.y - t;
-    if (min(pos.y, toY) < waterMaxLevel + fft_water::get_max_wave(water))
+    if (min(pos.y, toY) < fft_water::get_max_level(water) + fft_water::get_max_wave_height(water))
     {
       float res = 1e9f;
       if (fft_water::getHeightAboveWaterAtTime(water, time, pos, res))

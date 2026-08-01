@@ -59,6 +59,9 @@ public:
   void setGravityTm(const Matrix3 &tm);
   void setSplineControlPoints(const Point4 &p0, const Point4 &p1, const Point4 &p2, const Point4 &p3);
   void setRestrictionBox(const TMatrix &box);
+  // pre-simulate the effect. time < 0 = auto (one full particle lifetime, i.e. steady state); auto wins
+  // over other requested times. step_dt = 0: keep an earlier requested step, else the dafx config default.
+  void warmup(float time, float step_dt = 0.f);
 
   bool hasSound() const;
   void pauseSound(bool pause);
@@ -239,6 +242,7 @@ private:
   void setFxVelocitySoundExt(BaseEffect &fx, const Point3 &vel);
   void setFxVelocityScaleMinMax(BaseEffect &fx, const Point2 &scale);
   void setFxSpawnRate(BaseEffect &fx, float value);
+  void setFxWarmup(BaseEffect &fx, float time, float step_dt = 0.f);
   void setFxLightRadiusMultiplier(BaseEffect &fx, float multiplier);
   void setFxLightIntensity(BaseEffect &fx, float intensity);
   void setFxLightFadeout(BaseEffect &fx, float fadeout);
@@ -263,6 +267,7 @@ private:
   void setFxVelocityBuff(AcesEffect::FxId fx_idx, const Point3 &vel);
   void setFxVelocityScaleMinMaxBuff(AcesEffect::FxId fx_id, const Point2 &scale);
   void setFxSpawnRateBuff(AcesEffect::FxId fx_id, float value);
+  void setFxWarmupBuff(AcesEffect::FxId fx_id, float time, float step_dt = 0.f);
   void setFxLightRadiusMultiplierBuff(AcesEffect::FxId fx_id, float multiplier);
   void setFxLightIntensityBuff(AcesEffect::FxId fx_id, float intensity);
   void setFxLightFadeoutBuff(AcesEffect::FxId fx_id, float fadeout);

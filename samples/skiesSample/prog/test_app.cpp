@@ -16,6 +16,7 @@
 #include <drv/3d/dag_platform.h>
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_resetDevice.h>
+#include <screenShotSystem/dag_screenShotSystem.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_dynSceneRes.h>
@@ -71,7 +72,6 @@
 #include <render/deferredRenderer.h>
 #include <render/downsampleDepth.h>
 #include <render/screenSpaceReflections.h>
-#include <render/lights/tileDeferredLighting.h>
 #include <daSkies2/daSkies.h>
 #include <daSkies2/daSkiesToBlk.h>
 #include "de3_gui_dialogs.h"
@@ -155,6 +155,8 @@ static void init_webui(const DataBlock *debug_block)
   }
 }
 
+static bool screenshotRequested = false;
+static String screenshotFilename;
 
 static const int gbuf_rt = 3;
 static unsigned gbuf_fmts[gbuf_rt] = {TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, TEXFMT_A2B10G10R10, TEXFMT_R8};
@@ -173,8 +175,6 @@ static const char *gbuf_tex_names[] = {"albedo_gbuf", normal_tex_name, "material
 CONSOLE_INT_VAL("skies", precompute_orders, 3, 1, 5);
 CONSOLE_BOOL_VAL("skies", always_precompute, false);
 CONSOLE_BOOL_VAL("render", ssao_blur, true);
-CONSOLE_BOOL_VAL("render", bnao_blur, true);
-CONSOLE_BOOL_VAL("render", bent_cones, true);
 CONSOLE_BOOL_VAL("render", dynamic_lights, true);
 CONSOLE_INT_VAL("render", waterAnisotropy, 1, 0, 5);
 CONSOLE_BOOL_VAL("water", prefilter_refl_vertical, false);
@@ -187,8 +187,8 @@ ConVarI sleep_msec_val("sleep_msec", 0, 0, 1000, nullptr);
 
 struct IRenderDynamicCubeFace2
 {
-  virtual void renderLightProbeOpaque() = 0;
-  virtual void renderLightProbeEnvi() = 0;
+  virtual void renderLightProbeOpaque(const TMatrix &view_tm, const TMatrix4 &proj_tm) = 0;
+  virtual void renderLightProbeEnvi(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp) = 0;
 };
 
 class RenderDynamicCube
@@ -226,8 +226,9 @@ public:
     for (uint32_t i = 0; i < 6; ++i)
     {
       target->setRt();
+      const Driver3dPerspective persp(1, 1, zn, zf, 0, 0);
       TMatrix4 projTm;
-      d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0), &projTm);
+      d3d::setpersp(persp, &projTm);
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
       cameraMatrix.setcol(3, pos);
       TMatrix viewTm = orthonormalized_inverse(cameraMatrix);
@@ -235,14 +236,14 @@ public:
 
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 
-      cb.renderLightProbeOpaque();
+      cb.renderLightProbeOpaque(viewTm, projTm);
 
       target->resolve(shadedTarget.getTex2D(), viewTm, projTm);
 
       d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{shadedTarget.getTex2D(), 0, 0}});
 
       // d3d::clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0, 0, 0);
-      cb.renderLightProbeEnvi();
+      cb.renderLightProbeEnvi(viewTm, projTm, persp);
       // save_rt_image_as_tga(shadedTarget.getTex2D(), String(128, "cube%s.tga", i));
 
       d3d::set_render_target({}, DepthAccess::RW, {{cubeTarget->getCubeTex(), 0, i}});
@@ -453,6 +454,10 @@ public:
     PreparedSkiesParams cubeParams;
     cubeParams.panoramic = PreparedSkiesParams::Panoramic::ON;
     cubeParams.reprojection = PreparedSkiesParams::Reprojection::OFF;
+    // the cube renders with a ~100m zfar: without a forced range the aerial
+    // perspective covers only that far and distant clouds only get the
+    // to-infinity froxel tail instead of a properly resolved fog range
+    cubeParams.minScatteringRange = 80000;
     // required for each point of view (or the only one if panorama, for panorama center)
     cube_pov_data =
       eastl::unique_ptr<SkiesData, SkiesDataDeleter>(daSkies.createSkiesData("cube", cubeParams), SkiesDataDeleter{&daSkies});
@@ -632,6 +637,7 @@ public:
           layered_fog.mie2_scale = sky_panel.mie2_scale;
 
           clouds_rendering2 = daSkies.getCloudsRendering();
+          clouds_turbulence = daSkies.getCloudsTurbulence();
           clouds_weather_gen2 = daSkies.getWeatherGen();
           clouds_game_params = daSkies.getCloudsGameSettingsParams();
           clouds_form = daSkies.getCloudsForm();
@@ -762,19 +768,52 @@ public:
     extern bool g_ssao_blur;
     g_ssao_blur = ssao_blur.get();
 
+    // Water nodes exist in the graph only while water is on: keeps disabled
+    // water out of the schedule (no idle passes, clears or profiler entries).
+    if (const bool waterOn = fftWater && water_panel.enabled; waterOn != frameGraph.water.render.valid())
+      frameGraph.water = waterOn ? makeWaterNodes() : FrameGraph::Water{};
+
     dafg::update_external_state(dafg::ExternalState{::grs_draw_wire, false});
     dafg::run_nodes();
 
-    static bool firstCubeUpdate = false;
-    if (!firstCubeUpdate)
+    // clouds noises/LUTs and the incremental light/shadow volumes converge over
+    // many frames: a probe baked before that snapshots garbage forever, so keep
+    // re-baking through the convergence window and freeze on the last one
+    if (cubeUpdateFramesLeft > 0 && daSkies.isCloudsReady() && daSkies.isScatteringReady())
+    {
       reloadCube(false);
-    firstCubeUpdate = true;
+      --cubeUpdateFramesLeft;
+    }
 
     // framegraph resets bound targets to nullptr upon exiting of LegacyBackbufferPass
     // force set backbuffer to render imgui/ui
     d3d::set_render_target();
 
     de3_imgui_render();
+    if (screenshotRequested)
+    {
+      screenshotRequested = false;
+      ScreenShotSystem::ScreenShot screen;
+      if (ScreenShotSystem::makeScreenShot(screen))
+      {
+        if (!screenshotFilename.empty())
+        {
+          if (ScreenShotSystem::saveScreenShotTo(screen, screenshotFilename))
+            console::print_d("screenshot saved to %s", screenshotFilename.str());
+          else
+            console::print_d("screenshot: failed to save to %s", screenshotFilename.str());
+        }
+        else
+        {
+          if (ScreenShotSystem::saveScreenShot(screen))
+            console::print_d("screenshot saved: %s", ScreenShotSystem::lastMessage());
+          else
+            console::print_d("screenshot: failed to save");
+        }
+      }
+      else
+        console::print_d("screenshot: failed to capture screen");
+    }
   }
 
   void mainRenderTrans() { renderTrans(); }
@@ -901,6 +940,8 @@ public:
     daSkies.setWeatherGen(clouds_weather_gen2);
     daSkies.setCloudsForm(clouds_form);
     daSkies.setCloudsRendering(clouds_rendering2);
+    daSkies.setCloudsTurbulence(clouds_turbulence);
+    daSkies.setCloudsCheckerboardTrace(render_quality_panel.trace_checkerboard);
     aurora->setParams(aurora_borealis, width, height);
     sky_panel.min_ground_offset = heightmapMin;
     if (water_panel.enabled)
@@ -919,12 +960,7 @@ public:
       daSkies.closePanorama();
     // debug("regen = %d force_update = %d", sky_panel.regen, force_update);
     // sky_panel.regen  = false;
-    daSkies.projectUses2DShadows(render_panel.shadows_2d);
-
-    static ShaderVariableInfo skies_use_2d_shadows("skies_use_2d_shadows", true);
-    skies_use_2d_shadows.set_int(render_panel.shadows_2d);
-
-    daSkies.prepare(dir_to_sun, false, gametime_elapsed_sec);
+    daSkies.prepare(dir_to_sun, gametime_elapsed_sec);
     daSkies.setPanoramaReprojectionWeight(render_panel.panoramaReprojection);
     dir_to_sun = daSkies.getPrimarySunDir();
     shvars::from_sun_direction.set_float4(-dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
@@ -1031,15 +1067,17 @@ public:
     G_VERIFY(d3d::getpersp(p));
     shvars::zn_zfar.set_float4(p.zn, p.zf, 0, 0);
 
+    TMatrix itm;
+    curCamera->getInvViewMatrix(itm);
+    TMatrix4 projTm;
+    d3d::gettm(TM_PROJ, &projTm);
     TMatrix4 globtm;
-    d3d::getglobtm(globtm);
+    d3d::calcglobtm(orthonormalized_inverse(itm), projTm, globtm);
     /*TMatrix4 globtmTr = globtm.transpose();
     ShaderGlobal::set_float4(globtm_psf_0VarId,Color4(globtmTr[0]));
     ShaderGlobal::set_float4(globtm_psf_1VarId,Color4(globtmTr[1]));
     ShaderGlobal::set_float4(globtm_psf_2VarId,Color4(globtmTr[2]));
     ShaderGlobal::set_float4(globtm_psf_3VarId,Color4(globtmTr[3]));*/
-    TMatrix itm;
-    curCamera->getInvViewMatrix(itm);
     DA_PROFILE_TAG_LINE(camera_pos, 0xFF00FF, "%g %g %g", P3D(itm.getcol(3)));
 
     if (test)
@@ -1050,8 +1088,6 @@ public:
     mode.maxDist = 100;
     mode.shadowStart = p.zn;
     mode.numCascades = 4;
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
     csm->prepareShadowCascades(mode, dir_to_sun, orthonormalized_inverse(itm), itm.getcol(3), projTm, Frustum(globtm),
       Point2(p.zn, p.zf), p.zn);
 
@@ -1080,7 +1116,7 @@ public:
         }
       }
       if (debug_max_wave_height.get())
-        water_physics_max_wave_height = fft_water::get_max_wave(fftWater.get());
+        water_physics_max_wave_height = fft_water::get_max_wave_height(fftWater.get());
     }
 
     static ShaderVariableInfo foam_time("foam_time");
@@ -1178,7 +1214,7 @@ public:
 
     LodGrid lodGrid;
     lodGrid.init(lodCount - lod, lodRad, 0, lastLodRad);
-    LodGridCullData defaultCullData;
+    LodGridRingCullData defaultCullData;
     float scaledCell = heightmapCellSize * (1 << min(11, lod));
     float minHt = heightmapMin;
     float maxHt = heightmapMin + hmapMaxHt * heightmapScale;
@@ -1214,30 +1250,23 @@ public:
     renderTrees();
     drawHeightmap(frustum, camera_pos);
   }
-  void renderLightProbeOpaque() override
+  void renderLightProbeOpaque(const TMatrix &view_tm, const TMatrix4 &proj_tm) override
   {
     // daSkies.prepare(dir_to_sun);
-    TMatrix view, itm;
-    d3d::gettm(TM_VIEW, view);
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    itm = orthonormalized_inverse(view);
-    daSkies.useFog(itm.getcol(3), cube_pov_data.get(), view, projTm);
+    TMatrix itm = orthonormalized_inverse(view_tm);
+    daSkies.useFog(itm.getcol(3), cube_pov_data.get(), view_tm, proj_tm);
     drawPlane();
   }
 
-  void renderLightProbeEnvi() override
+  void renderLightProbeEnvi(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp) override
   {
     TIME_D3D_PROFILE(cubeenvi)
-    TMatrix view, itm;
-    d3d::gettm(TM_VIEW, view);
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    Driver3dPerspective persp;
-    d3d::getpersp(persp);
-    itm = orthonormalized_inverse(view);
+    TMatrix itm = orthonormalized_inverse(view_tm);
+    // cube faces are disjoint views sharing one SkiesData: clouds TAA history from
+    // the previous face is invalid, restart it per face
     daSkies.renderEnvi(render_panel.canBeInsideClouds, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{},
-      nullptr, cube_pov_data.get(), view, projTm, persp);
+      nullptr, cube_pov_data.get(), view_tm, proj_tm, persp, UpdateSky::On, false, SKY_PREPARE_THRESHOLD,
+      CloudsRenderFlags::Default | CloudsRenderFlags::RestartTAA);
   }
   static inline void calc_water_reflection_matrix(TMatrix &tm, TMatrix &itm, const TMatrix &ivtm, Point3 &pos, float water_level)
   {
@@ -1527,7 +1556,7 @@ public:
     FrameGraph::Backbone::Lighting result;
 
     result.ssr = dafg::register_node("SSR", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-      bind_camera(registry, "main_camera");
+      auto camHndl = bind_camera(registry, "main_camera").handle();
 
       registry.readTexture("downsampled_normals").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
       registry.readTexture("far_downsampled_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
@@ -1549,22 +1578,16 @@ public:
         registry.historyFor("ssr_target").texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
       auto ssr = eastl::make_unique<ScreenSpaceReflections>(width / 2, height / 2, 1, fmt, SSRQuality::Low, SSRFlag::None);
-      return [this, ssrTargetHndl, ssrTargetHistHndl, ssr = eastl::move(ssr)]() {
-        TMatrix itm;
-        curCamera->getInvViewMatrix(itm);
-        const DPoint3 worldPos = DPoint3(itm.getcol(3));
-
-        TMatrix viewTm;
-        TMatrix4 projTm;
-        d3d::gettm(TM_VIEW, viewTm);
-        d3d::gettm(TM_PROJ, &projTm);
-        ssr->render(viewTm, projTm, worldPos, SubFrameSample::Single, ssrTargetHndl.get(), ssrTargetHistHndl.get(),
+      return [camHndl, ssrTargetHndl, ssrTargetHistHndl, ssr = eastl::move(ssr)]() {
+        const Camera &camera = camHndl.ref();
+        const DPoint3 worldPos = DPoint3(camera.viewItm.getcol(3));
+        ssr->render(camera.viewTm, camera.projTm, worldPos, SubFrameSample::Single, ssrTargetHndl.get(), ssrTargetHistHndl.get(),
           ssrTargetHndl.get(), ::dagor_frame_no());
       };
     });
 
     result.ssao = dafg::register_node("SSAO", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-      bind_camera(registry, "main_camera");
+      auto camHndl = bind_camera(registry, "main_camera").handle();
 
       registry.readTexture("downsampled_normals").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
       registry.read("downsampled_normals_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_normals_samplerstate");
@@ -1602,20 +1625,14 @@ public:
                            .useAs(dafg::Usage::COLOR_ATTACHMENT)
                            .handle();
 
-      auto ssao = eastl::make_unique<SSAORenderer>(width / 2, height / 2, 1, SSAO_SKIP_RANDOM_PATTERN_GENERATION, false);
-      return [this, fddHandle, ssaoHndl, ssaoHistHndl, ssaoTmpHndl, ssao = eastl::move(ssao)]() {
-        TMatrix itm;
-        curCamera->getInvViewMatrix(itm);
-        const DPoint3 worldPos = DPoint3(itm.getcol(3));
-
-        TMatrix viewTm;
-        TMatrix4 projTm;
-        d3d::gettm(TM_VIEW, viewTm);
-        d3d::gettm(TM_PROJ, &projTm);
+      auto ssao = eastl::make_unique<SSAORenderer>(width / 2, height / 2, 1, SSAO_NONE, false);
+      return [camHndl, fddHandle, ssaoHndl, ssaoHistHndl, ssaoTmpHndl, ssao = eastl::move(ssao)]() {
+        const Camera &camera = camHndl.ref();
+        const DPoint3 worldPos = DPoint3(camera.viewItm.getcol(3));
         auto ssaoView = ssaoHndl.get();
         auto prevSsaoView = ssaoHistHndl.get();
         auto tmpTexView = ssaoTmpHndl.get();
-        ssao->render(viewTm, projTm, fddHandle.view().getBaseTex(), ssaoView, prevSsaoView, tmpTexView, worldPos,
+        ssao->render(camera.viewTm, camera.projTm, fddHandle.view().getBaseTex(), ssaoView, prevSsaoView, tmpTexView, worldPos,
           SubFrameSample::Single);
       };
     });
@@ -1663,11 +1680,12 @@ public:
       return [this, camHndl]() {
         auto &cam = camHndl.ref();
         curCamera->getInvViewMatrix(cam.viewItm);
-        // Disgusting hack, common samples framework needs to be reworked
+        cam.viewTm = orthonormalized_inverse(cam.viewItm);
+        // Disgusting hack, common samples framework needs to be reworked; setView
+        // is kept for the driver proj/persp state the reads below depend on
         curCamera->setView();
-        d3d::gettm(TM_VIEW, cam.viewTm);
         d3d::gettm(TM_PROJ, (mat44f &)cam.projTm);
-        d3d::getglobtm((mat44f &)cam.globTm);
+        d3d::calcglobtm(cam.viewTm, cam.projTm, cam.globTm);
         d3d::getpersp(cam.persp);
         cam.frustum = Frustum(cam.globTm);
         cam.worldPos = cam.viewItm.getcol(3);
@@ -1777,6 +1795,19 @@ public:
 
   virtual void renderWaterRefraction() {}
 
+  static auto render_to_gbuffer(dafg::Registry registry)
+  {
+    registry.requestState().allowWireframe();
+    registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depth(depth_tex_name);
+    return bind_camera(registry, "main_camera").handle();
+  }
+
+  static auto render_to_refl_gbuffer(dafg::Registry registry)
+  {
+    registry.requestRenderPass().color({"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"}).depth("depth_gbuf_refl");
+    return bind_camera(registry, "refl_camera").handle();
+  }
+
   [[nodiscard]] FrameGraph::Water::Reflections makeWaterReflectionNodes()
   {
     FrameGraph::Water::Reflections result;
@@ -1803,11 +1834,11 @@ public:
         if (fabs(det4x4(waterProj)) > 1e-15) // near plane is not perpendicular to water plane
           reflCam.projTm = waterProj;
 
-        // TODO: this is a hack, we can calculate globTm and persp without
-        // setting the matrices
+        d3d::calcglobtm(reflCam.viewTm, reflCam.projTm, reflCam.globTm);
+        // TODO: this is a hack, persp can only be recovered by the driver's
+        // proj decomposition, so the matrices still have to be set for it
         d3d::settm(TM_VIEW, reflCam.viewTm);
         d3d::settm(TM_PROJ, (mat44f &)reflCam.projTm);
-        d3d::getglobtm((mat44f &)reflCam.globTm);
         d3d::getpersp(reflCam.persp);
         reflCam.frustum = Frustum(reflCam.globTm);
         reflCam.viewVecs = calc_view_vecs(reflCam.viewTm, reflCam.projTm);
@@ -1848,6 +1879,10 @@ public:
       auto reflResolver = eastl::make_unique<ShadingResolver>("cube_deferred_shading");
 
       return [this, reflHandle, camHndl, reflResolver = eastl::move(reflResolver)]() {
+        // Without this guard the resolver overwrites view_vec* that daFG bound
+        // from the (untouched) refl_camera blob, tripping FG state validation.
+        if (!(fftWater && water_panel.enabled))
+          return;
         reflResolver->resolve(reflHandle.get(), camHndl.ref().viewTm, camHndl.ref().projTm);
       };
     });
@@ -1860,6 +1895,8 @@ public:
       auto depthHndl =
         registry.read("depth_gbuf_refl").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
       return [this, camHndl, depthHndl, reflSkiesDataHndl]() {
+        if (!(fftWater && water_panel.enabled))
+          return;
         reflSkiesDataHndl.ref() = refl_pov_data.get();
         const auto &cam = camHndl.ref();
         daSkies.prepareSkyAndClouds(render_panel.canBeInsideClouds, dpoint3(cam.worldPos), dpoint3(cam.viewItm.getcol(2)), 3,
@@ -1877,6 +1914,8 @@ public:
       auto depthHndl =
         eastl::move(depthReq).atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
       return [this, camHndl, depthHndl, reflSkiesDataHndl]() {
+        if (!(fftWater && water_panel.enabled))
+          return;
         const auto &cam = camHndl.ref();
 
         daSkies.renderSky(reflSkiesDataHndl.ref(), cam.viewTm, cam.projTm, cam.persp, RenderPrepared::LowresOnFarPlane, nullptr);
@@ -1928,6 +1967,55 @@ public:
     FrameGraph::Water result;
 
     result.reflections = makeWaterReflectionNodes();
+
+    result.reflections.renderOpaque.emplace_back(
+      (dafg::root() / "water_refl").registerNode("draw_plane", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        render_to_refl_gbuffer(registry);
+
+        return [this]() {
+          if (!fftWater || !water_panel.enabled)
+            return;
+
+          drawPlane();
+        };
+      }));
+
+    result.reflections.renderOpaque.emplace_back(
+      (dafg::root() / "water_refl").registerNode("draw_spheres", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        render_to_refl_gbuffer(registry);
+
+        return [this]() {
+          if (!fftWater || !water_panel.enabled)
+            return;
+
+          drawSpheres();
+        };
+      }));
+
+    result.reflections.renderOpaque.emplace_back(
+      (dafg::root() / "water_refl").registerNode("draw_trees", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        render_to_refl_gbuffer(registry);
+
+        return [this]() {
+          if (!fftWater || !water_panel.enabled)
+            return;
+
+          renderTrees();
+        };
+      }));
+
+    result.reflections.renderOpaque.emplace_back(
+      (dafg::root() / "water_refl").registerNode("draw_heightmap", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        auto camHndl = render_to_refl_gbuffer(registry);
+
+        return [this, camHndl]() {
+          if (!fftWater || !water_panel.enabled)
+            return;
+
+          const auto &cam = camHndl.ref();
+          drawHeightmap(cam.frustum, cam.worldPos);
+        };
+      }));
 
     result.render = dafg::register_node("render_water", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
       auto camHndl = bind_camera(registry, "main_camera").handle();
@@ -2017,19 +2105,6 @@ public:
     return result;
   }
 
-  static auto render_to_gbuffer(dafg::Registry registry)
-  {
-    registry.requestState().allowWireframe();
-    registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depth(depth_tex_name);
-    return bind_camera(registry, "main_camera").handle();
-  }
-
-  static auto render_to_refl_gbuffer(dafg::Registry registry)
-  {
-    registry.requestRenderPass().color({"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"}).depth("depth_gbuf_refl");
-    return bind_camera(registry, "refl_camera").handle();
-  }
-
   [[nodiscard]] FrameGraph makeFrameGraph()
   {
     FrameGraph result;
@@ -2042,7 +2117,8 @@ public:
 
     ////////////////// optional nodes //////////////////
 
-    result.water = makeWaterNodes();
+    if (fftWater && water_panel.enabled)
+      result.water = makeWaterNodes();
     result.envi = makeEnviNodes();
 
     result.opaqueRendering.emplace_back(dafg::register_node("draw_plane", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
@@ -2087,55 +2163,6 @@ public:
       return [this]() { mainRenderTrans(); };
     }));
 
-    result.water.reflections.renderOpaque.emplace_back(
-      (dafg::root() / "water_refl").registerNode("draw_plane", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-        render_to_refl_gbuffer(registry);
-
-        return [this]() {
-          if (!fftWater || !water_panel.enabled)
-            return;
-
-          drawPlane();
-        };
-      }));
-
-    result.water.reflections.renderOpaque.emplace_back(
-      (dafg::root() / "water_refl").registerNode("draw_spheres", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-        render_to_refl_gbuffer(registry);
-
-        return [this]() {
-          if (!fftWater || !water_panel.enabled)
-            return;
-
-          drawSpheres();
-        };
-      }));
-
-    result.water.reflections.renderOpaque.emplace_back(
-      (dafg::root() / "water_refl").registerNode("draw_trees", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-        render_to_refl_gbuffer(registry);
-
-        return [this]() {
-          if (!fftWater || !water_panel.enabled)
-            return;
-
-          renderTrees();
-        };
-      }));
-
-    result.water.reflections.renderOpaque.emplace_back(
-      (dafg::root() / "water_refl").registerNode("draw_heightmap", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-        auto camHndl = render_to_refl_gbuffer(registry);
-
-        return [this, camHndl]() {
-          if (!fftWater || !water_panel.enabled)
-            return;
-
-          const auto &cam = camHndl.ref();
-          drawHeightmap(cam.frustum, cam.worldPos);
-        };
-      }));
-
     return result;
   }
 
@@ -2145,6 +2172,7 @@ public:
     cube.init(ew);
     enviProbe.reset(light_probe::create("envi", ew, TEXFMT_A16B16G16R16F));
     reloadCube(true);
+    cubeUpdateFramesLeft = 100; // the probe is fresh, restart the convergence re-bake window
   }
 
   void reloadCube(bool first = false)
@@ -2285,6 +2313,7 @@ protected:
       DECLARE_FLOAT_SLIDER(sky_panel, ozone_alt_dist, 0.1, 2., 1., 0.01),
       DECLARE_FLOAT_SLIDER(sky_panel, ozone_max_alt, 0.1, 1.5, 1., 0.01),
       DECLARE_FLOAT_SLIDER(sky_panel, ozone_scale, 0.1, 10.0, 1., 0.01),
+      DECLARE_FLOAT_SLIDER(sky_panel, polarization_strength, 0, 0.5, 0, 0.01),
 
       DECLARE_FLOAT_SLIDER(sky_panel, multiple_scattering_factor, 0, 2, 1, 0.01),
       DECLARE_FLOAT_SLIDER(sky_panel, sun_brightness, 0.5, 2.0, 1.0, 0.01),
@@ -2380,10 +2409,26 @@ protected:
       DECLARE_FLOAT_SLIDER(clouds_rendering2, forward_eccentricity_weight, 0.0, 1.0, 0.6, 0.01),
       DECLARE_FLOAT_SLIDER(clouds_rendering2, erosion_noise_size, 1.0, 73, 37.8, 0.1),
       DECLARE_FLOAT_SLIDER(clouds_rendering2, erosionWindSpeed, -100, 100, 50, 0.1),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, erosion_strength, 0, 0.6, 0.15, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, erosion_height_bias, 0, 1.0, 0.5, 0.01),
       DECLARE_FLOAT_SLIDER(clouds_rendering2, ambient_desaturation, 0, 1, 0.5, 0.1),
       DECLARE_FLOAT_SLIDER(clouds_rendering2, ms_contribution, 0, 1, 0.7, 0.01),
       DECLARE_FLOAT_SLIDER(clouds_rendering2, ms_attenuation, 0.02, 1.0, 0.3, 0.01),
       DECLARE_FLOAT_SLIDER(clouds_rendering2, ms_ecc_attenuation, 0.02, 0.99, 0.3, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, droplet_diameter_um, 5, 50, 20, 0.5),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, edge_albedo, 0.5, 1.0, 0.8, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, edge_albedo_sharpness, 0.5, 16, 4, 0.1),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, layer0_aerosolness, 0, 1.0, 0.35, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, layer1_aerosolness, 0, 1.0, 0.35, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, cumulonimbus_aerosolness, 0, 1.0, 0.5, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, cloudAerosolDropletsMieStrength, 0, 4.0, 1.0, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, aerosol_reach_below_km, 0.05, 3.0, 0.5, 0.01),
+      DECLARE_FLOAT_SLIDER(clouds_rendering2, taa_exposure_scale, 0, 1.5, 0.4, 0.05),
+      DECLARE_INT_SLIDER(clouds_rendering2, bsm_log2_amortize_frames, 0, 6, 4),
+
+      DECLARE_FLOAT_SLIDER(clouds_turbulence, warp, 0, 0.5, 0.12, 0.005),
+      DECLARE_FLOAT_SLIDER(clouds_turbulence, curl_size, 1, 8, 2, 0.05),
+      DECLARE_FLOAT_SLIDER(clouds_turbulence, shear, 0, 1.0, 0.05, 0.01),
 
       DECLARE_FLOAT_SLIDER(clouds_weather_gen2, worldSize, 65536, 262144, 65536, 1.0),
       DECLARE_FLOAT_SLIDER(clouds_weather_gen2, cumulonimbusCoverage, 0.0, 1.0, 0.0, 0.01),
@@ -2398,8 +2443,8 @@ protected:
 
       DECLARE_INT_SLIDER(clouds_form, shapeNoiseScale, 2, 16, 9),
       DECLARE_INT_SLIDER(clouds_form, cumulonimbusShapeScale, 2, 16, 4),
-      DECLARE_INT_SLIDER(clouds_form, turbulenceFreq, 1, 6, 1),
-      DECLARE_FLOAT_SLIDER(clouds_form, turbulenceStrength, 0., 2.0, 0.25, 0.01),
+      DECLARE_INT_SLIDER(clouds_form, turbulenceFreq, 1, 16, 1),
+      DECLARE_FLOAT_SLIDER(clouds_form, turbulenceStrength, 0., 12.0, 0.25, 0.01),
 
       DECLARE_FLOAT_SLIDER(clouds_form, extinction, 0.5, 6.0, 0.75, 0.01), // this is 0.06 multiplier clouds real extinction is within
                                                                            // 0.04-0.24, which is
@@ -2429,7 +2474,6 @@ protected:
       DECLARE_INT_COMBOBOX(render_panel, render_type, DIRECT, PANORAMA, DIRECT),
       DECLARE_BOOL_CHECKBOX(render_panel, enable_god_rays_from_land, false),
       DECLARE_BOOL_CHECKBOX(render_panel, canBeInsideClouds, false),
-      DECLARE_BOOL_CHECKBOX(render_panel, shadows_2d, false),
       DECLARE_INT_COMBOBOX(render_panel, panoramaResolution, 2048, 1024, 1536, 2048, 3072, 4096),
       DECLARE_BOOL_CHECKBOX(render_panel, panorama_blending, false),
       DECLARE_FLOAT_SLIDER(render_panel, panoramaReprojection, 0, 1, 0.5, 0.01),
@@ -2442,6 +2486,7 @@ protected:
 
       DECLARE_INT_SLIDER(render_quality_panel, sky_res_divisor, 0, 3, 1),
       DECLARE_INT_SLIDER(render_quality_panel, clouds_res_divisor, 0, 3, 1),
+      DECLARE_BOOL_CHECKBOX(render_quality_panel, trace_checkerboard, true),
       DECLARE_INT_SLIDER(render_quality_panel, skies_lut_quality, 1, 8, 2),
       DECLARE_INT_SLIDER(render_quality_panel, scattering_screen_quality, 1, 8, 2),
       DECLARE_INT_SLIDER(render_quality_panel, scattering_depth_slices, 16, 128, 64),
@@ -2512,12 +2557,14 @@ protected:
     daSkies.setWeatherGen(clouds_weather_gen2);
     daSkies.setCloudsForm(clouds_form);
     daSkies.setCloudsRendering(clouds_rendering2);
+    daSkies.setCloudsTurbulence(clouds_turbulence);
+    daSkies.setCloudsCheckerboardTrace(render_quality_panel.trace_checkerboard);
     aurora->setParams(aurora_borealis, w, h);
     // daSkies.generateClouds(clouds_gen, clouds_gen.gpu, clouds_gen.need_tracer, clouds_gen.regenerate);
     // daSkies.setCloudsPosition(clouds_panel, -1);
     daSkies.setStrataClouds(strata_clouds);
     // daSkies.setLayeredFog(layered_fog);
-    daSkies.prepare(dir_to_sun, true, 0);
+    daSkies.prepare(dir_to_sun, 0);
     Color3 sun, amb, moon, moonamb;
     float sunCos, moonCos;
     if (daSkies.currentGroundSunSkyColor(sunCos, moonCos, sun, amb, moon, moonamb))
@@ -2553,6 +2600,7 @@ public:
 
   DaSkies::StrataClouds strata_clouds;
   DaSkies::CloudsRendering clouds_rendering2;
+  DaSkies::CloudsTurbulence clouds_turbulence;
   DaSkies::CloudsWeatherGen clouds_weather_gen2;
   DaSkies::CloudsSettingsParams clouds_game_params;
   DaSkies::CloudsForm clouds_form;
@@ -2677,6 +2725,8 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
     int colored_transmittance_quality = 1;
     float scattering_range_scale = 1.0f;
     float scattering_min_range = 50000.f;
+    // deliberately not in operator== - the toggle must not recreate the skies data
+    bool trace_checkerboard = true;
     bool operator==(const RenderQualityPanel &a) const
     {
       return a.sky_res_divisor == sky_res_divisor && a.clouds_res_divisor == clouds_res_divisor &&
@@ -2696,7 +2746,7 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
   {
     float fog_distance_mul;
     int render_type;
-    bool canBeInsideClouds, panorama_blending, shadows_2d = false;
+    bool canBeInsideClouds, panorama_blending;
     bool compareCpuSunSky;
     bool findHole = false;
     bool useCloudsHole = true;
@@ -2725,6 +2775,7 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
 
   RenderDynamicCube cube;
   eastl::unique_ptr<light_probe::Cube, void (*)(light_probe::Cube *)> enviProbe{nullptr, &light_probe::destroy};
+  int cubeUpdateFramesLeft = 100;
 
   void createSpheres()
   {
@@ -2735,6 +2786,12 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
   Ptr<ShaderMaterial> sphereMat;
   Ptr<ShaderElement> sphereElem;
   eastl::unique_ptr<console::IVisualConsoleDriver> visualConsoleDriver;
+
+  void onHmapLoaded(TexPtr &&ht)
+  {
+    heightmap = UniqueTexWithShaderVar(eastl::move(ht), "heightmap");
+    console::process_file("autoexec.txt");
+  }
 
   void scheduleHeightmapLoad(const char *name)
   {
@@ -2770,12 +2827,11 @@ wind_dep0(S[0].windDependency), wind_dep1(S[1].windDependency), wind_dep2(S[2].w
 
         struct InitHeightmap : public DelayedAction
         {
-          UniqueTexWithShaderVar &tex;
           TexPtr ht;
-          InitHeightmap(UniqueTexWithShaderVar &_tex, TexPtr &&_ht) : ht(eastl::move(_ht)), tex(_tex) {}
-          void performAction() override { tex = UniqueTexWithShaderVar(eastl::move(ht), "heightmap"); }
+          InitHeightmap(TexPtr &&_ht) : ht(eastl::move(_ht)) {}
+          void performAction() override { ((DemoGameScene *)dagor_get_current_game_scene())->onHmapLoaded(eastl::move(ht)); }
         };
-        add_delayed_action(new InitHeightmap(s.heightmap, eastl::move(tex)));
+        add_delayed_action(new InitHeightmap(eastl::move(tex)));
       };
       void releaseJob() override { delete this; }
     };
@@ -2951,10 +3007,20 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   if (argc < 1)
     return false;
   int found = 0;
+  CONSOLE_CHECK_NAME("app", "quit", 1, 1) { quit_game(0); }
+  CONSOLE_CHECK_NAME("app", "exit", 1, 1) { quit_game(0); }
+  CONSOLE_CHECK_NAME("app", "screenshot", 1, 2)
+  {
+    screenshotRequested = true;
+    screenshotFilename = argc > 1 ? argv[1] : "";
+    console::print_d("screenshot: will capture next frame");
+  }
   CONSOLE_CHECK_NAME("render", "reload_cube", 1, 1)
   {
     console::command("shaders.reload");
-    ((DemoGameScene *)dagor_get_current_game_scene())->reloadCube();
+    DemoGameScene *scene = (DemoGameScene *)dagor_get_current_game_scene();
+    scene->reloadCube();
+    scene->cubeUpdateFramesLeft = 100; // reloaded shaders re-converge too, keep re-baking through it
   }
   CONSOLE_CHECK_NAME("render", "reinit_cube", 1, 2)
   {
@@ -2997,6 +3063,10 @@ bool TestConsole::processCommand(const char *argv[], int argc)
   {
     extern bool use_cs_water;
     toggle_or_set_bool_arg(use_cs_water, 1, argc, argv);
+  }
+  CONSOLE_CHECK_NAME("water", "enabled", 1, 2)
+  {
+    toggle_or_set_bool_arg(((DemoGameScene *)dagor_get_current_game_scene())->water_panel.enabled, 1, argc, argv);
   }
   CONSOLE_CHECK_NAME("render", "show_tex", 1, DebugTexOverlay::MAX_CONSOLE_ARGS_CNT)
   {

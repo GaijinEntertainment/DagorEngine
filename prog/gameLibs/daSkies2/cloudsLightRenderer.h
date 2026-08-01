@@ -22,5 +22,5 @@ private:
   eastl::unique_ptr<ComputeShaderElement> gen_clouds_light_texture_cs;
 
   uint32_t resetGen = 0;
-  float lastMainLightDirY = 0, lastSecondLightDirY = 0;
+  Point3 lastMainLightDir = {0, 0, 0}, lastSecondLightDir = {0, 0, 0};
 };

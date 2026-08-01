@@ -7,11 +7,16 @@
 #include <daRg/dag_renderState.h>
 #include <daRg/dag_sceneRender.h>
 #include <daRg/dag_uiShader.h>
+#include <math/dag_color.h>
 #include <math/dag_easingFunctions.h>
 #include <perfMon/dag_statDrv.h>
+#include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderVariableInfo.h>
 #include <generic/dag_sort.h>
 
 static const Point2 tcCoords[4] = {Point2(0, 0), Point2(1, 0), Point2(1, 1), Point2(0, 1)};
+
+static ShaderVariableInfo bgColorVar("fog_of_war_bg_color", true);
 
 void RobjTiledMap::render(
   StdGuiRender::GuiContext &ctx, const darg::Element *elem, const darg::ElemRenderData *rdata, const darg::RenderState &render_state)
@@ -212,12 +217,15 @@ void RobjTiledMapFogOfWar::render(
   if (tiledMapCtx->tileWidth <= 0)
     return;
 
+  Color4 bg = ShaderGlobal::get_float4(bgColorVar);
+  E3DCOLOR bgColor = e3dcolor(bg);
   E3DCOLOR color = E3DCOLOR(255, 255, 255, 255);
-  E3DCOLOR bgColor = E3DCOLOR(22, 18, 17, 255); // todo: bring this color from entity config
   color = darg::color_apply_opacity(color, outQuintic(render_state.opacity));
   bgColor = darg::color_apply_opacity(bgColor, outQuintic(render_state.opacity));
 
   Point2 wh = elem->screenCoord.size;
+  if (wh.x <= 1e-3f || wh.y <= 1e-3f)
+    return;
   Point2 c = elem->screenCoord.screenPos + wh / 2.0f;
 
   ctx.start_raw_layer();
@@ -228,9 +236,14 @@ void RobjTiledMapFogOfWar::render(
   ctx.getViewTm(xf.vtm);
   ctx.set_color(bgColor);
 
-  if (tiledMapCtx->fogOfWarTex.getTexId() != BAD_TEXTUREID && tiledMapCtx->fogOfWarTexInited)
-    darg::uishader::set_mask(ctx, tiledMapCtx->fogOfWarTex.getTexId(), tiledMapCtx->fogOfWarSampler, c, 0,
-      Point2(2.0f * wh.x / StdGuiRender::screen_width(), -2.0f * wh.y / StdGuiRender::screen_height()));
+  // setShader() resets the GuiContext layer params (including the mask), so the
+  // mask must be re-applied after every shader switch, not just once up front.
+  auto applyFogMask = [&] {
+    if (tiledMapCtx->fogOfWarTex.getTexId() != BAD_TEXTUREID && tiledMapCtx->fogOfWarTexInited)
+      darg::uishader::set_mask(ctx, tiledMapCtx->fogOfWarTex.getTexId(), tiledMapCtx->fogOfWarSampler, c, 0,
+        Point2(2.0f * wh.x / StdGuiRender::screen_width(), -2.0f * wh.y / StdGuiRender::screen_height()));
+  };
+  applyFogMask();
 
   // ======================== render basic fog for current zoom level ========================
   // this should cover the gaps between tiles if no fog tile is loaded yet
@@ -246,16 +259,19 @@ void RobjTiledMapFogOfWar::render(
   ctx.draw_quads(v, 1);
 
   // ======================== render blended fog for current zoom level ========================
+  ctx.setShader(&tiledMapCtx->fogOfWarTileShader);
+  applyFogMask(); // setShader reset the layer params above; reinstall the mask for the tiles
+
   eastl::vector<QuadKey> sortedTiles;
-  sortedTiles.reserve(tiledMapCtx->fogTiles.size());
-  for (auto &tile : tiledMapCtx->fogTiles)
+  sortedTiles.reserve(tiledMapCtx->tiles.size());
+  for (auto &tile : tiledMapCtx->tiles)
   {
     sortedTiles.push_back(tile.first);
   }
   eastl::sort(sortedTiles.begin(), sortedTiles.end(), [](const QuadKey &a, const QuadKey &b) { return a.size() < b.size(); });
   for (auto quadKey : sortedTiles)
   {
-    const TileHandle tileHandle = tiledMapCtx->fogTiles[quadKey];
+    const TileHandle tileHandle = tiledMapCtx->tiles[quadKey];
 
     if (tileHandle.texId == BAD_TEXTUREID)
       continue;
@@ -288,7 +304,7 @@ void RobjTiledMapFogOfWar::render(
     }
     ctx.draw_quads(v, 1);
   }
-
+  ctx.setShader(nullptr);
   darg::uishader::set_mask(ctx, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, Point3(1, 0, 0), Point3(0, 1, 0));
   ctx.reset_textures();
   ctx.end_raw_layer();

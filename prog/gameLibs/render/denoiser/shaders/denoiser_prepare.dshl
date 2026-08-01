@@ -3,24 +3,44 @@ include "gbuffer.dshl"
 include "bvh.dshl"
 include "bvh_common_includes.dshl"
 include "viewVecVS.dshl"
+include "use_downsampled_checkerboard_depth_tex.dshl"
+include "denoiser_material.dshl"
 
 int4 denoiser_resolution;
 
 texture denoiser_view_z;
 texture denoiser_nr;
 texture denoiser_half_view_z;
-texture denoiser_half_normals;
 texture denoiser_half_nr;
-float denoiser_camera_attached_radius = 0;
+texture denoiser_half_motion_vectors_rtr;
+texture denoiser_half_nr_rtr;
+texture denoiser_half_view_z_rtr;
+
+texture half_selected_depth_rtr;
 
 define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
 endmacro
 
-int denoiser_half_res = 0;
-interval denoiser_half_res: no < 1, yes;
+int denoiser_prepare_close_depth = 0;
+interval denoiser_prepare_close_depth: no < 1, yes;
 
 int denoiser_apply_wetness = 0;
 interval denoiser_apply_wetness : no < 1, yes;
+
+int rtr_depth_mode = 0;
+interval rtr_depth_mode : def < 1, checker < 2, smart;
+
+float rtr_pair_depth_band = 0.02;
+
+sampler depth_gather_samplerstate
+{
+  mipmap_mode = point;
+  filter = point;
+  address_u = border;
+  address_v = border;
+  address_w = border;
+  border_color = (0, 0, 0, 0);
+};
 
 shader denoiser_prepare
 {
@@ -31,11 +51,44 @@ shader denoiser_prepare
     nrTexture@uav = denoiser_nr hlsl { RWTexture2D<float4> nrTexture@uav; };
     viewZTexture@uav = denoiser_view_z hlsl { RWTexture2D<float> viewZTexture@uav; };
 
-    halfResDepthTex@tex2d = downsampled_close_depth_tex;
-    halfNormalsTexture@tex2d = denoiser_half_normals;
-    halfNrTexture@uav = denoiser_half_nr hlsl { RWTexture2D<float4> halfNrTexture@uav; };
-    halfZTexture@uav = denoiser_half_view_z hlsl { RWTexture2D<float> halfZTexture@uav; };
-    denoiser_camera_attached_radius@f1 = denoiser_camera_attached_radius;
+  }
+
+  if (denoiser_prepare_close_depth == yes)
+  {
+    (cs) {
+      halfNrTexture@uav = denoiser_half_nr hlsl { RWTexture2D<float4> halfNrTexture@uav; };
+      halfZTexture@uav = denoiser_half_view_z hlsl { RWTexture2D<float> halfZTexture@uav; };
+    }
+  }
+
+  if (rtr_depth_mode != def)
+  {
+    INIT_LOAD_MOTION_BUFFER_BASE(cs)
+    USE_LOAD_MOTION_BUFFER_BASE(cs)
+    (cs) {
+      halfNrTextureRTR@uav = denoiser_half_nr_rtr hlsl { RWTexture2D<float4> halfNrTextureRTR@uav; };
+      halfZTextureRTR@uav = denoiser_half_view_z_rtr hlsl { RWTexture2D<float> halfZTextureRTR@uav; };
+      halfMotionVectorsTextureRTR@uav = denoiser_half_motion_vectors_rtr hlsl { RWTexture2D<float4> halfMotionVectorsTextureRTR@uav; };
+    }
+  }
+
+  if (denoiser_prepare_close_depth == yes || rtr_depth_mode == smart)
+  {
+    (cs) { halfResCloseDepthTex@tex2d = downsampled_close_depth_tex; }
+  }
+
+  if (rtr_depth_mode == checker)
+  {
+    (cs) { halfResCheckerboardDepthTex@tex2d = downsampled_checkerboard_depth_tex; };
+  }
+  else if (rtr_depth_mode == smart)
+  {
+    (cs) {
+      halfResFarDepthTex@tex2d = downsampled_far_depth_tex;
+      halfSelectedDepthRTR@uav = half_selected_depth_rtr hlsl { RWTexture2D<float> halfSelectedDepthRTR@uav; };
+      rtr_pair_depth_band@f1 = rtr_pair_depth_band;
+      depth_gather_samplerstate@sampler = depth_gather_samplerstate;
+    }
   }
 
   if (denoiser_apply_wetness == yes)
@@ -63,9 +116,13 @@ shader denoiser_prepare
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_IS_HERO_COCKPIT(cs)
+  INIT_AND_USE_DENOISER_MATERIAL(cs)
 
   hlsl(cs) {
     #define INF 1e6
+
+    #define GROUP_SIZE_X 8
+    #define GROUP_SIZE_Y 8
 
     #include <NRD.hlsli>
 
@@ -82,14 +139,177 @@ shader denoiser_prepare
       }
     ##endif
 
-    [numthreads(8, 8, 1)]
-    void main(uint2 dtid : SV_DispatchThreadID)
+    void compute_half_res_texel(uint2 dtid, float raw_half_depth, out float half_view_z, out float4 normal_roughness, out uint2 half_res_offset)
+    {
+      half_view_z = raw_half_depth > 0 ? linearize_z(raw_half_depth, zn_zfar.zw) : INF;
+
+      float4 depths;
+      depths.x = loadGbufferDepth(dtid + uint2(0, 0));
+      depths.y = loadGbufferDepth(dtid + uint2(1, 0));
+      depths.z = loadGbufferDepth(dtid + uint2(0, 1));
+      depths.w = loadGbufferDepth(dtid + uint2(1, 1));
+      bool4 depthMask = depths == raw_half_depth;
+      half_res_offset = depthMask.x ? uint2(0, 0) : (depthMask.y ? uint2(1, 0) : (depthMask.z ? uint2(0, 1) : uint2(1, 1)));
+
+      UnpackedGbuffer unpacked_gbuffer = unpackGbuffer(loadPackedGbuffer(dtid + half_res_offset));
+      ProcessedGbuffer gbuffer = processGbuffer(unpacked_gbuffer);
+
+      float materialID = 0;
+      ##if gbuffer_has_hero_cockpit
+        materialID = getNRDMaterialID(half_view_z, gbuffer.isHeroCockpit, gbuffer.isGrass, gbuffer.isFoliage);
+      ##else
+        materialID = getNRDMaterialID(half_view_z, false, gbuffer.isGrass, gbuffer.isFoliage);
+      ##endif
+
+      float roughness = gbuffer.linearRoughness;
+      if (unpacked_gbuffer.isGlass)
+        roughness = 0;
+      ##if (denoiser_apply_wetness == yes)
+        if (raw_half_depth > 0)
+        {
+          float3 relPos = calc_camera_relative_pos(dtid / 2, half_view_z, inv_resolution * 2);
+          float3 worldPos = relPos + bvh_origin;
+          float3 view = -normalize(relPos);
+          roughness = wet(roughness, worldPos, gbuffer.normal, view, gbuffer.material, gbuffer.isLandscape, gbuffer.normal);
+        }
+      ##endif
+
+      normal_roughness = NRD_FrontEnd_PackNormalAndRoughness(gbuffer.normal, roughness, materialID);
+    }
+
+    ##if rtr_depth_mode == smart
+      bool rtrWithinBand(float lin_close, float lin_far)
+      {
+        return abs(lin_far - lin_close) <= rtr_pair_depth_band * lin_close;
+      }
+
+      #define HALF_TILE_SIZE_X (GROUP_SIZE_X / 2)
+      #define HALF_TILE_SIZE_Y (GROUP_SIZE_Y / 2)
+      #define SMART_CACHE_DIM_X (GROUP_SIZE_X + 2)
+      #define SMART_CACHE_DIM_Y (GROUP_SIZE_Y + 2)
+      groupshared float gsChosenLinDepths[SMART_CACHE_DIM_X * SMART_CACHE_DIM_Y];
+
+      bool4 rtrWithinBand4(float4 lin_closes, float4 lin_fars)
+      {
+        return abs(lin_fars - lin_closes) <= rtr_pair_depth_band * lin_closes;
+      }
+
+      uint4 rtrPatternBit4(int2 base_pos)
+      {
+        int4 xs = base_pos.x + int4(0, 1, 1, 0);
+        int4 ys = base_pos.y + int4(1, 1, 0, 0);
+        return uint4((xs + ys) >> 1) & 1;
+      }
+
+      float4 linearizeOrInf4(float4 raw_depths, float2 decode_depth)
+      {
+        return select(raw_depths > 0, linearize_z4(raw_depths, decode_depth), float4(INF, INF, INF, INF));
+      }
+
+      struct LocalSmartDepthValues
+      {
+        float closeDepth;
+        float farDepth;
+        float linClose;
+        float linFar;
+        bool withinThreshold;
+        bool isPatternFar;
+      };
+
+      void cacheChosenDepth(uint2 base, uint2 offset, float chosen_depth)
+      {
+        uint2 tc = base + offset;
+        gsChosenLinDepths[tc.x * SMART_CACHE_DIM_Y + tc.y] = chosen_depth;
+      }
+
+      LocalSmartDepthValues populateRTRSmartCache(uint2 dtid, uint2 gtid)
+      {
+        bool firstCol = gtid.x == 0;
+        bool firstRow = gtid.y == 0;
+        float2 gatherOffset = float2(firstCol ? -0.5f : 0.5f, firstRow ? -0.5f : 0.5f);
+        float2 halfInvRes = inv_resolution * 2;
+        float2 uv = (float2(dtid) * 0.5f + 0.5f + gatherOffset) * halfInvRes;
+
+        float4 closeDepths = halfResCloseDepthTex.GatherRed(depth_gather_samplerstate, uv, 0);
+        float4 farDepths = halfResFarDepthTex.GatherRed(depth_gather_samplerstate, uv, 0);
+        float4 linCloses = linearizeOrInf4(closeDepths, zn_zfar.zw);
+        float4 linFars = linearizeOrInf4(farDepths, zn_zfar.zw);
+
+        bool4 withinThreshold = rtrWithinBand4(linCloses, linFars);
+        int2 basePos = int2(dtid / 2) - int2(firstCol ? 1 : 0, firstRow ? 1 : 0);
+        uint4 isPatternFar = rtrPatternBit4(basePos);
+
+        bool4 useFars = !withinThreshold && isPatternFar;
+        float4 chosenLinDepths = select(useFars, linFars, linCloses);
+
+        uint2 localHalf = gtid >> 1;
+        uint2 gsBasePos = localHalf + 1 - uint2(firstCol ? 1 : 0, firstRow ? 1 : 0);
+        cacheChosenDepth(gsBasePos, uint2(0, 1), chosenLinDepths.x);
+        cacheChosenDepth(gsBasePos, uint2(1, 1), chosenLinDepths.y);
+        cacheChosenDepth(gsBasePos, uint2(1, 0), chosenLinDepths.z);
+        cacheChosenDepth(gsBasePos, uint2(0, 0), chosenLinDepths.w);
+
+        uint curSampleIdx = firstRow ? (firstCol ? 1 : 0)
+                                     : (firstCol ? 2 : 3);
+
+        LocalSmartDepthValues values;
+        values.closeDepth = closeDepths[curSampleIdx];
+        values.farDepth = farDepths[curSampleIdx];
+        values.linClose = linCloses[curSampleIdx];
+        values.linFar = linFars[curSampleIdx];
+        values.withinThreshold = withinThreshold[curSampleIdx];
+        values.isPatternFar = isPatternFar[curSampleIdx];
+
+        return values;
+      }
+
+      float resolveRTRSmartDepth(uint2 gtid, LocalSmartDepthValues local_values)
+      {
+
+        BRANCH
+        if (local_values.withinThreshold)
+          return local_values.closeDepth;
+
+        float linBase = local_values.isPatternFar ? local_values.linFar : local_values.linClose;
+        float linOther = local_values.isPatternFar ? local_values.linClose : local_values.linFar;
+
+        bool baseCovered = false;
+        bool otherCovered = false;
+        uint2 localHalf = gtid >> 1;
+        int2 gsCenterPos = int2(localHalf) + 1;
+
+        UNROLL
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+          UNROLL
+          for (int dx = -1; dx <= 1; ++dx)
+          {
+            if (dx == 0 && dy == 0)
+              continue;
+
+            float nbourLinDepth = gsChosenLinDepths[(gsCenterPos.x + dx) * SMART_CACHE_DIM_Y + gsCenterPos.y + dy];
+            otherCovered = otherCovered || rtrWithinBand(nbourLinDepth, linOther);
+            baseCovered = baseCovered || rtrWithinBand(nbourLinDepth, linBase);
+          }
+        }
+
+        if (!otherCovered && baseCovered)
+          local_values.isPatternFar = 1 - local_values.isPatternFar;
+
+        return local_values.isPatternFar ? local_values.farDepth : local_values.closeDepth;
+      }
+    ##endif
+
+    [numthreads(GROUP_SIZE_X, GROUP_SIZE_Y, 1)]
+    void main(uint2 dtid : SV_DispatchThreadID, uint2 gtid : SV_GroupThreadID)
     {
       if (any(dtid >= resolution))
         return;
 
       float  viewZ = INF;
       float4 normalRoughness = NRD_FrontEnd_PackNormalAndRoughness(float3(0, 1, 0), 0, 0); // Use a dummy vector to avoid nan values
+      float roughness = 0;
+      float3 normal = float3(0, 1, 0);
 
       float rawDepth = loadGbufferDepth(dtid);
 
@@ -102,18 +322,15 @@ shader denoiser_prepare
       {
         ProcessedGbuffer gbuffer = processGbuffer(unpacked_gbuffer);
 
-        if (gbuffer.isGrass || gbuffer.isFoliage)
-          materialID = STRAND_MATERIAL_ID;
+        viewZ = linearize_z(rawDepth, zn_zfar.zw);
         ##if gbuffer_has_hero_cockpit
-        if (gbuffer.isHeroCockpit)
-          materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
+          materialID = getNRDMaterialID(viewZ, gbuffer.isHeroCockpit, gbuffer.isGrass, gbuffer.isFoliage);
+        ##else
+          materialID = getNRDMaterialID(viewZ, false, gbuffer.isGrass, gbuffer.isFoliage);
         ##endif
 
-        viewZ = linearize_z(rawDepth, zn_zfar.zw);
-        if (viewZ < denoiser_camera_attached_radius)
-          materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
-
-        float roughness = gbuffer.linearRoughness;
+        roughness = gbuffer.linearRoughness;
+        normal = gbuffer.normal;
         ##if (denoiser_apply_wetness == yes)
           float3 relPos = calc_camera_relative_pos(dtid, viewZ, inv_resolution);
           float3 worldPos = relPos + bvh_origin;
@@ -128,51 +345,55 @@ shader denoiser_prepare
 
       texture2DAt(viewZTexture, dtid.xy) = viewZ;
       texture2DAt(nrTexture, dtid.xy) = normalRoughness;
-      ##if denoiser_half_res == yes
-        if (all((dtid.xy & 1) == 0) && all(dtid.xy / 2 < resolution / 2)) // TODO: Remove second check when we ceil resolution scaling.
+      bool writeHalfRes = all((dtid.xy & 1) == 0) && all(dtid.xy / 2 < resolution / 2);
+
+      ##if rtr_depth_mode == smart
+        LocalSmartDepthValues localValues;
+        if (writeHalfRes)
+          localValues = populateRTRSmartCache(dtid, gtid);
+        GroupMemoryBarrierWithGroupSync();
+      ##endif
+
+      ##if denoiser_prepare_close_depth == yes
+        if (writeHalfRes)
         {
-          float rawHalfDepth = texture2DAt(halfResDepthTex, dtid.xy / 2).r;
-          float halfViewZ = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
+          ##if rtr_depth_mode == smart
+            float rawHalfDepth = localValues.closeDepth;
+          ##else
+            float rawHalfDepth = texture2DAt(halfResCloseDepthTex, dtid.xy / 2).r;
+          ##endif
+
+          float halfViewZ;
+          float4 halfNormalRoughness;
+          uint2 halfResOffset;
+          compute_half_res_texel(dtid, rawHalfDepth, halfViewZ, halfNormalRoughness, halfResOffset);
+
           texture2DAt(halfZTexture, dtid.xy / 2) = halfViewZ;
+          texture2DAt(halfNrTexture, dtid.xy / 2) = halfNormalRoughness;
+        }
+      ##endif
 
-          float4 depths;
-          depths.x = loadGbufferDepth(dtid + uint2(0, 0));
-          depths.y = loadGbufferDepth(dtid + uint2(1, 0));
-          depths.z = loadGbufferDepth(dtid + uint2(0, 1));
-          depths.w = loadGbufferDepth(dtid + uint2(1, 1));
-          bool4 depthMask = depths == rawHalfDepth;
-          uint2 halfResOffset = depthMask.x ? uint2(0, 0) : (depthMask.y ? uint2(1, 0) : (depthMask.z ? uint2(0, 1) : uint2(1, 1)));
-
-          unpacked_gbuffer = unpackGbuffer(loadPackedGbuffer(dtid + halfResOffset));
-          ProcessedGbuffer gbuffer = processGbuffer(unpacked_gbuffer);
-
-          materialID = 0;
-          if (gbuffer.isGrass || gbuffer.isFoliage)
-            materialID = STRAND_MATERIAL_ID;
-          ##if gbuffer_has_hero_cockpit
-          if (gbuffer.isHeroCockpit)
-            materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
-          ##endif
-          if (halfViewZ < denoiser_camera_attached_radius)
-            materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
-
-          float4 halfNormal = texture2DAt(halfNormalsTexture, dtid.xy / 2);
-          halfNormal.xyz = normalize(halfNormal.xyz * 2 - 1);
-          float roughness = 1-halfNormal.w;
-          if (unpacked_gbuffer.isGlass)
-            roughness = 0;
-          ##if (denoiser_apply_wetness == yes)
-            if (rawHalfDepth > 0)
-            {
-              float3 relPos = calc_camera_relative_pos(dtid / 2, halfViewZ, inv_resolution * 2);
-              float3 worldPos = relPos + bvh_origin;
-              float3 verticalNormal = halfNormal.xyz;
-              float3 view = -normalize(relPos);
-              roughness = wet(roughness, worldPos, verticalNormal, view, material, isLandscape, halfNormal.xyz);
-            }
+      ##if rtr_depth_mode != def
+        if (writeHalfRes)
+        {
+          ##if rtr_depth_mode == checker
+            float rawHalfDepth = texture2DAt(halfResCheckerboardDepthTex, dtid.xy / 2).r;
+          ##else
+            float rawHalfDepth = resolveRTRSmartDepth(gtid, localValues);
           ##endif
 
-          texture2DAt(halfNrTexture, dtid.xy / 2) = NRD_FrontEnd_PackNormalAndRoughness(halfNormal.xyz, roughness, materialID);
+          float halfViewZ;
+          float4 halfNormalRoughness;
+          uint2 halfResOffset;
+          compute_half_res_texel(dtid, rawHalfDepth, halfViewZ, halfNormalRoughness, halfResOffset);
+
+          texture2DAt(halfZTextureRTR, dtid.xy / 2) = halfViewZ;
+          texture2DAt(halfNrTextureRTR, dtid.xy / 2) = halfNormalRoughness;
+          texture2DAt(halfMotionVectorsTextureRTR, dtid.xy / 2) = loadMotionBuffer(dtid + halfResOffset);
+
+          ##if rtr_depth_mode == smart
+            texture2DAt(halfSelectedDepthRTR, dtid.xy / 2) = rawHalfDepth;
+          ##endif
         }
       ##endif
     }

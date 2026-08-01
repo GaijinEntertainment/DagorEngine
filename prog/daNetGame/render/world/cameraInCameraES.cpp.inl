@@ -351,12 +351,10 @@ OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(cons
   return {out, main_view.znear};
 }
 
-static void set_uv_remapping_shvar(const dafg::multiplexing::Index &multiplexing_index)
+static void set_uv_remapping_shvar(const bool is_main_view)
 {
-  const bool isMainView = multiplexing_index.subCamera == 0;
-
   Point4 defVal = Point4(1.0f, 0.0f, 1.0f, 0.0f);
-  if (!isMainView)
+  if (!is_main_view)
   {
     get_camcam_uv_remapping_ecs_query(*g_entity_mgr, [&defVal](const Point4 &camcam__uv_remapping) { defVal = camcam__uv_remapping; });
   }
@@ -405,21 +403,24 @@ Color4 replace_color4(const ShaderVariableInfo &shvar, const auto &new_val)
 };
 
 
-ApplyMasterState::ApplyMasterState(const dafg::multiplexing::Index &index, const OpaqueFlags flags)
+ApplyMasterState::ApplyMasterState(const bool is_main_view, const OpaqueFlags flags)
 {
-  set_uv_remapping_shvar(index);
+  set_uv_remapping_shvar(is_main_view);
   const bool isCamCamRenderActive = is_lens_render_active();
   hasStencilTest = isCamCamRenderActive && (flags != OpaqueFlags::NoStencil);
 
   ShaderGlobal::set_float(var::camera_in_camera_active, isCamCamRenderActive ? 1.0f : 0.0f);
 
-
   if (hasStencilTest)
   {
-    shaders::set_stencil_ref(index.subCamera);
+    shaders::set_stencil_ref(is_main_view ? 0 : 1);
     shaders::overrides::set_master_state(get_stencil_test_override_state());
   }
 }
+
+ApplyMasterState::ApplyMasterState(const dafg::multiplexing::Index &index, const OpaqueFlags flags) :
+  ApplyMasterState(is_main_view(index), flags)
+{}
 
 ApplyMasterState::~ApplyMasterState()
 {
@@ -429,10 +430,9 @@ ApplyMasterState::~ApplyMasterState()
     shaders::overrides::reset_master_state();
 }
 
-ApplyPostfxState::ApplyPostfxState(
-  const dafg::multiplexing::Index &multiplexing_index, const CameraParams &view, const bool use_stencil)
+ApplyPostfxState::ApplyPostfxState(const bool is_main_view, const CameraParams &view, const bool use_stencil)
 {
-  set_uv_remapping_shvar(multiplexing_index);
+  set_uv_remapping_shvar(is_main_view);
 
   if (!is_lens_render_active())
     return;
@@ -440,7 +440,7 @@ ApplyPostfxState::ApplyPostfxState(
   lensRenderActive = true;
   ShaderGlobal::set_float(var::camera_in_camera_active, 1.0f);
 
-  isMainView = multiplexing_index.subCamera == 0;
+  isMainView = is_main_view;
   ShaderGlobal::set_float(var::camera_in_camera_postfx_lens_view, isMainView ? 0.0f : 1.0f);
 
   if (use_stencil)
@@ -475,6 +475,11 @@ ApplyPostfxState::ApplyPostfxState(
   savedGlobtmNoOfsPsf2 = replace_color4(var::globtm_no_ofs_psf_2, Color4(globtmNoOfs[2]));
   savedGlobtmNoOfsPsf3 = replace_color4(var::globtm_no_ofs_psf_3, Color4(globtmNoOfs[3]));
 }
+
+ApplyPostfxState::ApplyPostfxState(
+  const dafg::multiplexing::Index &multiplexing_index, const CameraParams &view, const bool use_stencil) :
+  ApplyPostfxState(is_main_view(multiplexing_index), view, use_stencil)
+{}
 
 ApplyPostfxState::~ApplyPostfxState()
 {
@@ -517,8 +522,8 @@ ApplyPostfxState::~ApplyPostfxState()
 }
 
 ApplyPostfxState::ApplyPostfxState(
-  const dafg::multiplexing::Index &multiplexing_index, const CameraParams &cur_view, const CameraParams &prev_view, bool use_stencil) :
-  ApplyPostfxState(multiplexing_index, cur_view, use_stencil)
+  const bool is_main_view, const CameraParams &cur_view, const CameraParams &prev_view, const bool use_stencil) :
+  ApplyPostfxState(is_main_view, cur_view, use_stencil)
 {
   if (!lensRenderActive || isMainView)
     return;
@@ -537,6 +542,11 @@ ApplyPostfxState::ApplyPostfxState(
 
   hasPrevState = true;
 }
+
+ApplyPostfxState::ApplyPostfxState(
+  const dafg::multiplexing::Index &multiplexing_index, const CameraParams &cur_view, const CameraParams &prev_view, bool use_stencil) :
+  ApplyPostfxState(is_main_view(multiplexing_index), cur_view, prev_view, use_stencil)
+{}
 } // namespace camera_in_camera
 
 ECS_TAG(render)

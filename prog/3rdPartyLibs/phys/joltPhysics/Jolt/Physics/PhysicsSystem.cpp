@@ -1339,7 +1339,7 @@ void PhysicsSystem::ProcessBodyPair(ContactAllocator &ioContactAllocator, const 
 			JPH_ASSERT(body1->GetMotionType() == body2->GetMotionType());
 			num_ticks /= 2;
 			body1->GetMotionProperties()->GetSimulationStats().mNarrowPhaseTicks.fetch_add(num_ticks, memory_order_relaxed);
-			body1->GetMotionProperties()->GetSimulationStats().mNarrowPhaseTicks.fetch_add(num_ticks, memory_order_relaxed);
+			body2->GetMotionProperties()->GetSimulationStats().mNarrowPhaseTicks.fetch_add(num_ticks, memory_order_relaxed);
 		}
 	#endif
 	}
@@ -1561,15 +1561,6 @@ void PhysicsSystem::JobSolveVelocityConstraints(PhysicsUpdateContext *ioContext,
 			stats.mVelocityConstraintTicks.fetch_add(num_ticks, memory_order_relaxed);
 			stats.mIsLargeIsland = is_large_island;
 		#endif
-
-			// We processed work, loop again
-			continue;
-		}
-
-		if (check_islands)
-		{
-			// If there are islands, we don't need to wait and can pick up new work
-			continue;
 		}
 		else if (check_split_islands)
 		{
@@ -1937,8 +1928,8 @@ void PhysicsSystem::JobFindCCDContacts(const PhysicsUpdateContext *ioContext, Ph
 				}
 			}
 
-			bool						mValidateBodyPair;				///< If we still have to call the ValidateContactPoint for this body pair
-			bool						mRejectAll;						///< Reject all further contacts between this body pair
+			bool						mValidateBodyPair = true;			///< If we still have to call the ValidateContactPoint for this body pair
+			bool						mRejectAll = false;					///< Reject all further contacts between this body pair
 
 		private:
 			const BodyManager &			mBodyManager;
@@ -1946,7 +1937,6 @@ void PhysicsSystem::JobFindCCDContacts(const PhysicsUpdateContext *ioContext, Ph
 			CCDBody &					mCCDBody;
 			ShapeCastResult &			mResult;
 			float						mDeltaTime;
-			BodyID						mAcceptedBodyID;
 		};
 
 		// Narrowphase collector
@@ -2613,15 +2603,6 @@ void PhysicsSystem::JobSolvePositionConstraints(PhysicsUpdateContext *ioContext,
 			// Accumulate time spent in updating bounding box
 			stats.mUpdateBoundsTicks.fetch_add(GetProcessorTickCount() - solve_position_ticks, memory_order_relaxed);
 		#endif
-
-			// We processed work, loop again
-			continue;
-		}
-
-		if (check_islands)
-		{
-			// If there are islands, we don't need to wait and can pick up new work
-			continue;
 		}
 		else if (check_split_islands)
 		{

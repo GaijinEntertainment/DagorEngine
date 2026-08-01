@@ -14,6 +14,8 @@ struct AnimParamData;
 struct AnimCtrlData;
 struct BlendNodeData;
 class DataBlock;
+class AnimTreePlugin;
+class IListReorderHandler;
 
 void linear_poly_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx);
 void linear_poly_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
@@ -23,3 +25,5 @@ void linear_poly_remove_node_from_list(PropPanel::ContainerPropertyControl *pane
 const char *linear_poly_get_child_name_by_idx(const DataBlock &settings, int idx);
 String linear_poly_get_child_prefix_name(const DataBlock &settings, int idx);
 void linear_poly_update_child_name(DataBlock &settings, const char *name, const String &old_name);
+IListReorderHandler *linear_poly_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data);

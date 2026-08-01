@@ -2,11 +2,13 @@
 
 #include <daECS/core/componentTypes.h>
 #include <vecmath/dag_vecMath.h>
+#include "specialized_memcpy.h"
 #include "entityManagerEvent.h"
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
 #include <util/dag_stlqsort.h>
 #include <dag/dag_vectorMap.h>
+#include <generic/dag_relocatableFixedVector.h>
 #include <daECS/core/tokenize_const_string.h>
 #include "ecsQueryManager.h"
 
@@ -67,6 +69,52 @@ bool Templates::isReplicatedComponent(template_t t, component_index_t cidx) cons
   return eastl::binary_search(replAt, replEnd, cidx);
 }
 
+// Loop-invariant part of one (archetype, tracked component) scan: the change-ES list
+// filtered to this archetype and the replication gate. Resolved lazily on the first
+// changed entity, so scans that find nothing (the common case) pay nothing.
+struct EntityManager::TrackedChangeContext
+{
+  dag::RelocatableFixedVector<es_index_type, 8, true, framemem_allocator> esList; // change-ESes applying to this archetype
+  archetype_t archetype;
+  component_index_t cidx;
+  template_t lastTemplate = INVALID_TEMPLATE_INDEX; // memo: chunks are near-homogeneous in template
+  bool lastReplicated = false;
+  bool resolved = false;
+  bool replicationPossible = false;
+  TrackedChangeContext(archetype_t arch, component_index_t c) : archetype(arch), cidx(c) {}
+};
+
+void EntityManager::resolveTrackedChangeContext(TrackedChangeContext &ctx)
+{
+  ctx.resolved = true;
+  ctx.replicationPossible = replicationCb && canBeReplicated.test(ctx.cidx, false);
+  auto esListIt = esOnChangeEvents.find(dataComponents.getComponentTpById(ctx.cidx));
+  if (esListIt != esOnChangeEvents.end())
+    for (es_index_type esIndex : esListIt->second)
+      if (doesEsApplyToArch(esIndex, ctx.archetype))
+        ctx.esList.push_back(esIndex);
+}
+
+__forceinline void EntityManager::applyTrackedChange(EntityId eid, TrackedChangeContext &ctx, TrackedChangesTemp &process)
+{
+  if (DAGOR_UNLIKELY(!ctx.resolved))
+    resolveTrackedChangeContext(ctx);
+  const uint32_t idx = eid.index();
+  if (ctx.replicationPossible && (idx <= MAX_RESERVED_EID_IDX_CONST || exhaustedReservedIndices))
+  {
+    const template_t templ = entDescs[idx].template_id;
+    if (DAGOR_UNLIKELY(templ != ctx.lastTemplate))
+    {
+      ctx.lastTemplate = templ;
+      ctx.lastReplicated = templates.isReplicatedComponent(templ, ctx.cidx);
+    }
+    if (ctx.lastReplicated)
+      replicationCb(*this, eid, ctx.cidx);
+  }
+  for (const es_index_type esIndex : ctx.esList)
+    process.insert(scheduled_from_eid_second(eid, esIndex));
+}
+
 __forceinline void EntityManager::preprocessTrackedChange(EntityId eid, archetype_t archetype, component_index_t cidx,
   TrackedChangesTemp &process)
 {
@@ -96,101 +144,44 @@ __forceinline void EntityManager::preprocessTrackedChange(EntityId eid, archetyp
 }
 
 
-template <typename T, int const_csz>
-struct Comparator
+// index of the first differing byte between a and b, or sz if streams are equal
+static __forceinline size_t first_difference(const uint8_t *__restrict a, const uint8_t *__restrict b, size_t sz)
 {
-  static __forceinline bool is_equal(const T *__restrict a, const T *__restrict b, size_t)
+  size_t at = 0;
+  for (; at + 64 <= sz; at += 64) // one cache line of each stream per iteration; the common case is full equality
   {
-    for (size_t i = 0; i < const_csz; ++i, a++, b++)
-      if (*a != *b)
-        return false;
-    return true;
+    vec4i eq01 = v_andi(v_cmp_eqi(v_ldui((const int *)(a + at)), v_ldui((const int *)(b + at))),
+      v_cmp_eqi(v_ldui((const int *)(a + at + 16)), v_ldui((const int *)(b + at + 16))));
+    vec4i eq23 = v_andi(v_cmp_eqi(v_ldui((const int *)(a + at + 32)), v_ldui((const int *)(b + at + 32))),
+      v_cmp_eqi(v_ldui((const int *)(a + at + 48)), v_ldui((const int *)(b + at + 48))));
+    if (!v_check_xyzw_all_true(v_cast_vec4f(v_andi(eq01, eq23))))
+      break;
   }
-};
+  for (; at + 16 <= sz; at += 16)
+    if (!v_check_xyzw_all_true(v_cast_vec4f(v_cmp_eqi(v_ldui((const int *)(a + at)), v_ldui((const int *)(b + at))))))
+      break;
+  for (; at < sz; ++at)
+    if (a[at] != b[at])
+      return at;
+  return sz;
+}
 
-template <typename T>
-struct Comparator<T, 1>
+static __forceinline void copy_pod_component(uint8_t *__restrict to, const uint8_t *__restrict from, size_t sz)
 {
-  static __forceinline bool is_equal(const T *__restrict a, const T *__restrict b, size_t) { return *a == *b; }
-};
-
-template <>
-struct Comparator<vec4i, 1>
-{
-  static __forceinline bool is_equal(const vec4i *__restrict a, const vec4i *__restrict b, size_t)
+  if (sz >= 16)
   {
-    return v_check_xyzw_all_true(v_cast_vec4f(v_cmp_eqi(*a, *b)));
+    size_t at = 0;
+    for (; at + 16 <= sz; at += 16)
+      v_stui(to + at, v_ldui((const int *)(from + at)));
+    if (at != sz) // overlapping tail store; to and from streams never alias
+      v_stui(to + sz - 16, v_ldui((const int *)(from + sz - 16)));
   }
-};
-
-template <int const_csz>
-struct Comparator<vec4i, const_csz>
-{
-  static __forceinline bool is_equal(const vec4i *__restrict a, const vec4i *__restrict b, size_t)
-  {
-    vec4i eqi = v_cmp_eqi(*a, *b);
-    a++;
-    b++;
-    for (size_t i = 1; i < const_csz; ++i, a++, b++)
-      eqi = v_andi(eqi, v_cmp_eqi(*a, *b));
-    return v_check_xyzw_all_true(v_cast_vec4f(eqi));
-  }
-};
-
-template <>
-struct Comparator<uint8_t, 0>
-{
-  static __forceinline bool is_equal(const uint8_t *__restrict a, const uint8_t *__restrict b, size_t sz)
-  {
-    return memcmp(a, b, sz) == 0;
-  }
-};
-
-template <typename T, int const_csz>
-struct Copier
-{
-  static __forceinline void copy(T *__restrict a, const T *__restrict b, size_t)
-  {
-    for (size_t i = 0; i < const_csz; ++i, a++, b++)
-      *a = *b;
-  }
-};
-template <typename T>
-struct Copier<T, 1>
-{
-  static __forceinline void copy(T *__restrict a, const T *__restrict b, size_t) { *a = *b; }
-};
-
-template <typename T>
-struct Copier<T, 0>
-{
-  static __forceinline void copy(T *__restrict a, const T *__restrict b, size_t csz)
-  {
-    for (size_t i = 0; i < csz; ++i, a++, b++)
-      *a = *b;
-  }
-};
-
-template <>
-struct Copier<uint8_t, 0>
-{
-  static __forceinline void copy(uint8_t *__restrict a, const uint8_t *__restrict b, size_t sz) { memcpy(a, b, sz); }
-};
+  else
+    SPECIALIZE_MEMCPY(sz, to, from);
+}
 
 template <bool use_ctm, typename T, int csz>
 struct ReplicateComparator;
-
-template <typename T, int csz>
-struct ReplicateComparator<false, T, csz>
-{
-  static __forceinline bool replicateCompare(T *__restrict old, const T *__restrict from, size_t sz, const ComponentTypeManager *)
-  {
-    if (Comparator<T, csz>::is_equal(old, from, sz))
-      return false;
-    Copier<T, csz>::copy(old, from, sz);
-    return true;
-  }
-};
 
 template <typename T, int csz>
 struct ReplicateComparator<true, T, csz>
@@ -234,7 +225,7 @@ struct ReplicateComparator<false, ecs::IntList, 1> : public FinalReplicateCompar
 
 template <class T, int const_csz, bool use_ctm>
 void EntityManager::compare_data(TrackedChangesTemp &to_process, uint32_t arch, const uint32_t compOffset,
-  const uint32_t oldCompOffset, component_index_t cidx, size_t csz, const ComponentTypeManager *ctm)
+  const uint32_t oldCompOffset, TrackedChangeContext &ctx, size_t csz, const ComponentTypeManager *ctm)
 {
   if (const_csz)
     csz = const_csz;
@@ -256,15 +247,60 @@ void EntityManager::compare_data(TrackedChangesTemp &to_process, uint32_t arch, 
          compStream += csz, oldCompStream += csz, ++eid)
       if (ReplicateComparator<use_ctm, T, const_csz>::replicateCompare(oldCompStream, compStream, csz, ctm))
       {
-        preprocessTrackedChange(*eid, arch, cidx, to_process);
+        applyTrackedChange(*eid, ctx, to_process);
       }
 #if DAECS_EXTENSIVE_CHECKS
       else if (log_unchaged_track_components_marked_as_changed)
       {
-        if (component_index_to_unchanged_track_count.find(cidx) == component_index_to_unchanged_track_count.end())
-          component_index_to_unchanged_track_count[cidx] = 0;
-        component_index_to_unchanged_track_count[cidx] += 1;
+        if (component_index_to_unchanged_track_count.find(ctx.cidx) == component_index_to_unchanged_track_count.end())
+          component_index_to_unchanged_track_count[ctx.cidx] = 0;
+        component_index_to_unchanged_track_count[ctx.cidx] += 1;
       }
+#endif
+  }
+}
+
+// POD components are compared bitwise (as raw bytes, floats included): scan both streams a cache line at a time
+// and locate exact entities only when a difference is found; full equality is the common case.
+void EntityManager::compare_data_pod(TrackedChangesTemp &to_process, uint32_t arch, const uint32_t compOffset,
+  const uint32_t oldCompOffset, TrackedChangeContext &ctx, const size_t csz)
+{
+  const Archetype *archetype = &archetypes.getArchetype(arch);
+  for (uint32_t chunkI = 0, chunkE = archetype->manager.getChunksCount(); chunkI < chunkE; ++chunkI)
+  {
+    const auto &chunk = archetype->manager.getChunk(chunkI);
+    const uint32_t chunkUsed = chunk.getUsed();
+    if (!chunkUsed)
+      continue;
+    const uint8_t *__restrict compStream = (const uint8_t *__restrict)chunk.getCompDataUnsafe(compOffset);
+    uint8_t *__restrict oldCompStream = (uint8_t *__restrict)chunk.getCompDataUnsafe(oldCompOffset);
+    const EntityId *__restrict eidStart = ((const EntityId *)chunk.getCompDataUnsafe(0));
+    const size_t streamSize = csz * chunkUsed;
+#if DAECS_EXTENSIVE_CHECKS
+    uint32_t changedInChunk = 0;
+#endif
+    size_t at = 0;
+    while (at < streamSize)
+    {
+      const size_t diffAt = at + first_difference(oldCompStream + at, compStream + at, streamSize - at);
+      if (diffAt == streamSize)
+        break;
+      const uint32_t inChunkId = uint32_t(diffAt / csz);
+      const size_t entityAt = size_t(inChunkId) * csz;
+      copy_pod_component(oldCompStream + entityAt, compStream + entityAt, csz);
+      applyTrackedChange(eidStart[inChunkId], ctx, to_process);
+#if DAECS_EXTENSIVE_CHECKS
+      changedInChunk++;
+#endif
+      at = entityAt + csz;
+    }
+#if DAECS_EXTENSIVE_CHECKS
+    if (log_unchaged_track_components_marked_as_changed && chunkUsed != changedInChunk)
+    {
+      if (component_index_to_unchanged_track_count.find(ctx.cidx) == component_index_to_unchanged_track_count.end())
+        component_index_to_unchanged_track_count[ctx.cidx] = 0;
+      component_index_to_unchanged_track_count[ctx.cidx] += chunkUsed - changedInChunk;
+    }
 #endif
   }
 }
@@ -293,60 +329,24 @@ bool EntityManager::trackChangedArchetype(uint32_t archetypeId, component_index_
   const bool podComparable = is_pod(componentTypeInfo.flags);
   const uint32_t compOffset = archetypes.getComponentOfs(archetypeId, componentInArchetypeIndex);
   const uint32_t oldCompOffset = archetypes.getComponentOfs(archetypeId, oldComponentInArchetypeIndex);
+  TrackedChangeContext ctx(archetype_t(archetypeId), cidx);
   if (podComparable)
-  {
-    switch (componentSize)
-    {
-      case 1: // one byte
-        compare_data<uint8_t>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 2: // short
-        compare_data<uint16_t>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 4: // uint32_t
-        compare_data<uint32_t>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 8: // int64_t
-        compare_data<int64_t>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 12: // Point3
-        compare_data<IPoint3>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 16: // vec4i
-        compare_data<vec4i>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 24: // Point3
-        compare_data<DPoint3>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 32: // bbox3f
-        compare_data<vec4i, 2>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      case 48: // TMatrix
-        compare_data<vec4i, 3>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
-        break;
-      default:
-        if (componentSize % 16 == 0)
-          compare_data<vec4i, 0>(to_process, archetypeId, compOffset, oldCompOffset, cidx, componentSize / 16); // comparison of
-                                                                                                                // vectors is faster
-        else
-          compare_data<uint8_t, 0>(to_process, archetypeId, compOffset, oldCompOffset, cidx, componentSize);
-    }
-  }
+    compare_data_pod(to_process, archetypeId, compOffset, oldCompOffset, ctx, componentSize);
   else
   {
     switch (dataComponent.componentTypeName) // practicality beats purity. Specialize for most common slow types
     {
       case ecs::ComponentTypeInfo<ecs::string>::type:
         G_STATIC_ASSERT(!ecs::ComponentTypeInfo<ecs::string>::is_boxed);
-        compare_data<ecs::string>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
+        compare_data<ecs::string>(to_process, archetypeId, compOffset, oldCompOffset, ctx);
         break;
       case ecs::ComponentTypeInfo<ecs::Object>::type:
         G_STATIC_ASSERT(!ecs::ComponentTypeInfo<ecs::Object>::is_boxed);
-        compare_data<ecs::Object>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
+        compare_data<ecs::Object>(to_process, archetypeId, compOffset, oldCompOffset, ctx);
         break;
       case ecs::ComponentTypeInfo<ecs::Array>::type:
         G_STATIC_ASSERT(!ecs::ComponentTypeInfo<ecs::Array>::is_boxed);
-        compare_data<ecs::Array>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
+        compare_data<ecs::Array>(to_process, archetypeId, compOffset, oldCompOffset, ctx);
         break;
       case ecs::ComponentTypeInfo<ecs::EidList>::type:
       case ecs::ComponentTypeInfo<ecs::IntList>::type:
@@ -355,14 +355,14 @@ bool EntityManager::trackChangedArchetype(uint32_t archetypeId, component_index_
                         !ecs::ComponentTypeInfo<ecs::FloatList>::is_boxed);
         G_STATIC_ASSERT(
           sizeof(ecs::EidList::value_type) == sizeof(ecs::IntList::value_type) && sizeof(ecs::EidList) == sizeof(ecs::IntList));
-        compare_data<ecs::IntList>(to_process, archetypeId, compOffset, oldCompOffset, cidx);
+        compare_data<ecs::IntList>(to_process, archetypeId, compOffset, oldCompOffset, ctx);
         break;
       default:
       {
         const ComponentTypeManager *ctm = componentTypes.getTypeManager(componentType);
         if (!ctm)
           return true;
-        compare_data<uint8_t, 0, true>(to_process, archetypeId, compOffset, oldCompOffset, cidx, componentSize, ctm);
+        compare_data<uint8_t, 0, true>(to_process, archetypeId, compOffset, oldCompOffset, ctx, componentSize, ctm);
       }
     }
   }
@@ -376,7 +376,8 @@ void EntityManager::scheduleTrackChanged(EntityId eid, component_index_t cidx)
   scheduleTrackChangedNoMutex(eid, cidx);
 }
 
-inline void EntityManager::trackChanged(EntityId eid, component_index_t cidx, TrackedChangesTemp &to_process)
+inline void EntityManager::trackChanged(EntityId eid, component_index_t cidx, uint64_t scanned_cidx_mask,
+  TrackedChangesTemp &to_process)
 {
   const unsigned idx = eid.index();
   if (idx >= entDescs.allocated_size())
@@ -386,6 +387,12 @@ inline void EntityManager::trackChanged(EntityId eid, component_index_t cidx, Tr
   if (entDesc.generation != eid.generation() || archetypeId == INVALID_ARCHETYPE)
     return;
   DAECS_VALIDATE_ARCHETYPE(archetypeId);
+
+  // covered by an archetype-wide scan earlier this tick: shadow is already in sync.
+  // the cidx bloom mask keeps the hash probe off entries whose component was not scanned at all
+  if (DAGOR_UNLIKELY((scanned_cidx_mask >> (cidx & 63)) & 1) &&
+      archetypeTrackingQueue.has_key(uint32_t(archetypeId) | (uint32_t(cidx) << (8 * sizeof(archetype_t)))))
+    return;
 
   const component_index_t old_cidx = dataComponents.getTrackedPair(cidx);
   if (old_cidx == INVALID_COMPONENT_INDEX)
@@ -450,9 +457,22 @@ inline unsigned EntityManager::trackScheduledChanges()
   FRAMEMEM_REGION;
   TrackedChangesTemp toProcess = {eastl::max((uint32_t)8, (uint32_t)lastTrackedCount)}; // not less than two cache-lines, and use
                                                                                         // lastTrackedCount as guesstimate
+  uint64_t scannedCidxMask = 0; // bloom over scanned pairs' cidx, gates the eid-loop archetypeTrackingQueue probe
   {
     TIME_PROFILE_DEV(ecs_track_archetypes);
+    SmallTab<uint32_t, framemem_allocator> sortedPairs(aei);
+    uint32_t pairCount = 0;
     for (auto scheduled : archetypeTrackingQueue)
+    {
+      sortedPairs[pairCount++] = scheduled;
+      scannedCidxMask |= uint64_t(1) << ((scheduled >> (8 * sizeof(archetype_t))) & 63);
+    }
+    // archetype-major order: scans of several tracked components of one archetype walk the same chunks back-to-back
+    stlsort::sort(sortedPairs.begin(), sortedPairs.end(), [](uint32_t a, uint32_t b) {
+      constexpr uint32_t rot = 8 * sizeof(archetype_t);
+      return ((a << rot) | (a >> rot)) < ((b << rot) | (b >> rot));
+    });
+    for (const uint32_t scheduled : sortedPairs)
     {
       G_STATIC_ASSERT(sizeof(archetype_t) + sizeof(component_index_t) <= sizeof(scheduled));
       const archetype_t archetype = (scheduled & eastl::numeric_limits<archetype_t>::max());
@@ -461,16 +481,17 @@ inline unsigned EntityManager::trackScheduledChanges()
       DAECS_EXT_ASSERT(dataComponents.isTracked(cidx));
       trackChangedArchetype(archetype, cidx, dataComponents.getTrackedPairUnsafe(cidx), toProcess);
     }
-    archetypeTrackingQueue.clear(archetypeTrackingQueue.size());
   }
   {
     TIME_PROFILE_DEV(ecs_track_eids);
     for (auto scheduled : eidTrackingQueue)
     {
       G_STATIC_ASSERT(sizeof(EntityId) + sizeof(component_index_t) <= sizeof(scheduled));
-      trackChanged(get_eid_from_scheduled(scheduled), get_second_from_scheduled(scheduled), toProcess);
+      trackChanged(get_eid_from_scheduled(scheduled), get_second_from_scheduled(scheduled), scannedCidxMask, toProcess);
     }
   }
+  // cleared only after the eid loop: trackChanged skips eid entries whose pair was already scanned
+  archetypeTrackingQueue.clear(archetypeTrackingQueue.size());
   if (max<size_t>(32, eidTrackingQueue.get_capacity(eidTrackingQueue.size()) * 2) < eidTrackingQueue.bucket_count()) // allow
                                                                                                                      // overallocation
                                                                                                                      // of size of 2,

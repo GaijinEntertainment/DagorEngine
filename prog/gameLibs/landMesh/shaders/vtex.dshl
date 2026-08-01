@@ -1,3 +1,5 @@
+include "shader_global.dshl"
+
 int clipmap_use_ri_vtex = 0 always_referenced;
 
 interval clipmap_use_ri_vtex: no < 1, yes;
@@ -50,6 +52,7 @@ hlsl(stage){
   void set_reflectance(inout Vtex vtex, half t){vtex.reflectance = t;}
   void set_smoothness(inout Vtex vtex, half s){vtex.smoothness = s;}
   void set_normal(inout Vtex vtex, half3 n){vtex.normal = n;}
+  void set_normalXY(inout Vtex vtex, half2 n){vtex.normal.xy = n; vtex.normal.z = sqrt(saturate(1-dot(n.xy,n.xy)));}
   void set_micro_detail(inout Vtex vtex, half d){vtex.micro_detail = d;}
   void set_ao(inout Vtex vtex, half a){vtex.ao = a;}
   void set_emission(inout Vtex vtex, half a){vtex.emission = a;}
@@ -75,7 +78,6 @@ endmacro
 
 macro READ_PACKED_VTEX_BASE(stage)
   USE_VTEX_BASE(stage)
-  USE_AUTO_SET_BASE(stage)
 
   hlsl(stage) {
     Vtex unpack_vtex(half4 cache0)
@@ -101,13 +103,19 @@ macro READ_PACKED_VTEX_BASE(stage)
     Vtex unpack_vtex(half4 cache0, half2 normal, half4 cache2)
     {
       Vtex ret = unpack_vtex(cache0, normal);
-      ret.ao = saturate(cache2.x * 2.5f);
-      ret.emission = saturate(2.5f * (cache2.x - 0.6f));
-      ret.reflectance = cache2.y;
+      ret.ao = cache2.r;
+      ret.reflectance = cache2.g;
+      ret.emission = cache2.b;
       ret.smoothness = cache2.a;
       return ret;
     }
+  }
+endmacro
 
+macro AUTO_DETECT_OTHER_BASE(stage)
+  USE_AUTO_SET_BASE(stage)
+
+  hlsl(stage) {
     void auto_detect_other(inout Vtex vtex, float2 worldPosXZ)
     {
       auto_set(vtex, worldPosXZ);
@@ -115,6 +123,80 @@ macro READ_PACKED_VTEX_BASE(stage)
   }
 endmacro
 
-macro READ_PACKED_VTEX()
-  READ_PACKED_VTEX_BASE(ps)
+macro USE_CLIPMAP_MRT_OUTPUT()
+USE_VTEX()
+hlsl(ps) {
+
+  ##if (render_with_normalmap == render_displacement) // render heightmap only
+    struct VTEX_MRT
+    {
+      float4 height  : SV_Target0;
+    };
+  ##else
+    struct VTEX_MRT
+    {
+      float4 diffuse                         : SV_Target0;
+      float4 normal__smoothness_or_lq_detail : SV_Target1;
+      ##if (clipmap_use_cache_output2)
+        float4 ao_reflectance_detail         : SV_Target2;
+      ##endif
+    };
+
+    half3 pack_detail_ao_reflectance_emission(half detail, half ao, half reflectance, half emission)
+    {
+      half ao_emission = emission < 0.01 ? ao * (127.f / 255.f) : emission * (127.f / 255.f) + (128.f / 255.f);
+      return half3(ao_emission, reflectance, detail);
+    }
+
+    VTEX_MRT create_render_vtex(inout Vtex vtex)
+    {
+      VTEX_MRT ret;
+      ret.diffuse = vtex.diffuse.rgbr;
+
+      // FIX-ME: On normal__smoothness_or_lq_detail we either store float3(normal.xy, smoothness), float(micro_detail) or float3(normal.xy, micro_detail)
+      // Artists use "write_vtexmask" as color_write mask assuming the first case is used (non-compatibility with normal). We should migrate the mask.
+      ##if (clipmap_use_cache_output2)
+        ret.normal__smoothness_or_lq_detail = vtex.smoothness.rrrr;
+      ##else
+        ret.normal__smoothness_or_lq_detail = vtex.micro_detail.rrrr;
+      ##endif
+      ##if (clipmap_use_cache_output1)
+        ret.normal__smoothness_or_lq_detail.rg = vtex.normal.xy*0.5+0.5;
+      ##endif
+
+      ##if (clipmap_use_cache_output2)
+        ret.ao_reflectance_detail = pack_detail_ao_reflectance_emission(vtex.micro_detail, vtex.ao, vtex.reflectance, vtex.emission).rgbb;
+      ##endif
+      return ret;
+    }
+    void multiply_target(inout VTEX_MRT mrt, half v)//additive blending
+    {
+      mrt.diffuse *= v;
+      mrt.normal__smoothness_or_lq_detail *= v;
+      ##if (clipmap_use_cache_output2)
+        mrt.ao_reflectance_detail *= v;
+      ##endif
+    }
+    void set_alpha_diffuse(inout VTEX_MRT mrt, half v)//blending
+    {
+      mrt.diffuse.a = v;
+    }
+    void set_alpha_normal_smoothness_or_lq_detail(inout VTEX_MRT mrt, half v)//blending
+    {
+      mrt.normal__smoothness_or_lq_detail.a = v;
+    }
+    void set_alpha_ao_reflectance_detail(inout VTEX_MRT mrt, half v)//blending
+    {
+      ##if (clipmap_use_cache_output2)
+        mrt.ao_reflectance_detail.a = v;
+      ##endif
+    }
+    void set_alpha(inout VTEX_MRT mrt, half v)//blending
+    {
+      set_alpha_diffuse(mrt, v);
+      set_alpha_normal_smoothness_or_lq_detail(mrt, v);
+      set_alpha_ao_reflectance_detail(mrt, v);
+    }
+  ##endif
+}
 endmacro

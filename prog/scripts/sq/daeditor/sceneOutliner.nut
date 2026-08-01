@@ -181,7 +181,7 @@ function createFakeSceneItems(order, expandedStateCb) {
   return fakeItems
 }
 
-function gatherSceneItems(scene, order, isParentExpanded, depth, items, expandedStateCb) {
+function gatherSceneItems(scene, order, isParentExpanded, depth, items: array, expandedStateCb) {
   if (scene.id != fakeScene.id) {
     if ((scene.loadType == 1 && !showCommonScenes.get()) ||
       (scene.loadType == 2 && !showClientScenes.get()) ||
@@ -348,9 +348,9 @@ function scrollScenesBySelection() {
   }, 2, false, true)
 }
 
-function scnTxt(count) { return count==1 ? "scene" : "scenes" }
-function entTxt(count) { return count==1 ?  "entity" : "entities" }
-function statusText(count, textFunc) { return format("%d %s", count, textFunc(count)) }
+function scnTxt(count): string { return count==1 ? "scene" : "scenes" }
+function entTxt(count): string { return count==1 ?  "entity" : "entities" }
+function statusText(count, textFunc: function): string { return format("%d %s", count, textFunc(count)) }
 
 function statusLineScenes() {
   let sMrk = getNumMarkedScenes()
@@ -493,7 +493,7 @@ function getSelectedScenesIndicies(scenes) {
   return scenes.get()?.filter(@(marked, _sceneId) marked).keys()
 }
 
-function getAllSelectedItems() {
+function getAllSelectedItems(): array {
   let selection = []
   selection.extend(markedStateScenes?.get().filter(@(marked, _sceneId) marked).keys().map(function (value) {
     let item = {}
@@ -1459,7 +1459,7 @@ function listSceneRow(item, idx) {
 
 de4workMode.subscribe(@(_) gui_scene.resetTimeout(0.1, initLists))
 
-function isAnyEntitySelected() {
+function isAnyEntitySelected(): bool {
   return selectionStateEntities?.get().filter(@(val, _) val).len() != 0
 }
 

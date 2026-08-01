@@ -50,8 +50,6 @@ struct FrontendState
   struct StageResourcesState
   {
     Sbuffer *bRegisterBuffers[dxil::MAX_B_REGISTERS] = {};
-    uint32_t bRegisterOffsets[dxil::MAX_B_REGISTERS] = {};
-    uint32_t bRegisterSizes[dxil::MAX_B_REGISTERS] = {};
 
     TRegisterStates tRegisterResources;
 
@@ -304,7 +302,7 @@ struct FrontendState
       {
         gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsConstOrVertexBuffer(); });
         ConstBufferSetupInformationStream info;
-        info.buffer = {get_any_buffer_ref(gbuf), target.bRegisterOffsets[i], target.bRegisterSizes[i]};
+        info.buffer = {get_any_buffer_ref(gbuf), 0, 0};
 #if DX12_VALIDATE_STREAM_CB_USAGE_WITHOUT_INITIALIZATION
         info.lastDiscardFrameIdx = gbuf->getDiscardFrame();
         info.isStreamBuffer = gbuf->isStreamBuffer();
@@ -564,18 +562,14 @@ struct FrontendState
     externalInputLayout = layout;
   }
 
-  void setStageBRegisterBuffer(uint32_t stage, uint32_t index, Sbuffer *buffer, uint32_t offset, uint32_t size)
+  void setStageBRegisterBuffer(uint32_t stage, uint32_t index, Sbuffer *buffer)
   {
     G_ASSERT(stage < countof(stageResources));
     StageResourcesState &target = stageResources[stage];
     G_ASSERT(index < countof(target.bRegisterBuffers));
     OSSpinlockScopedLock resourceBindingLock(resourceBindingGuard);
-    target.markDirtyB(index,
-      target.bRegisterBuffers[index] != buffer || target.bRegisterOffsets[index] != offset || target.bRegisterSizes[index] != size);
+    target.markDirtyB(index, target.bRegisterBuffers[index] != buffer);
     target.bRegisterBuffers[index] = buffer;
-    target.bRegisterOffsets[index] = offset;
-    G_ASSERT(size % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
-    target.bRegisterSizes[index] = size;
   }
 
   void setStageTRegisterBuffer(uint32_t stage, uint32_t index, GenericBufferInterface *buffer)
@@ -620,7 +614,7 @@ struct FrontendState
     if (buffer != prevBuf && prevBuf)
     {
       auto flags = prevBuf->getFlags();
-      markBufferStagesDirty(prevBuf, SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags, SBCF_BIND_SHADER_RES & flags,
+      markBufferStagesDirty(prevBuf, SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags, prevBuf->hasShaderResourceView(),
         SBCF_BIND_UNORDERED & flags);
     }
   }
@@ -1508,8 +1502,6 @@ struct FrontendState
         if (resource == buffer)
         {
           stage.bRegisterBuffers[j] = nullptr;
-          stage.bRegisterOffsets[j] = 0;
-          stage.bRegisterSizes[j] = 0;
           stage.markDirtyB(j, true);
         }
         j++;
@@ -1604,15 +1596,10 @@ struct FrontendState
     dirtySRVNoLock(texture, stage, slots);
   }
 
-  void dirtySampler([[maybe_unused]] BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
+  void dirtySampler(BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)
   {
     OSSpinlockScopedLock resourceBindingLock{resourceBindingGuard};
-    auto &st = stageResources[stage];
-    G_ASSERT(slots.any());
-    for (auto i : slots)
-    {
-      st.markDirtyS(i, true);
-    }
+    dirtySamplerNoLock(texture, stage, slots);
   }
 
   void dirtySamplerNoLock([[maybe_unused]] BaseTex *texture, uint32_t stage, const Bitset<dxil::MAX_T_REGISTERS> &slots)

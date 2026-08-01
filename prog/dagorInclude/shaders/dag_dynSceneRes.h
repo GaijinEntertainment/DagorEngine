@@ -475,7 +475,21 @@ class DynamicRenderableSceneInstance
 public:
   DAG_DECLARE_NEW(midmem)
 
-  using NodeCollapserBits = eastl::array<uint32_t, 4 * 2>;
+  struct NodeCollapserBits
+  {
+    eastl::array<uint32_t, 4 * 2> data;
+    using Data = decltype(data);
+
+    void clear() { data.fill(0); }
+
+    void setAll() { data.fill(~0u); }
+
+    void markBone(uint32_t bone_id)
+    {
+      G_ASSERT_RETURN(bone_id < 256, );
+      data[bone_id / 32] |= 1u << (bone_id % 32);
+    }
+  };
 
   static float lodDistanceScale;
 
@@ -514,17 +528,19 @@ public:
 
   void showSkinnedNodesConnectedToBone(int bone_id, bool need_show);
 
-  void clearNodeCollapser() { nodeCollapserBits.fill(0); }
+  void clearNodeCollapser() { nodeCollapserBits.clear(); }
 
   void markNodeCollapserNode(uint32_t node_index)
   {
     int boneId = getBoneForNode(node_index);
-    G_ASSERT_RETURN(boneId < 256, );
-    if (boneId >= 0)
-      nodeCollapserBits[boneId / 32] |= 1 << (boneId % 32);
+    if (boneId < 0)
+      return;
+    nodeCollapserBits.markBone(boneId);
   }
 
   const NodeCollapserBits &getNodeCollapserBits() const { return nodeCollapserBits; }
+  NodeCollapserBits &getRWNodeCollapserBits() { return nodeCollapserBits; }
+  void setNodeCollapserBits(const NodeCollapserBits &bits) { nodeCollapserBits = bits; }
 
   void setNodeWtm(uint32_t n_id, const TMatrix &wtm)
   {

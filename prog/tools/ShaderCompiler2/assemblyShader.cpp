@@ -47,6 +47,12 @@
 #include <EASTL/optional.h>
 #include <util/dag_strUtil.h>
 
+#include "hashed_cache.h"
+#include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_files.h>
+#include <debug/dag_logSys.h>
+#include "sha1_cache_version.h"
+
 #include "debugSpitfile.h"
 
 using namespace ShaderParser;
@@ -164,6 +170,7 @@ eastl::optional<ShaderVarType> shtok_to_shvt(int shtok)
     case SHADER_TOKENS::SHTOK_int4: return SHVT_INT4;
     case SHADER_TOKENS::SHTOK_float: return SHVT_REAL;
     case SHADER_TOKENS::SHTOK_float4x4: return SHVT_FLOAT4X4;
+    case SHADER_TOKENS::SHTOK_float4x3: return SHVT_FLOAT4x3;
     case SHADER_TOKENS::SHTOK_float4: return SHVT_COLOR4;
     case SHADER_TOKENS::SHTOK_texture: return SHVT_TEXTURE;
     default: return eastl::nullopt;
@@ -239,9 +246,9 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
         expectedValType = shexpr::VT_REAL;
       else if (t == SHVT_COLOR4 || t == SHVT_INT4)
         expectedValType = shexpr::VT_COLOR4;
-      else if (t == SHVT_FLOAT4X4)
+      else if (t == SHVT_FLOAT4X4 || t == SHVT_FLOAT4x3)
       {
-        report_error(parser, s.name, "float4x4 default value is not supported");
+        report_error(parser, s.name, "float4x4/float4x3 default value is not supported");
         return;
       }
 
@@ -262,6 +269,7 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
           bitwise_cast<int>(val[3]));
         break;
       case SHVT_FLOAT4X4:
+      case SHVT_FLOAT4x3:
         // default value is not supported
         break;
       case SHVT_TEXTURE:
@@ -825,6 +833,8 @@ void AssembleShaderEvalCB::eval_state(state_stat &s)
 
             int varNameId = ctx.tgtCtx().varNameMap().getVarId(val->text);
             int sv = sclass.find_static_var(varNameId);
+            G_ASSERTF_RETURN(sv >= 0, , "ICE: static variable '%s' found in static variant, but not backed in the shader class",
+              val->text);
             curpass->color_write = sclass.stvar[sv].defval.i;
             break;
           }
@@ -1196,20 +1206,6 @@ void AssembleShaderEvalCB::processRefinedBlockVars()
   if (refinedBlockStats.empty())
     return;
 
-  for (const PreshaderStat &stat : preshaderSource.hardcodedStats)
-  {
-    const auto defMaybe = semantic::parse_named_const_definition(*stat.stat, stat.stage, semantic::VariableType(stat.vt), ctx);
-    if (!defMaybe)
-      continue;
-
-    const semantic::NamedConstDefInfo &def = *defMaybe;
-    if (def.hardcodedRegister < 0)
-      continue;
-
-    auto &allocator = ctx.compCtx().rbAllocator();
-    allocator.reserveSlot(def.stage, def.regSpace, HlslSlotSemantic::HARDCODED, def.hardcodedRegister, max(def.registerSize, 1));
-  }
-
   for (auto &[stat, stage] : refinedBlockStats)
     eval_refined_block_var(*stat, stage);
 }
@@ -1262,11 +1258,14 @@ void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block
 
 void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &s, ShaderStage stage)
 {
-  if (s.var && s.var->var->refined_tag)
+  if (s.var && s.var->var->refined_tag && shc::config().compileRefinedBlock)
   {
     refinedBlockStats.emplace_back(&s, stage);
     return;
   }
+
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
 
   semantic::VariableType vt = semantic::parse_named_const_type(s);
   if (vt == semantic::VariableType::Unknown)
@@ -1278,15 +1277,8 @@ void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &s, ShaderS
   PreshaderStat stat{&s, stage, vt};
 
   if (s.reg || s.reg_arr)
-  {
     preshaderSource.hardcodedStats.emplace_back(stat);
-    return;
-  }
-
-  if (ctx.tgtCtx().isPreshaderOnly())
-    return;
-
-  if (semantic::vt_is_numeric(vt))
+  else if (semantic::vt_is_numeric(vt))
     preshaderSource.scalarStats.emplace_back(stat);
   else if (semantic::vt_is_static_texture(vt))
     preshaderSource.staticTextureStats.emplace_back(stat);
@@ -1317,6 +1309,25 @@ void AssembleShaderEvalCB::eval_render_stage(render_stage_stat &s)
   {
     report_error(parser, s.name, "renderStageIdx tries to change from %d (%s) to %d (%s)", code.renderStageIdx,
       renderStageToIdxMap.getName(code.renderStageIdx), idx, renderStageToIdxMap.getName(idx));
+  }
+}
+void AssembleShaderEvalCB::eval_raytrace_pipeline(raytrace_pipeline_stat &s)
+{
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
+  rtPipelineConfigDeclared = true;
+
+  if (s.max_recursion)
+  {
+    if (eastl::exchange(rtPipelineMaxRecursionSet, true))
+      report_error(parser, s.max_recursion, "max_recursion specified more than once");
+    rtPipelineMaxRecursion = atoi(s.recursion_value->text);
+  }
+  else if (s.allow_opacity_micromaps)
+  {
+    if (eastl::exchange(rtPipelineAllowOmm, true))
+      report_error(parser, s.allow_opacity_micromaps, "allow_opacity_micromaps specified more than once");
   }
 }
 void AssembleShaderEvalCB::eval_command(shader_directive &s)
@@ -1802,6 +1813,8 @@ public:
     shaderName = ctx.name();
     cgArgs = shc::config().hlslNoDisassembly ? def_cg_args + 1 : def_cg_args;
 
+    memset(srcSha1, 0, sizeof(srcSha1));
+
     dag::ConstSpan<char> main_src = code_blocks.buildSourceCode(preprocessed_blocks);
     source.setStr(main_src.data(), main_src.size());
 
@@ -1826,6 +1839,10 @@ public:
       compileCtx = sh_get_compile_context();
 
     shader_variant_hash = variant_hash;
+
+    rtPipelineConfigDeclared = ascb->rtPipelineConfigDeclared;
+    rtPipelineAllowOmm = ascb->rtPipelineAllowOmm;
+    rtPipelineMaxRecursion = ascb->rtPipelineMaxRecursion;
   }
 
 protected:
@@ -1857,7 +1874,17 @@ protected:
   const SHTOK_string *hlsl_compile_token;
   Lexer *lexer;
 
+  unsigned char srcSha1[HASH_SIZE];
+
   uint64_t shader_variant_hash;
+
+  // RT pipeline config copied from the cb's max_recursion / allow_opacity_micromaps statements
+  // (DX12 RT libs only).
+  bool rtPipelineConfigDeclared = false;
+  bool rtPipelineAllowOmm = false;
+  int rtPipelineMaxRecursion = 1;
+
+  bool separateDebugInfoIsNeeded = false;
 };
 
 void AssembleShaderEvalCB::hlsl_compile(HlslCompilationStage stage)
@@ -1916,12 +1943,6 @@ void AssembleShaderEvalCB::hlsl_compile(HlslCompilationStage stage)
     shc::add_job(new CompileShaderJob{this, hlsl, stage, hlsl.symbol, code, code_blocks, shader_variant_hash});
   }
 }
-
-#include "hashed_cache.h"
-#include <osApiWrappers/dag_direct.h>
-#include <osApiWrappers/dag_files.h>
-#include <debug/dag_logSys.h>
-#include "sha1_cache_version.h"
 
 // @TODO: refactor hlsl stage handling in compilation jobs/caching code, and move it to a separate module.
 
@@ -2060,9 +2081,22 @@ void CompileShaderJob::doJobBody()
   // @TODO: it should be const in fields!
   const shc::ShaderContext &sctx = ctx;
 
+#if _CROSS_TARGET_DX12
+  const bool hasInlineRtPipelineConfig = find_string(source.data(), source.size(), "RaytracingPipelineConfig") != -1;
+  // The DSHL max_recursion / allow_opacity_micromaps statements are the sole pipeline-config authority.
+  // An inline HLSL RaytracingPipelineConfig next to them would be baked into DXIL but silently ignored
+  // by the driver, so reject the ambiguity instead of building something that does not match the source.
+  if (rtPipelineConfigDeclared && hasInlineRtPipelineConfig)
+  {
+    compile_result.errors.append_sprintf("shader declares a DSHL RT pipeline config (max_recursion / "
+                                         "allow_opacity_micromaps) and an inline HLSL RaytracingPipelineConfig; "
+                                         "remove the HLSL RaytracingPipelineConfig");
+    return;
+  }
+#endif
+
   char sha1SrcPath[420];
   sha1SrcPath[0] = 0;
-  unsigned char srcSha1[HASH_SIZE];
 
 #if _CROSS_TARGET_DX12 || _CROSS_TARGET_SPIRV || _CROSS_TARGET_METAL || (!_CROSS_TARGET_DX11 && !_CROSS_TARGET_EMPTY)
 #if _CROSS_TARGET_DX12
@@ -2082,8 +2116,39 @@ void CompileShaderJob::doJobBody()
   }
 #endif
 
+  static constexpr const char PRAGMA_PREFIX[] = "#pragma ";
+
+  bool full_debug = false;
+
+#if _CROSS_TARGET_DX12
+  // For phase one compilation we don't store the pdb. Unless it's CS, which does both phases in one go.
+  const bool separateDebugInfoIsNeededForPhase = !use_two_phase_compilation(shc::config().targetPlatform) || stage == HLSL_CS;
+  if (separateDebugInfoIsNeededForPhase)
+  {
+    // Prepass full-debug macro before sha1 cache check. We need this to know whether the shader needs separate debug info and it's
+    // missing (so we need to rerun compilation even if sha1 cache is fine)
+    for (const char *pragma = strstr(source, PRAGMA_PREFIX); pragma; pragma = strstr(pragma, PRAGMA_PREFIX))
+    {
+      pragma += LITSTR_LEN(PRAGMA_PREFIX);
+#define PRAGMA(b) (strncmp(pragma, b, strlen(b)) == 0)
+      if (PRAGMA("debugfull") || PRAGMA("dfull"))
+        full_debug = true;
+      else
+        continue;
+    }
+  }
+
+  separateDebugInfoIsNeeded = separateDebugInfoIsNeededForPhase && (shc::config().hlslDebugLevel != DebugLevel::NONE || full_debug);
+#endif
+
   const unsigned sourceLen = (unsigned)strlen(source);
+
+  // For DX12 we use the sha1 cache key as the name for the pdb file
+#if _CROSS_TARGET_DX12
+  if (shc::config().useSha1Cache || separateDebugInfoIsNeeded)
+#else
   if (shc::config().useSha1Cache)
+#endif
   {
     const bool enableBindlessVar = shc::config().enableBindless;
     const bool isDebugModeEnabledVar = sctx.isDebugModeEnabled();
@@ -2121,7 +2186,10 @@ void CompileShaderJob::doJobBody()
       HASH_UPDATE(&sha1, (const unsigned char *)&isDebugModeEnabledVar, (uint32_t)sizeof(isDebugModeEnabledVar));
 
     HASH_FINISH(&sha1, srcSha1);
+  }
 
+  if (shc::config().useSha1Cache)
+  {
     SNPRINTF(sha1SrcPath, sizeof(sha1SrcPath), "%s/src/%s/" HASH_LIST_STRING, shc::config().sha1CacheDir,
       profile.c_str(), // sources and binaries lives in different subfolders. that is to reduce risk of collision, while probably not
                        // needed
@@ -2153,26 +2221,44 @@ void CompileShaderJob::doJobBody()
           }
           else
           {
-            uint32_t metadata_size = 0;
-            memcpy(&metadata_size, content, sizeof(metadata_size));
+#if _CROSS_TARGET_DX12
+            bool missingSeparateDebugInfo = false;
+            if (separateDebugInfoIsNeeded)
+            {
+              eastl::string pdbName;
+              pdbName.sprintf(HASH_TEMP_STRING, HASH_LIST(srcSha1));
+              missingSeparateDebugInfo = ctx.compCtx().compInfo().getCompleteDebugInfoPackListing().getNameId(pdbName.c_str()) < 0;
+            }
+            if (!missingSeparateDebugInfo)
+#endif
+            {
+              uint32_t metadata_size = 0;
+              memcpy(&metadata_size, content, sizeof(metadata_size));
 
-            uint32_t bytecode_size = 0;
-            memcpy(&bytecode_size, content + sizeof(metadata_size), sizeof(bytecode_size));
+              uint32_t bytecode_size = 0;
+              memcpy(&bytecode_size, content + sizeof(metadata_size), sizeof(bytecode_size));
 
-            const uint8_t *start_metadata = content + sizeof(metadata_size) + sizeof(bytecode_size);
-            const uint8_t *end_metadata = start_metadata + metadata_size;
-            compile_result.metadata.assign(start_metadata, end_metadata);
+              const uint8_t *start_metadata = content + sizeof(metadata_size) + sizeof(bytecode_size);
+              const uint8_t *end_metadata = start_metadata + metadata_size;
+              compile_result.metadata.assign(start_metadata, end_metadata);
 
-            const uint8_t *start_bytecode = end_metadata;
-            const uint8_t *end_bytecode = start_bytecode + bytecode_size;
-            compile_result.bytecode.assign(start_bytecode, end_bytecode);
-            memcpy(&compile_result.computeShaderInfo, end_bytecode, sizeof(ComputeShaderInfo));
-            df_unmap(content, sha1FileLen);
-            df_close(sha1BinFile);
-            if (shc::config().hlslDumpCodeAlways)
-              dump_hlsl_src(compileCtx, source, compile_result.bytecode, sha1SrcPath, true, shaderName, shader_variant_hash);
-            ShaderCompilerStat::hlslExternalCacheHitCount.fetch_add(1);
-            return;
+              const uint8_t *start_bytecode = end_metadata;
+              const uint8_t *end_bytecode = start_bytecode + bytecode_size;
+              compile_result.bytecode.assign(start_bytecode, end_bytecode);
+              memcpy(&compile_result.computeShaderInfo, end_bytecode, sizeof(ComputeShaderInfo));
+              df_unmap(content, sha1FileLen);
+              df_close(sha1BinFile);
+              if (shc::config().hlslDumpCodeAlways)
+                dump_hlsl_src(compileCtx, source, compile_result.bytecode, sha1SrcPath, true, shaderName, shader_variant_hash);
+              ShaderCompilerStat::hlslExternalCacheHitCount.fetch_add(1);
+              return;
+            }
+#if _CROSS_TARGET_DX12
+            else
+            {
+              debug("Separate debug info for %s is missing.", sha1SrcPath);
+            }
+#endif
           }
         }
       }
@@ -2188,7 +2274,7 @@ void CompileShaderJob::doJobBody()
     (shc::config().hlslDebugLevel == DebugLevel::FULL_DEBUG_INFO) ? 0 : shc::config().hlslOptimizationLevel;
   bool optimizationLevelHasBeenOverriden = false;
   auto lastOptimizationLevel = localHlslOptimizationLevel;
-  bool full_debug = false, forceDisableWarnings = false;
+  bool forceDisableWarnings = false;
   bool embed_source = shc::config().hlslEmbedSource;
   bool useWave32 = useScarlettWave32;
   int waveSpecification = 0;
@@ -2197,10 +2283,10 @@ void CompileShaderJob::doJobBody()
 #if _CROSS_TARGET_DX12
   dag::Vector<dxil::StreamOutputComponentInfo> streamOutputComponents;
 #endif
-  for (const char *pragma = strstr(source, "#pragma "); pragma; pragma = strstr(pragma, "#pragma "))
+  for (const char *pragma = strstr(source, PRAGMA_PREFIX); pragma; pragma = strstr(pragma, PRAGMA_PREFIX))
   {
     void *original = (void *)pragma;
-    pragma += strlen("#pragma ");
+    pragma += LITSTR_LEN(PRAGMA_PREFIX);
 #define PRAGMA(b) (strncmp(pragma, b, strlen(b)) == 0)
     if (PRAGMA("debugfull") || PRAGMA("dfull"))
     {
@@ -2340,6 +2426,9 @@ void CompileShaderJob::doJobBody()
 #elif _CROSS_TARGET_DX12
   // NOTE: when we support this kind of switch somehow this can be replaced with actual information
   // of use or not
+  eastl::wstring pdbName;
+  if (separateDebugInfoIsNeeded)
+    pdbName.sprintf(HASH_TEMP_WSTRING, HASH_LIST(srcSha1));
   compile_result = dx12::dxil::compileShader({.name = shaderName,
     .profile = profile,
     .entry = entry,
@@ -2358,8 +2447,13 @@ void CompileShaderJob::doJobBody()
         .scarlettW32 = useWave32,
         .hlsl2021 = useHlsl2021,
         .enableFp16 = enableFp16,
+        .hasExplicitRtPipelineConfig = rtPipelineConfigDeclared,
+        .allowOpacityMicroMaps = rtPipelineAllowOmm,
+        .rtMaxRecursion = rtPipelineMaxRecursion,
+        .hasDxilRtPipelineConfig = hasInlineRtPipelineConfig && !rtPipelineConfigDeclared,
       },
     .PDBDir = shc::config().dx12PdbCacheDir,
+    .PDBName = pdbName.data(),
     .streamOutputComponents = streamOutputComponents});
 #else //_CROSS_TARGET_DX11
   unsigned int flags = is_hlsl_debug() ? D3DCOMPILE_DEBUG : 0;
@@ -2676,6 +2770,13 @@ void CompileShaderJob::addResults()
         cachedShader.compileCtx, compileCtx);
     }
   }
+#if _CROSS_TARGET_DX12
+  else if (separateDebugInfoIsNeeded)
+  {
+    eastl::string debugInfoName{eastl::string::CtorSprintf{}, HASH_TEMP_STRING, HASH_LIST(srcSha1)};
+    ctx.tgtCtx().storage().usedSepDebugInfoNames.emplace_back(debugInfoName.c_str());
+  }
+#endif
 
   apply_shader_from_cache(*curpass, stage, entryIds, cache);
 

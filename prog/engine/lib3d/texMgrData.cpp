@@ -194,6 +194,9 @@ TextureIdSet anisotropy_exceptions;
 TextureFactory *default_tex_mgr_factory = NULL;
 FastStrMapT<int, -1> managed_tex_map_by_name(strmem, false);
 Tab<const char *> managed_tex_map_by_idx(strmem);
+bool defer_managed_tex_map_erase = false;
+// Owned name buffers of entries marked dead while erase is deferred; freed in compact_managed_tex_map.
+Tab<const char *> deferred_freed_tex_names(strmem);
 TexTagInfoArray textagInfo;
 int mt_enabled = 0;
 bool auto_add_tex_on_get_id = false;
@@ -398,10 +401,21 @@ void texmgr_internal::remove_from_managed_tex_map(int idx)
   auto &mp = static_cast<PublicFastStrMapT<int, -1> &>(texmgr_internal::managed_tex_map_by_name);
 
   auto f = RMGR.getFactory(idx);
-  if (!(f && f->isPersistentTexName(name)))
-    memfree((void *)name, dag::get_allocator(mp.fastMap));
+  bool owns_name = !(f && f->isPersistentTexName(name));
 
   texmgr_internal::managed_tex_map_by_idx[idx] = nullptr;
+  if (DAGOR_UNLIKELY(defer_managed_tex_map_erase))
+  {
+    // Keep the entry name valid so getStrIndex binary search stays correct across the
+    // deferred window; the owned buffer is freed in compact_managed_tex_map.
+    mp.fastMap[map_idx].id = -1;
+    if (owns_name)
+      deferred_freed_tex_names.push_back(name);
+    return;
+  }
+
+  if (owns_name)
+    memfree((void *)name, dag::get_allocator(mp.fastMap));
   erase_items(mp.fastMap, map_idx, 1);
 
 #if DAGOR_DBGLEVEL > 0 && (_TARGET_PC || 0) && CHECK_MANAGED_TEX_MAP
@@ -409,6 +423,24 @@ void texmgr_internal::remove_from_managed_tex_map(int idx)
   for (int i = 0; i < e.size(); ++i)
     G_ASSERTF(e[i].id != idx, "e[%d].id=%d map_idx=%d idx=%d name=%s", i, e[i].id, map_idx, idx, name);
 #endif
+}
+
+void texmgr_internal::compact_managed_tex_map()
+{
+  // Compact in place so surviving entries keep their name pointers (still shared with
+  // managed_tex_map_by_idx). Removing entries from a sorted array preserves the sort order.
+  auto &fastMap = static_cast<PublicFastStrMapT<int, -1> &>(texmgr_internal::managed_tex_map_by_name).fastMap;
+  int dst = 0;
+  for (int src = 0; src < fastMap.size(); ++src)
+    if (fastMap[src].id != -1)
+      fastMap[dst++] = fastMap[src];
+  erase_items(fastMap, dst, fastMap.size() - dst);
+
+  for (const char *name : deferred_freed_tex_names)
+    memfree((void *)name, dag::get_allocator(fastMap));
+  clear_and_shrink(deferred_freed_tex_names);
+
+  defer_managed_tex_map_erase = false;
 }
 
 struct GetTexName

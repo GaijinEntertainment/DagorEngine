@@ -32,7 +32,7 @@ function modifyReduceExtends(arr) {
   arr.pop()
 }
 
-function getTemplateExtendsReduced(templ, path) {
+function getTemplateExtendsReduced(templ, path): array {
   local result = []
   let numParents = templ.getNumParentTemplates()
   if (numParents > 0 && (numParents <= (5-path.len()) || path.len() < 1)) {
@@ -56,7 +56,7 @@ function getTemplateExtendsReduced(templ, path) {
 }
 
 
-function getTemplateTemplsDescs(templ, addedTempls, need_tpl_desc, extendBy, insertTo) {
+function getTemplateTemplsDescs(templ, addedTempls, need_tpl_desc, extendBy, insertTo): array {
   local result = []
 
   let templName = templ.getName()
@@ -153,7 +153,7 @@ function mkCompMetaInfoText(metaInfo, format="oneLiner") {
 }
 
 
-function getTemplateCompsDescs(templ, addedTempls, addedComps, valueComps) {
+function getTemplateCompsDescs(templ, addedTempls, addedComps, valueComps): array {
   local result = []
 
   let templName = templ.getName()
@@ -198,7 +198,7 @@ function getTemplateCompsDescs(templ, addedTempls, addedComps, valueComps) {
 
 
 let categories = {}
-function getCategoryTemplates(category) {
+function getCategoryTemplates(category): array {
   if (categories?[category] != null)
     return categories[category]
 
@@ -220,7 +220,7 @@ function getCategoryTemplates(category) {
 }
 
 
-function getTemplateInfo(templName) {
+function getTemplateInfo(templName: string|null): table {
   local extendsListReduced = []
   local extendBy = []
   local insertTo = []

@@ -321,6 +321,19 @@ static SQInteger get_supported_generated_frames(HSQUIRRELVM vm)
   return 1;
 }
 
+static SQInteger is_dynamic_mfg_supported(HSQUIRRELVM vm)
+{
+  const char *method = nullptr;
+  sq_getstring(vm, SQInteger(2), &method);
+
+  SQBool exclusiveFullscreen = false;
+  sq_getbool(vm, SQInteger(3), &exclusiveFullscreen);
+
+  sq_pushbool(vm, render::antialiasing::is_dynamic_mfg_supported(method, exclusiveFullscreen));
+
+  return 1;
+}
+
 static SQInteger get_frame_generation_unsupported_reason(HSQUIRRELVM vm)
 {
   const char *method = nullptr;
@@ -529,6 +542,7 @@ void bind_script(SqModules *moduleMgr)
     .SquirrelFunc("get_antialiasing_options", get_antialiasing_options, 1)
     .SquirrelFunc("get_antialiasing_upscaling_options", get_antialiasing_upscaling_options, 2, ".s")
     .SquirrelFunc("get_supported_generated_frames", get_supported_generated_frames, 3, ".sb")
+    .SquirrelFunc("is_dynamic_mfg_supported", is_dynamic_mfg_supported, 3, ".sb")
     .SquirrelFunc("get_frame_generation_unsupported_reason", get_frame_generation_unsupported_reason, 3, ".sb")
     .SquirrelFunc("get_performance_display_mode_support", get_performance_display_mode_support, 2, ".i")
     .Func("get_auto_selected_antialiasing_method", auto_graphics::auto_antialiasing::get_auto_selected_method)

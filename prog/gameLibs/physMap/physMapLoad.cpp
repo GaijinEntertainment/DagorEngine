@@ -14,9 +14,9 @@
 #include <scene/dag_physMat.h>
 #include <physMap/physMap.h>
 #include <physMap/physMapLoad.h>
+#include <physMap/physMapCompactDecals.h>
 #include <math/integer/dag_IPoint2.h>
 #include <physMap/physMatSwRenderer.h>
-#include <dag/dag_vectorSet.h>
 #include <supp/dag_alloca.h>
 
 // #define UNIT_TEST_DATA 1
@@ -30,164 +30,19 @@ static inline IGenLoad &ptr_to_ref(IGenLoad *crd) { return *crd; }
 
 void make_grid_decals(PhysMap &phys_map, int sz)
 {
-  phys_map.gridDecals.resize(sz * sz);
+  phys_map.compactDecals = new PhysMapCompactDecals;
+  if (!build_compact_decals(phys_map, sz, *phys_map.compactDecals))
+  {
+    // encoder logerr'd why; the source decals stay and render un-gridded;
+    // grid fields stay unset so gridSz > 0 implies compact storage exists
+    del_it(phys_map.compactDecals);
+    return;
+  }
   phys_map.gridScale = float(phys_map.size) / sz * phys_map.scale;
   phys_map.invGridScale = safeinv(phys_map.gridScale);
   phys_map.gridSz = sz;
-
-  Tab<int> gridIndex;
-  gridIndex.resize(sz * sz);
-
-  debug("[physmap] Making grid for decals, num of decals %d", phys_map.decals.size());
-
-  size_t nverts = 0, ntverts = 0, ntris = 0, nttris = 0;
-  for (const PhysMap::DecalMesh &mesh : phys_map.decals)
-  {
-    mem_set_ff(gridIndex);
-    // iterate over all indices
-    for (const PhysMap::DecalMesh::MaterialIndices &indices : mesh.matIndices)
-    {
-      for (int i = 0; i < indices.indices.size(); i += 3)
-      {
-        uint16_t i0 = indices.indices[i + 0];
-        uint16_t i1 = indices.indices[i + 1];
-        uint16_t i2 = indices.indices[i + 2];
-        Point2 v0 = mesh.vertices[i0];
-        Point2 v1 = mesh.vertices[i1];
-        Point2 v2 = mesh.vertices[i2];
-
-        // Find boundings of this triangle
-        Point2 leftTop = min(v0, min(v1, v2));
-        Point2 rightBottom = max(v0, max(v1, v2));
-        IPoint2 leftTopCell = IPoint2::xy((leftTop - phys_map.worldOffset) * phys_map.invGridScale);
-        IPoint2 rightBottomCell = IPoint2::xy((rightBottom - phys_map.worldOffset) * phys_map.invGridScale);
-
-        // Fill indices in the grid decal meshes in the proper grid cell
-        for (int y = max(leftTopCell.y, 0); y <= min(rightBottomCell.y, sz - 1); ++y)
-          for (int x = max(leftTopCell.x, 0); x <= min(rightBottomCell.x, sz - 1); ++x)
-          {
-            size_t cellId = y * sz + x;
-            // Find/allocate gridIndex for this decal mesh
-            if (gridIndex[cellId] < 0)
-            {
-              gridIndex[cellId] = phys_map.gridDecals[cellId].size();
-              phys_map.gridDecals[cellId].push_back(PhysMap::DecalMesh());
-            }
-            PhysMap::DecalMesh &gridMesh = phys_map.gridDecals[cellId][gridIndex[cellId]];
-            int matIdx = -1;
-            for (int j = 0; j < gridMesh.matIndices.size(); ++j)
-              if (gridMesh.matIndices[j].matId == indices.matId && gridMesh.matIndices[j].bitmapTexId == indices.bitmapTexId)
-              {
-                matIdx = j;
-                break;
-              }
-            if (matIdx < 0)
-            {
-              // Allocate mat indices if we haven't found one
-              matIdx = gridMesh.matIndices.size();
-              gridMesh.matIndices.push_back();
-
-              gridMesh.matIndices[matIdx].matId = indices.matId;
-              gridMesh.matIndices[matIdx].bitmapTexId = indices.bitmapTexId;
-            }
-
-            // Push to this grid indices
-            ntris += 3;
-            gridMesh.matIndices[matIdx].indices.push_back(i0);
-            gridMesh.matIndices[matIdx].indices.push_back(i1);
-            gridMesh.matIndices[matIdx].indices.push_back(i2);
-            if (indices.tindices.size())
-            {
-              nttris += 3;
-              gridMesh.matIndices[matIdx].tindices.push_back(indices.tindices[i + 0]);
-              gridMesh.matIndices[matIdx].tindices.push_back(indices.tindices[i + 1]);
-              gridMesh.matIndices[matIdx].tindices.push_back(indices.tindices[i + 2]);
-            }
-          }
-      }
-    }
-
-    // For each grid - populate vertices and remap indices
-    // Each vertex in the original mesh is remapped to
-    // another vertex in the grid cell mesh as it's being compacted.
-    // Then indices are remapped, so they point to the proper vertices in the
-    // grid cell mesh.
-    for (size_t i = 0; i < phys_map.gridDecals.size(); ++i)
-    {
-      int cellId = gridIndex[i];
-      if (cellId < 0)
-        continue; // This mesh is not included in this grid cell
-
-      PhysMap::DecalMesh &cellMesh = phys_map.gridDecals[i][cellId];
-      cellMesh.matIndices.shrink_to_fit();
-      dag::VectorSet<uint16_t> usedIndices;
-      dag::VectorSet<uint16_t> usedTIndices;
-      for (const PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
-      {
-        for (uint16_t idx : mi.indices)
-          usedIndices.insert(idx);
-        for (uint16_t idx : mi.tindices)
-          usedTIndices.insert(idx);
-      }
-
-      Tab<uint16_t> verticesRemap;
-      Tab<uint16_t> texCoordsRemap;
-      verticesRemap.resize(mesh.vertices.size());
-      texCoordsRemap.resize(mesh.texCoords.size());
-      mem_set_ff(verticesRemap);
-      mem_set_ff(texCoordsRemap);
-
-      // build remap
-      for (size_t j = 0; j < usedIndices.size(); ++j)
-        verticesRemap[usedIndices[j]] = j;
-      for (size_t j = 0; j < usedTIndices.size(); ++j)
-        texCoordsRemap[usedTIndices[j]] = j;
-
-      // populate vertices and texcoords (separated from previous step for better
-      // readability)
-      cellMesh.vertices.reserve(usedIndices.size());
-      for (size_t j = 0; j < usedIndices.size(); ++j)
-      {
-        const Point2 &v = mesh.vertices[usedIndices[j]];
-        cellMesh.vertices.push_back(v);
-        cellMesh.box += v;
-      }
-      ntverts += usedTIndices.size();
-      nverts += usedIndices.size();
-
-      cellMesh.texCoords.reserve(usedTIndices.size());
-      for (size_t j = 0; j < usedTIndices.size(); ++j)
-        cellMesh.texCoords.push_back(mesh.texCoords[usedTIndices[j]]);
-      // complete a remap in matIndices
-      bool areSame = true;
-      for (PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
-      {
-        for (uint16_t &idx : mi.indices)
-          idx = verticesRemap[idx];
-        for (uint16_t &idx : mi.tindices)
-          idx = texCoordsRemap[idx];
-        areSame &= (mi.indices == mi.tindices);
-      }
-      if (areSame)
-      {
-        cellMesh.flags |= cellMesh.TINDICES_SAME_AS_INDICES;
-        for (PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
-        {
-          nttris -= mi.tindices.size();
-          clear_and_shrink(mi.tindices);
-        }
-      }
-      for (PhysMap::DecalMesh::MaterialIndices &mi : cellMesh.matIndices)
-      {
-        mi.tindices.shrink_to_fit();
-        mi.indices.shrink_to_fit();
-      }
-    }
-  }
-  for (auto &gridMeshes : phys_map.gridDecals)
-    gridMeshes.shrink_to_fit();
-  debug("[physmap] Made grid for decals, tris = %d ttris = %d, verts = %d tverts = %d sz = %d", ntris, nttris, nverts, ntverts, sz);
-  // Clear original decals
+  debug("[physmap] compact grid decals: %d chunks, %d cell entries, %dK", (int)phys_map.compactDecals->chunks.size(),
+    (int)phys_map.compactDecals->cellEntries.size(), int(phys_map.compactDecals->memBytes() >> 10));
   clear_and_shrink(phys_map.decals);
 
 #if UNIT_TEST_DATA

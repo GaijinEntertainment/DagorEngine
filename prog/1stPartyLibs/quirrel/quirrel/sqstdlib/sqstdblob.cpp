@@ -251,11 +251,11 @@ static SQInteger _g_blob_swapfloat(HSQUIRRELVM v)
 }
 
 static const SQRegFunctionFromStr bloblib_funcs[] = {
-    { _g_blob_casti2f,   "pure casti2f(i: int): float",        "Reinterprets the bits of an integer as a float" },
-    { _g_blob_castf2i,   "pure castf2i(f: number): int",       "Reinterprets the bits of a float as an integer" },
-    { _g_blob_swap2,     "pure swap2(val: number): int",       "Byte-swaps a 16-bit value" },
-    { _g_blob_swap4,     "pure swap4(val: number): int",       "Byte-swaps a 32-bit value" },
-    { _g_blob_swapfloat, "pure swapfloat(val: number): float", "Byte-swaps the bits of a float" },
+    { _g_blob_casti2f,   "pure fastcall casti2f(i: int): float",        "Reinterprets the bits of an integer as a float" },
+    { _g_blob_castf2i,   "pure fastcall castf2i(f: number): int",       "Reinterprets the bits of a float as an integer" },
+    { _g_blob_swap2,     "pure fastcall swap2(val: number): int",       "Byte-swaps a 16-bit value" },
+    { _g_blob_swap4,     "pure fastcall swap4(val: number): int",       "Byte-swaps a 32-bit value" },
+    { _g_blob_swapfloat, "pure fastcall swapfloat(val: number): float", "Byte-swaps the bits of a float" },
     { NULL, NULL, NULL }
 };
 

@@ -15,7 +15,7 @@ texture names_tex;
 
 shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst_names_diffuse_decal, rendinst_blend_normal_decal
 {
-  if (shader != rendinst_names_diffuse_decal)
+  if (shader != rendinst_names_diffuse_decal && rendinst_render_pass != rendinst_render_pass_impostor_voxel)
   {
     NO_DYNSTCODE()
   }
@@ -55,6 +55,14 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
   channel color8 norm = norm unsigned_pack;
   channel float2 tc[0] = tc[0];
   supports rendinst_scene;
+
+  if (rendinst_render_pass == rendinst_render_pass_impostor_voxel)
+  {
+    hlsl
+    {
+      #define RENDINST_IMPOSTOR_VOXEL 1
+    }
+  }
 
   if (shader == rendinst_blend_diffuse_decal)
   {
@@ -133,7 +141,11 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
       output.normal = worldNormal;
       #endif
       #if COLOR_NEEDED
-        output.colorMul = 1;
+        #if RENDINST_IMPOSTOR_VOXEL
+          output.colorMul = float3(-1, 0, 0);
+        #else
+          output.colorMul = 1;
+        #endif
         #if HAS_PAINT_DETAILS
           output.colorMul = getColorMul(hashVal);
         #endif
@@ -168,6 +180,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
     BLEND_DIFFUSE_DECAL_PS(false, false)
   } else
   {
+    if (rendinst_render_pass == rendinst_render_pass_impostor_voxel) { dont_render; }
     DYNAMIC_FILTER_FOR_MIXING(false, false)
     blend_src = sa; blend_dst = isa;
   }
@@ -284,6 +297,18 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
   channel color8 norm = norm unsigned_pack;
   channel float2 tc[0] = tc[0];
   supports rendinst_scene;
+
+  if (rendinst_render_pass == rendinst_render_pass_impostor_voxel)
+  {
+    hlsl
+    {
+      #define RENDINST_IMPOSTOR_VOXEL 1
+    }
+    (vs) {
+      impostor_depth_proj@f4 = impostor_depth_proj;
+    }
+  }
+
   if (shader == rendinst_deferred_decal)
   {
     RENDINST_OVERLAY_COLOR_MAP(vs, false, get_paint_palette_row_index().x)
@@ -436,13 +461,21 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
 
       output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
       output.diffuseTexcoord.xy = input.diffuseTexcoord;
-      output.diffuseTexcoord.z = output.pos.w;
+      #if RENDINST_IMPOSTOR_VOXEL
+        output.diffuseTexcoord.z = dot(impostor_depth_proj, float4(worldPos, 1));
+      #else
+        output.diffuseTexcoord.z = output.pos.w;
+      #endif
       #if HAS_NORMAL
       output.pointToEye = pointToEye;
       output.normal = worldNormal;
       #endif
       #if COLOR_NEEDED
-        output.colorMul = 1;
+        #if RENDINST_IMPOSTOR_VOXEL
+          output.colorMul = float3(-1, 0, 0);
+        #else
+          output.colorMul = 1;
+        #endif
         #if HAS_PAINT_DETAILS
           output.colorMul = getColorMul(hashVal);
         #endif
@@ -481,6 +514,10 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
   else if (shader == rendinst_deferred_modulate2x_decal)
   {
     MODULATE_2X_DECAL_PS(true, false)
+  }
+  else
+  {
+    if (rendinst_render_pass == rendinst_render_pass_impostor_voxel) { dont_render; }
   }
 
   if (shader == rendinst_deferred_normal_decal)

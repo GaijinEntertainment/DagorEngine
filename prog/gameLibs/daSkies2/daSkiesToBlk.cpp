@@ -55,9 +55,15 @@ DaSkies::StrataClouds read_strata_clouds(const DataBlock &blk, int seed){
   READ(DaSkies::CloudsWeatherGen, CLOUDS_WEATHER_GEN_PARAMS)} DaSkies::CloudsSettingsParams
   read_clouds_settings(const DataBlock &blk, int seed){READ(DaSkies::CloudsSettingsParams, CLOUDS_SETTINGS_PARAMS)} DaSkies::CloudsForm
   read_clouds_form(const DataBlock &blk, int seed){READ(DaSkies::CloudsForm, CLOUDS_FORM_PARAMS)} DaSkies::CloudsRendering
-  read_clouds_rendering(const DataBlock &blk, int seed)
+  read_clouds_rendering(const DataBlock &blk, int seed){READ(DaSkies::CloudsRendering, CLOUDS_RENDERING_PARAMS)}
+
+DaSkies::CloudsTurbulence read_clouds_turbulence(const DataBlock &blk, int seed)
 {
-  READ(DaSkies::CloudsRendering, CLOUDS_RENDERING_PARAMS)
+  G_UNUSED(seed);
+  DaSkies::CloudsTurbulence result;
+  CLOUDS_TURBULENCE_PARAMS
+  result.curl_size = max(result.curl_size, 0.01f); // shader packs 1/curl_size
+  return result;
 }
 
 #undef _PARAM
@@ -104,6 +110,11 @@ void write_clouds_rendering(const DaSkies::CloudsRendering &result, DataBlock &b
   G_UNUSED(part);
   CLOUDS_RENDERING_PARAMS
 }
+void write_clouds_turbulence(const DaSkies::CloudsTurbulence &result, DataBlock &blk, int part)
+{
+  G_UNUSED(part);
+  CLOUDS_TURBULENCE_PARAMS
+}
 
 #undef _PARAM
 #undef _PARAM_RAND
@@ -119,6 +130,7 @@ void load_daSkies(DaSkies &skies, const DataBlock &pt2blk, int seed, const DataB
   skies.setCloudsGameSettingsParams(read_clouds_settings(*levelblk.getBlockByNameEx("clouds_settings"), seed));
   skies.setCloudsForm(read_clouds_form(*pt2blk.getBlockByNameEx("clouds_form"), seed));
   skies.setCloudsRendering(read_clouds_rendering(*pt2blk.getBlockByNameEx("clouds_rendering"), seed));
+  skies.setCloudsTurbulence(read_clouds_turbulence(*pt2blk.getBlockByNameEx("clouds_turbulence"), seed));
 
   skies.setStrataClouds(read_strata_clouds(*pt2blk.getBlockByNameEx("strata_clouds"), seed));
 }
@@ -134,6 +146,7 @@ void save_daSkies(const DaSkies &skies, DataBlock &blk, bool save_min, DataBlock
   write_clouds_settings(skies.getCloudsGameSettingsParams(), *levelblk.addBlock("clouds_settings"), part);
   write_clouds_form(skies.getCloudsForm(), *blk.addBlock("clouds_form"), part);
   write_clouds_rendering(skies.getCloudsRendering(), *blk.addBlock("clouds_rendering"), part);
+  write_clouds_turbulence(skies.getCloudsTurbulence(), *blk.addBlock("clouds_turbulence"), part);
 }
 
 }; // namespace skies_utils

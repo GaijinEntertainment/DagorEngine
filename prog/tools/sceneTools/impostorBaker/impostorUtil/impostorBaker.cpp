@@ -1125,7 +1125,8 @@ ska::flat_hash_map<eastl::string, int> ImpostorBaker::getHashes(DagorAsset *asse
       return defval;
     };
 
-    ret["projScale"] = to_sh(getReal("projScale", defaults::projScale));
+    ret["targetFov"] = to_sh(getReal("targetFov", defaults::targetFov));
+    ret["targetResolution"] = to_sh(getReal("targetResolution", defaults::targetResolution));
     ret["triangleThreshold"] = to_sh(getReal("triangleThreshold", defaults::triangleThreshold));
     ret["minMapSize"] = getInt("minMapSize", defaults::minMapSize);
     ret["maxMapSize"] = getInt("maxMapSize", defaults::maxMapSize);

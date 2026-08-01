@@ -26,8 +26,9 @@ namespace darg
 // so a per-DasScriptsData lock would not serialize two managers' workers against it.
 // It serializes: worker compile+simulate; releaseJob() integration (deferred init + publish);
 // reload/shutdown teardown.
-// Steady-state rendering is NOT serialized by it (render only touches an already-published,
-// immutable Context).
+// Rendering does NOT take this lock: a draw neither recompiles nor reaches the module registry.
+// But eval still mutates its context (unlock() resets the heaps), so eval/eval on one context
+// must be single-threaded; the host, not this lock, is responsible for that.
 static WinCritSec &das_compile_lock()
 {
   static WinCritSec lock("darg_das_compile");
@@ -74,28 +75,34 @@ struct DargContext final : das::Context
   virtual uint32_t unlock() override
   {
     const uint32_t res = das::Context::unlock();
-    if (insideContext == 0 && !persistent)
+    if (insideContext == 0)
     {
+      if (!persistent)
+      {
 #if DAGOR_DBGLEVEL > 0
-      if (reportHeap && heap->totalAlignedMemoryAllocated() > heapLimit)
-      {
+        if (reportHeap && heap->totalAlignedMemoryAllocated() > heapLimit)
+        {
 
-        reportHeap = false;
-        ::logerr("%@: heap memory exceeded limit %@ of %@ bytes. Try to reduce memory usage.\n"
-                 "Delete allocated array or tables or use `var inscope` to limit their lifetime.\n"
-                 "Alternative: consider switching to a persistent_heap with gc.",
-          name.c_str(), heap->totalAlignedMemoryAllocated(), heapLimit);
-      }
-      if (reportStringHeap && stringHeap->totalAlignedMemoryAllocated() > stringHeapLimit)
-      {
-        reportStringHeap = false;
-        ::logerr("%@: string heap memory exceeded limit %@ of %@ bytes. Try to reduce memory usage.\n"
-                 "Delete allocated strings or use `var inscope` to limit their lifetime.\n"
-                 "Alternative: consider switching to a persistent_heap with gc.",
-          name.c_str(), stringHeap->totalAlignedMemoryAllocated(), stringHeapLimit);
-      }
+          reportHeap = false;
+          ::logerr("%@: heap memory exceeded limit %@ of %@ bytes. Try to reduce memory usage.\n"
+                   "Delete allocated array or tables or use `var inscope` to limit their lifetime.\n"
+                   "Alternative: consider switching to a persistent_heap with gc.",
+            name.c_str(), heap->totalAlignedMemoryAllocated(), heapLimit);
+        }
+        if (reportStringHeap && stringHeap->totalAlignedMemoryAllocated() > stringHeapLimit)
+        {
+          reportStringHeap = false;
+          ::logerr("%@: string heap memory exceeded limit %@ of %@ bytes. Try to reduce memory usage.\n"
+                   "Delete allocated strings or use `var inscope` to limit their lifetime.\n"
+                   "Alternative: consider switching to a persistent_heap with gc.",
+            name.c_str(), stringHeap->totalAlignedMemoryAllocated(), stringHeapLimit);
+        }
 #endif
-      restartHeaps();
+        restartHeaps();
+      }
+#if DAGOR_DBGLEVEL > 0
+      interlocked_release_store(evalOwnerTid, 0);
+#endif
     }
     return res;
   }
@@ -105,8 +112,23 @@ struct DargContext final : das::Context
   uint64_t stringHeapLimit = 512 * 1024;
   bool reportHeap = true;
   bool reportStringHeap = true;
+  volatile int evalOwnerTid = 0; // thread inside eval; 0 = none
 #endif
 };
+
+void darg_das_check_eval_thread(das::Context *ctx)
+{
+#if DAGOR_DBGLEVEL > 0
+  // daRg contexts are always DargContext
+  DargContext *c = static_cast<DargContext *>(ctx);
+  const int tid = ::get_current_thread_id();
+  const int owner = interlocked_compare_exchange(c->evalOwnerTid, tid, 0);
+  G_ASSERTF(owner == 0 || owner == tid, "%s: das eval entered from thread %d while in use by thread %d (eval/eval overlap, data race)",
+    c->name.c_str(), tid, owner);
+#else
+  G_UNUSED(ctx);
+#endif
+}
 
 
 void DasLogWriter::output()
@@ -597,7 +619,10 @@ DasScriptsData::~DasScriptsData()
 void DasScriptsData::initDasEnvironment(TInitDasEnv init_callback)
 {
   if (!init_callback)
+  {
     logerr("Das environment initialization callback can't be null");
+    return;
+  }
 
   shutdownDasEnvironment();
   dasEnv = new das::daScriptEnvironment();
@@ -733,7 +758,7 @@ static SQInteger load_das(HSQUIRRELVM vm)
   GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
   G_ASSERT(guiScene);
   DasScriptsData *dasMgr = guiScene->dasScriptsData.get();
-  if (!dasMgr)
+  if (!dasMgr || !dasMgr->moduleGroup)
     return sq_throwerror(vm, "Not using daScript in this VM");
 
   ::debug("daScript: load script <%s> aot:%d", filename, dasMgr->aotMode == AotMode::AOT ? 1 : 0);

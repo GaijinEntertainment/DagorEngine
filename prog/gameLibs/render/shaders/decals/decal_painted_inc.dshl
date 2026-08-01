@@ -48,6 +48,28 @@ macro USE_DECAL_PAINTED()
       half details = get_paint_scale_bias_mult_details().w * saturate(mask * get_paint_scale_bias_mult_details().x + get_paint_scale_bias_mult_details().y);
       return lerp(diffuseColor.rgb, diffuseColor.rgb * colorMul * get_paint_scale_bias_mult_details().z, details);
     }
+
+  #if RENDINST_IMPOSTOR_VOXEL
+    void get_decal_coloring(inout half4 diffuseColor, out half3 coloringMul)
+    {
+      half4 overcolor = get_paint_const_color();
+
+      half mask = luminance(diffuseColor.rgb);
+      if (get_use_alpha_as_mask())
+      {
+        mask = diffuseColor.a;
+      }
+
+      half details = get_paint_scale_bias_mult_details().w * saturate(mask * get_paint_scale_bias_mult_details().x + get_paint_scale_bias_mult_details().y);
+      #if COLOR_NEEDED
+        coloringMul = diffuseColor.rgb * overcolor.rgb * (1 - overcolor.a) * get_paint_scale_bias_mult_details().z * details;
+        diffuseColor.rgb = diffuseColor.rgb * lerp(1, overcolor.rgb * overcolor.a * get_paint_scale_bias_mult_details().z, details);
+      #else
+        coloringMul = 0;
+        diffuseColor.rgb = diffuseColor.rgb * lerp(1, overcolor.rgb * get_paint_scale_bias_mult_details().z, details);
+      #endif
+    }
+  #endif
   }
 
 endmacro

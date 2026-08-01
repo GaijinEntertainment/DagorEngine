@@ -8,7 +8,7 @@ void RenderDocCaptureModule::init() {}
 void RenderDocCaptureModule::shutdown() {}
 void RenderDocCaptureModule::setCapturePathTemplate(const wchar_t * /*name*/) {}
 void RenderDocCaptureModule::triggerCapture(uint32_t /*count*/){};
-void RenderDocCaptureModule::beginCapture() {}
+void RenderDocCaptureModule::beginCapture(const wchar_t * /*name*/) {}
 void RenderDocCaptureModule::endCapture() {}
 void RenderDocCaptureModule::loadRenderDocAPI() {}
 const char *RenderDocCaptureModule::getLibName() { return ""; };

@@ -49,6 +49,7 @@ class ToolbarContainerPropertyControl;
 struct ImpostorOptions;
 
 class CompositeEditor;
+class CanopyEditorWindow;
 class ColorDialogAppMat;
 class MainAssetSelector;
 class KeyboardShortcutsPanel;
@@ -244,6 +245,8 @@ public:
   bool canRenderEnvi() const { return !skipRenderEnvi; }
   bool isCompositeEditorShown() const;
   void showCompositeEditor(bool show);
+  CanopyEditorWindow *getCanopyEditorWindow() const { return canopyEditorWindow.get(); }
+  void showCanopyEditor(bool show);
   void showTagManager(bool show);
   void setShowMessageAt(int, int, const SimpleString &) override {}
   void showMessageAt() override {}
@@ -293,7 +296,7 @@ protected:
   // IAssetSelectorContextMenuHandler
   bool onAssetSelectorContextMenu(PropPanel::IMenu &menu, DagorAsset *asset, DagorAssetFolder *asset_folder) override;
 
-  void onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *asset_folder);
+  bool onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *asset_folder);
 
   // Menu
   int onMenuItemClick(unsigned id) override;
@@ -340,6 +343,7 @@ private:
   eastl::unique_ptr<plod::PointCloudGenerator> pointCloudGen;
   eastl::unique_ptr<ColorDialogAppMat> colorPaletteDlg;
   CompositeEditor compositeEditor;
+  eastl::unique_ptr<CanopyEditorWindow> canopyEditorWindow;
 
   KeyboardShortcutsPanel *mShortcutsPanel = nullptr;
 
@@ -379,6 +383,8 @@ private:
 
   ModelessWindowControllerList getModelessWindowControllers();
 
+  void onAssetViewerLoadedAndReadyForInteraction();
+
   // IEditorCommandKeyChordChangeEventHandler
   void onEditorCommandKeyChordChanged() override;
 
@@ -410,6 +416,7 @@ private:
   bool consoleCommandsAndVariableWindowsVisible = false;
   bool consoleWindowVisible = false;
   bool imguiDebugWindowsVisible = false;
+  bool testRuntimeWindowVisible = false;
   bool useDngBasedSceneRender = false;
   AssetBuildWarningDisplay assetBuildWarningDisplay = AssetBuildWarningDisplay::ShowWhenBuilding;
   String assetToInitiallySelect;

@@ -59,6 +59,10 @@ VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsDepthBounds, depthBounds, BackG
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsStencilRef, stencilRef, BackDynamicGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsStencilRefOverride, stencilRefOverride, BackDynamicGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsStencilMask, stencilMask, BackDynamicGraphicsStateStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsExtCullMode, cullMode, BackExtDynamicGraphicsStateStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsExtDepthTest, depthTest, BackExtDynamicGraphicsStateStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsExtDepthBoundsTestEnable, depthBoundsTestEnable, BackExtDynamicGraphicsStateStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsExtStencilTest, stencilTest, BackExtDynamicGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsDynamicRenderStateIndex, dynamicRenderStateIndex, BackGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsBlendConstantFactor, blendConstantFactor, BackGraphicsStateStorage);
 VULKAN_TRACKED_STATE_FIELD_REF(StateFieldGraphicsIndexBuffer, indexBuffer, BackGraphicsStateStorage);
@@ -586,8 +590,6 @@ void StateFieldGraphicsScissor::dumpLog(const BackDynamicGraphicsStateStorage &)
 template <>
 void StateFieldGraphicsDepthBias::applyTo(BackDynamicGraphicsStateStorage &, BEContext &) const
 {
-  // FIXME: restore dyn mask feature
-  // if (dynamicStateMask.hasDepthBias)
   VULKAN_LOG_CALL(Backend::cb.wCmdSetDepthBias(data.bias / MINIMUM_REPRESENTABLE_D16, 0.f, data.slopedBias));
 }
 
@@ -601,8 +603,6 @@ void StateFieldGraphicsDepthBias::dumpLog(const BackDynamicGraphicsStateStorage 
 template <>
 void StateFieldGraphicsDepthBounds::applyTo(BackGraphicsStateStorage &, BEContext &) const
 {
-  // FIXME: restore dyn mask feature
-  // if (dynamicStateMask.hasDepthBoundsTest)
   VULKAN_LOG_CALL(Backend::cb.wCmdSetDepthBounds(data.min, data.max));
 }
 
@@ -696,21 +696,102 @@ void StateFieldGraphicsStencilMask::dumpLog(const BackDynamicGraphicsStateStorag
   debug("stencilMask: %u", data);
 }
 
+// VK_EXT_extended_dynamic_state fields. Each applyTo bails out when the device lacks the extension,
+// because state reset marks all fields dirty and would otherwise call unloaded entry points.
+
+template <>
+void StateFieldGraphicsExtCullMode::applyTo(BackExtDynamicGraphicsStateStorage &, BEContext &) const
+{
+  if (!Globals::VK::phy.hasExtendedDynamicState)
+    return;
+
+  // same mapping as the baked pipeline cull mode (main_pipelines.cpp)
+  VkCullModeFlags cullMode = VK_CULL_MODE_NONE;
+  if (data == (CULL_CW - CULL_NONE))
+    cullMode = VK_CULL_MODE_FRONT_BIT;
+  else if (data == (CULL_CCW - CULL_NONE))
+    cullMode = VK_CULL_MODE_BACK_BIT;
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetCullModeEXT(cullMode));
+}
+
+template <>
+void StateFieldGraphicsExtCullMode::dumpLog(const BackExtDynamicGraphicsStateStorage &) const
+{
+  debug("extCullMode: %u", data);
+}
+
+template <>
+void StateFieldGraphicsExtDepthTest::applyTo(BackExtDynamicGraphicsStateStorage &, BEContext &) const
+{
+  if (!Globals::VK::phy.hasExtendedDynamicState)
+    return;
+
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetDepthTestEnableEXT(data.testEnable ? VK_TRUE : VK_FALSE));
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetDepthCompareOpEXT((VkCompareOp)data.func));
+}
+
+template <>
+void StateFieldGraphicsExtDepthTest::dumpLog(const BackExtDynamicGraphicsStateStorage &) const
+{
+  debug("extDepthTest: enable %u func %u", data.testEnable, data.func);
+}
+
+template <>
+void StateFieldGraphicsExtDepthBoundsTestEnable::applyTo(BackExtDynamicGraphicsStateStorage &, BEContext &) const
+{
+  if (!Globals::VK::phy.hasExtendedDynamicState)
+    return;
+
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetDepthBoundsTestEnableEXT(data ? VK_TRUE : VK_FALSE));
+}
+
+template <>
+void StateFieldGraphicsExtDepthBoundsTestEnable::dumpLog(const BackExtDynamicGraphicsStateStorage &) const
+{
+  debug("extDepthBoundsTestEnable: %u", data);
+}
+
+template <>
+void StateFieldGraphicsExtStencilTest::applyTo(BackExtDynamicGraphicsStateStorage &, BEContext &) const
+{
+  if (!Globals::VK::phy.hasExtendedDynamicState)
+    return;
+
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetStencilTestEnableEXT(data.testEnable ? VK_TRUE : VK_FALSE));
+  VULKAN_LOG_CALL(Backend::cb.wCmdSetStencilOpEXT(VK_STENCIL_FACE_BOTH_BIT, (VkStencilOp)data.failOp, (VkStencilOp)data.passOp,
+    (VkStencilOp)data.depthFailOp, (VkCompareOp)data.compareOp));
+}
+
+template <>
+void StateFieldGraphicsExtStencilTest::dumpLog(const BackExtDynamicGraphicsStateStorage &) const
+{
+  debug("extStencilTest: enable %u fail %u pass %u depthFail %u func %u", data.testEnable, data.failOp, data.passOp, data.depthFailOp,
+    data.compareOp);
+}
+
 template <>
 void StateFieldGraphicsDynamicRenderStateIndex::applyTo(BackGraphicsStateStorage &state, BEContext &) const
 {
   auto dynamicStateDesc = Backend::renderStateSystem.getDynamic(data);
-
-  // FIXME: restore dyn mask feature
-  // GraphicsPipelineDynamicStateMask dynamicStateMask(0);
-  // if (pipeline)
-  //   dynamicStateMask = pipeline->getDynamicStateMask();
 
   using DBias = StateFieldGraphicsDepthBias;
   state.dynamic.set<DBias, DBias::DataType>({dynamicStateDesc.depthBias, dynamicStateDesc.slopedDepthBias});
   state.dynamic.set<StateFieldGraphicsStencilMask>(dynamicStateDesc.stencilMask);
   state.dynamic.set<StateFieldGraphicsStencilRef>(dynamicStateDesc.stencilRef);
   state.dynamic.set<StateFieldGraphicsScissor>(dynamicStateDesc.enableScissor);
+
+  // states moved to the command buffer by VK_EXT_extended_dynamic_state; the values are populated
+  // in extractDynamicState only when the extension is available, so guard the push accordingly
+  if (Globals::VK::phy.hasExtendedDynamicState)
+  {
+    state.extDynamic.set<StateFieldGraphicsExtCullMode>(dynamicStateDesc.extCullMode);
+    using DTest = StateFieldGraphicsExtDepthTest;
+    state.extDynamic.set<DTest, DTest::DataType>({dynamicStateDesc.extDepthTestEnable, dynamicStateDesc.extDepthTestFunc});
+    state.extDynamic.set<StateFieldGraphicsExtDepthBoundsTestEnable>(dynamicStateDesc.extDepthBoundsTestEnable);
+    using STest = StateFieldGraphicsExtStencilTest;
+    state.extDynamic.set<STest, STest::DataType>({dynamicStateDesc.extStencilTestEnable, dynamicStateDesc.extStencilTestOpStencilFail,
+      dynamicStateDesc.extStencilTestOpPass, dynamicStateDesc.extStencilTestOpDepthFail, dynamicStateDesc.extStencilTestFunc});
+  }
 }
 
 template <>
@@ -722,8 +803,6 @@ void StateFieldGraphicsDynamicRenderStateIndex::dumpLog(const BackGraphicsStateS
 template <>
 void StateFieldGraphicsBlendConstantFactor::applyTo(BackGraphicsStateStorage &, BEContext &) const
 {
-  // FIXME: restore dyn mask feature
-  // if (dynamicStateMask.hasBlendConstants)
   const float values[] = //
     {data.r / 255.f, data.g / 255.f, data.b / 255.f, data.a / 255.f};
   VULKAN_LOG_CALL(Backend::cb.wCmdSetBlendConstants(values));

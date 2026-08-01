@@ -16,10 +16,13 @@ namespace animchar_additional_data
 using AdditionalMetadata = eastl::array<uint16_t, 8>;
 
 // return index in additional_data for this DataType, this function invalidate results previous request_space calls
-template <int type>
-int request_space(ecs::Point4List &data, int size)
+template <int type, typename C>
+int request_space(C &data, int size)
 {
   G_STATIC_ASSERT(type >= 0 && type < 8);
+  // This expression breaks the assert macro, so it must be lifted out
+  constexpr bool containerTypeOk = eastl::is_same_v<eastl::remove_cvref_t<decltype(data[0])>, Point4>;
+  G_STATIC_ASSERT(containerTypeOk);
   if (data.size() < 2)
   {
     data.resize(2);
@@ -93,8 +96,12 @@ public:
   // null is when only metadata exists, no real additional data
   static AnimcharAdditionalDataView get_null() { return NULL_METADATA; }
 
-  static AnimcharAdditionalDataView get_optional_data(const ecs::Point4List *additional_data)
+  template <typename C>
+  static AnimcharAdditionalDataView get_optional_data(const C *additional_data)
   {
+    // This expression breaks the assert macro, so it must be lifted out
+    constexpr bool containerTypeOk = eastl::is_same_v<eastl::remove_cvref_t<decltype((*additional_data)[0])>, Point4>;
+    G_STATIC_ASSERT(containerTypeOk);
     return additional_data && !additional_data->empty()
              ? AnimcharAdditionalDataView(make_span_const<Point4>(additional_data->data(), additional_data->size()))
              : get_null();
@@ -130,7 +137,8 @@ AnimcharAdditionalDataVec prepare_fixed_space(dag::ConstSpan<Point4> additional_
 
 inline AnimcharAdditionalDataView get_null_data() { return AnimcharAdditionalDataView::get_null(); }
 
-inline AnimcharAdditionalDataView get_optional_data(const ecs::Point4List *additional_data)
+template <typename C>
+inline AnimcharAdditionalDataView get_optional_data(const C *additional_data)
 {
   return AnimcharAdditionalDataView::get_optional_data(additional_data);
 }

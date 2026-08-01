@@ -3,13 +3,30 @@
 #include "graphHierarchicalMarksParser.h"
 
 #include <debug/dag_assert.h>
+#include <util/dag_convar.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <EASTL/algorithm.h>
 
 
 namespace dafg
 {
 
-GraphHierarchicalMarksParser::GraphMarker::GraphMarker(GraphHierarchicalMarksParser &parser) : parser_(parser) {}
+// When off, framegraph node markers (profiler/RenderDoc) are emitted flat under each node's
+// full name instead of nested per namespace.
+CONSOLE_BOOL_VAL("dafg", marker_namespaces, true);
+
+GraphHierarchicalMarksParser::GraphHierarchicalMarksParser()
+{
+  // Launch override for the namespace grouping, e.g. -config:dafg/markerNamespaces:b=no.
+  // The runtime console (dafg.marker_namespaces) still overrides this afterwards.
+  if (const DataBlock *settings = dgs_get_settings ? dgs_get_settings() : nullptr)
+    marker_namespaces.set(settings->getBlockByNameEx("dafg")->getBool("markerNamespaces", marker_namespaces.get()));
+}
+
+GraphHierarchicalMarksParser::GraphMarker::GraphMarker(GraphHierarchicalMarksParser &parser) :
+  parser_(parser), useNamespaces_(marker_namespaces.get())
+{}
 
 GraphHierarchicalMarksParser::GraphMarker::~GraphMarker()
 {
@@ -22,6 +39,9 @@ GraphHierarchicalMarksParser::GraphMarker::~GraphMarker()
 void GraphHierarchicalMarksParser::GraphMarker::markNode(intermediate::NodeIndex node_id)
 {
 #if DA_PROFILER_ENABLED
+  if (!useNamespaces_)
+    return;
+
   for (uint16_t i = 0; i < parser_.nodeMarks_[node_id].popNum; ++i)
     parser_.eventStack_.pop();
 
@@ -37,7 +57,8 @@ void GraphHierarchicalMarksParser::GraphMarker::markNode(intermediate::NodeIndex
 
 const char *GraphHierarchicalMarksParser::GraphMarker::getNodeDisplayName(intermediate::NodeIndex node_id) const
 {
-  return parser_.nodeMarks_[node_id].displayName.c_str();
+  const NodeMark &mark = parser_.nodeMarks_[node_id];
+  return (useNamespaces_ ? mark.shortDisplayName : mark.fullDisplayName).c_str();
 }
 
 void GraphHierarchicalMarksParser::parseGraphMarks(const InternalRegistry &registry, const intermediate::Graph &graph)
@@ -170,7 +191,9 @@ GraphHierarchicalMarksParser::NodeMark GraphHierarchicalMarksParser::generateMar
     mark.newGPUEvents.emplace_back(eastl::move(eventName));
   }
 
-  mark.displayName = skipNamespaceInNodeName(registry.knownNames.getName(data.nodeNameId), nodeDepth);
+  const char *nodeName = registry.knownNames.getName(data.nodeNameId);
+  mark.shortDisplayName = skipNamespaceInNodeName(nodeName, nodeDepth);
+  mark.fullDisplayName = skipNamespaceInNodeName(nodeName, 0);
 
   return mark;
 }

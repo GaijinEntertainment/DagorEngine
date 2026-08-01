@@ -13,8 +13,11 @@
 #include <util/dag_simpleString.h>
 #include <generic/dag_tab.h>
 #include <memory/dag_framemem.h>
+#include <math/dag_lsbVisitor.h>
 #include <limits.h>
 #include <supp/dag_alloca.h>
+#include "sharedReplicationCache.h"
+#include "componentListsCache.h"
 
 namespace ecs
 {
@@ -48,11 +51,13 @@ static int read_string(const danet::BitStream &cb, eastl::string &to)
   return to.length();
 }
 
-InternedStrings::InternedStrings()
+InternedStringsShared::InternedStringsShared()
 {
   index.emplace("", 0);
   strings.emplace_back("");
 }
+
+InternedStringsRepl::InternedStringsRepl(InternedStringsShared *shared) : shared(shared) { serialized.set(0, true); }
 
 inline bool read_string_no(const danet::BitStream &cb, uint32_t &str, const uint32_t short_bits)
 {
@@ -69,7 +74,7 @@ inline void write_string_no(danet::BitStream &cb, uint32_t str, const uint32_t s
 }
 
 static eastl::string oneString;
-static const char *read_istring(const danet::BitStream &cb, InternedStrings *istrs, uint32_t short_bits)
+static const char *read_istring(const danet::BitStream &cb, InternedStringsRepl *istrs, uint32_t short_bits)
 {
   bool rawString = false;
   if (!cb.Read(rawString))
@@ -81,23 +86,18 @@ static const char *read_istring(const danet::BitStream &cb, InternedStrings *ist
       return nullptr;
     return oneString.c_str();
   }
-  else if (!istrs)
+  if (!istrs)
     return nullptr;
   uint32_t str;
   if (!read_string_no(cb, str, short_bits))
     return nullptr;
-  InternedStrings &all = *istrs;
-  if (str < all.strings.size() && (str == 0 || all.strings[str].length()))
+  InternedStringsShared &all = *istrs->shared;
+  if (str >= all.strings.size() || (all.strings[str].empty() && str != 0))
   {
-    return all.strings[str].c_str();
-  }
-  if (str >= all.strings.size())
-    all.strings.resize(str + 1);
-  G_ASSERT(all.strings.size() <= uint32_t(1 << short_bits));
-  eastl::string &it = all.strings[str];
-  if (read_string(cb, it) < 0)
+    logerr("Interned string idx %u referenced but not in pool (size=%u). Missing from prefix?", str, (unsigned)all.strings.size());
     return nullptr;
-  return it.c_str();
+  }
+  return all.strings[str].c_str();
 }
 
 static void write_raw_string(danet::BitStream &cb, const eastl::string &pStr)
@@ -106,27 +106,23 @@ static void write_raw_string(danet::BitStream &cb, const eastl::string &pStr)
   cb.Write(pStr.c_str(), pStr.length() + 1);
 }
 
-static void write_string(danet::BitStream &cb, const eastl::string &pStr, InternedStrings &all, uint32_t short_bits)
+static void write_istring(danet::BitStream &cb, const eastl::string &pStr, InternedStringsShared &all, uint32_t short_bits,
+  eastl::bitvector<framemem_allocator, uint64_t> &out_used)
 {
   auto it = all.index.find(pStr);
   if (it == all.index.end())
   {
-    if (all.strings.size() >= uint32_t(1 << short_bits))
+    if (DAGOR_UNLIKELY(all.strings.size() >= uint32_t(1 << short_bits)))
     {
       write_raw_string(cb, pStr);
       return;
     }
-    cb.Write(false);
-    write_string_no(cb, all.strings.size(), short_bits);
     all.strings.emplace_back(pStr);
-    cb.Write(all.strings.back().c_str(), all.strings.back().length() + 1);
-    all.index.emplace(all.strings.back(), all.strings.size() - 1);
+    it = all.index.emplace(all.strings.back(), all.strings.size() - 1).first;
   }
-  else
-  {
-    cb.Write(false);
-    write_string_no(cb, it->second, short_bits);
-  }
+  cb.Write(false);
+  write_string_no(cb, it->second, short_bits);
+  out_used.set(it->second, true);
 }
 
 static constexpr int OBJECT_KEY_BITS = 10;
@@ -151,6 +147,10 @@ bool BitstreamDeserializer::read(void *to, size_t sz_in_bits, ecs::component_typ
     obj.clear();
     uint32_t cnt;
     if (!ecs::read_compressed(*this, cnt))
+      return false;
+    // Every entry consumes at least a key plus a child component, so more entries than
+    // unread bytes is impossible; reject before reserving to avoid a huge hostile alloc.
+    if (cnt > bs.GetNumberOfUnreadBits() / CHAR_BIT)
       return false;
     obj.reserve(cnt);
     for (uint32_t i = 0; i < cnt; ++i)
@@ -229,16 +229,17 @@ void BitstreamSerializer::write(const void *from, size_t sz_in_bits, ecs::compon
   {
     const ecs::Object &obj = *((const ecs::Object *)from);
     ecs::write_compressed(*this, obj.size());
-    if (objectKeys)
+    if (objectKeys && outObjectKeysUsed)
     {
       for (auto &it : obj)
       {
-        write_string(bs, ecs::get_key_string(it.first), *objectKeys, OBJECT_KEY_BITS);
+        write_istring(bs, ecs::get_key_string(it.first), *objectKeys->shared, OBJECT_KEY_BITS, *outObjectKeysUsed);
         ecs::serialize_child_component(it.second, *this, mgr);
       }
     }
     else
     {
+      G_ASSERT(!objectKeys && !outObjectKeysUsed);
       for (auto &it : obj)
       {
         write_raw_string(bs, ecs::get_key_string(it.first));
@@ -313,7 +314,7 @@ bool Connection::deserializeComponentReplication(ecs::EntityId eid, const danet:
   if (clientCidx == ecs::INVALID_COMPONENT_INDEX) // we can't deserialize it, which means type was unknown!
     return false;
   BitSize_t beforeReadPos = bs.GetReadOffset();
-  BitstreamDeserializer bsds(mgr, bs, &objectKeys);
+  BitstreamDeserializer bsds(mgr, bs, &objectKeysRepl);
   ecs::EntityComponentRef cref = mgr.getComponentRefRW(eid, clientCidx);
   bool crefIsNull = cref.isNull();
   if (DAGOR_LIKELY(!crefIsNull && deserialize_component_typeless(cref, bsds, mgr)))
@@ -390,8 +391,9 @@ bool Connection::syncReadTemplate(const danet::BitStream &bs, ecs::template_t te
     return false;
 
   const int templId = mgr.buildTemplateIdByName(serverTemplates[templateId].c_str());
+  ecs::template_t instantiated = ecs::INVALID_TEMPLATE_INDEX;
   if (templId >= 0)
-    mgr.instantiateTemplate(templId, false);
+    instantiated = mgr.instantiateTemplate(templId, false);
   else
   {
     // todo: create this template instead! we know everything from server side!
@@ -421,6 +423,13 @@ bool Connection::syncReadTemplate(const danet::BitStream &bs, ecs::template_t te
         return false;
       clientTemplatesComponents[templateId][cid] = serverToClientCidx[serverCidx];
     }
+  }
+  // serverToClientCidx/componentsSynced are connection-wide and the server sends each
+  // component description once, so the mapping above is consumed even on failure
+  if (templId >= 0 && instantiated == ecs::INVALID_TEMPLATE_INDEX)
+  {
+    logerr("template <%s> could not be instantiated, entities of it can't be created", serverTemplates[templateId].c_str());
+    return false;
   }
   return true;
 }
@@ -489,8 +498,6 @@ void dump_initial_construction_stats(ecs::EntityManager &mgr)
 void dump_initial_construction_stats(ecs::EntityManager &) {}
 #endif
 
-extern const ecs::component_index_t *get_template_ignored_initial_components(ecs::template_t);
-
 template <typename S>
 static const char *replace_local_to_remote(const char *templ_name, S &tmps)
 {
@@ -516,14 +523,13 @@ void Connection::serializeTemplate(danet::BitStream &bs, ecs::template_t templat
   ecs::template_t templateId = serverIdxToTemplates[templateIdx];
   uint32_t archetype = mgr.getArchetypeByTemplateId(templateId);
 
+  // iteration order must be in sync with serializeConstruction
+  const TemplateCachedCompLists &compLists = get_template_cached_comp_lists(templateId);
   auto iterateReplicatable = [&](auto fn) {
-    int componentsCount = mgr.getArchetypeNumComponents(archetype);
-    for (int cid = 0; cid < componentsCount; ++cid)
-    {
-      ecs::component_index_t cidx = mgr.getArchetypeComponentIndex(archetype, cid);
-      if (ecs::should_replicate(cidx, mgr)) // never written
-        fn(cidx);
-    }
+    for (int cid : compLists.getReplicatedLocalIdx())
+      fn(mgr.getArchetypeComponentIndex(archetype, cid));
+    for (int cid : compLists.getReplicatedFilteredLocalIdx())
+      fn(mgr.getArchetypeComponentIndex(archetype, cid));
   };
 
   bs.WriteCompressed(templateIdx); // ref to template
@@ -577,33 +583,31 @@ void Connection::serializeTemplateForClientReplay(danet::BitStream &bs, ecs::tem
   bs.WriteAt(componentsInTemplate, blockSizePos);
 }
 
-void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, CanSkipInitial canSkipInitial)
+void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, CanSkipInitial canSkipInitial,
+  SharedReplicationCache *cache)
 {
 #if NET_STAT_PROFILE_INITIAL_SIZES
   int beginWr = !isBlackHole() ? (int)bs.GetWriteOffset() : -1;
 #endif
-  const int componentsCount = mgr.getNumComponents(eid);
   const ecs::template_t templateId = mgr.getEntityTemplateId(eid);
+  const TemplateCachedCompLists &compLists = get_template_cached_comp_lists(templateId);
 
-  Object *object = Object::getByEid(mgr, eid);
-  ObjectReplica *replica = getReplicaByEid(eid);
-
-  auto iterateReplicatable = [&, componentsCount](auto fn) {
-    for (int cid = 0; cid < componentsCount; ++cid)
-    {
-      auto comp = mgr.getEntityComponentRef(eid, cid);
-      if (should_replicate(comp, mgr)) // never written
-        fn(comp, cid);
-    }
+  auto iterateReplicatable = [&](bool not_filtered, bool filtered, auto fn) {
+    if (not_filtered)
+      for (int cid : compLists.getReplicatedLocalIdx())
+        fn(mgr.getEntityComponentRef(eid, cid), cid);
+    if (filtered)
+      for (int cid : compLists.getReplicatedFilteredLocalIdx())
+        fn(mgr.getEntityComponentRef(eid, cid), cid);
   };
+
+  // write template (full component list first time, then only id)
   ecs::template_t serverWrittenIdx =
     templateId < serverTemplatesIdx.size() ? serverTemplatesIdx[templateId] : ecs::INVALID_TEMPLATE_INDEX;
   if (serverWrittenIdx != ecs::INVALID_TEMPLATE_INDEX)
-    bs.WriteCompressed(serverWrittenIdx); // ref to template
-  else                                    // not yet synced/known to client
+    bs.WriteCompressed(serverWrittenIdx);
+  else
   {
-    // it is too expensive to always serialize template name, so we just rely on construction being reliable ordered, and write name
-    // once.
     if (serverTemplatesIdx.size() <= templateId)
       serverTemplatesIdx.resize(templateId + 1, ecs::INVALID_TEMPLATE_INDEX);
     serverWrittenIdx = syncedTemplate++;
@@ -611,89 +615,177 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
     G_FAST_ASSERT(serverWrittenIdx != ecs::INVALID_TEMPLATE_INDEX);
     serverTemplatesIdx[templateId] = serverWrittenIdx;
     serverIdxToTemplates[serverWrittenIdx] = templateId;
-    bs.WriteCompressed(serverWrittenIdx); // ref to template
+    bs.WriteCompressed(serverWrittenIdx);
     {
       eastl::fixed_string<char, 128, true, framemem_allocator> tmps;
       bs.Write(replace_local_to_remote(mgr.getTemplateName(templateId), tmps)); // _local -> _remote
     }
-    // todo: actually, we'd better serialize template, if it is different on server and client. Would require some state to check.
-    const BitSize_t blockSizePos = bs.GetWriteOffset();
-    uint16_t componentsInTemplate = 0;
+    const uint16_t componentsInTemplate = compLists.getReplicatedLocalIdx().size() + compLists.getReplicatedFilteredLocalIdx().size();
     bs.Write(componentsInTemplate);
-    iterateReplicatable([&](ecs::EntityComponentRef comp, uint16_t) {
-      componentsInTemplate++;
+    if (serverWrittenIdx >= serverTemplateComponentsCount.size())
+      serverTemplateComponentsCount.resize(serverWrittenIdx + 1);
+    serverTemplateComponentsCount[serverWrittenIdx] = componentsInTemplate;
+    iterateReplicatable(true, true, [&](ecs::EntityComponentRef comp, uint16_t) {
       const ecs::component_index_t cidx = comp.getComponentId();
       write_component_index(cidx, bs);
       if (!componentsSynced.test(cidx, false))
       {
-        // 8 bytes, if component is first time synced
         bs.Write(mgr.getDataComponents().getComponentTpById(cidx));
         bs.Write(comp.getUserType());
         componentsSynced.set(cidx, true);
       }
     });
-    bs.WriteAt(componentsInTemplate, blockSizePos);
-    if (serverWrittenIdx >= serverTemplateComponentsCount.size())
-      serverTemplateComponentsCount.resize(serverWrittenIdx + 1);
-    serverTemplateComponentsCount[serverWrittenIdx] = componentsInTemplate;
   }
 
-  const ecs::component_index_t *ignoredComponents = get_template_ignored_initial_components(templateId), *ignoredComponentsE = nullptr;
-  if (ignoredComponents)
-  {
-    size_t nComp = *ignoredComponents++;
-    ignoredComponentsE = ignoredComponents + nComp;
-  }
-
-  BitstreamSerializer serializer(mgr, bs, &objectKeys);
-  const BitSize_t countSizePos = bs.GetWriteOffset();
+  // write component data into separate bitstream + keep bitvector of used object key strings
+  auto *cacheEntry = cache ? &cache->construction[eid] : nullptr;
+  SharedReplicationCache::SerializerState state;
   const bool lessThan256 = serverTemplateComponentsCount[serverWrittenIdx] < 256;
-  uint16_t componentsInTemplate = 0, prevComponent = 0, writtenComponents = 0;
-  if (lessThan256)
-    bs.Write(uint8_t(writtenComponents));
-  else
-    bs.Write(writtenComponents);
-  iterateReplicatable([&, eid, object, replica](ecs::EntityComponentRef comp, uint16_t cid) {
+
+  Object *object = nullptr;
+  ObjectReplica *replica = nullptr;
+  const auto ensureObjectAndReplica = [&] {
+    if (object == nullptr)
+    {
+      object = Object::getByEid(mgr, eid);
+      replica = getReplicaByEid(eid);
+    }
+  };
+
+  const auto writeNextComp = [&](BitstreamSerializer &ser, ecs::EntityComponentRef comp, uint16_t cid,
+                               auto &&skip_initial_replication) {
 #if NET_STAT_PROFILE_INITIAL_SIZES
-    auto beginWrComp = serializer.bs.GetWriteOffset();
+    auto beginWrComp = ser.bs.GetWriteOffset();
 #endif
-    if ((ignoredComponents != nullptr && eastl::binary_search(ignoredComponents, ignoredComponentsE, comp.getComponentId())) ||
-        mgr.isEntityComponentSameAsTemplate(eid, comp, cid) ||
-        (canSkipInitial == CanSkipInitial::Yes && object->skipInitialReplication(comp.getComponentId(), this, replica)))
+    if (compLists.isIgnored(comp.getComponentId()) || mgr.isEntityComponentSameAsTemplate(eid, comp, cid) ||
+        (canSkipInitial == CanSkipInitial::Yes && skip_initial_replication(comp.getComponentId())))
     {
       // skip
     }
     else
     {
-      // first one is not diff
-      const uint16_t ofs = (writtenComponents++ == 0) ? componentsInTemplate : uint16_t(componentsInTemplate - prevComponent - 1);
-      if (lessThan256) // write one byte
+      // first written gets absolute index, rest are deltas
+      const uint16_t ofs =
+        (state.writtenComponents++ == 0) ? state.componentsInTemplate : uint16_t(state.componentsInTemplate - state.prevComponent - 1);
+      if (lessThan256)
       {
         G_FAST_ASSERT(ofs <= UCHAR_MAX);
-        serializer.bs.Write(uint8_t(ofs));
+        ser.bs.Write(uint8_t(ofs));
       }
       else
-        serializer.bs.WriteCompressed(ofs); // write compressed ofs
-      ecs::serialize_entity_component_ref_typeless(comp, serializer, mgr);
-      prevComponent = componentsInTemplate;
+        ser.bs.WriteCompressed(ofs);
+      ecs::serialize_entity_component_ref_typeless(comp, ser, mgr);
+      state.prevComponent = state.componentsInTemplate;
     }
-    componentsInTemplate++;
+    state.componentsInTemplate++;
 #if NET_STAT_PROFILE_INITIAL_SIZES
-    if (uint32_t bits = (beginWr >= 0) ? (serializer.bs.GetWriteOffset() - beginWrComp) : 0)
+    if (uint32_t bits = (beginWr >= 0) ? (ser.bs.GetWriteOffset() - beginWrComp) : 0)
       templatesComponentSize[templateId | (comp.getComponentId() << 16)] += bits;
 #endif
-  });
-  G_ASSERT(lessThan256 == (componentsInTemplate < 256));
+  };
+
+  danet::BitStream localStagingBs(framemem_ptr());
+  danet::BitStream &stagingBs = cache ? cache->stagingBs : localStagingBs;
+  stagingBs.ResetWritePointer();
+  eastl::bitvector<framemem_allocator, uint64_t> usedKeys;
+  const danet::BitStream *blobBs = &stagingBs;
+  if (cacheEntry && cacheEntry->valid)
+  {
+    state = cacheEntry->state;
+    usedKeys = cacheEntry->objectKeysUsed;
+    blobBs = &cacheEntry->bs;
+    if (!cacheEntry->forceReplicaVersionComps.empty())
+    {
+      ensureObjectAndReplica();
+      for (auto [cidx, version] : cacheEntry->forceReplicaVersionComps)
+        object->forceReplicaVersion(cidx, replica, version);
+    }
+  }
+  else if (cacheEntry)
+  {
+    ensureObjectAndReplica();
+    cacheEntry->bs.ResetWritePointer();
+    BitstreamSerializer serializer(mgr, cacheEntry->bs, &objectKeysRepl, &usedKeys);
+    iterateReplicatable(true, false, [&](ecs::EntityComponentRef comp, uint16_t cid) {
+      writeNextComp(serializer, comp, cid, [&](ecs::component_index_t cidx) {
+        if (int version = object->forceReplicaVersion(cidx, replica); version != -1)
+          cacheEntry->forceReplicaVersionComps.emplace_back(cidx, net::compver_t(version));
+        return false;
+      });
+    });
+    cacheEntry->state = state;
+    cacheEntry->objectKeysUsed = usedKeys;
+    cacheEntry->valid = true;
+    blobBs = &cacheEntry->bs;
+  }
+  else
+  {
+    ensureObjectAndReplica();
+    BitstreamSerializer serializer(mgr, stagingBs, &objectKeysRepl, &usedKeys);
+    iterateReplicatable(true, false, [&](ecs::EntityComponentRef comp, uint16_t cid) {
+      writeNextComp(serializer, comp, cid, [&](ecs::component_index_t cidx) {
+        object->forceReplicaVersion(cidx, replica);
+        return false;
+      });
+    });
+  }
+
+  if (!compLists.getReplicatedFilteredLocalIdx().empty())
+  {
+    ensureObjectAndReplica();
+    if (blobBs != &stagingBs)
+    {
+      stagingBs.reserveBits(blobBs->GetNumberOfBitsUsed());
+      if (const uint32_t blobBytes = blobBs->GetNumberOfBytesUsed())
+        memcpy(stagingBs.GetData(), blobBs->GetData(), blobBytes);
+      stagingBs.SetWriteOffset(blobBs->GetNumberOfBitsUsed());
+      blobBs = &stagingBs;
+    }
+    BitstreamSerializer serializer(mgr, stagingBs, &objectKeysRepl, &usedKeys);
+    iterateReplicatable(false, true, [&](ecs::EntityComponentRef comp, uint16_t cid) {
+      writeNextComp(serializer, comp, cid,
+        [&](ecs::component_index_t cidx) { return object->skipInitialReplication(cidx, this, replica); });
+    });
+  }
+
+  // write new object keys, that are needed for this construction packed, and were not replicated yet
+  {
+    const auto &usedKeysWords = usedKeys.get_container();
+    const auto &replKeysWords = objectKeysRepl.serialized.get_container();
+    for (uint32_t wordI = 0; wordI < usedKeysWords.size(); wordI++)
+    {
+      const uint64_t cur = wordI < replKeysWords.size() ? replKeysWords[wordI] : 0;
+      const uint64_t missing = ~cur & usedKeysWords[wordI];
+      if (DAGOR_LIKELY(missing == 0))
+        continue;
+      for (const uint32_t bitI : LsbVisitor{missing})
+      {
+        const uint32_t i = wordI * 64u + bitI;
+        G_ASSERT(i < uint32_t(1 << OBJECT_KEY_BITS));
+        const eastl::string &str = objectKeysRepl.shared->strings[i];
+        bs.Write(str.c_str(), str.length() + 1);
+        write_string_no(bs, i, OBJECT_KEY_BITS);
+        objectKeysRepl.serialized.set(i, true);
+      }
+    }
+    bs.Write(uint8_t(0)); // empty string
+  }
+
+  // component count and component data
+  if (lessThan256)
+    bs.Write(uint8_t(state.writtenComponents));
+  else
+    bs.Write(uint16_t(state.writtenComponents));
+  // ensure alignment of the blob matches bs
+  bs.WriteAlignedBytes(blobBs->GetData(), blobBs->GetNumberOfBytesUsed());
+
+  G_ASSERT(lessThan256 == (state.componentsInTemplate < 256));
 
   // Remove this check when we sure enough that it's not happens and use bitmap for storing info about count < 256 instead
-  if (DAGOR_UNLIKELY(componentsInTemplate != serverTemplateComponentsCount[serverWrittenIdx]))
-    logerr("Inconsistent replication components count %d (cur) != %d (initial) in template %d<%s>", componentsInTemplate,
+  if (DAGOR_UNLIKELY(state.componentsInTemplate != serverTemplateComponentsCount[serverWrittenIdx]))
+    logerr("Inconsistent replication components count %d (cur) != %d (initial) in template %d<%s>", state.componentsInTemplate,
       serverTemplateComponentsCount[serverWrittenIdx], templateId, mgr.getEntityTemplateName(eid));
 
-  if (lessThan256)
-    bs.WriteAt(uint8_t(writtenComponents), countSizePos);
-  else
-    bs.WriteAt(uint16_t(writtenComponents), countSizePos);
 #if NET_STAT_PROFILE_INITIAL_SIZES
   if (beginWr >= 0)
     templatesSize[templateId] += bs.GetWriteOffset() - beginWr;
@@ -703,7 +795,8 @@ void Connection::serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, 
 bool Connection::deserializeComponentConstruction(ecs::template_t server_template, const danet::BitStream &bs,
   ecs::ComponentsInitializer &init, int &out_ncomp)
 {
-  BitstreamDeserializer deserializer(mgr, bs, &objectKeys);
+  G_ASSERT(objectKeysRepl.shared == &objectKeysLocal);
+  BitstreamDeserializer deserializer(mgr, bs, &objectKeysRepl);
   uint16_t compCount = 0;
   const uint16_t templateComponentsCount = clientTemplatesComponents[server_template].size();
   if (templateComponentsCount < 256)
@@ -715,6 +808,8 @@ bool Connection::deserializeComponentConstruction(ecs::template_t server_templat
   }
   else if (!bs.Read(compCount))
     return false;
+  // component data is aligned at the start
+  bs.AlignReadToByteBoundary();
   for (uint16_t comp = 0, i = 0; i < compCount; ++i)
   {
     uint16_t ofs;
@@ -748,6 +843,7 @@ bool Connection::deserializeComponentConstruction(ecs::template_t server_templat
       return false;
   }
   out_ncomp = compCount;
+  bs.AlignReadToByteBoundary();
   return true;
 }
 
@@ -765,6 +861,26 @@ ecs::EntityId Connection::deserializeConstruction(const danet::BitStream &bs, ec
   {
     logerr("Failed to deserialize template for server entity <%d>", serverId);
     return ecs::INVALID_ENTITY_ID;
+  }
+
+  // read new object key strings
+  {
+    while (true)
+    {
+      uint32_t idx = 0;
+      eastl::string str;
+      if (read_string(bs, str) < 0)
+        return ecs::INVALID_ENTITY_ID;
+      if (str.empty())
+        break;
+      if (!read_string_no(bs, idx, OBJECT_KEY_BITS))
+        return ecs::INVALID_ENTITY_ID;
+      InternedStringsShared &all = *objectKeysRepl.shared;
+      if (idx >= all.strings.size())
+        all.strings.resize(idx + 1);
+      G_ASSERT(all.strings.size() <= uint32_t(1 << OBJECT_KEY_BITS));
+      all.strings[idx] = eastl::move(str);
+    }
   }
 
   ecs::ComponentsInitializer ainit;

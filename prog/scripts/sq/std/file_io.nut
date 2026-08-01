@@ -10,9 +10,9 @@ function readFileAsBlob(fileName, mode = "") {
   return contents
 }
 
-let readFileAsString = @(fileName, mode = "") readFileAsBlob(fileName, mode).as_string()
+let readFileAsString = @(fileName, mode = ""): string readFileAsBlob(fileName, mode).as_string()
 
-function writeBlobToFile(fileName, contents, mode = "") {
+function writeBlobToFile(fileName, contents, mode = ""): int {
   let f = file(fileName, $"w{mode}")
   f.writeblob(contents)
   let len = f.len()
@@ -20,7 +20,7 @@ function writeBlobToFile(fileName, contents, mode = "") {
   return len
 }
 
-function writeStringToFile(fileName, contentsStr, mode = "") {
+function writeStringToFile(fileName, contentsStr, mode = ""): int {
   let contents = blob()
   contents.writestring(contentsStr)
   return writeBlobToFile(fileName, contents, mode)

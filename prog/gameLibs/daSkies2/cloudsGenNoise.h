@@ -54,12 +54,13 @@ private:
   bool curlRendered = false;
   bool compressSupported = false;
 
-  eastl::unique_ptr<ComputeShaderElement> genCurl2d, genCurl3d;
+  eastl::unique_ptr<ComputeShaderElement> genCurl2d, genCurl2dCompressed, genCurl3dCompressed;
   PostFxRenderer genCurl2dPs;
-  VoltexRenderer genCloudShape, genCloudDetail, genMips3d;
+  VoltexRenderer genCloudShape, genCloudDetail, genMips3d, genCurl3d;
 
   UniqueTexWithShaderVar cloud1, cloud2;
   UniqueTexWithShaderVar cloudsCurl2d;
+  UniqueTexWithShaderVar cloudsCurl3d;
   VoltexRenderer compress3D;
 
   UniqueTex cloud1Compressed, cloud2Compressed;

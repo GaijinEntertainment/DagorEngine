@@ -1,0 +1,206 @@
+#  CocoaPods integration for iOS/tvOS (included from defaults.jam so that
+#  game jamfiles and *.inc.game-jam files can use it before jBuild.jam loads)
+#
+#  Declarative use in any jamfile (lib or exe), next to Sources/AddLibs:
+#    CocoaPodFramework =
+#      FBSDKLoginKit/18.0.0
+#      AppsFlyerFramework/6.17.9/AppsFlyerLib
+#      Google-Mobile-Ads-SDK/12.14.0/GoogleMobileAds+UserMessagingPlatform
+#    ;
+#  Item format: <Pod>/<version>[/<Framework1>[+<Framework2>...]] ;
+#  framework names default to the pod name.
+#
+#  Each pod is fetched at build time by _scripts/fetch_cocoapod.py into
+#  $(CocoaPodsCacheDir)/<Pod>/<version>/<slice> (slice = ios-arm64 etc.);
+#  that dir gets <Name>.framework / *.bundle / *.a entries for the current
+#  platform slice. The jamfile gets -F<dir> in CPPopt and framework link
+#  options; for static libs link options ride on AddLibs and so reach the
+#  final exe automatically -- games do not need per-framework include files.
+#
+#  When only the path is needed (EmbeddedFrameworks, FrameworkResBundle,
+#  AddLibs with vendored *.a), use:
+#    local dir = [ MakeCocoaPodAvailable AppLovinSDK : 13.3.0 ] ;
+
+actions together quietly fetch_cocoapod
+{
+#async
+  echo * fetching CocoaPod $(pod)/$(pod_ver)
+  call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/fetch_cocoapod.py --pod $(pod) --pod-version $(pod_ver) --cache-dir $(cache_dir) --platform $(pod_plat) --arch $(pod_arch) $(pod_extra)
+  if errorlevel 1 goto failed
+  if not exist $(1) goto failed
+  goto end
+
+  :failed
+  echo FAILED to fetch CocoaPod $(pod)/$(pod_ver) $(_PrintedOutput)
+  set ERRORLEVEL=13
+
+  :end
+}
+
+# registers build-time fetch of a pod (once) and returns the slice dir
+# that will contain its frameworks/bundles/static libs;
+# source_url overrides the podspec 'source' (for pods with no binary archive
+# on the CocoaPods trunk, e.g. the Firebase distribution zip)
+#   params: ( pod : version : expected_framework_names : source_url )
+rule MakeCocoaPodAvailable
+{
+  CocoaPodsCacheDir ?= $(_OutputRoot)/cocoapods ;
+  # packages pre-downloaded to devtools are used instead of downloading;
+  # only prepared slice dirs are written to $(CocoaPodsCacheDir)
+  CocoaPodsPrebuiltDir ?= $(_DEVTOOL)/ios_frameworks ;
+  # downloads are forbidden by default: builds must use packages from
+  # $(CocoaPodsPrebuiltDir); a developer can allow fetching from the pod
+  # repositories locally with jam -sCocoaPodsAllowDownload=yes
+  CocoaPodsAllowDownload ?= no ;
+
+  local plat = ios ;
+  if $(Platform) = tvOS { plat = tvos ; }
+  local arch = $(PlatformArch) ;
+  local extra = ;
+  if $(CocoaPodsPrebuiltDir) { extra += --prebuilt-dir $(CocoaPodsPrebuiltDir) ; }
+  if $(CocoaPodsAllowDownload) != yes { extra += --no-download ; }
+  if $(PlatformArch) = i386 { arch = x86_64 ; extra += --variant simulator ; }
+
+  local slice = $(plat)-$(arch) ;
+  if $(PlatformArch) = i386 { slice = $(slice)-simulator ; }
+
+  local fw_dir = $(CocoaPodsCacheDir)/$(1)/$(2)/$(slice) ;
+  local stamp = $(fw_dir)/.jam-ready ;
+
+  if ! $(stamp) in $(_COCOAPODS_STAMPS) {
+    _COCOAPODS_STAMPS += $(stamp) ;
+    GlobalLinkPrereqs += $(stamp) ;
+
+    if $(3) { extra += --frameworks $(3) ; }
+    if $(4) { extra += --source-url $(4) ; }
+
+    pod       on $(stamp) = $(1) ;
+    pod_ver   on $(stamp) = $(2) ;
+    cache_dir on $(stamp) = $(CocoaPodsCacheDir) ;
+    pod_plat  on $(stamp) = $(plat) ;
+    pod_arch  on $(stamp) = $(arch) ;
+    pod_extra on $(stamp) = $(extra) ;
+    fetch_cocoapod $(stamp) ;
+  }
+
+  # objs of the current target must not compile before the pod is on disk
+  ExtraCompileDeps += $(stamp) ;
+  return $(fw_dir) ;
+}
+
+# handles CocoaPodFramework of the current target; called from ProcessTargetVariables
+#   params: ( pod_descriptors )
+rule ProcessCocoaPods
+{
+  local swift_dir = iphoneos ;
+  local sdk_root = $(_IOS_SDK_ROOT) ;
+  if $(PlatformArch) = i386 { swift_dir = iphonesimulator ; }
+  if $(Platform) = tvOS {
+    sdk_root = $(_TVOS_SDK_ROOT) ;
+    swift_dir = appletvos ;
+    if $(PlatformArch) = i386 { swift_dir = appletvsimulator ; }
+  }
+
+  for pod_desc in $(1) {
+    local m = [ MATCH ^([^/]+)/([^/]+)/(.+)$ : $(pod_desc) ] ;
+    if ! $(m) { m = [ MATCH ^([^/]+)/([^/]+)$ : $(pod_desc) ] ; }
+    if ! $(m[2]) { Exit invalid CocoaPodFramework item '$(pod_desc)' - expected Pod/version or Pod/version/Fw1+Fw2 ; }
+
+    local frameworks = ;
+    local rest = $(m[3]) ;
+    rest ?= $(m[1]) ;
+    while $(rest) {
+      local s = [ MATCH ^([^+]+)[+](.+)$ : $(rest) ] ;
+      if $(s) { frameworks += $(s[1]) ; rest = $(s[2]) ; } else { frameworks += $(rest) ; rest = ; }
+    }
+
+    # CocoaPodSourceUrl_<Pod> overrides the podspec source archive if set
+    local fw_dir = [ MakeCocoaPodAvailable $(m[1]) : $(m[2]) : $(frameworks) : $(CocoaPodSourceUrl_$(m[1])) ] ;
+
+    CPPopt += -F$(fw_dir) ;
+
+    # binary pods commonly contain swift code, so add swift runtime search dirs
+    local link_opts = -F$(fw_dir)
+      -L$(_DEVTOOL)/mac/Toolchain/usr/lib/swift/$(swift_dir)
+      -L$(sdk_root)/usr/lib/swift ;
+
+    if $(TargetType) in $(_FinalBinTargetTypes) {
+      LINKopt += $(link_opts) ;
+      for f in $(frameworks) { LINKopt += -framework $(f) ; }
+    } else {
+      # for static libs these propagate to the final exe link via __UseLibs
+      AddLibs += $(link_opts) ;
+      for f in $(frameworks) { AddLibs += "-framework $(f)" ; }
+    }
+
+    # podspecs declare privacy manifests as resource_bundles named
+    # <module>_Privacy; such bundles must be copied into the app bundle
+    for f in $(frameworks) {
+      CocoaPodResBundle $(fw_dir)/$(f)_Privacy ;
+    }
+  }
+}
+
+# requests a copy of a resource bundle into the app bundle; unlike
+# FrameworkResBundle this works from lib jamfiles too (libs parse after the
+# exe, so the copies are registered deferred from jBuild.jam)
+#   params: ( bundle_path_without_.bundle_suffix )
+rule CocoaPodResBundle
+{
+  if ! $(1) in $(_COCOAPODS_RES_BUNDLES) { _COCOAPODS_RES_BUNDLES += $(1) ; }
+}
+
+# links a dynamic framework and requests embedding it into the app
+# Frameworks/ dir; works from lib jamfiles (unlike EmbeddedFrameworks)
+#   params: ( framework_dir )
+rule CocoaPodEmbedFramework
+{
+  AddLibs += -F$(1:D) "-framework $(1:B)" ;
+  if ! $(1) in $(_COCOAPODS_EMBED_FRAMEWORKS) { _COCOAPODS_EMBED_FRAMEWORKS += $(1) ; }
+}
+
+actions together quietly copy_pod_res_bundle
+{
+#async
+  if not exist $(src) echo * no resource bundle for $(1:B), skipped
+  if exist $(src) echo * copy resource bundle to: $(1)
+  if exist $(src) call $(PYTHON_EXE) $(Root)/prog/_jBuild/iOS/copy_framework.py $(src) $(1)
+}
+
+# creates app-bundle copies of resource bundles and embedded frameworks of
+# all pods used in the build; called from jBuild.jam after all jamfiles are
+# parsed, because pods are declared by libs which parse after the exe itself
+#   params: ( exe_target )
+rule RegisterCocoaPodAppResources
+{
+  local out_dir = $($(1)__OutDir) ;
+
+  for b in $(_COCOAPODS_RES_BUNDLES) {
+    local src = $(b).bundle ;
+    local dst = $(out_dir)/$(b:D=).bundle ;
+
+    if $(SignTarget) { Depends $(SignTarget) : $(dst) ; } else { Depends all : $(dst) ; }
+
+    # not every framework ships one; the copy action skips missing sources
+    NOCARE $(src) ;
+    if $(GlobalLinkPrereqs) { Depends $(src) : $(GlobalLinkPrereqs) ; }
+    Depends $(dst) : $(src) ;
+
+    src on $(dst) = $(src) ;
+    copy_pod_res_bundle $(dst) ;
+  }
+
+  for fw in $(_COCOAPODS_EMBED_FRAMEWORKS) {
+    local dst = $(out_dir)/Frameworks/$(fw:D=) ;
+
+    if $(SignTarget) { Depends $(SignTarget) : $(dst) ; } else { Depends all : $(dst) ; }
+
+    NOCARE $(fw) ;
+    if $(GlobalLinkPrereqs) { Depends $(fw) : $(GlobalLinkPrereqs) ; }
+    Depends $(dst) : $(fw) ;
+
+    src on $(dst) = $(fw) ;
+    dst on $(dst) = $(dst) ;
+    copy_framework $(dst) ;
+  }
+}

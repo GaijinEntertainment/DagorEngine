@@ -11,6 +11,7 @@
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_dataBlockCommentsDef.h>
 #include <memory/dag_framemem.h>
+#include <util/dag_finally.h>
 #include <util/le2be.h>
 #include <util/dag_string.h>
 #include <math/integer/dag_IPoint2.h>
@@ -1511,7 +1512,7 @@ bool DataBlockParser::parse(DataBlock &blk, bool isTop)
       }
 
       if ((/*new binaryformats*/ len > 1 && buffer[pos] >= dblk::BBF_full_binary_in_stream &&
-            buffer[pos] <= dblk::BBF_binary_with_shared_nm_zd) ||
+            buffer[pos] <= dblk::BBF_full_binary_in_stream_dedup) ||
           (/* old BBF3 format */ len >= 4 && *(int *)&buffer[pos] == _MAKE4C('BBF')))
       {
         logwarn("including binary file '%s', not fastest codepath", valueStr.str());
@@ -1733,13 +1734,25 @@ bool DataBlock::loadFromStream(IGenLoad &crd, const char *fname, DataBlock::IFil
     }
     else if (label == dblk::BBF_full_binary_in_stream)
       valid = loadFromBinDump(crd, nullptr);
+    else if (label == dblk::BBF_full_binary_in_stream_dedup)
+      valid = loadFromBinDump(crd, nullptr, /*dedup_ofs*/ true);
     else if (label == dblk::BBF_full_binary_in_stream_z)
     {
       unsigned csz = 0;
       crd.read(&csz, 3);
       ZstdLoadCB zcrd(crd, csz, nullptr, zstdtmp);
-      G_VERIFY(zcrd.readIntP<1>() == dblk::BBF_full_binary_in_stream);
-      valid = loadFromBinDump(zcrd, nullptr);
+      if (!shared->blkRobustLoad())
+      {
+        G_VERIFY(zcrd.readIntP<1>() == dblk::BBF_full_binary_in_stream);
+        valid = loadFromBinDump(zcrd, nullptr);
+      }
+      else
+      {
+        // In robust mode, allow parser to stop early on bad data without tripping
+        // zstd wrapper invariant asserts in its destructor.
+        FINALLY([&zcrd] { zcrd.ceaseReading(); }); // RAII wrapper for exception safety
+        valid = zcrd.readIntP<1>() == dblk::BBF_full_binary_in_stream && loadFromBinDump(zcrd, nullptr);
+      }
     }
     else
     {

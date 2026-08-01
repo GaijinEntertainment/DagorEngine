@@ -152,12 +152,12 @@ function updateChat() {
   linesGen.modify(@(v) v+1)
 }
 
+gui_scene.setInterval(ChatUpdatePeriod, updateChat)
+
 function mkChatUi() {
   outMessage.set("")
   chatLines.clear()
   showChatInput.set(false)
-  gui_scene.clearTimer(updateChat)
-  gui_scene.setInterval(ChatUpdatePeriod, updateChat)
 
   return {chatUi, showChatInput}
 }

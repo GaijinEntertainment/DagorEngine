@@ -1,0 +1,399 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+texture omm_t_alphaTexture;
+
+buffer omm_t_indexBuffer;
+buffer omm_t_texCoordBuffer;
+buffer omm_t_heap0;
+buffer omm_t_heap1;
+buffer omm_t_ommDescArrayBuffer;
+buffer omm_t_ommIndexBuffer;
+buffer omm_u_heap0_read;
+
+buffer omm_u_targetBuffer;
+buffer omm_u_heap0;
+buffer omm_u_heap1;
+buffer omm_u_buffer0;
+buffer omm_u_ommDescArrayBuffer;
+buffer omm_u_ommDescArrayHistogramBuffer;
+buffer omm_u_ommIndexHistogramBuffer;
+buffer omm_u_ommIndexBuffer;
+buffer omm_u_vmArrayBuffer;
+buffer omm_u_postBuildInfo;
+
+const_buffer omm_global_constants;
+const_buffer omm_local_constants;
+
+sampler omm_sampler0;
+
+macro OMM_GLOBAL_CONSTANTS(code)
+  (code) {
+    g_GlobalConstants@cbuf = omm_global_constants hlsl {
+      #define OMM_DAGOR_DECLARE_CBUFFER_TYPES
+      #include "omm_dagor_bindings.hlsli"
+      #include <omm_global_cb.hlsli>
+      OMM_DECLARE_GLOBAL_CONSTANT_BUFFER
+      ConstantBuffer<GlobalConstants> g_GlobalConstants@cbuf;
+      #undef OMM_DAGOR_DECLARE_CBUFFER_TYPES
+    };
+    s_sampler0@sampler = omm_sampler0;
+  }
+endmacro
+
+shader omm_clear_buffer_cs
+{
+  (cs) {
+    g_LocalConstants@cbuf = omm_local_constants hlsl {
+      #define OMM_DAGOR_DECLARE_CBUFFER_TYPES
+      #include "omm_dagor_bindings.hlsli"
+      #include <omm_clear_buffer.cs.resources.hlsli>
+      OMM_DECLARE_LOCAL_CONSTANT_BUFFER
+      ConstantBuffer<LocalConstants> g_LocalConstants@cbuf;
+      #undef OMM_DAGOR_DECLARE_CBUFFER_TYPES
+    };
+    u_targetBuffer@uav = omm_u_targetBuffer hlsl {
+      RWByteAddressBuffer u_targetBuffer@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_clear_buffer.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_init_buffers_cs_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    u_heap0@uav = omm_u_heap0 hlsl {
+      RWByteAddressBuffer u_heap0@uav;
+    };
+    u_ommDescArrayHistogramBuffer@uav = omm_u_ommDescArrayHistogramBuffer hlsl {
+      RWByteAddressBuffer u_ommDescArrayHistogramBuffer@uav;
+    };
+    u_ommIndexHistogramBuffer@uav = omm_u_ommIndexHistogramBuffer hlsl {
+      RWByteAddressBuffer u_ommIndexHistogramBuffer@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_init_buffers_cs.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_init_buffers_gfx_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    u_buffer0@uav = omm_u_buffer0 hlsl {
+      RWByteAddressBuffer u_buffer0@uav;
+    };
+    u_ommDescArrayHistogramBuffer@uav = omm_u_ommDescArrayHistogramBuffer hlsl {
+      RWByteAddressBuffer u_ommDescArrayHistogramBuffer@uav;
+    };
+    u_ommIndexHistogramBuffer@uav = omm_u_ommIndexHistogramBuffer hlsl {
+      RWByteAddressBuffer u_ommIndexHistogramBuffer@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_init_buffers_gfx.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_work_setup_bake_only_cs_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    t_ommDescArrayBuffer@buf = omm_t_ommDescArrayBuffer hlsl {
+      ByteAddressBuffer t_ommDescArrayBuffer@buf;
+    };
+    t_ommIndexBuffer@buf = omm_t_ommIndexBuffer hlsl {
+      ByteAddressBuffer t_ommIndexBuffer@buf;
+    };
+    u_heap0@uav = omm_u_heap0 hlsl {
+      RWByteAddressBuffer u_heap0@uav;
+    };
+    u_heap1@uav = omm_u_heap1 hlsl {
+      RWByteAddressBuffer u_heap1@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_work_setup_bake_only_cs.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_work_setup_cs_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    t_indexBuffer@buf = omm_t_indexBuffer hlsl {
+      ByteAddressBuffer t_indexBuffer@buf;
+    };
+    t_texCoordBuffer@buf = omm_t_texCoordBuffer hlsl {
+      ByteAddressBuffer t_texCoordBuffer@buf;
+    };
+    u_ommDescArrayBuffer@uav = omm_u_ommDescArrayBuffer hlsl {
+      RWByteAddressBuffer u_ommDescArrayBuffer@uav;
+    };
+    u_ommDescArrayHistogramBuffer@uav = omm_u_ommDescArrayHistogramBuffer hlsl {
+      RWByteAddressBuffer u_ommDescArrayHistogramBuffer@uav;
+    };
+    u_heap0@uav = omm_u_heap0 hlsl {
+      RWByteAddressBuffer u_heap0@uav;
+    };
+    u_heap1@uav = omm_u_heap1 hlsl {
+      RWByteAddressBuffer u_heap1@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_work_setup_cs.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_work_setup_gfx_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    t_indexBuffer@buf = omm_t_indexBuffer hlsl {
+      ByteAddressBuffer t_indexBuffer@buf;
+    };
+    t_texCoordBuffer@buf = omm_t_texCoordBuffer hlsl {
+      ByteAddressBuffer t_texCoordBuffer@buf;
+    };
+    u_ommDescArrayBuffer@uav = omm_u_ommDescArrayBuffer hlsl {
+      RWByteAddressBuffer u_ommDescArrayBuffer@uav;
+    };
+    u_ommDescArrayHistogramBuffer@uav = omm_u_ommDescArrayHistogramBuffer hlsl {
+      RWByteAddressBuffer u_ommDescArrayHistogramBuffer@uav;
+    };
+    u_heap0@uav = omm_u_heap0 hlsl {
+      RWByteAddressBuffer u_heap0@uav;
+    };
+    u_heap1@uav = omm_u_heap1 hlsl {
+      RWByteAddressBuffer u_heap1@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_work_setup_gfx.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_work_setup_bake_only_gfx_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    t_ommDescArrayBuffer@buf = omm_t_ommDescArrayBuffer hlsl {
+      ByteAddressBuffer t_ommDescArrayBuffer@buf;
+    };
+    t_ommIndexBuffer@buf = omm_t_ommIndexBuffer hlsl {
+      ByteAddressBuffer t_ommIndexBuffer@buf;
+    };
+    u_heap0@uav = omm_u_heap0 hlsl {
+      RWByteAddressBuffer u_heap0@uav;
+    };
+    u_heap1@uav = omm_u_heap1 hlsl {
+      RWByteAddressBuffer u_heap1@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_work_setup_bake_only_gfx.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_post_build_info_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    u_heap0@buf = omm_u_heap0_read hlsl {
+      ByteAddressBuffer u_heap0@buf;
+    };
+    u_postBuildInfo@uav = omm_u_postBuildInfo hlsl {
+      RWByteAddressBuffer u_postBuildInfo@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_post_build_info.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+macro OMM_RASTERIZE_BINDINGS(code)
+  (code) {
+    g_LocalConstants@cbuf = omm_local_constants hlsl {
+      #define OMM_DAGOR_DECLARE_CBUFFER_TYPES
+      #include "omm_dagor_bindings.hlsli"
+      #include <omm_rasterize.cs.resources.hlsli>
+      OMM_DECLARE_LOCAL_CONSTANT_BUFFER
+      ConstantBuffer<LocalConstants> g_LocalConstants@cbuf;
+      #undef OMM_DAGOR_DECLARE_CBUFFER_TYPES
+    };
+    t_alphaTexture@tex = omm_t_alphaTexture hlsl {
+      Texture2D<float4> t_alphaTexture@tex;
+    };
+    t_indexBuffer@buf = omm_t_indexBuffer hlsl {
+      ByteAddressBuffer t_indexBuffer@buf;
+    };
+    t_texCoordBuffer@buf = omm_t_texCoordBuffer hlsl {
+      ByteAddressBuffer t_texCoordBuffer@buf;
+    };
+    t_heap0@buf = omm_t_heap0 hlsl {
+      ByteAddressBuffer t_heap0@buf;
+    };
+    t_heap1@buf = omm_t_heap1 hlsl {
+      ByteAddressBuffer t_heap1@buf;
+    };
+    u_heap0@uav = omm_u_heap0 hlsl {
+      RWByteAddressBuffer u_heap0@uav;
+    };
+    u_vmArrayBuffer@uav = omm_u_vmArrayBuffer hlsl {
+      RWByteAddressBuffer u_vmArrayBuffer@uav;
+    };
+  }
+endmacro
+
+shader omm_rasterize_cs_r_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  OMM_RASTERIZE_BINDINGS(cs)
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #define IN_ALPHA_TEXTURE_CHANNEL 0
+    #include <omm_rasterize_cs.hlsli>
+    #undef IN_ALPHA_TEXTURE_CHANNEL
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_rasterize_cs_g_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  OMM_RASTERIZE_BINDINGS(cs)
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #define IN_ALPHA_TEXTURE_CHANNEL 1
+    #include <omm_rasterize_cs.hlsli>
+    #undef IN_ALPHA_TEXTURE_CHANNEL
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_rasterize_cs_b_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  OMM_RASTERIZE_BINDINGS(cs)
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #define IN_ALPHA_TEXTURE_CHANNEL 2
+    #include <omm_rasterize_cs.hlsli>
+    #undef IN_ALPHA_TEXTURE_CHANNEL
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_rasterize_cs_a_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  OMM_RASTERIZE_BINDINGS(cs)
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #define IN_ALPHA_TEXTURE_CHANNEL 3
+    #include <omm_rasterize_cs.hlsli>
+    #undef IN_ALPHA_TEXTURE_CHANNEL
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_compress_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    g_LocalConstants@cbuf = omm_local_constants hlsl {
+      #define OMM_DAGOR_DECLARE_CBUFFER_TYPES
+      #include "omm_dagor_bindings.hlsli"
+      #include <omm_compress.cs.resources.hlsli>
+      OMM_DECLARE_LOCAL_CONSTANT_BUFFER
+      ConstantBuffer<LocalConstants> g_LocalConstants@cbuf;
+      #undef OMM_DAGOR_DECLARE_CBUFFER_TYPES
+    };
+    t_heap0@buf = omm_t_heap0 hlsl {
+      ByteAddressBuffer t_heap0@buf;
+    };
+    u_vmArrayBuffer@uav = omm_u_vmArrayBuffer hlsl {
+      RWByteAddressBuffer u_vmArrayBuffer@uav;
+    };
+    u_heap1@uav = omm_u_heap1 hlsl {
+      RWByteAddressBuffer u_heap1@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_compress.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_desc_patch_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    t_heap1@buf = omm_t_heap1 hlsl {
+      ByteAddressBuffer t_heap1@buf;
+    };
+    t_ommDescArrayBuffer@buf = omm_t_ommDescArrayBuffer hlsl {
+      ByteAddressBuffer t_ommDescArrayBuffer@buf;
+    };
+    u_ommIndexHistogramBuffer@uav = omm_u_ommIndexHistogramBuffer hlsl {
+      RWByteAddressBuffer u_ommIndexHistogramBuffer@uav;
+    };
+    u_postBuildInfo@uav = omm_u_postBuildInfo hlsl {
+      RWByteAddressBuffer u_postBuildInfo@uav;
+    };
+    u_heap0@uav = omm_u_heap0 hlsl {
+      RWByteAddressBuffer u_heap0@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_desc_patch.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}
+
+shader omm_index_write_cs
+{
+  OMM_GLOBAL_CONSTANTS(cs)
+  (cs) {
+    g_LocalConstants@cbuf = omm_local_constants hlsl {
+      #define OMM_DAGOR_DECLARE_CBUFFER_TYPES
+      #include "omm_dagor_bindings.hlsli"
+      #include <omm_index_write.cs.resources.hlsli>
+      OMM_DECLARE_LOCAL_CONSTANT_BUFFER
+      ConstantBuffer<LocalConstants> g_LocalConstants@cbuf;
+      #undef OMM_DAGOR_DECLARE_CBUFFER_TYPES
+    };
+    t_heap0@buf = omm_t_heap0 hlsl {
+      ByteAddressBuffer t_heap0@buf;
+    };
+    u_ommIndexBuffer@uav = omm_u_ommIndexBuffer hlsl {
+      RWByteAddressBuffer u_ommIndexBuffer@uav;
+    };
+  }
+  hlsl(cs) {
+    #include "omm_dagor_bindings.hlsli"
+    #include <omm_index_write.cs.hlsl>
+  }
+  compile("target_cs", "main");
+}

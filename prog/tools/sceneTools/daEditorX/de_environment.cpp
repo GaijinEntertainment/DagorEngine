@@ -98,7 +98,17 @@ enum
   PID_WIND_NOISE_PERPENDICULAR,
   PID_WIND_LEVEL,
   PID_REVERT_WIND_BUTTON,
+
+  PID_SHGLVAR_GRP,
+  PID_PARALLAX_SHADOW,
+  PID_PARALLAX_AO,
 };
+
+static bool parallaxControlsVisible = false;
+static bool parallaxShadowEnabled = false;
+static bool parallaxAoEnabled = false;
+static int parallaxShadowVarId = -1;
+static int parallaxAoVarId = -1;
 
 static bool supportRenderDebug = false;
 static int rdbgEnabledGvid = -1;
@@ -124,6 +134,8 @@ static void detectRenderDebug()
   rdbgUseDtexGvid = get_shader_glob_var_id("rdbgUseDtex", true);
   rdbgUseLtGvid = get_shader_glob_var_id("rdbgUseLt", true);
   rdbgUseChromeGvid = get_shader_glob_var_id("rdbgUseChrome", true);
+  parallaxShadowVarId = get_shader_variable_id("parallax_shadow_enabled", true);
+  parallaxAoVarId = get_shader_variable_id("parallax_ao_enabled", true);
   supportRenderDebug = VariableMap::isGlobVariablePresent(rdbgEnabledGvid);
 }
 
@@ -332,6 +344,13 @@ public:
 
       _render_grp->createButton(PID_REVERT_RENDER_BUTTON, "Revert to default");
     }
+
+    if (parallaxControlsVisible)
+    {
+      PropPanel::ContainerPropertyControl *shGlobGrp = _panel->createGroup(PID_SHGLVAR_GRP, "Shader global vars");
+      shGlobGrp->createCheckBox(PID_PARALLAX_SHADOW, "parallax shadow", parallaxShadowEnabled);
+      shGlobGrp->createCheckBox(PID_PARALLAX_AO, "parallax AO", parallaxAoEnabled);
+    }
   }
 
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
@@ -494,6 +513,15 @@ public:
         applyRenderDebug();
         break;
 
+      case PID_PARALLAX_SHADOW:
+        parallaxShadowEnabled = panel->getBool(pcb_id);
+        ShaderGlobal::set_int(parallaxShadowVarId, parallaxShadowEnabled ? 1 : 0);
+        break;
+      case PID_PARALLAX_AO:
+        parallaxAoEnabled = panel->getBool(pcb_id);
+        ShaderGlobal::set_int(parallaxAoVarId, parallaxAoEnabled ? 1 : 0);
+        break;
+
       default:
         if (pcb_id >= PID_RENDER_OPT && pcb_id < PID_RENDER_OPT_LAST)
         {
@@ -651,12 +679,21 @@ void load_settings(DataBlock &blk)
 {
   DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
   IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
+  detectRenderDebug();
   const DataBlock &reBlk = *blk.getBlockByNameEx("render");
   drSrv->setRenderType(reBlk.getInt("renderType", drSrv->RTYPE_CLASSIC));
   for (int i = 0; i < drSrv->ROPT_COUNT; i++)
     if (drSrv->getRenderOptSupported(i))
       drSrv->setRenderOptEnabled(i, blk.getBool(drSrv->getRenderOptName(i), drSrv->getRenderOptEnabled(i)));
   drSrv->setShadowQuality(blk.getInt("shadowQ", appblk.getInt("DE_defaultShadowQ", 0)));
+  parallaxControlsVisible = appblk.getBool("parallaxControlsVisible", false);
+  if (parallaxControlsVisible)
+  {
+    parallaxShadowEnabled = blk.getBool("parallaxShadow", false);
+    parallaxAoEnabled = blk.getBool("parallaxAo", false);
+    ShaderGlobal::set_int(parallaxShadowVarId, parallaxShadowEnabled ? 1 : 0);
+    ShaderGlobal::set_int(parallaxAoVarId, parallaxAoEnabled ? 1 : 0);
+  }
   if (drSrv->hasExposure())
     drSrv->setExposure(blk.getReal("exposure", appblk.getReal("DE_defaultExposure", 1.0f)));
 
@@ -669,7 +706,6 @@ void load_settings(DataBlock &blk)
   paintDetailsTexAsset = blk.getStr("paint_details_tex", NULL);
   paintDetailsTexAsset = DagorAsset::fpath2asset(paintDetailsTexAsset);
 
-  detectRenderDebug();
   applyRenderDebug();
   apply_envi_snapshot();
   set_paint_detail_texture();
@@ -689,6 +725,8 @@ void save_settings(DataBlock &blk)
     if (drSrv->getRenderOptSupported(i))
       blk.setBool(drSrv->getRenderOptName(i), drSrv->getRenderOptEnabled(i));
   blk.setInt("shadowQ", drSrv->getShadowQuality());
+  blk.setBool("parallaxShadow", parallaxShadowEnabled);
+  blk.setBool("parallaxAo", parallaxAoEnabled);
   if (drSrv->hasExposure())
     blk.setReal("exposure", drSrv->getExposure());
 

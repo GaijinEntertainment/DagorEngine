@@ -11,6 +11,8 @@
 #include "backend.h"
 #include "backend/context.h"
 #include "backend/cmd/state.h"
+#include "globals.h"
+#include "driver_config.h"
 
 namespace drv3d_vulkan
 {
@@ -28,7 +30,14 @@ bool isConstDepthStencilTargetForNativeRP(Image *img, ImageViewState view, Rende
   if (0 == ((VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)&img->getUsage()))
     return false;
 
-  return rp->isCurrentDepthROAttachment(img, view);
+  // if RP is writing depth we will trigger self conflict error, i.e. its safe to simply force RO layout
+  if (Globals::cfg.bits.sampledDepthReadOnlyLayout)
+    return true;
+
+  if (rp->isCurrentDepthROAttachment(img, view))
+    return true;
+
+  return false;
 }
 
 bool isConstDepthStencilTarget(Image *img, ImageViewState view)
@@ -37,6 +46,10 @@ bool isConstDepthStencilTarget(Image *img, ImageViewState view)
     return false;
 
   FramebufferState &fbs = Backend::State::exec.get<BackGraphicsState, BackGraphicsState>().framebufferState;
+
+  // if RP is writing depth we will trigger self conflict error, i.e. its safe to simply force RO layout
+  if (Globals::cfg.bits.sampledDepthReadOnlyLayout)
+    return true;
 
   if (fbs.renderPassClass.hasRoDepth())
   {
@@ -178,7 +191,7 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
     if (rpRes)
       isConstDs = isConstDepthStencilTargetForNativeRP(data.img.ptr, data.img.view, rpRes);
     else
-      isConstDs = (state.stage != STAGE_CS) && isConstDepthStencilTarget(data.img.ptr, data.img.view);
+      isConstDs = isConstDepthStencilTarget(data.img.ptr, data.img.view);
 
     sts.setTtexture(index, data.img.ptr, data.img.view, isConstDs);
   }

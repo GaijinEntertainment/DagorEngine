@@ -35,6 +35,19 @@ interval water_rt_enabled: no<1, yes;
 int underwater_render = 0;
 interval underwater_render : no<1, yes;
 
+hlsl {
+  // water_normal_dir materialID contract, shared by the normal prepass (encode)
+  // and the SSR resolve / RT reflection (decode). Only the raster SSR resolve
+  // keys its planar-terrain fallback off OCEAN_PLANE; every other consumer folds
+  // it back into plain above-water.
+  #define WATER_MATERIAL_ID_NONE 0.0
+  #define WATER_MATERIAL_ID_ABOVE_WATER 1.0
+  #define WATER_MATERIAL_ID_BELOW_WATER 2.0
+  #define WATER_MATERIAL_ID_OCEAN_PLANE 3.0
+  #define WATER_IS_OCEAN_PLANE_MATERIAL(id) ((id) == WATER_MATERIAL_ID_OCEAN_PLANE)
+  #define WATER_MERGE_OCEAN_PLANE_MATERIAL(id) select((id) == WATER_MATERIAL_ID_OCEAN_PLANE, WATER_MATERIAL_ID_ABOVE_WATER, (id))
+}
+
 macro WATER_PLANAR_INIT(code)
   (code)
   {
@@ -314,6 +327,7 @@ endmacro
 macro INIT_SAMPLE_DEPTH_TEX(code)
   (code) {
     downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
+    downsampled_close_depth_tex@tex = downsampled_close_depth_tex hlsl { Texture2D<float>downsampled_close_depth_tex@tex; }
     downsampled_depth_mip_count@f1 = (downsampled_depth_mip_count);
     lowres_rt_params@f2 = lowres_rt_params.xy; //Far and Close depth are the same size
   }
@@ -325,6 +339,8 @@ endmacro
 macro USE_SAMPLE_DEPTH_TEX(code)
   USE_LOWRES_TEX_SIZE(code)
   hlsl(code) {
+    #define HAS_CLOSE_DEPTH 1
+
     float sample_far_depth_tex(float2 tc, int level)
     {
       return tex2Dlod(downsampled_far_depth_tex, float4(tc, 0, (float)level)).r;
@@ -335,14 +351,34 @@ macro USE_SAMPLE_DEPTH_TEX(code)
       return downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, tc);
     }
 
+    float sample_close_depth_tex(float2 tc, int level)
+    {
+      int2 level_size = int2(lowres_rt_params.xy) >> level;
+      int2 itc = clamp(int2(tc * level_size), 0, level_size - 1);
+      return texelFetch(downsampled_close_depth_tex, itc, level).r;
+    }
+
+    float4 gather_close_depth_lvl(float2 tc, int level, out float2 bil)
+    {
+      int2 level_size = int2(lowres_rt_params.xy) >> level;
+      float2 pc = tc * level_size - 0.5;
+      bil = frac(pc);
+      int2 itc = clamp(int2(floor(pc)), 0, level_size - 2);
+      return float4(texelFetch(downsampled_close_depth_tex, itc, level).r,
+                    texelFetch(downsampled_close_depth_tex, itc + int2(1, 0), level).r,
+                    texelFetch(downsampled_close_depth_tex, itc + int2(0, 1), level).r,
+                    texelFetch(downsampled_close_depth_tex, itc + int2(1, 1), level).r);
+    }
+
+    // Floor depth wants the far (max) reduction: thin near occluders must not poison the
+    // seabed depth under them.
     float sample_floor_z(float2 tc, float waterZ)
     {
       float4 floorZ4 = linearize_z4(gather_far_depth(tc), zn_zfar.zw);
       float2 bilW = frac(tc * lowres_tex_size.xy - 0.5);
       float4 weights = float4(1 - bilW, bilW);
-      float floorZ = dot(floorZ4, weights.xzzx * weights.wwyy);
-      floorZ = lerp(floorZ4.w, floorZ, step(waterZ, floorZ));
-      return floorZ;
+      float4 w4 = weights.xzzx * weights.wwyy * step(waterZ, floorZ4) + 1e-4;
+      return dot(floorZ4, w4) / dot(w4, 1);
     }
   }
 endmacro

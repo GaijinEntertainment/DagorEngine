@@ -16,6 +16,7 @@
 #include <util/dag_convar.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_shaderConstants.h>
+#include <render/lights/renderLights.hlsli>
 
 #include <shaders/lens_flare_info.hlsli>
 
@@ -508,12 +509,12 @@ void LensFlareRenderer::prepareManualFlare(const CachedFlareId &cached_flare_con
   numPreparedManualInstances++;
 }
 
-bool LensFlareRenderer::endPreparingLights(const Point3 &camera_pos, const Point3 &camera_dir, int omni_light_count,
-  int spot_light_count, int shadow_frames_count)
+bool LensFlareRenderer::endPreparingLights(const Point3 &camera_pos, const Point3 &camera_dir, bool hasClusteredLights,
+  int shadow_frames_count)
 {
   if (usedRenderConfigIds.empty() || usedFlareConfigIds.empty())
     return false;
-  if (dynamicLightsFlareId >= 0 && (omni_light_count > 0 || spot_light_count > 0))
+  if (dynamicLightsFlareId >= 0 && hasClusteredLights)
     hadDynamicLights = true;
   if (numPreparedManualInstances == 0 && !hadDynamicLights)
     return false;
@@ -634,8 +635,7 @@ bool LensFlareRenderer::endPreparingLights(const Point3 &camera_pos, const Point
   ShaderGlobal::set_float4(lens_flare_prepare_camera_posVarId, camera_pos, 0);
   ShaderGlobal::set_float4(lens_flare_prepare_camera_dirVarId, camera_dir, 0);
   ShaderGlobal::set_int(lens_flare_prepare_num_manual_flaresVarId, numPreparedManualInstances);
-  ShaderGlobal::set_int(lens_flare_prepare_num_omni_light_flaresVarId, omni_light_count);
-  ShaderGlobal::set_int(lens_flare_prepare_num_spot_light_flaresVarId, spot_light_count);
+
   if (hadDynamicLights)
   {
     const auto &flareData = lensFlares[dynamicLightsFlareId];
@@ -655,16 +655,11 @@ bool LensFlareRenderer::endPreparingLights(const Point3 &camera_pos, const Point
 
   if (hadDynamicLights)
   {
-    if (omni_light_count > 0)
-    {
-      ShaderGlobal::set_int(lens_flare_prepare_flare_typeVarId, 1);
-      prepareFlaresShader->dispatchThreads(omni_light_count, 1, 1);
-    }
-    if (spot_light_count > 0)
-    {
-      ShaderGlobal::set_int(lens_flare_prepare_flare_typeVarId, 2);
-      prepareFlaresShader->dispatchThreads(spot_light_count, 1, 1);
-    }
+    ShaderGlobal::set_int(lens_flare_prepare_flare_typeVarId, 1);
+    prepareFlaresShader->dispatchThreads(MAX_CLUSTERED_OMNI_LIGHTS, 1, 1);
+
+    ShaderGlobal::set_int(lens_flare_prepare_flare_typeVarId, 2);
+    prepareFlaresShader->dispatchThreads(MAX_CLUSTERED_SPOT_LIGHTS, 1, 1);
   }
 
   d3d::resource_barrier({preCulledInstanceIndicesBuf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});

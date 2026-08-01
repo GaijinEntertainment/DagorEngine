@@ -4,6 +4,7 @@
 
 #include <id/idRange.h>
 #include <debug/backendDebug.h>
+#include <debug/gpuRangeCapture.h>
 #include <frontend/multiplexingInternal.h>
 #include <backend/blobBindingHelpers.h>
 
@@ -16,6 +17,9 @@
 #include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
+#include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_tex3d.h>
+#include <common/resourceUsage.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_shaderBlock.h>
@@ -231,8 +235,52 @@ const char *extract_node_name(const char *node_name) { return node_name; }
 #endif // DAGOR_DBGLEVEL > 0
 #endif
 
+void activate_untracked_texture(BaseTexture *tex, uint32_t cflags, const d3d::TextureBarrier &first_use,
+  ResourceActivationAction action, const ResourceClearValue &clear_value)
+{
+  const bool clearAsUav = action == ResourceActivationAction::CLEAR_F_AS_UAV || action == ResourceActivationAction::CLEAR_I_AS_UAV;
+  const bool clearAsRtvDsv = action == ResourceActivationAction::CLEAR_AS_RTV_DSV;
+
+  if (!clearAsUav && !clearAsRtvDsv)
+  {
+    d3d::enhanced_texture_barrier(first_use, tex);
+    return;
+  }
+
+  const bool isDepth = get_tex_format_desc(cflags & TEXFMT_MASK).isDepth();
+  const d3d::TextureLayout clearLayout =
+    clearAsUav ? d3d::TextureLayout::UnorderedAccess : (isDepth ? d3d::TextureLayout::DepthRw : d3d::TextureLayout::RenderTarget);
+  d3d::AccessFlags clearAccess = d3d::AccessFlag::UnorderedAccess;
+  if (!clearAsUav)
+    clearAccess = isDepth ? d3d::AccessFlag::DepthStencilWrite : d3d::AccessFlag::RenderTargetWrite;
+  const d3d::PipelineStageFlags clearStage = clearAsUav ? d3d::PipelineStageFlag::Clear : d3d::PipelineStageFlag::OutputMerging;
+
+  const auto firstStage = first_use.pipelineSync.dst;
+
+  d3d::enhanced_texture_barrier(
+    {{firstStage, clearStage}, {{}, clearAccess}, {d3d::TextureLayout::Undefined, clearLayout}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE},
+    tex);
+
+  TextureInfo texInfo = {};
+  tex->getinfo(texInfo);
+  for (int layer = 0; layer < texInfo.a; ++layer)
+    for (int mip = 0; mip < texInfo.mipLevels; ++mip)
+    {
+      if (action == ResourceActivationAction::CLEAR_F_AS_UAV)
+        d3d::clear_rwtexf(tex, clear_value.asFloat, layer, mip);
+      else if (action == ResourceActivationAction::CLEAR_I_AS_UAV)
+        d3d::clear_rwtexi(tex, clear_value.asUint, layer, mip);
+      else
+        d3d::clear_rt(RenderTarget{tex, static_cast<uint32_t>(mip), static_cast<uint32_t>(layer)}, clear_value);
+    }
+
+  d3d::enhanced_texture_barrier({{clearStage, firstStage}, {clearAccess, first_use.memorySync.dst},
+                                  {clearLayout, first_use.layoutTransition.dst}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE},
+    tex);
+}
+
 void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents multiplexing_extents,
-  const BarrierScheduler::FrameEvents &events, const sd::NodeStateDeltas &state_deltas)
+  const BarrierScheduler::FrameEvents &events, const sd::NodeStateDeltas &state_deltas, const BlockProviderMap &block_providers)
 {
   // We permit changing the concrete instance of Texture used as an external
   // resources on a per-frame basis. This may be useful for double-buffering
@@ -257,11 +305,13 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
 #if TIME_PROFILER_ENABLED
   auto frameGraphMarker = graphMarksParser.createGraphMarker();
 #endif
+  gpu_capture_range_prepare(graph, multiplexing_extents);
   for (auto i : graph.nodes.keys())
   {
     const intermediate::Node &irNode = graph.nodes[i];
     if (!irNode.frontendNode)
     {
+      gpu_capture_range_before_node(i);
       applyStateBeforeEvents(state_deltas[i], curr_frame, prev_frame);
       processEvents(events[i], curr_frame);
       applyState(state_deltas[i], curr_frame, prev_frame);
@@ -270,6 +320,9 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
 
     const auto nodeId = *irNode.frontendNode;
     const multiplexing::Index multiIdx = multiplexing_index_from_ir(irNode.multiplexingIndex, multiplexing_extents);
+    // Before the profiling block, so the capture brackets the whole per-node
+    // footprint (profile markers, barriers, state) with no dangling scope end.
+    gpu_capture_range_before_node(i);
 #if TIME_PROFILER_ENABLED
 
     frameGraphMarker.markNode(i);
@@ -321,6 +374,17 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
     validation_set_current_node(registry, nodeId);
     {
       applyState(state_deltas[i], curr_frame, prev_frame);
+
+      // Bind the refined_block pass block this node consumes (registry.useBlock).
+      if (const auto &blockId = registry.nodes[nodeId].usedRefinedBlock; blockId.has_value())
+      {
+        const auto it = block_providers.find(*blockId);
+        G_ASSERTF(it != block_providers.end(), "daFG: node '%s' uses unregistered refined block '%s'",
+          registry.knownNames.getName(nodeId), registry.knownNames.getName(*blockId));
+        if (it != block_providers.end())
+          (*it->second)(multiIdx).setState();
+      }
+
       if (const auto &node = registry.nodes[nodeId]; node.enabled && node.sideEffect != SideEffects::None)
       {
         {
@@ -342,6 +406,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
     // otherwise it bound to produce broken/slow dependency chain
     // complete whatever is outstanding and hope for the best
     d3d::driver_command(Drv3dCommand::COMPLETE_SYNC);
+    gpu_capture_range_after_node(i);
   }
 
   // End-of-frame events (deactivations, trailing barriers). The state itself has
@@ -349,6 +414,7 @@ void NodeExecutor::execute(int prev_frame, int curr_frame, multiplexing::Extents
   // above, so we only need to process events here, not apply a state delta.
   if (!graph.nodes.empty())
     processEvents(events.back(), curr_frame);
+  gpu_capture_range_after_frame();
 }
 
 void NodeExecutor::gatherExternalResources(multiplexing::Extents extents)
@@ -443,17 +509,28 @@ void NodeExecutor::processEvents(const BarrierScheduler::NodeEvents &events, int
             clearValue = *value;
           else if (auto dynValue = eastl::get_if<intermediate::DynamicParameter>(&data->clearValue))
             clearValue = getDynamicParameter<ResourceClearValue>(*dynValue, frame);
-          d3d::activate_texture(tex, data->action, clearValue);
+
+          if (auto *bar = eastl::get_if<d3d::TextureBarrier>(&data->enhancedBarrier))
+            activate_untracked_texture(tex, iRes.asScheduled().getGpuDescription().asBasicRes.cFlags, *bar, data->action, clearValue);
+          else
+            d3d::activate_texture(tex, data->action, clearValue);
         }
         else if (auto *data = eastl::get_if<BarrierScheduler::Event::Barrier>(&evt.data))
         {
           if (!ignoreBarrier(data->barrier))
             d3d::resource_barrier({tex, data->barrier, 0, 0});
         }
-        else if (eastl::holds_alternative<BarrierScheduler::Event::Deactivation>(evt.data))
+        else if (auto *data = eastl::get_if<BarrierScheduler::Event::EnhancedTextureBarrier>(&evt.data))
+        {
+          d3d::enhanced_texture_barrier(data->barrier, tex);
+        }
+        else if (auto *data = eastl::get_if<BarrierScheduler::Event::Deactivation>(&evt.data))
         {
           G_ASSERT(!iRes.isExternal());
-          d3d::deactivate_texture(tex);
+          if (auto *bar = eastl::get_if<d3d::TextureBarrier>(&data->release))
+            d3d::enhanced_texture_barrier(*bar, tex);
+          else
+            d3d::deactivate_texture(tex);
         }
         else
           G_ASSERTF(false, "Unexpected event type!");
@@ -469,17 +546,33 @@ void NodeExecutor::processEvents(const BarrierScheduler::NodeEvents &events, int
         if (auto *data = eastl::get_if<BarrierScheduler::Event::Activation>(&evt.data))
         {
           G_ASSERT(!iRes.isExternal());
-          d3d::activate_buffer(buf, data->action);
+          if (auto *bar = eastl::get_if<d3d::BufferBarrier>(&data->enhancedBarrier))
+          {
+            G_ASSERTF(
+              data->action != ResourceActivationAction::CLEAR_F_AS_UAV && data->action != ResourceActivationAction::CLEAR_I_AS_UAV,
+              "daFG: untracked buffer activation carries a CLEAR action, but the enhanced barrier path only "
+              "discards; clear it explicitly via d3d::zero_rwbufi with matching barriers");
+            d3d::enhanced_buffer_barrier(*bar, buf);
+          }
+          else
+            d3d::activate_buffer(buf, data->action);
         }
         else if (auto *data = eastl::get_if<BarrierScheduler::Event::Barrier>(&evt.data))
         {
           if (!ignoreBarrier(data->barrier))
             d3d::resource_barrier({buf, data->barrier});
         }
-        else if (eastl::holds_alternative<BarrierScheduler::Event::Deactivation>(evt.data))
+        else if (auto *data = eastl::get_if<BarrierScheduler::Event::EnhancedBufferBarrier>(&evt.data))
+        {
+          d3d::enhanced_buffer_barrier(data->barrier, buf);
+        }
+        else if (auto *data = eastl::get_if<BarrierScheduler::Event::Deactivation>(&evt.data))
         {
           G_ASSERT(!iRes.isExternal());
-          d3d::deactivate_buffer(buf);
+          if (auto *bar = eastl::get_if<d3d::BufferBarrier>(&data->release))
+            d3d::enhanced_buffer_barrier(*bar, buf);
+          else
+            d3d::deactivate_buffer(buf);
         }
         else
           G_ASSERTF(false, "Unexpected event type!");

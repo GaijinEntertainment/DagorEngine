@@ -1419,8 +1419,6 @@ Decl* SQParser::parseLocalDeclStatement(bool onlySingleVariable)
             cur = newNode<VarDecl>(varStart, varname, expr, assignable, destructurer != 0); //-V522
         }
         else {
-            if (!assignable && !destructurer)
-                _ctx.throwError(varname, "Binding '%s' must be initialized", varname->name()); //-V522
             cur = newNode<VarDecl>(varStart, varname, nullptr, assignable, destructurer != 0);
         }
 

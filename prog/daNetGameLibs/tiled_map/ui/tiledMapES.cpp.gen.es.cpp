@@ -27,7 +27,7 @@ static ecs::EntitySystemDesc hud_tiled_map_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<RenderEventUI>::build(),
   0
-,"render");
+,"render",nullptr,"hud_tiled_map_fog_of_war_es");
 static constexpr ecs::ComponentDesc hud_tiled_map_fog_of_war_update_data_es_comps[] =
 {
 //start of 2 ro components at [0]
@@ -55,13 +55,13 @@ static ecs::EntitySystemDesc hud_tiled_map_fog_of_war_update_data_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"render",nullptr,"hud_tiled_map_fog_of_war_es");
+,"render");
 //static constexpr ecs::ComponentDesc hud_tiled_map_fog_of_war_es_comps[] ={};
 static void hud_tiled_map_fog_of_war_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_UNUSED(components);
-  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
-  hud_tiled_map_fog_of_war_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+  G_FAST_ASSERT(evt.is<RenderEventUI>());
+  hud_tiled_map_fog_of_war_es(static_cast<const RenderEventUI&>(evt)
         );
 }
 static ecs::EntitySystemDesc hud_tiled_map_fog_of_war_es_es_desc
@@ -73,7 +73,7 @@ static ecs::EntitySystemDesc hud_tiled_map_fog_of_war_es_es_desc
   empty_span(),
   empty_span(),
   empty_span(),
-  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
+  ecs::EventSetBuilder<RenderEventUI>::build(),
   0
 ,"render",nullptr,"*");
 //static constexpr ecs::ComponentDesc tiled_map_fog_of_war_after_reset_es_comps[] ={};

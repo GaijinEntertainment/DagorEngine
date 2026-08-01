@@ -79,6 +79,8 @@ dl_iterate_phdr (unw_iterate_phdr_callback_t callback,
           info.dlpi_phnum = ehdr->e_phnum;
 
           rc = callback (&info, sizeof (info), data);
+          if (rc)
+            break;
         }
     }
 

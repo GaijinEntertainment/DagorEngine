@@ -6,7 +6,10 @@
 #endif
 
 #include <drv/3d/dag_driver.h>
+#include <math/integer/dag_IPoint2.h>
 #include "../drv3d_commonCode/drv_utils.h"
+
+#include <EASTL/optional.h>
 
 namespace drv3d_vulkan
 {
@@ -25,6 +28,8 @@ struct WindowState
     int resolutionX;
     int resolutionY;
     float aspect;
+    eastl::optional<IPoint2> position;
+    bool maximized = true; // Only used when windowMode is WindowMode::WINDOWED_RESIZABLE.
   } settings = {};
 
   int refreshRate = 0;

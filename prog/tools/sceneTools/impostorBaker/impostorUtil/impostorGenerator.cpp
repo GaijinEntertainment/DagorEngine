@@ -46,6 +46,8 @@
 
 volatile bool ImpostorGenerator::interrupted = false;
 
+static String getBuiltRIAssetCacheXXH3(DagorAsset &asset);
+
 #define GLOBAL_VARS_LIST VAR(impostor_normal_mip)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a);
@@ -487,6 +489,7 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
     }
 
     riDataBlock(asset, *impostorBlk, false);
+    impostorBlk->setStr("builtRIHashXXH3", getBuiltRIAssetCacheXXH3(*asset));
     assetManager->notifyAssetChanged(asset);
     return true;
   };
@@ -831,6 +834,15 @@ bool ImpostorGenerator::riDataBlock(DagorAsset *asset, DataBlock &blk, bool comp
   return true;
 }
 
+static String getBuiltRIAssetCacheXXH3(DagorAsset &asset)
+{
+  unsigned char out_hash_xxh3_128[16];
+  if (!dabuildcache::get_built_res_hash_xxh3(asset, out_hash_xxh3_128))
+    return {};
+  // debug("%s: hash=%s", asset.getNameTypified(), encode_hash(out_hash_xxh3_128).c_str());
+  return String(encode_hash(out_hash_xxh3_128).c_str());
+}
+
 bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
 {
   DA_PROFILE;
@@ -930,9 +942,16 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
   }
   if (strcmp(assetBlk.getStr("sourceHashXXH3", ""), storedBlock->getStr("sourceHashXXH3", "-")) != 0)
   {
-    if (verbose)
-      impostorBaker.conlog("Baking asset <%s>, because the source files have changed", asset->getName());
-    return true;
+    String built_hash = getBuiltRIAssetCacheXXH3(*asset);
+    if (strcmp(built_hash, storedBlock->getStr("builtRIHashXXH3", "-")) != 0)
+    {
+      if (verbose)
+        impostorBaker.conlog("Baking asset <%s>, because the source files have changed (built: %s != %s)", asset->getName(),
+          built_hash, storedBlock->getStr("builtRIHashXXH3", "-"));
+      return true;
+    }
+    else if (verbose)
+      impostorBaker.conlog("skip Baking asset <%s>, built data is the same (while source files changed)", asset->getName());
   }
   if (strcmp(assetBlk.getStr("propsHashXXH3", ""), storedBlock->getStr("propsHashXXH3", "-")) != 0)
   {

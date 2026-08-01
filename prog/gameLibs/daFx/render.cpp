@@ -29,8 +29,9 @@ CONSOLE_FLOAT_VAL_MINMAX("dafx", reduced_render, 1, 0, 1);
 
 namespace dafx
 {
-constexpr int g_prim_limit_16b = 0x5555;     // 0xffff / 3;
-constexpr int g_prim_limit_32b = 0x55555555; // 0xffffffff / 3;
+constexpr int g_prim_per_quad = 2;
+constexpr uint32_t g_prim_limit_16b = (1 << 16) / 4 * g_prim_per_quad;
+constexpr uint32_t g_prim_limit_32b = (int64_t(1) << 32) / 4 * g_prim_per_quad;
 
 int acquire_frame_boundary(ContextId cid, TEXTUREID texture_id, IPoint2 frame_dim)
 {
@@ -784,7 +785,7 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
           is32BitIndexBufferBound = true;
         }
         else
-          totalPrimCount = min(g_prim_limit_16b, totalPrimCount);
+          totalPrimCount = min<int>(g_prim_limit_16b, totalPrimCount);
       }
 
       int drawCallCount = call.drawCallCount;
@@ -821,7 +822,7 @@ bool render(ContextId cid, CullingId cull_id, const eastl::string &tag_name, flo
           is32BitIndexBufferBound = true;
         }
         else
-          prims = min(g_prim_limit_16b, prims);
+          prims = min<int>(g_prim_limit_16b, prims);
       }
 
       uint32_t params[] = {(uint32_t)i % DAFX_RENDER_GROUP_SIZE, (uint32_t)currentPrimPerElem * 2};

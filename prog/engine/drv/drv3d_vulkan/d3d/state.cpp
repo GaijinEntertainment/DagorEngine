@@ -82,9 +82,8 @@ bool d3d::setvdecl(VDECL vdecl)
   return true;
 }
 
-bool d3d::set_const_buffer(uint32_t stage, uint32_t unit, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
+bool d3d::set_const_buffer(uint32_t stage, uint32_t unit, Sbuffer *buffer)
 {
-  D3D_CONTRACT_ASSERT_RETURN(!consts_offset && !consts_size, false); // not implemented
   D3D_CONTRACT_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_CONSTANT));
   LocalAccessor la;
 
@@ -267,6 +266,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned unit, BaseTexture *tex, uint
 bool d3d::set_buffer(unsigned shader_stage, unsigned unit, Sbuffer *buffer)
 {
   D3D_CONTRACT_ASSERT((nullptr == buffer) || buffer->getFlags() & SBCF_BIND_SHADER_RES);
+  D3D_CONTRACT_ASSERT(unit < spirv::T_REGISTER_INDEX_MAX);
   LocalAccessor la;
 
   auto &resBinds = la.pipeState.getStageResourceBinds((ShaderStage)shader_stage);

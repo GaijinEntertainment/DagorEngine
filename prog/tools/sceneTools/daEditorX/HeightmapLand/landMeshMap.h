@@ -10,7 +10,6 @@ class IBaseLoad;
 class IBaseSave;
 class ShaderMesh;
 class ShaderMaterial;
-class LandRayTracer;
 class EditorLandRayTracer;
 class MaterialData;
 class StaticGeometryTexture;
@@ -99,10 +98,10 @@ public:
 
   dag::Span<landmesh::Cell> getCells() { return make_span(cells); }
   EditorLandRayTracer *getEditorLandRayTracer(bool full) const { return editorLandTracer[full ? 1 : 0]; }
-  LandRayTracer *getGameLandRayTracer() const { return gameLandTracer; }
+  EditorLandRayTracer *getGameLandRayTracer() const { return gameLandTracer; }
 
   void setEditorLandRayTracer(EditorLandRayTracer *lrt, bool full);
-  void setGameLandRayTracer(LandRayTracer *lrt);
+  void setGameLandRayTracer(EditorLandRayTracer *lrt);
   MaterialData getMaterialData(uint32_t matNo) const;
 
   // traceRay
@@ -135,7 +134,7 @@ protected:
   float cellSize;
   Point3 offset;
   EditorLandRayTracer *editorLandTracer[2] = {nullptr, nullptr};
-  LandRayTracer *gameLandTracer = nullptr;
+  EditorLandRayTracer *gameLandTracer = nullptr;
   PtrTab<StaticGeometryMaterial> materials;
   PtrTab<StaticGeometryTexture> textures;
 

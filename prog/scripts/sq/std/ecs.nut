@@ -37,7 +37,7 @@ function mkEsFuncNamed(esname, func) {
     return function(_evt, eid, comp) {func(eid, comp)}
 }
 
-function gatherComponentNames(component_list){
+function gatherComponentNames(component_list): array {
   let res = []
   foreach (component in component_list){
     if (type(component) =="string")
@@ -168,7 +168,7 @@ function register_es(name, onEvents={}, compsDesc={}, params = {}) {
   }
 }
 
-function makeTemplate(params={}){
+function makeTemplate(params={}): string {
   let addTemplates = params?.addTemplates ?? []
   let removeTemplates = [].extend(params?.removeTemplates ?? [], addTemplates)
   let baseTemplates = params?.baseTemplate.split("+") ?? []
@@ -242,7 +242,7 @@ let recreateEntityWithTemplates = kwarg(function(eid=ecs.INVALID_ENTITY_ID, remo
     ecs.g_entity_mgr.reCreateEntityFrom(eid, newTemplatesName, comps, callback)
 })
 
-function query_map(query, func, filter_str = null){
+function query_map(query, func, filter_str = null): array {
   assert(query instanceof ecs.SqQuery, "need SqQuery instance as first argument")
   assert(filter_str == null  || type(filter_str) == "string", "filter string should be string or null")
   let res = []
@@ -253,7 +253,7 @@ function query_map(query, func, filter_str = null){
   return res
 }
 
-function list2array(list){
+function list2array(list): array {
   let res = []
   foreach (v in list){
     res.append(v)
@@ -268,7 +268,7 @@ function set_array2list(array_, list){
   return list
 }
 
-function register_event(name, eventType, structure=null){
+function register_event(name, eventType, structure=null): table {
 
   assert(ecs.EVCAST_UNICAST == eventType || ecs.EVCAST_BROADCAST == eventType,
             "eventType should be ecs.EVCAST_UNICAST or ecs.EVCAST_BROADCAST")
@@ -292,14 +292,14 @@ function register_event(name, eventType, structure=null){
 }
 
 
-let mkRegisterEventByType = @(eventType) function(payload, eventName){
+let mkRegisterEventByType = @(eventType) function(payload, eventName): table {
   if (payload == null)
     return register_event(eventName, eventType)
   return register_event(eventName, eventType, payload)
 }
 let _registerUnicastEvent = mkRegisterEventByType(ecs.EVCAST_UNICAST)
 unicastSqEvents.clear()
-function registerUnicastEvent(payload, eventName){
+function registerUnicastEvent(payload, eventName): table {
   unicastSqEvents[eventName] <- payload
   return _registerUnicastEvent(payload, eventName)
 }
@@ -321,7 +321,7 @@ return freeze(ecs.__merge({
   //just some godies. Query map is useful when you need to map entities components to array
   query_map
 
-  map_list2array = @(list,func) list2array(list).map(func)
+  map_list2array = @(list,func): array list2array(list).map(func)
   array2list = set_array2list
   list2array
 }))

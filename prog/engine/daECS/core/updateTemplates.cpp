@@ -6,6 +6,7 @@
 #include <util/dag_fixedBitArray.h>
 #include <util/dag_stlqsort.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <perfMon/dag_statDrv.h>
 #include "ecsInternal.h"
 #include <daECS/core/tokenize_const_string.h>
 #include <util/dag_finally.h>
@@ -13,26 +14,54 @@
 namespace ecs
 {
 
-bool EntityManager::is_son_of(const Template &t, const int p, const TemplateDB &db, int rec_depth)
+// Extends `marked` (indexed by db template id, roots pre-set) with all
+// transitive descendants in one O(templates + edges) pass. The db stores only
+// parent ids, and reloads can point an updated template at a later-appended
+// parent, so id order is not topological: build the child adjacency and BFS.
+static void mark_descendants(const TemplatesData &db, eastl::bitvector<framemem_allocator> &marked)
 {
-  G_FAST_ASSERT(++rec_depth < 1024);
-  G_UNUSED(rec_depth); // max recursion depth (sanity check)
-  for (auto &parent : t.getParents())
+  const uint32_t n = (uint32_t)db.size();
+  SmallTab<uint32_t, framemem_allocator> ofs(n + 1);
+  memset(ofs.data(), 0, ofs.size() * sizeof(uint32_t));
+  uint32_t edges = 0;
+  for (uint32_t i = 0; i < n; ++i)
+    for (auto p : db.getTemplateRefById(i).getParents())
+    {
+      ofs[p + 1]++;
+      edges++;
+    }
+  for (uint32_t i = 0; i < n; ++i)
+    ofs[i + 1] += ofs[i];
+  SmallTab<uint32_t, framemem_allocator> children(edges), fillAt(n);
+  memcpy(fillAt.data(), ofs.data(), n * sizeof(uint32_t));
+  for (uint32_t i = 0; i < n; ++i)
+    for (auto p : db.getTemplateRefById(i).getParents())
+      children[fillAt[p]++] = i;
+  SmallTab<uint32_t, framemem_allocator> queue;
+  queue.reserve(n);
+  for (uint32_t i = 0; i < n; ++i)
+    if (marked.test(i, false))
+      queue.push_back(i);
+  for (uint32_t qi = 0; qi < queue.size(); ++qi) // FIFO; the queue only grows
   {
-    if (p == parent)
-      return true;
-    if (is_son_of(db.getTemplateRefById(parent), p, db, rec_depth))
-      return true;
+    const uint32_t t = queue[qi];
+    for (uint32_t ci = ofs[t], ce = ofs[t + 1]; ci != ce; ++ci)
+      if (!marked.test(children[ci], false))
+      {
+        marked.set(children[ci], true);
+        queue.push_back(children[ci]);
+      }
   }
-  return false;
 }
 
 void EntityManager::updateEntitiesWithTemplate(template_t oldT, template_t newTemp, bool update_templ_values)
 {
+  TIME_PROFILE_DEV(updateEntitiesWithTemplate);
+  TIME_PROFILE_UNIQUE_EVENT_DEV("updateEntitiesWithTemplate");
   // Step4. recreate all entities of that template with new template!
   const uint32_t oldArchetype = templates.getTemplate(oldT).archetype;
   const uint32_t newArchetype = templates.getTemplate(newTemp).archetype;
-  eastl::vector<EntityComponentRef> changedComponents; // bit vector of components being changed in new template
+  dag::Vector<EntityComponentRef, framemem_allocator> changedComponents; // components changed in the new template, by old cid
   bool changedTemplValues = false;
   if (update_templ_values)
   {
@@ -86,44 +115,62 @@ void EntityManager::updateEntitiesWithTemplate(template_t oldT, template_t newTe
   {
     // 4.1 we have to change content of entities of that type!
     // debug("entities %d", archetypes.getArchetype(oldArchetype).manager.getTotalEntities());
-
-    for (auto *manager = &archetypes.getArchetype(oldArchetype).manager; manager->getTotalEntities();
-         manager = &archetypes.getArchetype(oldArchetype).manager)
-    {
-      for (int ci = (int)manager->getChunksCount() - 1; ci >= 0; --ci)
+    auto makeInit = [&](EntityId eid) {
+      ComponentsInitializer init;
+      if (changedTemplValues)
       {
-        for (int ei = manager->getChunkUsed(ci) - 1; ei >= 0; --ei)
+        for (uint32_t ai = 1, ac = archetypes.getComponentsCount(oldArchetype); ai < ac; ++ai)
         {
-          EntityId eid = *(EntityId *)manager->getDataUnsafe(0, sizeof(EntityId), ci, ei);
-          // now recreate
-          ComponentsInitializer init;
-          if (changedTemplValues)
+          if (changedComponents[ai].isNull())
+            continue;
+          if (!isEntityComponentSameAsTemplate(eid, ai - 1))
+            continue;
+          // not same!
+          const component_index_t cIndex = changedComponents[ai].getComponentId();
+          init[HashedConstString{NULL, dataComponents.getComponentTpById(cIndex)}] = ChildComponent(changedComponents[ai]);
+          init.back().cIndex = cIndex; // to remove useless validateInitializer
+        }
+        // validateInitializer(newTemp, init);
+      }
+      return init;
+    };
+    if (oldArchetype != newArchetype)
+    {
+      // ES handlers on recreate may create entities or archetypes; recreate one
+      // entity at a time and re-fetch the manager, until the archetype drains
+      for (auto *manager = &archetypes.getArchetype(oldArchetype).manager; manager->getTotalEntities();
+           manager = &archetypes.getArchetype(oldArchetype).manager)
+      {
+        for (int ci = (int)manager->getChunksCount() - 1; ci >= 0; --ci)
+        {
+          const int used = manager->getChunkUsed(ci);
+          if (used > 0)
           {
-            for (uint32_t ai = 1, ac = archetypes.getComponentsCount(oldArchetype); ai < ac; ++ai)
-            {
-              if (changedComponents[ai].isNull())
-                continue;
-              if (!isEntityComponentSameAsTemplate(eid, ai - 1))
-                continue;
-              // not same!
-              const component_index_t cIndex = changedComponents[ai].getComponentId();
-              init[HashedConstString{NULL, dataComponents.getComponentTpById(cIndex)}] = ChildComponent(changedComponents[ai]);
-              init.back().cIndex = cIndex; // to remove useless validateInitializer
-            }
-            // validateInitializer(newTemp, init);
-          }
-
-          createEntityInternal(eid, newTemp, eastl::move(init), ComponentsMap(), create_entity_async_cb_t());
-          if (oldArchetype != newArchetype)
-          {
-            goto end_loop; // break out of loop. we can't be sure anything good happens in ES handlers on recreate. there can be new
-                           // entities appearing
+            EntityId eid = *(EntityId *)manager->getDataUnsafe(0, sizeof(EntityId), ci, used - 1);
+            createEntityInternal(eid, newTemp, makeInit(eid), ComponentsMap(), create_entity_async_cb_t());
+            break;
           }
         }
       }
-      if (oldArchetype == newArchetype)
-        break;
-    end_loop:;
+    }
+    else
+    {
+      // in-place value update keeps the archetype, but do not hold pointers into
+      // the archetypes storage across createEntityInternal either: snapshot eids
+      SmallTab<EntityId, framemem_allocator> eids;
+      {
+        auto &manager = archetypes.getArchetype(oldArchetype).manager;
+        eids.reserve(manager.getTotalEntities());
+        for (int ci = (int)manager.getChunksCount() - 1; ci >= 0; --ci)
+          for (int ei = manager.getChunkUsed(ci) - 1; ei >= 0; --ei)
+            eids.push_back(*(EntityId *)manager.getDataUnsafe(0, sizeof(EntityId), ci, ei));
+      }
+      for (EntityId eid : eids)
+      {
+        if (getEntityTemplateId(eid) != oldT) // destroyed or recreated by an ES handler mid-loop
+          continue;
+        createEntityInternal(eid, newTemp, makeInit(eid), ComponentsMap(), create_entity_async_cb_t());
+      }
     }
   }
 }
@@ -160,9 +207,12 @@ TemplateDB::AddResult EntityManager::updateTemplate(Template &&update_templ, dag
   templateDB.templates[existingId] = eastl::move(update_templ); // replace THE template
   updateEntities(existingId);
   // change all templates that extends THAT
+  eastl::bitvector<framemem_allocator> descendants(templateDB.size());
+  descendants.set(existingId, true);
+  mark_descendants(templateDB.data(), descendants);
   for (size_t i = 0, e = templateDB.size(); i < e; ++i)
   {
-    if (is_son_of(templateDB.templates[i], existingId, templateDB))
+    if (i != existingId && descendants.test(i, false))
     {
       // we found some template to update
       updateEntities(i);
@@ -233,9 +283,12 @@ EntityManager::RemoveTemplateResult EntityManager::removeTemplate(const char *na
   if (id < 0)
     return RemoveTemplateResult::NotFound;
   SmallTab<uint32_t, framemem_allocator> toRemove;
+  eastl::bitvector<framemem_allocator> descendants(templateDB.size());
+  descendants.set(id, true);
+  mark_descendants(templateDB.data(), descendants);
   for (size_t i = 0, e = templateDB.templates.size(); i < e; ++i)
   {
-    if (i == id || is_son_of(templateDB.templates[i], id, templateDB))
+    if (descendants.test(i, false))
     {
       const template_t t = templateDB.instantiatedTemplates[i].t;
       if ((t != INVALID_TEMPLATE_INDEX) && archetypes.getArchetype(templates.getTemplate(t).archetype).manager.getTotalEntities() != 0)
@@ -250,6 +303,8 @@ EntityManager::RemoveTemplateResult EntityManager::removeTemplate(const char *na
 bool EntityManager::updateTemplates(ecs::TemplateRefs &trefs, bool update_templ_values, uint32_t tag,
   eastl::function<void(const char *, EntityManager::UpdateTemplateResult)> cb)
 {
+  TIME_PROFILE_DEV(updateTemplates);
+  TIME_PROFILE_UNIQUE_EVENT_DEV("updateTemplates");
   // first - check if we can remove templates
   bool errors = false;
   if (trefs.getEmptyCount() != 0)
@@ -291,9 +346,12 @@ bool EntityManager::updateTemplates(ecs::TemplateRefs &trefs, bool update_templ_
     if (trefIt != trefs.end()) // found in new database, we don't have to remove it
       continue;
     // we have to remove it and it's children
+    eastl::bitvector<framemem_allocator> descendants(templateDB.size());
+    descendants.set(ti, true);
+    mark_descendants(templateDB.data(), descendants);
     for (size_t i = 0, e = templateDB.templates.size(); i < e; ++i)
     {
-      if (i != ti && !is_son_of(templateDB.templates[i], ti, templateDB))
+      if (!descendants.test(i, false))
         continue;
       const template_t t = templateDB.instantiatedTemplates[i].t;
       if ((t == INVALID_TEMPLATE_INDEX) || archetypes.getArchetype(templates.getTemplate(t).archetype).manager.getTotalEntities() == 0)
@@ -364,7 +422,9 @@ bool EntityManager::updateTemplates(ecs::TemplateRefs &trefs, bool update_templ_
           archetypes.getArchetype(templates.getTemplate(t).archetype).manager.getTotalEntities() != 0) // we can't change template to
                                                                                                        // non instantiatable
       {
-        trefTemplate.reportInvalidDependencies(templateDB);
+        // report against trefs: the tref's parent ids index the trefs space, and
+        // canInstantiate was resolved against trefs in finalize
+        trefTemplate.reportInvalidDependencies(trefs);
         cb(trefTemplate.getName(), UpdateTemplateResult::RemoveHasEntities);
         errors = true;
       }
@@ -437,10 +497,13 @@ bool EntityManager::updateTemplates(ecs::TemplateRefs &trefs, bool update_templ_
     return true;
 
   eastl::vector_set<uint32_t, eastl::less<uint32_t>, framemem_allocator> allTemplatesToUpdate = templatesToUpdate;
-  for (auto id : templatesToUpdate)
   {
+    eastl::bitvector<framemem_allocator> descendants(templateDB.size());
+    for (auto id : templatesToUpdate)
+      descendants.set(id, true);
+    mark_descendants(templateDB.data(), descendants);
     for (uint32_t i = 0, e = templateDB.templates.size(); i < e; ++i)
-      if (is_son_of(templateDB.templates[i], id, templateDB))
+      if (descendants.test(i, false))
         allTemplatesToUpdate.insert(i);
   }
   for (auto i : allTemplatesToUpdate)

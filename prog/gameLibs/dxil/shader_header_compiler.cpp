@@ -1010,14 +1010,17 @@ ShaderFunctionRelfectionError relfect(uint32_t default_playload_size_in_bytes, c
   uint32_t recursionDepth = get_shader_minimum_recursion(static_cast<dxil::ShaderStage>(output.shaderType));
   uint32_t maxPayLoadSizeInBytes = default_playload_size_in_bytes;
   uint32_t maxAttributeSizeInBytes = sizeof(float) * 2;
+  uint32_t rtPipelineFlags = RT_PIPELINE_FLAG_NONE;
   auto functionData = function_extra_data_query(static_cast<dxil::ShaderStage>(output.shaderType), functionName);
   if (functionData)
   {
     recursionDepth = functionData->recursionDepth;
     maxPayLoadSizeInBytes = functionData->maxPayLoadSizeInBytes;
     maxAttributeSizeInBytes = functionData->maxAttributeSizeInBytes;
+    rtPipelineFlags = functionData->rtPipelineFlags;
   }
   output.maxRecusionDepth = is_a_shader_with_recursion(static_cast<dxil::ShaderStage>(output.shaderType)) ? recursionDepth : 0;
+  output.rtPipelineFlags = rtPipelineFlags;
   output.maxPayloadSizeInBytes =
     is_a_shader_with_payload(static_cast<dxil::ShaderStage>(output.shaderType)) ? maxPayLoadSizeInBytes : 0;
   output.maxAttributeSizeInBytes =

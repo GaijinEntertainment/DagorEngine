@@ -3,7 +3,6 @@
 #include <render/rtsm.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_computeShaders.h>
-#include <shaders/dag_dynamicResolutionStcode.h>
 #include <bvh/bvh.h>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_bindless.h>
@@ -335,7 +334,7 @@ void render(bvh::ContextId context_id, const Point3 &view_pos, const Point3 &lig
 }
 
 void render_dynamic_light_shadows(bvh::ContextId context_id, const Point3 &view_pos, Texture *dynamic_lighting_texture,
-  float light_radius, bool soft_shadow, bool has_nuke, const DynRes *dynamic_resolution)
+  float light_radius, bool soft_shadow, bool has_nuke)
 {
   if (!dynamic_lighting_texture)
     return;
@@ -350,21 +349,7 @@ void render_dynamic_light_shadows(bvh::ContextId context_id, const Point3 &view_
   TextureInfo ti;
   dynamic_lighting_texture->getinfo(ti);
 
-  int dw = ti.w;
-  int dh = ti.h;
-  if (dynamic_resolution)
-  {
-    auto dd = calc_and_set_dynamic_resolution_stcode(ti.w, ti.h, *dynamic_resolution, *dynamic_resolution);
-    dw = dd.x;
-    dh = dd.y;
-  }
-  else
-  {
-    Point2 res = Point2(dw, dh); // This shader only needs the current resolution.
-    set_dynamic_resolution_stcode(res, res, res);
-  }
-
-  bvh::bind_resources(context_id, dw);
+  bvh::bind_resources(context_id, ti.w);
 
   ShaderGlobal::set_int4(rt_shadow_resolutionIVarId, ti.w, ti.h, 0, 0);
   ShaderGlobal::set_float4(rt_shadow_resolutionVarId, ti.w, ti.h);
@@ -375,7 +360,7 @@ void render_dynamic_light_shadows(bvh::ContextId context_id, const Point3 &view_
 
   const float zero[4] = {0, 0, 0, 0};
   d3d::clear_rwtexf(dynamic_lighting_texture, zero, 0, 0);
-  traceDynamic->dispatchThreads(dw, dh, 1);
+  traceDynamic->dispatchThreads(ti.w, ti.h, 1);
 
   bvh::unbind_resources();
 }

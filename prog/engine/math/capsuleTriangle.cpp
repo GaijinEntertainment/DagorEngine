@@ -604,7 +604,7 @@ VECTORCALL bool test_capsule_triangle_intersection(vec3f from, vec3f dir, vec3f 
 
     // project on plane
     vec3f pt0 = v_sub(from, v_mul(plane, v_splats(d))); // center of the sphere slice (a circle)
-    vec3f onLine = closest_point_on_line(pt0, p0, v_norm3(v_sub(p1, p0)));
+    vec3f onLine = v_closest_point_on_line(pt0, p0, v_norm3(v_sub(p1, p0)));
 
     vec3f v = v_norm3(v_sub(onLine, pt0));
     vec3f pt1 = v_madd(v, v_splats(r), pt0); // point on the sphere that will maybe collide with the edge
@@ -761,7 +761,7 @@ VECTORCALL bool test_capsule_triangle_hit(vec3f from, vec3f dir, vec3f v0, vec3f
 
     // project on plane
     vec3f pt0 = v_sub(from, v_mul(plane, v_splats(d))); // center of the sphere slice (a circle)
-    vec3f onLine = closest_point_on_line(pt0, p0, v_norm3(v_sub(p1, p0)));
+    vec3f onLine = v_closest_point_on_line(pt0, p0, v_norm3(v_sub(p1, p0)));
 
     vec3f v = v_norm3(v_sub(onLine, pt0));
     vec3f pt1 = v_madd(v, v_splats(r), pt0); // point on the sphere that will maybe collide with the edge

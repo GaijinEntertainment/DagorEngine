@@ -173,6 +173,8 @@ dafg::NodeHandle create_place_node(
       ShaderGlobal::set_int(var::discard_on_grass_erasure, constants.discardOnGrassErasure);
 #endif
 
+      constants.passBlock.setState();
+
       // TODO: the way culling variables are bound right now (see frustum.dshl), we need a dispatch per viewport.
       // Otherwise they could be merged into a single dispatch.
       for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)

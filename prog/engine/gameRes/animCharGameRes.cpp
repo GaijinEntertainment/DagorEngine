@@ -8,7 +8,7 @@
 #include <ioSys/dag_roDataBlock.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_initOnDemand.h>
-#include <EASTL/vector.h>
+#include <dag/dag_vector.h>
 #include <EASTL/unique_ptr.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
@@ -204,7 +204,7 @@ public:
     eastl::unique_ptr<AnimGraphResData> agData;
   };
 
-  eastl::vector<ResData> resData;
+  dag::Vector<ResData> resData;
   Tab<GameRes> gameRes;
   bool warnAboutMissingAnimRes = true;
 
@@ -482,6 +482,7 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(gameRes, resId, refCount)
 };
+DAG_DECLARE_RELOCATABLE(AnimGraphGameResFactory::ResData);
 
 static InitOnDemand<AnimGraphGameResFactory> ag_factory;
 static InitOnDemand<AnimBnlGameResFactory> bnl_factory;

@@ -722,6 +722,12 @@ bool ShaderGlobal::set_float4x4(int var_id, const TMatrix4 &mat)
   globalData.globVarsState.set<TMatrix4>(id, mat);
   return true;
 }
+bool ShaderGlobal::set_float4x3(int var_id, const TMatrix &mat)
+{
+  CHECK_VAR_ID(SHVT_FLOAT4x3);
+  globalData.globVarsState.set<TMatrix>(id, mat);
+  return true;
+}
 bool ShaderGlobal::set_int4(int var_id, const IPoint4 &v)
 {
   CHECK_VAR_ID(SHVT_INT4);
@@ -891,6 +897,13 @@ bool ShaderGlobal::set_float4x4(int var_id, const XMFLOAT4X4 &mat)
   return true;
 }
 
+bool ShaderGlobal::set_float4x3(int var_id, const XMFLOAT4X3 &mat)
+{
+  CHECK_VAR_ID(SHVT_FLOAT4x3);
+  globalData.globVarsState.set<XMFLOAT4X3>(id, mat);
+  return true;
+}
+
 bool ShaderGlobal::set_float4(int var_id, FXMVECTOR v)
 {
   CHECK_VAR_ID(SHVT_COLOR4);
@@ -910,6 +923,16 @@ bool ShaderGlobal::set_float4x4(int var_id, FXMMATRIX mat)
 
   XMFLOAT4X4A &f44 = globalData.globVarsState.get<XMFLOAT4X4A>(id);
   XMStoreFloat4x4A(&f44, mat);
+
+  return true;
+}
+
+bool ShaderGlobal::set_float4x3(int var_id, FXMMATRIX mat)
+{
+  CHECK_VAR_ID(SHVT_FLOAT4x3);
+
+  XMFLOAT4X3 &f43 = globalData.globVarsState.get<XMFLOAT4X3>(id);
+  XMStoreFloat4x3(&f43, mat);
 
   return true;
 }
@@ -954,6 +977,12 @@ TMatrix4 ShaderGlobal::get_float4x4(int var_id)
 {
   CHECK_VAR_ID(SHVT_FLOAT4X4, ZERO<TMatrix4>());
   return globalData.globVarsState.get<TMatrix4>(glob_var_id);
+}
+
+TMatrix ShaderGlobal::get_float4x3(int var_id)
+{
+  CHECK_VAR_ID(SHVT_FLOAT4x3, TMatrix::ZERO);
+  return globalData.globVarsState.get<TMatrix>(glob_var_id);
 }
 
 IPoint4 ShaderGlobal::get_int4(int var_id)

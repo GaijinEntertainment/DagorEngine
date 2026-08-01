@@ -41,6 +41,19 @@ VECTORCALL VECMATH_FINLINE vec4i v_lduush(const unsigned short *m);
 VECTORCALL VECMATH_FINLINE vec4i v_ldui_half(const void *m);
 VECTORCALL VECMATH_FINLINE vec4f v_ldu_half(const void *m);
 
+//! load 8 floats (4 packed float2) from 16-byte aligned memory into SoA x/y;
+//! a single ld2 on NEON (e.g. an array of xy points or complex numbers)
+VECTORCALL VECMATH_FINLINE void v_ld_soa2(const float *m, vec4f &x, vec4f &y);
+//! load 12 floats (4 packed float3) from 16-byte aligned memory into SoA x/y/z;
+//! a single ld3 on NEON (e.g. a Point3 array to SoA)
+VECTORCALL VECMATH_FINLINE void v_ld_soa3(const float *m, vec4f &x, vec4f &y, vec4f &z);
+//! load 16 floats (4 float4) from 16-byte aligned memory into SoA x/y/z/w; a single ld4 on NEON
+VECTORCALL VECMATH_FINLINE void v_ld_soa4(const float *m, vec4f &x, vec4f &y, vec4f &z, vec4f &w);
+//! unaligned variants of the deinterleaving loads
+VECTORCALL VECMATH_FINLINE void v_ldu_soa2(const float *m, vec4f &x, vec4f &y);
+VECTORCALL VECMATH_FINLINE void v_ldu_soa3(const float *m, vec4f &x, vec4f &y, vec4f &z);
+VECTORCALL VECMATH_FINLINE void v_ldu_soa4(const float *m, vec4f &x, vec4f &y, vec4f &z, vec4f &w);
+
 //! fetch the cache line that contains address m
 VECMATH_FINLINE void v_prefetch(const void *m);
 
@@ -109,6 +122,16 @@ VECTORCALL VECMATH_FINLINE void v_stu(void *m, vec4f v);
 //! store low 64 bits of vector (.xy) to unaligned memory
 VECTORCALL VECMATH_FINLINE void v_stu_half(void *m, vec4f v);
 
+//! interleaving stores, the inverse of v_ld_soa2/3/4: write SoA lanes back as packed
+//! float2/float3/float4 elements (single st2/st3/st4 on NEON); 16-byte aligned memory
+VECTORCALL VECMATH_FINLINE void v_st_soa2(float *m, vec4f x, vec4f y);
+VECTORCALL VECMATH_FINLINE void v_st_soa3(float *m, vec4f x, vec4f y, vec4f z);
+VECTORCALL VECMATH_FINLINE void v_st_soa4(float *m, vec4f x, vec4f y, vec4f z, vec4f w);
+//! unaligned variants
+VECTORCALL VECMATH_FINLINE void v_stu_soa2(float *m, vec4f x, vec4f y);
+VECTORCALL VECMATH_FINLINE void v_stu_soa3(float *m, vec4f x, vec4f y, vec4f z);
+VECTORCALL VECMATH_FINLINE void v_stu_soa4(float *m, vec4f x, vec4f y, vec4f z, vec4f w);
+
 //! store vector to  16-byte aligned memory
 VECTORCALL VECMATH_FINLINE void v_sti(void *m, vec4i v);
 //! store vector to unaligned memory
@@ -126,6 +149,16 @@ VECTORCALL VECMATH_FINLINE vec4f v_merge_lw(vec4f a, vec4f b);
 
 //! return signbit mask for each compnent - 1|2|4|8. ith bit is ith float signbit
 VECTORCALL VECMATH_FINLINE int v_signmask(vec4f a);
+//! same result as v_signmask, but input must be a canonical per-lane mask (v_cmp_* result);
+//! cheaper on NEON, identical on SSE
+VECTORCALL VECMATH_FINLINE int v_truemask(vec4f a);
+//! number of true (all-ones) lanes in a canonical mask, 0..4; a horizontal sum, so it avoids
+//! the mask-build plus scalar popcount of __popcount(v_truemask(m))
+VECTORCALL VECMATH_FINLINE int v_count_true(vec4f a);
+//! number of true (all-ones) lanes among x,y,z of a canonical mask, 0..3; the w lane is ignored
+VECTORCALL VECMATH_FINLINE int v_count_true_xyz(vec4f a);
+//! true if any of the 4 lanes has its sign bit set (raw floats, not just masks)
+VECTORCALL VECMATH_FINLINE bool v_is_any_neg_b(vec4f a);
 
 //! bitwise checks for whole register
 VECTORCALL VECMATH_FINLINE bool v_test_all_bits_zeros(vec4f a);
@@ -159,6 +192,10 @@ VECTORCALL VECMATH_FINLINE vec4i v_cmp_eqi(vec4i a, vec4i b);
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_ge(vec4f a, vec4f b);
 //! component-wise comparison: for C={xyzw}  .C = a.C>b.C ? 0xFFFFFFFF : 0
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_gt(vec4f a, vec4f b);
+//! component-wise comparison of magnitudes: .C = |a.C|>=|b.C| ? 0xFFFFFFFF : 0; single facge on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_cmp_abs_ge(vec4f a, vec4f b);
+//! component-wise comparison of magnitudes: .C = |a.C|>|b.C| ? 0xFFFFFFFF : 0; single facgt on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_cmp_abs_gt(vec4f a, vec4f b);
 //! component-wise comparison: for C={xyzw}  .C = a.C<=b.C ? 0xFFFFFFFF : 0
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_le(vec4f a, vec4f b);
 //! component-wise comparison: for C={xyzw}  .C = a.C<b.C ? 0xFFFFFFFF : 0
@@ -322,6 +359,8 @@ VECTORCALL VECMATH_FINLINE vec4f v_div_x(vec4f a, vec4f b);
 VECTORCALL VECMATH_FINLINE vec4f v_madd_x(vec4f a, vec4f b, vec4f c);
 //! .x = (a.x * b.x - c.x)
 VECTORCALL VECMATH_FINLINE vec4f v_msub_x(vec4f a, vec4f b, vec4f c);
+//! .x = (c.x - a.x * b.x)
+VECTORCALL VECMATH_FINLINE vec4f v_nmsub_x(vec4f a, vec4f b, vec4f c);
 //! Get middle point between a and b
 VECTORCALL VECMATH_FINLINE vec4f v_midp(vec4f a, vec4f b);
 //! 1/a, very unprecise, fastest available on platform
@@ -339,11 +378,11 @@ VECTORCALL VECMATH_FINLINE vec4f v_rcp_safe(vec4f a, vec4f def = v_zero());
 VECTORCALL VECMATH_FINLINE vec4f v_sqr(vec4f a);
 //! .x = a.x*a.x
 VECTORCALL VECMATH_FINLINE vec4f v_sqr_x(vec4f a);
-//! min(a,b)
+//! min(a,b): per component a < b ? a : b (b wins on NaN), identical on all platforms
 VECTORCALL VECMATH_FINLINE vec4f v_min(vec4f a, vec4f b);
 VECTORCALL VECMATH_FINLINE vec4i v_mini(vec4i a, vec4i b);
 VECTORCALL VECMATH_FINLINE vec4i v_minu(vec4i a, vec4i b);
-//! max(a,b)
+//! max(a,b): per component a > b ? a : b (b wins on NaN), identical on all platforms
 VECTORCALL VECMATH_FINLINE vec4f v_max(vec4f a, vec4f b);
 VECTORCALL VECMATH_FINLINE vec4i v_maxi(vec4i a, vec4i b);
 VECTORCALL VECMATH_FINLINE vec4i v_maxu(vec4i a, vec4i b);
@@ -353,6 +392,8 @@ VECTORCALL VECMATH_FINLINE vec4i v_negi(vec4i a);
 //! fabs(a)
 VECTORCALL VECMATH_FINLINE vec4f v_abs(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4i v_absi(vec4i a);
+//! fabs(a - b); single fabd on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_abs_diff(vec4f a, vec4f b);
 
 //! clamp values in [min; max] range component-wise
 VECTORCALL VECMATH_FINLINE vec4f v_clamp(vec4f t, vec4f min_val, vec4f max_val);
@@ -403,17 +444,17 @@ VECTORCALL VECMATH_FINLINE vec4i v_srai(vec4i v, int bits);
 VECTORCALL VECMATH_FINLINE vec4i v_slli_64(vec4i v, int bits);
 //! shift right (unsigned integer, 64-bit lanes). bits is immediate value
 VECTORCALL VECMATH_FINLINE vec4i v_srli_64(vec4i v, int bits);
-//! shift left (unsigned integer). bits is variative value
+//! shift left (unsigned integer). bits is variative value, must be in [0, 31]
 VECTORCALL VECMATH_FINLINE vec4i v_slli_n(vec4i v, int bits);
-//! shift right (unsigned integer). bits is variative value
+//! shift right (unsigned integer). bits is variative value, must be in [0, 31]
 VECTORCALL VECMATH_FINLINE vec4i v_srli_n(vec4i v, int bits);
-//! shift right (signed integer). bits is variative value
+//! shift right (signed integer). bits is variative value, must be in [0, 31]
 VECTORCALL VECMATH_FINLINE vec4i v_srai_n(vec4i v, int bits);
-//! shift left (unsigned integer). bits is variative 64-bit value
+//! shift left (unsigned integer). bits is variative 64-bit value, must be in [0, 31]
 VECTORCALL VECMATH_FINLINE vec4i v_slli_n(vec4i v, vec4i bits);
-//! shift left (unsigned integer). bits is variative 64-bit value
+//! shift left (unsigned integer). bits is variative 64-bit value, must be in [0, 31]
 VECTORCALL VECMATH_FINLINE vec4i v_srli_n(vec4i v, vec4i bits);
-//! shift right (signed integer). bits is variative 64-bit value
+//! shift right (signed integer). bits is variative 64-bit value, must be in [0, 31]
 VECTORCALL VECMATH_FINLINE vec4i v_srai_n(vec4i v, vec4i bits);
 
 //! shift left (unsigned integer)
@@ -434,6 +475,10 @@ VECTORCALL VECMATH_FINLINE vec4i v_xori(vec4i a, vec4i b);
 VECTORCALL VECMATH_FINLINE vec4f v_hand(vec4f a);
 //! .xyzw = x | y | z | w
 VECTORCALL VECMATH_FINLINE vec4f v_hor(vec4f a);
+//! -1 (all bits set) if each of the six canonical masks (v_cmp_* results) has at least one
+//! true lane, 0 otherwise; branchless with no per-plane early-out: the frustum-cull callers
+//! run after coarse (tile/kd) pre-culling, so most boxes reaching it pass all six planes
+VECTORCALL VECMATH_FINLINE int v_is_merge_planes_nout(vec4f m0, vec4f m1, vec4f m2, vec4f m3, vec4f m4, vec4f m5);
 //! .xyzw = x & y & z
 VECTORCALL VECMATH_FINLINE vec4f v_hand3(vec3f a);
 //! .xyzw = x | y | z
@@ -442,10 +487,10 @@ VECTORCALL VECMATH_FINLINE vec4f v_hor3(vec3f a);
 VECTORCALL VECMATH_FINLINE vec4f v_hadd4_x(vec4f a);
 //! .x = x + y + z
 VECTORCALL VECMATH_FINLINE vec4f v_hadd3_x(vec3f a);
-//! return min of .xyzw
+//! return min of .xyzw; NaN lanes give platform-dependent results
 VECTORCALL VECMATH_FINLINE vec4f v_hmin(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4i v_hmini(vec4i a);
-//! return max of .xyzw
+//! return max of .xyzw; NaN lanes give platform-dependent results
 VECTORCALL VECMATH_FINLINE vec4f v_hmax(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4i v_hmaxi(vec4i a);
 //! return min of .xyz
@@ -454,29 +499,51 @@ VECTORCALL VECMATH_FINLINE vec4i v_hmini3(vec4i a);
 //! return max of .xyz
 VECTORCALL VECMATH_FINLINE vec4f v_hmax3(vec3f a);
 VECTORCALL VECMATH_FINLINE vec4i v_hmaxi3(vec4i a);
+//! pairwise min: (min(a.x,a.y), min(a.z,a.w), min(b.x,b.y), min(b.z,b.w)); single fminp on NEON.
+//! NaN lanes give platform-dependent results (finite inputs are identical everywhere)
+VECTORCALL VECMATH_FINLINE vec4f v_min_pairs(vec4f a, vec4f b);
+//! pairwise max: (max(a.x,a.y), max(a.z,a.w), max(b.x,b.y), max(b.z,b.w)); single fmaxp on NEON.
+//! NaN lanes give platform-dependent results (finite inputs are identical everywhere)
+VECTORCALL VECMATH_FINLINE vec4f v_max_pairs(vec4f a, vec4f b);
+//! pairwise add: (a.x+a.y, a.z+a.w, b.x+b.y, b.z+b.w); single faddp on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_add_pairs(vec4f a, vec4f b);
+//! pairwise integer add: (a.x+a.y, a.z+a.w, b.x+b.y, b.z+b.w); single addp on NEON
+VECTORCALL VECMATH_FINLINE vec4i v_addi_pairs(vec4i a, vec4i b);
+//! pairwise signed integer min: (min(a.x,a.y), min(a.z,a.w), min(b.x,b.y), min(b.z,b.w)); single sminp on NEON
+VECTORCALL VECMATH_FINLINE vec4i v_mini_pairs(vec4i a, vec4i b);
+//! pairwise signed integer max: (max(a.x,a.y), max(a.z,a.w), max(b.x,b.y), max(b.z,b.w)); single smaxp on NEON
+VECTORCALL VECMATH_FINLINE vec4i v_maxi_pairs(vec4i a, vec4i b);
 //! return x*y*z*w
 VECTORCALL VECMATH_FINLINE vec4f v_hmul(vec4f a);
 //! return x*y*z
 VECTORCALL VECMATH_FINLINE vec4f v_hmul3(vec3f a);
 
-//! 1/sqrt_est(a), very unprecise, fastest available on platform
+//! 1/sqrt_est(a), very unprecise, fastest available on platform (SSE: ~11.9 bits, NEON: ~8 bits precision)
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_unprecise(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_unprecise_x(vec4f a);
-//! 1/sqrt_est(a), fast estimate with Newton-Raphson refinement
+//! 1/sqrt_est(a), hardware estimate with N-R refinement, faster than IEEE, useful precision, similar between platforms
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_est(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_est_x(vec4f a);
-//! .x = precise 1/sqrt(a)
+//! .x = precise 1/sqrt(a) IEEE-754 precise
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_x(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_rsqrt_safe(vec4f a, vec4f def);
 
-//! sqrt_est(a), fast estimate
-VECTORCALL VECMATH_FINLINE vec4f v_sqrt4_fast(vec4f a);
-//! sqrt(a), Newton-Raphson refinement
+//! sqrt(a), very unprecise, fastest available on platform (SSE: ~11.9 bits, NEON: ~8 bits precision)
+VECTORCALL VECMATH_FINLINE vec4f v_sqrt_unprecise(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_sqrt_unprecise_x(vec4f a);
+//! sqrt(a), hardware estimate with N-R refinement, faster than IEEE, useful precision, similar between platforms
+//! a=0 returns NaN; use v_sqrt for zero-safe behavior
+VECTORCALL VECMATH_FINLINE vec4f v_sqrt_est(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_sqrt_est_x(vec4f a);
+//! sqrt(a), IEEE-754 precise
 VECTORCALL VECMATH_FINLINE vec4f v_sqrt(vec4f a);
-//! .x = sqrt_est(a.x)
-VECTORCALL VECMATH_FINLINE vec4f v_sqrt_fast_x(vec4f a);
-//! .x = sqrt(a.x)
+//! .x = sqrt(a.x), IEEE-754 precise
 VECTORCALL VECMATH_FINLINE vec4f v_sqrt_x(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_exp(vec4f x);
+VECTORCALL VECMATH_INLINE vec4f v_exp2(vec4f x);
+VECTORCALL VECMATH_FINLINE vec4f v_log(vec4f x);
+VECTORCALL VECMATH_FINLINE vec4f v_pow(vec4f x, vec4f y);
 
 //! cyclic rotate
 VECTORCALL VECMATH_FINLINE vec4f v_rot_1(vec4f a);
@@ -486,39 +553,72 @@ VECTORCALL VECMATH_FINLINE vec4i v_roti_1(vec4i a);
 VECTORCALL VECMATH_FINLINE vec4i v_roti_2(vec4i a);
 VECTORCALL VECMATH_FINLINE vec4i v_roti_3(vec4i a);
 
-//! permutations (mostly used in common implementation)
+//! permutations (mostly used in common implementation), grouped by cost of the NEON lowering;
+//! on SSE almost all cost a single shuffle
+// 1 op on NEON (native zip/uzp/trn/ext/rev64/dup or a single lane insert)
 VECTORCALL VECMATH_FINLINE vec4f v_perm_yzwx(vec4f a); //< alias for v_rot_1()
 VECTORCALL VECMATH_FINLINE vec4f v_perm_zwxy(vec4f a); //< alias for v_rot_2()
 VECTORCALL VECMATH_FINLINE vec4f v_perm_wxyz(vec4f a); //< alias for v_rot_3()
-VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxw(vec4f a);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_zxyw(vec4f a);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_xzxz(vec4f a);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_zxzx(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yxwz(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xxyy(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_zzww(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xxxx(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yyyy(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zzzz(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_wwww(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xycd(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xayb(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zcwd(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yxxc(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_bzxx(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_caxx(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xzbx(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xzya(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yaxx(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zayx(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zwzw(vec4f b);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zxxb(vec4f xyzw, vec4f abcd);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xxzz(vec4f a);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_wwyy(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_yyww(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xyxy(vec4f a);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxx(vec4f a);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxy(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_ywyw(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xzxz(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xyzz(vec4f a);
+// 2 ops on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxy(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zxyw(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zxzx(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_wwyy(vec4f a);
+// 3 ops on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxw(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxx(vec4f a);
 
-VECTORCALL VECMATH_FINLINE vec4f v_perm_xzac(vec4f xyzw, vec4f abcd);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_ywbd(vec4f xyzw, vec4f abcd);
+// two-vector permutations; 1 op on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xzac(vec4f xyzw, vec4f abcd); //< uzp1
+VECTORCALL VECMATH_FINLINE vec4f v_perm_ywbd(vec4f xyzw, vec4f abcd); //< uzp2
+//! transpose pairs: {x,a,z,c} / {y,b,w,d}; single trn1/trn2 on NEON, 2 cheap ops on SSE
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xazc(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_ybwd(vec4f xyzw, vec4f abcd);
+//! two-vector lane rotate: {y,z,w,a} / {z,w,a,b} / {w,a,b,c}; single ext on NEON, 1 op on SSE
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yzwa(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zwab(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_wabc(vec4f xyzw, vec4f abcd);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xyab(vec4f xyzw, vec4f abcd);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_zwcd(vec4f xyzw, vec4f abcd);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_xaxa(vec4f xyzw, vec4f abcd);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_yybb(vec4f xyzw, vec4f abcd);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_xxab(vec4f xyzw, vec4f abcd);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_yzab(vec4f xyzw, vec4f abcd);
-VECTORCALL VECMATH_FINLINE vec4f v_perm_bbyx(vec4f xyzw, vec4f abcd);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_ayzw(vec4f xyzw, vec4f abcd);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xbzw(vec4f xyzw, vec4f abcd);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xycw(vec4f xyzw, vec4f abcd);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xyzd(vec4f xyzw, vec4f abcd);
+// 2 ops on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xaxa(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yybb(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xxab(vec4f xyzw, vec4f abcd);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yzab(vec4f xyzw, vec4f abcd);
+// 3 ops on NEON
+VECTORCALL VECMATH_FINLINE vec4f v_perm_bbyx(vec4f xyzw, vec4f abcd);
 
+// integer variants: single-source ones use pshufd on SSE (int domain, non-destructive);
+// two-source ones are free bitcasts around the float perms, same cost as the float form
 VECTORCALL VECMATH_FINLINE vec4i v_permi_xzac(vec4i xyzw, vec4i abcd);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_xyab(vec4i xyzw, vec4i abcd);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_xycd(vec4i xyzw, vec4i abcd);
@@ -535,18 +635,6 @@ VECTORCALL VECMATH_FINLINE vec4i v_permi_yyww(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_wwyy(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_yzxw(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_yzxy(vec4i xyzw);
-
-#define v_perm_xyXY v_perm_xyab
-#define v_perm_zwZW v_perm_zwcd
-#define v_perm_xXxX v_perm_xaxa
-#define v_perm_yyYY v_perm_yybb
-#define v_perm_xzXZ v_perm_xzac
-#define v_perm_ywYW v_perm_ywbd
-#define v_perm_YYyx v_perm_bbyx
-#define v_perm_Xyzw v_perm_ayzw
-#define v_perm_xYzw v_perm_xbzw
-#define v_perm_xyZw v_perm_xycw
-#define v_perm_xyzW v_perm_xyzd
 
 
 //! pack 8x 32-bit ints into 8x 16-bit ints
@@ -566,6 +654,7 @@ VECTORCALL VECMATH_FINLINE vec4i v_packus16(vec4i a);
 VECTORCALL VECMATH_FINLINE vec4i v_interleave_lo_i8(vec4i a, vec4i b);
 //! interleave high 8 bytes from a,b: {a8,b8,a9,b9,...,a15,b15}
 VECTORCALL VECMATH_FINLINE vec4i v_interleave_hi_i8(vec4i a, vec4i b);
+
 //! interleave low 4 shorts from a,b: {a0,b0,a1,b1,a2,b2,a3,b3}
 VECTORCALL VECMATH_FINLINE vec4i v_interleave_lo_i16(vec4i a, vec4i b);
 //! interleave high 4 shorts from a,b: {a4,b4,a5,b5,a6,b6,a7,b7}
@@ -578,6 +667,12 @@ VECTORCALL VECMATH_FINLINE vec4i v_interleave_hi_i32(vec4i a, vec4i b);
 VECTORCALL VECMATH_FINLINE vec4i v_interleave_lo_i64(vec4i a, vec4i b);
 //! interleave high int64 from a,b: {a1,b1}
 VECTORCALL VECMATH_FINLINE vec4i v_interleave_hi_i64(vec4i a, vec4i b);
+
+//! dynamic byte shuffle (pshufb semantics on all platforms): for each of the
+//! 16 bytes, result[i] = (k[i] & 0x80) ? 0 : t[k[i] & 15]
+VECTORCALL VECMATH_FINLINE vec4i v_perm_i8(vec4i t, vec4i k);
+//! per-byte compare, returns byte mask (0xFF where equal, 0 elsewhere)
+VECTORCALL VECMATH_FINLINE vec4i v_cmp_eqi8(vec4i a, vec4i b);
 
 
 //
@@ -609,6 +704,10 @@ VECTORCALL VECMATH_FINLINE plane3f v_make_plane_norm(vec3f p0, vec3f norm);
 
 //! transform plane with matrix
 VECTORCALL VECMATH_FINLINE plane3f v_transform_plane(plane3f plane, mat44f_cref transform);
+VECTORCALL VECMATH_FINLINE plane3f v_norm_plane(plane3f in);
+VECTORCALL VECMATH_FINLINE vec3f v_ray_intersect_plane(vec3f A, vec3f B, plane3f P, vec4f &behind, vec4f &t);
+VECTORCALL VECMATH_FINLINE vec3f v_unsafe_ray_intersect_plane(vec3f point, vec3f dir, plane3f P);
+VECTORCALL VECMATH_FINLINE void v_unsafe_two_plane_intersection(plane3f p1, plane3f p2, vec3f &point, vec3f &dir);
 
 //! distance from point b to plane a: .xyzw = (a.x * b.x + a.y * b.y + a.z * b.z + a.w)
 VECTORCALL VECMATH_FINLINE vec4f v_plane_dist(plane3f a, vec3f b);
@@ -672,6 +771,11 @@ VECTORCALL VECMATH_FINLINE vec3f v_norm3(vec3f a);
 //! normalize: a/length(a), .z, .w could be anything (even NAN). will return NaN for zero vector
 VECTORCALL VECMATH_FINLINE vec4f v_norm2(vec4f a);
 
+//! estimated normalize: a*rsqrt_est(dot), faster and less precise than v_norm*
+VECTORCALL VECMATH_FINLINE vec4f v_norm4_est(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_norm3_est(vec3f a);
+VECTORCALL VECMATH_FINLINE vec4f v_norm2_est(vec4f a);
+
 //! safe normalize: a/length(a), return def value for zero vector
 VECTORCALL VECMATH_FINLINE vec4f v_norm4_safe(vec4f a, vec4f def);
 VECTORCALL VECMATH_FINLINE vec4f v_norm3_safe(vec3f a, vec3f def);
@@ -698,7 +802,7 @@ VECTORCALL VECMATH_FINLINE bool v_test_xy_finite(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_test_x_finite(vec4f a);
 //! nans and infs converted to zero
 VECTORCALL VECMATH_FINLINE vec4f v_remove_not_finite(vec4f a);
-//! test that all of .xyz less than limit by absolute value
+//! test that all of .xyz less than limit by absolute value; limit must be non-negative
 VECTORCALL VECMATH_FINLINE bool v_test_xyz_abs_lt(vec3f a, vec3f limit);
 
 
@@ -718,8 +822,6 @@ VECTORCALL VECMATH_FINLINE vec3f v_mat33_mul_vec3(mat33f_cref m, vec3f v);
 VECTORCALL VECMATH_FINLINE vec3f v_mat43_mul_vec3v(mat43f_cref m, vec3f v);
 //! m * v,  matrix is treated row-major, v.w=1
 VECTORCALL VECMATH_FINLINE vec3f v_mat43_mul_vec3p(mat43f_cref m, vec3f v);
-//! scale columns
-VECTORCALL VECMATH_FINLINE void v_mat43_apply_scale(mat44f &m, vec3f scale);
 
   //! transfrom position and apply max scale to radius
 VECTORCALL VECMATH_FINLINE vec4f v_mat44_mul_bsph(mat44f_cref m, vec4f bsph);
@@ -736,6 +838,9 @@ VECTORCALL VECMATH_FINLINE quat4f v_quat_mul_quat(quat4f q1, quat4f q2);
 
 //! compute conjugate quaternion
 VECTORCALL VECMATH_FINLINE quat4f v_quat_conjugate(quat4f q);
+VECTORCALL VECMATH_FINLINE quat4f v_quat_180_from_unit(vec3f v0);
+VECTORCALL VECMATH_FINLINE void v_quat_decompose_swing_twist(quat4f q, vec3f dir, quat4f& swing, quat4f& twist);
+VECTORCALL VECMATH_FINLINE void v_quat_decompose_twist_swing(quat4f q, vec3f dir, quat4f& twist, quat4f& swing);
 
 //
 // matrix algebra
@@ -776,18 +881,22 @@ VECTORCALL VECMATH_FINLINE void v_mat33_make_rot_cw_z(mat33f &dest, vec4f ang);
 VECTORCALL VECMATH_FINLINE void v_mat33_make_rot_cw_zyx(mat33f &dest, vec4f ang_xyz);
 
 //! T(m), 4x4 -> 4x4
-VECTORCALL VECMATH_FINLINE void v_mat44_transpose(mat44f &dest, mat44f_cref src);
+VECTORCALL VECMATH_FINLINE void v_mat44_transpose(mat44f &dest, mat44f src);
 VECTORCALL VECMATH_FINLINE void v_mat44_transpose(vec4f &r0, vec4f &r1, vec4f &r2, vec4f &r3);
 //! T(m), 3x3 -> 3x3
 VECTORCALL VECMATH_FINLINE void v_mat33_transpose(mat33f &dest, vec3f src_col0, vec3f src_col1, vec3f src_col2);
 VECTORCALL VECMATH_FINLINE void v_mat33_transpose(mat33f &dest, mat33f_cref src);
-//! T(m), 4x4 -> 3x3, omitting last column. So we can make .w not zero
-//VECTORCALL VECMATH_FINLINE void v_mat44_transpose_to_mat33(mat33f &dest, vec3f col0, vec3f col1, vec3f col2, vec4f col3);
+//! T(m), 4x4 -> 3x3 (transpose of the 3x3 part; last column ignored, .w lanes zeroed)
+VECTORCALL VECMATH_FINLINE void v_mat44_transpose_to_mat33(mat33f &dest, mat44f src);
 
 //! T(m), 4x4 column major -> 4x3 row major
-VECTORCALL VECMATH_FINLINE void v_mat44_transpose_to_mat43(mat43f &dest, mat44f_cref src);
+VECTORCALL VECMATH_FINLINE void v_mat44_transpose_to_mat43(mat43f &dest, mat44f src);
 //! T(m), 4x3 row major -> 4x4 column major
-VECTORCALL VECMATH_FINLINE void v_mat43_transpose_to_mat44(mat44f &dest, mat43f_cref src);
+VECTORCALL VECMATH_FINLINE void v_mat43_transpose_to_mat44(mat44f &dest, mat43f src);
+//! same from a mat43f in memory, fusing the load and the transpose (single ld4 on NEON).
+//! UNSAFE: reads 16 bytes past m43 - only for mat43f inside bigger arrays/pools, never the
+//! last 48 bytes of an allocation; all .w lanes of the result are undefined
+NO_ASAN_INLINE void v_mat44_load_from_mat43_overread_unsafe(mat44f &dest, const mat43f &m43);
 //! extract rotation/scale transformation from mat44 to mat33
 VECTORCALL VECMATH_FINLINE void v_mat33_from_mat44(mat33f &dest, mat44f_cref m);
 
@@ -843,6 +952,8 @@ VECTORCALL VECMATH_FINLINE void v_mat33_mul33r(mat33f &dest, mat33f_cref m1, mat
 VECTORCALL VECMATH_FINLINE void v_mat44_orthonormalize33(mat44f &dest, mat44f_cref m);
 //! orthonormalize 3x3 matrix
 VECTORCALL VECMATH_FINLINE void v_mat33_orthonormalize(mat33f &dest, mat33f_cref m);
+//! normalize columns of a 3x3 matrix (removes scale, keeps shear)
+VECTORCALL VECMATH_FINLINE void v_mat33_remove_scale(mat33f &dest, mat33f_cref m);
 //! 1/m
 VECTORCALL VECMATH_FINLINE void v_mat44_inverse(mat44f &dest, mat44f_cref m);
 //! 1/m, assuming col1.w=col2.w=col0.w=0, col3=0,0,0,1. Resulting matrix will not conform same assumption (i.e. it will be 43 matrix, not 44)!
@@ -855,6 +966,9 @@ VECTORCALL VECMATH_FINLINE void v_mat33_inverse(mat33f &dest, mat33f_cref m);
 VECTORCALL VECMATH_FINLINE void v_mat44_orthonormal_inverse43(mat44f &dest, mat44f_cref m);
 //! 1/m == T33(m), col3 = -T33(m)*col3, with m assumed being orthonormal 43 matrix (i.e. col0.w=col1.w=col2.w = 0; col3.w = 1). Resulting matrix will be valid 44 matrix, with col3.w == 1.
 VECTORCALL VECMATH_FINLINE void v_mat44_orthonormal_inverse43_to44(mat44f &dest, mat44f_cref m);
+
+//! force the affine bottom row: col0..2.w = 0, col3.w = 1 (e.g. after ops leaving .w undefined)
+VECTORCALL VECMATH_FINLINE void v_mat44_make_affine(mat44f &m);
 
 //! 1/m == T(m), with m being orthonormal
 VECTORCALL VECMATH_FINLINE void v_mat33_orthonormal_inverse(mat33f &dest, mat33f_cref m);
@@ -872,10 +986,22 @@ VECTORCALL VECMATH_FINLINE vec4f v_mat44_max_scale43_x(mat44f_cref tm);
 //! .xyz = scales of 3 axes
 VECTORCALL VECMATH_FINLINE vec3f v_mat44_scale43_sq(mat44f_cref tm);
 //! apply scale from .xyz to 3 axes
-VECTORCALL VECMATH_FINLINE void v_mat44_apply_scale43(mat44f &tm, vec3f scale);
+VECTORCALL VECMATH_FINLINE void v_mat44_apply_scale33(mat44f &tm, vec3f scale);
+//! normalize columns 0..2 (removes scale, keeps shear and translation col3)
+VECTORCALL VECMATH_FINLINE void v_mat44_remove_scale33(mat44f &dest, mat44f_cref m);
 
 //! stores mat33f to unaligned Matrix3
 VECTORCALL VECMATH_FINLINE void v_mat_33cu_from_mat33(float * __restrict m33, const mat33f& tm);
+
+//! mat44f from 16 floats of unaligned memory holding the four basis vectors in
+//! column order (a TMatrix4 has the same layout)
+VECTORCALL VECMATH_FINLINE void v_mat44_make_from_44cu(mat44f &tmV, const float *const __restrict m44);
+//! same from 16-byte aligned memory
+VECTORCALL VECMATH_FINLINE void v_mat44_make_from_44ca(mat44f &tmV, const float *const __restrict m44);
+//! stores mat44f as 16 floats to unaligned memory (e.g. a TMatrix4)
+VECTORCALL VECMATH_FINLINE void v_mat_44cu_from_mat44(float * __restrict m44, const mat44f &tm);
+//! same to 16-byte aligned memory
+VECTORCALL VECMATH_FINLINE void v_mat_44ca_from_mat44(float * __restrict m44, const mat44f &tm);
 
 //! stores mat44f to aligned TMatrix from mat44f
 VECTORCALL VECMATH_FINLINE void v_mat_43ca_from_mat44(float * __restrict m43, const mat44f &tm);
@@ -883,8 +1009,18 @@ VECTORCALL VECMATH_FINLINE void v_mat_43ca_from_mat44(float * __restrict m43, co
 //! stores mat44f to unaligned TMatrix
 VECTORCALL VECMATH_FINLINE void v_mat_43cu_from_mat44(float * __restrict m43, const mat44f &tm);
 
-//! mat33f from unaligned Matrix3
+//! stores mat43f to aligned TMatrix; one interleaving store (single st3 on NEON) -
+//! the rows' .w lanes are exactly the translation triple the TMatrix layout ends with
+VECTORCALL VECMATH_FINLINE void v_mat_43ca_from_mat43(float * __restrict m43, mat43f_cref tm);
+
+//! stores mat43f to unaligned TMatrix
+VECTORCALL VECMATH_FINLINE void v_mat_43cu_from_mat43(float * __restrict m43, mat43f_cref tm);
+
+//! mat33f from unaligned Matrix3 (9 floats); cols' .w = 0. Reads one float past the matrix
+//! like v_ldu_p3 does
 VECTORCALL VECMATH_FINLINE void v_mat33_make_from_33cu(mat33f &tmV, const float *const __restrict m33);
+//! same, reads exactly the 9 floats; use it only when v_mat33_make_from_33cu can crash
+VECTORCALL VECMATH_FINLINE void v_mat33_make_from_33cu_safe(mat33f &tmV, const float *const __restrict m33);
 
 //! mat44f from unaligned TMatrix
 VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu(mat44f &tmV, const float *const __restrict m43);
@@ -894,6 +1030,21 @@ VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43cu_unsafe(mat44f &tmV, const
 
 //! mat44f from memaligned TMatrix
 VECTORCALL VECMATH_FINLINE void v_mat44_make_from_43ca(mat44f &tmV, const float *const __restrict m43);
+
+//! mat43f (transposed rows) from unaligned TMatrix; TMatrix column triples are exactly
+//! the interleaved form of the rows, so this is one deinterleaving load (single ld3 on NEON)
+VECTORCALL VECMATH_FINLINE void v_mat43_make_from_43cu(mat43f &tmV, const float *const __restrict m43);
+
+//! same, but the rows' .w lanes are undefined (rotation columns only); cheaper on SSE
+VECTORCALL VECMATH_FINLINE void v_mat43_make_from_43cu_unsafe(mat43f &tmV, const float *const __restrict m43);
+VECTORCALL VECMATH_FINLINE void v_mat43_sub(mat43f &dest, mat43f_cref m1, mat43f_cref m2);
+
+//! orthonormal inverse (1/m == T33(m), col3 = -T33(m)*pos) straight from an unaligned TMatrix;
+//! m must be orthonormal; result is a valid 44 matrix (col0..2.w = 0, col3.w = 1)
+VECTORCALL VECMATH_FINLINE void v_mat44_orthonormal_inverse_from_43cu(mat44f &dest, const float *const __restrict m43);
+
+//! same, but all .w lanes of the result are undefined
+VECTORCALL VECMATH_FINLINE void v_mat44_orthonormal_inverse_from_43cu_unsafe(mat44f &dest, const float *const __restrict m43);
 
 //! .xyz = last column of matrix (.w of each row)
 VECTORCALL VECMATH_FINLINE vec3f v_mat43_extract_pos(mat43f_cref mat);
@@ -908,6 +1059,7 @@ VECTORCALL VECMATH_FINLINE void v_bbox3_init_empty(bbox3f &b);
 VECTORCALL VECMATH_FINLINE void v_bbox3_init_ident(bbox3f &b);
 //! init with point
 VECTORCALL VECMATH_FINLINE void v_bbox3_init(bbox3f &b, vec3f p);
+VECTORCALL VECMATH_FINLINE bool v_bbox3_is_empty(bbox3f bbox);
 //! init with bb2 rotated/scaled by 3 column vectors (no translation)
 VECTORCALL VECMATH_FINLINE void v_bbox3_rotate_init(bbox3f &b, vec3f col0, vec3f col1, vec3f col2, bbox3f_cref bb2);
 //! init with bb2 transformed with 3x3 matrix m (rotation/scale only, no translation)
@@ -965,15 +1117,17 @@ VECTORCALL VECMATH_FINLINE bool v_bbox3_test_box_intersect(bbox3f b1, bbox3f b2)
 //! tests whether boxes intersect and returns boolean (0 or non-0). safe for above case
 VECTORCALL VECMATH_FINLINE bool v_bbox3_test_box_intersect_safe(bbox3f b1, bbox3f b2);
 
-//! tests OBB box1 edges intersect planes of AABB box0 and returns boolean (0 or non-0).
-VECTORCALL inline bool v_bbox3_test_trasformed_box_intersect(bbox3f box0, bbox3f box1, const mat44f& tm1);
+//! tests whether AABB and OBB intersect and returns boolean (0 or non-0)
+VECTORCALL inline bool v_bbox3_test_trasformed_box_intersect(const bbox3f& box0, const bbox3f& box1, const mat44f& tm1);
+//! same as previous, but assumes that boxes already culled by caller and will likely have intersection
+VECTORCALL inline bool v_bbox3_test_trasformed_box_likely_intersect(const bbox3f& box0, const bbox3f& box1, const mat44f& tm1);
 
-//! tests whether OBB box0 and OBB box1 intersect and returns boolean (0 or non-0).
-VECTORCALL VECMATH_FINLINE bool v_bbox3_test_trasformed_box_intersect(bbox3f box0, const mat44f& tm0, bbox3f box1, const mat44f& tm1);
-VECTORCALL VECMATH_FINLINE bool v_bbox3_test_trasformed_box_intersect(bbox3f box0, const mat44f& tm0, bbox3f box1, const mat44f& tm1,
-                                                                      vec4f size_factor);
-VECTORCALL VECMATH_FINLINE bool v_bbox3_test_trasformed_box_intersect_rel_tm(bbox3f box0, const mat44f& b0_to_b1,
-                                                                             bbox3f box1, const mat44f& b1_to_b0);
+//! tests whether OBB box0 and OBB box1 intersect and returns boolean (0 or non-0). size_factor fattens
+//! both boxes. assumes boxes may be far apart: rejects distant pairs by bounding spheres before the test.
+//! tm0 must be invertible (well-conditioned); the test is done in box0's frame via inverse(tm0)*tm1.
+//! callers that pre-culled and have a relative matrix should use the box0/box1/tm1 _likely form instead.
+VECTORCALL VECMATH_FINLINE bool v_bbox3_test_trasformed_box_intersect(bbox3f box0, const mat44f& tm0, bbox3f box1,
+                                                                      const mat44f& tm1, vec4f size_factor = v_splats(1.0f));
 //! get box = box0 & box1
 VECTORCALL VECMATH_FINLINE bbox3f v_bbox3_get_box_intersection(bbox3f box0, bbox3f box1);
 //! tests whether box intersecs sphere and returns boolean
@@ -1045,24 +1199,24 @@ VECTORCALL VECMATH_FINLINE vec4f v_distance_sq_box_to_box_x(vec3f centerA, vec3f
 VECTORCALL VECMATH_FINLINE vec4f v_distance_sq_box_to_box_x_scaled(vec3f cA, vec3f extentA, vec3f cB, vec3f extentB, vec3f axis_scale);
 
 //returns point on infinite line which is closes to point
-VECTORCALL VECMATH_FINLINE vec3f closest_point_on_line(vec3f point, vec3f a, vec3f dir);
+VECTORCALL VECMATH_FINLINE vec3f v_closest_point_on_line(vec3f point, vec3f a, vec3f dir);
 //returns point on segment which is closes to point
-VECTORCALL VECMATH_FINLINE vec3f closest_point_on_segment(vec3f point, vec3f a, vec3f b);
+VECTORCALL VECMATH_FINLINE vec3f v_closest_point_on_segment(vec3f point, vec3f a, vec3f b);
 //distance to line in x component
-VECTORCALL VECMATH_FINLINE vec4f distance_to_line_x(vec3f point, vec3f a, vec3f dir);
+VECTORCALL VECMATH_FINLINE vec4f v_distance_to_line_x(vec3f point, vec3f a, vec3f dir);
 //distance to segment in x component
-VECTORCALL VECMATH_FINLINE vec4f distance_to_seg_x(vec3f point, vec3f a, vec3f b);
+VECTORCALL VECMATH_FINLINE vec4f v_distance_to_seg_x(vec3f point, vec3f a, vec3f b);
 //get closest to c bbox point. return c, if c is inside bbox. undefined for empty boxes
 VECTORCALL VECMATH_FINLINE vec3f v_closest_bbox_point(vec3f bmin, vec3f bmax, vec3f c);
 
 //returns 1 if segment with start, start + dir*tmax intersects box
-VECTORCALL VECMATH_INLINE  bool v_test_ray_box_intersection(vec3f start, vec3f dir, vec3f len_x, bbox3f box);
+VECTORCALL VECMATH_FINLINE bool v_test_ray_box_intersection(vec3f start, vec3f dir, vec3f len_x, bbox3f box);
 //same as previous but without support of empty bboxes
-VECTORCALL VECMATH_INLINE  bool v_test_ray_box_intersection_unsafe(vec3f start, vec3f dir, vec3f len_x, bbox3f box);
+VECTORCALL VECMATH_FINLINE bool v_test_ray_box_intersection_unsafe(vec3f start, vec3f dir, vec3f len_x, bbox3f box);
 //returns 1 if segment with start, start + dir*tmax intersects box, tmax will contain distance along ray
-VECTORCALL VECMATH_INLINE  bool v_ray_box_intersection(vec3f start, vec3f dir, vec3f &t_x, bbox3f box);
+VECTORCALL VECMATH_FINLINE bool v_ray_box_intersection(vec3f start, vec3f dir, vec3f &t_x, bbox3f box);
 //same as previous but without support of empty bboxes
-VECTORCALL VECMATH_INLINE  bool v_ray_box_intersection_unsafe(vec3f start, vec3f dir, vec3f &t_x, bbox3f box);
+VECTORCALL VECMATH_FINLINE bool v_ray_box_intersection_unsafe(vec3f start, vec3f dir, vec3f &t_x, bbox3f box);
 //returns 1 if segment with start, start + end intersects box
 VECTORCALL VECMATH_FINLINE bool v_test_segment_box_intersection(vec3f start, vec3f end, bbox3f box);
 
@@ -1077,7 +1231,7 @@ VECTORCALL VECMATH_INLINE  vec4f v_ray_box_intersect_dist_est(vec3f bmin, vec3f 
 // return -1 if no intersection found, or box side index in [0; 5]
 // out_at_min and out_at_max in range [0.0; 1.0] set for closest and furthest intersections
 // compiler didn't calculate 'out_at_max' if it's unused
-VECTORCALL inline int v_segment_box_intersection_side(vec3f start, vec3f end, bbox3f box, float& out_at_min, float& out_at_max);
+VECTORCALL inline int v_segment_box_intersection_side(vec3f start, vec3f end, const bbox3f& box, float& out_at_min, float& out_at_max);
 
 // check ray or segment intersection with sphere
 VECTORCALL VECMATH_FINLINE bool v_test_ray_sphere_intersection(vec3f p0, vec3f dir, vec4f len, vec4f sphere_center, vec4f sphere_r2_x);
@@ -1116,29 +1270,48 @@ VECTORCALL VECMATH_FINLINE int v_is_visible_extent_fast(vec3f center, vec3f exte
 
 // same as above (and will call v_is_visible_extent_fast), but accepts bbox)
 VECTORCALL VECMATH_FINLINE int v_is_visible_b_fast(vec3f bmin, vec3f bmax, mat44f_cref clip);
+VECTORCALL VECMATH_FINLINE int v_frustum_intersect(vec3f center, vec3f extent, mat44f_cref clip);
+VECTORCALL VECMATH_FINLINE void v_frustum_corners_4(vec4f ax, vec4f ay, vec4f az, vec4f aw, vec4f bx, vec4f by, vec4f bz, vec4f bw, vec4f abx, vec4f aby, vec4f abz, vec4f c, vec4f &px, vec4f &py, vec4f &pz);
+VECTORCALL VECMATH_FINLINE int v_is_frustum_nout_8(const vec4f cs0[4], vec4f cs0_negw, const vec4f cs1[4], vec4f cs1_negw);
+VECTORCALL VECMATH_FINLINE int v_box_frustum_intersect_extent2(vec3f center, vec3f extent, vec4f plane03X, const vec4f& plane03Y, const vec4f& plane03Z, const vec4f& plane03W2, const vec4f& plane4W2, const vec4f& plane5W2);
+VECTORCALL VECMATH_FINLINE int v_is_visible_b_fast_8planes(vec3f bmin, vec3f bmax, mat44f_cref clip);
+VECTORCALL VECMATH_FINLINE int v_is_visible_box_extent2(vec3f center, vec3f extent, vec4f plane03X, const vec4f& plane03Y, const vec4f& plane03Z, const vec4f& plane03W2, const vec4f& plane4W2, const vec4f& plane5W2);
+VECTORCALL VECMATH_FINLINE int v_is_visible_extent_fast_8planes(vec3f center, vec3f extent, mat44f_cref clip);
+VECTORCALL VECMATH_FINLINE void v_is_transform_box_8(vec3f bmin, vec3f bmax, mat44f_cref clip, vec4f cs0[4], vec4f cs1[4], vec4f &cs0_negw, vec4f &cs1_negw);
+VECTORCALL VECMATH_FINLINE void v_is_transform_points_4(vec4f* dest, vec4f x, vec4f y, vec4f z, mat44f_cref mat);
+VECTORCALL VECMATH_FINLINE void v_is_transform_points_4(vec4f* dest, vec4f x, vec4f y, mat44f_cref mat);
+VECTORCALL VECMATH_FINLINE vec3f v_obb_sat_group_separated(vec3f dist, vec3f ra, vec3f rb);
+VECTORCALL VECMATH_FINLINE void v_is_screen_project_minmax(const vec4f cs[4], vec4f &minXY, vec4f &maxXY);
 
 ///universal visibility function (accepts worldviewproj matrix)
 ///return zero if not visible in frustum or if unclamped bbox screen size is smaller, than threshold. not zero, otherwise
 // also, out screen_box is minX, maxX, minY, maxY - in clipspace coordinates  (-1, -1) .. (1,1)
-VECTORCALL VECMATH_FINLINE int v_screen_size_b(vec3f bmin, vec3f bmax, vec3f threshold, vec4f &screen_box, mat44f_cref clip);
+VECTORCALL VECMATH_INLINE int v_screen_size_b(vec3f bmin, vec3f bmax, vec3f threshold, vec4f &screen_box, mat44f_cref clip);
 
 /// same as previous but return w min, w max
 /// return zero if not visible in frustum or if bbox screen size is smaller, than threshold. 1, if all vertex are in front of near plane, -1 (and fullscreen rect) otherwise
 /// also, screen_box is minX, maxX, minY, maxY - in clipspace coordinates  (-1, -1) .. (1,1), minmax_w is wWwW (minw, maxw, minw, maxw)
-VECTORCALL VECMATH_FINLINE int
+VECTORCALL VECMATH_INLINE int
 v_screen_size_b(vec3f bmin, vec3f bmax, vec3f threshold, vec4f &screen_box, vec4f &minmax_w, mat44f_cref clip);
 
+/// as v_screen_size_b (the minmax_w form) for a box the caller has ALREADY frustum-classified as at least
+/// partially visible: skips the 6-plane frustum test and the clip-Z transform row entirely (clip z feeds
+/// only the frustum planes; the screen rect and minmax_w read x, y, w). Same FP ops for the shared parts,
+/// so the outputs are bit-identical to v_screen_size_b whenever the contract holds. For a box fully
+/// outside the frustum the outputs are meaningless (but safe to consume) instead of the 0 return.
+VECTORCALL VECMATH_INLINE int
+v_screen_size_visible_b(vec3f bmin, vec3f bmax, vec3f threshold, vec4f &screen_box, vec4f &minmax_w, mat44f_cref clip);
 
 ///universal visibility function (accepts worldviewproj matrix)
 ///return zero if not visible. nonzero, otherwise
 ///it is slower than v_is_visible_b_fast, so do not call it if you don't know what are you doing
 ///for branching: (~v_test_vec_x_eqi_0(v_is_visible(bmin, bmax, clip)))&1 will be 1 if visible, zero otherwise;
 ///or use v_is_visible_b (it is faster on SSE)
-VECTORCALL VECMATH_FINLINE vec4f v_is_visible(vec3f bmin, vec3f bmax, mat44f_cref clip);
+VECTORCALL VECMATH_INLINE vec4f v_is_visible(vec3f bmin, vec3f bmax, mat44f_cref clip);
 
 
 ///for branching: (~v_test_vec_x_eqi_0( v_is_visible(bmin, bmax, clip)))&1 will be 1 if visible, zero otherwise;
-VECTORCALL VECMATH_FINLINE int v_is_visible_b(vec3f bmin, vec3f bmax, mat44f_cref clip);
+VECTORCALL VECMATH_INLINE int v_is_visible_b(vec3f bmin, vec3f bmax, mat44f_cref clip);
 
 //! returns triangle vs sphere intersection
 // last parameter is squared radius!
@@ -1155,12 +1328,17 @@ VECTORCALL VECMATH_INLINE bool v_is_point_in_triangle_2d(vec4f p, vec4f t1, vec4
 // Quaternion math
 //
 
-//! make quaternion from 3 normalized columns of 3x3 rotation matrix
+//! make normalized quaternion from any non-degenerate 3x3/4x3 matrix: removes per-column scale,
+//! flips col2 on a mirrored (det < 0) basis and normalizes, so it accepts scaled, sheared and
+//! mirrored matrices. For a known pure rotation use v_quat_from_orthonormal_mat* (faster).
 VECTORCALL VECMATH_FINLINE quat4f v_quat_from_mat(vec3f col0, vec3f col1, vec3f col2);
-//! make quaternion from 3x3 rotation matrix (should be not scaled)
 VECTORCALL VECMATH_FINLINE quat4f v_quat_from_mat33(mat33f_cref m);
-//! make quaternion from rotation part of 4x4 matrix (should be not scaled)
 VECTORCALL VECMATH_FINLINE quat4f v_quat_from_mat43(mat44f_cref m);
+//! faster: REQUIRES orthonormal (scale-free) columns; still returns a normalized quaternion,
+//! but skips scale removal, so it is wrong for scaled input. Use only for known pure rotations.
+VECTORCALL VECMATH_FINLINE quat4f v_quat_from_orthonormal_mat(vec3f col0, vec3f col1, vec3f col2);
+VECTORCALL VECMATH_FINLINE quat4f v_quat_from_orthonormal_mat33(mat33f_cref m);
+VECTORCALL VECMATH_FINLINE quat4f v_quat_from_orthonormal_mat43(mat44f_cref m);
 
 //! make (unnormalized) quaternion to rotate 'ang' radians around normalized 'v';
 VECTORCALL inline quat4f v_quat_from_unit_vec_ang(vec3f v, vec4f ang);
@@ -1324,6 +1502,7 @@ VECTORCALL VECMATH_FINLINE int v_extract_wi(vec4i v);
 
 //! insert scalar to vector by index
 VECTORCALL VECMATH_FINLINE vec4f v_insert(vec4f v, float x, int idx);
+VECTORCALL VECMATH_FINLINE vec4i v_inserti(vec4i v, int x, int idx);
 
 // sign extend
 VECTORCALL VECMATH_FINLINE vec4f is_neg_special(vec4f a);
@@ -1421,6 +1600,84 @@ VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_rtne(vec4f v);
 VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_down(vec4f v);
 VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_up(vec4f v);
 VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_trunc(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half(vec4f f);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_specials(vec4f f);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_specials_lo(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4f v_sw_half_to_float_specials(vec4i h);
+VECTORCALL VECMATH_FINLINE vec4f v_sw_half_to_float_specials_lo(vec4i a);
+
+//
+// vec4d - 4D double-precision vector (see vec4d in dag_vecMathDecl.h for representation)
+//
+VECTORCALL VECMATH_FINLINE vec4d vd_zero();
+VECTORCALL VECMATH_FINLINE vec4d vd_splats(double a);                             //!< broadcast scalar to all lanes
+//! set lanes x,y,z,w
+VECTORCALL VECMATH_FINLINE vec4d vd_make_vec4d(double x, double y, double z, double w);
+//! aligned load/store of 4 doubles. Both halves are moved separately, so 16-byte alignment is
+//! enough on every build (not 32) - but only the non-AVX build faults on a violation, since on
+//! AVX the pair folds into one unaligned 256-bit move. Use vd_ldu/vd_stu when unsure.
+vec4d vd_ld(const double *m);
+VECTORCALL VECMATH_FINLINE void vd_st(double *m, vec4d a);
+vec4d vd_ldu(const double *m);                                                    //!< unaligned load 4 doubles
+VECTORCALL VECMATH_FINLINE void vd_stu(double *m, vec4d a);                       //!< unaligned store 4 doubles
+//! load DPoint3 layout (3 doubles) fast by one 4x64 bit load; reads 8 bytes past the 3rd, .w = garbage
+NO_ASAN_INLINE vec4d vd_ldu_p3(const double *m);
+//! load 3 doubles safe (.w=0), use it only when vd_ldu_p3 can cause memory access crashes
+NO_ASAN_INLINE vec4d vd_ldu_p3_safe(const double *m);
+//! store DPoint3 layout: writes exactly 3 doubles
+VECTORCALL VECMATH_FINLINE void vd_stu_p3(double *p3, vec4d v);
+VECTORCALL VECMATH_FINLINE vec4d vd_cvt_from_vec4f(vec4f a);                      //!< widen float4 -> double4
+VECTORCALL VECMATH_FINLINE vec4f vd_cvt_to_vec4f(vec4d a);                        //!< narrow double4 -> float4
+VECTORCALL VECMATH_FINLINE vec4d vd_cvt_from_vec4i(vec4i a);                      //!< int4 -> double4, exact
+//! double4 -> int4, truncating toward zero like v_cvt_vec4i; out-of-range input is platform-specific
+VECTORCALL VECMATH_FINLINE vec4i vd_cvt_to_vec4i(vec4d a);
+
+//! read one lane out
+VECTORCALL VECMATH_FINLINE double vd_extract_x(vec4d a);
+VECTORCALL VECMATH_FINLINE double vd_extract_y(vec4d a);
+VECTORCALL VECMATH_FINLINE double vd_extract_z(vec4d a);
+VECTORCALL VECMATH_FINLINE double vd_extract_w(vec4d a);
+//! replace one lane, other lanes are kept
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_x(vec4d a, double x);
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_y(vec4d a, double y);
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_z(vec4d a, double z);
+VECTORCALL VECMATH_FINLINE vec4d vd_insert_w(vec4d a, double w);
+
+VECTORCALL VECMATH_FINLINE vec4d vd_add(vec4d a, vec4d b);
+VECTORCALL VECMATH_FINLINE vec4d vd_sub(vec4d a, vec4d b);
+VECTORCALL VECMATH_FINLINE vec4d vd_mul(vec4d a, vec4d b);
+VECTORCALL VECMATH_FINLINE vec4d vd_div(vec4d a, vec4d b);
+VECTORCALL VECMATH_FINLINE vec4d vd_neg(vec4d a);
+//! min(a,b): per component a < b ? a : b (b wins on NaN), identical on all platforms
+VECTORCALL VECMATH_FINLINE vec4d vd_min(vec4d a, vec4d b);
+//! max(a,b): per component a > b ? a : b (b wins on NaN), identical on all platforms
+VECTORCALL VECMATH_FINLINE vec4d vd_max(vec4d a, vec4d b);
+//! clamp values in [min; max] range component-wise
+VECTORCALL VECMATH_FINLINE vec4d vd_clamp(vec4d t, vec4d min_val, vec4d max_val);
+VECTORCALL VECMATH_FINLINE vec4d vd_sqrt(vec4d a);
+VECTORCALL VECMATH_FINLINE vec4d vd_sqrt_x(vec4d a);                              //!< sqrt of .x only, .yzw undefined
+// no lane-wise 3-component forms: use the 4-component op and ignore .w (see dag_vecMath_double.h)
+
+//! Horizontal sums add lanes left to right, the same association scalar x+y+z+w has, so these
+//! and vd_dot* reproduce scalar double math bit-for-bit when built with -ffp-contract=off
+//! (as the physics libs are). A pairwise tree would be one add shorter but would not match.
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd4(vec4d a);                               //!< x+y+z+w, broadcast to all lanes
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd4_x(vec4d a);                             //!< x+y+z+w in .x
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd3(vec4d a);                               //!< x+y+z (ignores .w), broadcast
+VECTORCALL VECMATH_FINLINE vec4d vd_hadd3_x(vec4d a);                             //!< x+y+z in .x
+
+VECTORCALL VECMATH_FINLINE vec4d vd_dot4(vec4d a, vec4d b);                       //!< xyzw dot, broadcast to all lanes
+VECTORCALL VECMATH_FINLINE vec4d vd_dot4_x(vec4d a, vec4d b);                     //!< xyzw dot in .x
+VECTORCALL VECMATH_FINLINE vec4d vd_dot3(vec4d a, vec4d b);                       //!< xyz dot (ignores .w), broadcast
+VECTORCALL VECMATH_FINLINE vec4d vd_dot3_x(vec4d a, vec4d b);                     //!< xyz dot in .x
+VECTORCALL VECMATH_FINLINE vec4d vd_cross3(vec4d a, vec4d b);                     //!< xyz cross (ignores .w), .w unspecified
+
+VECTORCALL VECMATH_FINLINE vec4d vd_length4_sq(vec4d a);
+VECTORCALL VECMATH_FINLINE vec4d vd_length3_sq(vec4d a);
+VECTORCALL VECMATH_FINLINE vec4d vd_length4(vec4d a);
+VECTORCALL VECMATH_FINLINE vec4d vd_length4_x(vec4d a);
+VECTORCALL VECMATH_FINLINE vec4d vd_length3(vec4d a);
+VECTORCALL VECMATH_FINLINE vec4d vd_length3_x(vec4d a);
 
 #include "dag_vecMath_const.h"
 
@@ -1434,3 +1691,4 @@ VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_trunc(vec4f v);
 
 #include "dag_vecMath_common.h"
 #include "dag_vecMath_trig.h"
+#include "dag_vecMath_double.h"

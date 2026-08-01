@@ -5,6 +5,7 @@
 #include <rendInst/rendInstExtraAccess.h>
 #include <rendInst/rendInstCollision.h>
 #include <rendInst/rendInstAccess.h>
+#include <rendInst/clientRiexPool.h>
 #include "riGen/riGenData.h"
 #include "riGen/riGenExtra.h"
 #include "riGen/riUtil.h"
@@ -40,6 +41,7 @@
 #include <rendInst/rendIntsExtraAdditionalData.h>
 #include <shaders/dag_shaderBlock.h>
 #include <string.h>
+#include <EASTL/bitvector.h>
 
 #if DAGOR_DBGLEVEL > 0
 static const int LOGMESSAGE_LEVEL = LOGLEVEL_ERR;
@@ -50,14 +52,31 @@ static const int LOGMESSAGE_LEVEL = LOGLEVEL_WARN;
 static const DataBlock *riConfig = nullptr;
 static ska::flat_hash_map<eastl::string_view, const DataBlock *> riConfigLookupCache;
 rendinst::RiExtraPoolsVec rendinst::riExtra;
-uint32_t rendinst::RiExtraPoolsVec::interlocked_increment_size() { return interlocked_increment(*(volatile int *)&mCount); }
-static rendinst::HasRIClipmap hasRiClipmap = rendinst::HasRIClipmap::UNKNOWN;
+void rendinst::RiExtraPoolsVec::interlocked_insert(int id)
+{
+  if (id >= capacity())
+  {
+    reserve(capacity() ? (capacity() + capacity() / 2) : 192);
+    poolWasNotSavedToElems.resize(capacity()); // "Saved" by default until `setWasNotSavedToElems` is called
+  }
+
+  new (data() + mCount, _NEW_INPLACE) RiExtraPool;
+  if (id == mCount)
+    interlocked_increment(*(volatile int *)&mCount);
+}
+void rendinst::RiExtraPoolsVec::clear()
+{
+  clear_and_shrink(*static_cast<dag::Vector<RiExtraPool> *>(this));
+  poolWasNotSavedToElems.clear();
+}
+
+
+static rendinst::HasRIClipmap hasRiClipmap = rendinst::HasRIClipmap::NO;
 namespace rendinst
 {
 bool hasClonedRiExtras = false;
 }
 FastNameMap rendinst::riExtraMap;
-eastl::bitvector<> rendinst::riExtraPoolWasNotSavedToElems;
 static union
 {
   uint64_t all = 0u;
@@ -231,9 +250,9 @@ void rendinst::termRIGenExtra()
   term_ri_extra_grids();
   for (int i = 0; i < riExPoolIdxPerStage.size(); i++)
     riExPoolIdxPerStage[i].clear();
-  clear_and_shrink(riExtra);
+  riExtra.clear();
   riExtraMap.reset(true);
-  hasRiClipmap = rendinst::HasRIClipmap::UNKNOWN;
+  hasRiClipmap = rendinst::HasRIClipmap::NO;
   render::termElems();
   for (auto &ve : rendinst::render::vbExtraCtx)
   {
@@ -246,7 +265,7 @@ void rendinst::termRIGenExtra()
 
 void rendinst::RiExtraPool::setWasNotSavedToElems()
 {
-  riExtraPoolWasNotSavedToElems[this - riExtra.data()] = true;
+  riExtra.poolWasNotSavedToElems[this - riExtra.data()] = true;
   interlocked_increment(rendinst::render::pendingRebuildCnt);
 }
 
@@ -596,18 +615,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     id = riExtraMap.addNameId(ri_res_name);
     G_ASSERT(id == riExtra.size());
 
-    if (riExtra.size() == 0)
-      hasRiClipmap = rendinst::HasRIClipmap::NO;
-
-    if (id >= riExtra.capacity())
-    {
-      riExtra.reserve(riExtra.capacity() ? (riExtra.capacity() + riExtra.capacity() / 2) : 192);
-      riExtraPoolWasNotSavedToElems.resize(riExtra.capacity()); // "Saved" by default until `setWasNotSavedToElems` is called
-    }
-
-    // custom atomic push_back() in order to avoid to read partially constructed pool data
-    new (riExtra.data() + id, _NEW_INPLACE) RiExtraPool;
-    riExtra.interlocked_increment_size();
+    riExtra.interlocked_insert(id);
   }
 
   // Update riExtra[id] fields not related with game resources (riRes and collision)
@@ -1151,7 +1159,7 @@ int rendinst::cloneRIGenExtraResIdx(const char *source_res_name, const char *dst
     ScopedRIExtraWriteLock wr;
     newId = riExtraMap.addNameId(dst_res_name);
     G_ASSERT(newId == riExtra.size());
-    riExtra.push_back();
+    riExtra.interlocked_insert(newId);
     riExtra[newId] = riExtra[sourceId];
     riExtra[newId].clonedFromIdx = sourceId;
     riExtra[sourceId].res->setRiExtraId(-1); // Note: not unique anymore, have to search
@@ -1188,7 +1196,7 @@ void rendinst::addRiGenExtraDebris(uint32_t res_idx, int layer)
     return;
 
   G_ASSERT(riConfig);
-  G_ASSERT(res_idx < riExtra.size());
+  G_ASSERT(riExtra.isValid(res_idx));
   if (riExtra[res_idx].riPoolRef >= 0)
     return;
 
@@ -1208,6 +1216,16 @@ int rendinst::getOrAddMissingRIGenExtraResIdx(const char *ri_res_name, AddRIFlag
   if (resIdx < 0)
     resIdx = addRIGenExtraResIdx(ri_res_name, -1, -1, ri_flags);
   return resIdx;
+}
+
+rendinst::ClientRiexPool rendinst::ClientRiexPool::get(const char *ri_res_name)
+{
+  return ClientRiexPool{getRIGenExtraResIdx(ri_res_name)};
+}
+
+rendinst::ClientRiexPool rendinst::ClientRiexPool::add(const char *ri_res_name, AddRIFlags ri_flags)
+{
+  return ClientRiexPool{getOrAddMissingRIGenExtraResIdx(ri_res_name, ri_flags)};
 }
 
 void rendinst::reloadRIExtraResources(const char *ri_res_name)
@@ -1231,26 +1249,26 @@ void rendinst::reloadRIExtraResources(const char *ri_res_name)
 
 RenderableInstanceLodsResource *rendinst::getRIGenExtraRes(int res_idx)
 {
-  if (res_idx < 0 || res_idx >= riExtra.size())
+  if (!riExtra.isValid(res_idx))
     return nullptr;
   return riExtra[res_idx].res;
 }
 CollisionResource *rendinst::getRIGenExtraCollRes(int res_idx)
 {
-  if (res_idx < 0 || res_idx >= riExtra.size())
+  if (!riExtra.isValid(res_idx))
     return nullptr;
   return riExtra[res_idx].collRes;
 }
 const bbox3f *rendinst::getRIGenExtraCollBb(int res_idx)
 {
-  if (res_idx < 0 || res_idx >= riExtra.size())
+  if (!riExtra.isValid(res_idx))
     return nullptr;
   return &riExtra[res_idx].collBb;
 }
 
 const E3DCOLOR *rendinst::getRIGenExtraColors(int res_idx)
 {
-  if (res_idx < 0 || res_idx >= riExtra.size())
+  if (!riExtra.isValid(res_idx))
     return nullptr;
   const RiExtraPool &pool = riExtra[res_idx];
   if (pool.riPoolRef < 0)
@@ -1266,7 +1284,7 @@ const E3DCOLOR *rendinst::getRIGenExtraColors(int res_idx)
 dag::Vector<BBox3, framemem_allocator> rendinst::getRIGenExtraInstancesWorldBboxesByGrid(int res_idx, Point2 grid_origin,
   Point2 grid_size, IPoint2 grid_cells)
 {
-  if (res_idx < 0 || res_idx >= riExtra.size())
+  if (!riExtra.isValid(res_idx))
     return {};
 
   TIME_PROFILE(gatherRiExtraBboxesInGrid);
@@ -1331,7 +1349,7 @@ bbox3f rendinst::getRIGenExtraOverallInstancesWorldBbox(int res_idx)
 {
   bbox3f result;
   v_bbox3_init_empty(result);
-  if (res_idx >= 0 && res_idx < riExtra.size())
+  if (riExtra.isValid(res_idx))
   {
     for (const mat43f &riTm : rendinst::riExtra[res_idx].riTm)
     {
@@ -1496,7 +1514,7 @@ void rendinst::riGenStat(int &out_count, int &out_memoryUsage)
 riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_collision, int orig_cell, int orig_offset,
   int add_data_dwords, const int32_t *add_data, bool on_loading)
 {
-  if (res_idx < 0 || res_idx >= riExtra.size())
+  if (!riExtra.isValid(res_idx))
     return RIEX_HANDLE_NULL;
 
   scene::node_index ni = scene::INVALID_NODE;
@@ -1580,7 +1598,7 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_co
 riex_handle_t rendinst::addRIGenExtra44(int res_idx, mat44f_cref tm, bool has_collision, int orig_cell, int orig_offset,
   int add_data_dwords, const int32_t *add_data, bool on_loading)
 {
-  if (res_idx < 0 || res_idx >= riExtra.size())
+  if (!riExtra.isValid(res_idx))
     return RIEX_HANDLE_NULL;
   mat43f m43;
   v_mat44_transpose_to_mat43(m43, tm);
@@ -1640,7 +1658,7 @@ void rendinst::moveToOriginalScene(riex_handle_t id)
 
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT_RETURN(res_idx < riExtra.size(), );
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), );
   RiExtraPool &pool = riExtra[res_idx];
 
   if (idx < pool.tsNodeIdx.size() && pool.tsNodeIdx[idx] != scene::INVALID_NODE)
@@ -1655,7 +1673,7 @@ void rendinst::removeFromTiledScene(riex_handle_t id)
   ScopedRIExtraWriteLock wr;
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT_RETURN(res_idx < riExtra.size(), );
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), );
   RiExtraPool &pool = riExtra[res_idx];
   if (!pool.isValid(idx))
     return;
@@ -1671,7 +1689,7 @@ bool rendinst::moveRIGenExtra43(riex_handle_t id, mat43f_cref tm, bool moved, bo
 
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT_RETURN(res_idx < riExtra.size(), true);
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), true);
   RiExtraPool &pool = riExtra[res_idx];
   if (!pool.isValid(idx))
   {
@@ -1736,7 +1754,7 @@ bool rendinst::delRIGenExtra(riex_handle_t id)
   ScopedRIExtraWriteLock wr;
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT_RETURN(res_idx < riExtra.size(), false);
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), false);
   RiExtraPool &pool = riExtra[res_idx];
   if (!pool.isValid(idx))
     return false;
@@ -1805,12 +1823,12 @@ void rendinst::delRIGenExtraFromCell(riex_handle_t id, int cell_Id, int offset)
   {
     ScopedRIExtraReadLock rd;
     uint32_t resIdx = handle_to_ri_type(id);
-    if (resIdx >= riExtra.size())
+    if (!riExtra.isValid(resIdx))
       return;
 
     RiExtraPool &pool = riExtra[resIdx];
 
-    if (pool.destroyedRiIdx >= 0 && pool.destroyedRiIdx < riExtra.size())
+    if (riExtra.isValid(pool.destroyedRiIdx))
     {
       RiExtraPool &destrPool = riExtra[pool.destroyedRiIdx];
       for (int instNo = 0; instNo < destrPool.riUniqueData.size(); ++instNo)
@@ -1845,7 +1863,7 @@ bool rendinst::removeRIGenExtraFromGrid(riex_handle_t id)
   ScopedRIExtraWriteLock wr;
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT_RETURN(res_idx < riExtra.size(), false);
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), false);
   RiExtraPool &pool = riExtra[res_idx];
   if (pool.isValid(idx) && pool.collRes && pool.isInGrid(idx))
   {
@@ -1866,7 +1884,7 @@ bool rendinst::restoreRIGenExtraInGrid(riex_handle_t id)
   ScopedRIExtraWriteLock wr;
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT_RETURN(res_idx < riExtra.size(), false);
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), false);
   RiExtraPool &pool = riExtra[res_idx];
   if (pool.isValid(idx) && pool.collRes && !pool.isInGrid(idx) && -v_extract_w(pool.riXYZR[idx]) > VERY_SMALL_NUMBER)
   {
@@ -1894,7 +1912,7 @@ bool rendinst::applyDamageRIGenExtra(riex_handle_t id, float dmg_pts, float *abs
 
   uint32_t res_idx = handle_to_ri_type(id);
   uint32_t idx = handle_to_ri_inst(id);
-  G_ASSERT(res_idx < riExtra.size());
+  G_ASSERT(riExtra.isValid(res_idx));
   RiExtraPool &pool = riExtra[res_idx];
   if (pool.immortal)
     return false;
@@ -1945,7 +1963,7 @@ bool rendinst::damageRIGenExtra(riex_handle_t id, float dmg_pts, mat44f *out_des
   {
     uint32_t res_idx = handle_to_ri_type(id);
     uint32_t idx = handle_to_ri_inst(id);
-    G_ASSERT(res_idx < riExtra.size());
+    G_ASSERT(riExtra.isValid(res_idx));
     RiExtraPool &pool = riExtra[res_idx];
     if (pool.destroyedRiIdx < 0 && !(destroy_flags & DestrOptionFlag::ForceDestroy))
       return false;
@@ -2360,11 +2378,13 @@ bool rendinst::RendInstDesc::doesReflectedInstanceMatches(const rendinst::RendIn
 bool rendinst::RendInstDesc::isDynamicRiExtra() const { return isRiExtra() && rendinst::riExtra[pool].isDynamicRendinst; }
 
 uint32_t rendinst::getRiGenExtraResCount() { return riExtra.size(); }
+bool rendinst::isRiGenExtraResIdValid(int id) { return riExtra.isValid(id); }
+
 int rendinst::getRiGenExtraInstances(Tab<rendinst::riex_handle_t> &out_handles, uint32_t res_idx)
 {
   out_handles.clear();
   ScopedRIExtraReadLock rd;
-  G_ASSERT_RETURN(res_idx < riExtra.size(), 0);
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), 0);
   RiExtraPool &pool = riExtra[res_idx];
   if (int cnt = pool.riTm.size() - pool.uuIdx.size())
   {
@@ -2390,7 +2410,7 @@ int rendinst::getRiGenExtraInstances(Tab<riex_handle_t> &out_handles, uint32_t r
 
   out_handles.clear();
   ScopedRIExtraReadLock rd;
-  G_ASSERT_RETURN(res_idx < riExtra.size(), 0);
+  G_ASSERT_RETURN(riExtra.isValid(res_idx), 0);
   RiExtraPool &pool = riExtra[res_idx];
   if (int cnt = pool.riTm.size() - pool.uuIdx.size())
   {
@@ -2512,7 +2532,7 @@ void rendinst::onRiExtraImpulse(riex_handle_t id, float impulse, const Point3 &i
 
 dag::ConstSpan<mat43f> rendinst::riex_get_instance_matrices(int res_idx)
 {
-  return res_idx < riExtra.size() ? make_span_const(riExtra[res_idx].riTm) : dag::ConstSpan<mat43f>();
+  return riExtra.isValid(res_idx) ? make_span_const(riExtra[res_idx].riTm) : dag::ConstSpan<mat43f>();
 }
 
 dag::ConstSpan<int32_t> rendinst::get_user_data(rendinst::riex_handle_t handle)
@@ -2701,7 +2721,7 @@ void rendinst::hideRIGenExtraNotCollidable(const BBox3 &_box, bool hide_immortal
     if (!hide_immortals)
     {
       int poolId = riExTiledScenes[s].getNodePool(n);
-      if (poolId < rendinst::riExtra.size() && rendinst::riExtra[poolId].immortal)
+      if (rendinst::riExtra.isValid(poolId) && rendinst::riExtra[poolId].immortal)
         continue;
     }
 

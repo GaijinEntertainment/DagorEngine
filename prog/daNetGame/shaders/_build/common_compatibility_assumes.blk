@@ -28,6 +28,7 @@ froxel_fog_use_self_shadowing:i = 0
 lens_zoom_factor:r=1.0
 water_rt_enabled:i=0
 clouds_panorama_mip:i=1
+clouds_erosion_flow:i=0
 glass_rt_reflection:i=0
 allow_rt_glass_reflection:i=0
 antialiasing_type:i=2

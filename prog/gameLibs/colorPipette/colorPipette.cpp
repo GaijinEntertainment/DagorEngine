@@ -235,7 +235,7 @@ static LRESULT CALLBACK colorpicker_wnd_proc(HWND hwnd, UINT msg, WPARAM wParam,
 
       // draw grid using gray color for pen
       HPEN pen = CreatePen(PS_SOLID, 1, RGB(0x80, 0x80, 0x80));
-      SelectObject(hdc, pen);
+      HGDIOBJ oldPen = SelectObject(hdc, pen);
       for (int x = 0; x <= PIXEL_GRID_SIZE; x++)
         for (int y = 0; y <= PIXEL_GRID_SIZE; y++)
         {
@@ -244,16 +244,18 @@ static LRESULT CALLBACK colorpicker_wnd_proc(HWND hwnd, UINT msg, WPARAM wParam,
           MoveToEx(hdc, offsetX, offsetY + y * PIXEL_CELL_SIZE, NULL);
           LineTo(hdc, offsetX + PIXEL_GRID_SIZE * PIXEL_CELL_SIZE, offsetY + y * PIXEL_CELL_SIZE);
         }
+      SelectObject(hdc, oldPen);
       DeleteObject(pen);
 
       // bold rect around center pixel
       pen = CreatePen(PS_SOLID, 3, RGB(0x80, 0x80, 0x80));
-      SelectObject(hdc, pen);
+      oldPen = SelectObject(hdc, pen);
       MoveToEx(hdc, offsetX + (PIXEL_GRID_SIZE / 2) * PIXEL_CELL_SIZE, offsetY + (PIXEL_GRID_SIZE / 2) * PIXEL_CELL_SIZE, NULL);
       LineTo(hdc, offsetX + (PIXEL_GRID_SIZE / 2) * PIXEL_CELL_SIZE, offsetY + (PIXEL_GRID_SIZE / 2 + 1) * PIXEL_CELL_SIZE);
       LineTo(hdc, offsetX + (PIXEL_GRID_SIZE / 2 + 1) * PIXEL_CELL_SIZE, offsetY + (PIXEL_GRID_SIZE / 2 + 1) * PIXEL_CELL_SIZE);
       LineTo(hdc, offsetX + (PIXEL_GRID_SIZE / 2 + 1) * PIXEL_CELL_SIZE, offsetY + (PIXEL_GRID_SIZE / 2) * PIXEL_CELL_SIZE);
       LineTo(hdc, offsetX + (PIXEL_GRID_SIZE / 2) * PIXEL_CELL_SIZE, offsetY + (PIXEL_GRID_SIZE / 2) * PIXEL_CELL_SIZE);
+      SelectObject(hdc, oldPen);
       DeleteObject(pen);
 
       // print color values of center pixel

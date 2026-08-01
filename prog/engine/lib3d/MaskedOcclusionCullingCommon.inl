@@ -640,7 +640,7 @@ public:
       vec4f points_cs[4];
       for (int i = 0; i < 3; ++i)
       {
-        vis_transform_points_4(points_cs, vtxX[i], vtxY[i], vtxW[i], *(mat44f *)modelToClipMatrix);
+        v_is_transform_points_4(points_cs, vtxX[i], vtxY[i], vtxW[i], *(mat44f *)modelToClipMatrix);
         vtxX[i] = points_cs[0];
         vtxY[i] = points_cs[1];
         vtxW[i] = points_cs[3];
@@ -1772,9 +1772,9 @@ public:
   // Quad rendering functions (BLAS quad-leaf format)
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Constants from daBVH/swBLASLeafDefs.hlsli (included via dag_swBLAS_ray.h)
+  // Constants from daBVH/swBLASLeafDefs.hlsli (included via dag_swBLAS_leaf.h)
   static constexpr int VERT21_STRIDE = 8;
-  static constexpr int BVH_LEAF_EXTRA = BVH_BLAS_LEAF_SIZE - BVH_BLAS_NODE_SIZE; // leaf body bytes after the node header
+  static constexpr int BVH_LEAF_EXTRA = BVH_BLAS_LEAF_SIZE - BVH_BLAS_NODE_SIZE; // leaf body bytes after the 16 B node header
 
   // SoA frustum planes for branchless 5-plane AABB test (portable via vecmath).
   // First 4 planes stored transposed; W values doubled for center2/extent2 form.
@@ -1827,13 +1827,11 @@ public:
   };
 
   // Test AABB against 5 frustum planes (portable vecmath, branchless per-axis).
-  // Same p-vertex/n-vertex pattern as v_box_frustum_intersect_extent2.
-  // nodePtr: 16-byte BVH node with 3 uint32 words, each packing bmin (low16) / bmax (high16).
-  static FORCE_INLINE int TestBoxFrustum5(const unsigned char *nodePtr, const BoxFrustumPlanes5 &planes)
+  // Same p-vertex/n-vertex pattern as v_box_frustum_intersect_extent2. vmin/vmax are the box corners
+  // in integer box space (uint16 values as float); xyz used, w ignored. The SoA4 walker reconstructs
+  // per-lane min/max and calls this directly.
+  static FORCE_INLINE int TestBoxFrustum5MinMax(vec4f vmin, vec4f vmax, const BoxFrustumPlanes5 &planes)
   {
-    vec4i node = v_ldui((const int *)nodePtr);
-    vec4f vmin = v_cvt_vec4f(v_andi(node, v_splatsi(0xFFFF)));
-    vec4f vmax = v_cvt_vec4f(v_srli(node, 16));
     vec4f center = v_add(vmax, vmin);
     vec4f extent = v_sub(vmax, vmin);
     vec4f signmask = v_cast_vec4f(V_CI_SIGN_MASK);
@@ -1848,7 +1846,7 @@ public:
     res04 = v_or(res04,
       v_add(v_dot3(v_add(v_xor(extent, v_and(planes.plane4W2, signmask)), center), planes.plane4W2), v_splat_w(planes.plane4W2)));
 
-    if (v_test_vec_mask_neq_0(res04))
+    if (v_is_any_neg_b(res04))
       return FRUSTUM_OUTSIDE;
 
     // n-vertex = center - xor(extent, sign(plane))
@@ -1860,7 +1858,16 @@ public:
     nres04 = v_or(nres04,
       v_add(v_dot3(v_sub(center, v_xor(extent, v_and(planes.plane4W2, signmask))), planes.plane4W2), v_splat_w(planes.plane4W2)));
 
-    return v_test_vec_mask_neq_0(nres04) ? FRUSTUM_INTERSECT : FRUSTUM_INSIDE;
+    return v_is_any_neg_b(nres04) ? FRUSTUM_INTERSECT : FRUSTUM_INSIDE;
+  }
+
+  // nodePtr: 16-byte BVH node with 3 uint32 words, each packing bmin (low16) / bmax (high16).
+  static FORCE_INLINE int TestBoxFrustum5(const unsigned char *nodePtr, const BoxFrustumPlanes5 &planes)
+  {
+    vec4i node = v_ldui((const int *)nodePtr);
+    vec4f vmin = v_cvt_vec4f(v_andi(node, v_splatsi(0xFFFF)));
+    vec4f vmax = v_cvt_vec4f(v_srli(node, 16));
+    return TestBoxFrustum5MinMax(vmin, vmax, planes);
   }
 
   FORCE_INLINE void GatherVerticesVert21Z(__mw *vtxX, __mw *vtxY, __mw *vtxW, const unsigned char *vert21Data,
@@ -1966,6 +1973,71 @@ public:
     return cullResult;
   }
 
+  // Leaf-emit state both BLAS walkers thread through EmitBlasLeafTris: the output scratch, the
+  // triSkip/triLimit partition window, and the two walk cursors the emit advances.
+  struct BlasEmitState // -V730 (triCount/logicalIdx carry initializers; the rest is aggregate-set at construction)
+  {
+    unsigned int *outIndices;
+    int vertOffset;
+    uint32_t capacity;
+    uint32_t triSkip;
+    uint32_t triLimit;
+    uint32_t triCount = 0;
+    uint32_t logicalIdx = 0;
+  };
+
+  // Emit one decoded leaf's triangles into s.outIndices, honoring the partition window and the
+  // scratch capacity. Shared by both BLAS walkers (stackless and SoA4) so their emitted index
+  // streams are byte-identical. leafBodyOfs is the leaf body (W1) byte offset in blasData; the apex
+  // vert index is (leafBodyOfs + f.relBaseBytes - vertOffset)/VERT21_STRIDE (32 bits: BLAS vert counts
+  // are not capped at 65535). A double-quad leaf emits up to 4 triangles in quadLeafTriCount order.
+  // Returns true to STOP the walk (triLimit reached, or the cache would overflow and we drop the rest).
+  FORCE_INLINE bool EmitBlasLeafTris(BlasEmitState &s, const QuadLeafFields &f, int leafBodyOfs)
+  {
+    const uint32_t emitTris = quadLeafTriCount(f);
+    // Below the partition window: walk over without writing.
+    if (s.logicalIdx + emitTris <= s.triSkip)
+    {
+      s.logicalIdx += emitTris;
+      return false;
+    }
+    // At/above the partition window's end: stop entirely.
+    if (s.triCount >= s.triLimit)
+      return true;
+    // Clamp the capacity test by the window's remaining room so a leaf straddling the window end still
+    // emits its in-window triangles. triCount < triLimit is guaranteed above, so (triLimit-triCount)>=1.
+    const uint32_t leafEmit = emitTris <= s.triLimit - s.triCount ? emitTris : s.triLimit - s.triCount;
+    if (s.triCount + leafEmit > s.capacity)
+    {
+      LOGERR_ONCE("EmitBlasLeafTris: BLAS leaf triangles overflow the scratch cache (capacity=%u tris); dropping the rest. "
+                  "This could not happen, as we should always allocate enough space.",
+        s.capacity);
+      return true;
+    }
+    const int vtxByteOfs = leafBodyOfs + (int)f.relBaseBytes;
+    const unsigned int v0 = (unsigned int)((vtxByteOfs - s.vertOffset) / VERT21_STRIDE);
+    unsigned int triIdx[4][3];
+    uint32_t fillIdx = 0;
+    expandQuadLeafTris(f, v0, [&](unsigned int i0, unsigned int i1, unsigned int i2) {
+      triIdx[fillIdx][0] = i0;
+      triIdx[fillIdx][1] = i1;
+      triIdx[fillIdx][2] = i2;
+      fillIdx++;
+    });
+    for (uint32_t ti = 0; ti < emitTris; ++ti)
+    {
+      if (s.logicalIdx >= s.triSkip && s.triCount < s.triLimit)
+      {
+        s.outIndices[s.triCount * 3 + 0] = triIdx[ti][0];
+        s.outIndices[s.triCount * 3 + 1] = triIdx[ti][1];
+        s.outIndices[s.triCount * 3 + 2] = triIdx[ti][2];
+        s.triCount++;
+      }
+      s.logicalIdx++;
+    }
+    return false;
+  }
+
   // Walk BVH, emit triangle indices into outIndices. Returns number of triangles emitted.
   // outIndicesCapacity is the max triangle count outIndices can hold; on overflow we drop the
   // remaining leaves (and logerr_once) rather than overrunning the caller's scratch buffer.
@@ -1976,18 +2048,17 @@ public:
   // passes frustum culling (culled leaves contribute 0). This lets callers partition a BLAS
   // into bounded sub-jobs without resizing the scratch cache.
   template <bool checkFrustum>
-  uint32_t EmitBLASTriangles(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd, unsigned int *outIndices,
-    uint32_t outIndicesCapacity, const BoxFrustumPlanes5 *boxPlanes, uint32_t triSkip = 0, uint32_t triLimit = 1u << 31)
+  uint32_t EmitBlasTrianglesStackless(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd,
+    unsigned int *outIndices, uint32_t outIndicesCapacity, const BoxFrustumPlanes5 *boxPlanes, uint32_t triSkip = 0,
+    uint32_t triLimit = 1u << 31)
   {
     // Emitted indices are relative to vertOffset (the vert21 stream base), not the blasData base. The
     // leaf byte offset minus vertOffset is always a multiple of VERT21_STRIDE (both lie in the
     // 8-byte-pitch stream), so the divide stays exact whatever the tree size -- the gap before the
     // stream is not required to be VERT21_STRIDE-aligned for correctness.
-    uint32_t triCount = 0;
-    uint32_t logicalIdx = 0;
+    BlasEmitState s{outIndices, vertOffset, (uint32_t)outIndicesCapacity, triSkip, triLimit};
     int offset = treeStart;
     int noClipEnd = treeStart;
-    const uint32_t capacity = (uint32_t)outIndicesCapacity;
 
     while (offset < treeEnd)
     {
@@ -2024,87 +2095,36 @@ public:
         }
       }
 
-      // Decode leaf -> emit triangle indices. v0 is the vert index within the vert21 stream
-      // ((leaf byte offset - stream base) / VERT21_STRIDE); BLAS vert counts are not capped at 65535,
-      // so the index is kept as 32 bits here and in the cache. The per-quad offsets (o1/o2/o3) are
-      // 10-bit, so v1..v3 stay safely within uint32 range.
-      int relOfs = *(const int *)(blasData + offset);
-      int vtxByteOfs = offset + relOfs;
-      unsigned int v0 = (unsigned int)((vtxByteOfs - vertOffset) / VERT21_STRIDE);
-      unsigned int o1 = (skipWord & QUAD_O1_MASK) + 1;
-      unsigned int o2 = ((skipWord >> QUAD_O2_SHIFT) & QUAD_O2_MASK) + 1;
-      unsigned int o3 = ((skipWord >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1;
-      unsigned int v1 = v0 + o1, v2 = v0 + o2, v3 = v0 + o3;
-
-      uint32_t emitTris = (o3 != o2) ? 2u : 1u;
+      // Decode the leaf via the shared authority (daBVH/dag_swBLAS_leaf.h) and emit its triangles. Both
+      // BLAS walkers funnel through EmitBlasLeafTris so their emitted index streams are byte-identical.
+      const QuadLeafFields f = decodeQuadLeafFields(skipWord, *(const unsigned int *)(blasData + offset),
+        *(const unsigned int *)(blasData + offset + 4), *(const unsigned int *)(blasData + offset + 8));
+      const int leafBodyOfs = offset; // apex base is relative to this; capture before advancing the cursor
       offset += BVH_LEAF_EXTRA;
-
-      // Below the partition window: walk over without writing.
-      if (logicalIdx + emitTris <= triSkip)
-      {
-        logicalIdx += emitTris;
-        continue;
-      }
-      // At/above the partition window's end: stop entirely.
-      if (triCount >= triLimit)
+      if (EmitBlasLeafTris(s, f, leafBodyOfs))
         break;
-
-      // A quad-leaf can emit 1 or 2 triangles, but the per-triangle triLimit guards below never emit
-      // past the partition window. Clamp the capacity test by the window's remaining room so a quad
-      // straddling the window end (first tri inside the window, second tri owned by the next task)
-      // still emits its first triangle instead of being dropped wholesale. triCount < triLimit is
-      // guaranteed by the triLimit break above, so (triLimit - triCount) >= 1.
-      const uint32_t leafEmit = emitTris <= triLimit - triCount ? emitTris : triLimit - triCount;
-      if (triCount + leafEmit > capacity)
-      {
-        LOGERR_ONCE("EmitBLASTriangles: BLAS leaf range [%d,%d) overflows scratch cache (capacity=%u tris); "
-                    "dropping remaining triangles. This could not happen, as we should always allocate enough space.",
-          treeStart, treeEnd, capacity);
-        break;
-      }
-
-      // First triangle of the quad. The triCount < triLimit guard above already broke us out
-      // if the window was full, so only the mid-quad-skip check is needed here.
-      if (logicalIdx >= triSkip)
-      {
-        outIndices[triCount * 3 + 0] = v0;
-        outIndices[triCount * 3 + 1] = v1;
-        outIndices[triCount * 3 + 2] = v2;
-        triCount++;
-      }
-      logicalIdx++;
-      if (o3 != o2)
-      {
-        if (logicalIdx >= triSkip && triCount < triLimit)
-        {
-          if (skipWord & QUAD_FAN_FLAG)
-          {
-            outIndices[triCount * 3 + 0] = v0;
-            outIndices[triCount * 3 + 1] = v2;
-            outIndices[triCount * 3 + 2] = v3;
-          }
-          else
-          {
-            outIndices[triCount * 3 + 0] = v1;
-            outIndices[triCount * 3 + 1] = v3;
-            outIndices[triCount * 3 + 2] = v2;
-          }
-          triCount++;
-        }
-        logicalIdx++;
-      }
     }
-    return triCount;
+    return s.triCount;
   }
 
-  FORCE_INLINE
-  CullingResult RenderBLAS(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd, const float *rawToClipMatrix,
-    uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding,
-    ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit) MOC_OVERRIDE
+  // Compile-time frustum-mode tag for the emit callable: the <true>/<false> walker instantiation
+  // choice and its planes coupling are decided ONCE, inside RenderBlasCommon.
+  template <bool V>
+  struct MocCheckFrustum
+  {
+    static constexpr bool value = V;
+  };
+
+  // Shared cache-mode dispatch of the two BLAS occlusion walkers: rounding save/restore, the
+  // CLIP_PLANE_NONE -> CACHE_FILL promotion, the CACHE_INSUFFICIENT/CACHE_FILL emit dispatch with
+  // its cacheTriCount writeback, and the final vert21 rasterization -- so the flow of control
+  // lives in one place and the walkers cannot silently diverge. emitTris(MocCheckFrustum<b>, planes)
+  // runs the walker-specific tree walk and returns the emitted triangle count.
+  template <typename EmitTris>
+  FORCE_INLINE CullingResult RenderBlasCommon(const unsigned char *verticesData, const float *rawToClipMatrix, uint32_t *cacheIndices,
+    uint32_t &cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask, const EmitTris &emitTris)
   {
     assert(mMaskedHiZBuffer != nullptr);
-    // Gather base for the indexed vert21 fetch; EmitBLASTriangles emits indices relative to it.
-    const unsigned char *verticesData = blasData + vertOffset;
 
 #if PRECISE_COVERAGE != 0
     int originalRoundingMode = _MM_GET_ROUNDING_MODE();
@@ -2116,16 +2136,15 @@ public:
 
     // CLIP_PLANE_NONE means the caller has frustum-tested the BLAS bounds and knows it is fully
     // inside; the per-node frustum walk in CACHE_INSUFFICIENT becomes pure overhead. Promote to
-    // CACHE_FILL so EmitBLASTriangles<false> runs (no frustum check) while keeping the same
-    // emit-then-render flow and cacheTriCount writeback.
+    // CACHE_FILL so the no-frustum-check emit runs while keeping the same emit-then-render flow
+    // and cacheTriCount writeback.
     if (cacheMode == CACHE_INSUFFICIENT && clipPlaneMask == CLIP_PLANE_NONE)
       cacheMode = CACHE_FILL;
 
     if (cacheMode == CACHE_INSUFFICIENT)
     {
       BoxFrustumPlanes5 boxPlanes = BuildBoxFrustumPlanes5(mCSFrustumPlanes, rawToClipMatrix);
-      triCount = EmitBLASTriangles<true>(blasData, vertOffset, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, &boxPlanes,
-        triSkip, triLimit);
+      triCount = emitTris(MocCheckFrustum<true>{}, &boxPlanes);
       // Writeback the triangle count so callers using cacheTriCount as an out-parameter (e.g.
       // ParallelOcclusionRasterizer, which feeds rasterJobs[i].trianglesCount into the merge
       // filter) see the actually-emitted count, not the zero they pre-initialized. Missing this
@@ -2136,8 +2155,7 @@ public:
     else
     {
       if (cacheMode == CACHE_FILL)
-        cacheTriCount = EmitBLASTriangles<false>(blasData, vertOffset, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, nullptr,
-          triSkip, triLimit);
+        cacheTriCount = emitTris(MocCheckFrustum<false>{}, nullptr);
       triCount = cacheTriCount;
     }
 
@@ -2147,6 +2165,143 @@ public:
     _MM_SET_ROUNDING_MODE(originalRoundingMode);
 #endif
     return (CullingResult)cullResult;
+  }
+
+  FORCE_INLINE
+  CullingResult RenderBlasStackless(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd,
+    const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount, CacheMode cacheMode,
+    BackfaceWinding bfWinding, ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit) MOC_OVERRIDE
+  {
+    // blasData + vertOffset: gather base for the indexed vert21 fetch; the emit walk produces
+    // indices relative to it.
+    return RenderBlasCommon(blasData + vertOffset, rawToClipMatrix, cacheIndices, cacheTriCount, cacheMode, bfWinding, clipPlaneMask,
+      [&](auto check_frustum, const BoxFrustumPlanes5 *planes) -> uint32_t {
+        return EmitBlasTrianglesStackless<decltype(check_frustum)::value>(blasData, vertOffset, treeStart, treeEnd, cacheIndices,
+          cacheIndicesCapacity, planes, triSkip, triLimit);
+      });
+  }
+
+  // State threaded through the recursive SoA4 emit (below): the shared BlasEmitState the leaf emit
+  // advances, plus the walker-specific tree base and frustum planes (null when !checkFrustum).
+  // `stop` unwinds the recursion once the walk must end (triLimit or cache overflow), the recursive
+  // equivalent of the stackless loop's break.
+  struct Soa4EmitCtx // -V730 (always aggregate-initialized at the single construction site)
+  {
+    const unsigned char *blasData;
+    const BoxFrustumPlanes5 *boxPlanes;
+    BlasEmitState emit;
+    bool stop = false;
+  };
+
+  // Recursively walk one SoA4 internal node's children in lane order (pre-order), emitting leaf
+  // triangles through the shared EmitBlasLeafTris. `inside` true means an ancestor's box tested fully
+  // inside the frustum, so this subtree emits without further box tests -- the exact analogue of the
+  // stackless walk's noClipEnd fast path, which makes the two emit sets identical regardless of how the
+  // quantized child/parent boxes relate. Child boxes are reconstructed per lane and run through the
+  // same TestBoxFrustum5 math the stackless walk uses.
+  template <bool checkFrustum>
+  void EmitBlasSOA4Node(Soa4EmitCtx &c, uint32_t ptr, bool inside)
+  {
+    const int N = (int)(ptr & soa4::TAG_MASK) + 1;
+    const int nodeOfs = (int)(ptr & soa4::PTR_OFS_MASK);
+    const unsigned char *n = c.blasData + nodeOfs;
+    const int s2 = N * 2; // SoA axis-array stride; the N child words follow the 6 axis arrays
+    const uint32_t *w = (const uint32_t *)(n + 6 * s2);
+    const unsigned shortMask = (ptr >> soa4::PTR_SHORT_SHIFT) & 15u;
+    // Child words: bit 31 (QUAD_LEAF_FLAG) set = leaf child (word is its W0). The 16 B load may read
+    // past an N<4 node's words (banner: always inside the buffer); lanes >= N are masked off.
+    const unsigned leafAll = (unsigned)v_signmask(v_cast_vec4f(v_ldui((const int *)w))) & ((1u << N) - 1);
+    for (int lane = 0; lane < N; ++lane)
+    {
+      if (c.stop)
+        return;
+      const bool isLeaf = (leafAll >> lane) & 1u;
+      int fr = FRUSTUM_INSIDE;
+      if constexpr (checkFrustum)
+      {
+        if (!inside)
+        {
+          vec3f bmin, bmax;
+          soa4::laneBox(n, s2, lane, bmin, bmax);
+          fr = TestBoxFrustum5MinMax(bmin, bmax, *c.boxPlanes);
+          if (fr == FRUSTUM_OUTSIDE)
+            continue;
+        }
+      }
+      if (isLeaf)
+      {
+        const int bodyOfs = soa4::leafBodyOfs(nodeOfs, N, leafAll, shortMask, lane);
+        const uint32_t w0 = w[lane];
+        QuadLeafFields f;
+        if ((shortMask >> lane) & 1u) // short body: W1 only, bit 23 = flipA, quad B implied absent
+        {
+          const uint32_t w1raw = *(const uint32_t *)(c.blasData + bodyOfs);
+          f = decodeQuadLeafFields(w0, w1raw & ~soa4::SHORT_W1_FLIP, (w1raw & soa4::SHORT_W1_FLIP) ? QUAD_FLIPA_FLAG : 0u, 0u);
+        }
+        else
+        {
+          const uint32_t *b = (const uint32_t *)(c.blasData + bodyOfs);
+          f = decodeQuadLeafFields(w0, b[0], b[1], b[2]);
+        }
+        if (EmitBlasLeafTris(c.emit, f, bodyOfs))
+        {
+          c.stop = true;
+          return;
+        }
+      }
+      else
+        EmitBlasSOA4Node<checkFrustum>(c, w[lane], inside || (fr == FRUSTUM_INSIDE));
+    }
+  }
+
+  // SoA4 twin of EmitBlasTrianglesStackless: same emitted index stream (byte-identical), walking the
+  // SoA4 tree instead of the stackless one. Pre-order lane order matches the stackless memory order for
+  // the equivalent tree, so triSkip/triLimit partition windows line up 1:1.
+  template <bool checkFrustum>
+  uint32_t EmitBlasTrianglesSOA4(const unsigned char *blasData, int vertOffset, const soa4::RootRef &root, unsigned int *outIndices,
+    uint32_t outIndicesCapacity, const BoxFrustumPlanes5 *boxPlanes, uint32_t triSkip = 0, uint32_t triLimit = 1u << 31)
+  {
+    if (!root.valid())
+      return 0;
+    Soa4EmitCtx c{blasData, boxPlanes, {outIndices, vertOffset, outIndicesCapacity, triSkip, triLimit}};
+    const uint32_t ptr = (uint32_t)root.v;
+    if (!(ptr & soa4::TAG_MASK)) // degenerate whole-BLAS-is-one-leaf root block [W0 W1 W2 W3], boxless
+    {
+      const int block = (int)(ptr & soa4::PTR_OFS_MASK);
+      const uint32_t w0 = *(const uint32_t *)(blasData + block);
+      const uint32_t *b = (const uint32_t *)(blasData + block + 4);
+      const QuadLeafFields f = decodeQuadLeafFields(w0, b[0], b[1], b[2]);
+      // The root block carries no stored box, so rebuild the leaf's quantized box (shared
+      // rootLeafBox rule) and frustum-test it exactly like the stackless walk tests the lone
+      // leaf's stored box -- the emit streams and the logicalIdx partition windows stay
+      // identical. The no-frustum instantiation emits every leaf, matching stackless<false>.
+      if constexpr (checkFrustum)
+      {
+        vec3f bmin, bmax;
+        soa4::rootLeafBox(blasData, block + 4, f, bmin, bmax);
+        if (TestBoxFrustum5MinMax(bmin, bmax, *boxPlanes) == FRUSTUM_OUTSIDE)
+          return 0;
+      }
+      EmitBlasLeafTris(c.emit, f, block + 4);
+      return c.emit.triCount;
+    }
+    EmitBlasSOA4Node<checkFrustum>(c, ptr, /*inside*/ false);
+    return c.emit.triCount;
+  }
+
+  // Occlusion entry over a SoA4 collision tree; the RenderBlasStackless sibling for the SoA4 layout
+  // (dag_swBLAS_soa4.h). Same cache/backface/partition contract; only the tree walk differs, so the
+  // two produce identical depth. See RenderBlasCommon for the cache-mode semantics.
+  FORCE_INLINE
+  CullingResult RenderBlasSOA4(const unsigned char *blasData, int vertOffset, const soa4::RootRef &root, const float *rawToClipMatrix,
+    uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding,
+    ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit) MOC_OVERRIDE
+  {
+    return RenderBlasCommon(blasData + vertOffset, rawToClipMatrix, cacheIndices, cacheTriCount, cacheMode, bfWinding, clipPlaneMask,
+      [&](auto check_frustum, const BoxFrustumPlanes5 *planes) -> uint32_t {
+        return EmitBlasTrianglesSOA4<decltype(check_frustum)::value>(blasData, vertOffset, root, cacheIndices, cacheIndicesCapacity,
+          planes, triSkip, triLimit);
+      });
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

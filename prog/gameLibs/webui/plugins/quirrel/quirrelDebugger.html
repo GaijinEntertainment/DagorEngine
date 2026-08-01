@@ -120,6 +120,7 @@
 var sources = [];
 var sourcesListHtml = "";
 var currentSource = null;
+var sourceSelectionVersion = 0;
 var clientBusy = false;
 var queryQueue = [];
 var attached = false;
@@ -140,6 +141,12 @@ var interfaceState =
     filter : "",
     immediate : ""
   };
+
+function isSelectedSource(source, selectionVersion)
+{
+  return currentSource === source &&
+         (selectionVersion === undefined || sourceSelectionVersion === selectionVersion);
+}
 
 function leadingZeroes(s)
 {
@@ -286,11 +293,12 @@ async function onBreakOnEvent()
 async function setBreakpoint(lineNum, isSet)
 {
   console.log("setBreakpoint()");
-  if (!currentSource)
+  var source = currentSource;
+  if (!source)
     return;
 
-  await query('breakpoint_' + (isSet ? 'set' : 'remove') + '=' + currentSource.fullName + '&line=' + lineNum);
-  await currentSource.updateLineNums();
+  await query('breakpoint_' + (isSet ? 'set' : 'remove') + '=' + source.fullName + '&line=' + lineNum);
+  await source.updateLineNums();
 }
 
 async function onAttach()
@@ -372,7 +380,8 @@ function onStepOver()
 async function onClearBreakpoints()
 {
   await query('breakpoint_remove_all');
-  await currentSource.updateLineNums();
+  if (currentSource)
+    await currentSource.updateLineNums();
 }
 
 async function onClearCoverage()
@@ -672,9 +681,12 @@ var SourceFile = function ()
     this.shortName = getShortFileName(full_name);
   }
 
-  this.updateLineNums = async function()
+  this.updateLineNums = async function(selectionVersion)
   {
     console.log("updateLineNums()");
+
+    if (!isSelectedSource(this, selectionVersion))
+      return false;
 
     var breakPoints = [];
 
@@ -686,8 +698,8 @@ var SourceFile = function ()
     }
 
     var responseText = await query('breaks=' + this.fullName);
-    if (responseText === null)
-      return;
+    if (responseText === null || !isSelectedSource(this, selectionVersion))
+      return false;
 
     document.getElementById("line_numbers").innerHTML = lineNumbersHtml;
 
@@ -701,16 +713,21 @@ var SourceFile = function ()
         elem.setAttribute('onclick', "setBreakpoint(" + lines[i] + ",false)");
       }
     }
+
+    return true;
   }
 
-  this.updateCoverage = async function()
+  this.updateCoverage = async function(selectionVersion)
   {
     console.log("updateCoverage()");
 
+    if (!isSelectedSource(this, selectionVersion))
+      return false;
+
     var lineStatesHtml = "";
     var responseText = await query('get_coverage=' + this.fullName);
-    if (responseText === null)
-      return;
+    if (responseText === null || !isSelectedSource(this, selectionVersion))
+      return false;
 
     var counts = responseText.split('%');
     var ptr = 0;
@@ -745,6 +762,7 @@ var SourceFile = function ()
       lineStatesHtml += "<div id='st" + (i+1) + "' style='color:#bbb; white-space:pre'>? </div>";
 
     document.getElementById("line_states").innerHTML = lineStatesHtml;
+    return true;
   }
 
   this.load = async function()
@@ -783,20 +801,33 @@ var SourceFile = function ()
 async function gotoSource(num)
 {
   console.log("gotoSource " + num);
-  currentSource = sources[num];
-  if (currentSource.text == null)
-    await currentSource.load();
+  var source = sources[num];
+  if (!source)
+    return false;
+
+  var selectionVersion = ++sourceSelectionVersion;
+  currentSource = source;
+  if (source.text == null)
+    await source.load();
+
+  if (!isSelectedSource(source, selectionVersion))
+    return false;
 
   var sourceElem = document.getElementById("source");
-  sourceElem.innerHTML = currentSource.html;
-
-  await currentSource.updateLineNums();
-  await currentSource.updateCoverage();
+  sourceElem.innerHTML = source.html;
 
   var fullFileNameElem = document.getElementById("full_file_name");
-  fullFileNameElem.innerHTML = currentSource.fullName;
+  fullFileNameElem.innerHTML = source.fullName;
 
-  return currentSource.html && currentSource.html.length > 0;
+  await source.updateLineNums(selectionVersion);
+  if (!isSelectedSource(source, selectionVersion))
+    return false;
+
+  await source.updateCoverage(selectionVersion);
+  if (!isSelectedSource(source, selectionVersion))
+    return false;
+
+  return source.html && source.html.length > 0;
 }
 
 async function gotoSourceByName(name)

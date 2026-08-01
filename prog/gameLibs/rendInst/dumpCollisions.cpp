@@ -3,6 +3,7 @@
 #include "riGen/riGenExtra.h"
 
 #include <util/dag_console.h>
+#include <debug/dag_log.h>
 #include <ioSys/dag_fileIo.h>
 #include <gameRes/dag_collisionResource.h>
 #include <render/primitiveObjects.h>
@@ -19,13 +20,22 @@ static inline CollisionVertex to_coll_vert(vec4f v)
   return r;
 }
 static inline CollisionVertex to_coll_vert(Point3 v) { return v; }
+// File layout: [MAGIC][version][poolCountHint] then per-pool records. The magic has its MSB set so
+// it cannot be mistaken for the legacy leading pool-count hint (a small positive int); a stale
+// reader desyncs on it immediately instead of loading a new dump as a plausible-but-wrong scene.
+// Per pool the index count is written as a negative int when the pool has more than 65535 vertices
+// (uint32 indices follow) and as a positive int otherwise (16-bit indices follow). Magic/version
+// must match the reader in prog/gameLibs/publicInclude/rendInst/riCollisionDump.h (RI_COLLISION_DUMP_*).
 void dumpAllCollisions(IGenSave &cb)
 {
+  cb.writeInt((int)0xD0C0B1A5u); // RI_COLLISION_DUMP_MAGIC
+  cb.writeInt(1);                // RI_COLLISION_DUMP_VERSION
   static const int COLLISION_BOX_INDICES_NUM = 36;
   static const int COLLISION_BOX_VERTICES_NUM = 8;
   carray<uint16_t, COLLISION_BOX_INDICES_NUM> boxIndices;
   create_cubic_indices(make_span((uint8_t *)boxIndices.data(), COLLISION_BOX_INDICES_NUM * sizeof(uint16_t)), 1, false);
-  dag::Vector<uint16_t> indices;
+  dag::Vector<uint32_t> indices;
+  dag::Vector<uint16_t> indices16;
   dag::Vector<Point3> vertices;
   cb.writeInt(riExtra.size()); // hint!
   iterateRIExtra([&](int, const RiExtraPool &pool) {
@@ -63,7 +73,7 @@ void dumpAllCollisions(IGenSave &cb)
         mat44f nodeTm;
         v_mat44_make_from_43cu_unsafe(nodeTm, collRes->getNodeTm(node->nodeIndex)[0]);
         collRes->iterateNodeVerts(ni, [&](int, vec4f v) { vertices[vAt++] = to_coll_vert(v_mat44_mul_vec3p(nodeTm, v)); });
-        collRes->iterateNodeFaces(ni, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+        collRes->iterateNodeFaces(ni, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
           indices[iAt++] = i0 + firstVertex;
           indices[iAt++] = i1 + firstVertex;
           indices[iAt++] = i2 + firstVertex;
@@ -74,8 +84,21 @@ void dumpAllCollisions(IGenSave &cb)
     }
     if (!indices.size())
       return;
-    cb.writeInt(indices.size());
-    cb.write(indices.begin(), indices.size() * sizeof(*indices.data()));
+    if (vertices.size() > 65535)
+    {
+      // Wide form: negative count tells the reader that uint32 indices follow.
+      cb.writeInt(-(int)indices.size());
+      cb.write(indices.begin(), indices.size() * sizeof(*indices.data()));
+    }
+    else
+    {
+      // Legacy form: positive count, 16-bit indices that older readers still parse.
+      indices16.resize(indices.size());
+      for (size_t k = 0, ke = indices.size(); k < ke; ++k)
+        indices16[k] = (uint16_t)indices[k];
+      cb.writeInt(indices16.size());
+      cb.write(indices16.begin(), indices16.size() * sizeof(*indices16.data()));
+    }
     cb.writeInt(vertices.size());
     cb.write(vertices.begin(), vertices.size() * sizeof(*vertices.data()));
 

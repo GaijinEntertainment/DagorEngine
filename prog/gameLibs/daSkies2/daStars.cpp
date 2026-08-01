@@ -54,7 +54,6 @@ void DaStars::init(const char *stars, const char *moon)
   stars_lattitudeVarId = get_shader_variable_id("stars_lattitude");
   stars_lstVarId = get_shader_variable_id("stars_lst");
   starsTex = dag::get_tex_gameres(stars, "stars_tex");
-  ShaderGlobal::set_sampler(get_shader_variable_id("stars_tex_samplerstate", true), d3d::request_sampler({}));
   G_ASSERTF(starsTex, "Texture '%s' for stars not found.", stars);
 
   moonSize = 0.02f;

@@ -30,6 +30,33 @@
 static NullMsgPipe nullPipe;
 static bool get_split_not_sep_for_asset(DagorAsset *a);
 
+static uint64_t make_asset_index_map_key(int asset_type, int asset_name_id)
+{
+  return (uint64_t(unsigned(asset_type)) << 32) | unsigned(asset_name_id);
+}
+
+DagorAssetMgrLoadAssetsBaseContext::DagorAssetMgrLoadAssetsBaseContext(bool use_shared_name_map_for_assets)
+{
+  if (use_shared_name_map_for_assets || threadpool::get_num_workers() != 0)
+    return;
+  threadpoolInitedLocally = true;
+
+  if (!cpujobs::is_inited())
+  {
+    cpujobsInitedLocally = true;
+    cpujobs::init();
+  }
+  threadpool::init(eastl::min(cpujobs::get_core_count(), 16), 1024, 128 << 10);
+}
+
+DagorAssetMgrLoadAssetsBaseContext::~DagorAssetMgrLoadAssetsBaseContext()
+{
+  if (threadpoolInitedLocally)
+    threadpool::shutdown();
+  if (cpujobsInitedLocally)
+    cpujobs::term(true);
+}
+
 DagorAssetMgr::DagorAssetMgr(bool use_shared_name_map_for_assets) :
   assets(midmem),
   vaRule(midmem),
@@ -243,7 +270,7 @@ int DagorAssetMgr::addAssetNameId(const char *nm)
   }
   return id;
 }
-void DagorAssetMgr::addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded)
+void DagorAssetMgr::addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded, AssetTypeAndNameToAssetIndexMap &asset_idx_map)
 {
   if (!loaded)
     return;
@@ -258,18 +285,22 @@ void DagorAssetMgr::addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded
 
   dag::Span<DagorAssetPrivate *> loaded_assets = make_span((DagorAssetPrivate **)assets.data(), assets.size());
   for (auto &ca : loaded->assets)
+  {
+    G_ASSERT(asset_idx_map.size() == assets.size());
     if (ca->getNameId() >= tmpDupAssetNameMarks.size() || !tmpDupAssetNameMarks.get(ca->getNameId()) ||
         checkAssetNotDuplicated(static_cast<DagorAssetPrivate *&>(ca), folders[fidx], folders[fidx]->folderPath,
-          assetFileNames.getName(ca->getFileNameId()), ca->getType(), loaded_assets, nullptr))
+          assetFileNames.getName(ca->getFileNameId()), ca->getType(), loaded_assets, nullptr, &asset_idx_map))
     {
       ca->setFolder(fidx);
+      asset_idx_map.emplace(make_asset_index_map_key(ca->getType(), ca->getNameId()), assets.size());
       assets.push_back(ca);
     }
     else if (ca)
       del_it(ca);
+  }
 
   for (auto sub : loaded->subFolders)
-    addLoadedFolders(fidx, sub);
+    addLoadedFolders(fidx, sub, asset_idx_map);
 
   // clear stuff because we moved assets and db folder, and deleted loaded sub-folders
   loaded->assets.clear();
@@ -278,30 +309,14 @@ void DagorAssetMgr::addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded
   delete loaded;
 }
 
-bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_space)
+eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> DagorAssetMgr::makeLoadAssetsBaseContext()
+{
+  return eastl::make_unique<DagorAssetMgrLoadAssetsBaseContext>(sharedAssetNameMapOwner != nullptr);
+}
+
+bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_space, DagorAssetMgrLoadAssetsBaseContext &load_context)
 {
   TIME_PROFILE(loadAssetsBase);
-  struct InitThreadPoolOnDemand
-  {
-    bool cpujobsInitedLocally = false;
-    bool threadpoolInitedLocally = false;
-    InitThreadPoolOnDemand(bool shared_nm)
-    {
-      if ((threadpoolInitedLocally = !shared_nm && threadpool::get_num_workers() == 0) != false)
-      {
-        if ((cpujobsInitedLocally = !cpujobs::is_inited()) != false)
-          cpujobs::init();
-        threadpool::init(eastl::min(cpujobs::get_core_count(), 16), 1024, 128 << 10);
-      }
-    }
-    ~InitThreadPoolOnDemand()
-    {
-      if (threadpoolInitedLocally)
-        threadpool::shutdown();
-      if (cpujobsInitedLocally)
-        cpujobs::term(true);
-    }
-  } init_threadpool_if_needed(sharedAssetNameMapOwner != nullptr);
 
   int64_t startTime = profile_ref_ticks();
   int nsid;
@@ -375,7 +390,7 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
 
     WriteGuard guard(mutex);
     assets.reserve(assets.size() + loaded->assets.size() + loaded->subAssetCount);
-    addLoadedFolders(0, loaded);
+    addLoadedFolders(0, loaded, load_context.assetTypeAndNameToAssetIndexMap);
   }
   // tmpDupAssetNameMarks.clear(); // not needed after addLoadedFolders(), but loadAssetsBase() can be called several times
 
@@ -669,6 +684,7 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
         }
         ca->props.compact();
 
+        load_context.assetTypeAndNameToAssetIndexMap.emplace(make_asset_index_map_key(ca->getType(), ca->getNameId()), assets.size());
         assets.push_back(ca);
       }
     post_msg(*msgPipe, msgPipe->NOTE, "added %d hidden HQ tex assets, split at %d (from %s)", assets.size() - asset_cnt, splitAtSize,
@@ -735,6 +751,7 @@ bool DagorAssetMgr::loadAssetsBase(const char *assets_folder, const char *name_s
         ca->props.removeParam("rtMipGenBQ");
         ca->props.compact();
 
+        load_context.assetTypeAndNameToAssetIndexMap.emplace(make_asset_index_map_key(ca->getType(), ca->getNameId()), assets.size());
         assets.push_back(ca);
       }
     post_msg(*msgPipe, msgPipe->NOTE, "added %d hidden TQ tex assets, data size <= %dK (from %s)", assets.size() - asset_cnt,
@@ -1104,21 +1121,27 @@ bool DagorAssetMgr::addAsset(const char *folder_path, const char *fname, int nsp
       return true;
     }
     G_ASSERT(loaded);
-    return checkAssetNotDuplicated(ca, f, folder_path, fname, asset_type, make_span(loaded->assets), &start_rule_idx);
+    return checkAssetNotDuplicated(ca, f, folder_path, fname, asset_type, make_span(loaded->assets), &start_rule_idx, nullptr);
   }
   return false;
 }
 bool DagorAssetMgr::checkAssetNotDuplicated(DagorAssetPrivate *&ca, DagorAssetFolder *f, const char *folder_path, const char *fname,
-  int asset_type, dag::Span<DagorAssetPrivate *> loaded_assets, int *start_rule_idx)
+  int asset_type, dag::Span<DagorAssetPrivate *> loaded_assets, int *start_rule_idx,
+  const AssetTypeAndNameToAssetIndexMap *asset_idx_map)
 {
   int asset_name_id = ca->getNameId();
   int pa_idx = -1;
-  for (int i = loaded_assets.size() - 1; i >= 0; i--)
-    if (loaded_assets[i]->getNameId() == asset_name_id && loaded_assets[i]->getType() == asset_type)
-    {
-      pa_idx = i;
-      break;
-    }
+  if (asset_idx_map)
+    pa_idx = asset_idx_map->findOr(make_asset_index_map_key(asset_type, asset_name_id), -1);
+  else
+  {
+    for (int i = loaded_assets.size() - 1; i >= 0; i--)
+      if (loaded_assets[i]->getNameId() == asset_name_id && loaded_assets[i]->getType() == asset_type)
+      {
+        pa_idx = i;
+        break;
+      }
+  }
 
   if (pa_idx == -1)
   {

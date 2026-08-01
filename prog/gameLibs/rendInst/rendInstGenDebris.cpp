@@ -55,7 +55,7 @@ int get_custom_props_id(int pool, int layer, bool is_extra)
 {
   if (is_extra)
   {
-    if (uint32_t(pool) >= uint32_t(rendinst::riExtra.size()))
+    if (!rendinst::riExtra.isValid(pool))
       return -1;
     if (rendinst::riExtra[pool].customPropsId >= 0)
       return rendinst::riExtra[pool].customPropsId;
@@ -544,7 +544,7 @@ uint64_t rendinst::updateTreeDestrRenderData(riex_handle_t ri_handle, const Tree
 #if DEBUG_RI_DESTR
 static void print_debug_destr_data()
 {
-  RendInstGenData *rgl = RendInstGenData::rgl;
+  RendInstGenData *rgl = rendinst::getRgLayer(0);
   debug("==================================================");
   for (int i = 0; i < rgl->rtData->riDestrCellData.size(); ++i)
   {
@@ -593,22 +593,11 @@ static bool debug_verify_destroy_pool_data(const rendinst::DestroyedPoolData &po
 }
 #endif
 
-static void add_destroyed_data(const rendinst::RendInstDesc &desc_, RendInstGenData *ri_gen)
+static void add_destroyed_data(const rendinst::RendInstDesc &restorable_desc, RendInstGenData *ri_gen)
 {
-  rendinst::RendInstDesc desc = desc_;
+  rendinst::RendInstDesc desc = restorable_desc;
   G_ASSERTF(desc.isValid(), "add_destroyed_data: attemp to add invalid data cell %i idx %i pool %i offs %i", desc.cellIdx, desc.idx,
     desc.pool, desc.offs);
-
-  // ensure offs/cellIdx are initialized, because nothing prevents desc without them to be passed here
-  if (desc.isRiExtra() && rendinst::isRiGenInWorld(desc))
-  {
-    const auto restorable = rendinst::get_restorable_desc(desc);
-    G_ASSERTF_RETURN(restorable.isValid(), ,
-      "add_destroyed_data: invalid restorable desc for valid rendinst cell:%i idx:%i pool:%i offs:%i", desc.cellIdx, desc.idx,
-      desc.pool, desc.offs);
-    desc.offs = restorable.offs;
-    desc.cellIdx = restorable.cellIdx;
-  }
 
   rendinst::DestroyedCellData *destrCellData = nullptr;
 #if DEBUG_RI_DESTR
@@ -709,7 +698,7 @@ void rendinst::updateRiGenVbCell(int layer_idx, int cell_idx)
 void rendinst::play_riextra_dmg_fx(rendinst::riex_handle_t id, const Point3 &pos, ri_damage_effect_cb effect_cb)
 {
   uint32_t res_idx = rendinst::handle_to_ri_type(id);
-  G_ASSERTF(res_idx < rendinst::riExtra.size(), "res_idx=%d", res_idx);
+  G_ASSERTF(rendinst::riExtra.isValid(res_idx), "res_idx=%d", res_idx);
   rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
   if (effect_cb && (pool.dmgFxType != -1 || !pool.dmgFxTemplate.empty()))
   {
@@ -754,7 +743,7 @@ static void play_riextra_destroy_effect(rendinst::riex_handle_t id, mat44f_cref 
   bool bbScale, bool restorable, const Point3 *coll_point /*=nullptr*/)
 {
   uint32_t res_idx = rendinst::handle_to_ri_type(id);
-  G_ASSERTF(res_idx < rendinst::riExtra.size(), "res_idx=%d", res_idx);
+  G_ASSERTF(rendinst::riExtra.isValid(res_idx), "res_idx=%d", res_idx);
   rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
   if (effect_cb && (pool.destrFxType != -1 || pool.destrCompositeFxId != -1 || !pool.destrFxTemplate.empty()))
   {
@@ -941,7 +930,7 @@ rendinst::riex_handle_t rendinst::restoreRendInst(const RendInstBufferData &buff
 
   if (desc.isRiExtra())
   {
-    if (desc.pool < 0 || desc.pool >= riExtra.size())
+    if (!riExtra.isValid(desc.pool))
       return RIEX_HANDLE_NULL;
     const int cellIdx = -(desc.cellIdx + 1);
     const int offs = int(desc.offs);

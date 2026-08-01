@@ -447,7 +447,7 @@ void TextEditor::ApplyAutocompleteSuggestion()
 void TextEditor::SetPalette(PaletteId aValue)
 {
 	mPaletteId = aValue;
-	const Palette* palletteBase;
+	const Palette* palletteBase = &(GetDarkPalette());
 	switch (mPaletteId)
 	{
 	case PaletteId::Dark:
@@ -482,6 +482,9 @@ void TextEditor::SetLanguageDefinition(LanguageDefinitionId aValue)
 		break;
 	case LanguageDefinitionId::Daslang:
 		mLanguageDefinition = &(LanguageDefinition::Daslang());
+		break;
+	case LanguageDefinitionId::Blk:
+		mLanguageDefinition = &(LanguageDefinition::Blk());
 		break;
 	default:
 		mLanguageDefinition = nullptr;
@@ -2619,8 +2622,10 @@ void TextEditor::EnsureCursorVisible(int aCursor, bool aStartToo)
 
 TextEditor::Coordinates TextEditor::SanitizeCoordinates(const Coordinates& aValue) const
 {
-	auto line = aValue.mLine;
-	auto column = aValue.mColumn;
+	// Clamp in document and line limits
+	auto line = Max(aValue.mLine, 0);
+	auto column = Max(aValue.mColumn, 0);
+	Coordinates out;
 	if (line >= (int) mLines.size())
 	{
 		if (mLines.empty())
@@ -2633,13 +2638,26 @@ TextEditor::Coordinates TextEditor::SanitizeCoordinates(const Coordinates& aValu
 			line = (int) mLines.size() - 1;
 			column = GetLineMaxColumn(line);
 		}
-		return Coordinates(line, column);
+		out = Coordinates(line, column);
 	}
 	else
 	{
 		column = mLines.empty() ? 0 : GetLineMaxColumn(line, column);
-		return Coordinates(line, column);
+		out = Coordinates(line, column);
 	}
+
+	// Move if inside a tab character
+	int charIndex = GetCharacterIndexL(out);
+	if (charIndex > -1 && charIndex < mLines[out.mLine].size() && mLines[out.mLine][charIndex].mChar == '\t')
+	{
+		int columnToLeft = GetCharacterColumn(out.mLine, charIndex);
+		int columnToRight = GetCharacterColumn(out.mLine, GetCharacterIndexR(out));
+		if (out.mColumn - columnToLeft <= columnToRight - out.mColumn)
+			out.mColumn = columnToLeft;
+		else
+			out.mColumn = columnToRight;
+	}
+	return out;
 }
 
 TextEditor::Coordinates TextEditor::GetActualCursorCoordinates(int aCursor, bool aStart) const
@@ -2662,18 +2680,8 @@ TextEditor::Coordinates TextEditor::ScreenPosToCoordinates(const ImVec2& aPositi
 		Max(0, (int)floor(local.y / mCharAdvance.y)),
 		Max(0, (int)floor((local.x - mTextStart) / mCharAdvance.x))
 	};
-	int charIndex = GetCharacterIndexL(out);
-	if (charIndex > -1 && charIndex < mLines[out.mLine].size() && mLines[out.mLine][charIndex].mChar == '\t')
-	{
-		int columnToLeft = GetCharacterColumn(out.mLine, charIndex);
-		int columnToRight = GetCharacterColumn(out.mLine, GetCharacterIndexR(out));
-		if (out.mColumn - columnToLeft < columnToRight - out.mColumn)
-			out.mColumn = columnToLeft;
-		else
-			out.mColumn = columnToRight;
-	}
-	else
-		out.mColumn = Max(0, (int)floor((local.x - mTextStart + POS_TO_COORDS_COLUMN_OFFSET * mCharAdvance.x) / mCharAdvance.x));
+	out.mColumn = Max(0, (int)floor((local.x - mTextStart + POS_TO_COORDS_COLUMN_OFFSET * mCharAdvance.x) / mCharAdvance.x));
+
 	return SanitizeCoordinates(out);
 }
 
@@ -2897,7 +2905,13 @@ void TextEditor::RemoveLines(int aStart, int aEnd)
 		{
 			int targetLine = mState.mCursors[c].mInteractiveEnd.mLine - (aEnd - aStart);
 			targetLine = targetLine < 0 ? 0 : targetLine;
-			SetCursorPosition({ targetLine , mState.mCursors[c].mInteractiveEnd.mColumn }, c);
+			mState.mCursors[c].mInteractiveEnd.mLine = targetLine;
+		}
+		if (mState.mCursors[c].mInteractiveStart.mLine >= aStart)
+		{
+			int targetLine = mState.mCursors[c].mInteractiveStart.mLine - (aEnd - aStart);
+			targetLine = targetLine < 0 ? 0 : targetLine;
+			mState.mCursors[c].mInteractiveStart.mLine = targetLine;
 		}
 	}
 
@@ -2948,17 +2962,14 @@ void TextEditor::DeleteRange(const Coordinates& aStart, const Coordinates& aEnd)
 			AddGlyphsToLine(aStart.mLine, firstLine.size(), lastLine.begin(), lastLine.end());
 			for (int c = 0; c <= mState.mCurrentCursor; c++) // move up cursors in line that is being moved up
 			{
+				// if cursor is selecting the same range we are deleting, it's because this is being called from
+				// DeleteSelection which already sets the cursor position after the range is deleted
+				if (mState.mCursors[c].GetSelectionStart() == aStart && mState.mCursors[c].GetSelectionEnd() == aEnd)
+					continue;
 				if (mState.mCursors[c].mInteractiveEnd.mLine > aEnd.mLine)
 					break;
 				else if (mState.mCursors[c].mInteractiveEnd.mLine != aEnd.mLine)
 					continue;
-
-				if (mState.mCursors[c].mInteractiveStart == aStart && mState.mCursors[c].mInteractiveEnd == aEnd)
-				{
-					SetCursorPosition(aStart, c, false);
-					continue;
-				}
-
 				int otherCursorEndCharIndex = GetCharacterIndexR(mState.mCursors[c].mInteractiveEnd);
 				int otherCursorStartCharIndex = GetCharacterIndexR(mState.mCursors[c].mInteractiveStart);
 				int otherCursorNewEndCharIndex = GetCharacterIndexR(aStart) + otherCursorEndCharIndex;
@@ -2981,9 +2992,10 @@ void TextEditor::DeleteSelection(int aCursor)
 	if (mState.mCursors[aCursor].GetSelectionEnd() == mState.mCursors[aCursor].GetSelectionStart())
 		return;
 
-	DeleteRange(mState.mCursors[aCursor].GetSelectionStart(), mState.mCursors[aCursor].GetSelectionEnd());
-	SetCursorPosition(mState.mCursors[aCursor].GetSelectionStart(), aCursor);
-	ColorizeLine(mState.mCursors[aCursor].GetSelectionStart().mLine);
+	Coordinates newCursorPos = mState.mCursors[aCursor].GetSelectionStart();
+	DeleteRange(newCursorPos, mState.mCursors[aCursor].GetSelectionEnd());
+	SetCursorPosition(newCursorPos, aCursor);
+	ColorizeLine(newCursorPos.mLine);
 }
 
 void TextEditor::RemoveGlyphsFromLine(int aLine, int aStartChar, int aEndChar)
@@ -3152,7 +3164,7 @@ void TextEditor::HandleKeyboardInputs(bool aParentIsFocused)
 		else if (!alt && !ctrl && !super && ImGui::IsKeyDown(ImGuiKey_Escape) && !autocompleteSuggestions.empty())
 			CancelAutocomplete();
 
-		if (!mReadOnly && !io.InputQueueCharacters.empty() && ctrl == alt && !super)
+		if (!mReadOnly && !io.InputQueueCharacters.empty() && !(ctrl && !alt) && !super) // See https://github.com/santaclose/ImGuiColorTextEdit/pull/34
 		{
 			for (int i = 0; i < io.InputQueueCharacters.Size; i++)
 			{
@@ -4654,6 +4666,7 @@ eastl::unordered_map<TextEditor::LanguageDefinitionId, const char *> TextEditor:
 	{TextEditor::LanguageDefinitionId::None, "None"},
 	{TextEditor::LanguageDefinitionId::Cpp, "C++"},
 	{TextEditor::LanguageDefinitionId::Daslang, "Daslang"},
+	{TextEditor::LanguageDefinitionId::Blk, "BLK"},
 };
 
 eastl::unordered_map<TextEditor::PaletteId, const char *> TextEditor::colorPaletteToName = {

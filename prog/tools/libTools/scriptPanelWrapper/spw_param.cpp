@@ -1477,7 +1477,7 @@ public:
       return;
     mPanel->createGradientBox(mPid, mCaption);
     mPanel->setGradient(mPid, &mValue);
-    mPanel->setMinMaxStep(mPid, mMin, mMax, 1);
+    mPanel->getById(mPid)->setGradientMinMaxPointCount(mMin, mMax);
   }
 
 
@@ -1517,7 +1517,8 @@ public:
       mMin = (min < 2) ? 2 : min;
       mMax = (max >= mMin) ? max : mMin;
       if (mPanel)
-        mPanel->setMinMaxStep(mPid, mMin, mMax, 1);
+        if (PropPanel::PropertyControlBase *gradientControl = mPanel->getById(mPid))
+          gradientControl->setGradientMinMaxPointCount(mMin, mMax);
     }
 
     if (param.HasKey("mark") && mPanel)
@@ -1659,7 +1660,7 @@ public:
       return;
     mPanel->createTextGradient(mPid, mCaption);
     mPanel->setTextGradient(mPid, mValue);
-    mPanel->setMinMaxStep(mPid, mMin, mMax, 1);
+    mPanel->getById(mPid)->setGradientMinMaxPointCount(mMin, mMax);
   }
 
 
@@ -1693,7 +1694,8 @@ public:
       mMin = (min < 2) ? 2 : min;
       mMax = (max >= mMin) ? max : mMin;
       if (mPanel)
-        mPanel->setMinMaxStep(mPid, mMin, mMax, 1);
+        if (PropPanel::PropertyControlBase *gradientControl = mPanel->getById(mPid))
+          gradientControl->setGradientMinMaxPointCount(mMin, mMax);
     }
 
     if (param.HasKey("mark") && mPanel)

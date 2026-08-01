@@ -6,6 +6,7 @@
 #include <render/daFrameGraph/daFG.h>
 #include <render/daFrameGraph/singleShaders.h>
 #include <render/renderEvent.h>
+#include <render/cinematicMode.h>
 #include <ecs/render/updateStageRender.h>
 
 #include <daECS/core/entityManager.h>
@@ -214,6 +215,7 @@ resource_slot::NodeHandleWithSlotsAccess makePostFxNode()
       postfx_bind_additional_textures_from_namespace(closeupsNs);
 
       registry.readTexture("flash_blind_tex").atStage(dafg::Stage::PS).bindToShaderVar("flash_blind_screen_tex").optional();
+      registry.readTexture("film_grain").atStage(dafg::Stage::PS).bindToShaderVar().optional();
 
       // TODO: we can pass a per-project callbacks which requests such textures for postfx.
       (registry.root() / "sprite_glare")
@@ -321,6 +323,16 @@ dafg::NodeHandle makeFrameBeforeDistortionProducerNode()
   });
 }
 
+dafg::NodeHandle makeFilmGrainNode()
+{
+  return dafg::register_node("make_film_grain", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.requestRenderPass().color({"film_grain"});
+    registry.create("film_grain").texture({TEXFMT_A16B16G16R16F | TEXCF_RTARGET, IPoint2(128, 128)});
+    return [shader = PostFxRenderer("film_grain")]() { shader.render(); };
+  });
+}
+
+
 dafg::NodeHandle makeDistortionFxNode()
 {
   return dafg::register_node("distortion_postfx_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -359,14 +371,28 @@ dafg::NodeHandle makeDistortionFxNode()
   });
 }
 
+
 ECS_TAG(render)
-ECS_ON_EVENT(OnCameraNodeConstruction)
-static void create_postfx_nodes_es(const OnCameraNodeConstruction &evt)
+ECS_ON_EVENT(OnCameraNodeWithSlotsConstruction)
+static void create_postfx_nodes_es(const OnCameraNodeWithSlotsConstruction &evt)
 {
   evt.slotNodes->push_back(makePostFxInputSlotProviderNode());
   evt.slotNodes->push_back(makePostFxNode());
   evt.slotNodes->push_back(makePreparePostFxNode());
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraNodeConstruction)
+static void create_postfx_nodes_es(const OnCameraNodeConstruction &evt)
+{
   evt.nodes->push_back(makePrepareDepthAfterTransparent());
   evt.nodes->push_back(makeFrameBeforeDistortionProducerNode());
   evt.nodes->push_back(makeDistortionFxNode());
+
+  if (get_film_grain_mode() == FilmGrainMode::NOISE_BASED)
+  {
+    // Enable only on platforms that support resource heaps because this semi-baked texture is free on them
+    if (d3d::get_driver_desc().caps.hasResourceHeaps)
+      evt.nodes->push_back(makeFilmGrainNode());
+  }
 }

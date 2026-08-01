@@ -276,9 +276,7 @@ static void perform_point_action_static(bool trace, const Point3 &p0, const Poin
       box.bmin = v_ldu(&pt1.x);
       box.bmax = v_ldu(&pt2.x);
 
-      uint32_t poolsCount = rendinst::getRiGenExtraResCount();
-      for (uint32_t pool_idx = 0; pool_idx < poolsCount; ++pool_idx)
-      {
+      rendinst::iterateRiGenExtraResId([&](int pool_idx) {
         Tab<rendinst::riex_handle_t> handles(framemem_ptr());
         rendinst::getRiGenExtraInstances(handles, pool_idx, box);
         const int handlesCount = handles.size();
@@ -313,7 +311,7 @@ static void perform_point_action_static(bool trace, const Point3 &p0, const Poin
             }
           }
         }
-      }
+      });
     }
   }
 
@@ -547,12 +545,10 @@ static SQInteger gather_ri_by_sphere(HSQUIRRELVM vm)
   box.bmin = v_ldu(&pt1.x);
   box.bmax = v_ldu(&pt2.x);
 
-  uint32_t poolsCount = rendinst::getRiGenExtraResCount();
   const float testRadiusSq = r * r;
   int fillCount = 0;
 
-  for (uint32_t pool_idx = 0; pool_idx < poolsCount; ++pool_idx)
-  {
+  rendinst::iterateRiGenExtraResId([&](int pool_idx) {
     Tab<rendinst::riex_handle_t> handles(framemem_ptr());
     rendinst::getRiGenExtraInstances(handles, pool_idx, box);
     const int handlesCount = handles.size();
@@ -568,13 +564,12 @@ static SQInteger gather_ri_by_sphere(HSQUIRRELVM vm)
         ++fillCount;
       }
     }
-  }
+  });
 
   Sqrat::Array res(vm, fillCount);
 
   int filledCount = 0;
-  for (uint32_t pool_idx = 0; pool_idx < poolsCount; ++pool_idx)
-  {
+  rendinst::iterateRiGenExtraResId([&](int pool_idx) {
     Tab<rendinst::riex_handle_t> handles(framemem_ptr());
     rendinst::getRiGenExtraInstances(handles, pool_idx, box);
     const int handlesCount = handles.size();
@@ -601,7 +596,7 @@ static SQInteger gather_ri_by_sphere(HSQUIRRELVM vm)
         ++filledCount;
       }
     }
-  }
+  });
 
   Sqrat::Var<Sqrat::Array>::push(vm, res);
   return 1;

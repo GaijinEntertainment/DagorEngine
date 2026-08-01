@@ -43,7 +43,7 @@ macro INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
   {
 #ifdef MOTION_VECTORS_ENABLED
 #define LOAD_RENDINST_MOTION_VECTORS \
-      output.out_pos = output.pos; \
+      output.out_pos = output.pos.xyw; \
       uint prevTransformFlag = RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__FLAG; \
       BRANCH \
       if (prevTransformFlag & perInstanceRenderDataFlags) \
@@ -54,10 +54,10 @@ macro INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
         prevWorldPos += prev_input_pos.y * LOAD_RIEXTRA_PID(prevTransformOffset + 1, prevTransformFlag, float4(worldLocalY, 0)).xyz;  \
         prevWorldPos += prev_input_pos.z * LOAD_RIEXTRA_PID(prevTransformOffset + 2, prevTransformFlag, float4(worldLocalZ, 0)).xyz;  \
         prevWorldPos +=                    LOAD_RIEXTRA_PID(prevTransformOffset + 3, prevTransformFlag, float4(worldLocalPos, 1)).xyz;\
-        output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip); \
+        output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip).xyw; \
       } \
       else \
-        output.out_pos_prev = mulPointTm(worldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+        output.out_pos_prev = mulPointTm(worldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip).xyw;
 #else
 #define LOAD_RENDINTS_MOTION_VECTORS
 #endif
@@ -311,7 +311,7 @@ macro COMMON_RENDINST_INIT_PAINT(use_tessellation)
   INIT_RANDOMIZED_TC(vs)
   INIT_PAINT_DETAILS_STATIC()
 
-  if (!rendinst_render_is_shadow_or_depth && paint_details_tex != NULL)
+  if (!rendinst_render_is_shadow_or_depth && (paint_details_tex != NULL || rendinst_render_pass == rendinst_render_pass_impostor_voxel))
   {
     hlsl {
       #define COLOR_NEEDED 1
@@ -367,8 +367,8 @@ macro COMMON_RENDINST_VS_OUTPUT_MEMBERS_DEF()
 
     #ifdef MOTION_VECTORS_ENABLED
       #define MOTION_VECTOR_OUTPUT_MEMBERS \
-      float4 out_pos                          : TEXCOORD11; \
-      float4 out_pos_prev                     : TEXCOORD12;
+      float3 out_pos                          : TEXCOORD11; \
+      float3 out_pos_prev                     : TEXCOORD12;
     #endif
 
     #if COLOR_NEEDED
@@ -495,6 +495,9 @@ macro COMMON_RENDINST_VS()
     ##if (rendinst_additional_data == color_mul_from_to)
     float3 getColorIntervalMul(uint packedColor)
     {
+    #if RENDINST_IMPOSTOR_VOXEL
+      return float3(-1, 0, 0);
+    #else
       uint4 c;
       c.x = packedColor & 0xff;
       c.y = (packedColor >> 8) & 0xff;
@@ -505,6 +508,7 @@ macro COMMON_RENDINST_VS()
       colorMul *= 2.0f; // 0.5 -> 1.0; 0.5 - neutral gray
       colorMul.rgb *= colorMul.a * 2.0f; // brightness
       return colorMul.rgb;
+    #endif
     }
     ##endif
 
@@ -581,7 +585,11 @@ macro COMMON_RENDINST_VS()
       #endif
 
       #if COLOR_NEEDED
-        output.colorMul = 1;
+        #if RENDINST_IMPOSTOR_VOXEL
+          output.colorMul = float3(-1, 0, 0);
+        #else
+          output.colorMul = 1;
+        #endif
         #if HAS_PAINT_DETAILS
           INSTANCING_HASH_VAL
           ##if (rendinst_additional_data == color_mul_from_to)
@@ -611,7 +619,7 @@ macro COMMON_RENDINST_VS()
 
       #ifdef LOAD_RENDINST_MOTION_VECTORS
         // Need to pre-initialize these, because the shader compiler complains otherwise about 'vs_specific_output'
-        output.out_pos = output.out_pos_prev = output.pos;
+        output.out_pos = output.out_pos_prev = output.pos.xyw;
       #endif
       float3 prev_input_pos = input.pos;
       #if defined(VS_SPECIFIC_OUTPUT) && VS_SPECIFIC_OUTPUT

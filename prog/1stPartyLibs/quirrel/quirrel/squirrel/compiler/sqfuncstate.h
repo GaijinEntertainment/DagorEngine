@@ -5,7 +5,7 @@
 #include "squtils.h"
 #include "compilationcontext.h"
 
-namespace SQCompilation { class Expr; }
+namespace SQCompilation { class Expr; class VarDecl; }
 
 using namespace SQCompilation;
 
@@ -14,11 +14,16 @@ struct SQCompiletimeVarInfo
     char var_flags;
     SQUnsignedInteger32 type_mask;
     Expr *initializer;
+    const VarDecl *forward_decl;
 
-    SQCompiletimeVarInfo() { var_flags = 0; type_mask = ~0u; initializer = nullptr; }
+    SQCompiletimeVarInfo() : var_flags(0), type_mask(~0u), initializer(nullptr), forward_decl(nullptr) {}
 
-    SQCompiletimeVarInfo(char var_flags, SQUnsignedInteger32 type_mask, Expr *initializer) :
-        var_flags(var_flags), type_mask(type_mask), initializer(initializer) {}
+    SQCompiletimeVarInfo(char var_flags, SQUnsignedInteger32 type_mask, Expr *initializer,
+        const VarDecl *forward_decl = nullptr) :
+        var_flags(var_flags), type_mask(type_mask), initializer(initializer), forward_decl(forward_decl) {}
+
+    bool isForwardDeclaration() const { return forward_decl != nullptr; }
+    bool isUndefinedForwardDeclaration() const { return forward_decl != nullptr && initializer == nullptr; }
 };
 
 struct SQFuncState
@@ -40,7 +45,7 @@ struct SQFuncState
     void RestoreOpt(){_optimization=true;}
     void AddDefaultParam(SQInteger trg) { _defaultparams.push_back(trg); }
     SQInteger GetDefaultParamCount() { return _defaultparams.size(); }
-    SQInteger GetCurrentPos(){return _instructions.size()-1;}
+    SQInteger GetCurrentPos(){return (SQInteger)_instructions.size()-1;}
     SQInteger GetNumericConstant(const SQInteger cons);
     SQInteger GetNumericConstant(const SQFloat cons);
     SQInteger PushLocalVariable(const SQObject &name, const SQCompiletimeVarInfo &ct_var_info);

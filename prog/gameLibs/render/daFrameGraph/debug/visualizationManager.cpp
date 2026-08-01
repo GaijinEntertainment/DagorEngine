@@ -47,4 +47,16 @@ void VisManager::recResourceBarrier(ResNameId res_id, int res_frame, int exec_ti
   resVisualizer.recResourceBarrier(res_id, res_frame, exec_time, exec_frame, barrier);
 }
 
+void VisManager::recEnhancedBufferBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::BufferBarrier &barrier)
+{
+  resVisualizer.recEnhancedBufferBarrier(res_id, res_frame, exec_time, exec_frame, barrier);
+}
+
+void VisManager::recEnhancedTextureBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::TextureBarrier &barrier)
+{
+  resVisualizer.recEnhancedTextureBarrier(res_id, res_frame, exec_time, exec_frame, barrier);
+}
+
 } // namespace dafg::visualization

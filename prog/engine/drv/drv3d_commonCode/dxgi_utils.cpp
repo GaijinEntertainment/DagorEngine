@@ -384,4 +384,15 @@ DXGI_GPU_PREFERENCE get_gpu_preference_from_registry()
   return DXGI_GPU_PREFERENCE_UNSPECIFIED;
 }
 
+bool is_software_device(const DXGI_ADAPTER_DESC1 &desc)
+{
+  // checking software flag is insuficient, on some systems (even with exact same patch level and
+  // drivers) this flag might not be set by the dx runtime and we have to manually check for
+  // software device and vendor id.
+  return (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) || DeviceDesc(desc).isSoftwareDevice();
+}
+
+DeviceDesc::DeviceDesc(const struct DXGI_ADAPTER_DESC &desc) : vendorId(desc.VendorId), deviceId(desc.DeviceId) {}
+DeviceDesc::DeviceDesc(const struct DXGI_ADAPTER_DESC1 &desc) : vendorId(desc.VendorId), deviceId(desc.DeviceId) {}
+
 #endif

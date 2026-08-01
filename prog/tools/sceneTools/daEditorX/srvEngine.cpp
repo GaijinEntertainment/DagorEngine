@@ -449,26 +449,32 @@ public:
     assetMgr.clear();
     assetMgr.setMsgPipe(this);
 
-    DataBlock appblk(app_blk);
+    DataBlock appblk;
+    appblk.setFrom(&app_blk, app_blk.resolveFilename());
+
     appblk.setStr("appDir", app_dir);
     ::dagor_set_game_act_rate(appblk.getInt("work_cycle_act_rate", 100));
     DataBlock::setRootIncludeResolver(app_dir);
     if (appblk.getBlockByNameEx("assets")->getBlockByName("export"))
       texconvcache::init_build_on_demand_tex_factory(assetMgr, &getCon());
 
-    // load asset base
     const DataBlock &blk = *appblk.getBlockByNameEx("assets");
-    int base_nid = blk.getNameId("base");
 
     CoolConsole &con = DAGORED2->getConsole();
     con.showConsole();
     con.startLog();
     con.startProgress();
 
-    assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
-    for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
-      if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-        assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
+    { // load asset base
+      const int base_nid = blk.getNameId("base");
+      eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> loadContext = assetMgr.makeLoadAssetsBaseContext();
+
+      assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
+      for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
+        if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
+          assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global", *loadContext);
+    }
+
     if (!minimize_dabuild_usage) // prefer real texture assets to gameres loaded from *.dxp.bin
     {
       dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();
@@ -1078,6 +1084,16 @@ void terminate_interface_de3()
   IDaEditor3Engine::set(NULL);
 }
 void regular_update_interface_de3() { engine_impl.update(); }
+
+void services_release()
+{
+  while (!services.empty())
+  {
+    IEditorService *srv = services[0];
+    DAEDITOR3.unregisterService(srv);
+    del_it(srv);
+  }
+}
 
 void services_act(float dt)
 {

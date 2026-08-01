@@ -113,6 +113,7 @@ void DaGIAlbedoScene::init(uint8_t w, uint8_t d, uint8_t c, float voxel0, float 
     CS(dagi_albedo_allocate_after_toroidal_movement_cs);
     CS(dagi_albedo_allocate_after_toroidal_movement_pass2_cs);
     CS(dagi_albedo_fix_insufficient_cs);
+    CS(dagi_albedo_clear_freed_cs);
 #undef CS
   }
   if (c == 0)
@@ -227,6 +228,14 @@ bool DaGIAlbedoScene::updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t cl
     d3d::resource_barrier({dagi_albedo_indirect_args.getBuf(), RB_RO_INDIRECT_BUFFER});
   }
   d3d::resource_barrier({dagi_albedo_atlas.getVolTex(), RB_NONE, 0, 0});
+  if (dagi_albedo_clear_freed_cs) // old dumps clear toroidal-freed blocks in pass2 instead
+  {
+    TIME_D3D_PROFILE(albedo_clear_freed_blocks)
+    // toroidal movement freed blocks into the LIFO stack with stale texels; zero them before
+    // the allocate pass can pop them, and flush so its writes can't be overtaken by our zeroes
+    dagi_albedo_clear_freed_cs->dispatch_indirect(dagi_albedo_indirect_args.getBuf(), 0);
+    d3d::resource_barrier({dagi_albedo_atlas.getVolTex(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE, 0, 0});
+  }
   // we have to flush free list
   {
     TIME_D3D_PROFILE(albedo_add_changed_blocks)
@@ -372,7 +381,7 @@ bool DaGIAlbedoScene::update(const Point3 &world_pos, bool update_all, const dag
 
 void DaGIAlbedoScene::fixBlocks()
 {
-  if (!gi_fix_albedo_scene_alpha || !dagi_fix_empty_alpha_cs)
+  if (!gi_fix_albedo_scene_alpha || !dagi_fix_empty_alpha_cs || !clipmap.size())
     return;
   DA_PROFILE_GPU;
   const uint32_t totalUpdatePixels = (atlasW * atlasW * atlasD) << (3 * DAGI_ALBEDO_BLOCK_SHIFT);
@@ -404,7 +413,7 @@ void DaGIAlbedoScene::resetUAV(uint32_t stage)
 
 void DaGIAlbedoScene::updateFromGbuf()
 {
-  if (!dagi_albedo_scene_from_gbuf_cs)
+  if (!dagi_albedo_scene_from_gbuf_cs || !clipmap.size())
     return;
   DA_PROFILE_GPU;
   ShaderGlobal::set_int(dagi_albedo_scene_stable_updateVarId, temporalStable ? 1 : 0);

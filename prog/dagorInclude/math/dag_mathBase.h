@@ -13,6 +13,7 @@
 #include <util/dag_bitwise_cast.h>
 #include <util/dag_compilerDefs.h>
 #include <math/dag_check_nan.h>
+#include <EASTL/type_traits.h>
 #if _TARGET_SIMD_SSE
 // To consider: use pragma intrinsic instead of including xmmintrin.h (for msvc)
 #include <xmmintrin.h>
@@ -344,10 +345,13 @@ void sincos(float rad, float &s, float &c);
 // @}
 
 template <typename T>
-INLINE T lerp(const T a, const T b, float t)
+INLINE T lerp(T a, T b, float t)
 {
-  DisablePointersInMath<T>();
-  return (T)(a * (1.0f - t) + b * t);
+  static_assert(!eastl::is_pointer_v<T>);
+  if constexpr (eastl::is_integral_v<T>)
+    return (T)(a * (1.0f - t) + b * t);
+  else
+    return a + (b - a) * t;
 }
 
 // timestep independent approach function

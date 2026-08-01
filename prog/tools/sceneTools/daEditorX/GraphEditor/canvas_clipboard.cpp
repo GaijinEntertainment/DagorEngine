@@ -70,8 +70,11 @@ void CanvasClipboard::captureSelection(const GraphPanel &panel, const GraphData 
   }
 }
 
-void CanvasClipboard::paste(GraphPanel &panel, const ImVec2 &paste_origin_canvas) const
+void CanvasClipboard::paste(GraphPanel &panel, const ImVec2 &paste_origin_canvas, eastl::vector<GraphData::Node> &out_nodes,
+  eastl::vector<GraphData::Edge> &out_edges) const
 {
+  out_nodes.clear();
+  out_edges.clear();
   if (nodes.empty())
   {
     return;
@@ -106,6 +109,7 @@ void CanvasClipboard::paste(GraphPanel &panel, const ImVec2 &paste_origin_canvas
     copy.x += dx;
     copy.y += dy;
     pasted.push_back(copy.id);
+    out_nodes.push_back(copy);        // snapshot for the paste undo entry
     panel.addNode(eastl::move(copy)); // also pushes the new id into pendingPositionIds
   }
 
@@ -116,6 +120,7 @@ void CanvasClipboard::paste(GraphPanel &panel, const ImVec2 &paste_origin_canvas
     copy.id = edgeBase + i;
     copy.elemA = idRemap[copy.elemA];
     copy.elemB = idRemap[copy.elemB];
+    out_edges.push_back(copy); // snapshot for the paste undo entry
     panel.addEdge(eastl::move(copy));
   }
 

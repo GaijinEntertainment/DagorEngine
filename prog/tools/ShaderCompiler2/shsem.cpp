@@ -298,6 +298,8 @@ static void eval_shader_stat(shader_stat &s, ShaderEvalCB &cb)
     cb.eval_channel_decl(*s.channel);
   else if (s.render_stage)
     cb.eval_render_stage(*s.render_stage);
+  else if (s.rt_pipeline)
+    cb.eval_raytrace_pipeline(*s.rt_pipeline);
   else if (s.assume)
     cb.eval_assume_stat(*s.assume);
   else if (s.assume_if_not_assumed)

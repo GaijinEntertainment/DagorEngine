@@ -94,6 +94,20 @@ void WorldRenderer::closeRendinstVisibility()
   rendinst::destroyRIGenVisibility(eastl::exchange(rendinst_dynamic_shadow_visibility, nullptr));
 }
 
+// visibility objects persist across levels; drop their mission-sized cull buffers
+// so they do not stay parked in menu (they regrow on next prepare)
+void WorldRenderer::shrinkRendinstVisibilities()
+{
+  waitAllJobs();
+  rendinst::shrinkRIGenVisibility(mainCameraVisibilityMgr.getRiMainVisibility());
+  rendinst::shrinkRIGenVisibility(camcamVisibilityMgr.getRiMainVisibility());
+  rendinst::shrinkRIGenVisibility(rendinst_cube_visibility);
+  for (auto rsv : rendinst_shadows_visibility)
+    rendinst::shrinkRIGenVisibility(rsv);
+  rendinst::shrinkRIGenVisibility(rendinstHmapPatchesVisibility);
+  rendinst::shrinkRIGenVisibility(rendinst_dynamic_shadow_visibility);
+}
+
 void WorldRenderer::startVisibility()
 {
   ShadowVisibilityContext shadowCtx;
@@ -132,10 +146,10 @@ void WorldRenderer::startOcclusionAndSwRaster()
 void WorldRenderer::startGroundVisibility()
 {
   const float deformR = deformHmap ? 1.414213562373095f * deformHmap->getRadius() : 0;
-  mainCameraVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, waterLevel, displacementSubDiv, deformR, currentFrameCamera);
+  mainCameraVisibilityMgr.startGroundVisibility(lmeshMgr, displacementSubDiv, deformR, currentFrameCamera);
 
   if (camera_in_camera::is_lens_render_active())
-    camcamVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, waterLevel, displacementSubDiv, deformR, *camcamParams);
+    camcamVisibilityMgr.startGroundVisibility(lmeshMgr, displacementSubDiv, deformR, *camcamParams);
 }
 
 void WorldRenderer::startGroundReflectionVisibility()
@@ -146,14 +160,12 @@ void WorldRenderer::startGroundReflectionVisibility()
   // Non-oblique culling frustum is safe from nearly parallel planes.
   Frustum frustum(TMatrix4(waterPlanarReflectionViewTm) * currentFrameCamera.noJitterProjTm);
   Point3 viewPos = waterPlanarReflectionViewItm.getcol(3);
-  mainCameraVisibilityMgr.startGroundReflectionVisibility(lmeshMgr, lmeshRenderer, frustum, viewPos, currentFrameCamera.noJitterProjTm,
-    waterLevel);
+  mainCameraVisibilityMgr.startGroundReflectionVisibility(lmeshMgr, frustum, viewPos, currentFrameCamera.noJitterProjTm);
 
   if (camera_in_camera::is_lens_render_active())
   {
     Frustum frustum(TMatrix4(waterPlanarReflectionViewTm) * camcamParams->noJitterProjTm);
-    camcamVisibilityMgr.startGroundReflectionVisibility(lmeshMgr, lmeshRenderer, frustum, viewPos, camcamParams->noJitterProjTm,
-      waterLevel);
+    camcamVisibilityMgr.startGroundReflectionVisibility(lmeshMgr, frustum, viewPos, camcamParams->noJitterProjTm);
   }
 }
 

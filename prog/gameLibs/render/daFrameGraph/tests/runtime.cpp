@@ -6,6 +6,7 @@
 #include <math/random/dag_random.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_interface_table.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <memory/dag_framemem.h>
 #include <shaders/dag_shaderVar.h>
 #include <EASTL/any.h>
@@ -720,6 +721,49 @@ TEST_CASE("Resolve history request when hijacker disappears", "[history requests
     expectedHistory = eastl::exchange(newOriginalValue, 3);
     expectValue = newOriginalValue;
     testRuntime.executeGraph();
+  }
+}
+
+TEST_CASE("History-only reader in child namespace keeps parent producer alive", "[history requests][name resolution][prunning]")
+{
+  TestRuntime testRuntime{};
+
+  uint32_t newValue = 1;
+  bool producerRan = false;
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [&newValue, &producerRan](dafg::Registry registry) {
+    auto blobHandle = registry.create("blob").blob<uint32_t>({}).withHistory().handle();
+    return [blobHandle, &newValue, &producerRan] {
+      producerRan = true;
+      blobHandle.ref() = newValue;
+    };
+  });
+
+  uint32_t expectedHistory = 0;
+  auto consumerHandle =
+    (dafg::root() / "somewhere").registerNode("consumer", DAFG_PP_NODE_SRC, [&expectedHistory](dafg::Registry registry) {
+      registry.executionHas(dafg::SideEffects::External);
+      // The producer is reachable only through the HISTORY read.
+      auto blobHistoryHandle = registry.readBlobHistory<uint32_t>("blob").handle();
+      return [blobHistoryHandle, &expectedHistory] {
+        CHECK(blobHistoryHandle.get() != nullptr);
+        CHECK(*blobHistoryHandle.get() == expectedHistory);
+      };
+    });
+
+  {
+    expectedHistory = 0; // no previous value banked yet
+    newValue = 1;
+    producerRan = false;
+    testRuntime.executeGraph();
+    CHECK(producerRan);
+  }
+
+  {
+    expectedHistory = 1; // producer was kept alive and banked the previous frame's value
+    newValue = 2;
+    producerRan = false;
+    testRuntime.executeGraph();
+    CHECK(producerRan);
   }
 }
 
@@ -1566,6 +1610,613 @@ TEST_CASE("Runtime deduces RP_TA_LOAD_CLEAR for render pass with node with clear
   d3di = g_interfaceTableCopy;
 }
 
+TEST_CASE("Untracked buffer is synced entirely by daFG via enhanced barriers", "[untracked resources]")
+{
+  static int activateBufferCount;
+  static int deactivateBufferCount;
+  static int activationBarrierCount;
+  static int releaseBarrierCount;
+  static int transitionBarrierCount;
+  static int legacyBarrierCount;
+  activateBufferCount = deactivateBufferCount = 0;
+  activationBarrierCount = releaseBarrierCount = transitionBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_buf")
+      .buffer({4, 1, SBCF_BIND_UNORDERED | SBCF_NO_STATE_TRACKING, 0})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_buf").buffer().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.activate_buffer = [](Sbuffer *buf, ResourceActivationAction action, GpuPipeline gpu_pipeline) {
+    activateBufferCount++;
+    g_interfaceTableCopy.activate_buffer(buf, action, gpu_pipeline);
+  };
+
+  d3di.deactivate_buffer = [](Sbuffer *buf, GpuPipeline gpu_pipeline) {
+    deactivateBufferCount++;
+    g_interfaceTableCopy.deactivate_buffer(buf, gpu_pipeline);
+  };
+
+  d3di.enhanced_buffer_barrier = [](const d3d::BufferBarrier &barrier, Sbuffer *buffer) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    if (srcNoAccess)
+      activationBarrierCount++;
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+      transitionBarrierCount++;
+    g_interfaceTableCopy.enhanced_buffer_barrier(barrier, buffer);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(activateBufferCount == 0);
+  CHECK(deactivateBufferCount == 0);
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(transitionBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
+TEST_CASE("Untracked buffer UAV-UAV hazard is synchronized via enhanced barriers", "[untracked resources]")
+{
+  static int activationBarrierCount;
+  static int hazardBarrierCount;
+  static int releaseBarrierCount;
+  static int legacyBarrierCount;
+  activationBarrierCount = hazardBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_buf")
+      .buffer({4, 1, SBCF_BIND_UNORDERED | SBCF_NO_STATE_TRACKING, 0})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.modify("untracked_buf").buffer().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.enhanced_buffer_barrier = [](const d3d::BufferBarrier &barrier, Sbuffer *buffer) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    const auto uav = d3d::AccessFlags{d3d::AccessFlag::UnorderedAccess}.asInteger();
+    if (srcNoAccess)
+      activationBarrierCount++;
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.memorySync.src.asInteger() == uav);
+      CHECK(barrier.memorySync.dst.asInteger() == uav);
+      hazardBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_buffer_barrier(barrier, buffer);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(hazardBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
+TEST_CASE("Untracked texture is synced entirely by daFG via enhanced barriers", "[untracked resources]")
+{
+  static int activateTextureCount;
+  static int deactivateTextureCount;
+  static int activationBarrierCount;
+  static int releaseBarrierCount;
+  static int transitionBarrierCount;
+  static int legacyBarrierCount;
+  activateTextureCount = deactivateTextureCount = 0;
+  activationBarrierCount = releaseBarrierCount = transitionBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) {
+    activateTextureCount++;
+    g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
+  };
+
+  d3di.deactivate_texture = [](BaseTexture *tex, GpuPipeline gpu_pipeline) {
+    deactivateTextureCount++;
+    g_interfaceTableCopy.deactivate_texture(tex, gpu_pipeline);
+  };
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    if (srcNoAccess)
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::Undefined);
+      activationBarrierCount++;
+    }
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::UnorderedAccess);
+      CHECK(barrier.layoutTransition.dst == d3d::TextureLayout::ShaderResource);
+      transitionBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(activateTextureCount == 0);
+  CHECK(deactivateTextureCount == 0);
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(transitionBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
+TEST_CASE("Untracked texture UAV-UAV hazard is synchronized via enhanced barriers", "[untracked resources]")
+{
+  static int activationBarrierCount;
+  static int hazardBarrierCount;
+  static int releaseBarrierCount;
+  static int legacyBarrierCount;
+  activationBarrierCount = hazardBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.modify("untracked_tex").texture().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    const auto uav = d3d::AccessFlags{d3d::AccessFlag::UnorderedAccess}.asInteger();
+    if (srcNoAccess)
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::Undefined);
+      activationBarrierCount++;
+    }
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.memorySync.src.asInteger() == uav);
+      CHECK(barrier.memorySync.dst.asInteger() == uav);
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::UnorderedAccess);
+      CHECK(barrier.layoutTransition.dst == d3d::TextureLayout::UnorderedAccess);
+      hazardBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(hazardBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
+TEST_CASE("Untracked texture render target to shader resource transition", "[untracked resources]")
+{
+  static int activateTextureCount;
+  static int activationBarrierCount;
+  static int transitionBarrierCount;
+  static int releaseBarrierCount;
+  static int legacyBarrierCount;
+  activateTextureCount = 0;
+  activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::COLOR_ATTACHMENT);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) {
+    activateTextureCount++;
+    g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
+  };
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    if (srcNoAccess)
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::Undefined);
+      activationBarrierCount++;
+    }
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::RenderTarget);
+      CHECK(barrier.layoutTransition.dst == d3d::TextureLayout::ShaderResource);
+      transitionBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(activateTextureCount == 0);
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(transitionBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
+TEST_CASE("Untracked texture copy destination to shader resource transition", "[untracked resources]")
+{
+  static int activateTextureCount;
+  static int activationBarrierCount;
+  static int transitionBarrierCount;
+  static int releaseBarrierCount;
+  static int legacyBarrierCount;
+  activateTextureCount = 0;
+  activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::TRANSFER)
+      .useAs(dafg::Usage::COPY);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) {
+    activateTextureCount++;
+    g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
+  };
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    if (srcNoAccess)
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::Undefined);
+      activationBarrierCount++;
+    }
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::CopyDest);
+      CHECK(barrier.layoutTransition.dst == d3d::TextureLayout::ShaderResource);
+      transitionBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(activateTextureCount == 0);
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(transitionBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
+TEST_CASE("Untracked texture read-after-read needs no intermediate barrier", "[untracked resources]")
+{
+  static int activationBarrierCount;
+  static int transitionBarrierCount;
+  static int releaseBarrierCount;
+  static int legacyBarrierCount;
+  activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle firstReaderHandle = dafg::register_node("first_reader", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle secondReaderHandle = dafg::register_node("second_reader", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    if (srcNoAccess)
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::Undefined);
+      activationBarrierCount++;
+    }
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::UnorderedAccess);
+      CHECK(barrier.layoutTransition.dst == d3d::TextureLayout::ShaderResource);
+      transitionBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(transitionBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
+TEST_CASE("Untracked texture barriers are re-emitted every frame", "[untracked resources]")
+{
+  static int activateTextureCount;
+  static int deactivateTextureCount;
+  static int activationBarrierCount;
+  static int transitionBarrierCount;
+  static int releaseBarrierCount;
+  static int legacyBarrierCount;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_tex")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_tex").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) {
+    activateTextureCount++;
+    g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
+  };
+
+  d3di.deactivate_texture = [](BaseTexture *tex, GpuPipeline gpu_pipeline) {
+    deactivateTextureCount++;
+    g_interfaceTableCopy.deactivate_texture(tex, gpu_pipeline);
+  };
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    if (srcNoAccess)
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::Undefined);
+      activationBarrierCount++;
+    }
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::UnorderedAccess);
+      CHECK(barrier.layoutTransition.dst == d3d::TextureLayout::ShaderResource);
+      transitionBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  for (int frame = 0; frame < 2; ++frame)
+  {
+    activateTextureCount = deactivateTextureCount = 0;
+    activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+    testRuntime.executeGraph();
+
+    CHECK(activateTextureCount == 0);
+    CHECK(deactivateTextureCount == 0);
+    CHECK(legacyBarrierCount == 0);
+    CHECK(activationBarrierCount == 1);
+    CHECK(transitionBarrierCount == 1);
+    CHECK(releaseBarrierCount == 1);
+  }
+
+  d3di = g_interfaceTableCopy;
+}
+
+TEST_CASE("Untracked depth texture transitions to shader resource", "[untracked resources]")
+{
+  static int activateTextureCount;
+  static int activationBarrierCount;
+  static int transitionBarrierCount;
+  static int releaseBarrierCount;
+  static int legacyBarrierCount;
+  activateTextureCount = 0;
+  activationBarrierCount = transitionBarrierCount = releaseBarrierCount = legacyBarrierCount = 0;
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+
+  dafg::NodeHandle producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.create("untracked_depth")
+      .texture({.creationFlags = TEXFMT_DEPTH32 | TEXCF_RTARGET | TEXCF_NO_STATE_TRACKING, .resolution = IPoint2{1, 1}})
+      .atStage(dafg::Stage::PS)
+      .useAs(dafg::Usage::DEPTH_ATTACHMENT);
+  });
+
+  dafg::NodeHandle consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.read("untracked_depth").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE);
+  });
+
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) {
+    activateTextureCount++;
+    g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
+  };
+
+  d3di.enhanced_texture_barrier = [](const d3d::TextureBarrier &barrier, BaseTexture *texture) {
+    const bool srcNoAccess = barrier.memorySync.src.asInteger() == 0;
+    const bool dstNoAccess = barrier.memorySync.dst.asInteger() == 0;
+    if (srcNoAccess)
+    {
+      CHECK(barrier.layoutTransition.src == d3d::TextureLayout::Undefined);
+      activationBarrierCount++;
+    }
+    else if (dstNoAccess)
+      releaseBarrierCount++;
+    else
+    {
+      CHECK(barrier.layoutTransition.dst == d3d::TextureLayout::ShaderResource);
+      transitionBarrierCount++;
+    }
+    g_interfaceTableCopy.enhanced_texture_barrier(barrier, texture);
+  };
+
+  d3di.resource_barrier = [](const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline) {
+    legacyBarrierCount++;
+    g_interfaceTableCopy.resource_barrier(desc, gpu_pipeline);
+  };
+
+  testRuntime.executeGraph();
+
+  d3di = g_interfaceTableCopy;
+
+  CHECK(activateTextureCount == 0);
+  CHECK(legacyBarrierCount == 0);
+  CHECK(activationBarrierCount == 1);
+  CHECK(transitionBarrierCount == 1);
+  CHECK(releaseBarrierCount == 1);
+}
+
 TEST_CASE("Declaration callback runs inside FRAMEMEM_REGION", "[framemem]")
 {
   TestRuntime testRuntime{};
@@ -2006,6 +2657,9 @@ TEST_CASE("texture changing from external to scheduled without changing size", "
 
 TEST_CASE("bad resolution appears", "[autoresolution]")
 {
+  if (!d3d::get_driver_desc().caps.hasResourceHeaps)
+    SKIP("Driver does not support resource heaps");
+
   g_interfaceTableCopy = d3di;
 
   d3di.get_resource_allocation_properties = [](const ResourceDescription &desc) {
@@ -2054,4 +2708,236 @@ TEST_CASE("bad resolution appears", "[autoresolution]")
 
 
   d3di = g_interfaceTableCopy;
+}
+
+TEST_CASE("Request vrs for renderpass", "[render pass]")
+{
+  if (!d3d::get_driver_desc().caps.hasVariableRateShadingTexture)
+    SKIP("Driver does not support VRS");
+
+  g_interfaceTableCopy = d3di;
+
+  TestRuntime testRuntime{};
+  static void *renderPassWithVrs = nullptr;
+  d3di.create_render_pass = [](const RenderPassDesc &rp_desc) -> d3d::RenderPass * {
+    bool hasVrsRead = false;
+    for (const auto &bind : make_span_const(rp_desc.binds, rp_desc.bindCount))
+    {
+      if (bind.action & RenderPassTargetAction::RP_TA_SUBPASS_VRS_READ)
+      {
+        hasVrsRead = true;
+        break;
+      }
+    }
+    REQUIRE(hasVrsRead);
+    renderPassWithVrs = g_interfaceTableCopy.create_render_pass(rp_desc);
+    return (d3d::RenderPass *)renderPassWithVrs;
+  };
+
+  static int rpActivationCounter = 0;
+  d3di.begin_render_pass = [](d3d::RenderPass *rp, const RenderPassArea area, dag::ConstSpan<RenderPassTarget> targets) {
+    CHECK(rp == renderPassWithVrs);
+    rpActivationCounter++;
+    return g_interfaceTableCopy.begin_render_pass(rp, area, targets);
+  };
+
+  constexpr const char *VRS_RATE_TEXTURE_NAME = "vrs_rate_texture";
+
+  auto vrsHandle = dafg::register_node("create_vrs_texture_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.create(VRS_RATE_TEXTURE_NAME)
+      .texture({TEXFMT_R8UI | TEXCF_VARIABLE_RATE | TEXCF_UNORDERED, registry.getResolution<2>("texel_per_vrs_tile")})
+      .atStage(dafg::Stage::COMPUTE)
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .clear(make_clear_value(0, 0, 0, 0));
+  });
+
+  auto colorTextureProducerHandle = dafg::register_node("create_color_texture_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.create("color_texture")
+      .texture({.creationFlags = TEXFMT_R8G8B8A8, .resolution = IPoint2{4, 4}})
+      .clear(ResourceClearValue{});
+  });
+
+  uint32_t executed = 0;
+  auto createNodeWithRenderPass = [&executed](dafg::NameSpace ns) {
+    return ns.registerNode("request_renderpass_node", DAFG_PP_NODE_SRC, [&executed](dafg::Registry registry) {
+      registry.executionHas(dafg::SideEffects::External);
+      auto colorTex = registry.modifyTexture("color_texture").optional();
+      registry.requestRenderPass().color({colorTex}).vrsRate(VRS_RATE_TEXTURE_NAME);
+      return [&executed] { executed++; };
+    });
+  };
+
+  auto childChildHandle = createNodeWithRenderPass(dafg::root() / "child" / "child");
+  auto rootHandle = createNodeWithRenderPass(dafg::root());
+  auto childHandle = createNodeWithRenderPass(dafg::root() / "child");
+
+  executed = 0;
+  rpActivationCounter = 0;
+  dafg::set_resolution("texel_per_vrs_tile", IPoint2{4, 4});
+  testRuntime.executeGraph();
+  CHECK(executed == 3);
+  // same render pass must be used for all nodes
+  CHECK(rpActivationCounter == 1);
+
+  executed = 0;
+  rpActivationCounter = 0;
+  dafg::set_resolution("texel_per_vrs_tile", IPoint2{4, 8});
+  testRuntime.executeGraph();
+  CHECK(executed == 3);
+  // same render pass must be used for all nodes
+  CHECK(rpActivationCounter == 1);
+
+  executed = 0;
+  rpActivationCounter = 0;
+  colorTextureProducerHandle = {};
+  testRuntime.executeGraph();
+  CHECK(executed == 3);
+  // Do we really need the render pass if there is no color attachments?
+  CHECK(rpActivationCounter == 1);
+
+  renderPassWithVrs = nullptr;
+  rpActivationCounter = 0;
+  d3di = g_interfaceTableCopy;
+}
+
+
+TEST_CASE("Fill resource slot twice in a row", "[resource slots][name resolver]")
+{
+  TestRuntime testRuntime{};
+
+  auto providerHandle = dafg::register_node("provider", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.create("resource").blob<int>(0);
+    registry.create("new_resource").blob<int>(1);
+    registry.create("new_resource_2").blob<int>(2);
+  });
+
+  int expectedValue;
+  dafg::NodeHandle receiverHandle = dafg::register_node("receiver", DAFG_PP_NODE_SRC, [&expectedValue](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    auto blobHandle = registry.readBlob<int>("resource_slot").handle();
+    return [blobHandle, &expectedValue] { CHECK(blobHandle.ref() == expectedValue); };
+  });
+
+
+  // fill slot once
+  dafg::fill_slot(dafg::NamedSlot{"resource_slot"}, "resource");
+  expectedValue = 0;
+  testRuntime.executeGraph();
+
+  // then fill twice with new resources
+  dafg::fill_slot(dafg::NamedSlot{"resource_slot"}, "new_resource");
+  dafg::fill_slot(dafg::NamedSlot{"resource_slot"}, "new_resource_2");
+  expectedValue = 2;
+  testRuntime.executeGraph();
+}
+
+TEST_CASE("Preserved history blob is not deactivated when producer changes", "[history requests][resource scheduling]")
+{
+  struct TrackingBlob
+  {
+    uint32_t value = 0;
+    ~TrackingBlob() { value = 0xDEAD; }
+  };
+
+  TestRuntime testRuntime{};
+
+  static constexpr int N_BLOBS = 3;
+  uint32_t producedValue[N_BLOBS] = {1, 2, 3};
+  uint32_t expectedHistory[N_BLOBS] = {0, 0, 0};
+
+  auto consumerHandle = dafg::register_node("consumer", DAFG_PP_NODE_SRC, [&](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    auto blobHandle1 = registry.readBlob<TrackingBlob>("history_blob_1").optional().handle();
+    auto historyHandle1 = registry.readBlobHistory<TrackingBlob>("history_blob_1").optional().handle();
+    auto blobHandle2 = registry.readBlob<TrackingBlob>("history_blob_2").optional().handle();
+    auto historyHandle2 = registry.readBlobHistory<TrackingBlob>("history_blob_2").optional().handle();
+    auto blobHandle3 = registry.readBlob<TrackingBlob>("history_blob_3").optional().handle();
+    auto historyHandle3 = registry.readBlobHistory<TrackingBlob>("history_blob_3").optional().handle();
+
+    return [blobHandle1, historyHandle1, blobHandle2, historyHandle2, blobHandle3, historyHandle3, &producedValue, &expectedHistory] {
+      auto checkHandle = [](auto hndl, auto history_hndl, uint32_t expected_value, uint32_t expected_history_value) {
+        if (hndl.get() != nullptr)
+        {
+          REQUIRE(history_hndl.get() != nullptr);
+          CHECK(hndl.get()->value == expected_value);
+          CHECK(history_hndl.get()->value == expected_history_value);
+        }
+      };
+      checkHandle(blobHandle1, historyHandle1, producedValue[0], expectedHistory[0]);
+      checkHandle(blobHandle2, historyHandle2, producedValue[1], expectedHistory[1]);
+      checkHandle(blobHandle3, historyHandle3, producedValue[2], expectedHistory[2]);
+    };
+  });
+
+  // Each history blob has two producer variants. Swapping which node produces
+  // a blob is a legal recompile: the resource is re-created (so its IR index is
+  // re-appended and may shift) but stays paired with its previous-frame self by
+  // name, so its content must be preserved. The dummy texture is toggled in the
+  // same cycle to churn the resource set. Cycling through the variant/dummy
+  // combinations permutes IR indices; the buggy deactivation wipe (which mixed
+  // old- and new-graph index spaces) then missed a shifted preserved blob and
+  // ran its destructor on the live preserved slot, corrupting the history read.
+  // TrackingBlob's destructor poisons its value to make that corruption visible.
+  auto createProducer = [](const char *producer_name, const char *blob_name, uint32_t &value) {
+    return dafg::register_node(producer_name, DAFG_PP_NODE_SRC, [&value, blob_name](dafg::Registry registry) {
+      auto blobHandle = registry.create(blob_name).blob<TrackingBlob>({}).withHistory().handle();
+      return [&value, blobHandle] { blobHandle.ref().value = value; };
+    });
+  };
+
+  auto makeDummy = [] {
+    return dafg::register_node("dummy", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.executionHas(dafg::SideEffects::External);
+      registry.create("dummy_tex")
+        .texture({.creationFlags = TEXFMT_R8, .resolution = IPoint2{1, 1}})
+        .atStage(dafg::Stage::PS)
+        .useAs(dafg::Usage::SHADER_RESOURCE);
+    });
+  };
+
+  const char *blobNames[N_BLOBS] = {"history_blob_1", "history_blob_2", "history_blob_3"};
+  const char *producerNames[N_BLOBS][2] = {
+    {"producer_1a", "producer_1b"},
+    {"producer_2a", "producer_2b"},
+    {"producer_3a", "producer_3b"},
+  };
+
+  dafg::NodeHandle producers[N_BLOBS];
+  int currentVariant[N_BLOBS] = {0, 0, 0};
+  for (int i = 0; i < N_BLOBS; ++i)
+    producers[i] = createProducer(producerNames[i][0], blobNames[i], producedValue[i]);
+  dafg::NodeHandle dummy = makeDummy();
+
+  // Frame 0: establish history (default-constructed blobs -> history == 0).
+  testRuntime.executeGraph();
+
+  auto updateValuesAndExecute = [&] {
+    for (int i = 0; i < N_BLOBS; ++i)
+      expectedHistory[i] = producedValue[i];
+    for (int i = 0; i < N_BLOBS; ++i)
+      producedValue[i] += N_BLOBS;
+
+    testRuntime.executeGraph();
+  };
+
+  // Cycle through producer-variant (2^3) combinations
+  for (int frame = 0; frame <= 15; ++frame)
+  {
+    for (int i = 0; i < N_BLOBS; ++i)
+    {
+      const int variant = (frame >> i) & 1;
+      if (variant != currentVariant[i])
+      {
+        producers[i] = {};
+        producers[i] = createProducer(producerNames[i][variant], blobNames[i], producedValue[i]);
+        currentVariant[i] = variant;
+      }
+    }
+
+    dummy = makeDummy();
+    updateValuesAndExecute();
+
+    dummy = {};
+    updateValuesAndExecute();
+  }
 }

@@ -505,17 +505,16 @@ namespace glm
 		T const SrcB21 = m2[2][1];
 		T const SrcB22 = m2[2][2];
 
-		mat<3, 3, T, Q> Result;
-		Result[0][0] = SrcA00 * SrcB00 + SrcA10 * SrcB01 + SrcA20 * SrcB02;
-		Result[0][1] = SrcA01 * SrcB00 + SrcA11 * SrcB01 + SrcA21 * SrcB02;
-		Result[0][2] = SrcA02 * SrcB00 + SrcA12 * SrcB01 + SrcA22 * SrcB02;
-		Result[1][0] = SrcA00 * SrcB10 + SrcA10 * SrcB11 + SrcA20 * SrcB12;
-		Result[1][1] = SrcA01 * SrcB10 + SrcA11 * SrcB11 + SrcA21 * SrcB12;
-		Result[1][2] = SrcA02 * SrcB10 + SrcA12 * SrcB11 + SrcA22 * SrcB12;
-		Result[2][0] = SrcA00 * SrcB20 + SrcA10 * SrcB21 + SrcA20 * SrcB22;
-		Result[2][1] = SrcA01 * SrcB20 + SrcA11 * SrcB21 + SrcA21 * SrcB22;
-		Result[2][2] = SrcA02 * SrcB20 + SrcA12 * SrcB21 + SrcA22 * SrcB22;
-		return Result;
+		return mat<3, 3, T, Q>(
+			SrcA00 * SrcB00 + SrcA10 * SrcB01 + SrcA20 * SrcB02,
+			SrcA01 * SrcB00 + SrcA11 * SrcB01 + SrcA21 * SrcB02,
+			SrcA02 * SrcB00 + SrcA12 * SrcB01 + SrcA22 * SrcB02,
+			SrcA00 * SrcB10 + SrcA10 * SrcB11 + SrcA20 * SrcB12,
+			SrcA01 * SrcB10 + SrcA11 * SrcB11 + SrcA21 * SrcB12,
+			SrcA02 * SrcB10 + SrcA12 * SrcB11 + SrcA22 * SrcB12,
+			SrcA00 * SrcB20 + SrcA10 * SrcB21 + SrcA20 * SrcB22,
+			SrcA01 * SrcB20 + SrcA11 * SrcB21 + SrcA21 * SrcB22,
+			SrcA02 * SrcB20 + SrcA12 * SrcB21 + SrcA22 * SrcB22);
 	}
 
 	template<typename T, qualifier Q>

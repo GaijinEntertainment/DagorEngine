@@ -24,6 +24,31 @@ SQOptimizer::SQOptimizer(SQFuncState & func_state) : fs(&func_state), jumps(func
 #endif
 
 
+static void replaceWithLoadInt(SQFuncState *fs, SQInstruction &ins, unsigned char target, SQInteger value)
+{
+    ins._arg0 = target;
+    if (value < SQInteger(INT_MIN) || value > SQInteger(INT_MAX)) {
+        ins.op = _OP_LOAD;
+        ins._arg1 = fs->GetNumericConstant(value);
+    } else {
+        ins.op = _OP_LOADINT;
+        ins._arg1 = (SQInt32)value;
+    }
+    ins._arg2 = 0;
+    ins._arg3 = 0;
+}
+
+static void replaceWithLoadFloat(SQInstruction &ins, unsigned char target, SQFloat value)
+{
+    assert(sizeof(SQFloat) == sizeof(SQInt32));
+    ins.op = _OP_LOADFLOAT;
+    ins._arg0 = target;
+    ins._farg1 = value;
+    ins._arg2 = 0;
+    ins._arg3 = 0;
+}
+
+
 bool SQOptimizer::isUnsafeJumpRange(int start, int count) const
 {
     for (int i = 0, ie = jumps.size(); i < ie; i++) {
@@ -186,15 +211,7 @@ void SQOptimizer::optimizeConstFolding()
                         }
 
                         if (applyOpt) {
-                            instr[targetInst]._arg0 = operation._arg0;
-                            if (res < SQInteger(INT_MIN) || res > SQInteger(INT_MAX))
-                            {
-                                instr[targetInst].op = _OP_LOAD;
-                                instr[targetInst]._arg1 = fs->GetNumericConstant(res);
-                            } else {
-                                instr[targetInst].op = _OP_LOADINT;
-                                instr[targetInst]._arg1 = (SQInt32)res;
-                            }
+                            replaceWithLoadInt(fs, instr[targetInst], operation._arg0, res);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
@@ -202,7 +219,6 @@ void SQOptimizer::optimizeConstFolding()
                             #endif
                         }
                     } else { // float
-                        assert(sizeof(SQFloat) == sizeof(SQInt32));
                         SQFloat res = 0;
                         SQFloat lv = (loadA.op == _OP_LOADFLOAT) ? loadA._farg1 : SQFloat(loadA._arg1);
                         SQFloat rv = (loadB.op == _OP_LOADFLOAT) ? loadB._farg1 : SQFloat(loadB._arg1);
@@ -224,9 +240,7 @@ void SQOptimizer::optimizeConstFolding()
                         }
 
                         if (applyOpt) {
-                            instr[targetInst].op = _OP_LOADFLOAT;
-                            instr[targetInst]._farg1 = res;
-                            instr[targetInst]._arg0 = operation._arg0;
+                            replaceWithLoadFloat(instr[targetInst], operation._arg0, res);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
@@ -269,16 +283,7 @@ void SQOptimizer::optimizeConstFolding()
                         }
 
                         if (applyOpt) { // -V547
-                            instr[targetInst]._arg0 = operation._arg0;
-                            if (res < SQInteger(INT_MIN) || res > SQInteger(INT_MAX))
-                            {
-                                instr[targetInst].op = _OP_LOAD;
-                                instr[targetInst]._arg1 = fs->GetNumericConstant(res);
-                            } else
-                            {
-                                instr[targetInst].op = _OP_LOADINT;
-                                instr[targetInst]._arg1 = (SQInt32)res;
-                            }
+                            replaceWithLoadInt(fs, instr[targetInst], operation._arg0, res);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP
@@ -286,7 +291,6 @@ void SQOptimizer::optimizeConstFolding()
                             #endif
                         }
                     } else { // float
-                        assert(sizeof(SQFloat) == sizeof(SQInt32));
                         SQFloat res = 0;
                         SQFloat lv = loadA._farg1;
                         SQFloat rv = SQFloat(operation._arg1);
@@ -296,9 +300,7 @@ void SQOptimizer::optimizeConstFolding()
                         }
 
                         if (applyOpt) { // -V547
-                            instr[targetInst].op = _OP_LOADFLOAT;
-                            instr[targetInst]._farg1 = res;
-                            instr[targetInst]._arg0 = operation._arg0;
+                            replaceWithLoadFloat(instr[targetInst], operation._arg0, res);
                             changed = true;
                             codeChanged = true;
                             #ifdef _DEBUG_DUMP

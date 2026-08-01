@@ -7,12 +7,14 @@
 #include <3d/dag_lockSbuffer.h>
 #include <drv/3d/dag_rwResource.h>
 #include <shaders/dag_computeShaders.h>
+#include <shaders/dag_refinedBlock.h>
 #include <render/daFrameGraph/daFG.h>
 #include <math/dag_hlsl_floatx.h>
 #include <frustumCulling/frustumPlanes.h>
 #include <render/world/frameGraphHelpers.h>
 #include "../../shaders/dagdp_common.hlsli"
 #include "../../shaders/dagdp_common_placer.hlsli"
+#include "../block.h"
 #include "grid3d.h"
 
 using TmpName = eastl::fixed_string<char, 256>;
@@ -71,6 +73,7 @@ struct Grid3dConstants
 
   dag::Vector<Grid3dPlacer> placers;
   Grid3dMapping mapping;
+  refined_block::PassBlockHandle passBlock;
 };
 
 struct Grid3dPersistentData
@@ -146,6 +149,8 @@ static dafg::NodeHandle create_place_node(
       const auto &gatheredInfo = gatheredInfoHandle.ref();
       if (!gatheredInfo.isValid)
         return;
+
+      constants.passBlock.setState();
 
       ShaderGlobal::set_buffer(var::draw_ranges, persistentData->commonBuffers.drawRangesBuffer.getBufId());
       ShaderGlobal::set_buffer(var::placeables, persistentData->commonBuffers.placeablesBuffer.getBufId());
@@ -273,6 +278,10 @@ void create_grid3d_nodes(const ViewInfo &view_info,
       dag::buffers::create_one_frame_sr_structured(sizeof(Grid3dTile), constants.maxTiles, bufferName.c_str());
     debug("[FRAMEMEM] - For tiles '%s': %d", bufferName.c_str(), constants.maxTiles);
   }
+
+  constants.passBlock =
+    get_dagdp_view_block(constants.viewInfo.uniqueName.c_str())
+      .refineBlock(TmpName(TmpName::CtorSprintf(), "dagdp_grid3d_pass@%s", constants.viewInfo.uniqueName.c_str()).c_str());
 
   dafg::NodeHandle gatherNode = ns.registerNode("gather", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
     const auto &constants = persistentData->constants;

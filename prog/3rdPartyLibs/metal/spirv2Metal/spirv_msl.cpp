@@ -124,7 +124,7 @@ void CompilerMSL::add_msl_resource_binding(const MSLResourceBinding &binding)
 void CompilerMSL::add_dynamic_buffer(uint32_t desc_set, uint32_t binding, uint32_t index)
 {
 	SetBindingPair pair = { desc_set, binding };
-	buffers_requiring_dynamic_offset[pair] = { index, 0 };
+	buffers_requiring_dynamic_offset[pair] = { index, 0, "" };
 }
 
 void CompilerMSL::add_inline_uniform_block(uint32_t desc_set, uint32_t binding)
@@ -1494,19 +1494,22 @@ void CompilerMSL::emit_entry_point_declarations()
 	// Emit dynamic buffers here.
 	for (auto &dynamic_buffer : buffers_requiring_dynamic_offset)
 	{
-		if (!dynamic_buffer.second.second)
+		if (!dynamic_buffer.second.var_id)
 		{
 			// Could happen if no buffer was used at requested binding point.
 			continue;
 		}
 
-		const auto &var = get<SPIRVariable>(dynamic_buffer.second.second);
+		const auto &var = get<SPIRVariable>(dynamic_buffer.second.var_id);
 		uint32_t var_id = var.self;
 		const auto &type = get_variable_data_type(var);
+
+		add_local_variable_name(var.self);
 		string name = to_name(var.self);
+
 		uint32_t desc_set = get_decoration(var.self, DecorationDescriptorSet);
 		uint32_t arg_id = argument_buffer_ids[desc_set];
-		uint32_t base_index = dynamic_buffer.second.first;
+		uint32_t base_index = dynamic_buffer.second.base_index;
 
 		if (is_array(type))
 		{
@@ -1524,7 +1527,7 @@ void CompilerMSL::emit_entry_point_declarations()
 			{
 				statement("(", get_argument_address_space(var), " ", type_to_glsl(type), "* ",
 				          to_restrict(var_id, false), ")((", get_argument_address_space(var), " char* ",
-				          to_restrict(var_id, false), ")", to_name(arg_id), ".", ensure_valid_name(name, "m"),
+				          to_restrict(var_id, false), ")", to_name(arg_id), ".", dynamic_buffer.second.mbr_name,
 				          "[", i, "]", " + ", to_name(dynamic_offsets_buffer_id), "[", base_index + i, "]),");
 			}
 
@@ -1537,7 +1540,7 @@ void CompilerMSL::emit_entry_point_declarations()
 			statement(get_argument_address_space(var), " auto& ", to_restrict(var_id, true), name, " = *(",
 			          get_argument_address_space(var), " ", type_to_glsl(type), "* ", to_restrict(var_id, false), ")((",
 			          get_argument_address_space(var), " char* ", to_restrict(var_id, false), ")", to_name(arg_id), ".",
-			          ensure_valid_name(name, "m"), " + ", to_name(dynamic_offsets_buffer_id), "[", base_index, "]);");
+			          dynamic_buffer.second.mbr_name, " + ", to_name(dynamic_offsets_buffer_id), "[", base_index, "]);");
 		}
 	}
 
@@ -1547,6 +1550,8 @@ void CompilerMSL::emit_entry_point_declarations()
 		const auto &var = *arg;
 		const auto &type = get_variable_data_type(var);
 		const auto &buffer_type = get_variable_element_type(var);
+
+		// This has already been added as a resource name.
 		const string name = to_name(var.self);
 
 		if (is_var_runtime_size_array(var))
@@ -6176,14 +6181,31 @@ void CompilerMSL::emit_custom_functions()
 				"device", "device",      "device", "device",      "thread", "threadgroup",
 			};
 
+			static const bool src_is_physical_with_mismatch[] = {
+				true, true, false,
+				false, false, false,
+				false, false, false,
+				false, true, true,
+			};
+
+			static const bool dst_is_physical_with_mismatch[] = {
+				false, false, false,
+				false, false, false,
+				false, false, true,
+				true, false, false,
+			};
+
 			for (uint32_t variant = 0; variant < 12; variant++)
 			{
+				assert(!src_is_physical_with_mismatch[variant] || !dst_is_physical_with_mismatch[variant]);
 				bool is_multidim = spv_func == SPVFuncImplArrayCopyMultidim;
-				const char* dim = is_multidim ? "[N][M]" : "[N]";
+				const char *dim = is_multidim ? "[N][M]" : "[N]";
+
+				// Simple base case.
 				statement("template<typename T, uint N", is_multidim ? ", uint M>" : ">");
 				statement("inline void spvArrayCopy", function_name_tags[variant], "(",
-				          dst_address_space[variant], " T (&dst)", dim, ", ",
-				          src_address_space[variant], " T (&src)", dim, ")");
+						  dst_address_space[variant], " T (&dst)", dim, ", ",
+						  src_address_space[variant], " T (&src)", dim, ")");
 				begin_scope();
 				statement("for (uint i = 0; i < N; i++)");
 				begin_scope();
@@ -6193,6 +6215,81 @@ void CompilerMSL::emit_custom_functions()
 					statement("dst[i] = src[i];");
 				end_scope();
 				end_scope();
+
+				if (spv_function_implementations.count(SPVFuncImplArrayCopyExtendedSrc) &&
+					src_is_physical_with_mismatch[variant])
+				{
+					// 1st overload, src can be magic vector where dst is a scalar.
+					// Need reinterpret casts to be memory model correct. LLVM vectors are broken otherwise.
+					statement("template<typename T, uint V, uint N", is_multidim ? ", uint M>" : ">");
+					statement("inline void spvArrayCopy", function_name_tags[variant], "(",
+							  dst_address_space[variant], " T (&dst)", dim, ", ",
+							  src_address_space[variant], " vec<T, V> (&src)", dim, ")");
+					begin_scope();
+					statement("for (uint i = 0; i < N; i++)");
+					begin_scope();
+					if (is_multidim)
+						statement("spvArrayCopy", function_name_tags[variant], "(dst[i], src[i]);");
+					else
+						statement("dst[i] = reinterpret_cast<", src_address_space[variant], " T &>(src[i]);");
+					end_scope();
+					end_scope();
+
+					statement("");
+
+					// 2nd overload, both are vectors, but need SFINAE magic to avoid ambiguous case.
+					statement("template<typename T, uint Vdst, uint Vsrc, uint N", is_multidim ? ", uint M>" : ">");
+					statement("inline enable_if_t<Vdst != Vsrc> spvArrayCopy", function_name_tags[variant], "(",
+							  dst_address_space[variant], " vec<T, Vdst> (&dst)", dim, ", ",
+							  src_address_space[variant], " vec<T, Vsrc> (&src)", dim, ")");
+					begin_scope();
+					statement("for (uint i = 0; i < N; i++)");
+					begin_scope();
+					if (is_multidim)
+						statement("spvArrayCopy", function_name_tags[variant], "(dst[i], src[i]);");
+					else
+						statement("dst[i] = reinterpret_cast<", src_address_space[variant], " vec<T, Vdst> &>(src[i]);");
+					end_scope();
+					end_scope();
+				}
+
+				if (spv_function_implementations.count(SPVFuncImplArrayCopyExtendedDst) &&
+					dst_is_physical_with_mismatch[variant])
+				{
+					// 1st overload, src can be magic vector where dst is a scalar.
+					// Need reinterpret casts to be memory model correct. LLVM vectors are broken otherwise.
+					statement("template<typename T, uint V, uint N", is_multidim ? ", uint M>" : ">");
+					statement("inline void spvArrayCopy", function_name_tags[variant], "(",
+							  dst_address_space[variant], " vec<T, V> (&dst)", dim, ", ",
+							  src_address_space[variant], " T (&src)", dim, ")");
+					begin_scope();
+					statement("for (uint i = 0; i < N; i++)");
+					begin_scope();
+					if (is_multidim)
+						statement("spvArrayCopy", function_name_tags[variant], "(dst[i], src[i]);");
+					else
+						statement("reinterpret_cast<", dst_address_space[variant], " T &>(dst[i]) = src[i];");
+					end_scope();
+					end_scope();
+
+					statement("");
+
+					// 2nd overload, both are vectors, but need SFINAE magic to avoid ambiguous case.
+					statement("template<typename T, uint Vdst, uint Vsrc, uint N", is_multidim ? ", uint M>" : ">");
+					statement("inline enable_if_t<Vdst != Vsrc> spvArrayCopy", function_name_tags[variant], "(",
+							  dst_address_space[variant], " vec<T, Vdst> (&dst)", dim, ", ",
+							  src_address_space[variant], " vec<T, Vsrc> (&src)", dim, ")");
+					begin_scope();
+					statement("for (uint i = 0; i < N; i++)");
+					begin_scope();
+					if (is_multidim)
+						statement("spvArrayCopy", function_name_tags[variant], "(dst[i], src[i]);");
+					else
+						statement("reinterpret_cast<", dst_address_space[variant], " vec<T, Vsrc> &>(dst[i]) = src[i];");
+					end_scope();
+					end_scope();
+				}
+
 				statement("");
 			}
 			break;
@@ -8427,9 +8524,22 @@ void CompilerMSL::emit_specialization_constants_and_structs()
 					if (unique_func_constants[constant_id] == c.self)
 						statement("constant ", sc_type_name, " ", sc_tmp_name, " [[function_constant(", constant_id,
 						          ")]];");
-					statement("constant ", sc_type_name, " ", sc_name, " = is_function_constant_defined(", sc_tmp_name,
-					          ") ? ", bitcast_expression(type, sc_tmp_type, sc_tmp_name), " : ", constant_expression(c),
-					          ";");
+					// RenderDoc and other instrumentation may reuse the same SpecId with different base types.
+					// We deduplicate to one [[function_constant(id)]] temp and then initialize all variants from it.
+					// Metal forbids as_type to/from 'bool', so if either side is Boolean, avoid bitcasting here and
+					// prefer a value cast via a constructor instead (e.g. uint(tmp) / float(tmp) / bool(tmp)).
+					// This preserves expected toggle semantics and prevents illegal MSL like as_type<uint>(bool_tmp).
+					{
+						string sc_true_expr;
+						if (sc_tmp_type == type.basetype)
+							sc_true_expr = sc_tmp_name;
+						else if (sc_tmp_type == SPIRType::Boolean || type.basetype == SPIRType::Boolean)
+							sc_true_expr = join(sc_type_name, "(", sc_tmp_name, ")");
+						else
+							sc_true_expr = bitcast_expression(type, sc_tmp_type, sc_tmp_name);
+						statement("constant ", sc_type_name, " ", sc_name, " = is_function_constant_defined(", sc_tmp_name,
+						          ") ? ", sc_true_expr, " : ", constant_expression(c), ";");
+					}
 				}
 				else if (has_decoration(c.self, DecorationSpecId))
 				{
@@ -10742,7 +10852,7 @@ void CompilerMSL::emit_barrier(uint32_t id_exe_scope, uint32_t id_mem_scope, uin
 			break;
 
 		case ScopeSubgroup:
-			bar_stmt += ", thread_scope_subgroup";
+			bar_stmt += ", thread_scope_simdgroup";
 			break;
 
 		case ScopeInvocation:
@@ -10886,6 +10996,12 @@ bool CompilerMSL::emit_array_copy(const char *expr, uint32_t lhs_id, uint32_t rh
 			tag = "FromDeviceToStack";
 		else
 			SPIRV_CROSS_THROW("Unknown storage class used for copying arrays.");
+
+		// Should be very rare, but mark if we need extra magic template overloads.
+		if (has_extended_decoration(lhs_id, SPIRVCrossDecorationPhysicalTypeID))
+			add_spv_func_and_recompile(SPVFuncImplArrayCopyExtendedDst);
+		if (has_extended_decoration(rhs_id, SPIRVCrossDecorationPhysicalTypeID))
+			add_spv_func_and_recompile(SPVFuncImplArrayCopyExtendedSrc);
 
 		// Pass internal array of spvUnsafeArray<> into wrapper functions
 		if (lhs_is_array_template && rhs_is_array_template && !msl_options.force_native_arrays)
@@ -14129,6 +14245,10 @@ string CompilerMSL::get_type_address_space(const SPIRType &type, uint32_t id, bo
 					addr_space = "threadgroup";
 			}
 
+			// BlockIO is passed as thread and lowered on return from main.
+			if (get_execution_model() == ExecutionModelVertex && has_decoration(type.self, DecorationBlock))
+				addr_space = "thread";
+
 			if (!addr_space)
 				addr_space = "device";
 		}
@@ -14710,6 +14830,13 @@ void CompilerMSL::entry_point_args_discrete_descriptors(string &ep_args)
 						// Need to promote interlocked usage so that the primary declaration is correct.
 						if (interlocked_resources.count(var_id))
 							interlocked_resources.insert(resource.var->self);
+
+						// Aliasing with unroll just gets too messy to deal with. I sure hope this never comes up ...
+						if ((is_array(get_variable_data_type(*resource.var)) && !is_var_runtime_size_array(*resource.var)) ||
+						    (is_array(get_variable_data_type(var)) && !is_var_runtime_size_array(var)))
+						{
+							SPIRV_CROSS_THROW("Attempting to alias same binding with a descriptor array which is not implemented through argument buffers. This is unsupported.");
+						}
 						break;
 					}
 				}
@@ -16211,6 +16338,7 @@ const std::unordered_set<std::string> &CompilerMSL::get_reserved_keyword_set()
 		"quad_broadcast",
 		"thread",
 		"threadgroup",
+		"signed",
 	};
 
 	return keywords;
@@ -16348,6 +16476,7 @@ const std::unordered_set<std::string> &CompilerMSL::get_illegal_func_names()
 		"M_2_SQRTPI",
 		"M_SQRT2",
 		"M_SQRT1_2",
+		"signed",
 	};
 
 	return illegal_func_names;
@@ -17487,13 +17616,18 @@ void CompilerMSL::emit_subgroup_cluster_op_cast(uint32_t result_type, uint32_t r
 	inherit_expression_dependencies(result_id, op0);
 }
 
+// Note: Metal forbids bitcasting to/from 'bool' using as_type. This function is used widely
+// for generating casts in the backend. To avoid generating illegal MSL when the canonical
+// function constant type (from deduplicated SpecId) is Boolean, fall back to value-cast in
+// that case by returning type_to_glsl(out_type) instead of as_type<...>.
 string CompilerMSL::bitcast_glsl_op(const SPIRType &out_type, const SPIRType &in_type)
 {
 	if (out_type.basetype == in_type.basetype)
 		return "";
 
-	assert(out_type.basetype != SPIRType::Boolean);
-	assert(in_type.basetype != SPIRType::Boolean);
+	// Avoid bitcasting to/from booleans in MSL; use value cast instead.
+	if (out_type.basetype == SPIRType::Boolean || in_type.basetype == SPIRType::Boolean)
+		return type_to_glsl(out_type);
 
 	bool integral_cast = type_is_integral(out_type) && type_is_integral(in_type) && (out_type.vecsize == in_type.vecsize);
 	bool same_size_cast = (out_type.width * out_type.vecsize) == (in_type.width * in_type.vecsize);
@@ -19712,6 +19846,8 @@ void CompilerMSL::analyze_argument_buffers()
 				next_arg_buff_index += resource.plane_count * count;
 			}
 
+			// Here we're locking down the member name early before compilation loops, so ensure that
+			// the resource name is not reused, even through a reset().
 			string mbr_name = ensure_valid_name(resource.name, "m");
 			if (resource.plane > 0)
 				mbr_name += join(plane_name_suffix, resource.plane);
@@ -19769,7 +19905,9 @@ void CompilerMSL::analyze_argument_buffers()
 				{
 					// Don't set the qualified name here; we'll define a variable holding the corrected buffer address later.
 					buffer_type.member_types.push_back(var.basetype);
-					buffers_requiring_dynamic_offset[pair].second = var.self;
+					auto &dynamic_buffer = buffers_requiring_dynamic_offset[pair];
+					dynamic_buffer.var_id = var.self;
+					dynamic_buffer.mbr_name = mbr_name;
 				}
 				else if (inline_uniform_blocks.count(pair))
 				{

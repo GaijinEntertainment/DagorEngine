@@ -183,6 +183,10 @@ int dynamic_impostor_texture_const_no = -1;
 int ri_vertex_data_no = -1;
 int ri_voxel_data_offset_varid = -1;
 int ri_voxel_depth_projection_varid = -1;
+int voxel_baker_last_rt0_varid = -1;
+int voxel_baker_last_rt1_varid = -1;
+int voxel_baker_last_rt2_varid = -1;
+int voxel_baker_last_rt3_varid = -1;
 float rendinst_ao_mul = 2.0f;
 // mip map build
 
@@ -191,6 +195,20 @@ bool is_tool_shaders = false;
 
 static bool depth_prepass_for_cells = true;
 static bool depth_prepass_for_impostors = false;
+
+void update_voxel_baker_textures()
+{
+  if (voxel_baker_last_rt0_varid == -1)
+    return;
+  Driver3dRenderTarget rt;
+  d3d::get_render_target(rt);
+  for (int i = 0; i < 3; i++)
+    d3d::resource_barrier({rt.getColor(i).tex, RB_RO_COPY_SOURCE | RB_RO_BLIT_SOURCE, 0, 0});
+  d3d::stretch_rect(rt.getColor(0).tex, ShaderGlobal::get_tex_ptr_fast(voxel_baker_last_rt0_varid));
+  d3d::stretch_rect(rt.getColor(1).tex, ShaderGlobal::get_tex_ptr_fast(voxel_baker_last_rt1_varid));
+  d3d::stretch_rect(rt.getColor(2).tex, ShaderGlobal::get_tex_ptr_fast(voxel_baker_last_rt2_varid));
+  d3d::stretch_rect(rt.getColor(3).tex, ShaderGlobal::get_tex_ptr_fast(voxel_baker_last_rt3_varid));
+}
 
 bool useRiDepthPrepass(bool use)
 {
@@ -231,6 +249,30 @@ void rendinst::render::renderRendinstShadowsToTextures(const Point3 &sunDir0, bo
 
   if (rendinstGlobalShadows && render_global_shadows)
     spin_wait([&] { return !renderRIGenGlobalShadowsToTextures(sunDir0) && !d3d::device_lost(nullptr); });
+}
+
+bool rendinst::render::notRenderedStaticShadowsBBoxes(Tab<BBox3> &boxes, bool add_instance_box)
+{
+  if (RendInstGenData::isLoading)
+    return false;
+
+  bool res = false;
+  FOR_EACH_RG_LAYER_DO (rgl)
+  {
+    if (rgl->notRenderedStaticShadowsBBoxes(boxes))
+      res = true;
+  }
+
+  if (!add_instance_box)
+    return res;
+
+  BBox3 ncibox = riExTiledScenes.getNewlyCreatedInstBoxAndReset();
+  if (!ncibox.isempty())
+  {
+    boxes.push_back(ncibox);
+    res = true;
+  }
+  return res;
 }
 
 bool rendinst::render::notRenderedStaticShadowsBBox(BBox3 &box, bool add_instance_box)
@@ -566,6 +608,10 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
   invLod0RangeVarId = ::get_shader_glob_var_id("rendinst_inv_lod0_range", true);
   rendinst::render::ri_voxel_data_offset_varid = ::get_shader_glob_var_id("voxel_data_offset", true);
   rendinst::render::ri_voxel_depth_projection_varid = ::get_shader_glob_var_id("voxel_depth_projection", true);
+  rendinst::render::voxel_baker_last_rt0_varid = ::get_shader_glob_var_id("voxel_baker_last_rt0", true);
+  rendinst::render::voxel_baker_last_rt1_varid = ::get_shader_glob_var_id("voxel_baker_last_rt1", true);
+  rendinst::render::voxel_baker_last_rt2_varid = ::get_shader_glob_var_id("voxel_baker_last_rt2", true);
+  rendinst::render::voxel_baker_last_rt3_varid = ::get_shader_glob_var_id("voxel_baker_last_rt3", true);
 
   ShaderGlobal::get_int_by_name("ri_vertex_data_no", rendinst::render::ri_vertex_data_no);
 
@@ -1111,7 +1157,7 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
             rendinst::gen::unpack_tm_pos(pos, scale, (const int16_t *)(src + i * srcStride), v_cell_add, v_cell_mul, true,
               &palette_id);
             vec4f palette_idf = v_mul(v_cvt_vec4f(palette_id), v_palette_mul);
-            pos = v_perm_xyzW(pos, v_add(scale, palette_idf));
+            pos = v_perm_xyzd(pos, v_add(scale, palette_idf));
             v_stu(dst + i * dstStride, pos);
           }
         }
@@ -1265,6 +1311,7 @@ void RendInstGenData::sortRIGenVisibility(RiGenVisibility &visibility, const Poi
   struct Instance
   {
     vec4f data;
+    uint64_t uniqueId;
     int ri_idx;
     float area;
     float distance;
@@ -1294,6 +1341,7 @@ void RendInstGenData::sortRIGenVisibility(RiGenVisibility &visibility, const Poi
         Instance &instance = instances.emplace_back();
         instance.ri_idx = ri_idx;
         instance.data = visibility.instanceData[lodI][j];
+        instance.uniqueId = visibility.instanceIds[lodI][j];
         instance.distance = v_extract_x(v_dot3_x(dir, v_sub(instance.data, pos)));
 
         if (fabsf(instance.distance) < riHalfWidth)
@@ -1315,11 +1363,13 @@ void RendInstGenData::sortRIGenVisibility(RiGenVisibility &visibility, const Poi
 
     visibility.perInstanceVisibilityCells[lodI].clear();
     visibility.instanceData[lodI].clear();
+    visibility.instanceIds[lodI].clear();
 
     int start = 0;
     for (int i = 0; i < static_cast<int>(instances.size()) - 1; ++i)
     {
       visibility.instanceData[lodI].push_back(instances[i].data);
+      visibility.instanceIds[lodI].push_back(instances[i].uniqueId);
 
       if (instances[i].ri_idx != instances[i + 1].ri_idx)
       {
@@ -1329,6 +1379,7 @@ void RendInstGenData::sortRIGenVisibility(RiGenVisibility &visibility, const Poi
     }
 
     visibility.instanceData[lodI].push_back(instances.back().data);
+    visibility.instanceIds[lodI].push_back(instances.back().uniqueId);
     visibility.perInstanceVisibilityCells[lodI].push_back({instances.back().ri_idx, start});
     visibility.perInstanceVisibilityCells[lodI].push_back({-1, static_cast<int>(instances.size())});
   }

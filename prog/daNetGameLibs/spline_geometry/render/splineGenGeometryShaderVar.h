@@ -4,7 +4,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shaderVariableInfo.h>
 
-extern ShaderBlockIdHolder dynamicSceneBlockId, dynamicDepthSceneBlockId, dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder dynamicSceneBlockId, dynamicDepthSceneBlockId, dynamicTransSceneBlockId;
 
 namespace var
 {

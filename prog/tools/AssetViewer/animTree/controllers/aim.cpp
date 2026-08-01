@@ -1,12 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "aim.h"
+#include "../animTree.h"
+#include "../animTreeDragListHandler.h"
 #include "../animTreeUtils.h"
 #include "../animParamData.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
 #include <util/dag_lookup.h>
+#include <ioSys/dag_dataBlockCommentsDef.h>
 
 const float DEFAULT_YAW_ACCEL = -1.0f;
 const float DEFAULT_PITCH_ACCEL = -1.0f;
@@ -149,11 +152,12 @@ void aim_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::Container
   remove_param_if_default_str(params, panel, "paramMaxPitchAngle");
   remove_param_if_default_str(params, panel, "paramWorldYaw");
   remove_param_if_default_str(params, panel, "paramWorldPitch");
+  remove_param_if_default_point4(params, panel, "limit");
 
   for (int i = 0; i < dependent_param_names.size(); ++i)
   {
     const String defaultValue(0, "%s%s", paramValue, dependent_param_postfixes[i]);
-    set_str_param_by_name_if_default(params, panel, dependent_param_names[i], defaultValue.c_str());
+    remove_param_if_default_str(params, panel, dependent_param_names[i], defaultValue.c_str());
   }
 }
 
@@ -165,11 +169,13 @@ void aim_init_block_settings(PropPanel::ContainerPropertyControl *panel, const D
     fill_param_names_without_comments(names, *table);
 
   bool isEditable = !names.empty();
+  const int firstIdx = isEditable ? get_param_name_idx_by_list_name(*table, SimpleString(names[0].c_str()), 0) : -1;
   panel->createList(PID_CTRLS_NODES_LIST, "Limits table", names, 0);
   panel->createButton(PID_CTRLS_NODES_LIST_ADD, "Add");
   panel->createButton(PID_CTRLS_NODES_LIST_REMOVE, "Remove", /*enabled*/ true, /*new_line*/ false);
-  panel->createEditBox(PID_CTRLS_AIM_LIMIT_NAME, "name", isEditable ? table->getParamName(0) : "", isEditable);
-  panel->createPoint4(PID_CTRLS_AIM_LIMIT_VALUE, "limit", isEditable ? table->getPoint4(0) : Point4::ZERO, /*prec*/ 2, isEditable);
+  panel->createEditBox(PID_CTRLS_AIM_LIMIT_NAME, "name", firstIdx >= 0 ? table->getParamName(firstIdx) : "", isEditable);
+  panel->createPoint4(PID_CTRLS_AIM_LIMIT_VALUE, "limit", firstIdx >= 0 ? table->getPoint4(firstIdx) : Point4::ZERO, /*prec*/ 2,
+    isEditable);
 }
 
 void aim_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
@@ -184,7 +190,7 @@ void aim_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlo
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
   // Skip commented fields
   int paramIdx = get_param_name_idx_by_list_name(*table, listName, selectedIdx);
-  if (paramIdx > 0)
+  if (paramIdx >= 0)
   {
     table->changeParamName(paramIdx, name);
     table->setPoint4(paramIdx, value);
@@ -203,7 +209,9 @@ void aim_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *pa
   const DataBlock *table = settings->getBlockByNameEx("limitsTable");
   const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
   panel->setText(PID_CTRLS_AIM_LIMIT_NAME, name.c_str());
-  panel->setPoint4(PID_CTRLS_AIM_LIMIT_VALUE, table->getPoint4(selectedIdx));
+  int paramIdx = get_param_name_idx_by_list_name(*table, name, selectedIdx);
+  if (paramIdx >= 0)
+    panel->setPoint4(PID_CTRLS_AIM_LIMIT_VALUE, table->getPoint4(paramIdx));
   bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
   for (int i = PID_CTRLS_AIM_LIMIT_NAME; i <= PID_CTRLS_AIM_LIMIT_VALUE; ++i)
     panel->setEnabledById(i, isEditable);
@@ -218,9 +226,39 @@ void aim_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataB
   {
     // Skip commented fields
     int paramIdx = get_param_name_idx_by_list_name(*table, listName, selectedIdx);
-    table->removeParam(paramIdx);
+    if (paramIdx >= 0)
+      table->removeParam(paramIdx);
   }
 
   if (table && table->isEmpty())
     settings->removeBlock("limitsTable");
+}
+
+class AimReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  AimReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers, PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    DataBlock *table = settings.getBlockByName("limitsTable");
+    if (!table)
+      return;
+    dag::Vector<int> positions;
+    for (int i = 0; i < table->paramCount(); ++i)
+      if (!CHECK_COMMENT_PREFIX(table->getParamName(i)))
+        positions.push_back(i);
+    if (from < 0 || from >= positions.size() || to < 0 || to >= positions.size())
+      return;
+    move_param_blk(*table, positions[from], positions[to]);
+  }
+};
+
+IListReorderHandler *aim_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new AimReorderHandler(plugin, controllers, panel);
 }

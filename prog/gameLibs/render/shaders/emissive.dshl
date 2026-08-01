@@ -246,7 +246,7 @@ hlsl(ps) {
     #ifdef DYNAMIC_EMISSIVE_REACTIVE
       init_reactive(gbuffer, 1);
     #endif
-    float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+    float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
     init_motion_vector(gbuffer, motion);
   #endif
     return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));

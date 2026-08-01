@@ -59,13 +59,13 @@ function updateGroupsList() {
 let onSym  = "+"
 let offSym = "-"
 
-function mkGroupListItemName(item) {
+function mkGroupListItemName(item): string {
   if (item.active > 0 && item.active != item.count)
     return $"{onSym} {item.groupName} ({item.active}/{item.count})"
   return $"{item.active > 0 ? onSym : offSym} {item.groupName}"
 }
 
-function mkGroupListItemTooltip(item) {
+function mkGroupListItemTooltip(item): string {
   let other = item.count - item.battleAreas - item.respawns - item.capZones
   return $"{item.count} objects: {item.battleAreas} battle areas, {item.respawns} respawns, {item.capZones} capture zones, {other} other"
 }

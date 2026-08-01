@@ -139,7 +139,8 @@ public:
 
   /// Convert viewport world coordinates to normal device coordinates.
   /// @param[in] world - world coordinates
-  /// @param[out] ndc - normal device coordinates
+  /// @param[out] ndc - normal device coordinates; ndc.z is forward depth (0 at znear,
+  ///                   1 at zfar), NOT the reverse-Z the projection matrix produces
   virtual void worldToNDC(const Point3 &world, Point3 &ndc) const = 0;
 
   /// Convert viewport world coordinates to screen coordinates.

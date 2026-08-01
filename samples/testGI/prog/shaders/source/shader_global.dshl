@@ -241,8 +241,12 @@ endmacro
 
 macro USE_HDR(code)
   USE_PRE_EXPOSURE(code)
-  hlsl(code) {half3 pack_hdr(half3 a) {return pre_exposure_encode(a);}}
-  hlsl(code) {half3 unpack_hdr(half3 a) {return pre_exposure_decode(a);}}
+  hlsl(code) {
+    half3 pack_hdr(half3 a) {return pre_exposure_encode(a);}
+    half3 unpack_hdr(half3 a) {return pre_exposure_decode(a);}
+    half get_exposure_mul() {return pre_exposure.x;}
+    half get_exposure_inv() {return pre_exposure.y;}
+  }
 endmacro
 
 

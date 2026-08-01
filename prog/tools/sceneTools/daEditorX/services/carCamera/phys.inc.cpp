@@ -1,6 +1,5 @@
 #include <de3_lightService.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include <EditorCore/ec_interface.h>
 #include <de3_dynRenderService.h>
 
@@ -121,10 +120,10 @@ static __forceinline void phys_close()
   inited = false;
 }
 
-static __forceinline void phys_before_render()
+static __forceinline void phys_before_render(const Point3 &cam_pos)
 {
   if (simObj)
-    simObj->beforeRender(::grs_cur_view.pos);
+    simObj->beforeRender(cam_pos);
 }
 static __forceinline void phys_render(IDynRenderService::Stage stage)
 {

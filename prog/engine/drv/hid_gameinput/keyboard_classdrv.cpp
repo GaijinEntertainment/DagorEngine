@@ -2,6 +2,7 @@
 
 #include "keyboard_classdrv.h"
 #include "keyboard_device.h"
+#include "gameinput.h"
 #include <drv/hid/dag_hiGlobals.h>
 #include <memory/dag_memBase.h>
 #include <cstring>
@@ -9,7 +10,14 @@
 using namespace HumanInput;
 
 
-bool HumanInput::keyboard_has_ime_layout() { return false; }
+GameInputKeyboardClassDriver::GameInputKeyboardClassDriver() { gameinput::init(); }
+
+
+GameInputKeyboardClassDriver::~GameInputKeyboardClassDriver()
+{
+  destroyDevices();
+  gameinput::shutdown();
+}
 
 
 bool GameInputKeyboardClassDriver::init()

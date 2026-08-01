@@ -44,6 +44,11 @@ python compare_captures.py <OLD.json|OLD.dap> <NEW.json|NEW.dap>
     --alpha A           q-value gate for significance (default 0.05)
     --min-change-pct P  minimum mean per-frame change in percent to flag (default 2)
     --min-delta-ms M    minimum mean per-frame change in ms to flag (default 0.05)
+    --events SUBS        comma-separated case-insensitive substrings; narrows every
+    --filter SUBS        named-event section (scope timelines and unique events) to
+                         matching names (both spellings are the same option)
+    --count-mismatch-pct P  flag a unique event whose A/B counts differ by more than
+                         P percent as a workload mismatch (default 5)
     --format md|json|both
     --out FILE          write the markdown report (default: stdout)
     --json-out FILE     also write a machine-readable JSON of the deltas
@@ -71,11 +76,18 @@ python compare_captures.py <OLD.json|OLD.dap> <NEW.json|NEW.dap>
    carry a `kind`: **CPU** (actual CPU work), **GPU-wait** (the main thread blocked on
    the GPU: present / swapchain / latency / fence / readback), or **Wait** (blocked on
    other work -- job pool, another thread: `tpool_wait`, `ecs_pfor_wait`, ...).
-5. **Moved more than the frame as a whole** -- a *secondary* lens: scopes whose
+5. **Unique (rare) events** -- cumulative per-run counters for
+   `DA_PROFILE_UNIQUE_EVENT` sites (ECS entity creation, template instantiation, ...),
+   i.e. rare/bursty work the per-frame timeline cannot resolve. Each event is compared
+   by occurrence count, total and per-call cost, and per-call min/max, sorted by
+   `|total ms delta|`. A large count gap between the two runs is flagged (`!`) as a
+   workload mismatch: the total delta then tracks call count, so read the per-call avg.
+   If a dump carries no `UniqueEventsBoard` this is stated explicitly.
+6. **Moved more than the frame as a whole** -- a *secondary* lens: scopes whose
    change exceeds the overall frame drift. Useful only if you independently suspect a
    uniform run-to-run drift (GPU clock/thermal). A scope that *caused* the frame
    change moves in step with it, so in-step regressions in (4) are NOT noise.
-6. **New / removed scopes** -- present in only one capture.
+7. **New / removed scopes** -- present in only one capture.
 
 ### Method
 
@@ -100,5 +112,8 @@ relative (`--min-change-pct`) and an absolute (`--min-delta-ms`) floor.
   (comparing two runs of the same build typically shows a small uniform drift plus a
   few genuinely out-of-step scopes).
 - Use `--skip-warmup` to drop load-spike frames at the start.
+- To focus on specific rare events (or scopes), pass `--events name1,name2`; e.g.
+  `--events createEntityInternal,instantiateTemplate,updateAllQueries` for the ECS
+  entity-creation path.
 - To investigate one regressed scope's internals, re-convert with
   `--scope <name>` (and, if the capture has sampling, inspect its `samples.byScope`).

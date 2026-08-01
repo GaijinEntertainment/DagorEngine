@@ -13,7 +13,7 @@
 #include <3d/dag_texMgr.h>
 #include <math/dag_hlsl_floatx.h>
 #include "renderLights.hlsli"
-
+#include <render/lights/lightsManager.h>
 #include <render/iesTextureManager.h>
 
 #include <EASTL/bitset.h>
@@ -29,6 +29,7 @@ inline OmniLightMaskType &operator|=(OmniLightMaskType &lhs, OmniLightMaskType r
 
 struct Frustum;
 class Occlusion;
+class LightsPartition;
 
 /* NOTE: thread safe for OmniLightsManager
   - OmniLightsManager doesn't allocate memory: all data arrays
@@ -41,39 +42,28 @@ class Occlusion;
   - However, access to the same lightId is not thread safe:
     if some thread updates or destroys some light,
     another thread cannot access to the same lightId.
-  - prepare, drawDebugInfo, renderDebugBboxes is not thread safe:
+  - drawDebugInfo, renderDebugBboxes is not thread safe:
     it should be synchronized with previous writes from another thread.
   - destroyAllLights, close and destructor should be synchronized
     with previous access to OmniLightsManager from another thread.
  */
 
-class OmniLightsManager
+class OmniLightsManager : public LightsManager<OmniLight>
 {
+  friend class LightsPartition;
+
 public:
   typedef OmniLight Light;
   typedef Light RawLight;
+  using MaskType = OmniLightMaskType;
+  using RenderLight = RenderOmniLight;
 
-  static constexpr int MAX_LIGHTS = 2048;
+  static constexpr int MAX_LIGHTS = MAX_SCENE_OMNI_LIGHTS;
 
   OmniLightsManager();
   ~OmniLightsManager();
 
   void close();
-
-  void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
-    eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-    const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
-    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE, float cutoff_dist_sq = 0.f) const;
-
-  void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane, Occlusion *,
-    bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
-    float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
-    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE, float cutoff_dist_sq = 0.f) const;
-
-  void prepare(const Frustum &frustum, Tab<uint16_t> &lights_with_camera_inside, Tab<uint16_t> &lights_with_camera_outside,
-    Occlusion *, bbox3f &inside_box, bbox3f &outside_box, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
-    float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
-    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE, float cutoff_dist_sq = 0.f) const;
 
   void drawDebugInfo();
   void renderDebugBboxes();
@@ -137,7 +127,7 @@ public:
   OmniLightMaskType getLightMask(unsigned int id) const { return masks[id]; }
   void setLightMask(unsigned int id, OmniLightMaskType mask) { masks[id] = mask; }
 
-  const Light &getLight(unsigned int id) const { return rawLights[id]; }
+  const Light &getLight(unsigned int id) const override { return rawLights[id]; }
   void setLight(unsigned int id, const Light &l)
   {
     if (check_nan(l.pos_radius.x + l.pos_radius.y + l.pos_radius.z + l.pos_radius.w))
@@ -166,7 +156,7 @@ public:
     return ret;
   }
 
-  vec4f getBoundingSphere(unsigned id) const
+  vec4f getBoundingSphere(unsigned id) const override
   {
     const Light &l = rawLights[id];
     const float cullRadius = l.posRelToOrigin_cullRadius.w;
@@ -175,6 +165,8 @@ public:
       bounds = v_perm_xyzd(bounds, v_splats(cullRadius));
     return bounds;
   }
+
+  void updateShadowVolume(uint32_t light_id) override;
 
 private:
   carray<Light, MAX_LIGHTS> rawLights;

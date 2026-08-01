@@ -457,12 +457,12 @@ void drv3d_vulkan::free_buffer(GenericBufferInterface *buffer) { Globals::Res::b
 
 Vbuffer *d3d::create_vb(int size, int flg, const char *name, ResourceTagType)
 {
-  return allocate_buffer(1, size, flg | SBCF_BIND_VERTEX | SBCF_BIND_SHADER_RES, FormatStore(), true /*managed*/, name);
+  return allocate_buffer(1, size, flg | SBCF_BIND_VERTEX, FormatStore(), true /*managed*/, name);
 }
 
 Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name, ResourceTagType)
 {
-  return allocate_buffer(1, size, flg | SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES, FormatStore(), true /*managed*/, stat_name);
+  return allocate_buffer(1, size, flg | SBCF_BIND_INDEX, FormatStore(), true /*managed*/, stat_name);
 }
 
 Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name, ResourceTagType)

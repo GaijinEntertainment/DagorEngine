@@ -148,6 +148,7 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
       action;                                             \
     }                                                     \
   } while (0)
+#define G_ASSERT_LOG_ONCE(expression, ...) G_ASSERT_LOG_ONCE_AND_DO(expression, (void)0, ##__VA_ARGS__)
 #else
 #define G_ASSERT_LOG(expression, ...) G_ASSERTF(expression, ##__VA_ARGS__)
 #define G_ASSERT_DO_AND_LOG(expr, action, ...)               \
@@ -159,6 +160,7 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
     G_ASSERTF_EX(g_assert_result_do_, #expr, ##__VA_ARGS__); \
   } while (0)
 #define G_ASSERT_LOG_ONCE_AND_DO(expr, action, ...) G_ASSERT_DO_AND_LOG(expr, action, ##__VA_ARGS__)
+#define G_ASSERT_LOG_ONCE(expression, ...)          G_ASSERT_LOG_ONCE_AND_DO(expression, (void)0, ##__VA_ARGS__)
 #endif
 
 #if DAGOR_DBGLEVEL < 1

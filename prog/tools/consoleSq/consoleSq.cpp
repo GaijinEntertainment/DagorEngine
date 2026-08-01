@@ -74,7 +74,7 @@
 #include "scriptapi.h"
 
 
-#define APP_VERSION "1.0.41"
+#define APP_VERSION "1.0.45"
 
 // Stubs
 
@@ -409,14 +409,17 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
     HSQOBJECT hBindings = bindings.GetObject();
     hBindings._flags = SQOBJ_FLAG_IMMUTABLE;
 
-    SQInteger stackTop = sq_gettop(sqvm);
-    SQRESULT compileResult = sq_translateasttobytecode(sqvm, ast, &hBindings, source.str(), source.length(), /* raise error*/ true);
-    sq_settop(sqvm, stackTop);
-
-    if (SQ_FAILED(compileResult))
+    if (!syntax_check_only)
     {
-      sq_releaseASTData(sqvm, ast);
-      quit_game(1, false);
+      SQInteger stackTop = sq_gettop(sqvm);
+      SQRESULT compileResult = sq_translateasttobytecode(sqvm, ast, &hBindings, source.str(), source.length(), /* raise error*/ true);
+      sq_settop(sqvm, stackTop);
+
+      if (SQ_FAILED(compileResult))
+      {
+        sq_releaseASTData(sqvm, ast);
+        quit_game(1, false);
+      }
     }
 
     sq_analyzeast(sqvm, ast, &hBindings, source.str(), source.length());
@@ -536,6 +539,9 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
   sqvm = sq_open(1280);
   sqstd_seterrorhandlers(sqvm);
+
+  if (syntax_check_only)
+    sq_setcompilationoption(sqvm, CompilationOptions::CO_STATIC_ANALYSIS_SKIP_REQUIRE_RESOLUTION, true);
 
   sq_forbidglobalconstrewrite(sqvm, true);
   sq_setprintfunc(sqvm, ::script_print_function, ::script_error_function);
@@ -797,7 +803,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     has_errors = true;
   }
 
-  if (do_static_analysis)
+  if (do_static_analysis && !syntax_check_only)
   {
     sq_checkglobalnames(sqvm);
   }

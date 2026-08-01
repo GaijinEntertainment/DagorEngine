@@ -22,6 +22,7 @@ extern float _ro0;  // Density [kg/m3] t=15`C, p=760 mm/1013 gPa
 extern float _Mu0;  // Viscosity [Pa*sec]
 extern float _hMax; // Maximal altitude
 extern float _water_density;
+extern float _humidity; // Absolute air humidity at sea level, [g/m3]
 
 inline constexpr float DENSITY_COEFFS[5] = {1.f, -9.59387e-05f, 3.53118e-09f, -5.83556e-14f, 2.28719e-19f};
 inline constexpr float PRESSURE_COEFFS[5] = {1.f, -0.000118441f, 5.6763e-09f, -1.3738e-13f, 1.60373e-18f};
@@ -42,6 +43,10 @@ inline float T0() { return _T0; }
 inline float ro0() { return _ro0; }
 
 inline float water_density() { return _water_density; }
+
+/** Absolute air humidity at sea level, [g/m3] */
+inline float humidity() { return _humidity; }
+inline void setHumidity(float value) { _humidity = value; }
 
 /** Viscosity [Pa*sec] */
 inline float Mu0() { return _Mu0; }
@@ -92,5 +97,8 @@ inline float pitot_indicator(float h, float v) { return v * calc_ias_coeff(h); }
 
 float getAltitudeByAirDensity(float air_density, float tolerance, float start_altitude = 0.0f);
 float getAltitudeByAirPressure(float air_pressure, float tolerance, float start_altitude = 0.0f);
+
+/** Convert relative humidity [0..1] at temperature [K] to absolute humidity [g/m3] */
+float relativeToAbsoluteHumidity(float relative_humidity, float temperature_k);
 } // namespace atmosphere
 } // namespace gamephys

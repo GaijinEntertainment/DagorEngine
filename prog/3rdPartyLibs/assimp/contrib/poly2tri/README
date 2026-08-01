@@ -49,3 +49,10 @@ Examples:
   
   ./p2t random 10 100 5.0
   ./p2t random 1000 20000 0.025
+
+----------------------------------------------
+Upstream
+----------------------------------------------
+
+Upstream: poly2tri, https://github.com/jhasse/poly2tri
+(originally https://github.com/greenm01/poly2tri)

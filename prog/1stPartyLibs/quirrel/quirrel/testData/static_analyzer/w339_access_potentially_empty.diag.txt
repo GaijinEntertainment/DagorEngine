@@ -1,0 +1,63 @@
+WARNING: w339 (access-potentially-empty) 'x' can be an empty table here, the accessed element would not exist.
+testData/static_analyzer/w339_access_potentially_empty.nut:7:9
+
+function param_table_field(x = {}) {
+  return x.y // warn
+         ^--
+}
+
+
+WARNING: w339 (access-potentially-empty) 'a' can be an empty array here, the accessed element would not exist.
+testData/static_analyzer/w339_access_potentially_empty.nut:11:9
+
+function param_array_index(a = []) {
+  return a[0] // warn
+         ^---
+}
+
+
+WARNING: w339 (access-potentially-empty) 'expression' can be an empty array here, the accessed element would not exist.
+testData/static_analyzer/w339_access_potentially_empty.nut:15:9
+
+function nullc_index(v) {
+  return (v ?? [])[0] // warn
+         ^-----------
+}
+
+
+WARNING: w339 (access-potentially-empty) 'expression' can be an empty table here, the accessed element would not exist.
+testData/static_analyzer/w339_access_potentially_empty.nut:19:9
+
+function nullc_field(v) {
+  return (v ?? {}).name // warn
+         ^-------------
+}
+
+
+WARNING: w339 (access-potentially-empty) 'expression' can be an empty array here, the accessed element would not exist.
+testData/static_analyzer/w339_access_potentially_empty.nut:23:9
+
+function ternary_index(b, t) {
+  return (b ? [] : t)[1] // warn
+         ^--------------
+}
+
+
+WARNING: w339 (access-potentially-empty) 'v' can be an empty array here, the accessed element would not exist.
+testData/static_analyzer/w339_access_potentially_empty.nut:29:9
+
+  let unrelated = b + 1
+  return v[x] + unrelated // warn
+         ^---
+}
+
+
+WARNING: w339 (access-potentially-empty) 'v' can be an empty table here, the accessed element would not exist.
+testData/static_analyzer/w339_access_potentially_empty.nut:34:9
+
+  let v = t ?? {}
+  return v.field // warn
+         ^------
+}
+
+

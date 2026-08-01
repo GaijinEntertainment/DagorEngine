@@ -323,12 +323,15 @@ void runPreshaderParse(const ShCompilationInfo &compInfo, CompilationContext &co
   if (config().dependencyDumpMode)
     return;
 
+  if (!config().compileRefinedBlock)
+    return;
+
   const bool forceRebuild = config().forceRebuild;
 
   dag::Vector<String> recompiledSources;
   for (const String &sourceFileName : compInfo.sources())
   {
-    if (!forceRebuild && !should_recompile_sh(compInfo, sourceFileName))
+    if (!forceRebuild && !should_recompile_sh(comp, sourceFileName))
     {
       if (!load_local_rb_layout(get_obj_file_name_from_source(sourceFileName, compInfo), comp))
         recompiledSources.push_back(sourceFileName);
@@ -380,16 +383,19 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
   {
     dag::Vector<bool> rbLoadFailed;
     rbLoadFailed.assign(compInfo.sources().size(), false);
-    if (shc::config().singleCompilationShName && shc::config().workerMode)
-      load_global_rb_layout(get_global_rb_layout_name(comp.compInfo()), comp);
-    else
+    if (config().compileRefinedBlock)
     {
-      for (size_t i = 0; i < compInfo.sources().size(); ++i)
+      if (shc::config().singleCompilationShName && shc::config().workerMode)
+        load_global_rb_layout(get_global_rb_layout_name(comp.compInfo()), comp);
+      else
       {
-        if (should_rebuild || should_recompile_sh(comp, compInfo.sources()[i]))
-          continue;
-        if (!load_local_rb_layout(get_obj_file_name_from_source(compInfo.sources()[i], compInfo), comp))
-          rbLoadFailed[i] = true;
+        for (size_t i = 0; i < compInfo.sources().size(); ++i)
+        {
+          if (should_rebuild || should_recompile_sh(comp, compInfo.sources()[i]))
+            continue;
+          if (!load_local_rb_layout(get_obj_file_name_from_source(compInfo.sources()[i], compInfo), comp))
+            rbLoadFailed[i] = true;
+        }
       }
     }
 
@@ -728,7 +734,7 @@ struct ShaderValidVariantList
         int mid2 = map2[vvData[j].nameId];
         G_ASSERT(mid >= 0 || mid2 >= 0);
         if ((mid >= 0 && vt.normalizeValue(mid, vvData[j].val) != v.getNormalizedValue(mid)) ||
-            (mid2 >= 0 && vt.normalizeValue(mid2, vvData[j].val) != v2.getNormalizedValue(mid2)))
+            (mid2 >= 0 && vt2.normalizeValue(mid2, vvData[j].val) != v2.getNormalizedValue(mid2)))
         {
           all_eq = false;
           break;

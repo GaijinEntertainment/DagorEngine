@@ -29,6 +29,8 @@ public:
   virtual void onDetach(Element *elem, DetachMode);
   virtual void onElemSetup(Element *, SetupMode);
   virtual void onKbFocusChange(Element *, bool focused) override;
+  virtual void onRecalcLayout(Element *) override;
+  virtual void contributeChildren(Element *, dag::Vector<Sqrat::Object, framemem_allocator> &children) override;
 
   virtual int kbdEvent(ElementTree *, Element *, InputEvent /*event*/, int /*key_idx*/, bool /*repeat*/, wchar_t /*wc*/,
     int /*accum_res*/);
@@ -43,13 +45,16 @@ public:
 
   static void recalc_content(const Element *elem, int /*axis*/, const Point2 &elem_size, Point2 &out_size);
 
+  // insert_pos < 0 => insert at the current caret (etext->cursorPos).
+  static void insert_text(Element *elem, EditableText *etext, const char *text, int len, int insert_pos = -1);
+
 private:
   static void position_cursor_by_screen_coord(Element *elem, const Point2 &click_pos);
   static void position_cursor_on_line_by_coord(darg::Element *elem, EditableText *etext, const textlayout::TextLine &line, float xt);
   static void change_line(Element *elem, EditableText *etext, int line_delta);
   static float get_cursor_pixels_pos_in_block(const Element *elem, textlayout::TextBlock *curBlock, int relPos);
   static void scroll_cursor_into_view(darg::Element *elem, EditableText *etext);
-  static void call_change_script_handler(Element *elem, EditableText *etext);
+  static void call_change_script_handler(Element *elem, EditableText *etext, bool content_changed = false);
 
   static void open_ime(Element *elem);
   static void close_ime(Element *elem);

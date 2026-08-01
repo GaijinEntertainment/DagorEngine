@@ -36,6 +36,11 @@
 
 CONSOLE_BOOL_VAL("skies", cloudMovementEnabled, true);
 
+// hysteresis pair for the full-res clouds proximity flip, in camera_specific_energy
+// units; kept apart since the flip reconverges the clouds TAA
+CONSOLE_FLOAT_VAL("skies", clouds_fullres_energy_on, 1500.f);
+CONSOLE_FLOAT_VAL("skies", clouds_fullres_energy_off, 750.f);
+
 static int skylight_paramsVarId = -1;
 static int skylight_sky_attenVarId = -1;
 static int skies_scattering_effectVarId = -1;
@@ -68,6 +73,27 @@ DngSkies *get_daskies()
 }
 
 DaSkies *get_daskies_impl() { return get_daskies(); }
+
+void DngSkies::applyCloudsTraceCheckerboardSetting()
+{
+  const DataBlock *graphics = ::dgs_get_settings()->getBlockByNameEx("graphics");
+  const bool enabled = graphics->getBool("cloudsTraceCheckerboard", false);
+  // full-res tracing costs 4x: it is a flying-camera luxury of the top clouds preset
+  const bool fullres = cloudsFullresProximity && strcmp(graphics->getStr("cloudsQuality", "default"), "movie") == 0;
+  setCloudsCheckerboardTrace(enabled && !fullres);
+}
+
+void DngSkies::updateCloudsFullresProximity(float camera_height_above_ground, float camera_speed)
+{
+  // ground proximity, same gate skyquake keys off: a flying camera is where the
+  // quarter-rate reconstruction can be seen (fast parallax, close to the layer)
+  const float energy = camera_specific_energy(camera_height_above_ground, camera_speed);
+  const bool flying = energy > (cloudsFullresProximity ? clouds_fullres_energy_off.get() : clouds_fullres_energy_on.get());
+  if (cloudsFullresProximity == flying)
+    return;
+  cloudsFullresProximity = flying;
+  applyCloudsTraceCheckerboardSetting();
+}
 
 DngSkies::DngSkies() : DaSkies(/*cpuOnly=*/false)
 {
@@ -130,13 +156,13 @@ void DngSkies::useFogNoScattering(const Point3 &origin,
   DaSkies::useFog(calcViewPos(origin), data, calcViewTm(view_tm), proj_tm, update_sky, altitude_tolerance);
 }
 
-void DngSkies::prepare(const Point3 &dir_to_sun, bool force_update_cpu, float dt)
+void DngSkies::prepare(const Point3 &dir_to_sun, float dt)
 {
   lastScatteringEffect = scatteringEffect;
   scatteringEffect = skyLightSunAttenuation;
   if (!cloudMovementEnabled || daSkies->panoramaEnabled())
     dt = 0;
-  DaSkies::prepare(dir_to_sun, force_update_cpu, dt);
+  DaSkies::prepare(dir_to_sun, dt);
 }
 
 void DngSkies::unsetSkyLightParams()

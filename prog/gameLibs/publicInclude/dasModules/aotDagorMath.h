@@ -174,7 +174,7 @@ inline float distance_dpoint3(const DPoint3 &from, const DPoint3 &to) { return l
 inline float distance_sq_dpoint3(const DPoint3 &from, const DPoint3 &to) { return lengthSq(from - to); }
 inline float distance_plane_point3(const Point4 &plane, const Point3 &point)
 {
-  return v_extract_x(v_plane_dist_x(v_ldu(&plane.x), v_ldu(&point.x)));
+  return v_extract_x(v_plane_dist_x(v_ldu(&plane.x), v_ldu_p3_safe(&point.x)));
 }
 inline das::float3 from_dpoint3(const DPoint3 &a) { return {float(a.x), float(a.y), float(a.z)}; }
 inline DPoint3 dpoint3_from_point3(const das::float3 &a) { return DPoint3(double(a.x), double(a.y), double(a.z)); }
@@ -291,10 +291,7 @@ inline TMatrix mat44f_make_tm(mat44f const &m)
 }
 
 inline Frustum frustum_make_from_mat44f(mat44f const &m) { return Frustum(m); }
-inline bool frustum_test_sphere(const Frustum &f, das::float3 c, float r)
-{
-  return f.testSphereB(reinterpret_cast<const Point3 &>(c), r);
-}
+inline bool frustum_test_sphere(const Frustum &f, das::float3 c, float r) { return f.testSphereB(v_ldu_p3_safe(&c.x), v_splats(r)); }
 inline bool frustum_test_box(const Frustum &f, const BBox3 &bb) { return f.testBoxB(bb); }
 
 inline float v_distance_sq_to_bbox(das::float4 bmin, das::float4 bmax, das::float4 c)

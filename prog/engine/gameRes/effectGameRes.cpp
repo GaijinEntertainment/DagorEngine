@@ -8,7 +8,7 @@
 #include <memory/dag_framemem.h>
 #include <ioSys/dag_genIo.h>
 #include <generic/dag_smallTab.h>
-#include <EASTL/vector.h>
+#include <dag/dag_vector.h>
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_initOnDemand.h>
 #include <debug/dag_log.h>
@@ -39,8 +39,8 @@ public:
     eastl::unique_ptr<BaseEffectObject> object;
   };
 
-  eastl::vector<ResData> resData;
-  eastl::vector<GameRes> gameRes;
+  dag::Vector<ResData> resData;
+  dag::Vector<GameRes> gameRes;
 
   ParamScriptsPool fxPool;
 
@@ -309,6 +309,8 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(gameRes, resId, refCount)
 };
+DAG_DECLARE_RELOCATABLE(EffectGameResFactory::ResData);
+DAG_DECLARE_RELOCATABLE(EffectGameResFactory::GameRes);
 
 static InitOnDemand<EffectGameResFactory> fx_factory;
 

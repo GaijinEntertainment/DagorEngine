@@ -197,7 +197,7 @@ let imagePreview = @() {
   keepAspect = true
 
   behavior = Behaviors.ProcessPointingInput
-  function onPointerMove(evt) {
+  function onPointerMove(evt) { //-function-returns-same-value
     if (curFileImageSize.get() == null)
       return 0
     let { r = 0, l = 0, t = 0, b = 0 } = gui_scene.getCompAABBbyKey("imagePreview")
@@ -283,8 +283,6 @@ function previewComp() {
           rendObj = ROBJ_TEXTAREA
           textOverflowY = TOVERFLOW_LINE
           halign = ALIGN_LEFT
-          ellipsis = true
-          ellipsisSepLine = false
           text = $"we do not have function to load file to text: {path}"
           behavior = [Behaviors.TextArea, Behaviors.WheelScroll]
           maxWidth = flex()

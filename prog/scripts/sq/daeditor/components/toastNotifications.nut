@@ -27,7 +27,7 @@ function onToastHover(on) {
   }
 }
 
-function getToastPosition() {
+function getToastPosition(): array {
   local toastX = get_mouse_cursor_pos().x
   local toastY = get_mouse_cursor_pos().y
   if (toastX < 0) {

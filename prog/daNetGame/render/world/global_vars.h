@@ -52,13 +52,14 @@
   VAR(shore_width_k)                    \
   VAR(shore_gerstner_speed)             \
   VAR(shore_rivers_wave_multiplier)     \
-  VAR(clipmap_writes_height_only)       \
+  VAR(render_with_normalmap)            \
   VAR(solid_color)                      \
   VAR(envi_probe_specular)              \
   VAR(envi_probe_specular_samplerstate) \
   VAR(underwater_fade)                  \
   VAR(small_sampled_buffers)            \
-  VAR(chromatic_aberration_params)
+  VAR(chromatic_aberration_params)      \
+  VAR(film_grain_params)
 
 #define GLOBAL_VARS_OPTIONAL_LIST             \
   VAR(uv_temporal_jitter)                     \
@@ -170,7 +171,8 @@
   VAR(camera_base_offset)                     \
   VAR(params_validation_debug_color)          \
   VAR(use_contact_shadows)                    \
-  VAR(ssao_is_gtao)
+  VAR(ssao_is_gtao)                           \
+  VAR(parallax_ao_enabled)
 
 #define GLOBAL_BLOCKS_LIST \
   VAR(globalFrame)         \

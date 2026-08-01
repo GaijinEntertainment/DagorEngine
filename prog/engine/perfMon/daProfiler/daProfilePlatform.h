@@ -2,12 +2,12 @@
 #pragma once
 
 #include <perfMon/dag_perfTimer.h>
-#include <perfMon/dag_pix.h>
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
 #include "stl/daProfilerFwdStl.h"
 #include "daProfilerDefines.h"
+
 
 //! signals to the processor that the thread is doing nothing. Not relevant to OS thread scheduling.
 #ifndef cpu_yield
@@ -82,18 +82,21 @@ inline T clamp(const T &v, const T &mn, const T &mx)
 
 #if _TARGET_PC_WIN || _TARGET_XBOX
 
+void BEGIN_CPU_EVENT(const char *);
+void END_CPU_EVENT();
+
 #define PLATFORM_EVENT_START(enabled, label) \
   {                                          \
     if (enabled)                             \
     {                                        \
-      PIX_BEGIN_CPU_EVENT(label);            \
+      BEGIN_CPU_EVENT(label);                \
     }                                        \
   }
 #define PLATFORM_EVENT_STOP(enabled) \
   {                                  \
     if (enabled)                     \
     {                                \
-      PIX_END_CPU_EVENT();           \
+      END_CPU_EVENT();               \
     }                                \
   }
 

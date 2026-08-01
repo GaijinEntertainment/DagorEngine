@@ -57,3 +57,20 @@ struct AssetStats
   int currentLod;
   bool mixedLod;
 };
+
+struct FxStats
+{
+  void clear() { *this = {}; }
+
+  int instances = 0;
+  int cpuElemProcessed = 0;
+  int gpuElemProcessed = 0;
+  int drawCalls = 0;
+  int visibleTriangles = 0;
+  int renderedTriangles = 0;
+  int paramRenSize = 0;
+  int paramSimSize = 0;
+  int partRenSize = 0;
+  int partSimSize = 0;
+  bool valid = false;
+};

@@ -1,5 +1,7 @@
+include "dagi_blue_noise.dshl"
 
 macro GI_VOLUMETRIC_JITTER(code)
+  DAGI_BLUE_NOISE(code)
   hlsl(code) {
     #define SAMPLE_NUM 8
     static const float POISSON_Z_SAMPLES[SAMPLE_NUM] =
@@ -25,15 +27,24 @@ macro GI_VOLUMETRIC_JITTER(code)
       float2(0.56452806916f, 0.974024350484f),
     };
     #include <pcg_hash.hlsl>
-    float3 gi_volumetric_jitter(uint3 coord, uint frame_id, out uint dir_jitter)
+    float3 gi_volumetric_jitter(uint3 coord, uint frame_id)
     {
       uint randhash = pcg3d_hash_16bit(coord).x;
-      dir_jitter = randhash>>10;//6 bit left
-      return float3(POISSON_SAMPLES[(randhash.x + frame_id) % SAMPLE_NUM], POISSON_Z_SAMPLES[((randhash.x>>3) + frame_id) % SAMPLE_NUM]);
+      float3 p = float3(POISSON_SAMPLES[(randhash + frame_id) % SAMPLE_NUM], POISSON_Z_SAMPLES[((randhash>>3) + frame_id) % SAMPLE_NUM]);
+      // R3 toroidal rotation each time the 8-sample walk completes: keeps the stratified
+      // walk intact but extends the period past the temporal accumulation window
+      uint block = frame_id/SAMPLE_NUM;
+      uint3 rot = uint3(block*53687u, block*43981u, block*36025u) & 65535u;
+      return frac(p + float3(rot)*(1.f/65536.f));
     }
-    float3 gi_volumetric_jittered_coord(uint3 coord, uint frame_id, out uint dir_jitter)
+    float3 gi_volumetric_jittered_coord(uint3 coord, uint frame_id)
     {
-      return coord + gi_volumetric_jitter(coord, frame_id, dir_jitter);
+      return coord + gi_volumetric_jitter(coord, frame_id);
+    }
+    //[0,1) sub-texel direction jitter, blue across the froxel radiance atlas
+    float2 gi_volumetric_direction_jitter(uint3 atlas_coord, uint frame_id)
+    {
+      return dagi_blue_noise2(atlas_coord.xy + uint2(59, 37)*atlas_coord.z, frame_id);
     }
   }
 endmacro

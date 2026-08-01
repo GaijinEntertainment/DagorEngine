@@ -76,6 +76,13 @@ struct PhysicalDeviceSet // -V553
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR, nullptr};
 #endif
 
+#if VK_EXT_opacity_micromap
+  VkPhysicalDeviceOpacityMicromapFeaturesEXT opacityMicromapFeature = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_OPACITY_MICROMAP_FEATURES_EXT, nullptr, false, false, false};
+  VkPhysicalDeviceOpacityMicromapPropertiesEXT opacityMicromapProps = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_OPACITY_MICROMAP_PROPERTIES_EXT, nullptr};
+#endif
+
 #if VK_EXT_device_fault
   VkPhysicalDeviceFaultFeaturesEXT deviceFaultFeature = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT, nullptr, false, false};
@@ -176,11 +183,45 @@ struct PhysicalDeviceSet // -V553
 #if VK_KHR_maintenance7
   VkPhysicalDeviceMaintenance7FeaturesKHR maintenance7FeaturesKHR = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_7_FEATURES_KHR, nullptr, false};
+  VkPhysicalDeviceMaintenance7PropertiesKHR maintenance7PropsKHR = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_7_PROPERTIES_KHR, nullptr};
 #endif
 
 #if VK_KHR_shader_subgroup_extended_types
   VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR shaderSubgroupExtendedTypesFeaturesKHR = //
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR, nullptr, false};
+#endif
+
+#if VK_KHR_vulkan_memory_model
+  VkPhysicalDeviceVulkanMemoryModelFeaturesKHR vulkanMemoryModelFeaturesKHR = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES, nullptr, false, false, false};
+#endif
+
+#if VK_KHR_shader_maximal_reconvergence
+  VkPhysicalDeviceShaderMaximalReconvergenceFeaturesKHR shaderMaximalReconvergenceFeaturesKHR = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MAXIMAL_RECONVERGENCE_FEATURES_KHR, nullptr, false};
+#endif
+
+#if VK_KHR_shader_quad_control
+  VkPhysicalDeviceShaderQuadControlFeaturesKHR shaderQuadControlFeaturesKHR = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_QUAD_CONTROL_FEATURES_KHR, nullptr, false};
+#endif
+
+#if VK_EXT_extended_dynamic_state
+  VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicStateFeaturesEXT = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT, nullptr, false};
+#endif
+
+#if VK_EXT_extended_dynamic_state2
+  VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extendedDynamicState2FeaturesEXT = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT, nullptr, false, false, false};
+#endif
+
+#if VK_EXT_extended_dynamic_state3
+  VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extendedDynamicState3FeaturesEXT = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT, nullptr};
+  VkPhysicalDeviceExtendedDynamicState3PropertiesEXT extendedDynamicState3PropsEXT = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_PROPERTIES_EXT, nullptr, false};
 #endif
 
   bool hasDevProps2 = false;
@@ -193,6 +234,10 @@ struct PhysicalDeviceSet // -V553
   bool hasRayTracingPipeline = false;
   bool hasRayQuery = false;
   bool hasAccelerationStructure = false;
+  bool hasOpacityMicromap = false;
+  // What the device reported, unlike hasOpacityMicromap which config may clear to keep OMM from being used at all. Read this to ask
+  // what the device implements, not whether OMM is allowed.
+  bool deviceReportsOpacityMicromap = false;
   bool hasIndirectRayTrace = false;
   bool hasRayTracePrimitiveCulling = false;
   bool hasDeviceFaultFeature = false;
@@ -220,6 +265,14 @@ struct PhysicalDeviceSet // -V553
   bool hasAttachmentFragmentShadingRate = false;
   bool hasMaintenance7 = false;
   bool hasShaderSubgroupExtendedTypes = false;
+  bool hasVulkanMemoryModel = false;
+  bool hasShaderMaximalReconvergence = false;
+  bool hasShaderQuadControl = false;
+  bool hasExtendedDynamicState = false;
+  bool hasExtendedDynamicState2 = false;
+  bool hasExtendedDynamicState2LogicOp = false;
+  bool hasExtendedDynamicState2PatchControlPoints = false;
+  bool hasExtendedDynamicState3 = false;
   uint32_t maxBindlessTextures = 0;
   uint32_t maxBindlessSamplers = 0;
   uint32_t maxBindlessBuffers = 0;
@@ -424,6 +477,13 @@ struct PhysicalDeviceSet // -V553
     }
 #endif
 
+#if VK_EXT_opacity_micromap
+    if (hasExtension<OpacityMicromapEXT>())
+    {
+      chain_structs(target, opacityMicromapFeature);
+    }
+#endif
+
 #if VK_EXT_device_fault
     if (hasExtension<DeviceFaultEXT>())
     {
@@ -561,6 +621,48 @@ struct PhysicalDeviceSet // -V553
     if (hasExtension<ShaderSubgroupExtendedTypesKHR>())
     {
       chain_structs(target, shaderSubgroupExtendedTypesFeaturesKHR);
+    }
+#endif
+
+#if VK_KHR_vulkan_memory_model
+    if (hasExtension<VulkanMemoryModelKHR>())
+    {
+      chain_structs(target, vulkanMemoryModelFeaturesKHR);
+    }
+#endif
+
+#if VK_KHR_shader_maximal_reconvergence
+    if (hasExtension<ShaderMaximalReconvergenceKHR>())
+    {
+      chain_structs(target, shaderMaximalReconvergenceFeaturesKHR);
+    }
+#endif
+
+#if VK_KHR_shader_quad_control
+    if (hasExtension<ShaderQuadControlKHR>())
+    {
+      chain_structs(target, shaderQuadControlFeaturesKHR);
+    }
+#endif
+
+#if VK_EXT_extended_dynamic_state
+    if (hasExtension<ExtendedDynamicStateEXT>())
+    {
+      chain_structs(target, extendedDynamicStateFeaturesEXT);
+    }
+#endif
+
+#if VK_EXT_extended_dynamic_state2
+    if (hasExtension<ExtendedDynamicState2EXT>())
+    {
+      chain_structs(target, extendedDynamicState2FeaturesEXT);
+    }
+#endif
+
+#if VK_EXT_extended_dynamic_state3
+    if (hasExtension<ExtendedDynamicState3EXT>())
+    {
+      chain_structs(target, extendedDynamicState3FeaturesEXT);
     }
 #endif
   }
@@ -757,6 +859,28 @@ struct PhysicalDeviceSet // -V553
     }
     else
       hasAccelerationStructure = false;
+#endif
+
+#if VK_EXT_opacity_micromap
+    if (hasExtension<OpacityMicromapEXT>())
+    {
+      if (checkExtensionDepencency<OpacityMicromapEXT, AccelerationStructureKHR>())
+      {
+        hasOpacityMicromap = opacityMicromapFeature.micromap == VK_TRUE;
+        // queried struct is re-chained into device create info, enable only the base feature
+        opacityMicromapFeature.micromapCaptureReplay = VK_FALSE;
+        opacityMicromapFeature.micromapHostCommands = VK_FALSE;
+        opacityMicromapFeature.pNext = nullptr;
+      }
+      else
+      {
+        hasOpacityMicromap = false;
+        disableExtension<OpacityMicromapEXT>();
+      }
+    }
+    else
+      hasOpacityMicromap = false;
+    deviceReportsOpacityMicromap = hasOpacityMicromap;
 #endif
 
 #if VK_EXT_device_fault
@@ -968,6 +1092,75 @@ struct PhysicalDeviceSet // -V553
     else
       hasShaderSubgroupExtendedTypes = false;
 #endif
+
+#if VK_KHR_vulkan_memory_model
+    if (hasExtension<VulkanMemoryModelKHR>())
+    {
+      hasVulkanMemoryModel = vulkanMemoryModelFeaturesKHR.vulkanMemoryModel;
+      vulkanMemoryModelFeaturesKHR.pNext = nullptr;
+    }
+    else
+      hasVulkanMemoryModel = false;
+#endif
+
+#if VK_KHR_shader_maximal_reconvergence
+    if (hasExtension<ShaderMaximalReconvergenceKHR>())
+    {
+      hasShaderMaximalReconvergence = shaderMaximalReconvergenceFeaturesKHR.shaderMaximalReconvergence;
+      shaderMaximalReconvergenceFeaturesKHR.pNext = nullptr;
+    }
+    else
+      hasShaderMaximalReconvergence = false;
+#endif
+
+#if VK_KHR_shader_quad_control
+    if (hasExtension<ShaderQuadControlKHR>())
+    {
+      hasShaderQuadControl = shaderQuadControlFeaturesKHR.shaderQuadControl;
+      shaderQuadControlFeaturesKHR.pNext = nullptr;
+    }
+    else
+      hasShaderQuadControl = false;
+#endif
+
+#if VK_EXT_extended_dynamic_state
+    if (hasExtension<ExtendedDynamicStateEXT>())
+    {
+      hasExtendedDynamicState = extendedDynamicStateFeaturesEXT.extendedDynamicState;
+      extendedDynamicStateFeaturesEXT.pNext = nullptr;
+    }
+    else
+      hasExtendedDynamicState = false;
+#endif
+
+#if VK_EXT_extended_dynamic_state2
+    if (hasExtension<ExtendedDynamicState2EXT>())
+    {
+      hasExtendedDynamicState2 = extendedDynamicState2FeaturesEXT.extendedDynamicState2;
+      hasExtendedDynamicState2LogicOp = extendedDynamicState2FeaturesEXT.extendedDynamicState2LogicOp;
+      hasExtendedDynamicState2PatchControlPoints = extendedDynamicState2FeaturesEXT.extendedDynamicState2PatchControlPoints;
+      extendedDynamicState2FeaturesEXT.pNext = nullptr;
+    }
+    else
+    {
+      hasExtendedDynamicState2 = false;
+      hasExtendedDynamicState2LogicOp = false;
+      hasExtendedDynamicState2PatchControlPoints = false;
+    }
+#endif
+
+#if VK_EXT_extended_dynamic_state3
+    // VK_EXT_extended_dynamic_state3 has no single feature bit: it exposes a set of per-state
+    // toggles. Track availability of the extension itself; individual toggles stay in the
+    // queried struct for callers to inspect.
+    if (hasExtension<ExtendedDynamicState3EXT>())
+    {
+      hasExtendedDynamicState3 = true;
+      extendedDynamicState3FeaturesEXT.pNext = nullptr;
+    }
+    else
+      hasExtendedDynamicState3 = false;
+#endif
   }
 
   template <class TargetExt, class DepExt>
@@ -980,6 +1173,23 @@ struct PhysicalDeviceSet // -V553
         extension_name<DepExt>());
     }
     return hasExt;
+  }
+
+  // maximum dynamic uniform buffers usable across all sets of a single pipeline layout;
+  // maintenance7 refines the base limit with explicit cross-stage totals
+  uint32_t maxDynamicUniformBuffersInLayout() const
+  {
+    uint32_t limit = properties.limits.maxDescriptorSetUniformBuffersDynamic;
+#if VK_KHR_maintenance7
+    if (hasMaintenance7)
+    {
+      if (maintenance7PropsKHR.maxDescriptorSetTotalUniformBuffersDynamic < limit)
+        limit = maintenance7PropsKHR.maxDescriptorSetTotalUniformBuffersDynamic;
+      if (maintenance7PropsKHR.maxDescriptorSetUpdateAfterBindTotalUniformBuffersDynamic < limit)
+        limit = maintenance7PropsKHR.maxDescriptorSetUpdateAfterBindTotalUniformBuffersDynamic;
+    }
+#endif
+    return limit;
   }
 
   bool initExt(VulkanInstance &instance)
@@ -1046,9 +1256,24 @@ struct PhysicalDeviceSet // -V553
       chain_structs(pdp, deviceAccelerationStructureProps);
 #endif
 
+#if VK_EXT_opacity_micromap
+    if (hasExtension<OpacityMicromapEXT>())
+      chain_structs(pdp, opacityMicromapProps);
+#endif
+
 #if VK_KHR_fragment_shading_rate
     if (hasExtension<FragmentShadingRateKHR>())
       chain_structs(pdp, fragmentShadingRateProps);
+#endif
+
+#if VK_KHR_maintenance7
+    if (hasMaintenance7)
+      chain_structs(pdp, maintenance7PropsKHR);
+#endif
+
+#if VK_EXT_extended_dynamic_state3
+    if (hasExtension<ExtendedDynamicState3EXT>())
+      chain_structs(pdp, extendedDynamicState3PropsEXT);
 #endif
 
     VULKAN_LOG_CALL(instance.vkGetPhysicalDeviceProperties2KHR(device, &pdp));
@@ -1059,12 +1284,27 @@ struct PhysicalDeviceSet // -V553
       fragmentShadingRateProps.pNext = nullptr;
 #endif
 
+#if VK_KHR_maintenance7
+    if (hasMaintenance7)
+      maintenance7PropsKHR.pNext = nullptr;
+#endif
+
+#if VK_EXT_extended_dynamic_state3
+    if (hasExtension<ExtendedDynamicState3EXT>())
+      extendedDynamicState3PropsEXT.pNext = nullptr;
+#endif
+
 #if VK_KHR_acceleration_structure
     if (hasExtension<AccelerationStructureKHR>())
     {
       raytraceScratchBufferAlignment = deviceAccelerationStructureProps.minAccelerationStructureScratchOffsetAlignment;
       deviceAccelerationStructureProps.pNext = nullptr;
     }
+#endif
+
+#if VK_EXT_opacity_micromap
+    if (hasExtension<OpacityMicromapEXT>())
+      opacityMicromapProps.pNext = nullptr;
 #endif
 
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
@@ -1996,6 +2236,10 @@ struct PhysicalDeviceSet // -V553
     apd("hasFragmentShaderBarycentric: %s", boolToStr(hasFragmentShaderBarycentric));
     apd("hasFragmentShadingRate[Pipeline,Primitive,Attachment]: %s, %s, %s", boolToStr(hasPipelineFragmentShadingRate),
       boolToStr(hasPrimitiveFragmentShadingRate), boolToStr(hasAttachmentFragmentShadingRate));
+    apd("hasExtendedDynamicState: %s, hasExtendedDynamicState2[Base,LogicOp,PatchControlPoints]: %s, %s, %s, "
+        "hasExtendedDynamicState3: %s",
+      boolToStr(hasExtendedDynamicState), boolToStr(hasExtendedDynamicState2), boolToStr(hasExtendedDynamicState2LogicOp),
+      boolToStr(hasExtendedDynamicState2PatchControlPoints), boolToStr(hasExtendedDynamicState3));
   }
 
   inline void print(uint32_t device_index)

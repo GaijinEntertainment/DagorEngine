@@ -114,6 +114,7 @@ struct FormatStore
       case TEXFMT_A16B16G16R16S >> create_flags_format_shift:
       case TEXFMT_ATI1N >> create_flags_format_shift:
       case TEXFMT_ATI2N >> create_flags_format_shift:
+      case TEXFMT_BC5S >> create_flags_format_shift:
       case TEXFMT_R8G8B8A8 >> create_flags_format_shift:
       case TEXFMT_R11G11B10F >> create_flags_format_shift:
       case TEXFMT_R9G9B9E5 >> create_flags_format_shift:

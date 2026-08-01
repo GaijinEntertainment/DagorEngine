@@ -931,7 +931,7 @@ function processGraphCommands(buf)
   {
     console.log("%additional_includes:");
     buf = buf.slice("%additional_includes:".length);
-    editor.parseAdditionalIncludes(buf);
+    editor.receiveAdditionalIncludes(buf);
     onTimer();
     return;
   }

@@ -223,8 +223,8 @@ void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
   if (init_dev_type & InitDeviceType::Keyboard)
     ::dagor_init_keyboard_win();
 #elif _TARGET_XBOX
-  if (init_dev_type & InitDeviceType::Keyboard)
-    ::dagor_init_keyboard_win();
+  if ((init_dev_type & InitDeviceType::Keyboard) && !::global_cls_drv_kbd)
+    ::global_cls_drv_kbd = HumanInput::createGameInputKeyboardClassDriver();
   if (init_dev_type & InitDeviceType::Pointing)
   {
     if (!::global_cls_drv_pnt)
@@ -265,6 +265,8 @@ void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
 #if _TARGET_C1 | _TARGET_C2
 
 
+#elif _TARGET_XBOX
+    ::global_cls_composite_drv_joy = HumanInput::createGameInputCompositeJoystickClassDriver(true, false);
 #elif !_TARGET_TVOS
     ::global_cls_composite_drv_joy = HumanInput::CompositeJoystickClassDriver::create();
 #endif
@@ -282,9 +284,6 @@ void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
     {
 #if _TARGET_PC_WIN
       ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(), /*is_xinput*/ true);
-#endif
-#if _TARGET_XBOX
-      ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createGameInputJoystickClassDriver(true), /*is_xinput*/ true);
 #endif
 #if _TARGET_PC_LINUX
       ::global_cls_composite_drv_joy->addClassDrv(
@@ -324,6 +323,18 @@ void ecs::term_hid_drivers()
     ::global_cls_drv_joy->destroy();
     ::global_cls_drv_joy = NULL;
   }
+#if _TARGET_XBOX | _TARGET_C1 | _TARGET_C2
+  if (::global_cls_drv_kbd)
+  {
+    ::global_cls_drv_kbd->destroy();
+    ::global_cls_drv_kbd = nullptr;
+  }
+  if (::global_cls_drv_pnt)
+  {
+    ::global_cls_drv_pnt->destroy();
+    ::global_cls_drv_pnt = nullptr;
+  }
+#endif
 }
 
 void ecs::init_input(const char *controls_config_fname)

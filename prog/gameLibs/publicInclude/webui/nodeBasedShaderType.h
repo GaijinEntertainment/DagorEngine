@@ -8,6 +8,7 @@ enum class NodeBasedShaderType
 {
   Fog,
   EnviCover,
+  Clouds,
 };
 
 enum class NodeBasedShaderFogVariant : uint32_t
@@ -28,6 +29,14 @@ enum class NodeBasedShaderEnviCoverVariant : uint32_t
 };
 
 
+enum class NodeBasedShaderCloudsVariant : uint32_t
+{
+  Field,
+  FieldCompressed,
+  COUNT,
+};
+
+
 enum class NodeBasedShaderQuality : uint32_t
 {
   Low,
@@ -42,6 +51,7 @@ inline String get_shader_name(NodeBasedShaderType shaderType)
   {
     case NodeBasedShaderType::Fog: return String("node_based_volumetric_fog_cs");
     case NodeBasedShaderType::EnviCover: return String("node_based_envi_cover_cs");
+    case NodeBasedShaderType::Clouds: return String("node_based_clouds_field_cs");
     default: G_ASSERTF(false, "Wrong shader type!"); return String();
   }
 }
@@ -52,6 +62,7 @@ inline String get_shader_suffix(NodeBasedShaderType shaderType)
   {
     case NodeBasedShaderType::Fog: return String("volfog");
     case NodeBasedShaderType::EnviCover: return String("envi_cover");
+    case NodeBasedShaderType::Clouds: return String("clouds");
     default: G_ASSERTF(false, "Wrong shader type!"); return String();
   }
 }
@@ -62,6 +73,7 @@ inline uint32_t get_shader_variant_count(NodeBasedShaderType shaderType)
   {
     case NodeBasedShaderType::Fog: return (uint32_t)NodeBasedShaderFogVariant::COUNT;
     case NodeBasedShaderType::EnviCover: return (uint32_t)NodeBasedShaderEnviCoverVariant::COUNT;
+    case NodeBasedShaderType::Clouds: return (uint32_t)NodeBasedShaderCloudsVariant::COUNT;
     default: G_ASSERTF(false, "Wrong shader type!"); return 1;
   }
 }

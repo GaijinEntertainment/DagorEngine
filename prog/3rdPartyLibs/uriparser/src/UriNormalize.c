@@ -77,6 +77,7 @@
 
 
 #include <assert.h>
+#include <stdint.h> /* for SIZE_MAX */
 
 
 
@@ -115,13 +116,17 @@ static void URI_FUNC(PreventLeakage)(URI_TYPE(Uri) * uri,
 static URI_INLINE void URI_FUNC(PreventLeakage)(URI_TYPE(Uri) * uri,
 		unsigned int revertMask, UriMemoryManager * memory) {
 	if (revertMask & URI_NORMALIZE_SCHEME) {
+		/* NOTE: A scheme cannot be the empty string
+		 *       so no need to compare .first with .afterLast, here. */
 		memory->free(memory, (URI_CHAR *)uri->scheme.first);
 		uri->scheme.first = NULL;
 		uri->scheme.afterLast = NULL;
 	}
 
 	if (revertMask & URI_NORMALIZE_USER_INFO) {
-		memory->free(memory, (URI_CHAR *)uri->userInfo.first);
+		if (uri->userInfo.first != uri->userInfo.afterLast) {
+			memory->free(memory, (URI_CHAR *)uri->userInfo.first);
+		}
 		uri->userInfo.first = NULL;
 		uri->userInfo.afterLast = NULL;
 	}
@@ -129,16 +134,18 @@ static URI_INLINE void URI_FUNC(PreventLeakage)(URI_TYPE(Uri) * uri,
 	if (revertMask & URI_NORMALIZE_HOST) {
 		if (uri->hostData.ipFuture.first != NULL) {
 			/* IPvFuture */
+			/* NOTE: An IPvFuture address cannot be the empty string
+			 *       so no need to compare .first with .afterLast, here. */
 			memory->free(memory, (URI_CHAR *)uri->hostData.ipFuture.first);
 			uri->hostData.ipFuture.first = NULL;
 			uri->hostData.ipFuture.afterLast = NULL;
 			uri->hostText.first = NULL;
 			uri->hostText.afterLast = NULL;
-		} else if ((uri->hostText.first != NULL)
-				&& (uri->hostData.ip4 == NULL)
-				&& (uri->hostData.ip6 == NULL)) {
+		} else if (uri->hostText.first != NULL) {
 			/* Regname */
-			memory->free(memory, (URI_CHAR *)uri->hostText.first);
+			if (uri->hostText.first != uri->hostText.afterLast) {
+				memory->free(memory, (URI_CHAR *)uri->hostText.first);
+			}
 			uri->hostText.first = NULL;
 			uri->hostText.afterLast = NULL;
 		}
@@ -161,13 +168,17 @@ static URI_INLINE void URI_FUNC(PreventLeakage)(URI_TYPE(Uri) * uri,
 	}
 
 	if (revertMask & URI_NORMALIZE_QUERY) {
-		memory->free(memory, (URI_CHAR *)uri->query.first);
+		if (uri->query.first != uri->query.afterLast) {
+			memory->free(memory, (URI_CHAR *)uri->query.first);
+		}
 		uri->query.first = NULL;
 		uri->query.afterLast = NULL;
 	}
 
 	if (revertMask & URI_NORMALIZE_FRAGMENT) {
-		memory->free(memory, (URI_CHAR *)uri->fragment.first);
+		if (uri->fragment.first != uri->fragment.afterLast) {
+			memory->free(memory, (URI_CHAR *)uri->fragment.first);
+		}
 		uri->fragment.first = NULL;
 		uri->fragment.afterLast = NULL;
 	}
@@ -237,20 +248,23 @@ static URI_INLINE void URI_FUNC(LowercaseInplace)(const URI_CHAR * first,
 
 static URI_INLINE UriBool URI_FUNC(LowercaseMalloc)(const URI_CHAR ** first,
 		const URI_CHAR ** afterLast, UriMemoryManager * memory) {
-	int lenInChars;
+	size_t lenInChars;
 	const int lowerUpperDiff = (_UT('a') - _UT('A'));
 	URI_CHAR * buffer;
-	int i = 0;
+	size_t i = 0;
 
 	if ((first == NULL) || (afterLast == NULL) || (*first == NULL)
 			|| (*afterLast == NULL)) {
 		return URI_FALSE;
 	}
 
-	lenInChars = (int)(*afterLast - *first);
+	lenInChars = *afterLast - *first;
 	if (lenInChars == 0) {
 		return URI_TRUE;
-	} else if (lenInChars < 0) {
+	}
+
+	/* Detect and avoid integer overflow */
+	if (lenInChars > SIZE_MAX / sizeof(URI_CHAR)) {
 		return URI_FALSE;
 	}
 
@@ -279,8 +293,8 @@ static URI_INLINE void URI_FUNC(FixPercentEncodingEngine)(
 		const URI_CHAR * inFirst, const URI_CHAR * inAfterLast,
 		const URI_CHAR * outFirst, const URI_CHAR ** outAfterLast) {
 	URI_CHAR * write = (URI_CHAR *)outFirst;
-	const int lenInChars = (int)(inAfterLast - inFirst);
-	int i = 0;
+	const size_t lenInChars = inAfterLast - inFirst;
+	size_t i = 0;
 
 	/* All but last two */
 	for (; i + 2 < lenInChars; i++) {
@@ -337,7 +351,7 @@ static URI_INLINE void URI_FUNC(FixPercentEncodingInplace)(const URI_CHAR * firs
 
 static URI_INLINE UriBool URI_FUNC(FixPercentEncodingMalloc)(const URI_CHAR ** first,
 		const URI_CHAR ** afterLast, UriMemoryManager * memory) {
-	int lenInChars;
+	size_t lenInChars;
 	URI_CHAR * buffer;
 
 	/* Death checks */
@@ -347,10 +361,13 @@ static URI_INLINE UriBool URI_FUNC(FixPercentEncodingMalloc)(const URI_CHAR ** f
 	}
 
 	/* Old text length */
-	lenInChars = (int)(*afterLast - *first);
+	lenInChars = *afterLast - *first;
 	if (lenInChars == 0) {
 		return URI_TRUE;
-	} else if (lenInChars < 0) {
+	}
+
+	/* Detect and avoid integer overflow */
+	if (lenInChars > SIZE_MAX / sizeof(URI_CHAR)) {
 		return URI_FALSE;
 	}
 
@@ -407,22 +424,19 @@ static URI_INLINE UriBool URI_FUNC(MakeOwnerEngine)(URI_TYPE(Uri) * uri,
 
 	/* Host */
 	if ((*doneMask & URI_NORMALIZE_HOST) == 0) {
-		if ((uri->hostData.ip4 == NULL)
-				&& (uri->hostData.ip6 == NULL)) {
-			if (uri->hostData.ipFuture.first != NULL) {
-				/* IPvFuture */
-				if (!URI_FUNC(MakeRangeOwner)(doneMask, URI_NORMALIZE_HOST,
-						&(uri->hostData.ipFuture), memory)) {
-					return URI_FALSE; /* Raises malloc error */
-				}
-				uri->hostText.first = uri->hostData.ipFuture.first;
-				uri->hostText.afterLast = uri->hostData.ipFuture.afterLast;
-			} else if (uri->hostText.first != NULL) {
-				/* Regname */
-				if (!URI_FUNC(MakeRangeOwner)(doneMask, URI_NORMALIZE_HOST,
-						&(uri->hostText), memory)) {
-					return URI_FALSE; /* Raises malloc error */
-				}
+		if (uri->hostData.ipFuture.first != NULL) {
+			/* IPvFuture */
+			if (!URI_FUNC(MakeRangeOwner)(doneMask, URI_NORMALIZE_HOST,
+					&(uri->hostData.ipFuture), memory)) {
+				return URI_FALSE; /* Raises malloc error */
+			}
+			uri->hostText.first = uri->hostData.ipFuture.first;
+			uri->hostText.afterLast = uri->hostData.ipFuture.afterLast;
+		} else if (uri->hostText.first != NULL) {
+			/* Regname */
+			if (!URI_FUNC(MakeRangeOwner)(doneMask, URI_NORMALIZE_HOST,
+					&(uri->hostText), memory)) {
+				return URI_FALSE; /* Raises malloc error */
 			}
 		}
 	}

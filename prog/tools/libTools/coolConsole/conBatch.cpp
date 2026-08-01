@@ -37,7 +37,6 @@ static int cmdQueueTimeout = -1;
 static bool cmdQueueRet = true;
 
 static void queuedBatchUpdate(void *) { ConBatch::updateQueue(); }
-
 void start_cmd_queue_idle_cycle() { register_regular_action_to_idle_cycle(queuedBatchUpdate, nullptr); }
 
 void stop_cmd_queue_idle_cycle() { unregister_regular_action_to_idle_cycle(queuedBatchUpdate, nullptr); }

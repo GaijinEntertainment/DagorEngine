@@ -70,7 +70,8 @@ struct CheckNotOccluded
     if (!fully_inside && v_bbox3_test_pt_inside(box, occlusion->getCurViewPos())) // do not check for occlusion if viewpos is inside
                                                                                   // box
       return true;
-    return occlusion->isVisibleBox(box.bmin, box.bmax);
+    // the kd walk frustum-classified the box (or an ancestor as fully inside), so the trimmed gate applies
+    return occlusion->isVisibleBoxInFrustum(box.bmin, box.bmax);
   }
 };
 

@@ -25,7 +25,7 @@ void bind_params() {}
 void unbind_params() {}
 void do_update_probes(bool) {}
 void do_trace(const TMatrix4 &) {}
-void denoise(const denoiser::TexMap &) {}
+void denoise(const denoiser::TexMap &, bool) {}
 void render(bvh::ContextId, const TMatrix4 &, bool, bool, const denoiser::TexMap &, bool, bool) {}
 
 void render_validation_layer() {}

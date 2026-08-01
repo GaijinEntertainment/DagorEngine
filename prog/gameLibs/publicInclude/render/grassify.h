@@ -29,6 +29,7 @@ public:
   void generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper);
   void initGrassifyRendinst();
   void startFilterJob(const TMatrix &view_tm, const Driver3dPerspective &perspective);
+  void driverReset();
 
 private:
   eastl::unique_ptr<GrassMaskSliceHelper> grassMaskHelper;

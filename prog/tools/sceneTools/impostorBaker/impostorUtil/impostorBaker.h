@@ -52,7 +52,7 @@ struct AOData
 class ImpostorBaker
 {
 public:
-  static constexpr int VOXEL_VERSION = 1;
+  static constexpr int VOXEL_VERSION = 2;
   static const unsigned int NUM_SCALED_VERTICES = 8;
 
   explicit ImpostorBaker(ILogWriter *log_writer, bool displayExportedImages = false) noexcept;
@@ -177,6 +177,7 @@ private:
   eastl::unique_ptr<DeferredRenderTarget> rt;
   eastl::unique_ptr<DeferredRenderTarget> maskRt;
   eastl::unique_ptr<DeferredRenderTarget> voxelRt;
+  UniqueTexWithShaderVar voxelLastRt0, voxelLastRt1, voxelLastRt2, voxelLastRt3;
   UniqueTexWithShaderVar impostorBranchMaskTex;
   eastl::set<eastl::string> exportedFolderBlks;
   eastl::set<eastl::string> modifiedFiles;
@@ -276,6 +277,8 @@ private:
     eastl::unique_ptr<TexImage32, tmpmemDeleter> albedo;
     eastl::unique_ptr<TexImage32, tmpmemDeleter> normal;
     eastl::unique_ptr<TexImage32, tmpmemDeleter> extra;
+    eastl::unique_ptr<TexImage32, tmpmemDeleter> colorMul;
+    eastl::unique_ptr<TexImageAny<uint16_t>, tmpmemDeleter> palIndex;
     eastl::unique_ptr<TexImageR, tmpmemDeleter> depth;
 
     // renderer stuff:

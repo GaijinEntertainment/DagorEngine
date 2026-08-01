@@ -2,7 +2,6 @@
 
 #include "alias.h"
 #include "../animTreeUtils.h"
-#include "../animTreePanelPids.h"
 #include "../animTree.h"
 #include "animCtrlData.h"
 
@@ -26,8 +25,8 @@ void AnimTreePlugin::aliasFindChilds(PropPanel::ContainerPropertyControl *panel,
   const char *childName = settings.getStr("origin", nullptr);
   if (childName)
   {
-    add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
-    check_ctrl_child_idx(data.childs[0], settings.getStr("name"), childName);
+    const int idx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
+    check_ctrl_child_idx(idx, settings.getStr("name"), childName);
   }
 }
 

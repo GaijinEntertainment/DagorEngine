@@ -721,44 +721,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedIndirect)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(true, DrawUserData)
-  DX12_CONTEXT_COMMAND_PARAM(D3D12_PRIMITIVE_TOPOLOGY, top)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, stride)
-  DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, userData)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, numPrimsForStats)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.switchActivePipeline(ActivePipeline::Graphics);
-  ctx.ensureActivePass();
-  ctx.bindVertexUserData(userData, stride);
-  ctx.flushGraphicsStateResourceBindings();
-  ctx.flushStreamOutputBuffer();
-  ctx.flushGraphicsState(top);
-  ctx.draw(count, 1, 0, 0, numPrimsForStats);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedUserData)
-  DX12_CONTEXT_COMMAND_PARAM(D3D12_PRIMITIVE_TOPOLOGY, top)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, vertexStride)
-  DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, vertexData)
-  DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, indexData)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, numPrimsForStats)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.switchActivePipeline(ActivePipeline::Graphics);
-  ctx.ensureActivePass();
-  ctx.bindIndexUser(indexData);
-  ctx.bindVertexUserData(vertexData, vertexStride);
-  ctx.flushStreamOutputBuffer();
-  ctx.flushGraphicsStateResourceBindings();
-  ctx.flushGraphicsState(top);
-  ctx.drawIndexed(count, 1, 0, 0, 0, numPrimsForStats);
-#endif
-DX12_END_CONTEXT_COMMAND
-
 DX12_BEGIN_CONTEXT_COMMAND(true, CopyBuffer)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, source)
@@ -1000,6 +962,16 @@ DX12_BEGIN_CONTEXT_COMMAND(false, ChangePresentInterval)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+#if _TARGET_XBOX
+DX12_BEGIN_CONTEXT_COMMAND(false, SwapchainOnFrameBegin)
+  DX12_CONTEXT_COMMAND_PARAM(FRAME_PIPELINE_TOKEN, frameToken)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.swapchainOnFrameBegin(frameToken);
+#endif
+DX12_END_CONTEXT_COMMAND
+#endif
+
 #if _TARGET_PC_WIN
 DX12_BEGIN_CONTEXT_COMMAND(false, ChangePresentWindow)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, index)
@@ -1199,15 +1171,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteXeFg)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.executeXeFg(params);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSR2)
-  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(Fsr2ParamsDx12, params)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.executeFSR2(params);
 #endif
 DX12_END_CONTEXT_COMMAND
 

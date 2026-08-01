@@ -245,11 +245,11 @@ Sbuffer *create_sbuffer(int struct_size, int elements, unsigned flags, unsigned 
   ResourceTagType tag = nullptr);
 
 /**
- * @brief Sets an Sbuffer for a specific shader stage and slot.
+ * @brief Binds an Sbuffer as a shader resource (SRV) for a specific shader stage and slot.
  *
  * @param shader_stage The shader stage to set the buffer for. One of STAGE_ values.
- * @param slot The slot to bind the buffer to.
- * @param buffer A pointer to the Sbuffer to set.
+ * @param slot The slot to bind the buffer to. Must be less than the platform SRV slot count (32).
+ * @param buffer A pointer to the Sbuffer to set. When non-null it must have SBCF_BIND_SHADER_RES.
  * @return True if the buffer was successfully set, false otherwise.
  */
 bool set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer);
@@ -304,7 +304,8 @@ enum class Indirect : uint32_t
   DrawWithDrawId,
   DrawIndexedWithDrawId,
   DispatchComputeAsRayGen,
-  DispatchMesh
+  DispatchMesh,
+  DispatchMeshWithDrawId
 };
 
 
@@ -504,7 +505,8 @@ constexpr inline uint32_t dword_count_per_call(Indirect indirect_type)
     case Indirect::DrawWithDrawId: return DRAW_INDIRECT_WITH_DRAW_ID_NUM_ARGS;
     case Indirect::DrawIndexedWithDrawId: return DRAW_INDEXED_INDIRECT_WITH_DRAW_ID_NUM_ARGS;
     case Indirect::DispatchComputeAsRayGen: return DISPATCH_COMPUTE_AS_RAY_GEN_NUM_ARGS;
-    case Indirect::DispatchMesh: return DISPATCH_MESH_NUM_ARGS;
+    case Indirect::DispatchMesh: return DISPATCH_MESH_INDIRECT_NUM_ARGS;
+    case Indirect::DispatchMeshWithDrawId: return DISPATCH_MESH_INDIRECT_WITH_DRAW_ID_NUM_ARGS;
   }
   G_ASSERT(false); // impossible situation
   return 0;

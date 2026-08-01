@@ -30,10 +30,7 @@ bool d3d::update_bindless_resource(D3DResourceType range_type, uint32_t index, D
   D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, false, "Bindless resources are not supported on this hardware");
   D3D_CONTRACT_ASSERTF_RETURN(res != nullptr, false, "d3d::update_bindless_resource: 'res' can not be null");
 
-  render.acquireOwnership();
-  bool result = render.updateBindlessResource(range_type, index, res);
-  render.releaseOwnership();
-  return result;
+  return render.updateBindlessResourceAnyThread(range_type, index, make_span_const(&res, 1));
 }
 
 void d3d::update_bindless_resource_range(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *>& resources)
@@ -49,15 +46,7 @@ void d3d::update_bindless_resource_range(D3DResourceType type, uint32_t index, c
     }
   }
 
-  render.acquireOwnership();
-  for (uint32_t i = 0; i < resources.size(); ++i)
-  {
-    if (resources[i])
-      render.updateBindlessResource(type, index + i, resources[i]);
-    else
-      render.updateBindlessResourcesToNull(type, index + i, 1);
-  }
-  render.releaseOwnership();
+  render.updateBindlessResourceAnyThread(type, index, resources);
 }
 
 void d3d::add_bindless_resources(dag::StridedConstSpan<D3DResourceType> types, dag::StridedConstSpan<D3dResource *> resources,
@@ -89,7 +78,8 @@ void d3d::add_bindless_resources(dag::StridedConstSpan<D3DResourceType> types, d
 void d3d::update_bindless_resources_to_null(D3DResourceType type, uint32_t index, uint32_t count)
 {
   D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
-  render.updateBindlessResourcesToNull(type, index, count);
+
+  render.updateBindlessResourcesToNullAnyThread(type, index, count);
 }
 
 uint32_t d3d::add_bindless_resource(D3DResourceType type, D3dResource *res)

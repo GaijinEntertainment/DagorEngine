@@ -33,10 +33,8 @@
 // Internal include file
 #define OZZ_INCLUDE_PRIVATE_HEADER  // Allows to include private headers.
 #include "animation/offline/decimate.h"
-
-#include "ozz/base/maths/math_ex.h"
-
 #include "ozz/animation/offline/raw_track.h"
+#include "ozz/base/maths/math_ex.h"
 
 // Needs runtime track to access TrackPolicy.
 #include "ozz/animation/runtime/track.h"
@@ -85,6 +83,11 @@ inline bool Optimize(float _tolerance, const _Track& _input, _Track* _output) {
   if (!_output) {
     return false;
   }
+
+  if (&_input == _output) {
+    return false;
+  }
+
   // Reset output animation to default.
   *_output = _Track();
 

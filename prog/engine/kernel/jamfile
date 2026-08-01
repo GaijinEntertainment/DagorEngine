@@ -95,8 +95,8 @@ if $(Platform) in android {
     and_native_activity.cpp
     android/jni_native_reg.cpp
   ;
-  AndroidSources = android/android.bundle/src/DagorLogger.java src/com/gaijinent/common/DagorLogger.java ;
-  AndroidLibProguard = android/android.bundle/and.proguard ;
+  AndroidSources = android/android.bundle/src/DagorLogger.java ;
+  AndroidProguard = android/android.bundle/and.proguard ;
 }
 
 AddIncludes = $(Root)/prog/engine/sharedInclude ;

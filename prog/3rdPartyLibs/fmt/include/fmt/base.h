@@ -2621,7 +2621,8 @@ template <typename Context> class basic_format_args {
   FMT_CONSTEXPR auto get(int id) const -> format_arg {
     auto arg = format_arg();
     if (!is_packed()) {
-      if (id < max_size()) arg = args_[id];
+      if (static_cast<unsigned>(id) < static_cast<unsigned>(max_size()))
+        arg = args_[id];
       return arg;
     }
     if (static_cast<unsigned>(id) >= detail::max_packed_args) return arg;

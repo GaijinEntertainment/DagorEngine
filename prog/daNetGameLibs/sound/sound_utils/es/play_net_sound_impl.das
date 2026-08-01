@@ -6,6 +6,7 @@ require soundEvent
 require soundHash
 require soundSystem
 require sound_utils_net.modules.sound_utils_net_events
+require sound_utils_net.modules.sound_desc_common
 require sound_utils.modules.sound_utils_events
 
 let MAX_NET_DELAY = 5.
@@ -32,7 +33,7 @@ def play_impl(hash : uint; var pos : float3; param : float; descs : Object; is_w
   let objRef = get_net_sound_desc(hash, descs)
   if objRef != null
     assume obj = *objRef
-    let nameRef = is_watched ? (has(obj, "hero") ? obj["hero"] : obj["path"]) : (has(obj, "enemy") ? obj["enemy"] : obj["path"])
+    let nameRef = is_watched ? (has(obj, WATCHED_SOUND_KEY) ? obj[WATCHED_SOUND_KEY] : obj["path"]) : (has(obj, OTHER_SOUND_KEY) ? obj[OTHER_SOUND_KEY] : obj["path"])
     if nameRef != null
       let name = (*nameRef) ?? ""
       let isFar = obj.isFar ?? false

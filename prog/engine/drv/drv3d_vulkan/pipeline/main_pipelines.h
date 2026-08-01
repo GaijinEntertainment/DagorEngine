@@ -273,6 +273,8 @@ struct GraphicsPipelineVariantDescription
       fnv1_helper(&state.strides[i], ret);
     fnv1_helper(&state.inputLayout, ret);
 
+    ret = fnv1a_step<64>(nonDefaultShadingRate, ret);
+
     if (!nativeRPhash)
     {
       for (int i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
@@ -285,6 +287,13 @@ struct GraphicsPipelineVariantDescription
 
       // save 2 bytes by mixing booleans and small topo value
       ret = fnv1a_step<64>((topology << 3) | (state.polygonLine << 2) | rpClass.depthState, ret);
+
+      if (rpClass.shadingRateAttachment)
+      {
+        ret = fnv1a_step<64>((uint8_t)rpClass.shadingRateAttachment, ret);
+        ret = fnv1a_step<64>((uint8_t)rpClass.shadingRateAttachmentFormat, ret);
+        ret = fnv1a_step<64>(rpClass.shadingRateAttachmentSamples, ret);
+      }
     }
     else
     {
@@ -293,21 +302,10 @@ struct GraphicsPipelineVariantDescription
       ret = fnv1a_step<64>((uint8_t)subpass, ret);
       ret = fnv1a_step<64>((topology << 1) | state.polygonLine, ret);
     }
-    ret = fnv1a_step<64>(nonDefaultShadingRate, ret);
 
     return ret;
   }
 };
-
-BEGIN_BITFIELD_TYPE(GraphicsPipelineDynamicStateMask, uint8_t)
-  ADD_BITFIELD_MEMBER(hasDepthBias, 0, 1)
-  ADD_BITFIELD_MEMBER(hasDepthBoundsTest, 1, 1)
-  ADD_BITFIELD_MEMBER(hasStencilTest, 2, 1)
-  ADD_BITFIELD_MEMBER(hasBlendConstants, 3, 1)
-
-  void from(RenderStateSystemBackend & rs_backend, const GraphicsPipelineVariantDescription &desc, RenderPassResource *native_rp);
-
-END_BITFIELD_TYPE()
 
 class GraphicsPipeline : public BasePipeline<GraphicsPipelineLayout, GraphicsProgram>
 {
@@ -320,7 +318,6 @@ public:
   {
     RenderStateSystemBackend &rsBackend;
     const GraphicsPipelineVariantDescription &varDsc;
-    const GraphicsPipelineDynamicStateMask &dynStateMask;
     const GraphicsPipelineShaderSet<const ShaderModule *> &modules;
     GraphicsPipeline *parentPipeline;
     RenderPassResource *nativeRP;
@@ -329,8 +326,6 @@ public:
 
   GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info);
   void bind() const;
-
-  const GraphicsPipelineDynamicStateMask &getDynamicStateMask() { return dynStateMask; }
 
   int32_t addRef() { return ++refs; }
   int32_t release() { return --refs; }
@@ -342,7 +337,6 @@ public:
 #endif
 
 private:
-  GraphicsPipelineDynamicStateMask dynStateMask;
   GraphicsPipelineCompileScratchData *compileScratch;
 
   void checkAndFixMissingInputs(GraphicsPipelineCompileScratchData &csd, InputLayout &input_layout);

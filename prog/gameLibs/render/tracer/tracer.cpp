@@ -15,6 +15,7 @@
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverDesc.h>
+#include <3d/dag_lockSbuffer.h>
 #include <3d/dag_materialData.h>
 #include <debug/dag_debug.h>
 #include <util/dag_oaHashNameMap.h>
@@ -1017,13 +1018,11 @@ void TracerManager::initTrails()
     tailRendElem.vDecl = tailInstancingVdecl;
     tailInstancesIds = dag::create_vb(MAX_FX_TRACERS * MAX_FX_SEGMENTS * sizeof(uint32_t), 0, "tailInstancesId", RESTAG_TRACER);
     d3d_err(!!tailInstancesIds);
-    short *data;
-    tailInstancesIds->lock(0, 0, (void **)&data, VBLOCK_WRITEONLY);
-    G_ASSERT(data);
-    if (data)
-      for (int i = 0; i < MAX_FX_TRACERS * MAX_FX_SEGMENTS; ++i, data += 2)
-        data[0] = data[1] = i;
-    tailInstancesIds->unlock();
+    if (auto data = lock_sbuffer<short>(tailInstancesIds.get(), 0, MAX_FX_TRACERS * MAX_FX_SEGMENTS * 2, VBLOCK_WRITEONLY))
+    {
+      for (int i = 0; i < MAX_FX_TRACERS * MAX_FX_SEGMENTS; ++i)
+        data[2 * i] = data[2 * i + 1] = i;
+    }
   }
   else
     tailParticles.close();

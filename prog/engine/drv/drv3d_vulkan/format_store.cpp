@@ -394,7 +394,7 @@ typedef typename SortedFormatInfoTable<FormatInfoTable<
   FormatInfo<TEXFMT_DXT3,           VK_FORMAT_BC2_UNORM_BLOCK,           VK_FORMAT_BC2_SRGB_BLOCK>,
   FormatInfo<TEXFMT_DXT5,           VK_FORMAT_BC3_UNORM_BLOCK,           VK_FORMAT_BC3_SRGB_BLOCK>,
   FormatInfo<TEXFMT_R32G32UI,       VK_FORMAT_R32G32_UINT,               VK_FORMAT_R32G32_UINT>,
-  DummyFormatInfo<0x0F000000U>,
+  FormatInfo<TEXFMT_BC5S,           VK_FORMAT_BC5_SNORM_BLOCK,           VK_FORMAT_BC5_SNORM_BLOCK>,
   FormatInfo<TEXFMT_L16,            VK_FORMAT_R16_UNORM,                 VK_FORMAT_R16_UNORM>,
   FormatInfo<TEXFMT_A8,             VK_FORMAT_R8_UNORM,                  VK_FORMAT_R8_UNORM>,
   FormatInfo<TEXFMT_R8,             VK_FORMAT_R8_UNORM,                  VK_FORMAT_R8_UNORM>,

@@ -1464,10 +1464,10 @@ template <typename T> struct span {
 };
 
 template <typename F> auto flockfile(F* f) -> decltype(_lock_file(f)) {
-  _lock_file(f);
+  return _lock_file(f);
 }
 template <typename F> auto funlockfile(F* f) -> decltype(_unlock_file(f)) {
-  _unlock_file(f);
+  return _unlock_file(f);
 }
 
 #ifndef getc_unlocked
@@ -1507,7 +1507,10 @@ template <typename F> class file_base {
       FMT_THROW(system_error(errno, FMT_STRING("ungetc failed")));
   }
 
-  void flush() { fflush(this->file_); }
+  void flush() {
+    if (fflush(this->file_) != 0)
+      FMT_THROW(system_error(errno, FMT_STRING("fflush failed")));
+  }
 };
 
 // A FILE wrapper for glibc.
@@ -1549,10 +1552,14 @@ template <typename F> class glibc_file : public file_base<F> {
   bool needs_flush() const {
     if ((this->file_->_flags & line_buffered) == 0) return false;
     char* end = this->file_->_IO_write_end;
-    return memchr(end, '\n', to_unsigned(this->file_->_IO_write_ptr - end));
+    auto size = max_of<ptrdiff_t>(this->file_->_IO_write_ptr - end, 0);
+    return memchr(end, '\n', static_cast<size_t>(size));
   }
 
-  void flush() { fflush_unlocked(this->file_); }
+  void flush() {
+    if (fflush_unlocked(this->file_) != 0)
+      FMT_THROW(system_error(errno, FMT_STRING("fflush failed")));
+  }
 };
 
 // A FILE wrapper for Apple's libc.

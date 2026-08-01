@@ -41,6 +41,10 @@
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/cameraParams.h>
 
+#include <render/world/wrDispatcher.h>
+#include <render/world/depthAOAbove.h>
+#include <render/noiseTex.h>
+
 #define GLOBAL_VARS_LIST        \
   VAR(world_to_puddles_tex_ofs) \
   VAR(world_to_puddles_ofs)     \
@@ -51,6 +55,7 @@ GLOBAL_VARS_LIST
 #undef VAR
 
 CONSOLE_BOOL_VAL("render", puddles_invalidate, false);
+CONSOLE_INT_VAL("render", puddles_max_invalid_boxes_nr, 16, 0, 64);
 
 void PuddlesManager::invalidatePuddles(bool force)
 {
@@ -59,12 +64,60 @@ void PuddlesManager::invalidatePuddles(bool force)
   puddlesHelper.curOrigin = IPoint2(-100000, 330000);
 }
 
+void PuddlesManager::invalidatePuddles(const BBox2 &world_box)
+{
+  if (!puddles.getTex2D() || world_box.isempty())
+    return;
+
+  if (invalidBoxes.size() >= puddles_max_invalid_boxes_nr)
+  {
+    invalidBoxes.clear();
+    invalidatePuddles(true);
+    return;
+  }
+
+  invalidBoxes.push_back(world_box);
+}
+
 void PuddlesManager::setPuddlesScene(RenderScene *scn)
 {
   puddlesScene = scn;
   if (puddlesScene)
     puddlesSceneBbox = puddlesScene->calcBoundingBox();
   invalidatePuddles(false);
+}
+
+void PuddlesManager::renderPuddleRegion(ToroidalQuadRegion &reg, const float texel_size, const TMatrix4 &vtm)
+{
+  ShaderGlobal::set_float4(world_to_puddles_tex_ofsVarId, texel_size * (reg.texelsFrom.x - reg.lt.x),
+    texel_size * (reg.texelsFrom.y - reg.lt.y), puddleLod, texel_size);
+  d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
+  puddlesRenderer.render();
+  if (puddlesScene)
+  {
+    BBox2 cBox(texel_size * point2(reg.texelsFrom), texel_size * point2(reg.texelsFrom + reg.wd));
+    if (cBox & BBox2(Point2::xz(puddlesSceneBbox[0]), Point2::xz(puddlesSceneBbox[1])))
+    {
+      alignas(16) TMatrix4 proj =
+        matrix_ortho_off_center_lh(cBox[0].x, cBox[1].x, cBox[1].y, cBox[0].y, puddlesSceneBbox[0].y - 1, puddlesSceneBbox[1].y + 1);
+      d3d::settm(TM_PROJ, &proj);
+      shaders::overrides::set(blendMaxState);
+
+      VisibilityFinder vf;
+      Frustum cullingFrustum = vtm * proj;
+
+      vf.set(v_splats(0), cullingFrustum, 0.0f, 0.0f, 1.0f, 1.0f, nullptr);
+      puddlesScene->render(vf, -1);
+      shaders::overrides::reset();
+    }
+  }
+  if (removedPuddlesActualSize > 0)
+  {
+    ShaderGlobal::set_float4(puddle_toroidal_viewVarId, reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y);
+    d3d::setvsrc(0, 0, 0);
+    puddlesRemover.shader->setStates();
+    d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, removedPuddlesActualSize);
+  }
 }
 
 void PuddlesManager::preparePuddles(const Point3 &origin)
@@ -78,6 +131,10 @@ void PuddlesManager::preparePuddles(const Point3 &origin)
       VBLOCK_DISCARD);
     removedPuddlesNeedUpdate = false;
   }
+
+  const DepthAOAboveContext *depthAOAboveCtx = WRDispatcher::getDepthAOAboveCtx();
+  if (depthAOAboveCtx && !depthAOAboveCtx->isValidAtAnyQuality())
+    return;
 
   Point2 alignedOrigin = Point2::xz(origin);
   const float fullDistance = 2 * puddlesDist;
@@ -96,9 +153,9 @@ void PuddlesManager::preparePuddles(const Point3 &origin)
     THRESHOLD = TEXEL_ALIGN * 4
   };
   IPoint2 move = abs(puddlesHelper.curOrigin - newTexelsOrigin);
+  ToroidalGatherCallback::RegionTab moveRegions;
   if (move.x >= THRESHOLD || move.y >= THRESHOLD)
   {
-    TIME_D3D_PROFILE(puddles);
     const float fullUpdateThreshold = 0.45;
     const int fullUpdateThresholdTexels = fullUpdateThreshold * puddlesHelper.texSize;
     // if distance travelled is too big, there is no need to update movement in two steps
@@ -109,63 +166,50 @@ void PuddlesManager::preparePuddles(const Point3 &origin)
       else
         newTexelsOrigin.y = puddlesHelper.curOrigin.y;
     }
-    SCOPE_RENDER_TARGET;
-    SCOPE_VIEW_PROJ_MATRIX;
-    ToroidalGatherCallback::RegionTab tab;
-    ToroidalGatherCallback cb(tab);
+
+    ToroidalGatherCallback cb(moveRegions);
     toroidal_update(newTexelsOrigin, puddlesHelper, fullUpdateThresholdTexels, cb);
-
-    Point2 ofs = point2((puddlesHelper.mainOrigin - puddlesHelper.curOrigin) % puddlesHelper.texSize) / puddlesHelper.texSize;
-
-    alignedOrigin = point2(puddlesHelper.curOrigin) * texelSize;
-    d3d::set_render_target({}, DepthAccess::RW, {{puddles.getTex2D(), 0, 0}});
-    // todo: we'd better align to hmap world pos ofs
-    ShaderGlobal::set_float4(world_to_puddles_ofsVarId, 1.0f / fullDistance, puddleLod, -alignedOrigin.x / fullDistance + 0.5,
-      -alignedOrigin.y / fullDistance + 0.5);
-    TMatrix vtm;
-    if (puddlesScene)
-    {
-      vtm.setcol(0, 1, 0, 0);
-      vtm.setcol(1, 0, 0, 1);
-      vtm.setcol(2, 0, 1, 0);
-      vtm.setcol(3, 0, 0, 0);
-      d3d::settm(TM_VIEW, vtm);
-    }
-    for (auto &reg : tab)
-    {
-      ShaderGlobal::set_float4(world_to_puddles_tex_ofsVarId, texelSize * (reg.texelsFrom.x - reg.lt.x),
-        texelSize * (reg.texelsFrom.y - reg.lt.y), puddleLod, texelSize);
-      d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
-      puddlesRenderer.render();
-      if (puddlesScene)
-      {
-        BBox2 cBox(texelSize * point2(reg.texelsFrom), texelSize * point2(reg.texelsFrom + reg.wd));
-        if (cBox & BBox2(Point2::xz(puddlesSceneBbox[0]), Point2::xz(puddlesSceneBbox[1])))
-        {
-          alignas(16) TMatrix4 proj = matrix_ortho_off_center_lh(cBox[0].x, cBox[1].x, cBox[1].y, cBox[0].y, puddlesSceneBbox[0].y - 1,
-            puddlesSceneBbox[1].y + 1);
-          d3d::settm(TM_PROJ, &proj);
-          shaders::overrides::set(blendMaxState);
-
-          VisibilityFinder vf;
-          Frustum cullingFrustum = TMatrix4(vtm) * proj;
-
-          vf.set(v_splats(0), cullingFrustum, 0.0f, 0.0f, 1.0f, 1.0f, nullptr);
-          puddlesScene->render(vf, -1);
-          shaders::overrides::reset();
-        }
-      }
-      if (removedPuddlesActualSize > 0)
-      {
-        ShaderGlobal::set_float4(puddle_toroidal_viewVarId, reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y);
-        d3d::setvsrc(0, 0, 0);
-        puddlesRemover.shader->setStates();
-        d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, removedPuddlesActualSize);
-      }
-    }
-    ShaderGlobal::set_float4(world_to_puddles_tex_ofsVarId, ofs.x, ofs.y, 1. / puddlesHelper.texSize, puddleLod);
-    d3d::resource_barrier({puddles.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   }
+
+  if (moveRegions.empty() && invalidBoxes.empty())
+    return;
+
+  TIME_D3D_PROFILE(puddles_render);
+
+  SCOPE_RENDER_TARGET;
+  SCOPE_VIEW_PROJ_MATRIX;
+
+  Point2 ofs = point2((puddlesHelper.mainOrigin - puddlesHelper.curOrigin) % puddlesHelper.texSize) / puddlesHelper.texSize;
+
+  alignedOrigin = point2(puddlesHelper.curOrigin) * texelSize;
+  d3d::set_render_target({}, DepthAccess::RW, {{puddles.getTex2D(), 0, 0}});
+  // todo: we'd better align to hmap world pos ofs
+  ShaderGlobal::set_float4(world_to_puddles_ofsVarId, 1.0f / fullDistance, puddleLod, -alignedOrigin.x / fullDistance + 0.5,
+    -alignedOrigin.y / fullDistance + 0.5);
+  TMatrix vtm;
+  vtm.setcol(0, 1, 0, 0);
+  vtm.setcol(1, 0, 0, 1);
+  vtm.setcol(2, 0, 1, 0);
+  vtm.setcol(3, 0, 0, 0);
+  if (puddlesScene)
+    d3d::settm(TM_VIEW, vtm);
+  TMatrix4 vtm4 = TMatrix4(vtm);
+  for (auto &reg : moveRegions)
+    renderPuddleRegion(reg, texelSize, vtm4);
+
+  for (const BBox2 &box : invalidBoxes)
+  {
+    ToroidalGatherCallback::RegionTab invalidRegions;
+    ToroidalGatherCallback cb(invalidRegions);
+    dag::ConstSpan<BBox2> span = {&box, 1};
+    toroidal_invalidate_boxes(puddlesHelper, texelSize, span, cb);
+    for (auto &reg : invalidRegions)
+      renderPuddleRegion(reg, texelSize, vtm4);
+  }
+  invalidBoxes.clear();
+  ShaderGlobal::set_float4(world_to_puddles_tex_ofsVarId, ofs.x, ofs.y, 1. / puddlesHelper.texSize, puddleLod);
+  d3d::resource_barrier({puddles.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+
 
   // SCOPE_RENDER_TARGET;
   // d3d::set_render_target(puddles.getTex2D(), 0, false);
@@ -207,6 +251,10 @@ void PuddlesManager::init(const LandMeshManager *lmesh_mgr, const DataBlock &set
     // puddles.set(d3d::create_tex(NULL, puddlesRes, puddlesRes, TEXCF_RTARGET|TEXFMT_R8, 1, "puddles"), "puddles");
     puddles = dag::create_tex(NULL, puddlesRes, puddlesRes, TEXCF_RTARGET | TEXFMT_L16, 1, "puddles");
     puddles.setVar();
+    // make_puddles samples noise_64_tex for the flat/deep puddle noise. It is a refcounted shared
+    // texture historically created only by the grass system, so puddles would silently read black
+    // (uniform flat puddles) whenever grass was not initialized. Hold our own reference.
+    init_and_get_argb8_64_noise().setVar();
     puddlesRenderer.init("make_puddles");
     puddlesRemover.init("remove_puddles_in_craters", nullptr, 0, "remove_puddles_in_craters");
     puddlesHelper.curOrigin = IPoint2(-1000000, 1000000);
@@ -244,6 +292,8 @@ void PuddlesManager::reinit_same_settings(const LandMeshManager *lmesh_mgr, int 
 
 void PuddlesManager::close()
 {
+  if (puddles.getTex2D()) // released only if a prior init acquired it (see init())
+    release_64_noise();
   lmeshMgr = nullptr;
   puddlesRenderer.clear();
   puddlesRemover.close();
@@ -251,6 +301,7 @@ void PuddlesManager::close()
   puddlesRemoved.clear();
   puddlesRemovedBuf.close();
   blendMaxState.reset();
+  invalidBoxes.clear();
 }
 
 void PuddlesManager::removePuddlesInCrater(const Point3 &pos, float radius)

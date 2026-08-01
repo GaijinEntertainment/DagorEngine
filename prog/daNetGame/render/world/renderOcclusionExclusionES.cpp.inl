@@ -48,6 +48,10 @@ static void render_occlusion_exclusion_es_event_handler(const OcclusionExclusion
 {
   TIME_D3D_PROFILE(occlusion_exclusion_evt);
 
+  TMatrix vtm = stg.viewTm;
+  vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
+
   ContextId ctx = get_or_create_context("dynmodel_immediate");
   render_hero_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::auto_type watchedByPlr) AnimV20::AnimcharRendComponent &animchar_render,
@@ -77,15 +81,14 @@ static void render_occlusion_exclusion_es_event_handler(const OcclusionExclusion
     });
 
   if (!prepare_render_current(ctx))
+  {
+    d3d::settm(TM_VIEW, stg.viewTm);
     return;
+  }
 
   if (!stg.rendered)
     d3d::clearview(CLEAR_ZBUFFER, 0, 0, 0);
   const_cast<bool &>(stg.rendered) = true;
-
-  TMatrix vtm = stg.viewTm;
-  vtm.setcol(3, 0, 0, 0);
-  d3d::settm(TM_VIEW, vtm);
 
   SCENE_LAYER_GUARD(dynamicDepthSceneBlockId.get());
   render_all_stages(ctx);

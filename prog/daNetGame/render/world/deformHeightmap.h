@@ -40,6 +40,7 @@ public:
   bool isEnabled() const;
   void requestClear() { needClearDepth = true; }
   void afterDeviceReset();
+  inline TMatrix getViewTm() const { return viewTm; }
   inline TMatrix getInverseViewTm() const { return iViewTm; }
   Point4 getDeformRect() const;
   float getRadius() const { return boxSize * 0.5f; }

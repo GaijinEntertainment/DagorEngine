@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <string>
@@ -68,6 +69,7 @@ void PrintUsage()
         "  -bytecode-dump [out-file] dump SQ bytecode into console or file if specified\n"
         "  -diag-file file           write diagnostics into specified file\n"
         "  -sa                       enable static analyzer\n"
+        "  --syntax-check            do not execute checked scripts\n"
         "  --check-stack             check stack after each script execution\n"
         "  --warnings-list           print all warnings and exit\n"
         "  --parse-types             parse function types from file\n"
@@ -78,11 +80,14 @@ void PrintUsage()
         "  -h                        prints help\n");
 }
 
-static std::string read_file_ignoring_utf8bom(const char *filename)
+static std::string read_file_ignoring_utf8bom(const char *filename, int *error_code = nullptr)
 {
     FILE *f = fopen(filename, "rb");
-    if (!f)
+    if (!f) {
+        if (error_code)
+            *error_code = errno;
         return std::string();
+    }
 
     int length = 0;
     fseek(f, 0, SEEK_END);
@@ -335,6 +340,43 @@ static bool parse_types_from_file(HSQUIRRELVM sqvm, const char *filename)
 }
 
 
+static bool check_syntax(HSQUIRRELVM v, const char *filename, bool static_analysis, SqModules::string &err_msg)
+{
+    int error_code = 0;
+    std::string source = read_file_ignoring_utf8bom(filename, &error_code);
+    if (source.empty()) {
+        err_msg = "cannot open file '";
+        err_msg += filename;
+        err_msg += "': ";
+        err_msg += strerror(error_code);
+        return false;
+    }
+
+    Sqrat::Table bindings(v);
+    HSQOBJECT hBindings = bindings;
+    Sqrat::Table stateStorage(v);
+    Sqrat::Array refHolder(v);
+    module_mgr->bindModuleApi(hBindings, stateStorage, refHolder, SqModules::__main__, filename);
+    module_mgr->bindRequireApi(hBindings);
+    module_mgr->bindBaseLib(hBindings);
+
+    SQCompilation::SqASTData *ast =
+      sq_parsetoast(v, source.c_str(), source.length(), filename, static_analysis, /* raise error*/ true);
+    if (!ast)
+        return false;
+
+    if (static_analysis)
+    {
+      sq_checktrailingspaces(v, filename, source.c_str(), source.length());
+      hBindings._flags = SQOBJ_FLAG_IMMUTABLE;
+      sq_analyzeast(v, ast, &hBindings, source.c_str(), source.length());
+    }
+
+    sq_releaseASTData(v, ast);
+    return true;
+}
+
+
 
 #define _DONE 2
 #define _ERROR 3
@@ -346,6 +388,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
     DumpOptions dumpOpt = { 0 };
     FILE *diagFile = nullptr;
     bool static_analysis = checkOption(argv, argc, "sa", optArg); // TODO: refact ugly loop below using this function
+    bool syntax_check_only = false;
     bool parse_types = false;
 
     if (static_analysis) {
@@ -386,6 +429,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             else if (strcmp("-parse-types", arg) == 0)
             {
                 parse_types = true;
+            }
+            else if (strcmp("-syntax-check", arg) == 0)
+            {
+                syntax_check_only = true;
             }
             else if (strcmp("-d", arg) == 0)
             {
@@ -466,6 +513,8 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
         if (static_analysis) {
           sq_setcompilationoption(v, CompilationOptions::CO_CLOSURE_HOISTING_OPT, false);
         }
+        if (syntax_check_only)
+          sq_setcompilationoption(v, CompilationOptions::CO_STATIC_ANALYSIS_SKIP_REQUIRE_RESOLUTION, true);
 
         if (diagFile)
         {
@@ -507,7 +556,11 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
             SqModules::string errMsg;
             int retCode = _DONE;
 
-            if (!module_mgr->requireModule(filename, true, static_analysis ? SqModules::__analysis__ : SqModules::__main__, exports, errMsg)) {
+            if (syntax_check_only) {
+                if (!check_syntax(v, filename, static_analysis, errMsg))
+                    retCode = _ERROR;
+            }
+            else if (!module_mgr->requireModule(filename, true, static_analysis ? SqModules::__analysis__ : SqModules::__main__, exports, errMsg)) {
                 retCode = _ERROR;
             }
 
@@ -515,7 +568,7 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 *retval = exports.GetObject()._unVal.nInteger;
             }
 
-            if (static_analysis) {
+            if (static_analysis && !syntax_check_only) {
               sq_checkglobalnames(v);
             }
 

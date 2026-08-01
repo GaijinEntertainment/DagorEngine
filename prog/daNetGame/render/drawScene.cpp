@@ -52,6 +52,7 @@
 #include "main/level.h"
 #include "sound/dngSound.h"
 #include "net/netStat.h"
+#include "net/net.h"
 #include "net/time.h"
 #include "render/fx/fx.h"
 #include "render/renderEvent.h"
@@ -136,8 +137,13 @@ public:
   const char *getJobName(bool &) const override { return "AdditionalGameJob"; }
   void doJob() override
   {
+    // Worker thread runs ParallelUpdateFrameDelayed -> ECS broadcast -> das ES handlers
+    // that read get_sync_time(). Main thread's net_update may publish concurrently, so
+    // assumeSingleUpdate=false (long-running scope spanning at most one publish boundary).
+    net::NetSnapshotScope snapshotScope(/*assumeSingleUpdate*/ false, "AdditionalGameJob");
+
     int64_t ownedThread = g_entity_mgr->getOwnerThreadId();
-    g_entity_mgr->setOwnerThreadId(get_current_thread_id());
+    net::change_em_ownership(*g_entity_mgr, get_current_thread_id());
 
     uirender::start_ui_before_render_job();
 
@@ -167,7 +173,7 @@ public:
 
     dacoll::phys_world_set_invalid_fetch_sim_res_thread(-1); // set to invalid
 
-    g_entity_mgr->setOwnerThreadId(ownedThread);
+    net::change_em_ownership(*g_entity_mgr, ownedThread);
     free_reserved_tp_worker(); // Allow Jolt to use all threadpool workers
   }
 } additional_game_job;
@@ -231,14 +237,10 @@ void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraPar
     return;
 
   d3d::settm(TM_VIEW, camera.viewTm);
-  if (target)
-    d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
+  d3d::set_render_target({depth, 0, 0}, DepthAccess::RW, {{target, 0, 0}});
 
   // some debug features can rely on depth test, but on some consoles we can't use that because of different resolutions with RTs
   static constexpr bool canDrawWithoutDepth = true; // TODO: fix it correctly
-
-  if (depth)
-    d3d::set_depth(depth, DepthAccess::RW);
   if (depth || canDrawWithoutDepth)
   {
     d3d::settm(TM_PROJ, &camera.jitterProjTm);
@@ -252,15 +254,14 @@ void render_scene_debug(BaseTexture *target, BaseTexture *depth, const CameraPar
     d3d::settm(TM_PROJ, &camera.noJitterProjTm);
 
     TIME_D3D_PROFILE(debug_visualization_nojitter);
-    if (depth)
-      d3d::set_depth(depth, DepthAccess::RW);
+    d3d::set_render_target({depth, 0, 0}, DepthAccess::RW, {{target, 0, 0}});
     if (depth || canDrawWithoutDepth)
     {
       g_entity_mgr->update(UpdateStageInfoRenderDebug(reinterpret_cast<mat44f_cref>(camera.noJitterGlobtm), camera.viewItm));
       flush_buffered_debug_lines(get_timespeed() == 0.f);
     }
 
-    d3d::set_depth(nullptr, DepthAccess::RW);
+    d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
     acesfx::draw_debug_opt(camera.noJitterGlobtm);
   }
 }
@@ -367,7 +368,7 @@ void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = tr
     if (is_level_loaded())
     {
       additional_game_job.prepare(frame_id, last_gametime_elapsed_sec, get_timespeed(), get_sync_time_d(),
-        *das::daScriptEnvironment::bound);
+        das::daScriptEnvironment::getBound());
       if (should_delay_pufd_until_bvh_jobs_done())
       {
         static bool registered = false;

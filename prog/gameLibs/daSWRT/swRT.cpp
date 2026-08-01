@@ -22,8 +22,8 @@
 #include <math/dag_viewMatrix.h>
 #include <math/dag_hlsl_floatx.h>
 
-#include "swCommon.h"
-#include "shaders/swBVHDefine.hlsli"
+#include <daBVH/swCommon.h>
+#include <daBVH/swBVHDefine.hlsli>
 
 #define GLOBAL_VARS_LIST       \
   VAR(swrt_shadow_target)      \

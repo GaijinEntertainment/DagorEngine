@@ -119,10 +119,10 @@ void SweepContext::AddToMap(Triangle* triangle)
   map_.push_back(triangle);
 }
 
-Node& SweepContext::LocateNode(Point& point)
+Node* SweepContext::LocateNode(Point& point)
 {
   // TODO implement search tree
-  return *front_->LocateNode(point.x);
+  return front_->LocateNode(point.x);
 }
 
 void SweepContext::CreateAdvancingFront(std::vector<Node*> nodes)

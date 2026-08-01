@@ -6,10 +6,9 @@
 
 namespace bind_dascript
 {
-template <int ID = 0>
 struct DagFileAccessContainer
 {
-  LoadingContainer<DagFileAccess, ID> access;
+  LoadingContainer<DagFileAccess> access;
   das::string dasProject;
   HotReload hotReloadMode = HotReload::DISABLED;
 

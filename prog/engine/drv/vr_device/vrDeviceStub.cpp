@@ -52,3 +52,14 @@ float VRDevice::calcBoundingView(VRDevice::FrameData &) { return 1.f; }
 
 // static
 int VRDevice::getConfiguredRefreshRate() { return 0; }
+
+namespace vr
+{
+void set_stereo_index(StereoIndex, bool) {}
+
+StereoIndex get_stereo_index() { return StereoIndex::Mono; }
+
+NonLinearRenderingScope::~NonLinearRenderingScope() {}
+
+NonLinearRenderingScope suppress_non_linear_rendering() { return {StereoIndex::Mono}; }
+} // namespace vr

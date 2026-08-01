@@ -21,6 +21,20 @@ public:
     uint16_t stencilMask;
     bool enableScissor;
 
+    // states that become dynamic via VK_EXT_extended_dynamic_state; filled only when the device
+    // supports the extension, otherwise left at zero and kept baked into the pipeline static state.
+    // depth-write is intentionally NOT here: at pipeline build it is masked by forceNoZWrite (a
+    // render-pass property, not a render-state one), which dynamic state can not track correctly yet.
+    uint8_t extCullMode; // raw dagor cull: 0 none, 1 cw, 2 ccw
+    uint8_t extDepthTestEnable;
+    uint8_t extDepthTestFunc; // VkCompareOp
+    uint8_t extDepthBoundsTestEnable;
+    uint8_t extStencilTestEnable;
+    uint8_t extStencilTestFunc;          // VkCompareOp
+    uint8_t extStencilTestOpStencilFail; // VkStencilOp
+    uint8_t extStencilTestOpDepthFail;   // VkStencilOp
+    uint8_t extStencilTestOpPass;        // VkStencilOp
+
     bool operator==(const DynamicState &v) const
     {
       if (v.depthBias != depthBias)
@@ -36,6 +50,12 @@ public:
         return false;
 
       if (v.enableScissor != enableScissor)
+        return false;
+
+      if (v.extCullMode != extCullMode || v.extDepthTestEnable != extDepthTestEnable || v.extDepthTestFunc != extDepthTestFunc ||
+          v.extDepthBoundsTestEnable != extDepthBoundsTestEnable || v.extStencilTestEnable != extStencilTestEnable ||
+          v.extStencilTestFunc != extStencilTestFunc || v.extStencilTestOpStencilFail != extStencilTestOpStencilFail ||
+          v.extStencilTestOpDepthFail != extStencilTestOpDepthFail || v.extStencilTestOpPass != extStencilTestOpPass)
         return false;
 
       return true;

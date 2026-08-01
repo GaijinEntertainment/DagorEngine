@@ -155,9 +155,8 @@ bool ELFSymbolsToModule(const uint8_t *symtab_section,
   while(!iterator->at_end) {
     if (ELF32_ST_TYPE(iterator->info) == STT_FUNC &&
         iterator->shndx != SHN_UNDEF) {
-      Module::Extern *ext = new Module::Extern;
+      Module::Extern *ext = new Module::Extern(iterator->value);
       ext->name = SymbolString(iterator->name_offset, strings);
-      ext->address = iterator->value;
       module->AddExtern(ext);
     }
     ++iterator;

@@ -70,9 +70,8 @@ public:
   void enableTurbulenceFoam(bool value) { turbulenceFoamEnabled = value && renderQuality >= fft_water::RENDER_GOOD; }
   void reinit(const Point2 &wind_dir, float wind_speed, float period);
 
-  void setLevel(float water_level);
-  float getMinLevel() const { return minWaterLevel; }
-  float getMaxLevel() const { return maxWaterLevel; }
+  float getMinHeight() const { return minWaterHeight; }
+  float getMaxHeight() const { return maxWaterHeight; }
   void setMinMaxLevel(float min_water_level, float max_water_level);
   const Point2 &getWaveDisplacementDistance() const { return waveDisplacementDist; }
   void setWaveDisplacementDistance(const Point2 &value);
@@ -105,6 +104,7 @@ public:
   bool isSSRRendererEnabled() const { return ssrRendererEnabled; }
   void setRenderQuad(const BBox2 &b);
   void setLod0AreaSize(float size) { lod0AreaRadius = size; }
+  void setLastLodExtension(float extension) { lastLodExtension = extension; }
   float getLod0AreaSize() { return lod0AreaRadius; }
   void setGridLod0AdditionalTesselation(float additional_tesselation) { lod0TesselationAdditional = additional_tesselation; }
 
@@ -132,8 +132,8 @@ public:
     gridOffset = cameraPatchOffset;
   }
 
-  float getSignificantWaveHeight() { return significantWaveHeight; }
   float getMaxWaveHeight() { return maxWaveHeight; }
+  float getSignificantWaveHeight() { return significantWaveHeight; }
 
 protected:
   void setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p);
@@ -179,8 +179,8 @@ protected:
   eastl::unique_ptr<ShaderMaterial> heightmapShmat[fft_water::RenderMode::MAX];
   ShaderElement *heightmapShElem[fft_water::RenderMode::MAX] = {nullptr, nullptr, nullptr};
 
-  float waterLevel;
   float minWaterLevel, maxWaterLevel;
+  float minWaterHeight, maxWaterHeight;
   float maxWaveHeight, significantWaveHeight;
   float maxWaveSize[MAX_NUM_CASCADES];
   Point2 waveDisplacementDist;

@@ -37,6 +37,7 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
     case SHADER_TOKENS::SHTOK_int: t = SHVT_INT; break;
     case SHADER_TOKENS::SHTOK_int4: t = SHVT_INT4; break;
     case SHADER_TOKENS::SHTOK_float4x4: t = SHVT_FLOAT4X4; break;
+    case SHADER_TOKENS::SHTOK_float4x3: t = SHVT_FLOAT4x3; break;
     case SHADER_TOKENS::SHTOK_texture: t = SHVT_TEXTURE; break;
     case SHADER_TOKENS::SHTOK_buffer: t = SHVT_BUFFER; break;
     case SHADER_TOKENS::SHTOK_tlas: t = SHVT_TLAS; break;
@@ -120,6 +121,11 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
         report_error(parser, decl->name, "float4x4 default value is not supported");
         return eastl::nullopt;
       }
+      else if (t == SHVT_FLOAT4x3)
+      {
+        report_error(parser, decl->name, "float4x3 default value is not supported");
+        return eastl::nullopt;
+      }
 
       if (!exprParser.parseConstExpression(*expr, val, ExpressionParser::Context{expectedValType, expectingInt, decl->name}))
       {
@@ -137,6 +143,9 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
         var.value.i4.set(bitwise_cast<int>(val[0]), bitwise_cast<int>(val[1]), bitwise_cast<int>(val[2]), bitwise_cast<int>(val[3]));
         break;
       case SHVT_FLOAT4X4:
+        // default value is not supported
+        break;
+      case SHVT_FLOAT4x3:
         // default value is not supported
         break;
       case SHVT_BUFFER:

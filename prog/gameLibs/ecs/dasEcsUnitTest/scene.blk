@@ -12,6 +12,12 @@ entity {
   _template:t="testDasEvent"
 }
 entity {
+  _template:t="testTrackedPodCompare"
+}
+entity {
+  _template:t="testTrackedEidPath"
+}
+entity {
   _template:t="testTrackable"
 }
 entity {

@@ -6,9 +6,12 @@
 #include "external_issues.h"
 
 #include <shaders/psoCacheVersion.h>
+#include <startup/dag_globalSettings.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_perfTimer.h>
 #include <EASTL/unordered_set.h>
+#include <util/dag_stlqsort.h>
 #include <util/dag_base85.h>
 #include <3d/gpu_pipeline_serialization.h>
 
@@ -53,6 +56,28 @@ using namespace drv3d_dx12;
 #else
 #include "shaders/clear.ps.h"
 #endif
+#undef g_main
+
+#define g_main clear_pixel_shader_uint
+#if _TARGET_XBOXONE
+#include "shaders/clear_uint.ps.x.h"
+#elif _TARGET_SCARLETT
+#include "shaders/clear_uint.ps.xs.h"
+#else
+#include "shaders/clear_uint.ps.h"
+#endif
+#undef g_main
+
+#define g_main clear_pixel_shader_sint
+#if _TARGET_XBOXONE
+#include "shaders/clear_sint.ps.x.h"
+#elif _TARGET_SCARLETT
+#include "shaders/clear_sint.ps.xs.h"
+#else
+#include "shaders/clear_sint.ps.h"
+#endif
+#undef g_main
+
 
 #if _TARGET_SCARLETT
 static bool has_acceleration_structure(const dxil::ShaderHeader &header)
@@ -165,7 +190,7 @@ bool PipelineVariant::generateOutputMergerDescriptions(const eastl::string &pipe
   }
 
   const auto blendDesc = static_state.getBlendDesc(fbFinalColorWriteMask);
-  const bool isBlendOk = validate_blend_desc(blendDesc, fb_layout, fbFinalColorWriteMask);
+  const bool isBlendOk = validate_blend_desc(pipeline_name, blendDesc, fb_layout, fbFinalColorWriteMask);
 
   target.append<CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC>(blendDesc);
 
@@ -258,17 +283,23 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
   bool hasGS = false;
   bool hasSO = false;
 #if !_TARGET_PC_WIN
-  auto
+  eastl::string name;
 #endif
-    name = name_generator.generateGraphicsPipelineName(base.vsModule, base.psModule, static_state);
+  auto getName = [&]() -> const eastl::string & {
+    if (name.empty())
+      name = name_generator.generateGraphicsPipelineName(base.vsModule, base.psModule, static_state);
+    return name;
+  };
+  if (device.shouldNameObjects())
+    getName();
 
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
   eastl::string profilerMsg;
-  profilerMsg.sprintf("PipelineVariant (%s)::create: took %%dus", name.c_str());
+  profilerMsg.sprintf("PipelineVariant (%s)::create: took %%dus", getName().c_str());
   AutoFuncProf funcProfiler(profilerMsg.c_str());
 #endif
   TIME_PROFILE_DEV(PipelineVariant_create);
-  TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(name.c_str());
+  TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(getName().c_str());
 
   fb_layout.checkMsaaLevelsEqual();
 #if _TARGET_PC_WIN
@@ -397,7 +428,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
   }
 
   desc.BlendState = static_state.getBlendDesc(fbFinalColorWriteMask);
-  const bool blendOk = validate_blend_desc(desc.BlendState, fb_layout, fbFinalColorWriteMask);
+  const bool blendOk = validate_blend_desc(name, desc.BlendState, fb_layout, fbFinalColorWriteMask);
   outputOK = blendOk && outputOK;
 
   uint32_t inputCount = 0;
@@ -516,7 +547,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
       int threshold = device.psoSlowThresholdUsec;
       if (threshold > 0 && elapsed_usec >= threshold)
       {
-        logwarn("DX12: CreatePipelineState for <%s> (graphics) took %.1f ms", name.c_str(), (double)elapsed_usec / 1000.0);
+        logwarn("DX12: CreatePipelineState for <%s> (graphics) took %.1f ms", getName().c_str(), (double)elapsed_usec / 1000.0);
         if (device.netManager)
           device.netManager->reportSlowPsoCompilation(name.c_str(), (long)(elapsed_usec / 1000), "graphics");
       }
@@ -530,6 +561,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
     if (FAILED(DX12_CHECK_RESULTF(result, "CreatePipelineState")))
     {
       loadResult.runtimeError = true;
+      getName();
 
 #if _TARGET_PC_WIN
       if (result == E_OUTOFMEMORY)
@@ -655,19 +687,34 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
   return loadResult;
 }
 
-bool PipelineVariant::validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, const FramebufferLayout &fb_layout,
-  uint32_t color_write_mask)
+bool PipelineVariant::validate_blend_desc(const eastl::string &pipeline_name, const D3D12_BLEND_DESC &blend_desc,
+  const FramebufferLayout &fb_layout, uint32_t color_write_mask)
 {
   bool isOk = true;
+  G_UNUSED(pipeline_name);
   G_UNUSED(blend_desc);
   G_UNUSED(fb_layout);
   G_UNUSED(color_write_mask);
 #if DAGOR_DBGLEVEL > 0
   auto finalColorTargetMask = color_write_mask & fb_layout.colorTargetMask;
+  auto isDualSourceFactor = [](D3D12_BLEND b) { return b >= D3D12_BLEND_SRC1_COLOR && b <= D3D12_BLEND_INV_SRC1_ALPHA; };
   for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
   {
     if (i > 0 && !blend_desc.IndependentBlendEnable)
       break;
+    // debug layer rule: dual source blend factors are only valid on render target 0,
+    // and blending must be disabled on all other render targets (checked regardless of write mask)
+    if (i > 0 && blend_desc.RenderTarget[i].BlendEnable)
+    {
+      const auto &rt = blend_desc.RenderTarget[i];
+      if (isDualSourceFactor(rt.SrcBlend) || isDualSourceFactor(rt.DestBlend) || isDualSourceFactor(rt.SrcBlendAlpha) ||
+          isDualSourceFactor(rt.DestBlendAlpha))
+      {
+        isOk = false;
+        D3D_CONTRACT_ERROR("DX12: Dual source blend factor used on render target %u in pipeline <%s>, only render target 0 may use it",
+          i, pipeline_name.c_str());
+      }
+    }
     if ((finalColorTargetMask & (1 << i)) == 0 || blend_desc.RenderTarget[i].RenderTargetWriteMask == 0)
       continue;
     if (blend_desc.RenderTarget[i].BlendEnable)
@@ -707,17 +754,23 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
   const auto &load_behavior = info.loadBehavior;
   PipelineLoadResult loadResult;
 #if !_TARGET_PC_WIN
-  auto
+  eastl::string name;
 #endif
-    name = name_generator.generateGraphicsPipelineName(base.vsModule, base.psModule, static_state);
+  auto getName = [&]() -> const eastl::string & {
+    if (name.empty())
+      name = name_generator.generateGraphicsPipelineName(base.vsModule, base.psModule, static_state);
+    return name;
+  };
+  if (device.shouldNameObjects())
+    getName();
 
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
   eastl::string profilerMsg;
-  profilerMsg.sprintf("PipelineVariant (%s)::createMesh: took %%dus", name.c_str());
+  profilerMsg.sprintf("PipelineVariant (%s)::createMesh: took %%dus", getName().c_str());
   AutoFuncProf funcProfiler(profilerMsg.c_str());
 #endif
   TIME_PROFILE_DEV(PipelineVariant_create);
-  TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(name.c_str());
+  TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(getName().c_str());
 
   if (!base.signature.signature)
   {
@@ -802,7 +855,7 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
       int threshold = device.psoSlowThresholdUsec;
       if (threshold > 0 && elapsed_usec >= threshold)
       {
-        logwarn("DX12: CreatePipelineState for <%s> (mesh) took %.1f ms", name.c_str(), (double)elapsed_usec / 1000.0);
+        logwarn("DX12: CreatePipelineState for <%s> (mesh) took %.1f ms", getName().c_str(), (double)elapsed_usec / 1000.0);
         if (device.netManager)
           device.netManager->reportSlowPsoCompilation(name.c_str(), (long)(elapsed_usec / 1000), "mesh");
       }
@@ -812,6 +865,7 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
     if (FAILED(DX12_CHECK_RESULTF(result, "CreatePipelineState")))
     {
       loadResult.runtimeError = true;
+      getName();
 
       info.toLog.serialize(base.signature, gpciDesc, name);
 
@@ -925,7 +979,7 @@ PipelineLoadResult PipelineVariant::loadMesh(Device &device, backend::ShaderModu
 
 void PipelineManager::init(const SetupParameters &params)
 {
-  ShaderDeviceRequirementChecker::init(params.device, params.hlslVendorExtension);
+  ShaderDeviceRequirementChecker::init(params.device, params.hlslVendorExtension, params.shadingModel);
   backend::InputLayoutManager::init();
 
   D3D12SerializeRootSignature = params.serializeRootSignature;
@@ -975,16 +1029,21 @@ void PipelineManager::setCompilePipelineSetQueueLength()
   uint32_t queueLength = 0;
   if (pipelineSetCompilation2)
   {
-    const auto groupDone = pipelineSetCompilation2->graphicsPipelineSetCompilationIdx +
-                           pipelineSetCompilation2->graphicsPipelinesWithNullOverridesSetCompilationIdx +
-                           pipelineSetCompilation2->computePipelineSetCompilationIdx;
-    const auto totalGroup = pipelineSetCompilation2->graphicsPipelines.size() +
-                            pipelineSetCompilation2->graphicsPipelinesWithNullOverrides.size() +
-                            pipelineSetCompilation2->computePipelines.size();
-    const auto groupQueue = totalGroup - groupDone;
-    const auto leftGroups = (max_scripted_shaders_bin_groups - 1 - pipelineSetCompilation2->groupIndex) * totalGroup;
-    const auto set2Queue = groupQueue + leftGroups;
-    queueLength += set2Queue;
+    if (!pipelineSetCompilation2->preparationFinished)
+    {
+      const auto groupDone = pipelineSetCompilation2->graphicsPipelineSetCompilationIdx +
+                             pipelineSetCompilation2->graphicsPipelinesWithNullOverridesSetCompilationIdx +
+                             pipelineSetCompilation2->computePipelineSetCompilationIdx;
+      const auto totalGroup = pipelineSetCompilation2->graphicsPipelines.size() +
+                              pipelineSetCompilation2->graphicsPipelinesWithNullOverrides.size() +
+                              pipelineSetCompilation2->computePipelines.size();
+      const auto groupQueue = totalGroup - groupDone;
+      const auto leftGroups = (max_scripted_shaders_bin_groups - 1 - pipelineSetCompilation2->groupIndex) * totalGroup;
+      const auto set2Queue = groupQueue + leftGroups;
+      queueLength += set2Queue;
+    }
+    queueLength += pipelineSetCompilation2->graphicsPipelineTasks.size() - pipelineSetCompilation2->graphicsPipelineTaskIdx;
+    queueLength += pipelineSetCompilation2->computePipelineTasks.size() - pipelineSetCompilation2->computePipelineTaskIdx;
   }
   compilePipelineSetQueueLength.store(queueLength, std::memory_order_release);
 }
@@ -1219,8 +1278,42 @@ ID3D12PipelineState *PipelineManager::createClearPipeline(Device &device, DXGI_F
 #endif
 
   FormatPipeline newClearPipe{nullptr, out_fmt};
-  auto result = createSimplePipeline(device.getDevice(), out_fmt, newClearPipe.pipeline, clearSignature.Get(), clear_vertex_shader,
-    clear_pixel_shader);
+
+  auto result = [&]() {
+    switch (out_fmt)
+    {
+      case DXGI_FORMAT_R32G32B32A32_UINT:
+      case DXGI_FORMAT_R32G32B32_UINT:
+      case DXGI_FORMAT_R16G16B16A16_UINT:
+      case DXGI_FORMAT_R32G32_UINT:
+      case DXGI_FORMAT_R10G10B10A2_UINT:
+      case DXGI_FORMAT_R8G8B8A8_UINT:
+      case DXGI_FORMAT_R16G16_UINT:
+      case DXGI_FORMAT_R32_UINT:
+      case DXGI_FORMAT_R8G8_UINT:
+      case DXGI_FORMAT_R16_UINT:
+      case DXGI_FORMAT_R8_UINT:
+        return createSimplePipeline(device.getDevice(), out_fmt, newClearPipe.pipeline, clearSignature.Get(), clear_vertex_shader,
+          clear_pixel_shader_uint);
+
+      case DXGI_FORMAT_R32G32B32A32_SINT:
+      case DXGI_FORMAT_R32G32B32_SINT:
+      case DXGI_FORMAT_R16G16B16A16_SINT:
+      case DXGI_FORMAT_R32G32_SINT:
+      case DXGI_FORMAT_R8G8B8A8_SINT:
+      case DXGI_FORMAT_R16G16_SINT:
+      case DXGI_FORMAT_R32_SINT:
+      case DXGI_FORMAT_R8G8_SINT:
+      case DXGI_FORMAT_R16_SINT:
+      case DXGI_FORMAT_R8_SINT:
+        return createSimplePipeline(device.getDevice(), out_fmt, newClearPipe.pipeline, clearSignature.Get(), clear_vertex_shader,
+          clear_pixel_shader_sint);
+
+      default:
+        return createSimplePipeline(device.getDevice(), out_fmt, newClearPipe.pipeline, clearSignature.Get(), clear_vertex_shader,
+          clear_pixel_shader);
+    }
+  }();
 
   if (FAILED(result))
   {
@@ -2293,6 +2386,89 @@ void PipelineManager::addGraphics(Device &device, PipelineCache &cache, Framebuf
   }
 }
 
+bool BasePipeline::loadVariantsFromCache(Device &device, PipelineCache &cache, backend::ShaderModuleManager &shader_bytecodes,
+  backend::StaticRenderStateManager &static_states, backend::InputLayoutManager &input_layouts,
+  FramebufferLayoutManager &framebuffer_layouts, RecoverablePipelineCompileBehavior on_error,
+  backend::PipelineNameGenerator &name_generator, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature,
+  bool use_const_buffer_descriptor_ranges)
+{
+  cacheId = cache.getGraphicsPipeline({.vs = vsModule.header.hash, .ps = psModule.header.hash});
+  auto cnt = cache.getGraphicsPipelineVariantCount(cacheId);
+  if (0 == cnt)
+  {
+    return true;
+  }
+  const bool weAreMesh = isMesh();
+  bool anyBuildFailed = false;
+  size_t i = 0;
+  while (i < cnt)
+  {
+    InputLayout inputLayout = {};
+    bool isWireFrame = false;
+    RenderStateSystem::StaticState staticState = {};
+    FramebufferLayout framebufferLayout = {};
+
+    int64_t tDesc = ref_time_ticks();
+    auto top = cache.getGraphicsPipelineVariantDesc(cacheId, i, inputLayout, isWireFrame, staticState, framebufferLayout);
+    auto staticRenderStateID = static_states.findOrAddStaticRenderState(staticState);
+    LoadVariantsStats::getDescUsec += get_time_usec(tDesc);
+
+    if (!weAreMesh)
+    {
+      auto layoutID = input_layouts.addInternalLayout(inputLayout);
+
+      auto &variant = getVariantFromConfiguration(layoutID, staticRenderStateID, framebuffer_layouts.getLayoutID(framebufferLayout),
+        top, isWireFrame);
+
+      int64_t tLoad = ref_time_ticks();
+      auto loadResult = variant.load(device, shader_bytecodes, *this, cache, name_generator,
+        {inputLayout, isWireFrame, staticState, framebufferLayout, top, on_error, {.reportValidationFailsAsNotice = true},
+          PipelineBuildInitiator::DISK_CACHE, D3D12SerializeRootSignature, use_const_buffer_descriptor_ranges});
+      int64_t loadUs = get_time_usec(tLoad);
+      LoadVariantsStats::loadUsec += loadUs;
+      if (loadUs > LoadVariantsStats::maxLoadUsec)
+        LoadVariantsStats::maxLoadUsec = loadUs;
+
+      if (!loadResult.objectCreated)
+      {
+        cnt = cache.removeGraphicsPipelineVariant(cacheId, i);
+        anyBuildFailed = true;
+        ++LoadVariantsStats::failed;
+        continue;
+      }
+    }
+    else
+    {
+      auto &variant =
+        getMeshVariantFromConfiguration(staticRenderStateID, framebuffer_layouts.getLayoutID(framebufferLayout), isWireFrame);
+
+      int64_t tLoad = ref_time_ticks();
+      auto loadResult = variant.loadMesh(device, shader_bytecodes, *this, cache, name_generator,
+        {isWireFrame, staticState, framebufferLayout, on_error, {.reportValidationFailsAsNotice = true},
+          PipelineBuildInitiator::DISK_CACHE, D3D12SerializeRootSignature, use_const_buffer_descriptor_ranges});
+      int64_t loadUs = get_time_usec(tLoad);
+      LoadVariantsStats::loadUsec += loadUs;
+      if (loadUs > LoadVariantsStats::maxLoadUsec)
+        LoadVariantsStats::maxLoadUsec = loadUs;
+
+      if (!loadResult.objectCreated)
+      {
+        cnt = cache.removeGraphicsPipelineVariant(cacheId, i);
+        anyBuildFailed = true;
+        ++LoadVariantsStats::failed;
+        continue;
+      }
+    }
+
+    ++i;
+  }
+
+  ++LoadVariantsStats::pipelines;
+  LoadVariantsStats::variants += cnt;
+
+  return !anyBuildFailed;
+}
+
 eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(Device &device, PipelineCache &cache, FramebufferLayoutManager &fbs,
   backend::VertexShaderModuleRefStore vertexShader, backend::PixelShaderModuleRefStore pixelShader,
   RecoverablePipelineCompileBehavior on_error)
@@ -2391,6 +2567,7 @@ void PipelineManager::unloadAll()
   blitSignature.Reset();
   clearSignature.Reset();
   prepedForDeletion.clear();
+  preloadedGraphicsPipelines.clear();
 
   for (auto &group : graphicsPipelines)
   {
@@ -2414,29 +2591,31 @@ void PipelineManager::unloadAll()
   computeSignatures.clear();
 }
 
-void PipelineManager::removeProgram(ProgramID program)
+void PipelineManager::removePrograms(dag::Vector<ProgramID> &programs, dag::Vector<GraphicsProgramID> &graphics_programs)
 {
-  auto ref = eastl::find_if(begin(prepedForDeletion), end(prepedForDeletion),
-    [=](const PrepedForDelete &pfd) { return pfd.program == program; });
-  if (program.isCompute())
-    ; // no-op
-  else
-  {
-    G_ASSERTF(false, "Invalid program type");
-  }
-  *ref = eastl::move(prepedForDeletion.back());
-  prepedForDeletion.pop_back();
-}
+  if (programs.empty() && graphics_programs.empty())
+    return;
 
-void PipelineManager::removeProgram(GraphicsProgramID program)
-{
-  auto ref = eastl::find_if(begin(prepedForDeletion), end(prepedForDeletion),
-    [=](const PrepedForDelete &pfd) { return pfd.graphicsProgram == program; });
-  G_ASSERT(ref != end(prepedForDeletion));
-  if (ref->graphics.get())
-    ref->graphics->unloadAll();
-  *ref = eastl::move(prepedForDeletion.back());
-  prepedForDeletion.pop_back();
+  stlsort::sort(begin(programs), end(programs));
+  stlsort::sort(begin(graphics_programs), end(graphics_programs));
+
+  for (size_t i = 0; i < prepedForDeletion.size();)
+  {
+    auto &entry = prepedForDeletion[i];
+    const bool remove = (ProgramID::Null() != entry.program && eastl::binary_search(begin(programs), end(programs), entry.program)) ||
+                        (GraphicsProgramID::Null() != entry.graphicsProgram &&
+                          eastl::binary_search(begin(graphics_programs), end(graphics_programs), entry.graphicsProgram));
+    if (!remove)
+    {
+      ++i;
+      continue;
+    }
+    if (entry.graphics.get())
+      entry.graphics->unloadAll();
+    if (&entry != &prepedForDeletion.back())
+      entry = eastl::move(prepedForDeletion.back());
+    prepedForDeletion.pop_back();
+  }
 }
 
 void PipelineManager::prepareForRemove(ProgramID program)
@@ -2544,6 +2723,18 @@ bool PipelineManager::recover(ID3D12Device2 *device, PipelineCache &cache)
 #endif
   return true;
 }
+
+#if D3D_HAS_RAY_TRACING
+// After defragmentation: clear SBT pool so next dispatch gets fresh non-aliased VA.
+void PipelineManager::invalidateRayTraceSBTLocations()
+{
+  ShaderBindingTablePool::preRecovery();
+  for (auto &group : computePipelines)
+    for (auto &pipeline : group)
+      if (pipeline && pipeline->getRayTracePipeline())
+        pipeline->clearRayTraceSBTLocation();
+}
+#endif
 
 void PipelineManager::preRecovery()
 {
@@ -3081,6 +3272,7 @@ void PipelineManager::addShaderGroup(Device &device, PipelineCache *pipelineCach
   inspector.device = &device;
   inspector.pipelineCache = pipelineCache;
   inspector.frameBufferLayoutManager = fbs;
+  inspector.deviceIsIll = device.isIll();
   setDumpOfGroup(group, dump, name);
   inspect_scripted_shader_bin_dump(dump, inspector);
 }
@@ -3171,11 +3363,14 @@ void PipelineManager::writeBlkCache(FramebufferLayoutManager &fblm, uint32_t gro
     return;
   }
 
-  const char *cachePath = "cache/dx12_cache_new.blk";
-  outBlock.saveToTextFile(cachePath);
-  DagorStat localCacheStat;
-  if (::df_stat(cachePath, &localCacheStat) != -1)
-    logdbg("Local PSO cache file '%s' saved, size: %lld bytes", cachePath, localCacheStat.size);
+  if (dgs_get_settings()->getBlockByNameEx("dx12")->getBool("dumpNewCacheBlk", false))
+  {
+    const char *cachePath = "cache/dx12_cache_new.blk";
+    outBlock.saveToTextFile(cachePath);
+    DagorStat localCacheStat;
+    if (::df_stat(cachePath, &localCacheStat) != -1)
+      logdbg("Local PSO cache file '%s' saved, size: %lld bytes", cachePath, localCacheStat.size);
+  }
   logdbg("PSO cache info. Input layouts count: %d", outBlock.getBlockByNameEx("input_layouts")->blockCount());
   logdbg("PSO cache info. Render states count: %d", outBlock.getBlockByNameEx("render_states")->blockCount());
   logdbg("PSO cache info. Framebuffer layouts count: %d", outBlock.getBlockByNameEx("framebuffer_layouts")->blockCount());
@@ -3204,6 +3399,942 @@ void PipelineManager::writeBlkCache(FramebufferLayoutManager &fblm, uint32_t gro
 
   if (get_device().netManager)
     get_device().netManager->sendPsoCacheBlkSync(outBlock);
+}
+#endif
+
+void PipelineManager::ScriptedShaderBinDumpInspector::preloadGraphicsPipeline(ShaderID vsID, ShaderID psID)
+{
+  if (deviceIsIll)
+    return;
+
+  PipelineCache::BasePipelineIdentifier cacheIdent = {};
+  cacheIdent.vs = target->getVertexShaderHash(vsID);
+  cacheIdent.ps = target->getPixelShaderHash(psID);
+
+  int64_t t0 = ref_time_ticks();
+  bool inCache = pipelineCache->containsGraphicsPipeline(cacheIdent);
+  profContainsUsec += get_time_usec(t0);
+
+  if (!inCache)
+  {
+    ++profNotInCache;
+    return;
+  }
+
+  int64_t t1 = ref_time_ticks();
+  auto preloadedPipelineIt = eastl::find_if(target->preloadedGraphicsPipelines.begin(), target->preloadedGraphicsPipelines.end(),
+    [vsID, psID](const auto &pp) { return (pp.vsID == vsID) && (pp.psID == psID); });
+  profFindPreloadedUsec += get_time_usec(t1);
+
+  if (preloadedPipelineIt != target->preloadedGraphicsPipelines.end())
+  {
+    ++profAlreadyPreloaded;
+    return;
+  }
+
+  int64_t t2 = ref_time_ticks();
+  auto pipeline = target->createGraphics(*device, *pipelineCache, *frameBufferLayoutManager, target->getVertexShader(vsID),
+    target->getPixelShader(psID), RecoverablePipelineCompileBehavior::REPORT_ERROR);
+  profCreateUsec += get_time_usec(t2);
+
+  if (pipeline)
+  {
+    ++profCreated;
+    auto &preloadedPipeline = target->preloadedGraphicsPipelines.emplace_back();
+
+    preloadedPipeline.vsID = vsID;
+    preloadedPipeline.psID = psID;
+    preloadedPipeline.pipeline = eastl::move(pipeline);
+  }
+  else
+  {
+    ++profCreateFailed;
+  }
+}
+
+void PipelineManager::registerStaticRenderState(StaticRenderStateID ident, const RenderStateSystem::StaticState &state)
+{
+  if (ident.get() == staticRenderStateTable.size())
+  {
+    staticRenderStateTable.push_back(state);
+  }
+  else if (ident.get() > staticRenderStateTable.size())
+  {
+    DAG_FATAL("DX12: registerStaticRenderState was called with ident of %u but table has %u entries", ident.get(),
+      staticRenderStateTable.size());
+  }
+  else if (staticRenderStateTable[ident.get()] != state)
+  {
+    logdbg("DX12: need to patch render state %u", ident.get());
+    auto ref = eastl::find(begin(staticRenderStateTable) + ident.get() + 1, end(staticRenderStateTable), state);
+    if (end(staticRenderStateTable) == ref)
+    {
+      auto moveID = StaticRenderStateID::make(staticRenderStateTable.size());
+      logdbg("DX12: moving existing render state to %u", moveID.get());
+      // need to copy first, as push_back frees memory before creating the new element, which results in use after free
+      auto copy = staticRenderStateTable[ident.get()];
+      staticRenderStateTable.push_back(copy);
+      staticRenderStateTable[ident.get()] = state;
+      for (auto &group : graphicsPipelines)
+      {
+        for (auto &pipeline : group)
+        {
+          if (pipeline)
+          {
+            pipeline->moveStaticRenderStateID(ident, moveID);
+          }
+        }
+      }
+      for (auto &pipeline : preloadedGraphicsPipelines)
+      {
+        pipeline.pipeline->moveStaticRenderStateID(ident, moveID);
+      }
+    }
+    else
+    {
+      auto swapID = StaticRenderStateID::make(ref - begin(staticRenderStateTable));
+      logdbg("DX12: swapping existing render state with %u", swapID.get());
+      staticRenderStateTable[swapID.get()] = staticRenderStateTable[ident.get()];
+      staticRenderStateTable[ident.get()] = state;
+      for (auto &group : graphicsPipelines)
+      {
+        for (auto &pipeline : group)
+        {
+          if (pipeline)
+          {
+            pipeline->swapStaticRenderStateID(ident, swapID);
+          }
+        }
+      }
+      for (auto &pipeline : preloadedGraphicsPipelines)
+      {
+        pipeline.pipeline->swapStaticRenderStateID(ident, swapID);
+      }
+    }
+  }
+}
+
+BasePipeline *PipelineManager::preloadGrahpicsBasePipeline(Device &device, PipelineCache &pipeline_cache,
+  FramebufferLayoutManager &fbs, ShaderID vs_id, ShaderID ps_id)
+{
+  BasePipeline *pipelineBase = nullptr;
+  for (auto &preloadInfo : preloadedGraphicsPipelines)
+  {
+    if ((vs_id != preloadInfo.vsID) || (ps_id != preloadInfo.psID))
+    {
+      continue;
+    }
+    pipelineBase = preloadInfo.pipeline.get();
+    break;
+  }
+
+  if (!pipelineBase)
+  {
+    auto vs = getVertexShader(vs_id);
+    auto ps = getPixelShader(ps_id);
+    if (!isCompatibleAndReport(vs, ps))
+    {
+      return pipelineBase;
+    }
+    pipelineBase = findLoadedPipeline(vs, ps);
+
+    if (!pipelineBase)
+    {
+      auto &preloadedPipeline = preloadedGraphicsPipelines.emplace_back();
+      preloadedPipeline.vsID = vs_id;
+      preloadedPipeline.psID = ps_id;
+      preloadedPipeline.pipeline =
+        createGraphics(device, pipeline_cache, fbs, vs, ps, RecoverablePipelineCompileBehavior::REPORT_ERROR);
+      pipelineBase = preloadedPipeline.pipeline.get();
+    }
+  }
+  return pipelineBase;
+}
+
+PipelineManager::ShaderClassFilter PipelineManager::ShaderClassFilter::make(ScriptedShadersBinDump &dump,
+  const DynamicArray<cacheBlk::SignatureHash> &signature)
+{
+  ShaderClassFilter result;
+  logdbg("DX12: Generating shader class filter...");
+  if (signature.size() == dump.classes.size())
+  {
+    logdbg("DX12: ...shader class count match, verifying matches...");
+    // if all match we can use optimized allowAll mode
+    result.allowAll();
+    for (auto &s : signature)
+    {
+      auto shader = dump.findShaderClass(s.name.c_str());
+      if (!shader)
+      {
+        logdbg("DX12: ...a shader class is missing in scripted shader dump, falling back to individual matches...");
+        result.denyAll();
+        break;
+      }
+      auto currentHash = calculate_hash(dump, *shader);
+      auto cacheHash = dxil::HashValue::fromString(s.hash.c_str(), s.hash.length());
+      if (currentHash != cacheHash)
+      {
+        logdbg("DX12: ...a shader class is not matching, falling back to individual matches...");
+        result.denyAll();
+        break;
+      }
+    }
+  }
+
+  // allowsAny will return false if either the signature count did not match with shader count or any of them did not match
+  if (!result.allowsAny())
+  {
+    logdbg("DX12: ...scanning for individual shader class matches...");
+    for (auto &s : signature)
+    {
+      auto shader = dump.findShaderClass(s.name.c_str());
+      if (!shader)
+      {
+        logdbg("DX12: ...shader class %s not in scripted shader dump...", s.name);
+        continue;
+      }
+      auto currentHash = calculate_hash(dump, *shader);
+      auto cacheHash = dxil::HashValue::fromString(s.hash.c_str(), s.hash.length());
+      if (currentHash != cacheHash)
+      {
+        logdbg("DX12: ...shader class %s not matching hash...", s.name);
+        continue;
+      }
+      result.allowClass(s.name);
+    }
+    if (!result.allowsAny())
+    {
+      logdbg("DX12: ...no matches found...");
+    }
+  }
+
+  return result;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE NullResourceTable::get(D3D_SHADER_INPUT_TYPE type, D3D_SRV_DIMENSION dim) const
+{
+  // PVS warning suppress for "Two or more case-branches perform the same actions" for all switch block in this function
+  //-V::1037
+  if (D3D_SIT_CBUFFER == type)
+  {
+    DAG_FATAL("unexpected descriptor lookup");
+  }
+  else if (D3D_SIT_TBUFFER == type)
+  {
+    return table[SRV_BUFFER];
+  }
+  else if (D3D_SIT_TEXTURE == type)
+  {
+    switch (dim)
+    {
+      case D3D_SRV_DIMENSION_UNKNOWN: return table[SRV_TEX2D];
+      case D3D_SRV_DIMENSION_TEXTURE1D:
+      case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
+      case D3D_SRV_DIMENSION_TEXTURE2DMS:
+      case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY: DAG_FATAL("unexpected descriptor lookup"); break;
+      case D3D_SRV_DIMENSION_BUFFER: return table[SRV_BUFFER];
+      case D3D_SRV_DIMENSION_TEXTURE2D: return table[SRV_TEX2D];
+      case D3D_SRV_DIMENSION_TEXTURE2DARRAY: return table[SRV_TEX2D_ARRAY];
+      case D3D_SRV_DIMENSION_TEXTURE3D: return table[SRV_TEX3D];
+      case D3D_SRV_DIMENSION_TEXTURECUBE: return table[SRV_TEX_CUBE];
+      case D3D_SRV_DIMENSION_TEXTURECUBEARRAY: return table[SRV_TEX_CUBE_ARRAY];
+      case D3D_SRV_DIMENSION_BUFFEREX: return table[SRV_BUFFER];
+    }
+  }
+  else if (D3D_SIT_SAMPLER == type)
+  {
+    DAG_FATAL("unexpected descriptor lookup");
+  }
+  else if (D3D_SIT_UAV_RWTYPED == type)
+  {
+    switch (dim)
+    {
+      case D3D_SRV_DIMENSION_UNKNOWN: return table[UAV_TEX2D];
+      case D3D_SRV_DIMENSION_TEXTURE1D:
+      case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
+      case D3D_SRV_DIMENSION_TEXTURE2DMS:
+      case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY:
+      case D3D_SRV_DIMENSION_TEXTURECUBE:
+      case D3D_SRV_DIMENSION_TEXTURECUBEARRAY: DAG_FATAL("unexpected descriptor lookup"); break;
+      case D3D_SRV_DIMENSION_BUFFER: return table[UAV_BUFFER];
+      case D3D_SRV_DIMENSION_TEXTURE2D: return table[UAV_TEX2D];
+      case D3D_SRV_DIMENSION_TEXTURE2DARRAY: return table[UAV_TEX2D_ARRAY];
+      case D3D_SRV_DIMENSION_TEXTURE3D: return table[UAV_TEX3D];
+      case D3D_SRV_DIMENSION_BUFFEREX: return table[UAV_BUFFER_RAW];
+    }
+  }
+  else if (D3D_SIT_STRUCTURED == type)
+  {
+    return table[SRV_BUFFER];
+  }
+  else if (D3D_SIT_UAV_RWSTRUCTURED == type)
+  {
+    return table[UAV_BUFFER];
+  }
+  else if (D3D_SIT_BYTEADDRESS == type)
+  {
+    return table[SRV_BUFFER];
+  }
+  else if (D3D_SIT_UAV_RWBYTEADDRESS == type)
+  {
+    return table[UAV_BUFFER];
+  }
+  else if (D3D_SIT_UAV_APPEND_STRUCTURED == type)
+  {
+    DAG_FATAL("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
+  }
+  else if (D3D_SIT_UAV_CONSUME_STRUCTURED == type)
+  {
+    DAG_FATAL("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
+  }
+  else if (D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER == type)
+  {
+    DAG_FATAL("Use of invalid resource type D3D_SIT_UAV_APPEND_STRUCTURED");
+  }
+  else if (D3D_SIT_RTACCELERATIONSTRUCTURE == type)
+  {
+#ifdef D3D_HAS_RAY_TRACING
+    if (table[SRV_TLAS].ptr) // Only initialized if RT is supported.
+      return table[SRV_TLAS];
+#endif
+    DAG_FATAL("Use of unsupported resource type D3D_SIT_RTACCELERATIONSTRUCTURE");
+  }
+  return {0};
+}
+
+void BufferState::flushMappedMemory(uint32_t r_offset, uint32_t f_size)
+{
+  void *ptr = nullptr;
+  D3D12_RANGE range{};
+  buffer->Map(0, &range, &ptr);
+  range.Begin = currentOffset() + r_offset;
+  range.End = range.Begin + f_size;
+  buffer->Unmap(0, &range);
+}
+
+void BufferState::invalidateMappedMemory(uint32_t r_offset, uint32_t f_size)
+{
+  void *ptr = nullptr;
+  D3D12_RANGE range{};
+  range.Begin = currentOffset() + r_offset;
+  range.End = range.Begin + f_size;
+  buffer->Map(0, &range, &ptr);
+  range.Begin = range.End = 0;
+  buffer->Unmap(0, &range);
+}
+
+FramebufferLayoutID FramebufferLayoutManager::getLayoutID(const FramebufferLayout &layout)
+{
+  auto ref = eastl::find(begin(table), end(table), layout);
+  if (end(table) == ref)
+  {
+    ref = table.insert(ref, layout);
+  }
+  return FramebufferLayoutID{static_cast<int>(ref - begin(table))};
+}
+
+bool backend::StaticRenderStateManager::checkDualSourceBlendChangeOnStaticRenderStateChange(StaticRenderStateID old_state,
+  StaticRenderStateID new_state)
+{
+  if (StaticRenderStateID::Null() == new_state)
+    return false;
+  bool newHasDualSource = 0 != getStaticRenderState(new_state).enableDualSourceBlending;
+  if (StaticRenderStateID::Null() == old_state)
+    return newHasDualSource;
+  return getStaticRenderState(old_state).enableDualSourceBlending != getStaticRenderState(new_state).enableDualSourceBlending;
+}
+
+StaticRenderStateID backend::StaticRenderStateManager::findOrAddStaticRenderState(const RenderStateSystem::StaticState &state)
+{
+  auto ref = eastl::find(begin(staticRenderStateTable), end(staticRenderStateTable), state);
+  if (end(staticRenderStateTable) == ref)
+  {
+    ref = staticRenderStateTable.insert(ref, state);
+  }
+  return StaticRenderStateID::make(ref - begin(staticRenderStateTable));
+}
+
+void LoadVariantsStats::reset()
+{
+  getDescUsec = loadUsec = maxLoadUsec = 0;
+  setupUsec = cacheLoadUsec = createPsoUsec = 0;
+  pipelines = variants = failed = 0;
+  cacheHits = cacheMisses = 0;
+}
+
+BasePipeline::BaseVariantKey BasePipeline::BaseVariantKey::forVertex(InternalInputLayoutID il, StaticRenderStateID srs,
+  FramebufferLayoutID fbl, D3D12_PRIMITIVE_TOPOLOGY_TYPE t, bool wf)
+{
+  BaseVariantKey result;
+  result.setInputLayout(il);
+  result.setStaticRenderState(srs);
+  result.setFrambufferLayout(fbl);
+  result.setTopology(t);
+  result.setWireFrame(wf);
+  return result;
+}
+
+BasePipeline::BaseVariantKey BasePipeline::BaseVariantKey::forMesh(StaticRenderStateID srs, FramebufferLayoutID fbl, bool wf)
+{
+  BaseVariantKey result;
+  result.setInputLayout(InternalInputLayoutID{0});
+  result.setTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED);
+  result.setStaticRenderState(srs);
+  result.setFrambufferLayout(fbl);
+  result.setWireFrame(wf);
+  return result;
+}
+
+BasePipeline::BasePipeline(GraphicsPipelineSignature &s, backend::VertexShaderModuleRefStore vsm,
+  backend::PixelShaderModuleRefStore psm) :
+  signature(s), vsModule(vsm), psModule(psm)
+{
+  vsCombinedSRegisterCompareMask = vsModule.header.header.sRegisterCompareUseMask;
+  eastl::copy(eastl::begin(vsModule.header.header.tRegisterTypes), eastl::end(vsModule.header.header.tRegisterTypes),
+    eastl::begin(vsCombinedTRegisterTypes));
+  eastl::copy(eastl::begin(vsModule.header.header.uRegisterTypes), eastl::end(vsModule.header.header.uRegisterTypes),
+    eastl::begin(vsCombinedURegisterTypes));
+  if (auto gsModule = get_gs(vsModule))
+  {
+    vsCombinedSRegisterCompareMask |= gsModule->sRegisterCompareUseMask;
+    eastl::transform(eastl::begin(vsCombinedTRegisterTypes), eastl::end(vsCombinedTRegisterTypes),
+      eastl::begin(gsModule->tRegisterTypes), eastl::begin(vsCombinedTRegisterTypes), [](auto a, auto b) { return a | b; });
+    eastl::transform(eastl::begin(vsCombinedURegisterTypes), eastl::end(vsCombinedURegisterTypes),
+      eastl::begin(gsModule->uRegisterTypes), eastl::begin(vsCombinedURegisterTypes), [](auto a, auto b) { return a | b; });
+  }
+  if (auto hsModule = get_hs(vsModule))
+  {
+    vsCombinedSRegisterCompareMask |= hsModule->sRegisterCompareUseMask;
+    eastl::transform(eastl::begin(vsCombinedTRegisterTypes), eastl::end(vsCombinedTRegisterTypes),
+      eastl::begin(hsModule->tRegisterTypes), eastl::begin(vsCombinedTRegisterTypes), [](auto a, auto b) { return a | b; });
+    eastl::transform(eastl::begin(vsCombinedURegisterTypes), eastl::end(vsCombinedURegisterTypes),
+      eastl::begin(hsModule->uRegisterTypes), eastl::begin(vsCombinedURegisterTypes), [](auto a, auto b) { return a | b; });
+  }
+  if (auto dsModule = get_ds(vsModule))
+  {
+    vsCombinedSRegisterCompareMask |= dsModule->sRegisterCompareUseMask;
+    eastl::transform(eastl::begin(vsCombinedTRegisterTypes), eastl::end(vsCombinedTRegisterTypes),
+      eastl::begin(dsModule->tRegisterTypes), eastl::begin(vsCombinedTRegisterTypes), [](auto a, auto b) { return a | b; });
+    eastl::transform(eastl::begin(vsCombinedURegisterTypes), eastl::end(vsCombinedURegisterTypes),
+      eastl::begin(dsModule->uRegisterTypes), eastl::begin(vsCombinedURegisterTypes), [](auto a, auto b) { return a | b; });
+  }
+}
+
+PipelineVariant &BasePipeline::getVariantFromConfiguration(InternalInputLayoutID input_layout_id, StaticRenderStateID static_state_id,
+  FramebufferLayoutID framebuffer_layout_id, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, bool is_wire_frame)
+{
+  auto key = BaseVariantKey::forVertex(input_layout_id, static_state_id, framebuffer_layout_id, top, is_wire_frame);
+#if DX12_USE_BINARY_SEARCH_FOR_GRAPHICS_PIPELINE_VARIANTS
+  auto ref = eastl::lower_bound(begin(variants), end(variants), key,
+    [](const auto &l, const auto &r) //
+    { return l < r; });
+  if (ref == end(variants) || key != *ref)
+#else
+  auto ref = eastl::find(begin(variants), end(variants), key);
+  if (ref == end(variants))
+#endif
+  {
+    ref = variants.emplace(ref, key);
+    ref->pipeline.reset(new PipelineVariant);
+  }
+
+  return *ref->pipeline;
+}
+
+PipelineVariant &BasePipeline::getMeshVariantFromConfiguration(StaticRenderStateID static_state_id,
+  FramebufferLayoutID framebuffer_layout_id, bool is_wire_frame)
+{
+  auto key = BaseVariantKey::forMesh(static_state_id, framebuffer_layout_id, is_wire_frame);
+#if DX12_USE_BINARY_SEARCH_FOR_GRAPHICS_PIPELINE_VARIANTS
+  auto ref = eastl::lower_bound(begin(variants), end(variants), key,
+    [](const auto &l, const auto &r) //
+    { return l < r; });
+  if (ref == end(variants) || key != *ref)
+#else
+  auto ref = eastl::find(begin(variants), end(variants), key);
+  if (ref == end(variants))
+#endif
+  {
+    ref = variants.emplace(ref, key);
+    ref->pipeline.reset(new PipelineVariant);
+  }
+
+  return *ref->pipeline;
+}
+
+#if D3D_HAS_RAY_TRACING
+ComputePipeline::DecodedRayTraceShader ComputePipeline::decodeRayTraceShader(const uint8_t *bytecode)
+{
+  bytecode += shaderModule.bytecodeOffset;
+  auto container = bindump::map<dxil::ShaderLibraryContainerAsShader>(bytecode);
+  if (!container)
+  {
+    return {};
+  }
+  return {
+    .binary = container->libBinary,
+    .nameTable = container->nameTable,
+    .hitGroupTable = container->hitGroups,
+    .missGroupTable = container->missGroups,
+    .rayGenGroup = container->rayGenGroup,
+  };
+}
+#endif
+
+ID3D12PipelineState *ComputePipeline::loadAndGetHandle(Device &device, PipelineCache &cache,
+  RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
+  [[maybe_unused]] PipelineBuildInitiator build_initiator, const PipelineLogSerializer &log_serializer)
+{
+#if D3D_HAS_RAY_TRACING
+  const auto isRT = isRayTracePipeline();
+#else
+  constexpr bool isRT = false;
+#endif
+  if (!isLoaded() && !isRT)
+  {
+#if _TARGET_PC_WIN
+    buildInitiator = build_initiator;
+#endif
+    loadRegularComputeShader(device, cache, on_error, false, name_generator, true, log_serializer);
+  }
+  return computePipeline.Get();
+}
+
+#if _TARGET_PC_WIN
+void ComputePipeline::onCacheInvalidated(PipelineCache &cache)
+{
+  if (!computePipeline)
+  {
+    return;
+  }
+  cache.addCompute(shaderModule.ident.shaderHash, computePipeline.Get());
+}
+#endif
+
+#if D3D_HAS_RAY_TRACING
+BufferResourceReferenceAndAddressRange ComputePipeline::getRayDispatchGroupTableSetBuffer(Device &device,
+  ShaderBindingTablePool &shader_binding_table_pool)
+{
+  if (!rayDispatchGroupTableSetBuffer)
+  {
+    const auto &rayGen = getRayGenGroup();
+    raytrace::RayDispatchGroupTableSet info;
+    info.rayGen.virtualGpuAddress = rayGen.gpuPointer;
+    info.rayGen.sizeInBytes = rayGen.size;
+
+    const auto &miss = getMissGroup();
+    info.miss.virtualGpuAddress = miss.gpuPointer;
+    info.miss.sizeInBytes = miss.size;
+    info.miss.strideInBytes = miss.stride;
+
+    const auto &hit = getHitGroup();
+    info.hit.virtualGpuAddress = hit.gpuPointer;
+    info.hit.sizeInBytes = hit.size;
+    info.hit.strideInBytes = hit.stride;
+
+    const auto &callable = getCallableGroup();
+    info.callable.virtualGpuAddress = callable.gpuPointer;
+    info.callable.sizeInBytes = callable.size;
+    info.callable.strideInBytes = callable.stride;
+
+    rayDispatchGroupTableSetBuffer = shader_binding_table_pool.pushRayDispatchGroupTableSet(device, info);
+  }
+  return rayDispatchGroupTableSetBuffer;
+}
+#endif
+
+#if _TARGET_PC_WIN
+bool ShaderDeviceRequirementChecker::isCompatibleTo(const dxil::ShaderDeviceRequirement &requirement) const
+{
+  if (!is_compatible(supportedRequirement, requirement))
+  {
+    logdbg("DX12: ShaderDeviceRequirementChecker::isCompatibleTo failed, requirement:");
+    to_debuglog(supportedRequirement, requirement);
+    return false;
+  }
+  return true;
+}
+#endif
+
+ID3D12PipelineState *PipelineManager::getBlitPipeline(Device &device, DXGI_FORMAT out_fmt)
+{
+  auto ref =
+    eastl::find_if(begin(blitPipelines), end(blitPipelines), [=](const FormatPipeline &bp) { return bp.outFormat == out_fmt; });
+  if (ref == end(blitPipelines))
+  {
+    return createBlitPipeline(device, out_fmt);
+  }
+  return ref->pipeline.Get();
+}
+
+ID3D12PipelineState *PipelineManager::getClearPipeline(Device &device, DXGI_FORMAT out_fmt)
+{
+  auto ref =
+    eastl::find_if(begin(clearPipelines), end(clearPipelines), [=](const FormatPipeline &cp) { return cp.outFormat == out_fmt; });
+  if (ref == end(clearPipelines))
+    return createClearPipeline(device, out_fmt);
+
+  return ref->pipeline.Get();
+}
+
+#if _TARGET_PC_WIN
+void PipelineManager::onCacheInvalidated(PipelineCache &cache, backend::InputLayoutManager &input_layouts,
+  backend::StaticRenderStateManager &static_states, FramebufferLayoutManager &framebuffer_layouts)
+{
+  // Recreating root signatures would require a mid sized refactor to avoid a chunk of repeated code
+  // and its a "minor optimization" (a few 100 ups is saved each) cache and we can live without
+  // rebuilding it now. It will on later runs be rebuild. So we don't do it for now.
+#if 0
+  for (auto &s : computeSignatures)
+  {
+    // cache.addComputeSignature(s->def, <generate bytecode from s->def>);
+  }
+
+  for (auto &s : graphicsMeshSignatures)
+  {
+    // cache.addGraphicsMeshSignature(s->def, <generate bytecode from s->def>);
+  }
+
+  for (auto &s: graphicsSignatures)
+  {
+    // cache.addGraphicsSignature(s->def, <generate bytecode from s->def>);
+  }
+#endif
+  for (auto &g : graphicsPipelines)
+  {
+    for (auto &p : g)
+    {
+      if (!p)
+      {
+        continue;
+      }
+      p->onCacheInvalidated(cache, input_layouts, static_states, framebuffer_layouts);
+    }
+  }
+
+  for (auto &g : computePipelines)
+  {
+    for (auto &p : g)
+    {
+      if (!p)
+      {
+        continue;
+      }
+      p->onCacheInvalidated(cache);
+    }
+  }
+}
+#else
+void PipelineManager::onCacheInvalidated(PipelineCache &, backend::InputLayoutManager &, backend::StaticRenderStateManager &,
+  FramebufferLayoutManager &)
+{}
+#endif
+
+PipelineManager::ScriptedShaderBinDumpInspector::~ScriptedShaderBinDumpInspector()
+{
+  logdbg("DX12: preloadGraphicsPipeline breakdown:"
+         " containsLookup=%lldus, findPreloaded=%lldus, createGraphics=%lldus,"
+         " notInCache=%u, alreadyPreloaded=%u, created=%u, createFailed=%u",
+    profContainsUsec, profFindPreloadedUsec, profCreateUsec, profNotInCache, profAlreadyPreloaded, profCreated, profCreateFailed);
+  logdbg("DX12: loadVariantsFromCache final:"
+         " getDesc=%lldus, variantLoad=%lldus, maxSingleLoad=%lldus,"
+         " pipelines=%u, variants=%u, failed=%u",
+    LoadVariantsStats::getDescUsec, LoadVariantsStats::loadUsec, LoadVariantsStats::maxLoadUsec, LoadVariantsStats::pipelines,
+    LoadVariantsStats::variants, LoadVariantsStats::failed);
+  logdbg("DX12: PipelineVariant::create breakdown:"
+         " descSetup=%lldus, cacheLoad=%lldus, CreatePipelineState=%lldus,"
+         " cacheHits=%u, cacheMisses=%u",
+    LoadVariantsStats::setupUsec, LoadVariantsStats::cacheLoadUsec, LoadVariantsStats::createPsoUsec, LoadVariantsStats::cacheHits,
+    LoadVariantsStats::cacheMisses);
+  LoadVariantsStats::reset();
+}
+
+void PipelineManager::ScriptedShaderBinDumpInspector::vertexShaderCount(uint32_t count)
+{
+  auto dump = owner->getDump();
+  target->reserveVertexShaderRange(group, count);
+  for (uint32_t i = 0; i < count; ++i)
+  {
+    auto &hash = dump->shaderHashes[i];
+    target->setVertexShaderCompressionGroup(group, i, hash, i);
+  }
+}
+
+void PipelineManager::ScriptedShaderBinDumpInspector::addGraphicsProgram(uint16_t vs_index, uint16_t ps_index)
+{
+  ShaderID psID;
+  if (auto shader = eastl::get_if<ShaderID>(&target->pixelShaderComputeProgramIDMap[group][ps_index]))
+  {
+    psID = *shader;
+  }
+  else
+  {
+    auto dump = owner->getDump();
+    auto pixelShaderInDumpIndex = dump->vprCount + ps_index;
+    auto &hash = dump->shaderHashes[pixelShaderInDumpIndex];
+    auto id = pixelShaderCount++;
+    target->setPixelShaderCompressionGroup(group, id, hash, pixelShaderInDumpIndex);
+    psID = ShaderID::make(group, id);
+    target->pixelShaderComputeProgramIDMap[group][ps_index] = psID;
+  }
+  auto vsID = ShaderID::make(group, vs_index);
+  preloadGraphicsPipeline(vsID, psID);
+}
+
+void PipelineManager::ScriptedShaderBinDumpInspector::addComputeProgram(uint32_t shader_index)
+{
+  if (eastl::holds_alternative<ProgramID>(target->pixelShaderComputeProgramIDMap[group][shader_index]))
+  {
+    return;
+  }
+  auto id = ProgramID::asComputeProgram(group, target->computeProgramIndexToDumpShaderIndex[group].size());
+  target->pixelShaderComputeProgramIDMap[group][shader_index] = id;
+  auto dump = owner->getDump();
+  target->computeProgramIndexToDumpShaderIndex[group].push_back(dump->vprCount + shader_index);
+  // TODO could be used to create a pipeline object with a not yet loaded pipeline
+  //      but this needs more work as the references to shader modules need to support
+  //      the handling of not loaded blobs
+}
+
+void PipelineManager::loadComputeShaderFromDump(Device &device, PipelineCache &cache, ProgramID program,
+  RecoverablePipelineCompileBehavior on_error, CSPreloaded preloaded, PipelineBuildInitiator build_initiator)
+{
+  auto shaderCompressionIndex = computeProgramIndexToDumpShaderIndex[program.getGroup()][program.getIndex()];
+  auto dump = getDump(program.getGroup());
+  auto src = dump->getCodeById(shaderCompressionIndex);
+
+  auto basicModule = decode_shader_layout<ComputeShaderModule>(src.metadata.data(), src);
+  if (!basicModule)
+  {
+    basicModule = decode_shader_binary(src.metadata.data(), src.metadata.size(), src);
+    if (!basicModule)
+    {
+      return;
+    }
+  }
+
+  addCompute(device, cache, program, eastl::move(basicModule), on_error, preloaded, false, build_initiator);
+}
+
+BasePipeline *PipelineManager::findLoadedPipeline(const backend::VertexShaderModuleRefStore &vs,
+  const backend::PixelShaderModuleRefStore &ps)
+{
+  for (auto &group : graphicsPipelines)
+  {
+    for (auto &pipeline : group)
+    {
+      if (!pipeline)
+      {
+        continue;
+      }
+      if (pipeline->matches(vs, ps))
+      {
+        return pipeline.get();
+      }
+    }
+  }
+  return nullptr;
+}
+
+bool PipelineManager::isCompatibleAndReport(const ComputeShaderModule &cs)
+{
+  if (!isCompatibleTo(cs.header.deviceRequirement))
+  {
+    auto name = generateComputePipelineName(cs);
+    logdbg("DX12: ...the compute shader %s requires features that the device can not provide, ignoring...", name);
+    return false;
+  }
+  return true;
+}
+
+bool PipelineManager::isCompatibleAndReport(backend::VertexShaderModuleRefStore vs, backend::PixelShaderModuleRefStore ps)
+{
+#if _TARGET_XBOXONE
+  constexpr int vsStageValue = 1;
+#else
+  const int vsStageValue = static_cast<dxil::ShaderStage>(vs.header.header.shaderType) == dxil::ShaderStage::MESH ? 2 : 1;
+#endif
+  int compatValue = (isCompatibleTo(vs.header.header.deviceRequirement) ? 0 : vsStageValue) +
+                    (isCompatibleTo(ps.header.header.deviceRequirement) ? 0 : 3);
+  if (0 != compatValue)
+  {
+    auto name = generateGraphicsPipelineNameWithAnyRenderState(vs, ps);
+    const char *prefixTable[] = {"vertex ", "mesh ", "pixel ", "vertex and pixel ", "mesh and pixel "};
+    logdbg("DX12: ...%s shader of the pipeline %s requires features that the device can not provide, ignoring...",
+      prefixTable[compatValue - 1], name);
+    return false;
+  }
+  return true;
+}
+
+bool PipelineManager::ShaderClassFilter::isAllowed(const eastl::string &name) const
+{
+  // most common case, blk cache matches the shader dump
+  if (Mode::AllowAll == mode)
+  {
+    return true;
+  }
+  if (Mode::DenyAll == mode)
+  {
+    return false;
+  }
+  return end(allowedClasses) != eastl::find(begin(allowedClasses), end(allowedClasses), name);
+}
+
+uint32_t PipelineManager::getCompilePipelineSetQueueLength() const
+{
+  uint32_t queueLength = compilePipelineSetQueueLength.load(std::memory_order_acquire);
+#if _TARGET_PC_WIN
+  if (pipelineSetCompileWorker)
+    queueLength += pipelineSetCompileWorker->getRemaining();
+#endif
+  return queueLength;
+}
+
+#if _TARGET_PC_WIN
+bool PipelineManager::setPipelineSetCompilationToWorker(Device &device)
+{
+  if (!pipelineSetCompilation2->useCompileWorker)
+    return false;
+  const bool hasItems = !pipelineSetCompilation2->graphicsWorkItems.empty() || !pipelineSetCompilation2->meshWorkItems.empty() ||
+                        !pipelineSetCompilation2->computeWorkItems.empty();
+  if (!hasItems)
+    return false;
+  G_ASSERT(!pipelineSetCompileWorker);
+  pipelineSetCompileWorker =
+    eastl::make_unique<PipelineSetCompileWorker>(device, eastl::move(pipelineSetCompilation2->graphicsWorkItems),
+      eastl::move(pipelineSetCompilation2->meshWorkItems), eastl::move(pipelineSetCompilation2->computeWorkItems));
+  return true;
+}
+#endif
+
+#if _TARGET_PC_WIN
+void PipelineManager::cancelPipelineSetCompileWorker()
+{
+  if (!pipelineSetCompileWorker)
+    return;
+  pipelineSetCompileWorker->cancelAndWait();
+  needToUpdateCache = needToUpdateCache || pipelineSetCompileWorker->isCacheUpdateRequired();
+  pipelineSetCompileWorker.reset();
+}
+#endif
+
+void PipelineManager::storePipelineSetForCompilation2(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
+  DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, DynamicArray<FramebufferLayoutWithHash> &&framebuffer_layouts,
+  DynamicArray<cacheBlk::SignatureEntry> &&scripted_shader_dump_signature, DynamicArray<cacheBlk::ComputeClassUse> &&compute_pipelines,
+  DynamicArray<cacheBlk::GraphicsVariantGroup> &&graphics_pipelines,
+  DynamicArray<cacheBlk::GraphicsVariantGroup> &&graphics_with_null_override_pipelines, ShaderID null_pixel_shader,
+  bool use_compile_worker)
+{
+#if _TARGET_PC_WIN
+  cancelPipelineSetCompileWorker();
+#endif
+  pipelineSetCompilation2.emplace();
+  pipelineSetCompilation2->useCompileWorker = use_compile_worker;
+  pipelineSetCompilation2->inputLayouts = eastl::move(input_layouts);
+  pipelineSetCompilation2->staticRenderStates = eastl::move(static_render_states);
+  pipelineSetCompilation2->framebufferLayouts = eastl::move(framebuffer_layouts);
+  pipelineSetCompilation2->scriptedShaderDumpSignature = eastl::move(scripted_shader_dump_signature);
+  pipelineSetCompilation2->computePipelines = eastl::move(compute_pipelines);
+  pipelineSetCompilation2->graphicsPipelines = eastl::move(graphics_pipelines);
+  pipelineSetCompilation2->graphicsPipelinesWithNullOverrides = eastl::move(graphics_with_null_override_pipelines);
+  pipelineSetCompilation2->nullPixelShader = null_pixel_shader;
+  pipelineSetCompilation2->compilationStartTime = ref_time_ticks();
+  setCompilePipelineSetQueueLength();
+}
+
+shaderbindump::ShaderCode::ShRef PipelineManager::evaluate_use(const ScriptedShadersBinDump &dump, const char *name,
+  cacheBlk::UseCodes code)
+{
+  auto shaderClass = dump.findShaderClass(name);
+  if (!shaderClass)
+  {
+    logdbg("DX12: evaluate_use %p %s %u|%u, missing shader class", &dump, name, code.staticCode, code.dynamicCode);
+    return {};
+  }
+
+  auto staticIndex = shaderClass->stVariants.findVariant(code.staticCode);
+  if (staticIndex >= shaderClass->code.size())
+  {
+    logdbg("DX12: evaluate_use %p %s %u|%u, missing static code (%04X)", &dump, name, code.staticCode, code.dynamicCode, staticIndex);
+    return {};
+  }
+  auto &staticVariant = shaderClass->code[staticIndex];
+  auto dynamicIndex = staticVariant.dynVariants.findVariant(code.dynamicCode);
+  if (dynamicIndex >= staticVariant.passes.size())
+  {
+    logdbg("DX12: evaluate_use %p %s %u|%u, missing dynamic code (%04X)", &dump, name, code.staticCode, code.dynamicCode,
+      dynamicIndex);
+    return {};
+  }
+  return *staticVariant.passes[dynamicIndex].rpass;
+}
+
+void PipelineStageStateBase::TRegister::reset()
+{
+  image = nullptr;
+  imageView = ImageViewState{};
+  buffer = BufferResourceReference{};
+#if D3D_HAS_RAY_TRACING
+  as = nullptr;
+#endif
+  view = D3D12_CPU_DESCRIPTOR_HANDLE{0};
+}
+
+void PipelineStageStateBase::URegister::reset()
+{
+  image = nullptr;
+  imageView = ImageViewState{};
+  buffer = BufferResourceReference{};
+  view = D3D12_CPU_DESCRIPTOR_HANDLE{0};
+}
+
+void PipelineStageStateBase::resetDescriptorRanges()
+{
+  bRegisterDescribtorRange = {};
+  tRegisterDescriptorRange = {};
+  sRegisterDescriptorRange = {};
+  uRegisterDescriptorRange = {};
+}
+
+void PipelineStageStateBase::resetAllState()
+{
+  resetDescriptorRanges();
+  invalidateState();
+  for (auto &reg : bRegisterBuffers)
+    reg = {};
+  for (auto &reg : tRegisters)
+    reg.reset();
+  for (auto &reg : uRegisters)
+    reg.reset();
+  eastl::fill(eastl::begin(sRegisters), eastl::end(sRegisters), D3D12_CPU_DESCRIPTOR_HANDLE{0});
+}
+
+#if D3D_HAS_RAY_TRACING
+void PipelineStageStateBase::overrideConstBuffer(uint32_t unit, BufferResourceReferenceAndAddressRange buffer)
+{
+  if (!(bRegisterOverrideMask & 1u << unit))
+  {
+    bRegisterOverrideBackup[unit] = bRegisterBuffers[unit];
+  }
+  // toggle off the bit, so the set const buffer will update the real slot
+  bRegisterOverrideMask &= ~(1u << unit);
+  setConstBuffer(unit, {.buffer = buffer});
+  // toggle back on the bit, so that future set const buffer will update the backup
+  bRegisterOverrideMask |= 1u << unit;
+}
+#endif
+
+#if D3D_HAS_RAY_TRACING
+void PipelineStageStateBase::removeConstBufferOverride(uint32_t unit)
+{
+  if (!(bRegisterOverrideMask & 1u << unit))
+  {
+    return;
+  }
+  // update override mask first, so the set const will update the real slot
+  bRegisterOverrideMask &= ~(1u << unit);
+  setConstBuffer(unit, bRegisterOverrideBackup[unit]);
 }
 #endif
 
@@ -3471,7 +4602,8 @@ void PipelineStageStateBase::flushResourceStates(uint32_t b_register_mask, uint3
 }
 
 #if _TARGET_PC_WIN
-void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendorExtensions &hlsl_vendor_extension)
+void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendorExtensions &hlsl_vendor_extension,
+  d3d::shadermodel::Version shading_model)
 {
   auto op0 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS>(device);
   auto op1 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS1>(device);
@@ -3485,9 +4617,9 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendor
   auto op9 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS9>(device);
   // auto op10 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS10>(device);
   auto op11 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS11>(device);
-  auto sm = get_shader_model(device);
 
-  supportedRequirement.shaderModel = static_cast<uint8_t>(sm.HighestShaderModel);
+  supportedRequirement.shaderModel = static_cast<uint8_t>(shader_model_to_dx(shading_model));
+
   uint64_t combinedFlags = 0;
   combinedFlags |= D3D_SHADER_REQUIRES_DOUBLES;
   combinedFlags |= D3D_SHADER_REQUIRES_EARLY_DEPTH_STENCIL;
@@ -3548,7 +4680,7 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendor
   // correct test would be this, but it apears that without view instancing we still can use it in shaders to read and the device will
   // just return 0
   // if (D3D12_VIEW_INSTANCING_TIER_1 <= op3.ViewInstancingTier)
-  if (shader_model_from_dx(sm.HighestShaderModel) >= 6.1_sm)
+  if (shading_model >= 6.1_sm)
   {
     combinedFlags |= D3D_SHADER_REQUIRES_VIEW_ID;
   }
@@ -3595,7 +4727,7 @@ void ShaderDeviceRequirementChecker::init(ID3D12Device *device, const HLSLVendor
     combinedFlags |= D3D_SHADER_REQUIRES_DERIVATIVES_IN_MESH_AND_AMPLIFICATION_SHADERS;
   }
 
-  if ((D3D12_RESOURCE_BINDING_TIER_3 <= op0.ResourceBindingTier) && (shader_model_from_dx(sm.HighestShaderModel) >= 6.6_sm))
+  if ((D3D12_RESOURCE_BINDING_TIER_3 <= op0.ResourceBindingTier) && (shading_model >= 6.6_sm))
   {
     combinedFlags |= D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING;
     combinedFlags |= D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING;
@@ -3652,12 +4784,21 @@ bool ComputePipeline::loadRayTracePipeline(Device &device, PipelineCache &cache,
   eastl::transform(nameTable.begin(), nameTable.end(), eastl::back_inserter(nameTableCopy),
     [](const auto &holder) { return holder.c_str(); });
 
-  // first we have to create the shader library to create the pipeline out of, will be deleted when the pipeline is completed
-  eastl::unique_ptr<ShaderLibrary> lib{
-    ShaderLibrary::build(device.getDevice(), {.debugName = name.c_str(),
-                                               .nameTable = make_span(nameTableCopy.data(), nameTableCopy.size()),
-                                               .driverBinary = driverBinary,
-                                               .mayBeUsedByExpandablePipeline = false})};
+  // When the shader carries a DSHL raytrace_pipeline block, the pipeline config (recursion + OMM flag)
+  // lives in the bindump and the driver builds the config subobject CPU-side instead of trusting the
+  // DXIL-embedded one -- that is the only way to gate OMM on device support without a second variant.
+  // The per-shader OMM opt-in is OR-ed and device-gated inside RayTracePipeline::build.
+  // The ALLOW_OPACITY_MICROMAPS pipeline flag is a core-DX12 feature only; the Nvidia (nvapi) OMM path
+  // does not use it, so the flag must stay off unless OMM is implemented by core DX12.
+  const bool deviceAllowsOmm = FeatureImplementation::Core == device.getOpacityMicroMapAvailability();
+
+  // first we have to create the shader library to create the pipeline out of, will be deleted when the pipeline is completed.
+  eastl::unique_ptr<ShaderLibrary> lib{ShaderLibrary::build(device.getDevice(),
+    {.debugName = name.c_str(),
+      .nameTable = make_span(nameTableCopy.data(), nameTableCopy.size()),
+      .driverBinary = driverBinary,
+      .mayBeUsedByExpandablePipeline = false},
+    device.shouldEmbedRtLibraryMonolithically())};
   if (!lib)
   {
     if (RecoverablePipelineCompileBehavior::ASSERT_FAIL == on_error)
@@ -3719,18 +4860,15 @@ bool ComputePipeline::loadRayTracePipeline(Device &device, PipelineCache &cache,
   const bool useEmbeddedObjects = !hitGroupTable.empty() || missGroupTable.empty();
 
   auto newPipeline = eastl::make_unique<RayTracePipeline>();
-  if (!newPipeline->build(device.getDevice(), signature, resTypeTable,
-        {{
-          .name = name.c_str(),
-          .groupMemebers = groupMemebers,
-          .expandable = false,
-          .alwaysIgnoreTriangleGeometry = false,
-          .alwaysIgnoreProceduralGeometry = false,
-        }},
-        {
-          .useEmbeddedShaderConfig = useEmbeddedObjects,
-          .useEmbeddedPipelineConfig = useEmbeddedObjects,
-        }))
+  ::raytrace::PipelineCreateInfo rtPci{{
+    .name = name.c_str(),
+    .groupMemebers = groupMemebers,
+    .expandable = false,
+    .alwaysIgnoreTriangleGeometry = false,
+    .alwaysIgnoreProceduralGeometry = false,
+  }};
+  if (!newPipeline->build(device.getDevice(), signature, resTypeTable, rtPci, {.useEmbeddedObjects = useEmbeddedObjects},
+        deviceAllowsOmm))
   {
     return false;
   }
@@ -3748,6 +4886,8 @@ bool ComputePipeline::loadRayTracePipeline(Device &device, PipelineCache &cache,
 
   rayTracePipeline = eastl::move(newPipeline);
   rayTraceShaderBindingTableLocation = shaderBindingTableLocation;
+  rayTraceHitGroupCount = static_cast<uint32_t>(hitGroupTable.size());
+  rayTraceMissGroupCount = static_cast<uint32_t>(missGroupTable.size());
   if (!byte_code_cache_hit)
   {
     logdbg("DX12: Pipeline for last byte code cache misses was <%s>", name);
@@ -3793,6 +4933,26 @@ ComputePipeline::ComputePipeline(ComputePipelineSignature &sign, ComputeShaderMo
 }
 
 #if D3D_HAS_RAY_TRACING
+void ComputePipeline::clearRayTraceSBTLocation()
+{
+  rayTraceShaderBindingTableLocation = {};
+  rayDispatchGroupTableSetBuffer = {};
+}
+
+void ComputePipeline::rebuildRayTraceSBT(Device &device, ShaderBindingTablePool &shader_binding_table_pool)
+{
+  G_ASSERT(rayTracePipeline);
+  rayTraceShaderBindingTableLocation =
+    shader_binding_table_pool.pushBindingTable(device, {
+                                                         .shaderHandleTable = rayTracePipeline->getShaderReferenceTableSpan(),
+                                                         .rayGenGroupIndex = 0,
+                                                         .hitGroupOffset = 1,
+                                                         .hitGroupCount = rayTraceHitGroupCount,
+                                                         .missGroupOffset = rayTraceHitGroupCount + 1,
+                                                         .missGroupCount = rayTraceMissGroupCount,
+                                                       });
+}
+
 bool ComputePipeline::readyRayTracePipeline(Device &device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error,
   backend::PipelineNameGenerator &name_generator, ShaderBindingTablePool &shader_binding_table_pool,
   [[maybe_unused]] PipelineBuildInitiator build_initiator)
@@ -3810,6 +4970,8 @@ bool ComputePipeline::readyRayTracePipeline(Device &device, PipelineCache &cache
 #endif
     return loadRayTracePipeline(device, cache, on_error, false, name_generator, shader_binding_table_pool, true);
   }
+  if (rayTracePipeline && !rayTraceShaderBindingTableLocation.rayGenGroup)
+    rebuildRayTraceSBT(device, shader_binding_table_pool);
   return true;
 }
 #endif
@@ -3823,18 +4985,24 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
     return true;
   }
 #if !_TARGET_PC_WIN
-  auto
+  eastl::string name;
 #endif
-    name = name_generator.generateComputePipelineName(shaderModule);
+  auto getName = [&]() -> const eastl::string & {
+    if (name.empty())
+      name = name_generator.generateComputePipelineName(shaderModule);
+    return name;
+  };
+  if (device.shouldNameObjects())
+    getName();
 #if DX12_REPORT_PIPELINE_CREATE_TIMING
   eastl::string profilerMsg;
-  profilerMsg.sprintf("ComputePipeline(\"%s\")::loadRegularComputeShader: took %%dus", name.c_str());
+  profilerMsg.sprintf("ComputePipeline(\"%s\")::loadRegularComputeShader: took %%dus", getName().c_str());
   AutoFuncProf funcProfiler{profilerMsg.c_str()};
 #endif
   TIME_PROFILE_DEV(ComputePipeline_load);
-  TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(name.c_str());
+  TIME_PROFILE_UNIQUE_EVENT_NAMED_DEV(getName().c_str());
 
-  if (!byte_code_cache_hit)
+  if (!byte_code_cache_hit && !name.empty())
   {
     logdbg("DX12: Pipeline for last byte code cache misses was <%s>", name);
   }
@@ -3857,7 +5025,8 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
     {
       buildInitiator = PipelineBuildInitiator::DISK_CACHE;
     }
-    device.nameObject(computePipeline.Get(), name);
+    if (!name.empty())
+      device.nameObject(computePipeline.Get(), name);
     return true;
   }
 
@@ -3916,7 +5085,7 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
       int threshold = device.psoSlowThresholdUsec;
       if (threshold > 0 && elapsed_usec >= threshold)
       {
-        logwarn("DX12: CreatePipelineState for <%s> (compute) took %.1f ms", name.c_str(), (double)elapsed_usec / 1000.0);
+        logwarn("DX12: CreatePipelineState for <%s> (compute) took %.1f ms", getName().c_str(), (double)elapsed_usec / 1000.0);
         if (device.netManager)
           device.netManager->reportSlowPsoCompilation(name.c_str(), (long)(elapsed_usec / 1000), "compute");
       }
@@ -3927,6 +5096,7 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
     // if it still fails then something else is not ok
     if (FAILED(result))
     {
+      getName();
 
 #if _TARGET_PC_WIN
       log_serializer.serialize(signature, cpciDesc, name);
@@ -4453,6 +5623,136 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
     }
   }
 }
+
+#if _TARGET_PC_WIN
+void PipelineSetCompileWorker::WorkerThread::execute()
+{
+  TIME_PROFILE_THREAD(getCurrentThreadName());
+  worker.process(terminating, currentlyCompiling);
+}
+
+static uint32_t get_pipeline_set_compile_thread_count()
+{
+  const int configured = dgs_get_settings()->getBlockByNameEx("dx12")->getInt("pipelineSetCompileThreads", 0);
+  if (configured > 0)
+    return static_cast<uint32_t>(configured);
+  int cores = cpujobs::get_physical_core_count();
+  if (cores <= 0)
+    cores = cpujobs::get_logical_core_count();
+  cores -= 2;
+  cores = eastl::max(cores, 1);
+  cores = eastl::min(cores, 8);
+  return static_cast<uint32_t>(cores);
+}
+
+PipelineSetCompileWorker::PipelineSetCompileWorker(Device &device_ref, dag::Vector<GraphicsWorkItem> &&graphics_items,
+  dag::Vector<MeshWorkItem> &&mesh_items, dag::Vector<ComputeWorkItem> &&compute_items) :
+  device(&device_ref),
+  graphicsItems(eastl::move(graphics_items)),
+  meshItems(eastl::move(mesh_items)),
+  computeItems(eastl::move(compute_items))
+{
+  const uint32_t totalItems = graphicsItems.size() + meshItems.size() + computeItems.size();
+  remaining.store(totalItems, std::memory_order_relaxed);
+
+  uint32_t threadCount = get_pipeline_set_compile_thread_count();
+  if (totalItems > 0 && threadCount > totalItems)
+    threadCount = totalItems;
+
+  workerThreads.reserve(threadCount);
+  for (uint32_t i = 0; i < threadCount; ++i)
+  {
+    workerThreads.push_back(eastl::make_unique<WorkerThread>(*this, i));
+    workerThreads.back()->start();
+  }
+}
+
+PipelineSetCompileWorker::~PipelineSetCompileWorker() { cancelAndWait(); }
+
+void PipelineSetCompileWorker::process(volatile int &terminating, std::atomic<const void *> &slot)
+{
+  const PipelineLogSerializer logSerializer{
+    device->pipeMan.getD3D12SerializeRootSignature(), device->pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()};
+  processItems(terminating, slot, graphicsItems, [this](GraphicsWorkItem &item) {
+    if (item.pipeline->isReady())
+      return;
+    const auto loadResult =
+      item.pipeline->load(*device, device->pipeMan, *item.base, device->pipelineCache, device->pipeMan, item.info);
+    if (!loadResult.objectCreated)
+      needToUpdateCache.store(true, std::memory_order_relaxed);
+  });
+  processItems(terminating, slot, meshItems, [this](MeshWorkItem &item) {
+    if (item.pipeline->isReady())
+      return;
+    const auto loadResult =
+      item.pipeline->loadMesh(*device, device->pipeMan, *item.base, device->pipelineCache, device->pipeMan, item.info);
+    if (!loadResult.objectCreated)
+      needToUpdateCache.store(true, std::memory_order_relaxed);
+  });
+  processItems(terminating, slot, computeItems, [this, &logSerializer](ComputeWorkItem &item) {
+    if (item.pipeline->isLoaded())
+      return;
+    item.pipeline->loadAndGetHandle(*device, device->pipelineCache, item.onError, device->pipeMan,
+      PipelineBuildInitiator::STATIC_CACHE, logSerializer);
+  });
+}
+
+bool PipelineSetCompileWorker::claimOrWaitGraphics(const PipelineVariant *variant)
+{
+  return claimOrWait(graphicsItems, static_cast<const void *>(variant), [variant]() { return variant->isReady(); });
+}
+
+bool PipelineSetCompileWorker::claimOrWaitMesh(const PipelineVariant *variant)
+{
+  return claimOrWait(meshItems, static_cast<const void *>(variant), [variant]() { return variant->isReady(); });
+}
+
+bool PipelineSetCompileWorker::claimOrWaitCompute(const ComputePipeline *pipeline)
+{
+  return claimOrWait(computeItems, static_cast<const void *>(pipeline), [pipeline]() { return pipeline->isLoaded(); });
+}
+
+bool PipelineSetCompileWorker::waitForOutstandingCompilationAndSuspend(bool force_evict)
+{
+  isSuspended.store(true, std::memory_order_release);
+
+  bool anyOutstanding = false;
+  {
+    OSSpinlockScopedLock lock(stateLock);
+    for (auto &thread : workerThreads)
+      if (thread->currentlyCompiling.load(std::memory_order_relaxed) != nullptr)
+      {
+        anyOutstanding = true;
+        break;
+      }
+  }
+
+  if (!anyOutstanding)
+    return false;
+
+  if (!force_evict)
+    return true;
+
+  TIME_PROFILE_DEV(PipelineSetCompileWorkerSync);
+  for (auto &thread : workerThreads)
+  {
+    const void *value = thread->currentlyCompiling.load(std::memory_order_relaxed);
+    if (value)
+      ::wait(thread->currentlyCompiling, value);
+  }
+  return false;
+}
+
+void PipelineSetCompileWorker::resumeCompilation() { isSuspended.store(false, std::memory_order_relaxed); }
+
+void PipelineSetCompileWorker::cancelAndWait()
+{
+  for (auto &thread : workerThreads)
+    interlocked_release_store(thread->terminating, 1);
+  for (auto &thread : workerThreads)
+    thread->terminate(true);
+}
+#endif
 
 static eastl::string encode_base_85(eastl::span<const uint8_t> data)
 {

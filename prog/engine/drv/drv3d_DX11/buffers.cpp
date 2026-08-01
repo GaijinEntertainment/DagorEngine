@@ -580,7 +580,7 @@ bool d3d::draw_indirect(int prim_type, Sbuffer *args, uint32_t byte_offset)
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
   GenericBuffer *vb = NULL;
-  D3D_CONTRACT_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
+
   vb = (GenericBuffer *)args;
   if (!(vb->bufFlags & SBCF_MISC_DRAWINDIRECT))
   {
@@ -611,7 +611,7 @@ bool d3d::draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t byte_offs
   ContextAutoLock contextLock;
   set_primitive_type_unsafe(rs, prim_type);
   GenericBuffer *vb = NULL;
-  D3D_CONTRACT_ASSERT(args->getFlags() & SBCF_BIND_UNORDERED);
+
   vb = (GenericBuffer *)args;
   if (!(vb->bufFlags & SBCF_MISC_DRAWINDIRECT))
   {
@@ -786,7 +786,7 @@ GPUFENCEHANDLE d3d::insert_fence(GpuPipeline gpu_pipeline) { return BAD_GPUFENCE
 
 void d3d::insert_wait_on_fence(GPUFENCEHANDLE &fence, GpuPipeline gpu_pipeline) {}
 
-bool d3d::set_const_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
+bool d3d::set_const_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
 {
   D3D_CONTRACT_ASSERT(slot < MAX_CONST_BUFFERS);
   D3D_CONTRACT_ASSERT(shader_stage < STAGE_MAX);
@@ -808,21 +808,10 @@ bool d3d::set_const_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer
     if (!(vb->bufFlags & SBCF_BIND_CONSTANT))
       return false;
 
-    D3D_CONTRACT_ASSERTF_RETURN(g_device_desc.caps.hasConstBufferOffset || (consts_offset == 0 && consts_size == 0), false,
-      "Const buffer with offset and size doesn't support in this DX version. "
-      "Check DeviceDriverCapabilities::hasConstBufferOffset.");
-    D3D_CONTRACT_ASSERTF_RETURN(!(consts_offset & 15) && !(consts_size & 15), false,
-      "consts_offset and consts_size should be aligned by 16");
-    // debug("Slot %d; Vb bufSize %d; Vb structSize %d", slot, vb->bufSize, vb->structSize);
-    consts_size = consts_size ? consts_size : 4096;
-    if (g_render_state.constants.customBuffers[shader_stage][slot] != vb->buffer ||
-        g_render_state.constants.buffersFirstConstants[shader_stage][slot] != consts_offset ||
-        g_render_state.constants.buffersNumConstants[shader_stage][slot] != consts_size)
+    if (g_render_state.constants.customBuffers[shader_stage][slot] != vb->buffer)
     {
       g_render_state.constants.customBuffers[shader_stage][slot] = vb->buffer;
       g_render_state.constants.constantsBufferChanged[shader_stage] |= 1 << slot;
-      g_render_state.constants.buffersFirstConstants[shader_stage][slot] = consts_offset;
-      g_render_state.constants.buffersNumConstants[shader_stage][slot] = consts_size;
       g_render_state.modified = true;
     }
     if (g_render_state.constants.customBuffersMaxSlotUsed[shader_stage] < slot)
@@ -834,15 +823,7 @@ bool d3d::set_const_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer
 bool d3d::set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
 {
   if (buffer)
-  {
-    D3D_CONTRACT_ASSERT(buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)); // todo: remove SBCF_BIND_UNORDERED check!
-#if DAGOR_DBGLEVEL > 0
-                                                                                            // todo: this check to be removed
-    if ((buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)) == SBCF_BIND_UNORDERED)
-      D3D_CONTRACT_ERROR("buffer %s is without SBCF_BIND_SHADER_RES flag and can't be used in SRV. Deprecated, fixme!",
-        buffer->getBufName());
-#endif
-  }
+    D3D_CONTRACT_ASSERT(buffer->getFlags() & SBCF_BIND_SHADER_RES);
 
   if (slot >= MAX_RESOURCES) // these are not samplers!
   {

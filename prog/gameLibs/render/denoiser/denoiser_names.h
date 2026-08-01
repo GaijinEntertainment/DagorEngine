@@ -11,7 +11,6 @@ namespace denoiser
 ENUM_PERSISTENT_NAMES
 const char *TextureNames::motion_vectors = "motion_vectors";
 const char *TextureNames::half_motion_vectors = "half_motion_vectors";
-const char *TextureNames::half_normals = "half_normals";
 const char *TextureNames::half_depth = "half_depth";
 #undef NAME
 

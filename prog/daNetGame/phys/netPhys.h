@@ -461,9 +461,15 @@ struct PairCollisionData
   float maxMassRatioForPushOnCollision;
   int collisionMaterialId;
   int ignoreMaterialId;
-  bool ignoreWorldContacts = false;
+  bool ignoreWorldContacts;
+  const CollisionResource *collres;
+  bool inverseOmega;
+  PhysBody *staticPhysBody; // plain static phys body for entities without phys actor
 };
 void query_pair_collision_data(ecs::EntityId eid, PairCollisionData &data);
+
+// Sets tm on all active collision objects of the phys body.
+void move_collision_objects(IPhysBase &phys, const TMatrix &tm);
 
 typedef BasePhysActor *BasePhysActorPtr;
 ECS_DECLARE_TYPE(BasePhysActorPtr);

@@ -129,6 +129,7 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
     INIT_AND_USE_LIGHT_SHADOWS(stage)
     INIT_AND_USE_COMMON_LIGHTS_SHADOWS_CB(stage)
     INIT_AND_USE_LIGHTS_CLUSTERED_CB(stage)
+    USE_CLUSTERED_LIGHTS_WORD_COUNTS(stage)
     USE_OMNI_LIGHT_MASK(stage)
     USE_SPOT_LIGHT_MASK(stage)
     hlsl(stage)
@@ -143,6 +144,11 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
       {
         #if defined(ENABLE_SPOT_LIGHT_MASK)
           if ( !check_spot_light(spot_light_index, SPOT_LIGHT_MASK_VOLFOG))
+            return false;
+        #endif
+        #if SPOT_SHADOWS
+          ##assert(spot_light_index < (uint)spotCnt_omniCnt_firstOmni.x, "volfog: spot light shadow index %d out of range %d", spot_light_index, (uint)spotCnt_omniCnt_firstOmni.x);
+          if (spot_light_index >= (uint)spotCnt_omniCnt_firstOmni.x)
             return false;
         #endif
         RenderSpotLight sl = spot_lights_cb[spot_light_index];
@@ -187,6 +193,11 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
           if ( !check_omni_light(omni_light_index, OMNI_LIGHT_MASK_VOLFOG))
             return false;
         #endif
+        #if OMNI_SHADOWS
+          ##assert(omni_light_index < (uint)spotCnt_omniCnt_firstOmni.y, "volfog: omni light shadow index %d out of range %d", omni_light_index, (uint)spotCnt_omniCnt_firstOmni.y);
+          if (omni_light_index >= (uint)spotCnt_omniCnt_firstOmni.y)
+            return false;
+        #endif
         RenderOmniLight ol = omni_lights_cb[omni_light_index];
         float4 pos_and_radius = ol.posRadius;
         float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
@@ -225,64 +236,28 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
         #define OMNI_SHADOWS 1
 
         half lightsEffect = 1;
-        uint sliceId = min(frustum_clusters_get_slice_at_depth(nextDepth, depthSliceScale, depthSliceBias), CLUSTERS_D);
-        uint clusterIndex = frustum_clusters_get_cluster_index(half2(screenTcJittered.xy), sliceId);
-        uint wordsPerOmni = omniLightsWordCount;
-        uint wordsPerSpot = spotLightsWordCount;
-        uint omniAddress = clusterIndex*wordsPerOmni;
-
-        ##if dynamic_lights_count == lights_omnispot_1
-          wordsPerOmni = 1;
-          wordsPerSpot = 1;
-        ##endif
-        ##if dynamic_lights_count == lights_omni_1
-          wordsPerOmni = 1;
-          wordsPerSpot = 0;
-        ##endif
-        ##if dynamic_lights_count == lights_spot_1
-          wordsPerOmni = 0;
-          wordsPerSpot = 1;
-        ##endif
+        uint clusterIndex = frustum_clusters_get_cluster_index(half2(screenTcJittered.xy), nextDepth, depthSliceScale, depthSliceBias);
+        uint wordsPerOmni, wordsPerSpot;
+        get_clustered_light_word_counts(wordsPerOmni, wordsPerSpot);
+        uint omniAddress = get_cluster_grid_omni_address(clusterIndex, wordsPerOmni);
 
         ##if (dynamic_lights_count == lights_omnispot_1 || dynamic_lights_count == lights_omni_1 || dynamic_lights_count == lights_spot_1)
-          UNROLL
+          #define CLUSTER_GRID_WALK_WORD_LOOP_ATTR UNROLL
         ##endif
-        for ( uint omniWordIndex = 0; omniWordIndex < wordsPerOmni; omniWordIndex++ )
-        {
-          // Load bit mask data per lane
-          uint mask = flatBitArray[omniAddress + omniWordIndex];
-          uint mergedMask = MERGE_MASK(mask);
-          while ( mergedMask != 0 ) // processed per lane
-          {
-            uint bitIndex = firstbitlow( mergedMask );
-            mergedMask ^= ( 1U << bitIndex );
-            uint omni_light_index = ((omniWordIndex<<5) + bitIndex);
+        #define CLUSTER_GRID_WALK_ADDRESS omniAddress
+        #define CLUSTER_GRID_WALK_WORD_COUNT wordsPerOmni
+        #define CLUSTER_GRID_WALK_LIGHT_BODY(omni_light_index) calc_omni_light(omni_light_index, worldPos, ambPhase, lightsEffect, dynamicLighting);
+        #include <cluster_grid_lights_walk.hlsli>
 
-            if (!calc_omni_light(omni_light_index, worldPos, ambPhase, lightsEffect, dynamicLighting))
-              continue;
-          }
-        }
-
-        uint spotAddress = clusterIndex*wordsPerSpot + ((CLUSTERS_D+1)*CLUSTERS_H*CLUSTERS_W*wordsPerOmni);
+        uint spotAddress = get_cluster_grid_spot_address(clusterIndex, wordsPerSpot, wordsPerOmni);
 
         ##if (dynamic_lights_count == lights_omnispot_1 || dynamic_lights_count == lights_omni_1 || dynamic_lights_count == lights_spot_1)
-          UNROLL
+          #define CLUSTER_GRID_WALK_WORD_LOOP_ATTR UNROLL
         ##endif
-        for ( uint spotWordIndex = 0; spotWordIndex < wordsPerSpot; spotWordIndex++ )
-        {
-          // Load bit mask data per lane
-          uint mask = flatBitArray[spotAddress + spotWordIndex];
-          uint mergedMask = MERGE_MASK(mask);
-          while ( mergedMask != 0 ) // processed per lane
-          {
-            uint bitIndex = firstbitlow( mergedMask );
-            mergedMask ^= ( 1U << bitIndex );
-            uint spot_light_index = ((spotWordIndex<<5) + bitIndex);
-
-            if (!calc_spot_light(spot_light_index, jitteredWorldPos, jitteredView, lightsEffect, mieG0, mieG1, dynamicLighting))
-              continue;
-          }
-        }
+        #define CLUSTER_GRID_WALK_ADDRESS spotAddress
+        #define CLUSTER_GRID_WALK_WORD_COUNT wordsPerSpot
+        #define CLUSTER_GRID_WALK_LIGHT_BODY(spot_light_index) calc_spot_light(spot_light_index, jitteredWorldPos, jitteredView, lightsEffect, mieG0, mieG1, dynamicLighting);
+        #include <cluster_grid_lights_walk.hlsli>
       ##endif
       return dynamicLighting;
     }

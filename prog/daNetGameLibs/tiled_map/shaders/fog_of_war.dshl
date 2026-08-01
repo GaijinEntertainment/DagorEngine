@@ -17,6 +17,51 @@ float fog_of_war_cell_perlin_amplitude = 1.0;
 
 float fog_of_war_distance_field_reduce = 0.6;
 
+float fog_of_war_desaturation = 0.8;
+float fog_of_war_brightness = 0.6;
+float fog_of_war_contrast = 1.3;
+
+// Colour tint (rgb multiplier) applied in grading; default leans blue/cool.
+float4 fog_of_war_tint = (0.6, 0.9, 1.1, 1);
+
+// Pixelated noise map: each map tile is split into this many cells per axis, and
+// each cell gets its own random blur radius in [glitch_blur_min .. glitch_blur_scale].
+// This makes sharpness jump between blocks, like a degraded/compressed signal.
+// An integer count keeps cell edges on tile edges (no sliver stripe at borders).
+int fog_of_war_glitch_cells_per_tile = 16;
+int fog_of_war_glitch_cells_per_tile2 = 9;
+// Strength of the second grid relative to the first (0..1).
+float fog_of_war_glitch_grid2_weight = 0.55;
+float fog_of_war_glitch_blur_min = 0.005;
+float fog_of_war_glitch_blur_scale = 0.1;
+
+// Per-cell sampling displacement, as a fraction of the cell size. Each cell
+// samples from a random offset location, so cell edges tear against neighbours.
+float fog_of_war_glitch_offset = 1.0;
+
+// Per-cell brightness: each cell is randomly darkened to somewhere in
+// [glitch_brightness_min .. 1] of the original. 1 disables (no darkening).
+float fog_of_war_glitch_brightness_min = 0.95;
+
+// Chromatic aberration: per-channel UV offset for a broken-signal colour split.
+float fog_of_war_glitch_aberration = 0.01;
+
+// Per-cell contrast jitter: each cell's contrast is scaled by a random factor in
+// [1 - var .. 1 + var]. 0 disables (all cells use the base contrast).
+float fog_of_war_glitch_contrast_var = 0.05;
+
+float4 fog_of_war_bg_color = (0.086, 0.070, 0.066, 1);
+
+texture tex;
+
+float4 viewportRect;
+
+// Fog mask provided via darg::uishader::set_mask() (StdGuiRender mask slot):
+// mask_tex is the full-screen fog RT, the matrix maps GuiVertex screen pos to UV.
+texture mask_tex;
+float4 mask_matrix_line_0 = (1, 0, 0, 0);
+float4 mask_matrix_line_1 = (0, 1, 0, 0);
+
 shader fog_of_war
 {
   cull_mode=none;
@@ -139,3 +184,198 @@ shader fog_of_war
   compile("target_ps", "postfx_ps");
 }
 
+// Fog tile shader: draws a map tile as fog-of-war overlay with a corrupted-
+// signal look. The pipeline applies:
+//   per-cell glitchy blur (pixelated noise map) -> grading -> mask multiply.
+shader fog_of_war_tile
+{
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+
+  channel short2 pos = pos;
+  channel color8 vcol = vcol;
+  channel short2 tc = tc mul_4k;
+  channel short2 tc[1] = tc[1] mul_4k;
+
+  (vs) {
+    viewport@f4 = viewportRect;
+  }
+
+  if (mask_tex != NULL)
+  {
+    (ps) { mask_tex@smp2d = mask_tex; }
+    (vs) {
+      mask_matrix_line_0@f3 = mask_matrix_line_0;
+      mask_matrix_line_1@f3 = mask_matrix_line_1;
+    }
+  }
+
+  INIT_GLOBAL_POINT_CLAMP_SAMPLER(ps)
+
+  (ps) {
+    fog_tile_tex@tex2d = tex;
+    fog_of_war_desaturation@f1 = fog_of_war_desaturation;
+    fog_of_war_brightness@f1 = fog_of_war_brightness;
+    fog_of_war_contrast@f1 = fog_of_war_contrast;
+    fog_of_war_tint@f4 = fog_of_war_tint;
+    fog_of_war_glitch_cells_per_tile@i1 = fog_of_war_glitch_cells_per_tile;
+    fog_of_war_glitch_cells_per_tile2@i1 = fog_of_war_glitch_cells_per_tile2;
+    fog_of_war_glitch_grid2_weight@f1 = fog_of_war_glitch_grid2_weight;
+    fog_of_war_glitch_blur_min@f1 = fog_of_war_glitch_blur_min;
+    fog_of_war_glitch_blur_scale@f1 = fog_of_war_glitch_blur_scale;
+    fog_of_war_glitch_offset@f1 = fog_of_war_glitch_offset;
+    fog_of_war_glitch_brightness_min@f1 = fog_of_war_glitch_brightness_min;
+    fog_of_war_glitch_aberration@f1 = fog_of_war_glitch_aberration;
+    fog_of_war_glitch_contrast_var@f1 = fog_of_war_glitch_contrast_var;
+  }
+
+  // premultiplied alpha: fragment is (rgb*mask, mask) so it replaces
+  // whatever bg fill was drawn below where the mask is opaque.
+  blend_src = one; blend_dst = isa;
+  NO_ATEST()
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 col: TEXCOORD0;
+      float2 tc:  TEXCOORD1;
+    ##if mask_tex != NULL
+      float2 maskTc: TEXCOORD2;
+    ##endif
+    };
+  }
+
+  hlsl(ps) {
+    #define fog_tile_tex_samplerstate global_point_clamp_sampler
+  }
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      int2 pos: POSITION;
+      float4 col: COLOR0;
+      int2 tc0: TEXCOORD0;
+    };
+
+    VsOutput fog_of_war_tile_vs(VsInput input)
+    {
+      VsOutput output;
+      float2 fpos = float2(input.pos);
+      output.pos = float4(fpos * viewport.xy + viewport.zw, 1, 1);
+      output.col = BGRA_SWIZZLE(input.col);
+      output.tc = input.tc0 / 4096.0;
+    ##if mask_tex != NULL
+      // Mask UV comes from the screen-space matrix set by set_mask (mask RT is
+      // full-screen), not from vertex tc1 which the GUI leaves zeroed here.
+      output.maskTc.x = dot(fpos, mask_matrix_line_0.xy) + mask_matrix_line_0.z;
+      output.maskTc.y = dot(fpos, mask_matrix_line_1.xy) + mask_matrix_line_1.z;
+    ##endif
+      return output;
+    }
+  }
+  compile("target_vs", "fog_of_war_tile_vs");
+
+  hlsl(ps) {
+    static const float3 LUMA_601 = float3(0.299, 0.587, 0.114);
+
+    float luma(float3 c) { return dot(c, LUMA_601); }
+
+    // Cheap 2D value hash -> [0,1). No trig, so no diagonal banding.
+    float hash21(float2 p)
+    {
+      float3 p3 = frac(float3(p.xyx) * 0.1031);
+      p3 += dot(p3, p3.yzx + 33.33);
+      return frac((p3.x + p3.y) * p3.z);
+    }
+
+    float gaussianHashLimited(float2 p)
+    {
+      float s = hash21(p + 1.17) +
+                hash21(p + 2.71) +
+                hash21(p + 4.39) +
+                hash21(p + 7.07) +
+                hash21(p + 9.91) +
+                hash21(p + 13.37);
+      return (s - 3.0) * 0.33333333;
+    }
+    // One glitch grid: splits the tile into cellsPerTile^2 cells and, per cell,
+    // displaces the sample UV and folds in a random blur radius and darkening.
+    // `seed` shifts the hash domain so stacked grids do not align. Running this
+    // on an already-displaced uv makes each grid act on the previous lookup.
+    // `weight` (0..1) scales this grid's whole contribution: displacement, blur,
+    // darkening and contrast jitter. 1 = full strength, 0 = grid does nothing.
+    void accumGlitchGrid(inout float2 uv, inout float blur, inout float bright, inout float contrastMul, inout float dirSign, int cellsPerTile, float seed, float weight)
+    {
+      float cellSize = 1.0 / max(1, cellsPerTile);
+      float2 block = floor(uv / cellSize) + seed;
+      blur = max(blur, lerp(fog_of_war_glitch_blur_min, fog_of_war_glitch_blur_scale, hash21(block)) * weight);
+      bright *= lerp(1.0, lerp(fog_of_war_glitch_brightness_min, 1.0, hash21(block + 5.7)), weight);
+      contrastMul *= lerp(1.0, lerp(1.0 - fog_of_war_glitch_contrast_var, 1.0 + fog_of_war_glitch_contrast_var, hash21(block + 19.7)), weight);
+      dirSign = hash21(block + 7.31) < 0.5 ? -1.0 : 1.0;
+      float2 rnd = float2(gaussianHashLimited(block + 3.17), gaussianHashLimited(block + 11.53));
+      uv += rnd * (fog_of_war_glitch_offset * cellSize * weight);
+    }
+
+    float4 fog_of_war_tile_ps(VsOutput input) : SV_Target
+    {
+      float2 tc = input.tc;
+
+      // Pixelated noise map: each cell gets its own random blur strength, smear
+      // direction and displacement, so the tile breaks up in blocks like a
+      // corrupted signal. tc is per-tile UV [0,1]; an integer cells-per-tile
+      // keeps cell edges on tile edges, so no partial sliver cell stripes them.
+      //
+      // Two grids of different cell counts are stacked: each displaces the UV the
+      // previous one moved and folds in its own blur radius and darkening. The
+      // combined offset and blur are then applied when sampling below.
+      float blurRadius = 0.0;
+      float bright = 1.0;
+      float contrastMul = 1.0;
+      float dirSign = 1.0;
+      accumGlitchGrid(tc, blurRadius, bright, contrastMul, dirSign, fog_of_war_glitch_cells_per_tile,  0.0,  1.0);
+      accumGlitchGrid(tc, blurRadius, bright, contrastMul, dirSign, fog_of_war_glitch_cells_per_tile2, 37.0, fog_of_war_glitch_grid2_weight);
+      blurRadius = max(blurRadius, fog_of_war_glitch_blur_min);
+      // Cap the combined darkening from both grids at brightness_min.
+      bright = max(bright, fog_of_war_glitch_brightness_min);
+
+      // Glitchy blur with uneven, horizontally-biased taps so the result smears
+      // like signal bleed rather than a clean gaussian. Center tap dominates.
+      const float2 TAPS[4] = { float2(1.0, 0.15), float2(-0.6, 0.5), float2(-0.9, -0.35), float2(0.35, -0.8) };
+      const float WEIGHTS[4] = { 0.34, 0.24, 0.22, 0.20 };
+
+      float3 color = tex2D(fog_tile_tex, tc).rgb * 0.5;
+      float wsum = 0.5;
+      [unroll]
+      for (int i = 0; i < 4; i++)
+      {
+        float2 off = float2(TAPS[i].x * dirSign, TAPS[i].y) * blurRadius;
+        color += tex2D(fog_tile_tex, tc + off).rgb * WEIGHTS[i];
+        wsum += WEIGHTS[i];
+      }
+      color /= wsum;
+
+      // Chromatic aberration: pull the red channel from a horizontally shifted UV.
+      color.r = tex2D(fog_tile_tex, tc + float2(fog_of_war_glitch_aberration, 0)).r;
+
+      // Per-cell brightness accumulated from the stacked grids.
+      color *= bright;
+
+      // ---- Grading ----
+      color = lerp(color, luma(color).xxx, saturate(fog_of_war_desaturation));
+      color = saturate((color - 0.5.xxx) * (fog_of_war_contrast * contrastMul) + 0.5.xxx);
+      color *= fog_of_war_tint.rgb * fog_of_war_brightness;
+
+      float4 result4 = float4(color, 1) * input.col;
+    ##if mask_tex != NULL
+      float maskAlpha = tex2D(mask_tex, input.maskTc).r;
+    ##else
+      float maskAlpha = 1.0;
+    ##endif
+      // premultiplied output: rgb already tinted by input.col, now weight by mask.
+      return float4(result4.rgb * maskAlpha, result4.a * maskAlpha);
+    }
+  }
+  compile("target_ps", "fog_of_war_tile_ps");
+}

@@ -15,6 +15,7 @@
 #include <util/dag_convar.h>
 
 #include <render/world/frameGraphHelpers.h>
+#include <render/renderEvent.h>
 
 typedef Point4 float4;
 typedef Point3 float3;
@@ -44,8 +45,6 @@ class GpuDrivenDebugRender
 public:
   GpuDrivenDebugRender()
   {
-    initNodes();
-
     gpu_debug_renderer_clear_cs.reset(new_compute_shader("gpu_debug_renderer_clear_cs"));
     gpu_debug_renderer_create_draw_indirect_cs.reset(new_compute_shader("gpu_debug_renderer_create_draw_indirect_cs"));
     gpu_debug_renderer_draw_indirect_flat_spheres_ps.init("gpu_debug_renderer_draw_indirect_flat_spheres_ps", NULL, 0,
@@ -123,76 +122,11 @@ public:
     d3d::draw_indirect(PRIM_TRILIST, indirect_buf, 0);
   }
 
-  void initNodes()
-  {
-    auto ns = dafg::root() / "debug";
-
-    beforeRenderNode = ns.registerNode("gpu_debug_renderer_before_render", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      registry.readBlob<OrderingToken>("before_world_render_setup_token");
-
-      return []() {
-        query_gpu_debug_render_for_prepare_ecs_query(*g_entity_mgr,
-          [&](GpuDrivenDebugRender &gpu_driven_debug_render) { gpu_driven_debug_render.beforeRender(); });
-      };
-    });
-
-    prepareNode = ns.registerNode("gpu_debug_renderer_prepare", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      registry.orderMeAfter("begin");
-
-      registry.create("gpu_debug_render_spheres_indirect_cmd_buf")
-        .indirectBuffer(d3d::buffers::Indirect::Draw, 1)
-        .atStage(dafg::Stage::CS)
-        .bindToShaderVar("gpu_debug_render_flat_spheres_indirect_buf");
-
-      registry.create("gpu_debug_render_lines_indirect_cmd_buf")
-        .indirectBuffer(d3d::buffers::Indirect::Draw, 1)
-        .atStage(dafg::Stage::CS)
-        .bindToShaderVar("gpu_debug_render_lines_indirect_buf");
-
-      return []() {
-        query_gpu_debug_render_for_prepare_ecs_query(*g_entity_mgr,
-          [&](GpuDrivenDebugRender &gpu_driven_debug_render) { gpu_driven_debug_render.prepareShapes(); });
-      };
-    });
-
-    renderNode = ns.registerNode("gpu_debug_renderer_render", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      use_camera_in_camera(registry);
-      registry.requestState().setFrameBlock("global_frame");
-
-      auto debugNs = registry.root() / "debug";
-      auto colorTarget = debugNs.modifyTexture("target_for_debug");
-      registry.requestRenderPass().color({colorTarget}).depthReadTestOnly("depth_for_postfx");
-
-      auto indirectSpheresBufHndl = registry.read("gpu_debug_render_spheres_indirect_cmd_buf")
-                                      .buffer()
-                                      .useAs(dafg::Usage::INDIRECTION_BUFFER)
-                                      .atStage(dafg::Stage::ALL_INDIRECTION)
-                                      .handle();
-
-      auto indirectLinesBufHndl = registry.read("gpu_debug_render_lines_indirect_cmd_buf")
-                                    .buffer()
-                                    .useAs(dafg::Usage::INDIRECTION_BUFFER)
-                                    .atStage(dafg::Stage::ALL_INDIRECTION)
-                                    .handle();
-
-      return [indirectSpheresBufHndl, indirectLinesBufHndl](const dafg::multiplexing::Index &multiplexing_index) {
-        camera_in_camera::ApplyMasterState camcam{multiplexing_index};
-
-        query_gpu_debug_render_for_render_ecs_query(*g_entity_mgr, [&](GpuDrivenDebugRender &gpu_driven_debug_render) {
-          gpu_driven_debug_render.renderFlatSpheres(const_cast<Sbuffer *>(indirectSpheresBufHndl.get()));
-          gpu_driven_debug_render.renderLines(const_cast<Sbuffer *>(indirectLinesBufHndl.get()));
-        });
-      };
-    });
-  }
-
   void toggleFreezeFrame() { freezeFrame = !freezeFrame; }
 
 private:
   eastl::unique_ptr<ComputeShaderElement> gpu_debug_renderer_create_draw_indirect_cs, gpu_debug_renderer_clear_cs;
   DynamicShaderHelper gpu_debug_renderer_draw_indirect_flat_spheres_ps, gpu_debug_renderer_draw_indirect_lines;
-
-  dafg::NodeHandle beforeRenderNode, prepareNode, renderNode;
 
   UniqueBufWithShaderVar flatSpheres, flatSpheresCount, lines, linesCount;
   bool freezeFrame = false;
@@ -200,6 +134,93 @@ private:
 
 ECS_DECLARE_RELOCATABLE_TYPE(GpuDrivenDebugRender);
 ECS_REGISTER_RELOCATABLE_TYPE(GpuDrivenDebugRender, nullptr);
+
+static dafg::NodeHandle make_gpu_debug_before_render_node()
+{
+  auto ns = dafg::root() / "debug";
+  return ns.registerNode("gpu_debug_renderer_before_render", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.readBlob<OrderingToken>("before_world_render_setup_token");
+
+    return []() {
+      query_gpu_debug_render_for_prepare_ecs_query(*g_entity_mgr,
+        [&](GpuDrivenDebugRender &gpu_driven_debug_render) { gpu_driven_debug_render.beforeRender(); });
+    };
+  });
+}
+
+static dafg::NodeHandle make_gpu_debug_prepare_node()
+{
+  auto ns = dafg::root() / "debug";
+  return ns.registerNode("gpu_debug_renderer_prepare", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.orderMeAfter("begin");
+
+    registry.create("gpu_debug_render_spheres_indirect_cmd_buf")
+      .indirectBuffer(d3d::buffers::Indirect::Draw, 1)
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("gpu_debug_render_flat_spheres_indirect_buf");
+
+    registry.create("gpu_debug_render_lines_indirect_cmd_buf")
+      .indirectBuffer(d3d::buffers::Indirect::Draw, 1)
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("gpu_debug_render_lines_indirect_buf");
+
+    return []() {
+      query_gpu_debug_render_for_prepare_ecs_query(*g_entity_mgr,
+        [&](GpuDrivenDebugRender &gpu_driven_debug_render) { gpu_driven_debug_render.prepareShapes(); });
+    };
+  });
+}
+
+static dafg::NodeHandle make_gpu_debug_render_node(const char *view_ns, bool is_main_view)
+{
+  auto ns = dafg::root() / "debug" / view_ns;
+  return ns.registerNode("gpu_debug_renderer_render", DAFG_PP_NODE_SRC, [view_ns, is_main_view](dafg::Registry registry) {
+    use_camera_view(registry, view_ns);
+    registry.requestState().setFrameBlock("global_frame");
+
+    auto debugNs = registry.root() / "debug";
+    auto colorTarget = debugNs.modifyTexture("target_for_debug");
+    registry.requestRenderPass().color({colorTarget}).depthReadTestOnly("depth_for_postfx");
+
+    auto indirectSpheresBufHndl = registry.read("gpu_debug_render_spheres_indirect_cmd_buf")
+                                    .buffer()
+                                    .useAs(dafg::Usage::INDIRECTION_BUFFER)
+                                    .atStage(dafg::Stage::ALL_INDIRECTION)
+                                    .handle();
+
+    auto indirectLinesBufHndl = registry.read("gpu_debug_render_lines_indirect_cmd_buf")
+                                  .buffer()
+                                  .useAs(dafg::Usage::INDIRECTION_BUFFER)
+                                  .atStage(dafg::Stage::ALL_INDIRECTION)
+                                  .handle();
+
+    return [indirectSpheresBufHndl, indirectLinesBufHndl, is_main_view]() {
+      camera_in_camera::ApplyMasterState camcam{is_main_view};
+
+      query_gpu_debug_render_for_render_ecs_query(*g_entity_mgr, [&](GpuDrivenDebugRender &gpu_driven_debug_render) {
+        gpu_driven_debug_render.renderFlatSpheres(const_cast<Sbuffer *>(indirectSpheresBufHndl.get()));
+        gpu_driven_debug_render.renderLines(const_cast<Sbuffer *>(indirectLinesBufHndl.get()));
+      });
+    };
+  });
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraMainViewNodeConstruction)
+ECS_REQUIRE(GpuDrivenDebugRender gpu_driven_debug_render)
+static void gpu_debug_render_view_nodes_es(const OnCameraMainViewNodeConstruction &evt)
+{
+  evt.nodes->push_back(make_gpu_debug_before_render_node());
+  evt.nodes->push_back(make_gpu_debug_prepare_node());
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraPerViewNodeConstruction)
+ECS_REQUIRE(GpuDrivenDebugRender gpu_driven_debug_render)
+static void gpu_debug_render_view_nodes_es(const OnCameraPerViewNodeConstruction &evt)
+{
+  evt.nodes->push_back(make_gpu_debug_render_node(evt.viewNsName, evt.isMainView));
+}
 
 namespace
 {

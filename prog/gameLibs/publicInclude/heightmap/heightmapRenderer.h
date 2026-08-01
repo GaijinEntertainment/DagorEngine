@@ -10,7 +10,7 @@
 #include <heightmap/lodGrid.h>
 
 class LodGrid;
-struct LodGridCullData;
+struct LodGridRingCullData;
 struct Frustum;
 class ShaderMaterial;
 class ShaderElement;
@@ -26,8 +26,8 @@ public:
     int dimBits = default_patch_bits);
   bool isInited() const { return shElem != NULL; }
   void setRenderClip(const BBox2 *clip) const; // no face will be render out of this box
-  void render(const LodGrid &lodGrid, const LodGridCullData &cull_data, LodGridVertexData *vData = nullptr, int vDataDim = -1) const;
-  void renderOnePatch(const Point2 &world_lt, const Point2 &world_rb) const; // no tesselation, render whole area
+  void render(const LodGrid &lodGrid, const LodGridRingCullData &cull_data, LodGridVertexData *vData = nullptr,
+    int vDataDim = -1) const;
   void renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams> patches, const int buffer_size, int vDataIndex, int startFlipped,
     bool render_quads, int primitiveCount, int startInd = 0) const;
   int get_hmap_tess_factorVarId() const { return hmap_tess_factorVarId; }
@@ -36,9 +36,6 @@ public:
   HeightmapRenderer(int dimBits = default_patch_bits);
   ~HeightmapRenderer() { close(); }
   void close();
-
-  static void beforeResetDevice();
-  static void afterResetDevice();
 
 protected:
   ShaderMaterial *shmat;

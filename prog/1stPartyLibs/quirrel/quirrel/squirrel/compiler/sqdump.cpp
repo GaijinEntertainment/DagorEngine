@@ -222,6 +222,10 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 streamprintf(stream, "  // (call r%d) -> r%d", int(inst._arg1), int(inst._arg0));
                 break;
 
+            case _OP_FASTCALL:
+                streamprintf(stream, "  // (fastcall r%d) -> r%d", int(inst._arg1), int(inst._arg0));
+                break;
+
             case _OP_NULLCALL:
                 streamprintf(stream, "  // (if r%d then call r%d) -> r%d", int(inst._arg1), int(inst._arg1), int(inst._arg0));
                 break;

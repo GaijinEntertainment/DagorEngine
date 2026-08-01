@@ -57,9 +57,6 @@ struct RawAnimation;
 // memory footprint.
 class OZZ_ANIMOFFLINE_DLL AnimationOptimizer {
  public:
-  // Initializes the optimizer with default tolerances (favoring quality).
-  AnimationOptimizer();
-
   // Optimizes _input using *this parameters. _skeleton is required to evaluate
   // optimization error along joint hierarchy (see hierarchical_tolerance).
   // Returns true on success and fills _output animation with the optimized
@@ -73,21 +70,18 @@ class OZZ_ANIMOFFLINE_DLL AnimationOptimizer {
   // Optimization settings.
   struct Setting {
     // Default settings
-    Setting()
-        : tolerance(1e-3f),  // 1mm
-          distance(1e-1f)    // 10cm
-    {}
+    Setting() = default;
 
     Setting(float _tolerance, float _distance)
         : tolerance(_tolerance), distance(_distance) {}
 
     // The maximum error that an optimization is allowed to generate on a whole
     // joint hierarchy.
-    float tolerance;
+    float tolerance = 1e-3f;  // 1mm
 
     // The distance (from the joint) at which error is measured (if bigger that
     // joint hierarchy). This allows to emulate effect on skinning.
-    float distance;
+    float distance = 1e-1f;  // 10cm
   };
 
   // Global optimization settings. These settings apply to all joints of the

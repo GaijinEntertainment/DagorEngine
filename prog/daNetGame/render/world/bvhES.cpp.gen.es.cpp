@@ -138,6 +138,25 @@ static ecs::EntitySystemDesc bvh_destroy_es_es_desc
                        ecs::EventComponentsDisappear>::build(),
   0
 ,"render");
+//static constexpr ecs::ComponentDesc bvh_render_mem_overlay_es_comps[] ={};
+static void bvh_render_mem_overlay_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  bvh_render_mem_overlay_es(evt
+        );
+}
+static ecs::EntitySystemDesc bvh_render_mem_overlay_es_es_desc
+(
+  "bvh_render_mem_overlay_es",
+  "prog/daNetGame/render/world/bvhES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, bvh_render_mem_overlay_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<RenderEventDebugGUI>::build(),
+  0
+,"dev,render",nullptr,"*");
 static constexpr ecs::ComponentDesc bvh_start_before_render_jobs_es_comps[] =
 {
 //start of 3 rw components at [0]
@@ -242,7 +261,7 @@ static ecs::EntitySystemDesc rt_set_resolution_es_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc bvh_render_settings_changed_es_comps[] =
 {
-//start of 14 ro components at [0]
+//start of 16 ro components at [0]
   {ECS_HASH("render_settings__enableBVH"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("render_settings__enableRTSM"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("render_settings__enableRTR"), ecs::ComponentTypeInfo<bool>()},
@@ -256,7 +275,9 @@ static constexpr ecs::ComponentDesc bvh_render_settings_changed_es_comps[] =
   {ECS_HASH("render_settings__antialiasing_mode"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("render_settings__rayReconstruction"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("render_settings__bvhDynModels"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("render_settings__RTpreset"), ecs::ComponentTypeInfo<ecs::string>()}
+  {ECS_HASH("render_settings__RTpreset"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("render_settings__useRTRCheckerboardDepth"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("render_settings__useRTRSmartDepth"), ecs::ComponentTypeInfo<bool>()}
 };
 static void bvh_render_settings_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -277,6 +298,8 @@ static void bvh_render_settings_changed_es_all_events(const ecs::Event &__restri
     , ECS_RO_COMP(bvh_render_settings_changed_es_comps, "render_settings__rayReconstruction", bool)
     , ECS_RO_COMP(bvh_render_settings_changed_es_comps, "render_settings__bvhDynModels", bool)
     , ECS_RO_COMP(bvh_render_settings_changed_es_comps, "render_settings__RTpreset", ecs::string)
+    , ECS_RO_COMP(bvh_render_settings_changed_es_comps, "render_settings__useRTRCheckerboardDepth", bool)
+    , ECS_RO_COMP(bvh_render_settings_changed_es_comps, "render_settings__useRTRSmartDepth", bool)
     );
   while (++comp != compE);
 }
@@ -286,13 +309,13 @@ static ecs::EntitySystemDesc bvh_render_settings_changed_es_es_desc
   "prog/daNetGame/render/world/bvhES.cpp.inl",
   ecs::EntitySystemOps(nullptr, bvh_render_settings_changed_es_all_events),
   empty_span(),
-  make_span(bvh_render_settings_changed_es_comps+0, 14)/*ro*/,
+  make_span(bvh_render_settings_changed_es_comps+0, 16)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ChangeRenderFeaturesEarly,
                        OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__RTRWater,render_settings__RTpreset,render_settings__antialiasing_mode,render_settings__bare_minimum,render_settings__bvhDagdp,render_settings__bvhDynModels,render_settings__enableBVH,render_settings__enablePTGI,render_settings__enableRTAO,render_settings__enableRTGI,render_settings__enableRTR,render_settings__enableRTSM,render_settings__enableRTTR,render_settings__rayReconstruction");
+,"render","render_settings__RTRWater,render_settings__RTpreset,render_settings__antialiasing_mode,render_settings__bare_minimum,render_settings__bvhDagdp,render_settings__bvhDynModels,render_settings__enableBVH,render_settings__enablePTGI,render_settings__enableRTAO,render_settings__enableRTGI,render_settings__enableRTR,render_settings__enableRTSM,render_settings__enableRTTR,render_settings__rayReconstruction,render_settings__useRTRCheckerboardDepth");
 static constexpr ecs::ComponentDesc bvh_update_animchar_es_comps[] =
 {
 //start of 1 rq components at [0]

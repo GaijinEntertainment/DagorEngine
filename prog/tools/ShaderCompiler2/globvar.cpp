@@ -67,7 +67,8 @@ bool Var::operator==(const Var &right) const
     case SHVT_INT4: return memcmp(&value.i4, &right.value.i4, sizeof(value.i4)) == 0;
     case SHVT_REAL: return value.r == right.value.r;
     case SHVT_COLOR4: return memcmp(&value.c4, &right.value.c4, sizeof(value.c4)) == 0;
-    case SHVT_FLOAT4X4: return true;
+    case SHVT_FLOAT4X4:
+    case SHVT_FLOAT4x3: return true;
     case SHVT_BUFFER: return value.bufId == right.value.bufId;
     case SHVT_TLAS: return value.tlas == right.value.tlas;
     case SHVT_TEXTURE: return value.texId == right.value.texId;

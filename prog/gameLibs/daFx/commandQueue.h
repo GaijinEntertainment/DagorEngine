@@ -25,6 +25,8 @@ struct CommandQueue
   {
     InstanceId iid;
     float time;
+    float stepDt; // 0 = Config::warmup_per_instance_step_dt
+    bool perInstanceMode;
   };
 
   struct InstanceEmissionRate
@@ -81,7 +83,6 @@ struct CommandQueue
   eastl::vector<InstancePos> instancePos;
   eastl::vector<InstanceStatus> instanceStatus;
   eastl::vector<InstanceVisibility> instanceVisibility;
-  eastl::vector<InstanceWarmup> instanceWarmup;
   eastl::vector<InstanceEmissionRate> instanceEmissionRate;
   eastl::vector<InstanceValue> instanceValue;
   eastl::vector<InstanceValueDirect> instanceValueDirect;

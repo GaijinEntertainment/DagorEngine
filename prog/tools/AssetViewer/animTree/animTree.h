@@ -75,6 +75,8 @@ public:
   void saveProps(DataBlock &props, const String &path);
   DataBlock getPropsAnimStates(PropPanel::ContainerPropertyControl *panel, const AnimStatesData &data, String &full_path,
     bool only_includes = false);
+  DataBlock *findCtrlSettings(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, CtrlType type, DataBlock &out_props,
+    String &full_path, const AnimCtrlData *parent_data = nullptr, bool only_includes = false);
   void saveParamsCtrlAfterIfMathReorder(PropPanel::ContainerPropertyControl *panel, int src_idx, int insert_idx);
   void reorderResetRandomSwitchList(PropPanel::ContainerPropertyControl *panel, int from, int to);
 
@@ -107,12 +109,12 @@ protected:
   AnimStatesTreeEventHandler animStatesTreeEventHandler;
   StateListSettingsEventHandler stateListSettingsEventHandler;
 
+  AnimTreeListDragHandler ctrlsListDragHandler;
+  AnimTreeListDropHandler ctrlsListDropHandler;
   AnimTreeListDragHandler statesListDragHandler;
   AnimTreeListDropHandler statesListDropHandler;
-
   AnimTreeListDragHandler resetRandomSwitchListDragHandler;
   AnimTreeListDropHandler resetRandomSwitchListDropHandler;
-
   IfMathDragHandler ifMathDragHandler;
   IfMathDropHandler ifMathDropHandler;
 
@@ -139,7 +141,8 @@ protected:
   void findCtrlsChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
   void fillCtrlsChildsBody(PropPanel::ContainerPropertyControl *panel, TLeafHandle handle, CtrlType type);
   void fillCtrlsSettings(PropPanel::ContainerPropertyControl *panel);
-  void fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl *panel, CtrlType type, const DataBlock *settings);
+  void fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl *panel, CtrlType type, const DataBlock *settings,
+    AnimCtrlData *ctrl_data);
   void paramSwitchFillBlockSettings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
   void fillParamSwitchEnumGen(PropPanel::ContainerPropertyControl *panel, const DataBlock *nodes);
   void changeParamSwitchType(PropPanel::ContainerPropertyControl *panel);
@@ -161,14 +164,13 @@ protected:
   void fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *panel);
 
   void setStatesDragAndDropHandlers(PropPanel::ContainerPropertyControl *panel, AnimStatesType type);
+  void setCtrlsDragAndDropHandlers(PropPanel::ContainerPropertyControl *panel, CtrlType type, AnimCtrlData *ctrl_data);
 
   bool checkIncludeBeforeSave(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, const SimpleString &file_name,
     const SimpleString &new_path, const DataBlock &props);
   bool createBlkIfNotExistWithDialog(String &path, PropPanel::ContainerPropertyControl *tree, TLeafHandle include_leaf);
   void saveIncludeChange(PropPanel::ContainerPropertyControl *panel, PropPanel::ContainerPropertyControl *tree,
     TLeafHandle include_leaf, DataBlock &props, const String &old_name, String &new_full_path, ParentLeafs parents);
-  DataBlock *findCtrlSettings(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, CtrlType type, DataBlock &out_props,
-    String &full_path, bool &out_is_proc_child, bool only_includes = false);
   void saveControllerSettings(PropPanel::ContainerPropertyControl *panel);
   void saveControllerParamsSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
   void saveControllerBlocksSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data);

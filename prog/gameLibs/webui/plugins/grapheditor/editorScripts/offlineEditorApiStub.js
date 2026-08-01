@@ -1,5 +1,9 @@
 "use strict";
 
+var NBS_PERM_LIMS = {};
+function NBS_PERM_CONST(name, value) { NBS_PERM_LIMS[name] = value }
+// node_based_perm_inc.hlsli is included right after this file
+
 var clientId = "offline";
 var errorState = false;
 var attached = false;
@@ -81,7 +85,7 @@ function offlineUpdate()
 
     return true;
   }
-  else if (q.query.indexOf("graph&offline") == 0)
+  else if (q.query.indexOf("save_graph&offline") == 0)
   {
     offlineWriteStringToFile(offlineOutputFile, q.body);
     return true;

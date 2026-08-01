@@ -794,14 +794,16 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
     }
     // das::dump_alloc_leaks is registered as an atexit handler via init_seg(lib),
     // so it fires after all static destructors — cleaner than dumping here.
+#ifndef DAS_AOT_COMPILER
     if ( g_smart_ptr_total!=0 ) {
         if ( dumpLeaks ) {
             TextPrinter tp;
             tp << "smart pointers leaked: " << uint64_t(g_smart_ptr_total) << "\n";
             ptr_ref_count::DumpTrackPtr();
         }
-        // exit(1);
+        exit(1);
     }
+#endif
     return exitCode;
 }
 

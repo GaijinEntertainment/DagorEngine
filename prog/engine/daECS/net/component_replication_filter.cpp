@@ -169,13 +169,13 @@ void register_pending_component_filters(const ecs::EntityManager &mgr)
 
 void update_component_filter_events() { dirty_component_filter_mask |= (1 << replicate_component_filters.size()) - 1; }
 
-extern void mark_some_objects_as_dirty(uint32_t mask);
+extern void mark_some_objects_as_dirty(ecs::EntityManager &mgr, uint32_t mask);
 
-void update_dirty_component_filter_mask()
+void update_dirty_component_filter_mask(ecs::EntityManager &mgr)
 {
   dirty_component_filter_mask &= (1 << replicate_component_filters.size()) - 1; // all other filters are invalid anyway
   if (dirty_component_filter_mask != 0)
-    mark_some_objects_as_dirty(dirty_component_filter_mask);
+    mark_some_objects_as_dirty(mgr, dirty_component_filter_mask);
   dirty_component_filter_mask = 0;
 }
 

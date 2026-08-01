@@ -63,7 +63,8 @@ void shutdown();
 const VromHash &get_base_vrom_hash(const char *vrom_name);
 const char *get_base_vrom_name(const VromHash &vrom_hash);
 
-LoadedSyncVrom load_vromfs_dump(const char *path, const VromfsCompression &compr);
+//! load vromfs from file into memory (optionally allow placing it into sharedmem storage, to be used for persistent vromfs)
+LoadedSyncVrom load_vromfs_dump(const char *path, const VromfsCompression &compr, bool allow_shared_mem = false);
 
 // Returns diffs count and diffs total size in bytes
 eastl::pair<int, int> write_vrom_diffs(danet::BitStream &bs, const SyncVromsList &server_sync_vroms,

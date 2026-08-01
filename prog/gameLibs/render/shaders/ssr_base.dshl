@@ -13,7 +13,6 @@ include "halfres_close_depth_with_normals.dshl"
 include "motion_vectors_type.dshl"
 include "ssr_common_use.dshl"
 include "ffx_sssr.dshl"
-include "dynamic_resolution.dshl"
 include_optional "ssr_env_resolve.dshl"
 
 int ssr_quality = 1;
@@ -66,7 +65,7 @@ hlsl(code) {
     if(z > fadeDistance.y)
       return 1.0;
 
-    float surface_z = texelFetch(downsampled_close_depth_tex, backSurfaceBeginPos.xy * lowres_rt_params.xy * current_dynamic_resolution_scale, 0).r;
+    float surface_z = texelFetch(downsampled_close_depth_tex, backSurfaceBeginPos.xy * lowres_rt_params.xy, 0).r;
     half distance = z - linearize_z(surface_z, prev_zn_zfar.zw);
     half confidence = smoothstep(ssr_back_surface_fix_distance.x, ssr_back_surface_fix_distance.y, distance);
     return lerp(confidence, 1, smoothstep(fadeDistance.x, fadeDistance.y, z));
@@ -225,7 +224,6 @@ endmacro
 
 
 macro SSR_DISOCCLUSION(code)
-  INIT_DYNAMIC_RESOLUTION(code)
   hlsl(code) {
     #include <smootherstep.hlsl>
     half get_ssr_disocclusion_weight_sample(half3 current_normal, half current_roughness, float2 historyUV, float prev_linear_depth, inout half4 historySample)
@@ -443,7 +441,6 @@ macro SSR_GET_TEMPORAL_REPROJECTION_DUO(code)
       float2 useUV = curViewTc + reflecting_surface_3d_motion.xy;
       float currentPosToPrevW = w + reflecting_surface_3d_motion.z;
       {
-        useUV *= current_inv_dynamic_resolution_scale * prev_dynamic_resolution_scale;
         weight = get_ssr_disocclusion_weight_sample(normal, linear_roughness, useUV, currentPosToPrevW, prevFrame);
         virtualWeight = 0;
         float invDepth = rcp(w);

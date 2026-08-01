@@ -5,6 +5,7 @@
 #include "../animTree.h"
 #include "../animTreePanelPids.h"
 #include "../animParamData.h"
+#include "../animTreeDragListHandler.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
@@ -156,7 +157,6 @@ void multi_chain_fabrik_change_block_type(PropPanel::ContainerPropertyControl *p
 void multi_chain_fabrik_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
   if (listName.empty())
     return;
 
@@ -298,16 +298,11 @@ void multi_chain_fabrik_set_selected_node_list_settings(PropPanel::ContainerProp
 
 void multi_chain_fabrik_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int chainNid = settings->getNameId("chain");
-  const int mainChainNid = settings->getNameId("mainChain");
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    const DataBlock *child = settings->getBlock(i);
-    if ((child->getBlockNameId() == chainNid || child->getBlockNameId() == mainChainNid) &&
-        removeName == child->getStr("effector", nullptr))
-      settings->removeBlock(i);
-  }
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const char *names[] = {"chain", "mainChain"};
+  dag::Vector<int> positions = collect_block_positions_by_names(*settings, make_span_const(names));
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
 }
 
 void AnimTreePlugin::changeMultiChainFABRIKBlockType(PropPanel::ContainerPropertyControl *panel)
@@ -323,4 +318,27 @@ void AnimTreePlugin::changeMultiChainFABRIKBlockType(PropPanel::ContainerPropert
     if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
       multi_chain_fabrik_change_block_type(group, settings, ctrlDependentParams);
   group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
+}
+
+class MultiChainFABRIKReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  MultiChainFABRIKReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    const char *names[] = {"chain", "mainChain"};
+    dag::Vector<int> positions = collect_block_positions_by_names(settings, make_span_const(names));
+    move_block_at_positions(settings, positions, from, to);
+  }
+};
+
+IListReorderHandler *multi_chain_fabrik_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new MultiChainFABRIKReorderHandler(plugin, controllers, panel);
 }

@@ -140,6 +140,19 @@ def convertTypemaskAndParamsToParams(desc):
     args.append({"name":"...", "paramtype":"any_type", "description": "this function accepts unlimited arguments"})
   return args, vargved
 
+def add_ellipsis_param(desc, params):
+  if desc.get("vargved") and not any(param["name"] == "..." for param in params):
+    params.append({
+      "name": "...",
+      "paramtype": desc.get("vargtype") or "any_type",
+      "description": "this function accepts unlimited arguments",
+    })
+  return params
+
+def get_function_params(desc, auto_args):
+  params = list(desc["params"] or auto_args or [])
+  return add_ellipsis_param(desc, params)
+
 def convertTypemaskStr(s):
   if s == "nullptr":
     return "undefined"
@@ -154,20 +167,15 @@ def convertTypemaskStr(s):
 
 def nameAndDef(p):
   if "defvalue" in p:
-    return p["name"] +" = " + json.dumps(p["defvalue"])
+    value = p.get("defvalue_source", json.dumps(p["defvalue"]))
+    return p["name"] +" = " + value
   else:
     return p["name"]
 
 def get_short_func_args(desc):
-  defArgs, vargved = convertTypemaskAndParamsToParams(desc)
-  params = desc["params"]
-  if len(params)==0 and defArgs:
-    pstr = ", ".join([nameAndDef(p) for p in defArgs])
-  else:
-    pstr = ", ".join([nameAndDef(p) for p in params])
-    if  desc.get("vargved"):
-      pstr=pstr+", ..."
-  return pstr
+  auto_args, _ = convertTypemaskAndParamsToParams(desc)
+  params = get_function_params(desc, auto_args)
+  return ", ".join([nameAndDef(param) for param in params])
 
 def get_func_signature(desc):
   name = desc["name"]
@@ -192,8 +200,10 @@ def params_rst(params):
   res = []
   for param in params:
     desc = param.get('description') or " "
-    defvalue = param.get("defvalue")
-    defvalue = f", default = {defvalue}" if defvalue else ''
+    defvalue = ''
+    if "defvalue" in param:
+      defvalue = param.get("defvalue_source", param["defvalue"])
+      defvalue = f", default = {defvalue}"
     optional = f", optional" if param.get('optional') else ''
     res.extend([
       f"  :param {param['name']}: {desc}{defvalue}",
@@ -205,15 +215,11 @@ def params_rst(params):
 def mk_function_arguments(desc):
 #:param [ParamName]: [ParamDescription], default = [DefaultParamVal]
 #:type [ParamName]: [ParamType](, optional)
-  documented_params = desc["params"]
   res = []
-  autoArgs, vargved = convertTypemaskAndParamsToParams(desc)
-  if len(documented_params)==0 and autoArgs:
-    res.extend(params_rst(autoArgs))
-  elif documented_params and not autoArgs:
-    res.extend(params_rst(documented_params))
-  elif documented_params and autoArgs:
-    res.extend(params_rst(documented_params))
+  auto_args, _ = convertTypemaskAndParamsToParams(desc)
+  params = get_function_params(desc, auto_args)
+  if params:
+    res.extend(params_rst(params))
   if desc["paramsnum"] or desc["typemask"]:
     if desc["paramsnum"]:
       res.extend([preblk(f"nparamscheck:{desc['paramsnum']}")])
@@ -223,6 +229,10 @@ def mk_function_arguments(desc):
         res.extend([preblk(f"typecheck mask: {', '.join(typmask)}")])
   if desc["kwarged"]:
     res.extend([preblk("Function is kwarged - arguments passed in a table")])
+  if desc.get("is_fastcall"):
+    res.extend([preblk("Function uses fastcall")])
+  if desc.get("is_nodiscard"):
+    res.extend([preblk("Return value must not be discarded")])
   return res
 
 def render_ctor(desc):
@@ -440,13 +450,17 @@ def renderModuleToRst(object):
           if ret := m.get('return'):
             rtype = ret.get('rtype','o')
             rstr = convertTypeStr(rtype)
-          if (ps := m.get('params')) or m.get("paramsnum") or m.get("typecheck"):
-            args, _ = convertTypemaskAndParamsToParams(m)
+          if (ps := m.get('params')) or m.get("paramsnum") or m.get("typecheck") or m.get("vargved"):
+            auto_args, _ = convertTypemaskAndParamsToParams(m)
+            args = get_function_params(m, auto_args)
             kwarged = m.get('kwarged')
             if kwarged:
               argstr = "table"
             elif args or ps:
-              argstr = ", ".join([convertTypeStr(p.get('paramtype','.')) for p in (ps or args)])
+              argstr = ", ".join([
+                ("..." if p["name"] == "..." else "") + convertTypeStr(p.get('paramtype','.'))
+                for p in args
+              ])
           signStr = ""
           if rstr or argstr:
             if not rstr:

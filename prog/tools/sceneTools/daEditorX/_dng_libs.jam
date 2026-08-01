@@ -58,3 +58,4 @@ include $(Root)/prog/daNetGameLibs/spline_geometry/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/swim_splash/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/verify_ecs/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/zone_force_field/_lib.jam ;
+include $(Root)/prog/daNetGameLibs/burnt_ground/editor_stub/_lib.jam ;

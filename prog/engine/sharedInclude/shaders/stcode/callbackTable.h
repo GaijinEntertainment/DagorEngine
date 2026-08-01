@@ -44,6 +44,7 @@ typedef float4 (*RbGetF4Callback)(int32_t);
 typedef float (*RbGetRealCallback)(int32_t);
 typedef int32_t (*RbGetIntCallback)(int32_t);
 typedef void (*RbGetMat44Callback)(int32_t, float4x4 *);
+typedef void (*RbGetMat43Callback)(int32_t, float4x3 *);
 typedef void *(*RbGetTexCallback)(int32_t);
 typedef void *(*RbGetBufCallback)(int32_t);
 typedef int4 (*RbGetIvecCallback)(int32_t);
@@ -117,6 +118,7 @@ struct CallbackTable
   RbFlushTlasCallback rbFlushTlas;
   RbFlushRwtexCallback rbFlushRwtex;
   RbFlushRwbufCallback rbFlushRwbuf;
+  RbGetMat43Callback rbGetMat43;
 };
 
 } // namespace stcode::cpp

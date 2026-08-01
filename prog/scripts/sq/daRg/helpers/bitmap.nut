@@ -60,7 +60,7 @@ let cache = {}
 local maxCachedSize = sw(15) * sh(15)
 local isScriptsLoading = false
 //create picture cached by fillCb on call.
-function mkBitmapPictureLazy(width: number, height: number, fillCb: function|null, prefix: string = "") {
+function mkBitmapPictureLazy(width: number, height: number, fillCb: function|null, prefix: string = ""): function {
   let w = width.tointeger()
   let h = height.tointeger()
   if (w * h > maxCachedSize)

@@ -25,4 +25,16 @@ void debug_rec_resource_barrier(ResNameId res_id, int res_frame, int exec_time, 
   Runtime::get().getVisualizerPtr()->recResourceBarrier(res_id, res_frame, exec_time, exec_frame, barrier);
 }
 
+void debug_rec_enhanced_buffer_barrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::BufferBarrier &barrier)
+{
+  Runtime::get().getVisualizerPtr()->recEnhancedBufferBarrier(res_id, res_frame, exec_time, exec_frame, barrier);
+}
+
+void debug_rec_enhanced_texture_barrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::TextureBarrier &barrier)
+{
+  Runtime::get().getVisualizerPtr()->recEnhancedTextureBarrier(res_id, res_frame, exec_time, exec_frame, barrier);
+}
+
 } // namespace dafg

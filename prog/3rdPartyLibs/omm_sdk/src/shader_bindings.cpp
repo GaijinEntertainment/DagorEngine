@@ -8,7 +8,7 @@ distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 */
 
-#include <shared/assert.h>
+#include "util/assert.h"
 
 #include "shader_bindings.h"
 

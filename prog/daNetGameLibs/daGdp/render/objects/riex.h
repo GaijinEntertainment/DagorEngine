@@ -7,6 +7,7 @@
 #include <shaders/dag_shaderVarsUtils.h>
 #include <render/daFrameGraph/nodeHandle.h>
 #include <render/world/dynamicShadowRenderExtender.h>
+#include <rendInst/clientRiexPool.h>
 #include "../common.h"
 
 namespace dagdp
@@ -21,7 +22,7 @@ struct RiexRenderableInfo
 
 struct RiexResource
 {
-  int riExId;
+  rendinst::ClientRiexPool riExId;
   uint32_t riPoolOffset;
   dag::Vector<RenderableId> lods_rId;
   eastl::shared_ptr<GameResource> gameRes; // We could use unique_ptr, but it does not play nicely with

@@ -17,6 +17,16 @@
 #define INSIDE_RENDERER 1
 #include <render/world/private_worldRenderer.h>
 
+// root/view0 - always exists; root/view1 - only while camcam is active
+dafg::NodeHandle makeViewCameraProviderNode(const char *view_ns, const char *src_camera_blob)
+{
+  return (dafg::root() / view_ns).registerNode("view_camera_provider", DAFG_PP_NODE_SRC, [src_camera_blob](dafg::Registry registry) {
+    auto srcHndl = registry.root().readBlob<CameraParams>(src_camera_blob).handle();
+    auto dstHndl = registry.createBlob<CameraParams>("current_camera").withHistory().handle();
+    return [srcHndl, dstHndl]() { dstHndl.ref() = srcHndl.ref(); };
+  });
+}
+
 eastl::fixed_vector<dafg::NodeHandle, 2, false> makeCameraInCameraSetupNodes()
 {
   eastl::fixed_vector<dafg::NodeHandle, 2, false> nodes;
@@ -41,6 +51,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2, false> makeCameraInCameraSetupNodes()
       matrix_perspective_add_jitter(lensCamera.jitterProjTm, lensCamera.jitterPersp.ox, lensCamera.jitterPersp.oy);
       lensCamera.jitterGlobtm = TMatrix4(lensCamera.viewTm) * lensCamera.jitterProjTm;
       lensCamera.jitterOffsetUv = camera.jitterOffsetUv;
+      lensCamera.jitterOffset = camera.jitterOffset;
 
       ReprojectionTransforms reprojectionTms = calc_reprojection_transforms(prevLensCameraHndl.ref(), lensCameraHndl.ref());
       lensCamera.jitteredCamPosToUnjitteredHistoryClip = reprojectionTms.jitteredCamPosToUnjitteredHistoryClip;

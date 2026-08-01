@@ -63,8 +63,8 @@ dafg::NodeHandle makeDecalsOnDynamicNode()
         return;
       const camera_in_camera::ApplyMasterState camcam(multiplexing_index);
       const CameraParams &camera = cameraHndl.ref();
-      g_entity_mgr->broadcastEventImmediate(RenderDecalsOnDynamic(camera.viewTm, camera.cameraWorldPos, camera.jitterFrustum,
-        camera.jobsMgr->getOcclusion(), texCtxHndl.ref()));
+      g_entity_mgr->broadcastEventImmediate(RenderDecalsOnDynamic(camera.viewTm, camera.jitterProjTm, camera.cameraWorldPos,
+        camera.jitterFrustum, camera.jobsMgr->getOcclusion(), texCtxHndl.ref()));
     };
   });
 }

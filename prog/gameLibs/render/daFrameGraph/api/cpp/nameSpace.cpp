@@ -114,7 +114,7 @@ void NameSpace::fillSlot(NamedSlot slot, NameSpace res_name_space, const char *r
   auto &slots = registry.resourceSlots;
   ResNameId prevResNameId = ResNameId::Invalid;
   if (slots.isMapped(slotNameId) && slots[slotNameId].has_value())
-    prevResNameId = slots[slotNameId].value().contents;
+    prevResNameId = slots[slotNameId].value().prevContents;
   slots.set(slotNameId, SlotData{resNameId, prevResNameId});
 
   Runtime::get().markStageDirty(CompilationStage::REQUIRES_NAME_RESOLUTION, "resource slot changed");

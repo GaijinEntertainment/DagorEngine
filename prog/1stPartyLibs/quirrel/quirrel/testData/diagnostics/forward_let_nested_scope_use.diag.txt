@@ -1,0 +1,9 @@
+ERROR: binding 'value' cannot be used before its definition
+testData/diagnostics/forward_let_nested_scope_use.nut:2:4
+
+let value: int
+if (value == null) {
+    ^----
+  print(value)
+
+

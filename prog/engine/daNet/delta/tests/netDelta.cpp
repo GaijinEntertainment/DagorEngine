@@ -2,6 +2,7 @@
 
 #include <UnitTest++/UnitTestPP.h>
 #include <daNet/delta/rle.h>
+#include <daNet/delta/deltaCompression.h>
 #include <util/dag_preprocessor.h>
 
 #define DECL_NETDELTA_COMPRESSION_TEST(name, num, sz)                                                                                 \
@@ -53,4 +54,26 @@ TEST(CheckNetDeltaCompressionDecompressEven)
   int len = net::delta::rle0ki_decompress(make_span((uint8_t *)&r, sizeof(r)), make_span_const((const uint8_t *)&even, sizeof(even)));
   CHECK(len == 2);
   CHECK(r == 0);
+}
+
+TEST(CheckNetDeltaReadDeltaRejectsOversizedCompressedSize)
+{
+  // compressedSize is wire-controlled: readDelta must reject a size larger than the
+  // bytes actually present instead of building a view past the received data
+  net::DeltaComp comp(/*history_bits*/ 3, /*index_bits*/ 10);
+  net::DeltaComp::History hist;
+  comp.initHistory(hist, /*is_enabled*/ true, /*use_cache*/ false);
+
+  danet::BitStream bs;
+  bs.Write(true); // fullDiff
+  uint32_t packetNoDelta = 0, nextPacketNo = 1;
+  bs.WriteBits((const uint8_t *)&packetNoDelta, 3); // historyBits
+  bs.WriteBits((const uint8_t *)&nextPacketNo, 10); // indexBits
+  bs.WriteCompressed((uint16_t)64);                 // claims 64 payload bytes
+  bs.AlignWriteToByteBoundary();
+  uint32_t payload = 0;
+  bs.Write(payload); // but only 4 bytes follow
+
+  net::DeltaComp::ReadResult r = comp.readDelta(bs, &hist);
+  CHECK(!r.ok);
 }

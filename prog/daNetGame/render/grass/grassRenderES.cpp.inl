@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <landMesh/lmeshManager.h>
+#include <landMesh/vtexRenderMode.h>
 #include <heightmap/heightmapHandler.h>
 #include <heightmap/heightmapMetricsCalc.h>
 
@@ -71,6 +72,8 @@ public:
   TMatrix4_vec4 globTm;
   TMatrix4_vec4 projTm;
   Frustum frustum;
+  Point3 hmapOrigin = Point3(0.f, 0.f, 0.f); // assigned in beginRender() before any read
+  BBox3 renderInBBox;                        // assigned in beginRender() before any read
   LMeshRenderingMode omode;
   int oblock;
 
@@ -140,8 +143,9 @@ bool RandomGrassRenderHelper::beginRender(const Point3 &center_pos, const BBox3 
   globTm = glob_tm;
   projTm = proj;
   frustum = Frustum{glob_tm};
-  renderer.prepare(provider, center_pos, 2.f);
-  renderer.setRenderInBBox(box);
+  hmapOrigin = center_pos;
+  renderInBBox = box;
+  renderer.prepare(provider, HmapOrigin(center_pos));
   oblock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
   ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
 
@@ -152,16 +156,19 @@ void RandomGrassRenderHelper::endRender()
 {
   d3d_set_view_proj(oviewproj);
 
+  // restore the ambient mode shadervar for passes that still rely on inheriting it
   renderer.setLMeshRenderingMode(omode);
-  renderer.setRenderInBBox(BBox3());
   ShaderGlobal::setBlock(oblock, ShaderGlobal::LAYER_FRAME);
 }
 
 void RandomGrassRenderHelper::renderMask()
 {
-  renderer.setLMeshRenderingMode(LMeshRenderingMode::GRASS_MASK);
-  renderer.render(reinterpret_cast<mat44f_cref>(globTm), projTm, frustum, provider, LandMeshRenderer::RENDER_GRASS_MASK,
-    ::grs_cur_view.pos, LandMeshRenderer::RENDER_FOR_GRASS);
+  LandMeshRenderDesc desc;
+  desc.mode = LMeshRenderingMode::GRASS_MASK;
+  desc.renderInBBox = renderInBBox;
+  desc.invGeomLodDist = renderer.getInvGeomLodDist();
+  renderer.render(reinterpret_cast<mat44f_cref>(globTm), projTm, frustum, provider, LandMeshRenderer::RENDER_GRASS_MASK, desc,
+    ::grs_cur_view.pos, HmapOrigin(hmapOrigin), LandMeshRenderer::RENDER_FOR_GRASS);
   if (eraserCount > 0 && eraserInstanceBuffer && grassEraser)
   {
     TIME_D3D_PROFILE(grass_erasers);
@@ -178,10 +185,14 @@ void RandomGrassRenderHelper::renderMask()
 
 void RandomGrassRenderHelper::renderColor()
 {
-  renderer.setLMeshRenderingMode(
-    grassColorIgnoreTerrainDetail.get() ? LMeshRenderingMode::GRASS_COLOR : LMeshRenderingMode::RENDERING_CLIPMAP);
-  renderer.render(reinterpret_cast<mat44f_cref>(globTm), projTm, frustum, provider, LandMeshRenderer::RENDER_CLIPMAP,
-    ::grs_cur_view.pos, LandMeshRenderer::RENDER_FOR_GRASS);
+  STATE_GUARD(ShaderGlobal::set_int(render_with_normalmapVarId, VALUE), VTEX_RENDER_NONORMAL, VTEX_RENDER_DISPLACEMENT);
+
+  LandMeshRenderDesc desc;
+  desc.mode = grassColorIgnoreTerrainDetail.get() ? LMeshRenderingMode::GRASS_COLOR : LMeshRenderingMode::RENDERING_CLIPMAP;
+  desc.renderInBBox = renderInBBox;
+  desc.invGeomLodDist = renderer.getInvGeomLodDist();
+  renderer.render(reinterpret_cast<mat44f_cref>(globTm), projTm, frustum, provider, LandMeshRenderer::RENDER_CLIPMAP, desc,
+    ::grs_cur_view.pos, HmapOrigin(hmapOrigin), LandMeshRenderer::RENDER_FOR_GRASS);
 }
 ECS_REGISTER_RELOCATABLE_TYPE(GrassRenderer, nullptr);
 
@@ -328,6 +339,7 @@ void GrassRenderer::generateGrassPerCamera(const TMatrix &itm)
   auto *lmeshManager = WRDispatcher::getLandMeshManager();
   if ((!grassRender.get() && !fast_grass_render.get()) || !lmeshManager)
     return;
+  WRDispatcher::ScopedForceInEditor forceEditor(lmeshManager->forceHeightmapRendering);
   if (rendInstHeightmap)
   {
     rendInstHeightmap->updateToroidalTextureRegions(globalFrameBlockId);
@@ -388,6 +400,8 @@ void GrassRenderer::generateGrassPerView(
   auto *lmeshManager = WRDispatcher::getLandMeshManager();
   if ((!grassRender.get() && !fast_grass_render.get()) || !lmeshManager)
     return;
+
+  WRDispatcher::ScopedForceInEditor forceEditor(lmeshManager->forceHeightmapRendering);
 
   if (::grs_draw_wire)
     d3d::setwire(0);
@@ -804,6 +818,14 @@ DataBlock load_grass_settings(ecs::EntityId eid)
   return grassBlock;
 }
 
+void reinit_grass(const DataBlock *grass_settings)
+{
+  init_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) {
+    grass_render.initGrass(*grass_settings);
+    grass_render.invalidateGrass(true);
+  });
+}
+
 void init_grass(const DataBlock *grass_settings_from_level_fallback)
 {
   ecs::EntityId grassSettingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("grass_settings"));
@@ -821,12 +843,30 @@ void init_grass(const DataBlock *grass_settings_from_level_fallback)
 
   if (!grassSettings)
     return;
-  g_entity_mgr->createEntitySync("grass_render");
+  // grass_render is a singleton and may already exist (e.g. created by reinit_grass_on_settings_appear_es
+  // when the grass_settings entity appeared first); don't create a second one.
+  if (g_entity_mgr->getSingletonEntity(ECS_HASH("grass_render")) == ecs::INVALID_ENTITY_ID)
+  {
+    g_entity_mgr->createEntitySync("grass_render");
+    reinit_grass(grassSettings);
+  }
+}
 
-  init_grass_render_ecs_query(*g_entity_mgr, [&](GrassRenderer &grass_render) {
-    grass_render.initGrass(*grassSettings);
-    grass_render.invalidateGrass(true);
-  });
+// Re-init grass once the grass_settings entity appears, to handle late entity creation properly
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear)
+ECS_REQUIRE(const ecs::Array &grass_types)
+static void reinit_grass_on_settings_appear_es(const ecs::Event &, ecs::EntityManager &manager)
+{
+  const ecs::EntityId settingsEid = manager.getSingletonEntity(ECS_HASH("grass_settings"));
+  if (settingsEid == ecs::INVALID_ENTITY_ID)
+    return;
+  DataBlock settings = load_grass_settings(settingsEid);
+  if (settings.isEmpty())
+    return;
+  if (manager.getSingletonEntity(ECS_HASH("grass_render")) == ecs::INVALID_ENTITY_ID)
+    manager.createEntitySync("grass_render");
+  reinit_grass(&settings);
 }
 
 ECS_ON_EVENT(EventRendinstsLoaded)
@@ -913,6 +953,9 @@ static void reset_grass_render(bool full_reset)
 
     if (grass_render.rendInstHeightmap)
       grass_render.rendInstHeightmap->driverReset();
+
+    if (grass_render.grassify)
+      grass_render.grassify->driverReset();
 
     grass_render.grass.driverReset();
     grass_render.grassErasersModified = true;

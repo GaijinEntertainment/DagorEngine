@@ -93,12 +93,6 @@ int BhvTouchScreenStick::pointingEvent(
   if (!stickState || stickState->ah == dainput::BAD_ACTION_HANDLE)
     return 0;
 
-  Sqrat::Function onMove = elem->props.scriptDesc.GetFunction("onMove");
-  Sqrat::Function onDeltaMove = elem->props.scriptDesc.GetFunction("onDeltaMove");
-  Sqrat::Function onShow = elem->props.scriptDesc.GetFunction("onShow");
-  Sqrat::Function onHide = elem->props.scriptDesc.GetFunction("onHide");
-  Sqrat::Function freezeOnTouchEndMode = elem->props.scriptDesc.GetFunction("freezeOnTouchEndMode");
-
   darg::Element *stickImage = get_stick_image(elem);
   bool wasHidden = stickImage && stickImage->isHidden();
 
@@ -126,6 +120,9 @@ int BhvTouchScreenStick::pointingEvent(
       stickImage->transform->translate = pos - elem->screenCoord.screenPos;
     }
 
+    // fetch every callback this event uses before invoking any: a callback may mutate scriptDesc
+    Sqrat::Function onMove = elem->props.scriptDesc.GetFunction(strings->onMove);
+    Sqrat::Function onShow = elem->props.scriptDesc.GetFunction(strings->onShow);
     if (!onMove.IsNull())
       onMove(pos, Point2(0, 0), Point2(0, 0));
     if (!onShow.IsNull())
@@ -141,6 +138,8 @@ int BhvTouchScreenStick::pointingEvent(
 
     if (event == INP_EV_POINTER_MOVE)
     {
+      // fetch onMove before onDeltaMove runs: a callback may mutate scriptDesc
+      Sqrat::Function onMove = elem->props.scriptDesc.GetFunction(strings->onMove);
       Point2 dlt;
       if (stickState->useDeltaMove)
       {
@@ -152,6 +151,7 @@ int BhvTouchScreenStick::pointingEvent(
         dlt.x = ::clamp(dx / sy, -1.0f, 1.0f);
         dlt.y = -::clamp(dy / sy, -1.0f, 1.0f);
 
+        Sqrat::Function onDeltaMove = elem->props.scriptDesc.GetFunction(strings->onDeltaMove);
         if (!onDeltaMove.IsNull())
           onDeltaMove(dlt);
 
@@ -175,6 +175,11 @@ int BhvTouchScreenStick::pointingEvent(
     }
     else if (event == INP_EV_RELEASE)
     {
+      // fetch every callback this event uses before invoking any: freezeOnTouchEndMode/onHide
+      // Eval runs script that may mutate scriptDesc
+      Sqrat::Function freezeOnTouchEndMode = elem->props.scriptDesc.GetFunction(strings->freezeOnTouchEndMode);
+      Sqrat::Function onHide = elem->props.scriptDesc.GetFunction(strings->onHide);
+      Sqrat::Function onMove = elem->props.scriptDesc.GetFunction(strings->onMove);
       if (!freezeOnTouchEndMode.IsNull())
       {
         if (freezeOnTouchEndMode.Eval<bool>().value_or(false))

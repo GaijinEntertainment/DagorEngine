@@ -13,6 +13,7 @@ namespace drv3d_vulkan
 struct BackGraphicsStateStorage;
 struct FrontGraphicsStateStorage;
 struct BackDynamicGraphicsStateStorage;
+struct BackExtDynamicGraphicsStateStorage;
 struct BufferRef;
 class RenderPassClass;
 class VariatedGraphicsPipeline;
@@ -342,6 +343,62 @@ struct StateFieldGraphicsStencilRefOverride : TrackedStateFieldBase<true, false>
 
 struct StateFieldGraphicsStencilMask : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericSmallPOD<uint16_t>
 {
+  VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
+};
+
+// VK_EXT_extended_dynamic_state driven fields, applied post pipe bind and only when the device
+// supports the extension (see BackExtDynamicGraphicsState). Their values are sourced from the render
+// state dynamic part; when the ext is unavailable they stay baked into the pipeline static state.
+
+// raw dagor cull value: 0 none, 1 cw, 2 ccw (mapped to VkCullModeFlags on apply, matching pipeline)
+struct StateFieldGraphicsExtCullMode : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericSmallPOD<uint8_t>
+{
+  VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
+};
+
+struct StateFieldGraphicsExtDepthTest : TrackedStateFieldBase<true, false>
+{
+  struct DataType
+  {
+    uint8_t testEnable;
+    uint8_t func; // VkCompareOp
+  };
+
+  DataType data;
+
+  void reset(BackExtDynamicGraphicsStateStorage &) { data = {}; }
+  void set(const DataType &val) { data = val; }
+  bool diff(const DataType &val) { return data.testEnable != val.testEnable || data.func != val.func; }
+
+  VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
+};
+
+struct StateFieldGraphicsExtDepthBoundsTestEnable : TrackedStateFieldBase<true, false>, TrackedStateFieldGenericSmallPOD<uint8_t>
+{
+  VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
+};
+
+struct StateFieldGraphicsExtStencilTest : TrackedStateFieldBase<true, false>
+{
+  struct DataType
+  {
+    uint8_t testEnable;
+    uint8_t failOp;      // VkStencilOp
+    uint8_t passOp;      // VkStencilOp
+    uint8_t depthFailOp; // VkStencilOp
+    uint8_t compareOp;   // VkCompareOp
+  };
+
+  DataType data;
+
+  void reset(BackExtDynamicGraphicsStateStorage &) { data = {}; }
+  void set(const DataType &val) { data = val; }
+  bool diff(const DataType &val)
+  {
+    return data.testEnable != val.testEnable || data.failOp != val.failOp || data.passOp != val.passOp ||
+           data.depthFailOp != val.depthFailOp || data.compareOp != val.compareOp;
+  }
+
   VULKAN_TRACKED_STATE_FIELD_CB_DEFENITIONS();
 };
 

@@ -41,10 +41,23 @@ using AllocationLocations = eastl::array<IdIndexedMapping<intermediate::Resource
 
 struct HeapRequest
 {
-  ResourceHeapGroup *group;
-  uint64_t size;
+  ResourceHeapGroup *group = nullptr;
+  uint64_t size = 0;
+  bool untracked = false;
 };
 using HeapRequests = IdIndexedMapping<HeapIndex, HeapRequest>;
+
+struct BufferDeactivation
+{
+  Sbuffer *buffer;
+  eastl::optional<d3d::BufferBarrier> release;
+};
+
+struct TextureDeactivation
+{
+  BaseTexture *texture;
+  eastl::optional<d3d::TextureBarrier> release;
+};
 
 struct BlobDeactivationRequest
 {
@@ -52,7 +65,8 @@ struct BlobDeactivationRequest
   void *blob;
 };
 
-using PotentialResourceDeactivation = eastl::variant<eastl::monostate, BaseTexture *, Sbuffer *, BlobDeactivationRequest>;
+using PotentialResourceDeactivation =
+  eastl::variant<eastl::monostate, TextureDeactivation, BufferDeactivation, BlobDeactivationRequest>;
 using PotentialDeactivationSet = IdIndexedMapping<intermediate::ResourceIndex, PotentialResourceDeactivation>;
 
 using IntermediateResources = IdSparseIndexedMapping<intermediate::ResourceIndex, intermediate::Resource>;

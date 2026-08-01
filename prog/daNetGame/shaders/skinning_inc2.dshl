@@ -71,51 +71,6 @@ macro INIT_WORLD_LOCAL_MATRIX(code)
   }
 endmacro
 
-macro INIT_PER_INSTANCE_DATA(code)
-  hlsl (code) {
-    #ifndef INST_OFFSET_GETTER
-    #define INST_OFFSET_GETTER get_immediate_dword_0()
-    #endif
-    #ifndef OFFSET_TO_INSTANCE_DATA
-    #define OFFSET_TO_INSTANCE_DATA ((int)get_immediate_dword_1())
-    #endif
-    #ifndef INSTANCE_DATA_BUFFER
-    #define INSTANCE_DATA_BUFFER instance_data_buffer
-    #endif
-  }
-
-    hlsl(code) {
-      float4 _dynrend_get_per_instance_data(int index)
-      {
-        int instanceOffset = max(OFFSET_TO_INSTANCE_DATA, 0);
-        float paramsCount = loadBuffer(INSTANCE_DATA_BUFFER, instanceOffset + 1).w;
-        int paramIdx = (int)paramsCount - index;
-        return (paramIdx >= 0) ? loadBuffer(INSTANCE_DATA_BUFFER, instanceOffset + 2 + paramIdx) : float4(0,0,0,0);
-      }
-      #define GET_PER_INSTANCE_DATA(index) _dynrend_get_per_instance_data(index)
-
-      float4 get_optional_per_instance_data(int index, bool condition, float4 default_result)
-      {
-        return condition ? _dynrend_get_per_instance_data(index) : default_result;
-      }
-  }
-
-  USE_ANIMCHAR_ADDITIONAL_DATA(code)
-
-    hlsl(code) {
-      #include "animchar_additional_data_types.hlsli"
-
-      uint get_per_instance_hashval()
-      {
-        uint2 offsetCount = get_offset_count_additional_data(AAD_RAW_INITIAL_TM__HASHVAL);
-        return asuint(get_optional_additional_data(offsetCount, 0, float4(0,0,0,0)).x);
-      }
-
-      #define GET_PER_INSTANCE_HASHVAL \
-        asuint(get_per_instance_hashval().x)
-  }
-endmacro
-
 macro USE_BONE_VERTEX_UNPACKING(code)
   hlsl(code)
   {

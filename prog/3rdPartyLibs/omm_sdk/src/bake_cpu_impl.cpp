@@ -13,9 +13,9 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include "bake_kernels_cpu.h"
 #include "texture_impl.h"
 
-#include <shared/math.h>
-#include <shared/bird.h>
-#include <shared/cpu_raster.h>
+#include "util/math.h"
+#include "util/bird.h"
+#include "util/cpu_raster.h"
 
 #include <xxhash.h>
 
@@ -41,12 +41,11 @@ namespace Cpu
         EnableValidation                = 1u << 5,
 
         // Internal / not publicly exposed options.
-        EnableAABBTesting               = 1u << 6,
-        DisableRemovePoorQualityOMM     = 1u << 7,
+        EnableAABBTesting               = 1u << 7,
         DisableLevelLineIntersection    = 1u << 8,
         DisableFineClassification       = 1u << 9,
         EnableNearDuplicateDetectionBruteForce = 1u << 10,
-        EnableEdgeHeuristic             = 1u << 11,
+        EnableEdgeHeuristic             = 1u << 11
     };
 
     constexpr void ValidateInternalBakeFlags()
@@ -69,7 +68,6 @@ namespace Cpu
             enableNearDuplicateDetectionBruteForce(((uint32_t)flags& (uint32_t)BakeFlagsInternal::EnableNearDuplicateDetectionBruteForce) == (uint32_t)BakeFlagsInternal::EnableNearDuplicateDetectionBruteForce),
             enableValidation(((uint32_t)flags& (uint32_t)BakeFlagsInternal::EnableValidation) == (uint32_t)BakeFlagsInternal::EnableValidation),
             enableAABBTesting(((uint32_t)flags& (uint32_t)BakeFlagsInternal::EnableAABBTesting) == (uint32_t)BakeFlagsInternal::EnableAABBTesting),
-            disableRemovePoorQualityOMM(((uint32_t)flags& (uint32_t)BakeFlagsInternal::DisableRemovePoorQualityOMM) == (uint32_t)BakeFlagsInternal::DisableRemovePoorQualityOMM),
             disableLevelLineIntersection(((uint32_t)flags& (uint32_t)BakeFlagsInternal::DisableLevelLineIntersection) == (uint32_t)BakeFlagsInternal::DisableLevelLineIntersection),
             disableFineClassification(((uint32_t)flags& (uint32_t)BakeFlagsInternal::DisableFineClassification) == (uint32_t)BakeFlagsInternal::DisableFineClassification),
             enableEdgeHeuristic(((uint32_t)flags& (uint32_t)BakeFlagsInternal::EnableEdgeHeuristic) == (uint32_t)BakeFlagsInternal::EnableEdgeHeuristic)
@@ -81,7 +79,6 @@ namespace Cpu
         const bool enableNearDuplicateDetectionBruteForce;
         const bool enableValidation;
         const bool enableAABBTesting;
-        const bool disableRemovePoorQualityOMM;
         const bool disableLevelLineIntersection;
         const bool disableFineClassification;
         const bool enableEdgeHeuristic;
@@ -128,58 +125,107 @@ namespace Cpu
         m_bakeResult(stdAllocator),
         bakeDispatchTable(stdAllocator.GetInterface())
     {
-        #define REGISTER_DISPATCH(x, y, z, w)                                                                                               \
-        RegisterDispatch<decltype(x), decltype(y), decltype(z), decltype(w)>(x, y, z, w, [&](const ommCpuBakeInputDesc& desc)->ommResult {  \
-            return BakeImpl<x, y, z, w>(desc);                                                                                              \
+        #define REGISTER_DISPATCH(x, y, z, w, a)                                                                                               \
+        RegisterDispatch<decltype(x), decltype(y), decltype(z), decltype(w), decltype(a)>(x, y, z, w, a, [&](const ommCpuBakeInputDesc& desc)->ommResult {  \
+            return BakeImpl<x, y, z, w, a>(desc);                                                                                              \
         });                                                                                                                                 \
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, false);
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, false);
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, false);
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, false);
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, false);
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Linear);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, false);
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, false);
 
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest);
-        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, false);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8,TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, false);
+
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, true);
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, true);
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, true);
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_FP32, TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, true);
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, true);
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Linear, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Linear, true);
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::Linear, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, true);
+
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Wrap, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Mirror, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Clamp, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_Border, ommTextureFilterMode_Nearest, true);
+        REGISTER_DISPATCH(ommCpuTextureFormat_UNORM8, TilingMode::MortonZ, ommTextureAddressMode_MirrorOnce, ommTextureFilterMode_Nearest, true);
     }
 
     BakeOutputImpl::~BakeOutputImpl()
@@ -250,7 +296,8 @@ namespace Cpu
 
     ommResult BakeOutputImpl::InvokeDispatch(const ommCpuBakeInputDesc& desc) {
         TextureImpl* texture = GetHandleImpl<TextureImpl>(desc.texture);
-        auto it = bakeDispatchTable.find(std::make_tuple(texture->GetTextureFormat(), texture->GetTilingMode(), desc.runtimeSamplerDesc.addressingMode, desc.runtimeSamplerDesc.filter));
+        bool sizeIsPow2 = texture->SizeIsPow2();
+        auto it = bakeDispatchTable.find(std::make_tuple(texture->GetTextureFormat(), texture->GetTilingMode(), desc.runtimeSamplerDesc.addressingMode, desc.runtimeSamplerDesc.filter, sizeIsPow2));
         if (it == bakeDispatchTable.end())
             return ommResult_FAILURE;
         return it->second(desc);
@@ -351,16 +398,26 @@ namespace Cpu
     {
     public:
         OmmArrayDataVector() = delete;
-        OmmArrayDataVector(const StdAllocator<uint8_t>& stdAllocator, ommFormat format, uint32_t _subdivisionLevel)
+        OmmArrayDataVector(const StdAllocator<uint8_t>& stdAllocator, ommFormat format, uint32_t subdivisionLevel)
             : OmmArrayDataView(format, nullptr, nullptr, 0)
             , data(stdAllocator.GetInterface())
             , data3state(stdAllocator.GetInterface())
         {
-            const size_t maxSizeInBytes = (size_t)omm::bird::GetNumMicroTriangles(_subdivisionLevel);
+            const size_t maxSizeInBytes = (size_t)omm::bird::GetNumMicroTriangles(subdivisionLevel);
             data.resize(maxSizeInBytes);
             data3state.resize(maxSizeInBytes);
             OmmArrayDataView::SetData((uint8_t*)data.data(), data3state.data(), maxSizeInBytes);
             Init();
+        }
+
+        void ShrinkTo(uint32_t subdivisionLevel)
+        {
+            const size_t maxSizeInBytes = (size_t)omm::bird::GetNumMicroTriangles(subdivisionLevel);
+
+            assert(maxSizeInBytes < data.size());
+            assert(maxSizeInBytes < data3state.size());
+            data.resize(maxSizeInBytes);
+            data3state.resize(maxSizeInBytes);
         }
 
     private:
@@ -408,10 +465,6 @@ namespace Cpu
         const float2 v0 = p2 - p0;
         const float2 v1 = p1 - p0;
         return 0.5f * length(cross(float3(v0, 0), float3(v1, 0)));
-    };
-
-    static float GetArea2D(const Triangle& uvTri) {
-        return GetArea2D(uvTri.p0, uvTri.p1, uvTri.p2);
     };
 
     static const uint32_t ComputeAreaHeuristic(const ommCpuBakeInputDesc& desc, const Triangle& uvTri, uint2 texSize)
@@ -523,6 +576,16 @@ namespace Cpu
 
     namespace impl
     {
+        static Triangle GetTriangle(const ommCpuBakeInputDesc& desc, uint32_t primitiveIndex)
+        {
+            const uint32_t texCoordStrideInBytes = desc.texCoordStrideInBytes == 0 ? GetTexCoordFormatSize(desc.texCoordFormat) : desc.texCoordStrideInBytes;
+
+            uint32_t triangleIndices[3];
+            GetUInt32Indices(desc.indexFormat, desc.indexBuffer, 3ull * primitiveIndex, triangleIndices);
+
+            return FetchUVTriangle(desc.texCoords, texCoordStrideInBytes, desc.texCoordFormat, triangleIndices);
+        }
+
         static ommResult SetupWorkItems(
             const StdAllocator<uint8_t>& allocator, const Logger& log, const ommCpuBakeInputDesc& desc, const Options& options, 
             vector<OmmWorkItem>& vmWorkItems)
@@ -540,16 +603,11 @@ namespace Cpu
 
             // 2. Reduce uv.
             {
-                const uint32_t texCoordStrideInBytes = desc.texCoordStrideInBytes == 0 ? GetTexCoordFormatSize(desc.texCoordFormat) : desc.texCoordStrideInBytes;
-
                 uint32_t numDisabledTri = 0;
 
                 for (int32_t i = 0; i < triangleCount; ++i)
                 {
-                    uint32_t triangleIndices[3];
-                    GetUInt32Indices(desc.indexFormat, desc.indexBuffer, 3ull * i, triangleIndices);
-
-                    const Triangle uvTri = FetchUVTriangle(desc.texCoords, texCoordStrideInBytes, desc.texCoordFormat, triangleIndices);
+                    const Triangle uvTri = GetTriangle(desc, i);
 
                     const int32_t subdivisionLevel = GetSubdivisionLevelForPrimitive(desc, options, i, uvTri, texture->GetSize(0 /*always based on mip 0*/));
 
@@ -654,7 +712,7 @@ namespace Cpu
             return ommResult_SUCCESS;
         }
 
-        template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode>
+        template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode, bool bTexIsPow2>
         static ommResult ResampleCoarse(const ommCpuBakeInputDesc& desc, const Logger& log, const Options& options, vector<OmmWorkItem>& vmWorkItems)
         {
             if (options.enableAABBTesting && !options.disableLevelLineIntersection)
@@ -708,10 +766,10 @@ namespace Cpu
                                     const float2 faabb_s = (subTri.aabb_s * (float2)texture->GetSize(mip)) - 0.5f;
                                     const float2 faabb_e = (subTri.aabb_e * (float2)texture->GetSize(mip)) - 0.5f;
                                     int2 iaabb_s[TexelOffset::MAX_NUM];
-                                    omm::GatherTexCoord4<eTextureAddressMode>(glm::floor(faabb_s), texture->GetSize(mip), iaabb_s);
+                                    omm::GatherTexCoord4<eTextureAddressMode, bTexIsPow2>(glm::floor(faabb_s), texture->GetSize(mip), texture->GetSizeLog2(mip), iaabb_s);
 
                                     int2 iaabb_e[TexelOffset::MAX_NUM];
-                                    omm::GatherTexCoord4<eTextureAddressMode>(glm::floor(faabb_e), texture->GetSize(mip), iaabb_e);
+                                    omm::GatherTexCoord4<eTextureAddressMode, bTexIsPow2>(glm::floor(faabb_e), texture->GetSize(mip), texture->GetSizeLog2(mip), iaabb_e);
 
                                     const int2 aabb_s = iaabb_s[TexelOffset::I0x0];
                                     const int2 aabb_e = iaabb_e[TexelOffset::I1x1];
@@ -755,7 +813,7 @@ namespace Cpu
             Degenerate
         };
 
-        template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode, TriangleClass eTriangleClass>
+        template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode, TriangleClass eTriangleClass, bool bTexIsPow2>
         static ommResult ResampleFine(const ommCpuBakeInputDesc& desc, const Logger& log, const Options& options, vector<OmmWorkItem>& vmWorkItems)
         {
             if (options.enableAABBTesting && !options.disableLevelLineIntersection)
@@ -774,6 +832,7 @@ namespace Cpu
                 {
                     #pragma omp parallel for if(options.enableInternalThreads)
                     for (int32_t workItemIt = 0; workItemIt < numWorkItems; ++workItemIt) {
+                        auto kernel = &LevelLineIntersectionKernel::run<eFormat, eTextureAddressMode, eTilingMode, eTriangleClass, bTexIsPow2>;
 
                         // 3.2 figure out the sub-states via rasterization...
                         {
@@ -834,23 +893,23 @@ namespace Cpu
 
                                             if constexpr (eTriangleClass == TriangleClass::Normal)
                                             {
-                                                auto kernel = &LevelLineIntersectionKernel::run<eFormat, eTextureAddressMode, eTilingMode, false /*degenerate*/>;
+                                                auto kernel = &LevelLineIntersectionKernel::run<eFormat, eTextureAddressMode, eTilingMode, false /*degenerate*/, bTexIsPow2>;
                                                 RasterizeConservativeSerialWithOffsetCoverage(subTri, rasterSize, pixelOffset, kernel, &params);
                                             }
                                             else
                                             {
-                                                auto kernel = &LevelLineIntersectionKernel::run<eFormat, eTextureAddressMode, eTilingMode, true /*degenerate*/>;
+                                                auto kernel = &LevelLineIntersectionKernel::run<eFormat, eTextureAddressMode, eTilingMode, true /*degenerate*/, bTexIsPow2>;
                                                 Line l(subTri.aabb_s, subTri.aabb_e);
                                                 RasterizeConservativeLineWithOffset(l, rasterSize, pixelOffset, kernel, &params);
                                             }
 
                                             OMM_ASSERT(vmCoverage.numAboveAlpha != 0 || vmCoverage.numBelowAlpha != 0);
-                                            const ommOpacityState state = GetStateFromCoverage(desc.format, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
+                                            const ommOpacityState state = GetStateFromCoverage(workItem.vmFormat, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
 
                                             if (IsUnknown(state))
                                                 break;
                                         }
-                                        const ommOpacityState state = GetStateFromCoverage(desc.format, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
+                                        const ommOpacityState state = GetStateFromCoverage(workItem.vmFormat, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
                                         workItem.vmStates.SetState(uTriIt, state);
                                     }
                                     else if (options.enableAABBTesting)
@@ -861,22 +920,22 @@ namespace Cpu
                                         // This is only correct for bilinear version, nearest sampling should map exactly to the source alpha texture.
 
                                         uint32_t mip = 0;
-                                        OMM_ASSERT(texture->GetMipCount() == 0);
+                                        OMM_ASSERT(texture->GetMipCount() == 1);
                                         const int2 rasterSize = texture->GetSize(mip);
                                         float2 pixelOffset = -float2(0.5, 0.5);
 
                                         OmmCoverage vmCoverage = { 0, };
-                                        ConservativeBilinearKernel::Params params = { &vmCoverage,  texture->GetRcpSize(mip), rasterSize, texture, desc.alphaCutoff, desc.runtimeSamplerDesc.borderAlpha, mip };
+                                        ConservativeBilinearKernel::Params params = { &vmCoverage,  texture->GetRcpSize(mip), rasterSize, texture->GetSizeLog2(mip), texture, desc.alphaCutoff, desc.runtimeSamplerDesc.borderAlpha, mip };
 
                                         Triangle subTri0 = Triangle(subTri.aabb_s, float2(subTri.aabb_e.x, subTri.aabb_s.y), float2(subTri.aabb_s.x, subTri.aabb_e.y));
                                         Triangle subTri1 = Triangle(subTri.aabb_e, float2(subTri.aabb_e.x, subTri.aabb_s.y), float2(subTri.aabb_s.x, subTri.aabb_e.y));
-                                        auto kernel = &ConservativeBilinearKernel::run<eFormat, eTextureAddressMode, eTilingMode>;
+                                        auto kernel = &ConservativeBilinearKernel::run<eFormat, eTextureAddressMode, eTilingMode, bTexIsPow2>;
                                         RasterizeConservativeSerialWithOffsetCoverage(subTri0, rasterSize, pixelOffset, kernel, &params);
                                         RasterizeConservativeSerialWithOffsetCoverage(subTri1, rasterSize, pixelOffset, kernel, &params);
 
                                         OMM_ASSERT(vmCoverage.numAboveAlpha != 0 || vmCoverage.numBelowAlpha != 0);
 
-                                        const ommOpacityState state = GetStateFromCoverage(desc.format, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
+                                        const ommOpacityState state = GetStateFromCoverage(workItem.vmFormat, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
                                         workItem.vmStates.SetState(uTriIt, state);
                                     }
                                     else
@@ -889,18 +948,19 @@ namespace Cpu
                                         uint32_t mip = 0;
                                         OMM_ASSERT(texture->GetMipCount() == 1);
                                         const int2 rasterSize = texture->GetSize(mip);
+                                        const int2 rasterSizeLog2 = texture->GetSizeLog2(mip);
 
                                         float2 pixelOffset = -float2(0.5, 0.5);
 
                                         OmmCoverage vmCoverage = { 0, };
-                                        ConservativeBilinearKernel::Params params = { &vmCoverage,  texture->GetRcpSize(mip), rasterSize, texture, desc.alphaCutoff, desc.runtimeSamplerDesc.borderAlpha, mip };
+                                        ConservativeBilinearKernel::Params params = { &vmCoverage,  texture->GetRcpSize(mip), rasterSize, rasterSizeLog2, texture, desc.alphaCutoff, desc.runtimeSamplerDesc.borderAlpha, mip };
 
-                                        auto kernel = &ConservativeBilinearKernel::run<eFormat, eTextureAddressMode, eTilingMode>;
+                                        auto kernel = &ConservativeBilinearKernel::run<eFormat, eTextureAddressMode, eTilingMode, bTexIsPow2>;
                                         RasterizeConservativeSerialWithOffsetCoverage(subTri, rasterSize, pixelOffset, kernel, &params);
 
                                         OMM_ASSERT(vmCoverage.numBelowAlpha != 0 || vmCoverage.numAboveAlpha != 0);
 
-                                        const ommOpacityState state = GetStateFromCoverage(desc.format, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
+                                        const ommOpacityState state = GetStateFromCoverage(workItem.vmFormat, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
 
                                         workItem.vmStates.SetState(uTriIt, state);
                                     }
@@ -912,6 +972,7 @@ namespace Cpu
                                     OmmCoverage*        vmState;
                                     float2              invSize;
                                     int2                size;
+                                    int2                sizeLog2;
                                     ommSamplerDesc      runtimeSamplerDesc;
                                     const TextureImpl* texture;
                                     float               alphaCutoff;
@@ -925,7 +986,8 @@ namespace Cpu
                                     for (uint32_t mipIt = 0; mipIt < texture->GetMipCount(); ++mipIt)
                                     {
                                         const int2 rasterSize = texture->GetSize(mipIt);
-                                        KernelParams params = { nullptr, texture->GetRcpSize(mipIt), rasterSize, desc.runtimeSamplerDesc, texture, desc.alphaCutoff, desc.runtimeSamplerDesc.borderAlpha, mipIt };
+                                        const int2 rasterSizeLog2 = texture->GetSizeLog2(mipIt);
+                                        KernelParams params = { nullptr, texture->GetRcpSize(mipIt), rasterSize, rasterSizeLog2,desc.runtimeSamplerDesc, texture, desc.alphaCutoff, desc.runtimeSamplerDesc.borderAlpha, mipIt };
 
                                         params.vmState = &vmCoverage;
 
@@ -933,7 +995,7 @@ namespace Cpu
                                         {
                                             KernelParams* p = (KernelParams*)ctx;
 
-                                            const int2 coord = omm::GetTexCoord<eTextureAddressMode>(pixel, p->size);
+                                            const int2 coord = omm::GetTexCoord<eTextureAddressMode, bTexIsPow2>(pixel, p->size, p->sizeLog2);
 
                                             const bool isBorder = eTextureAddressMode == ommTextureAddressMode_Border && (coord.x == kTexCoordBorder || coord.y == kTexCoordBorder);
                                             const float alpha = isBorder ? p->borderAlpha : p->texture->template Load<eFormat, eTilingMode>(coord, p->mipIt);
@@ -951,11 +1013,11 @@ namespace Cpu
                                         RasterizeConservativeSerial(subTri, rasterSize, kernel, &params);
                                         OMM_ASSERT(vmCoverage.numAboveAlpha != 0 || vmCoverage.numBelowAlpha != 0);
 
-                                        const ommOpacityState state = GetStateFromCoverage(desc.format, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
+                                        const ommOpacityState state = GetStateFromCoverage(workItem.vmFormat, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
                                         if (IsUnknown(state))
                                             break;
                                     }
-                                    const ommOpacityState state = GetStateFromCoverage(desc.format, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
+                                    const ommOpacityState state = GetStateFromCoverage(workItem.vmFormat, desc.unknownStatePromotion, desc.alphaCutoffGreater, desc.alphaCutoffLessEqual, vmCoverage);
                                     workItem.vmStates.SetState(uTriIt, state);
                                 }
                             }
@@ -1069,7 +1131,7 @@ namespace Cpu
             return ommResult_SUCCESS;
         }
 
-        static ommResult DeduplicateSimilarLSH(const StdAllocator<uint8_t>& allocator, const Options& options, vector<OmmWorkItem>& vmWorkItems, uint32_t iterations)
+        static ommResult DeduplicateSimilarLSH(const StdAllocator<uint8_t>& allocator, const ommCpuBakeInputDesc& desc, const Options& options, vector<OmmWorkItem>& vmWorkItems, uint32_t iterations)
         {
             if (options.disableDuplicateDetection)
                 return ommResult_SUCCESS;
@@ -1138,7 +1200,7 @@ namespace Cpu
                     const uint32_t n = (uint32_t)batchWorkItems.size();     // number of points.
                     const uint32_t d = numMicroTriangles;                   // dimensionality.
 
-                    const float r = 0.15f * d;   // Distance must be at most 25%
+                    const float r = desc.nearDuplicateDeduplicationFactor /* 0.15f*/ * d;   // Distance must be at most 25%
                     const float c = 4.0f;        // Allow 2x deviation from this
 
                     const float p1 = 1 - r / d;         // Lower bound probability, for close two points
@@ -1374,6 +1436,9 @@ namespace Cpu
             {
                 OmmWorkItem& workItem = vmWorkItems[workItemIt];
 
+                if (workItem.HasSpecialIndex())
+                    continue;
+
                 const uint32_t numMicroTriangles = omm::bird::GetNumMicroTriangles(workItem.subdivisionLevel);
 
                 bool allEqual = true;
@@ -1403,6 +1468,222 @@ namespace Cpu
                     workItem.vmSpecialIndex = -int32_t(commonState) - 1;
                 }
             }
+            return ommResult_SUCCESS;
+        }
+
+        static ommResult ComputeKnownStates(const OmmWorkItem& item, uint32_t& known, uint32_t& total)
+        {
+            known = 0;
+            total = omm::bird::GetNumMicroTriangles(item.subdivisionLevel);
+            for (uint i = 0; i < total; ++i)
+            {
+                ommOpacityState state0 = item.vmStates.Get3State(i);
+
+                if (IsKnown(state0))
+                {
+                    known++;
+                }
+            }
+            return ommResult_SUCCESS;
+        }
+
+        static ommResult ComputeKnownRatio(const OmmWorkItem& item, float& knownRatio)
+        {
+            uint32_t known;
+            uint32_t total;
+            RETURN_STATUS_IF_FAILED(ComputeKnownStates(item, known, total));
+            knownRatio = (float)known / total;
+            return ommResult_SUCCESS;
+        }
+
+        static ommResult DownsampleOneLevel(OmmWorkItem& item)
+        {
+            if (item.subdivisionLevel == 0)
+                return ommResult_FAILURE;
+
+            int subdivisionLevel = item.subdivisionLevel - 1;
+            item.subdivisionLevel = subdivisionLevel;
+
+            const size_t numOmmForSubDivLvl = (size_t)omm::bird::GetNumMicroTriangles(subdivisionLevel);
+
+            for (uint i = 0; i < numOmmForSubDivLvl; ++i)
+            {
+                ommOpacityState state0 = item.vmStates.Get3State(4 * i);
+                ommOpacityState state1 = item.vmStates.Get3State(4 * i + 1);
+                ommOpacityState state2 = item.vmStates.Get3State(4 * i + 2);
+                ommOpacityState state3 = item.vmStates.Get3State(4 * i + 3);
+
+                if (IsKnown(state0) && state0 == state1 && state0 == state2 && state0 == state3)
+                {
+                    item.vmStates.SetState(i, state0);
+                }
+                else
+                {
+                    item.vmStates.SetState(i, ommOpacityState_UnknownOpaque);
+                }
+            }
+
+            item.vmStates.ShrinkTo(item.subdivisionLevel);
+
+            return ommResult_SUCCESS;
+        }
+
+        static ommResult DownsampleOneLevel(const OmmWorkItem& item, float& knownRatio)
+        {
+            if (item.subdivisionLevel == 0)
+                return ommResult_FAILURE;
+
+            int subdivisionLevel = item.subdivisionLevel - 1;
+
+            const size_t numOmmForSubDivLvl = (size_t)omm::bird::GetNumMicroTriangles(subdivisionLevel);
+
+            uint32_t known = 0;
+            for (uint i = 0; i < numOmmForSubDivLvl; ++i)
+            {
+                ommOpacityState state0 = item.vmStates.Get3State(4 * i);
+                ommOpacityState state1 = item.vmStates.Get3State(4 * i + 1);
+                ommOpacityState state2 = item.vmStates.Get3State(4 * i + 2);
+                ommOpacityState state3 = item.vmStates.Get3State(4 * i + 3);
+
+                if (IsKnown(state0) && state0 == state1 && state0 == state2 && state0 == state3)
+                {
+                    known++;
+                }
+            }
+            knownRatio = known / (float)numOmmForSubDivLvl;
+            return ommResult_SUCCESS;
+        }
+
+        static ommResult Compress(const StdAllocator<uint8_t>& allocator, const ommCpuBakeInputDesc& desc, const Options& options, vector<OmmWorkItem>& vmWorkItems)
+        {
+            if (desc.maxArrayDataSize == -1)
+                return ommResult_SUCCESS;
+
+            struct WorkItemInfo
+            {
+                float knownRatio = 0.f;               // The ratio of known divided total micro triangle states.
+                float knownRatioIfWeDownsample = 0.f; // The ratio of known divided total micro triangle states IF we downsample one level.
+                float totalArea = 0.f;                // Area in UV space that this UV-Triangle is covering.
+                size_t totalMemory = 0;               // Memory consumed by all micro-triangles
+                size_t totalMemoryIfWeDownsample = 0; // Memory consumed by all micro-triangles, if we'd downsample one level.
+                float coveragePerByte = 0.f;
+            };
+
+            auto ComputeWorkItemInfo = [&desc](const OmmWorkItem& item, WorkItemInfo& outResult)->ommResult {
+
+                RETURN_STATUS_IF_FAILED(ComputeKnownRatio(item, outResult.knownRatio));
+                RETURN_STATUS_IF_FAILED(DownsampleOneLevel(item, outResult.knownRatioIfWeDownsample));
+
+                outResult.totalArea = 0;
+                for (uint32_t i : item.primitiveIndices)
+                {
+                    const Triangle uvTri = GetTriangle(desc, i);
+                    const float area = GetArea2D(item.uvTri);
+                    OMM_ASSERT(area >= 0);
+                    outResult.totalArea += area;
+                }
+
+               // const float area = GetArea2D(item.uvTri);
+               // outResult.totalArea = item.primitiveIndices.size() * area; // TODO: might need to consider that primitives have different sizes?
+                outResult.totalMemory = std::max<size_t>(1, (omm::bird::GetNumMicroTriangles(item.subdivisionLevel) * 2) / 8);
+                outResult.totalMemoryIfWeDownsample = std::max<size_t>(1, (omm::bird::GetNumMicroTriangles(item.subdivisionLevel - 1) * 2) / 8);
+
+                size_t memDelta = outResult.totalMemory - outResult.totalMemoryIfWeDownsample;
+                float coverageDelta = outResult.knownRatio - outResult.knownRatioIfWeDownsample;
+                outResult.coveragePerByte = outResult.totalArea * coverageDelta / memDelta;
+                return ommResult_SUCCESS;
+            };
+
+            vector<std::pair<int, WorkItemInfo>> activeItems(allocator);
+            for (int i = 0; i < (int)vmWorkItems.size(); ++i)
+            {
+                const OmmWorkItem& item = vmWorkItems[i];
+                if (item.subdivisionLevel == 0)
+                    continue;
+                if (item.primitiveIndices.size() == 0)
+                    continue;
+                if (item.HasSpecialIndex())
+                    continue;
+
+                WorkItemInfo info;
+                RETURN_STATUS_IF_FAILED(ComputeWorkItemInfo(item, info));
+
+                activeItems.push_back(std::make_pair(i, info));
+            }
+
+            size_t totalMemory = 0;
+            for (const auto& [_, info] : activeItems)
+            {
+                totalMemory += info.totalMemory;
+            }
+
+            if (totalMemory < desc.maxArrayDataSize)
+                return ommResult_SUCCESS;
+
+            auto sortFn = [&vmWorkItems](const std::pair<int, WorkItemInfo>& ia, const std::pair<int, WorkItemInfo>& ib) {
+                return ia.second.coveragePerByte < ib.second.coveragePerByte;
+            };
+
+            std::sort(activeItems.begin(), activeItems.end(), sortFn);
+
+            while (totalMemory >= desc.maxArrayDataSize && activeItems.size() != 0)
+            {
+                int N = (int)activeItems.size();
+                for (int i = 0; i < N; ++i)
+                {
+                    OmmWorkItem& item = vmWorkItems[activeItems[i].first];
+
+                    totalMemory -= activeItems[i].second.totalMemory;
+
+                    RETURN_STATUS_IF_FAILED(DownsampleOneLevel(item));
+                    
+                    totalMemory += activeItems[i].second.totalMemoryIfWeDownsample;
+
+                    if (item.subdivisionLevel == 0)
+                    {
+                        // remove from active list
+                        activeItems[i].first = -1;
+                        continue;
+                    }
+
+                    RETURN_STATUS_IF_FAILED(ComputeWorkItemInfo(item, activeItems[i].second));
+
+                    if (totalMemory < desc.maxArrayDataSize)
+                    {
+                        break;
+                    }
+
+                    if (i + 1 != N)
+                    {
+                        const OmmWorkItem& nextTtem = vmWorkItems[activeItems[i + 1].first];
+                        size_t nextItemSize = std::max<size_t>(1, (omm::bird::GetNumMicroTriangles(nextTtem.subdivisionLevel) * 2) / 8);
+
+                        if (activeItems[i].second.coveragePerByte < activeItems[i + 1].second.coveragePerByte)
+                        {
+                            i--; // redo the same item next iteration
+                        }
+                    }
+                }
+
+                // bool needResort = false;
+                bool needResort = true;
+                for (int i = 0; i < (int)activeItems.size(); ++i)
+                {
+                    if (activeItems[i].first == -1)
+                    {
+                        std::swap(activeItems[i], activeItems[activeItems.size() - 1]);
+                        activeItems.pop_back();
+                        i--;
+                        needResort = true;
+                    }
+                }
+
+                if (needResort)
+                {
+                    std::sort(activeItems.begin(), activeItems.end(), sortFn);
+                }
+            }
+
             return ommResult_SUCCESS;
         }
 
@@ -1453,7 +1734,7 @@ namespace Cpu
                         constexpr const uint32_t k = 13;
                         const int2 qSize = int2(1u << k, 1u << k);
                         const int2 qUV = int2(float2(qSize) * ((vm.uvTri.p0 + vm.uvTri.p1 + vm.uvTri.p2) / 3.f));
-                        const int2 qPosMirrored = GetTexCoord<ommTextureAddressMode_MirrorOnce>(qUV, qSize);
+                        const int2 qPosMirrored = GetTexCoord<ommTextureAddressMode_MirrorOnce, false>(qUV, qSize, {0,0});
                         OMM_ASSERT(qPosMirrored.x >= 0 && qPosMirrored.y >= 0);
                         const uint64_t mCode = xy_to_morton(qPosMirrored.x, qPosMirrored.y);
                         OMM_ASSERT(mCode < (1ull << (k << 1ull)));
@@ -1479,15 +1760,18 @@ namespace Cpu
             BakeResultImpl& res)
         {
             {
-                const uint32_t ommBitCount = omm::bird::GetBitCount(desc.format);
-
+                static_assert(ommFormat_MAX_NUM == 3);
                 uint32_t ommDescArrayCount = 0;
                 size_t ommArrayDataSize = 0;
-                for (uint32_t i = 0; i < kMaxNumSubdivLevels; ++i) {
-                    const uint32_t ommCount = ommArrayHistogram.GetOmmCount(desc.format, i);
-                    ommDescArrayCount += ommCount;
-                    const size_t numOmmForSubDivLvl = (size_t)omm::bird::GetNumMicroTriangles(i) * ommBitCount;
-                    ommArrayDataSize += size_t(ommCount) * std::max<size_t>(numOmmForSubDivLvl >> 3ull, 1ull);
+                for (ommFormat format : {ommFormat_OC1_2_State, ommFormat_OC1_4_State})
+                {
+                    const uint32_t ommStateBitCount = omm::bird::GetBitCount(format);
+                    for (uint32_t lvlIt = 0; lvlIt < kMaxNumSubdivLevels; ++lvlIt) {
+                        const uint32_t ommCount = ommArrayHistogram.GetOmmCount(format, lvlIt);
+                        ommDescArrayCount += ommCount;
+                        const size_t numOmmForSubDivLvl = (size_t)omm::bird::GetNumMicroTriangles(lvlIt) * ommStateBitCount;
+                        ommArrayDataSize += size_t(ommCount) * std::max<size_t>(numOmmForSubDivLvl >> 3ull, 1ull);
+                    }
                 }
 
                 if (ommArrayDataSize > std::numeric_limits<uint32_t>::max()) // Array data > 4GB? ouch
@@ -1535,7 +1819,7 @@ namespace Cpu
                             }
 
                             // Offsets must be at least 1B aligned.
-                            ommArrayDataOffset += std::max((numMicroTriangles * ommBitCount) >> 3u, 1u);
+                            ommArrayDataOffset += std::max((numMicroTriangles * (omm::bird::GetBitCount(vm.vmFormat))) >> 3u, 1u);
                         }
                     }
                 }
@@ -1591,10 +1875,23 @@ namespace Cpu
             // Compress to 16 bit indices if possible & allowed.
             ommIndexFormat ommIndexFormat = ommIndexFormat_UINT_32;
             {
-                const bool force32bit = ((int32_t)desc.bakeFlags & (int32_t)ommCpuBakeFlags_Force32BitIndices) == (int32_t)ommCpuBakeFlags_Force32BitIndices;
+                const bool allow8bitIndices = ((int32_t)desc.bakeFlags & (int32_t)ommCpuBakeFlags_Allow8BitIndices) == (int32_t)ommCpuBakeFlags_Allow8BitIndices;
+                const bool force32bitIndices = ((int32_t)desc.bakeFlags & (int32_t)ommCpuBakeFlags_Force32BitIndices) == (int32_t)ommCpuBakeFlags_Force32BitIndices;
+                const bool canCompressTo8Bit = triangleCount <= std::numeric_limits<int8_t>::max();
                 const bool canCompressTo16Bit = triangleCount <= std::numeric_limits<int16_t>::max();
 
-                if (canCompressTo16Bit && !force32bit)
+                if (allow8bitIndices && canCompressTo8Bit && !force32bitIndices)
+                {
+                    int8_t* ommIndexBuffer8 = (int8_t*)res.ommIndexBuffer.data();
+                    for (int32_t i = 0; i < triangleCount; ++i) {
+                        int32_t idx = res.ommIndexBuffer[i];
+                        int8_t idx8 = (int8_t)idx;
+                        ommIndexBuffer8[i] = idx8;
+                    }
+
+                    ommIndexFormat = ommIndexFormat_UINT_8;
+                }
+                else if (canCompressTo16Bit && !force32bitIndices)
                 {
                     int16_t* ommIndexBuffer16 = (int16_t*)res.ommIndexBuffer.data();
                     for (int32_t i = 0; i < triangleCount; ++i) {
@@ -1607,13 +1904,26 @@ namespace Cpu
                 }
             }
 
+            {
+                res.ommTriangleArea.resize(triangleCount);
+                for (const OmmWorkItem& item : vmWorkItems)
+                {
+                    for (uint32_t primitiveIndex : item.primitiveIndices)
+                    {
+                        const Triangle uvTri = GetTriangle(desc, primitiveIndex);
+
+                        res.ommTriangleArea[primitiveIndex] = GetArea2D(uvTri);
+                    }
+                }
+            }
+
             res.Finalize(ommIndexFormat);
 
             return ommResult_SUCCESS;
         }
     } // namespace impl
 
-    template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode>
+    template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode, bool bTexIsPow2>
     ommResult BakeOutputImpl::BakeImpl(const ommCpuBakeInputDesc& desc)
     {
         RETURN_STATUS_IF_FAILED(ValidateDesc(desc));
@@ -1623,15 +1933,15 @@ namespace Cpu
         m_bakeInputDesc = desc;
 
         auto impl__ResampleCoarse = [](const ommCpuBakeInputDesc& desc, const Logger& log, const Options& options, vector<OmmWorkItem>& vmWorkItems) {
-            return impl::ResampleCoarse<eFormat, eTilingMode, eTextureAddressMode, eFilterMode>(desc, log, options, vmWorkItems);
+            return impl::ResampleCoarse<eFormat, eTilingMode, eTextureAddressMode, eFilterMode, bTexIsPow2>(desc, log, options, vmWorkItems);
         };
 
         auto impl__ResampleFineNormal = [](const ommCpuBakeInputDesc& desc, const Logger& log, const Options& options, vector<OmmWorkItem>& vmWorkItems) {
-            return impl::ResampleFine<eFormat, eTilingMode, eTextureAddressMode, eFilterMode, impl::TriangleClass::Normal>(desc, log, options, vmWorkItems);
+            return impl::ResampleFine<eFormat, eTilingMode, eTextureAddressMode, eFilterMode, impl::TriangleClass::Normal, bTexIsPow2>(desc, log, options, vmWorkItems);
         };
 
         auto impl__ResampleFineDegen = [](const ommCpuBakeInputDesc& desc, const Logger& log, const Options& options, vector<OmmWorkItem>& vmWorkItems) {
-            return impl::ResampleFine<eFormat, eTilingMode, eTextureAddressMode, eFilterMode, impl::TriangleClass::Degenerate>(desc, log, options, vmWorkItems);
+            return impl::ResampleFine<eFormat, eTilingMode, eTextureAddressMode, eFilterMode, impl::TriangleClass::Degenerate, bTexIsPow2>(desc, log, options, vmWorkItems);
         };
 
         {
@@ -1651,9 +1961,15 @@ namespace Cpu
 
             RETURN_STATUS_IF_FAILED(impl::DeduplicateExact(m_stdAllocator, options, vmWorkItems));
 
-            RETURN_STATUS_IF_FAILED(impl::DeduplicateSimilarLSH(m_stdAllocator, options, vmWorkItems, 3 /*iterations*/));
+            RETURN_STATUS_IF_FAILED(impl::DeduplicateSimilarLSH(m_stdAllocator, desc, options, vmWorkItems, 3 /*iterations*/));
 
             RETURN_STATUS_IF_FAILED(impl::DeduplicateSimilarBruteForce(m_stdAllocator, options, vmWorkItems));
+
+            RETURN_STATUS_IF_FAILED(impl::PromoteToSpecialIndices(desc, options, vmWorkItems));
+
+            RETURN_STATUS_IF_FAILED(impl::Compress(m_stdAllocator, desc, options, vmWorkItems));
+
+            RETURN_STATUS_IF_FAILED(impl::DeduplicateExact(m_stdAllocator, options, vmWorkItems));
 
             RETURN_STATUS_IF_FAILED(impl::PromoteToSpecialIndices(desc, options, vmWorkItems));
 

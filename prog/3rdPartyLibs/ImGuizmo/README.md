@@ -190,3 +190,9 @@ See the [vcpkg example](/vcpkg-example) for more details
 ## License
 
 ImGuizmo is licensed under the MIT License, see [LICENSE](/LICENSE) for more information.
+
+## Upstream
+
+Vendored from https://github.com/CedricGuillemet/ImGuizmo, version 1.83 stable
+(1.84 WIP at time of vendoring). Includes bundled widgets ImCurveEdit,
+ImGradient, ImSequencer, ImZoomSlider and GraphEditor from the same repo.

@@ -13,6 +13,7 @@
 #include <debug/dag_debug.h>
 #include <daBVH/dag_bvhBuild.h>
 #include <daBVH/dag_quadBLASBuilder.h>
+#include <daBVH/dag_swBLAS_soa4Convert.h>
 #include <daBVH/swBLASLeafDefs.hlsli>
 #include <util/dag_hashedKeyMap.h>
 
@@ -31,68 +32,6 @@ CollisionResource *CollisionResource::loadResource(IGenLoad &crd, int res_id)
   CollisionResource *resource = new CollisionResource;
   resource->load(crd, res_id);
   return resource;
-}
-
-static void singleMesh_initBounds(CollisionResource *res, const BBox3 &bbox, const BSphere3 &bsphere)
-{
-  v_bbox3_init(res->vFullBBox, v_ldu(&bbox[0].x));
-  v_bbox3_add_pt(res->vFullBBox, v_ldu(&bbox[1].x));
-  res->vBoundingSphere = v_make_vec4f(bsphere.c.x, bsphere.c.y, bsphere.c.z, bsphere.r2);
-  res->boundingBox = bbox;
-  res->boundingSphereRad = bsphere.r;
-}
-
-CollisionResource *CollisionResource::createSingleMesh(dag::ConstSpan<Point3_vec4> ref_vertices, dag::ConstSpan<uint16_t> indices,
-  const BBox3 &bbox, const BSphere3 &bsphere, uint32_t flags)
-{
-  G_ASSERTF(!ref_vertices.empty() && ref_vertices.size() <= 0x10000u, "single-mesh vert count %d out of range (1..65536)",
-    (int)ref_vertices.size());
-  CollisionResource *res = new CollisionResource;
-  singleMesh_initBounds(res, bbox, bsphere);
-  res->ownVertices.assign(ref_vertices.begin(), ref_vertices.end());
-  res->ownIndices.assign(indices.begin(), indices.end());
-  res->meshVertsBase = res->ownVertices.data();
-  res->meshIndicesBase = res->ownIndices.data();
-  CollisionNode &node = res->createNode();
-  node.flags = flags | CollisionNode::IDENT;
-  node.type = COLLISION_NODE_TYPE_MESH;
-  node.modelBBox = bbox;
-  node.boundingSphere.c = bsphere.c;
-  node.boundingSphere.r = bsphere.r;
-  node.verticesOfs = 0;
-  node.verticesCount = (uint16_t)(ref_vertices.size() - 1); // count-minus-one encoding (1..65536)
-  node.indicesOfs = 0;
-  node.indicesCount = (uint32_t)indices.size();
-  res->numMeshNodes = 1;
-  res->meshNodesHead = 0; // sole node is at index 0; node.nextNode is INVALID_IDX by default
-  return res;
-}
-
-CollisionResource *CollisionResource::createSingleMeshNonOwning(dag::ConstSpan<Point3_vec4> ref_vertices,
-  dag::ConstSpan<uint16_t> indices, const BBox3 &bbox, const BSphere3 &bsphere)
-{
-  G_ASSERTF(!ref_vertices.empty() && ref_vertices.size() <= 0x10000u, "single-mesh vert count %d out of range (1..65536)",
-    (int)ref_vertices.size());
-  CollisionResource *res = new CollisionResource;
-  singleMesh_initBounds(res, bbox, bsphere);
-  // Verts come from an externally-owned buffer (e.g. FRT); indices are copied into the
-  // resource's own dense storage so the caller does not need to keep its index buffer alive.
-  res->ownIndices.assign(indices.begin(), indices.end());
-  res->meshVertsBase = ref_vertices.data();
-  res->meshIndicesBase = res->ownIndices.data();
-  CollisionNode &node = res->createNode();
-  node.flags = CollisionNode::IDENT;
-  node.type = COLLISION_NODE_TYPE_MESH;
-  node.modelBBox = bbox;
-  node.boundingSphere.c = bsphere.c;
-  node.boundingSphere.r = bsphere.r;
-  node.verticesOfs = 0;
-  node.verticesCount = (uint16_t)(ref_vertices.size() - 1); // count-minus-one encoding (1..65536)
-  node.indicesOfs = 0;
-  node.indicesCount = (uint32_t)indices.size();
-  res->numMeshNodes = 1;
-  res->meshNodesHead = 0; // sole node is at index 0; node.nextNode is INVALID_IDX by default
-  return res;
 }
 
 int CollisionResource::addSphereNode(const char *name, int16_t phys_mat_id, const BSphere3 &bsphere)
@@ -142,20 +81,49 @@ int CollisionResource::addCapsuleNode(const char *name, int16_t phys_mat_id, con
   return n.nodeIndex;
 }
 
-int CollisionResource::addMeshNode(const char *name, int16_t phys_mat_id, const TMatrix &tm, const BBox3 &bbox,
-  const BSphere3 &bsphere, dag::ConstSpan<Point3_vec4> verts, dag::ConstSpan<uint16_t> indices, uint16_t behavior_flags, uint8_t flags)
+CollisionResource *CollisionResource::createSingleMesh(dag::ConstSpan<Point3_vec4> vertices, dag::ConstSpan<uint16_t> indices,
+  const BBox3 &bbox, const BSphere3 &bsphere, uint32_t node_flags, const char *node_name)
 {
-  G_ASSERTF_RETURN(verts.size() <= 0x10000u, -1, "addMeshNode vert count %d out of range (0..65536)", (int)verts.size());
+  // Legacy 16-bit entry point: widen and forward to the uint32 path.
+  dag::Vector<uint32_t, framemem_allocator> idx32(indices.size());
+  for (int i = 0, e = (int)indices.size(); i < e; ++i)
+    idx32[i] = indices[i];
+  return createSingleMesh(vertices, dag::ConstSpan<uint32_t>(idx32.data(), idx32.size()), bbox, bsphere, node_flags, node_name);
+}
+
+CollisionResource *CollisionResource::createSingleMesh(dag::ConstSpan<Point3_vec4> vertices, dag::ConstSpan<uint32_t> indices,
+  const BBox3 &bbox, const BSphere3 &bsphere, uint32_t node_flags, const char *node_name)
+{
+  CollisionResource *res = new CollisionResource;
+  res->boundingBox = bbox;
+  v_bbox3_init(res->vFullBBox, v_ldu(&bbox[0].x));
+  v_bbox3_add_pt(res->vFullBBox, v_ldu(&bbox[1].x));
+  res->vBoundingSphere = v_perm_xyzd(v_ldu(&bsphere.c.x), v_splats(bsphere.r2));
+  res->boundingSphereRad = bsphere.r;
+  // Defer the per-node chunk build (build_chunk=false): collapseAndOptimize below reads the raw verts/
+  // indices straight from the spans (in_raw_*) and builds the one real chunk from its optimized staging,
+  // avoiding a throwaway build + lossy vert21 round-trip in addMeshNode.
+  res->addMeshNode(node_name, -1, TMatrix::IDENT, bbox, bsphere, vertices, indices,
+    CollisionNode::TRACEABLE | CollisionNode::PHYS_COLLIDABLE | CollisionNode::FLAG_ALLOW_HOLE | CollisionNode::FLAG_DAMAGE_REQUIRED,
+    (uint8_t)(node_flags | CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED), /*build_chunk*/ false);
+  // addMeshNode appends the node but leaves the per-type lists empty; collapseAndOptimize early-returns
+  // on meshNodesHead == INVALID_IDX, so link the node first or the optimize is a no-op.
+  res->rebuildNodesLL();
+  res->collapseAndOptimize(node_name, /*need_frt*/ false, /*frt_build_fast*/ true, /*raw_verts_out*/ nullptr,
+    /*raw_indices_out*/ nullptr, vertices, indices);
+  return res;
+}
+
+int CollisionResource::addMeshNode(const char *name, int16_t phys_mat_id, const TMatrix &tm, const BBox3 &bbox,
+  const BSphere3 &bsphere, dag::ConstSpan<Point3_vec4> verts, dag::ConstSpan<uint32_t> indices, uint16_t behavior_flags, uint8_t flags,
+  bool build_chunk)
+{
+  // No vert-count cap: indices are uint32 and buildOneNodeBlasChunk is uint32-clean, so a node may hold
+  // >65536 verts (it then goes grid-resident like any other). buildOneNodeBlasChunk reads the indices
+  // (it builds its own reorder copy), so the caller's span is passed straight through.
   G_ASSERTF_RETURN(verts.size() > 2 && indices.size() > 2 && (indices.size() % 3) == 0, -1,
     "addMeshNode: malformed mesh geometry: verts.size=%d (need >2), indices.size=%d (need >2 and %%3==0)", (int)verts.size(),
     (int)indices.size());
-  // Owning-mode only: trailing meshVertsBase/meshIndicesBase reassignments would silently repoint
-  // existing non-owning nodes (createSingleMeshNonOwning seeds meshVertsBase from a caller-owned
-  // buffer). Refuse in release too, not just debug -- silent retarget corrupts the prior node.
-  G_ASSERTF_RETURN(meshVertsBase == nullptr || meshVertsBase == ownVertices.data(), -1,
-    "addMeshNode: cannot extend a non-owning CollisionResource (meshVertsBase points at external buffer)");
-  G_ASSERTF_RETURN(meshIndicesBase == nullptr || meshIndicesBase == ownIndices.data(), -1,
-    "addMeshNode: cannot extend a non-owning CollisionResource (meshIndicesBase points at external buffer)");
   CollisionNode &n = createNode();
   const int idx = (int)allNodesList.size() - 1;
   n.nameOfs = addName(name);
@@ -168,26 +136,58 @@ int CollisionResource::addMeshNode(const char *name, int16_t phys_mat_id, const 
   const float len1sq = tm.getcol(1).lengthSq();
   const float len2sq = tm.getcol(2).lengthSq();
   n.cachedMaxTmScale = sqrtf(max(len0sq, max(len1sq, len2sq)));
+  {
+    mat44f vTm;
+    v_mat44_make_from_43cu_unsafe(vTm, tm.array);
+    setAuthoredNodeTm(idx, vTm, flags, n.cachedMaxTmScale);
+  }
   n.modelBBox = bbox;
   n.boundingSphere.c = bsphere.c;
   n.boundingSphere.r = bsphere.r;
   n.nodeIndex = (uint16_t)idx;
-  if (!verts.empty())
-  {
-    n.verticesOfs = (uint32_t)ownVertices.size();
-    n.verticesCount = (uint16_t)(verts.size() - 1); // count-minus-one encoding (1..65536)
-    ownVertices.insert(ownVertices.end(), verts.begin(), verts.end());
-    meshVertsBase = ownVertices.data();
-  }
   if (!indices.empty())
   {
-    n.indicesOfs = (uint32_t)ownIndices.size();
+    n.indicesOfs = 0;
     n.indicesCount = (uint32_t)indices.size();
-    ownIndices.insert(ownIndices.end(), indices.begin(), indices.end());
-    meshIndicesBase = ownIndices.data();
+  }
+  if (!verts.empty())
+  {
+    n.verticesCount = (uint32_t)verts.size();
+    if (!build_chunk)
+    {
+      // Deferred build: caller owns the raw geometry and collapseAndOptimize() will build the one real
+      // chunk from the optimized staging. verticesOfs/indicesOfs index that raw span (sole node -> 0).
+      n.verticesOfs = 0;
+    }
+    else
+    {
+      // The owning vertex storage is a per-node BLAS chunk (like every other mesh/convex node);
+      // rejected/degenerate chunks are dropped to indicesCount == 0 below.
+      dag::Vector<vec4f> sScr, oScr;
+      dag::Vector<Point3_vec4> pScr;
+      dag::Vector<vec4f> qScr;
+      dag::Vector<uint8_t> stkScr, soaScr;
+      if (indices.empty() || !buildOneNodeBlasChunk(n, verts.data(), (unsigned)verts.size(), indices.data(), (unsigned)n.indicesCount,
+                               sScr, oScr, pScr, qScr, stkScr, soaScr))
+      {
+        // Rejected chunk (reason logerr'd by the builder): drop its geometry -- no collision surface.
+        n.indicesCount = 0;
+      }
+    }
   }
   numMeshNodes++;
   return idx;
+}
+
+int CollisionResource::addMeshNode(const char *name, int16_t phys_mat_id, const TMatrix &tm, const BBox3 &bbox,
+  const BSphere3 &bsphere, dag::ConstSpan<Point3_vec4> verts, dag::ConstSpan<uint16_t> indices, uint16_t behavior_flags, uint8_t flags)
+{
+  // Legacy 16-bit-index entry point: widen into a transient buffer and forward to the uint32 path.
+  dag::Vector<uint32_t, framemem_allocator> idx32(indices.size());
+  for (int i = 0, e = (int)indices.size(); i < e; ++i)
+    idx32[i] = indices[i];
+  return addMeshNode(name, phys_mat_id, tm, bbox, bsphere, verts, dag::ConstSpan<uint32_t>(idx32.data(), idx32.size()), behavior_flags,
+    flags);
 }
 
 int CollisionResource::addConvexNode(const char *name, int16_t phys_mat_id, const TMatrix &tm, const BBox3 &bbox,
@@ -228,9 +228,45 @@ static inline void readTab(IGenLoad &cb, T &tab)
 
 static inline auto load_frt16(IGenLoad &cb) { return DeserializedStaticSceneRayTracerT<uint16_t>::load(cb); }
 
+void CollisionResource::setAuthoredNodeTm(int node_index, mat44f_cref tm, uint8_t class_flags, float max_scale)
+{
+  G_ASSERT_RETURN((uint32_t)node_index < defaultInstance.nodeTm.size(), );
+  // Invalidate the cached bind trace sphere until layout finalization.
+  vBindTraceSphere = v_zero();
+  bindTraceSphereStamped = false;
+  v_mat_43cu_from_mat44(defaultInstance.nodeTm[node_index].array, tm);
+  v_mat_43cu_from_mat44(authoredNodeTm[node_index].array, tm);
+  CollisionResourceInstance::PoseMeta &pm = defaultInstance.poseMeta[node_index];
+  pm = CollisionResourceInstance::PoseMeta(); // node slots are reused (legacy drop path): no stale status bits
+  pm.maxTmScale = max_scale;
+  pm.flags =
+    class_flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE | CollisionNode::ORTHONORMALIZED | CollisionNode::ORTHOUNIFORM);
+  // Capsule geometry is never exporter-baked, so epsilon-identity motion must still apply.
+  if ((pm.flags & CollisionNode::IDENT) && allNodesList[node_index].type == COLLISION_NODE_TYPE_CAPSULE &&
+      !(v_check_xyz_all_true(v_cmp_eq(tm.col0, V_C_UNIT_1000)) && v_check_xyz_all_true(v_cmp_eq(tm.col1, V_C_UNIT_0100)) &&
+        v_check_xyz_all_true(v_cmp_eq(tm.col2, V_C_UNIT_0010)) && v_check_xyz_all_true(v_cmp_eq(tm.col3, v_zero()))))
+    pm.flags = (pm.flags & ~CollisionNode::IDENT) | CollisionNode::TRANSLATE;
+  // Authored mirrored placements remain valid; only singular placements are hidden.
+  const float det = v_extract_x(v_dot3_x(tm.col0, v_cross3(tm.col1, tm.col2)));
+  // Any non-finite affine component (translation included) is unrealizable. The exponent-bit
+  // test survives -ffinite-math-only, which folds float-domain tricks like x - x away.
+  const bool tmFinite = v_test_xyzw_finite(v_add(v_add(tm.col0, tm.col1), v_add(tm.col2, tm.col3)));
+  // Reject scales below the un-bake divisor floor.
+  pm.setTraceable(tmFinite && fabsf(det) > 1e-6f * max_scale * max_scale * max_scale && max_scale > 1e-9f);
+  if (DAGOR_UNLIKELY(!pm.isTraceable()))
+    LOGWARN_ONCE("collision: singular authored tm (det=%g) on node %d of res %p; hidden from the pose mirror "
+                 "(legacy dispatch unchanged until the migration reads it)",
+      det, node_index, this);
+  // Non-uniform primitive placement is supported conservatively but remains a content error.
+  else if (DAGOR_UNLIKELY(pm.flags == 0 && (allNodesList[node_index].type == COLLISION_NODE_TYPE_SPHERE ||
+                                             allNodesList[node_index].type == COLLISION_NODE_TYPE_CAPSULE)))
+    LOGWARN_ONCE("collision: non-uniform authored tm on %s node %d of res %p traces as an ellipsoid",
+      allNodesList[node_index].type == COLLISION_NODE_TYPE_SPHERE ? "sphere" : "capsule", node_index, this);
+}
+
 // Legacy on-disk bits in CollisionNode::flags signaling that the per-node mesh data was written
 // as an offset into the FRT vertex/face dump rather than as raw data. The runtime no longer keeps
-// these flags; the loader decodes the FRT slice into ownVertices/ownIndices and clears the bits.
+// these flags; the loader decodes the FRT slice into the vert + index staging and clears the bits.
 static constexpr uint8_t LEGACY_FLAG_VERTICES_ARE_REFS = 64;
 static constexpr uint8_t LEGACY_FLAG_INDICES_ARE_REFS = 128;
 
@@ -243,17 +279,33 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
   names.clear();
   capsules.clear();
   convexPlanes.clear();
-  ownVertices.clear();
-  ownIndices.clear();
-  meshVertsBase = nullptr;
-  meshIndicesBase = nullptr;
+  // Per-node BLAS chunk storage. Clear here (grids reset above, so no live leaf points into it) so a reload
+  // that skips buildNodeBlasChunks (empty/non-mesh) keeps no stale chunk bytes counted by getMemoryUsed().
+  nodeBlasData.clear();
+  // The default pose restarts from the authored placements read below; a reload must also
+  // return every bind-state latch to its constructed value.
+  defaultInstance.nodeTm.clear();
+  authoredNodeTm.clear();
+  defaultInstance.poseMeta.clear();
+  defaultInstance.gridResidentPoseAtBind = true;
+  defaultInstance.posedSinceBind = false;
+  defaultInstance.bsphereCenterLocal = v_zero();
+  defaultInstance.hasBsphereCenterLocal = false;
+  geomNodeTreeBound = false; // replacement nodes have never been bound
+
+  // Raw verts + source-face indices live only in this transient staging while loading: buildBLAS
+  // flattens from it (so the BLAS quantizes the disk data directly -- the exporter weld targets exactly
+  // that) and buildNodeBlasChunks packs the non-resident remainder into per-node chunks; after this
+  // function only vert21 representations remain (grid blasData + per-node chunks in nodeBlasData).
+  dag::Vector<Point3_vec4> stagingVerts;
+  dag::Vector<uint32_t> stagingIndices;
 
   unsigned label = _cb.readInt();
   G_ASSERTF_RETURN((label & 0xFFFF0000) == 0xACE50000, , "Invalid collision resource: 0x%8X", label);
 
   int version = (label & 0xFFFF);
   if (version == 0)
-    return loadLegacyRawFormat(_cb, res_id);
+    return loadLegacyRawFormat(_cb, res_id); // rebuildNodesLL inside restamps pose scales
 
   unsigned btag = 0;
   const unsigned compr_data_sz = _cb.beginBlock(&btag);
@@ -277,7 +329,7 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
   // Legacy FRT blocks on disk: drained into local unique_ptrs (released at end of this function), so
   // the runtime never holds them beyond load. Consulted only by LEGACY_FLAG_VERTICES_ARE_REFS /
   // LEGACY_FLAG_INDICES_ARE_REFS node entries to source mesh vertex/index data. The combined-per-
-  // behavior BLAS is the only runtime acceleration structure, built below from ownVertices/ownIndices.
+  // behavior BLAS is the only runtime acceleration structure, built below from the vert + index staging.
   using LegacyFRT = const StaticSceneRayTracerT<uint16_t>;
   eastl::unique_ptr<LegacyFRT, DestroyDeleter<LegacyFRT>> legacyTraceFRT, legacyCollFRT;
   if (collisionFlags & COLLISION_RES_FLAG_HAS_TRACE_FRT)
@@ -286,6 +338,9 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
     legacyCollFRT.reset(load_frt16(*zcrd));
 
   reserve_and_resize(allNodesList, zcrd->readInt());
+  reserve_and_resize(defaultInstance.nodeTm, allNodesList.size());
+  reserve_and_resize(authoredNodeTm, allNodesList.size());
+  reserve_and_resize(defaultInstance.poseMeta, allNodesList.size());
   String tmp_node_name;
   // Reused across iterations to stage planes before committing them to the resource-level
   // convexPlanes pool. The commit happens at the bottom of each iteration so that any future
@@ -331,36 +386,68 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
 #endif
         DAG_FATAL("Mesh vertex count %d > 65536 in node <%s> of res <%s>", cnt, getNodeNameStr(n), resName.c_str());
       }
-      const uint32_t prev = (uint32_t)ownVertices.size();
+      const uint32_t prev = (uint32_t)stagingVerts.size();
       n.verticesOfs = prev;
-      n.verticesCount = (uint16_t)(cnt - 1); // count-minus-one encoding (1..65536)
-      ownVertices.resize(prev + cnt);
+      n.verticesCount = (uint32_t)cnt;
+      stagingVerts.resize(prev + cnt);
       if (n.flags & LEGACY_FLAG_VERTICES_ARE_REFS)
       {
         int ofs = zcrd->readInt();
         const auto &legacyFRT = (ofs & 0x40000000) ? legacyCollFRT : legacyTraceFRT;
-        memcpy(ownVertices.data() + prev, &legacyFRT->verts(ofs & 0xFFFFFF), cnt * sizeof(Point3_vec4));
+        memcpy(stagingVerts.data() + prev, &legacyFRT->verts(ofs & 0xFFFFFF), cnt * sizeof(Point3_vec4)); //-V780
       }
       else
-        zcrd->read(ownVertices.data() + prev, cnt * sizeof(Point3_vec4));
+        zcrd->read(stagingVerts.data() + prev, cnt * sizeof(Point3_vec4));
     }
 
     if (int cnt = zcrd->readInt())
     {
-      const uint32_t prev = (uint32_t)ownIndices.size();
+      // cnt comes straight from the pack. A negative value sign-extends to a huge size_t in the
+      // idx16 allocation below; a non-multiple-of-3 is not a triangle list. The upper bound is a pure
+      // allocation guard against a corrupt count, not a format limit: index count is faces*3 and is
+      // unrelated to the 65536 vertex bound, and the exporter writes idxs.size() uncapped, so the
+      // bound must clear any node a real cook can produce or the pack fails to round-trip.
+      if (cnt < 0 || (cnt % 3) != 0 || (uint32_t)cnt > 0x4000000u)
+      {
+        String resName;
+#if _TARGET_STATIC_LIB
+        get_game_resource_name(res_id, resName);
+#else
+        resName = "unknown";
+#endif
+        DAG_FATAL("Malformed index count %d in node <%s> of res <%s>", cnt, getNodeNameStr(n), resName.c_str());
+      }
+      const uint32_t prev = (uint32_t)stagingIndices.size();
       n.indicesOfs = prev;
       n.indicesCount = (uint32_t)cnt;
-      ownIndices.resize(prev + cnt);
+      stagingIndices.resize(prev + cnt);
+      // The pack stores 16-bit node-local indices; the staging is uint32 (runtime per-node BLAS chunks
+      // may dup past 65536 verts), so read the 16-bit slice into a temp and widen element-wise.
+      dag::Vector<uint16_t, framemem_allocator> idx16((size_t)cnt);
       if (n.flags & LEGACY_FLAG_INDICES_ARE_REFS)
       {
         int ofs = zcrd->readInt();
         const auto &legacyFRT = (ofs & 0x40000000) ? legacyCollFRT : legacyTraceFRT;
-        memcpy(ownIndices.data() + prev, (uint16_t *)legacyFRT->faces(0).v + (ofs & 0xFFFFFF), cnt * sizeof(uint16_t));
+        memcpy(idx16.data(), (uint16_t *)legacyFRT->faces(0).v + (ofs & 0xFFFFFF), cnt * sizeof(uint16_t));
       }
       else
-        zcrd->read(ownIndices.data() + prev, cnt * sizeof(uint16_t));
+        zcrd->read(idx16.data(), cnt * sizeof(uint16_t));
+      uint32_t *dst = stagingIndices.data() + prev;
+      for (int i = 0; i < cnt; ++i)
+        dst[i] = idx16[i];
     }
     n.flags &= ~(LEGACY_FLAG_VERTICES_ARE_REFS | LEGACY_FLAG_INDICES_ARE_REFS);
+    {
+      const int nodeIdx = (int)(&n - allNodesList.data());
+      mat44f vAuthoredTm;
+      v_mat44_make_from_43cu_unsafe(vAuthoredTm, n.tm.array);
+      setAuthoredNodeTm(nodeIdx, vAuthoredTm, n.flags, n.cachedMaxTmScale);
+      // Exporter-baked prim geometry keeps its bake (this loader also bakes capsule
+      // endpoints below); the storage migration un-bakes all of it to node-local.
+      if ((n.type == COLLISION_NODE_TYPE_BOX || n.type == COLLISION_NODE_TYPE_SPHERE || n.type == COLLISION_NODE_TYPE_CAPSULE) &&
+          !(defaultInstance.poseMeta[nodeIdx].flags & CollisionNode::IDENT))
+        defaultInstance.poseMeta[nodeIdx].setGeometryBaked(true);
+    }
     if (n.type == COLLISION_NODE_TYPE_CAPSULE)
     {
       Capsule c;
@@ -409,20 +496,15 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
   names.shrink_to_fit();
   capsules.shrink_to_fit();
   convexPlanes.shrink_to_fit();
-  ownVertices.shrink_to_fit();
-  ownIndices.shrink_to_fit();
-  meshVertsBase = ownVertices.data();
-  meshIndicesBase = ownIndices.data();
   rebuildNodesLL();
 
-  // Build the runtime BLAS from ownVertices/ownIndices, but ONLY for assets already in final
+  // Build the runtime BLAS from the raw staging, but ONLY for assets already in final
   // collapsed/baked layout (COLLISION_RES_FLAG_OPTIMIZED on disk). A non-optimized asset is later
   // handed to collapseAndOptimize (rendinst optimize_collres_on_load, level streaming), which
-  // rebuilds the BLAS and runs compactOwnVertices once there. Building+compacting here would corrupt
-  // it: verticesOfs gets reinterpreted as a vert21 index, then collapseAndOptimize re-reads it as an
-  // ownVertices offset -> corrupt BLAS. (Any FRT bytes on disk were drained into the local legacy*FRT
-  // unique_ptrs above; BLAS is the only structure the runtime keeps.) Same selector as the FRT-era:
-  // REUSE_TRACE_FRT set -> gridForTraceable holds the shared BLAS; else gridForCollidable is separate.
+  // materializes the packed verts, rebuilds, and re-packs there. (Any FRT bytes on disk were drained
+  // into the local legacy*FRT unique_ptrs above; BLAS is the only acceleration structure the runtime
+  // keeps.) Same selector as the FRT-era: REUSE_TRACE_FRT set -> gridForTraceable holds the shared
+  // BLAS; else gridForCollidable is separate.
   if (collisionFlags & COLLISION_RES_FLAG_OPTIMIZED)
   {
     // Cull parity: BLAS is rebuilt (not serialized), so cull mode is restored from the persisted
@@ -435,16 +517,20 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
     // collidable-only IDENT mesh nodes from collision. Mirrors the recompute collapseAndOptimize runs.
     recomputeTraceReuseFlagFromNodeSets();
     const bool twoSidedMarker = (collisionFlags & COLLISION_RES_FLAG_BLAS_TWO_SIDED) != 0;
-    gridForTraceable.buildBLAS(this, CollisionNode::TRACEABLE,
+    gridForTraceable.buildBLAS(this, make_span_const(stagingVerts), make_span_const(stagingIndices), CollisionNode::TRACEABLE,
       /*two_sided*/ twoSidedMarker || (collisionFlags & COLLISION_RES_FLAG_HAS_TRACE_FRT) != 0);
     if (!(collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
-      gridForCollidable.buildBLAS(this, CollisionNode::PHYS_COLLIDABLE,
+      gridForCollidable.buildBLAS(this, make_span_const(stagingVerts), make_span_const(stagingIndices), CollisionNode::PHYS_COLLIDABLE,
         /*two_sided*/ twoSidedMarker || (collisionFlags & COLLISION_RES_FLAG_HAS_COLL_FRT) != 0);
-    // Drop ownVertices slices for BLAS-resident nodes (verts now live in the active grid's vert21
-    // array). MUST run after BOTH buildBLAS calls so the second build still reads unmodified
-    // verticesOfs slices for nodes the first build included.
-    compactOwnVertices();
   }
+  // Stamp grid membership + residency for nodes the grids absorbed (no-op when no BLAS was built) and
+  // pack the remainder as per-node chunks. MUST run after BOTH buildBLAS calls so the second build
+  // still reads unmodified verticesOfs slices for nodes the first build included.
+  // Per-node BLAS chunks for big non-resident mesh nodes: needs the raw staging (reads slices,
+  // packs the chunked blocks itself) and the final grids (residency prediction), so it sits
+  // between the BLAS builds and the stamp.
+  buildNodeBlasChunks(stagingVerts, stagingIndices);
+  stampBlasResidentNodes();
   /* if (!validateVerticesForJolt())
   {
     String resName;
@@ -453,13 +539,20 @@ void CollisionResource::load(IGenLoad &_cb, int res_id)
   }*/
 }
 
-void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*resolve_phmat)(const char *))
+void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*resolve_phmat)(const char *),
+  dag::Vector<Point3_vec4> *raw_verts_out, dag::Vector<uint32_t> *raw_indices_out)
 {
   convexPlanes.clear();
-  ownVertices.clear();
-  ownIndices.clear();
-  meshVertsBase = nullptr;
-  meshIndicesBase = nullptr;
+  // Raw verts + source-face indices are read into staging: the exporter (raw_verts_out/raw_indices_out)
+  // keeps them as its full-precision workspace (external-raw mode -- the weld/validate/serialize
+  // pipeline must see exact floats); the runtime (null) packs them into per-node chunks / the grid at
+  // the end and drops the staging.
+  dag::Vector<Point3_vec4> localStaging;
+  dag::Vector<uint32_t> localStagingIdx;
+  dag::Vector<Point3_vec4> &stagingVerts = raw_verts_out ? *raw_verts_out : localStaging;
+  dag::Vector<uint32_t> &stagingIndices = raw_indices_out ? *raw_indices_out : localStagingIdx;
+  stagingVerts.clear();
+  stagingIndices.clear();
   int version = _cb.readInt();
   bool hasMaterialData = version >= 0x20150115;
   bool hasCollisionFlags = version >= 0x20180510;
@@ -498,6 +591,14 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
     collisionFlags = cb.readInt();
   unsigned int numNodes = cb.readInt();
   reserve_and_resize(allNodesList, numNodes);
+  reserve_and_resize(defaultInstance.nodeTm, numNodes);
+  reserve_and_resize(authoredNodeTm, numNodes);
+  reserve_and_resize(defaultInstance.poseMeta, numNodes);
+  defaultInstance.gridResidentPoseAtBind = true;
+  defaultInstance.posedSinceBind = false;
+  defaultInstance.bsphereCenterLocal = v_zero();
+  defaultInstance.hasBsphereCenterLocal = false;
+  geomNodeTreeBound = false; // replacement nodes have never been bound
   if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
     reserve_and_resize(relGeomNodeTms, numNodes);
 
@@ -535,34 +636,16 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
     cb.read(&node.tm, sizeof(TMatrix));
     if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
       cb.read(&relGeomNodeTms[nodeNo], sizeof(TMatrix));
-    node.flags = 0;
     mat44f vNodeTm;
     v_mat44_make_from_43cu_unsafe(vNodeTm, node.tm.array);
-    float dot01 = v_extract_x(v_dot3_x(vNodeTm.col0, vNodeTm.col1));
-    float dot02 = v_extract_x(v_dot3_x(vNodeTm.col0, vNodeTm.col2));
-    float dot12 = v_extract_x(v_dot3_x(vNodeTm.col1, vNodeTm.col2));
-    float len0sq = v_extract_x(v_length3_sq_x(vNodeTm.col0));
-    float len1sq = v_extract_x(v_length3_sq_x(vNodeTm.col1));
-    float len2sq = v_extract_x(v_length3_sq_x(vNodeTm.col2));
-    float len3sq = v_extract_x(v_length3_sq_x(vNodeTm.col3));
-    const float eps = 1e-3;
-    if (fabs(dot01) < eps && fabs(dot02) < eps && fabs(dot12) < eps && fabsf(len0sq - len1sq) < eps && fabsf(len0sq - len2sq) < eps)
-    {
-      if (fabs(len0sq - 1.f) < eps && fabs(len1sq - 1.f) < eps && fabs(len2sq - 1.f) < eps)
-      {
-        node.flags = node.ORTHONORMALIZED;
-        if (node.tm.getcol(0).x == 1.f && node.tm.getcol(1).y == 1.f && node.tm.getcol(2).z == 1.f)
-        {
-          if (len3sq < eps)
-            node.flags |= node.IDENT;
-          else
-            node.flags |= node.TRANSLATE;
-        }
-      }
-      else
-        node.flags = node.ORTHOUNIFORM;
-    }
-    node.cachedMaxTmScale = sqrtf(max(len0sq, max(len1sq, len2sq)));
+    node.flags = classifyNodeTmFlags(vNodeTm, node.cachedMaxTmScale);
+    setAuthoredNodeTm((int)nodeNo, vNodeTm, node.flags, node.cachedMaxTmScale);
+    // Exporter-baked prim geometry keeps its bake (this loader also bakes capsule
+    // endpoints below); the storage migration un-bakes all of it to node-local.
+    if (
+      (node.type == COLLISION_NODE_TYPE_BOX || node.type == COLLISION_NODE_TYPE_SPHERE || node.type == COLLISION_NODE_TYPE_CAPSULE) &&
+      !(defaultInstance.poseMeta[nodeNo].flags & CollisionNode::IDENT))
+      defaultInstance.poseMeta[nodeNo].setGeometryBaked(true);
 
     {
       BSphere3 tmpSph;
@@ -585,7 +668,7 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
     readTab(cb, tempVertices);
     if (!tempVertices.empty())
     {
-      int verticesLimit = eastl::numeric_limits<uint16_t>::max();
+      int verticesLimit = 0x10000; // 16-bit indices address 0..65535, so 65536 verts fit (matches the modern loader / addMeshNode)
       if (tempVertices.size() > verticesLimit)
       {
         String resName;
@@ -623,17 +706,20 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
       nodeNo--;
       numNodes--;
       allNodesList.resize(numNodes);
+      defaultInstance.nodeTm.resize(numNodes); // pose arrays shrink in lockstep with the node list
+      authoredNodeTm.resize(numNodes);
+      defaultInstance.poseMeta.resize(numNodes);
       continue;
     }
 
     // Node is kept: commit its mesh data into the resource-wide arrays.
     if (!tempVertices.empty())
     {
-      const uint32_t prev = (uint32_t)ownVertices.size();
+      const uint32_t prev = (uint32_t)stagingVerts.size();
       node.verticesOfs = prev;
-      node.verticesCount = (uint16_t)(tempVertices.size() - 1); // count-minus-one encoding
-      ownVertices.resize(prev + tempVertices.size());
-      Point3_vec4 *dst = ownVertices.data() + prev;
+      node.verticesCount = (uint32_t)tempVertices.size();
+      stagingVerts.resize(prev + tempVertices.size());
+      Point3_vec4 *dst = stagingVerts.data() + prev;
       for (int i = 0; i < tempVertices.size(); ++i)
       {
         dst[i] = tempVertices[i];
@@ -642,17 +728,46 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
     }
     if (!tempIndices.empty() && !tempVertices.empty())
     {
-      const uint32_t prev = (uint32_t)ownIndices.size();
+      const uint32_t prev = (uint32_t)stagingIndices.size();
       node.indicesOfs = prev;
-      node.indicesCount = (uint32_t)tempIndices.size();
-      ownIndices.resize(prev + tempIndices.size());
-      uint16_t *dst = ownIndices.data() + prev;
-      for (int i = 0; i < tempIndices.size(); i += 3) // rotate (0,1,2)->(0,2,1) and narrow-convert int -> uint16_t
+      stagingIndices.resize(prev + tempIndices.size());
+      uint32_t *dst = stagingIndices.data() + prev;
+      // Drop faces with any out-of-range vertex index here, not at BLAS build: the exporter raw path
+      // (collapseAndOptimize -> raw_indices_out) hands these straight to exp_collision, which indexes
+      // m.vert[idx] unchecked. A signed cast of a negative index wraps to a huge unsigned, so the
+      // unsigned compare catches both negatives and overflow.
+      const unsigned vcount = (unsigned)tempVertices.size();
+      uint32_t kept = 0, droppedFaces = 0;
+      for (int i = 0; i + 2 < tempIndices.size(); i += 3) // rotate (0,1,2)->(0,2,1)
       {
-        dst[i + 0] = (uint16_t)tempIndices[i + 0];
-        dst[i + 2] = (uint16_t)tempIndices[i + 1];
-        dst[i + 1] = (uint16_t)tempIndices[i + 2];
+        if ((unsigned)tempIndices[i] >= vcount || (unsigned)tempIndices[i + 1] >= vcount || (unsigned)tempIndices[i + 2] >= vcount)
+        {
+          ++droppedFaces;
+          continue;
+        }
+        dst[kept + 0] = (uint32_t)tempIndices[i + 0];
+        dst[kept + 2] = (uint32_t)tempIndices[i + 1];
+        dst[kept + 1] = (uint32_t)tempIndices[i + 2];
+        kept += 3;
       }
+      const uint32_t trailing = (uint32_t)(tempIndices.size() % 3);
+      if (droppedFaces || trailing)
+      {
+        String resName;
+#if _TARGET_STATIC_LIB
+        get_game_resource_name(res_id, resName);
+#else
+        resName = "unknown";
+#endif
+        if (droppedFaces)
+          logerr("collision node <%s> of res <%s>: %u faces reference an out-of-range vertex; dropped", getNodeNameStr(node),
+            resName.c_str(), droppedFaces);
+        if (trailing)
+          logerr("collision node <%s> of res <%s>: %u trailing indices (not a whole face); dropped", getNodeNameStr(node),
+            resName.c_str(), trailing);
+      }
+      stagingIndices.resize(prev + kept);
+      node.indicesCount = kept;
     }
 
     if (node.type == COLLISION_NODE_TYPE_CAPSULE)
@@ -692,12 +807,21 @@ void CollisionResource::loadLegacyRawFormat(IGenLoad &_cb, int res_id, int (*res
   names.shrink_to_fit();
   capsules.shrink_to_fit();
   convexPlanes.shrink_to_fit();
-  ownVertices.shrink_to_fit();
-  ownIndices.shrink_to_fit();
-  meshVertsBase = ownVertices.data();
-  meshIndicesBase = ownIndices.data();
+  stagingVerts.shrink_to_fit();
+  stagingIndices.shrink_to_fit();
   sortNodesList();
   rebuildNodesLL();
+
+  // Exporter raw workspace stays external-raw (full-precision spans); runtime packs and drops the
+  // staging (no grids exist on this path -- collapseAndOptimize builds them later -- so nothing is
+  // stamped resident here).
+  if (!raw_verts_out)
+  {
+    // No grids on this path (residency prediction sees empty blasNodeRanges), so every big mesh
+    // node is chunk-eligible -- exactly what never-collapsed dedicated-server assets want.
+    buildNodeBlasChunks(stagingVerts, stagingIndices);
+    stampBlasResidentNodes();
+  }
 
   _cb.endBlock();
 }
@@ -725,7 +849,9 @@ void CollisionResource::recomputeTraceReuseFlagFromNodeSets()
     collisionFlags &= ~COLLISION_RES_FLAG_REUSE_TRACE_FRT;
 }
 
-void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt, bool frt_build_fast)
+void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt, bool frt_build_fast,
+  dag::Vector<Point3_vec4> *raw_verts_out, dag::Vector<uint32_t> *raw_indices_out, dag::ConstSpan<Point3_vec4> in_raw_verts,
+  dag::ConstSpan<uint32_t> in_raw_indices)
 {
   if (collisionFlags & COLLISION_RES_FLAG_OPTIMIZED)
   {
@@ -733,14 +859,77 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     return;
   }
   collisionFlags |= COLLISION_RES_FLAG_OPTIMIZED;
+  // addMeshNode/addConvexNode publish nodes without touching the per-type lists, so a builder that
+  // skipped rebuildNodesLL() would reach here unlinked and the optimize below would silently be a
+  // no-op. Self-heal once; already-linked callers keep a valid head and never enter this branch (no
+  // double rebuild), and a genuinely node-less resource still has INVALID_IDX after the rebuild.
+  if (meshNodesHead == CollisionNode::INVALID_IDX)
+    rebuildNodesLL();
   if (meshNodesHead == CollisionNode::INVALID_IDX) // || numMeshNodes < 2
   {
     // debug("CollisionResource: nothing to optimize %p", this);
     return;
   }
 
-  // Phase A: bake non-IDENT TM into geometry, in place against ownVertices/ownIndices.
-  G_ASSERT(meshVertsBase == ownVertices.data() && meshIndicesBase == ownIndices.data());
+  // Materialize every mesh/convex node's verts into a raw staging workspace: phases A-C below
+  // mutate and merge raw Point3_vec4 data, buildBLAS flattens from it, and the final storage is
+  // rebuilt from it at the end (vert21-packed for the runtime, or handed to raw_verts_out for the
+  // exporter). Sources: the runtime decodes the packed per-node chunks via iterateNodeVerts; the
+  // exporter reads its full-precision raw_verts workspace directly (inputRaw below). The w lane is
+  // forced to 1.0f to match the legacy raw layout (the exporter serializes Point3_vec4 verbatim).
+  // Exporter input arrives full-precision in raw_verts_out (loadLegacyRawFormat wrote it there; node
+  // verticesOfs still index it). Either way the resource never holds the raw verts -- they live in
+  // raw_verts_out or the local staging.
+  // Prefer an explicit raw input (createSingleMesh) over the exporter's raw_verts_out: both feed the
+  // staging loop below the same way (skip the chunk decode), but only raw_verts_out also redirects the
+  // tail to hand verts back instead of building runtime chunks.
+  const Point3_vec4 *inputRaw = !in_raw_verts.empty() ? in_raw_verts.data() : (raw_verts_out ? raw_verts_out->data() : nullptr);
+  const uint32_t *inputIdx = !in_raw_indices.empty() ? in_raw_indices.data() : (raw_indices_out ? raw_indices_out->data() : nullptr);
+  dag::Vector<Point3_vec4> staging;
+  dag::Vector<uint32_t> idxStaging;
+  {
+    size_t totalV = 0, totalI = 0;
+    for (const CollisionNode &n : allNodesList)
+      if ((n.type == COLLISION_NODE_TYPE_MESH || n.type == COLLISION_NODE_TYPE_CONVEX) && n.hasGeometry())
+      {
+        totalV += (uint32_t)n.verticesCount;
+        totalI += n.indicesCount;
+      }
+    staging.reserve(totalV);
+    idxStaging.reserve(totalI);
+    for (CollisionNode &n : allNodesList)
+    {
+      if ((n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX) || !n.hasGeometry())
+        continue;
+      const uint32_t oldVOfs = n.verticesOfs;
+      const uint32_t cnt = (uint32_t)n.verticesCount;
+      const uint32_t vofs = (uint32_t)staging.size();
+      staging.resize(vofs + cnt);
+      Point3_vec4 *dst = staging.data() + vofs;
+      if (inputRaw) // exporter: copy full-precision verts straight from raw_verts_out (w lane forced to 1)
+        for (uint32_t i = 0; i < cnt; ++i)
+          v_st(&dst[i].x, v_perm_xyzd(v_ld(&inputRaw[oldVOfs + i].x), V_C_ONE));
+      else
+        iterateNodeVerts((int)n.nodeIndex, [&](int i, vec4f v) { v_st(&dst[i].x, v_perm_xyzd(v, V_C_ONE)); });
+      n.verticesOfs = vofs;
+      // Faces (node-local, [0, verticesCount)): the exporter copies its full-precision index workspace;
+      // the runtime re-materialises from the chunk leaf walk -- the same node-local order
+      // iterateNodeVerts decoded the block above -- so phases A-C, the rebuild and the final buildBLAS
+      // read/mutate verts+indices in lockstep. The resource keeps no index list either way.
+      const uint32_t oldIOfs = n.indicesOfs;
+      n.indicesOfs = (uint32_t)idxStaging.size();
+      if (inputIdx)
+        idxStaging.insert(idxStaging.end(), inputIdx + oldIOfs, inputIdx + oldIOfs + n.indicesCount);
+      else
+        walkNodeChunkLeavesForFaces(n, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
+          idxStaging.push_back(i0);
+          idxStaging.push_back(i1);
+          idxStaging.push_back(i2);
+        });
+    }
+  }
+
+  // Phase A: bake non-IDENT TM into geometry, in place against the staging verts / index staging.
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
     CollisionNode *m = &allNodesList[mi];
@@ -748,9 +937,9 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
       continue;
     if ((m->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT || m->indicesCount == 0)
       continue;
-    Point3_vec4 *vbase = ownVertices.data() + m->verticesOfs;
-    uint16_t *ibase = ownIndices.data() + m->indicesOfs;
-    const uint32_t mVCount = (uint32_t)m->verticesCount + 1u;
+    Point3_vec4 *vbase = staging.data() + m->verticesOfs;
+    uint32_t *ibase = idxStaging.data() + m->indicesOfs;
+    const uint32_t mVCount = (uint32_t)m->verticesCount;
     mat44f nodeTm;
     bbox3f box;
     v_mat44_make_from_43cu(nodeTm, m->tm[0]);
@@ -782,11 +971,16 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     m->flags = CollisionNode::IDENT | (m->flags & (~CollisionNode::TRANSLATE));
     m->flags = CollisionNode::ORTHONORMALIZED | (m->flags & (~CollisionNode::ORTHOUNIFORM));
     m->cachedMaxTmScale = 1.f;
+    {
+      mat44f identTm;
+      v_mat44_ident(identTm);
+      setAuthoredNodeTm(m->nodeIndex, identTm, m->flags, 1.f);
+    }
   }
 
   // Phase B: bucket mesh nodes by (matId, isPhysCollidable) and build per-bucket merged geometry
-  // into framemem temps. We do not mutate ownVertices/ownIndices here -- the rebuild pass below
-  // produces fresh dense arrays from the existing slices plus the merged buckets.
+  // into framemem temps. We do not mutate the staging verts / index staging here -- the rebuild pass
+  // below produces fresh dense arrays from the existing slices plus the merged buckets.
   IMemAlloc *framemem = framemem_ptr();
   Tab<Tab<CollisionNode *>> meshNodesByMat(framemem);
   Tab<eastl::pair<PhysMat::MatID, bool>> matIndices(framemem);
@@ -796,7 +990,9 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     CollisionNode *m = &allNodesList[mi];
     const bool isTraceable = m->checkBehaviorFlags(CollisionNode::TRACEABLE);
     const bool isPhysCollidable = m->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE);
-    if (m->type == COLLISION_NODE_TYPE_MESH && isTraceable)
+    // indicesCount guard: a degenerate-dropped node has no staging slice (the staging pass above skips
+    // it), so bucketizing it would read past its absent slice at staging.data() + verticesOfs below.
+    if (m->type == COLLISION_NODE_TYPE_MESH && isTraceable && m->hasGeometry())
     {
       const eastl::pair<PhysMat::MatID, bool> matIndicesValue = eastl::make_pair(m->physMatId, isPhysCollidable);
       intptr_t bucket = find_value_idx(matIndices, matIndicesValue);
@@ -831,13 +1027,16 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     for (const CollisionNode *node : nodes)
     {
       // Bucketed nodes are mesh nodes added to meshNodesByMat only when type==MESH and traceable;
-      // they always have valid mesh data (indicesCount > 0), so the +1 decode is safe.
-      v_total += (uint32_t)node->verticesCount + 1u;
+      // they always have valid mesh data (indicesCount > 0), so verticesCount is meaningful.
+      v_total += (uint32_t)node->verticesCount;
       i_total += node->indicesCount;
     }
     if (v_total > 65530)
     {
-      debug("CollisionResource: too many faces %llu, cannot optimize %p res <%s>", (unsigned long long)v_total, this, res_name);
+      // Too large to merge into one 16-bit-indexed node. With per-node BLAS storage each node becomes its own
+      // uint32 chunk (or goes grid-resident), so keep them all unmerged instead of dropping nodes[1..].
+      debug("CollisionResource: bucket too large (%llu verts), keeping %d nodes unmerged %p res <%s>", (unsigned long long)v_total,
+        (int)nodes.size(), this, res_name);
       continue;
     }
     if (v_total == 0)
@@ -851,9 +1050,9 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     uint16_t v_off = 0;
     for (CollisionNode *m : nodes)
     {
-      const Point3_vec4 *srcVerts = ownVertices.data() + m->verticesOfs;
-      const uint16_t *srcIdx = ownIndices.data() + m->indicesOfs;
-      const uint32_t mVCount = (uint32_t)m->verticesCount + 1u;
+      const Point3_vec4 *srcVerts = staging.data() + m->verticesOfs;
+      const uint32_t *srcIdx = idxStaging.data() + m->indicesOfs;
+      const uint32_t mVCount = (uint32_t)m->verticesCount;
       for (uint32_t i = 0, e = mVCount; i < e; ++i)
       {
         bm.verts.push_back(srcVerts[i]);
@@ -874,17 +1073,19 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     targetNode->flags |= targetNode->IDENT;
     targetNode->flags &= ~targetNode->TRANSLATE;
     targetNode->cachedMaxTmScale = 1.f;
+    {
+      mat44f identTm;
+      v_mat44_ident(identTm);
+      setAuthoredNodeTm(targetNode->nodeIndex, identTm, targetNode->flags, 1.f);
+    }
 
     bucketMerges.push_back(eastl::move(bm));
-  }
 
-  // Drop duplicate bucket members for EVERY bucket, including ones that exceeded the merge limit
-  // (matches the pre-284581bf1d behavior: failed buckets keep only nodes[0] so total vert count
-  // stays under the 16-bit FRT index limit; trades silent data loss for a successful build).
-  // fixme: this has to be removed when CollisionResource is on BVH
-  for (const Tab<CollisionNode *> &nodes : meshNodesByMat)
+    // The merged geometry now lives in nodes[0]; drop the now-redundant bucket members. Too-large buckets
+    // took the early continue above and keep all their nodes (each becomes a per-node BLAS chunk).
     for (int i = 1; i < nodes.size(); ++i)
       nodesToRemove.push_back(nodes[i]->nodeIndex);
+  }
 
   // Compact allNodesList: drop merged-away nodes. Surviving nodes keep their (now-stale) offsets;
   // they will be re-stamped during the rebuild pass below.
@@ -901,17 +1102,17 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
   newAllNodes.shrink_to_fit();
   allNodesList = eastl::move(newAllNodes);
 
-  // Rebuild ownVertices/ownIndices in node order: for each surviving mesh/convex node, append
-  // either the bucket-merged data (if the node is a merge target) or the existing slice from the
-  // old pool. Stamp fresh offsets/counts on the node.
-  dag::Vector<Point3_vec4> newOwnVertices;
-  dag::Vector<uint16_t> newOwnIndices;
+  // Rebuild the staging verts / index staging in node order: for each surviving mesh/convex node,
+  // append either the bucket-merged data (if the node is a merge target) or the existing slice from
+  // the old pool. Stamp fresh offsets/counts on the node.
+  dag::Vector<Point3_vec4> newStaging;
+  dag::Vector<uint32_t> newIdxStaging;
   uint64_t totalV = 0, totalI = 0;
   for (CollisionNode &n : allNodesList)
   {
-    if (n.indicesCount) // gate on indicesCount: verticesCount uses count-minus-one and means nothing for empty/non-mesh nodes
+    if (n.hasGeometry()) // verticesCount means nothing for empty/non-mesh nodes
     {
-      totalV += (uint32_t)n.verticesCount + 1u;
+      totalV += (uint32_t)n.verticesCount;
       totalI += n.indicesCount;
     }
   }
@@ -920,8 +1121,8 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
     totalV += bm.verts.size();
     totalI += bm.indices.size();
   }
-  newOwnVertices.reserve((size_t)totalV);
-  newOwnIndices.reserve((size_t)totalI);
+  newStaging.reserve((size_t)totalV);
+  newIdxStaging.reserve((size_t)totalI);
   for (CollisionNode &n : allNodesList)
   {
     if (n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX)
@@ -935,49 +1136,58 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
       }
     if (bm)
     {
-      n.verticesOfs = (uint32_t)newOwnVertices.size();
-      n.verticesCount = (uint16_t)(bm->verts.size() - 1); // count-minus-one encoding
-      n.indicesOfs = (uint32_t)newOwnIndices.size();
+      n.verticesOfs = (uint32_t)newStaging.size();
+      n.verticesCount = (uint32_t)bm->verts.size();
+      n.indicesOfs = (uint32_t)newIdxStaging.size();
       n.indicesCount = (uint32_t)bm->indices.size();
-      newOwnVertices.insert(newOwnVertices.end(), bm->verts.begin(), bm->verts.end());
-      newOwnIndices.insert(newOwnIndices.end(), bm->indices.begin(), bm->indices.end());
+      newStaging.insert(newStaging.end(), bm->verts.begin(), bm->verts.end());
+      newIdxStaging.insert(newIdxStaging.end(), bm->indices.begin(), bm->indices.end());
     }
-    else if (n.indicesCount)
+    else if (n.hasGeometry())
     {
-      const uint32_t newVOfs = (uint32_t)newOwnVertices.size();
-      const uint32_t newIOfs = (uint32_t)newOwnIndices.size();
-      const Point3_vec4 *srcV = ownVertices.data() + n.verticesOfs;
-      const uint16_t *srcI = ownIndices.data() + n.indicesOfs;
-      const uint32_t nVCount = (uint32_t)n.verticesCount + 1u;
-      newOwnVertices.insert(newOwnVertices.end(), srcV, srcV + nVCount);
-      newOwnIndices.insert(newOwnIndices.end(), srcI, srcI + n.indicesCount);
+      const uint32_t newVOfs = (uint32_t)newStaging.size();
+      const uint32_t newIOfs = (uint32_t)newIdxStaging.size();
+      const Point3_vec4 *srcV = staging.data() + n.verticesOfs;
+      const uint32_t *srcI = idxStaging.data() + n.indicesOfs;
+      const uint32_t nVCount = (uint32_t)n.verticesCount;
+      newStaging.insert(newStaging.end(), srcV, srcV + nVCount);
+      newIdxStaging.insert(newIdxStaging.end(), srcI, srcI + n.indicesCount);
       n.verticesOfs = newVOfs;
       n.indicesOfs = newIOfs;
     }
   }
-  ownVertices = eastl::move(newOwnVertices);
-  ownIndices = eastl::move(newOwnIndices);
-  ownVertices.shrink_to_fit();
-  ownIndices.shrink_to_fit();
-  meshVertsBase = ownVertices.data();
-  meshIndicesBase = ownIndices.data();
+  staging = eastl::move(newStaging);
+  idxStaging = eastl::move(newIdxStaging);
+  staging.shrink_to_fit();
+  idxStaging.shrink_to_fit();
 
-  // The bucket merge above dropped nodes from allNodesList but left relGeomNodeTms (parallel to it, indexed
-  // by nodeIndex) at full size with now-stale indices. sortNodesList() below asserts relGeomNodeTms.size()
-  // == allNodesList.size() and reorders it by nodeIndex, and the runtime BVH reads relGeomNodeTms[nodeIndex],
-  // so compact it to the surviving nodes now that the node list is final. Gather each survivor's transform by
-  // its (still pre-collapse) nodeIndex, then renumber nodeIndex to a dense [0, size) so sortNodesList's
-  // by-nodeIndex reorder lines up with the position-parallel compacted array.
-  if (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID)
+  // Compact every nodeIndex-parallel array after bucket merging removes nodes.
   {
+    const bool hasRelTms = (collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID) != 0;
+    dag::Vector<TMatrix> compactedTm;
+    dag::Vector<TMatrix> compactedAuthoredTm;
+    dag::Vector<CollisionResourceInstance::PoseMeta> compactedMeta;
+    compactedTm.reserve(allNodesList.size());
+    compactedAuthoredTm.reserve(allNodesList.size());
+    compactedMeta.reserve(allNodesList.size());
     Tab<TMatrix> compactedRelGeomNodeTms(tmpmem);
-    compactedRelGeomNodeTms.reserve(allNodesList.size());
+    if (hasRelTms)
+      compactedRelGeomNodeTms.reserve(allNodesList.size());
     for (size_t i = 0; i < allNodesList.size(); i++)
     {
-      compactedRelGeomNodeTms.push_back(relGeomNodeTms[allNodesList[i].nodeIndex]);
+      const uint16_t oldIdx = allNodesList[i].nodeIndex;
+      compactedTm.push_back(defaultInstance.nodeTm[oldIdx]);
+      compactedAuthoredTm.push_back(authoredNodeTm[oldIdx]);
+      compactedMeta.push_back(defaultInstance.poseMeta[oldIdx]);
+      if (hasRelTms)
+        compactedRelGeomNodeTms.push_back(relGeomNodeTms[oldIdx]);
       allNodesList[i].nodeIndex = (uint16_t)i;
     }
-    relGeomNodeTms = eastl::move(compactedRelGeomNodeTms);
+    defaultInstance.nodeTm = eastl::move(compactedTm);
+    authoredNodeTm = eastl::move(compactedAuthoredTm);
+    defaultInstance.poseMeta = eastl::move(compactedMeta);
+    if (hasRelTms)
+      relGeomNodeTms = eastl::move(compactedRelGeomNodeTms);
   }
 
   sortNodesList();
@@ -1008,10 +1218,40 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
   // need_frt -> two-sided (CULL_BOTH) FRT, so trace two-sided; else the backface-culling per-node
   // path, so trace CullCCW. Preserves cull parity for need_frt=false assets instead of silently
   // making every BLAS asset two-sided.
-  gridForTraceable.buildBLAS(this, CollisionNode::TRACEABLE, /*two_sided*/ need_frt);
+  gridForTraceable.buildBLAS(this, make_span_const(staging), make_span_const(idxStaging), CollisionNode::TRACEABLE,
+    /*two_sided*/ need_frt);
   if (!(collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
-    gridForCollidable.buildBLAS(this, CollisionNode::PHYS_COLLIDABLE, /*two_sided*/ need_frt);
+    gridForCollidable.buildBLAS(this, make_span_const(staging), make_span_const(idxStaging), CollisionNode::PHYS_COLLIDABLE,
+      /*two_sided*/ need_frt);
   G_UNUSED(frt_build_fast);
+
+  if (raw_verts_out)
+  {
+    // Exporter raw workspace: hand the final raw verts + face indices to the caller. The export pipeline
+    // re-reads and rewrites these spans after this (vert21 weld, Jolt validation, serialization) and
+    // must see full-precision data so the shipped bits stay exact, so they are threaded through
+    // explicitly rather than stored in the resource. No packing: the exporter object never traces.
+    *raw_verts_out = eastl::move(staging);
+    if (raw_indices_out)
+      *raw_indices_out = eastl::move(idxStaging);
+  }
+  else
+  {
+    // Runtime: per-node BLAS chunks for big non-resident mesh nodes (needs the raw staging verts +
+    // indices and the final grids), stamp grid membership + residency for nodes the grids absorbed,
+    // pack the remainder as vert21 blocks, drop the staging (must run after BOTH buildBLAS calls,
+    // same as the load() path).
+    buildNodeBlasChunks(staging, idxStaging);
+    stampBlasResidentNodes();
+  }
+}
+
+// The SoA4 LeafRef encodes parent node offsets in 25 bits (32 MB) -- tighter than the 24-bit
+// leaf-base gates, so a stackless tree in the 32..64 MB gap would pass those yet fail the SoA4
+// conversion. Gating on stackless treeBytes is conservative: the converted tree is never larger.
+static inline bool soa4_tree_fits_leaf_refs(int tree_bytes)
+{
+  return (int64_t)tree_bytes + (int64_t)soa4::LEAF_BYTES <= (int64_t)soa4::LEAF_ENTRY_OFS_MASK;
 }
 
 // Build a combined BLAS over every IDENT mesh node matching behavior_flag, flattening per-node
@@ -1019,18 +1259,19 @@ void CollisionResource::collapseAndOptimize(const char *res_name, bool need_frt,
 // renumber runs PER NODE only (never on the combined stream), preserving per-node vert21 contiguity so
 // the trace dispatch recovers a leaf's source CollisionNode from its first vert21 index via
 // blasNodeRanges. Contiguity is enforced by: (1) flattening verts node-by-node (each node a
-// contiguous sub-range); (2) per-node QUAD_O1 over-spread dup at the tail of the same node's block;
+// contiguous sub-range); (2) per-node QUAD_O_MAX over-spread dup at the tail of the same node's block;
 // (3) confining all vertex reordering to per-node index spaces -- no combined-stream reorder runs
 // (buildQuadPrims is triangle-order-independent), and a GLOBAL fetch-remap (which would shuffle verts
 // across node boundaries) is never run.
 //
-// Per-CollisionNode storage (verticesOfs/indicesOfs) is NOT modified -- ownVertices stays the source
+// Per-CollisionNode storage (verticesOfs/indicesOfs) is NOT modified -- the caller's staging stays the source
 // of truth for non-BLAS paths (capsule trace, FRT-empty fallbacks, intersection tests, public
-// iterateNodeVerts/getNodeVertices). blasNodeRanges (sorted by verticesOfs, one entry per node)
+// iterateNodeVerts). blasNodeRanges (sorted by verticesOfs, one entry per node)
 // replaces the previous per-leaf blasLeafSrc table: the trace dispatch converts a leaf's first vert
 // byte offset to a vert21 index and binary-searches to recover the source node. Subtri identity rides
-// tri_ref's sub-tri bit; per-node face index is decoded on demand via getNodeFaceVertsByRef.
-void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behavior_flag, bool two_sided)
+// tri_ref's 2-bit sub-tri index (0..3); per-node face index is decoded on demand via getNodeFaceVertsByRef.
+void CollisionResource::Grid::buildBLAS(CollisionResource *parent, dag::ConstSpan<Point3_vec4> raw_verts,
+  dag::ConstSpan<uint32_t> raw_indices, uint8_t behavior_flag, bool two_sided)
 {
   reset();
 
@@ -1042,9 +1283,8 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     return;
 
   // Per-node BLAS eligibility:
-  //   - MESH only: CONVEX keeps its own slices (AssetViewer relies on plane k <-> face k, which BVH
-  //     DFS leaf order would shuffle).
-  //   - IDENT only: the flatten loop appends raw verts (meshVertsBase + verticesOfs) without node->tm,
+  //   - MESH only: CONVEX nodes are packed into their own per-node BLAS chunks, not the combined grid.
+  //   - IDENT only: the flatten loop appends raw verts (raw_verts + verticesOfs) without node->tm,
   //     so node-local == resource-local. Non-IDENT nodes use the per-node fallback (applies tm at
   //     trace time).
   //   - behavior_flag match + non-empty indices.
@@ -1062,12 +1302,14 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     const CollisionNode *node = &parent->allNodesList[mi];
     if (!node->checkBehaviorFlags(behavior_flag))
       continue;
+    if (!node->hasGeometry())
+      continue; // degenerate-dropped node: no geometry to trace, and no reason to veto the grid below
     if (node->checkBehaviorFlags(CollisionNode::SOLID))
       return; // node requires trace without culling -- BLAS culls per-leaf; fall back to FRT/per-node path
     if (!isEligibleForBlas(node))
       continue;
     totalIndices += node->indicesCount;
-    totalVerts += (int)node->verticesCount + 1;
+    totalVerts += (int)node->verticesCount;
     v_bbox3_add_box(fullMeshBox, v_ldu_bbox3(node->modelBBox)); // IDENT -> node-local == resource-local
   }
 
@@ -1076,11 +1318,11 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
   const int blockSize = 28;
   vec3f size = v_bbox3_size(fullMeshBox);
   vec3f checkMin = v_cmp_gt(size, v_splats(minLeafSize));
-  int minMask = v_signmask(checkMin);
+  int minTrue = v_count_true(checkMin);
   size = v_sel(V_C_ONE, size, checkMin);
   float vol = v_extract_x(v_hmul3(size));
   float facesCount = totalIndices / 3.f;
-  float s = minMask != 0 ? (powf(vol / (facesCount / blockSize), 1.f / __popcount(minMask)) + 0.001f) // best leaf size
+  float s = minTrue != 0 ? (powf(vol / (facesCount / blockSize), 1.f / minTrue) + 0.001f) // best leaf size
                          : v_extract_x(v_hmax3(size));
   vec3f vs = v_splats(max(s, minLeafSize));
   float xyzSum = v_extract_x(v_hadd3_x(v_div(size, vs)));
@@ -1088,19 +1330,24 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     return;
 
   // Flatten matching node geometry. Indices are rebased per node (node 0's verts at [0..vertCount0),
-  // node 1's at [vertCount0..)). Each node is renumbered into leaf order in isolation and its QUAD_O1 dup runs
+  // node 1's at [vertCount0..)). Each node is renumbered into leaf order in isolation and its QUAD_O_MAX dup runs
   // in the same loop, so the fetch reorder and dups stay inside the owning node's sub-range. CollisionNode
-  // verticesOfs/indicesOfs are NOT modified -- ownVertices/ownIndices stay source of truth for the
+  // verticesOfs/indicesOfs are NOT modified -- the vert + index staging stays source of truth for the
   // per-node fallbacks; trace-time source-node lookup is via blasNodeRanges (filled below).
   dag::Vector<vec4f> allVerts;
   dag::Vector<unsigned> allIdx;
-  // Headroom for QUAD_O1 dups -- near-zero on real assets after the leaf-order renumber (which often shrinks
+  // One source-node index per allVerts entry, filled in lockstep below. Constrains double-quad pairing
+  // to a single source node so a leaf's first-vert -> node attribution (blas_src_node_for_leaf /
+  // tri_ref) stays valid. Filled alongside the vertex append rather than zero-init + rescan.
+  dag::Vector<uint32_t> vertGroup;
+  // Headroom for QUAD_O_MAX dups -- near-zero on real assets after the leaf-order renumber (which often shrinks
   // the live set below totalVerts), so a comfortable upper bound.
   allVerts.reserve((size_t)totalVerts + (size_t)totalVerts / 16u);
+  vertGroup.reserve((size_t)totalVerts + (size_t)totalVerts / 16u);
   allIdx.reserve((size_t)totalIndices);
 
   // Side table the trace dispatch binary-searches to recover a leaf's source node from its first
-  // vert21 index (contiguity enforced by the flatten + per-node QUAD_O1 dup + per-node-only renumber).
+  // vert21 index (contiguity enforced by the flatten + per-node QUAD_O_MAX dup + per-node-only renumber).
   blasNodeRanges.reserve(parent->numMeshNodes);
 
   // Per-node renumber scratch, hoisted and reused. Default-allocator dag::Vector<vec4f> (as allVerts)
@@ -1114,54 +1361,79 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     const CollisionNode *node = &parent->allNodesList[mi];
     if (!isEligibleForBlas(node))
       continue;
-    const Point3_vec4 *nodeVerts = parent->meshVertsBase + node->verticesOfs;
-    const uint16_t *nodeIdx = parent->meshIndicesBase + node->indicesOfs;
-    const unsigned nodeVertCount = (unsigned)node->verticesCount + 1u;
+    const Point3_vec4 *nodeVerts = raw_verts.data() + node->verticesOfs;
+    const uint32_t *nodeIdx = raw_indices.data() + node->indicesOfs; // build-time index staging (threaded in)
+    const unsigned nodeVertCount = (unsigned)node->verticesCount;
     const unsigned nodeIdxCount = (unsigned)node->indicesCount;
 
     // Phase 1: renumber this node's verts IN ISOLATION into SAH-leaf order, then duplicate the residual
     // over-spread triangles, both purely inside the node's [0, nodeVertCount) block so its verts stay one
     // contiguous range (the per-node vert21 contiguity the BLAS <-> source-node mapping rests on).
-    // leafOrderVertexFetch runs its own SAH triangle partition, so it tightens the QUAD_O1 windows
+    // leafOrderVertexFetch runs its own SAH triangle partition, so it tightens the QUAD_O_MAX windows
     // regardless of input index order -- no vertex-cache pre-pass needed. Without it an index-incoherent
     // node over-spreads and the post-dup block can blow past 65536.
     dag::Vector<unsigned, framemem_allocator> localIdx((size_t)nodeIdxCount);
     for (unsigned i = 0; i < nodeIdxCount; ++i)
       localIdx[i] = (unsigned)nodeIdx[i];
+    // Defensive: a malformed asset can index past the node's vert block, which would drive an
+    // out-of-bounds read/write in leafOrderVertexFetch. Leave the node out of the grid; the
+    // non-resident pass (buildNodeBlasChunks -> buildOneNodeBlasChunk) then drops it.
+    bool malformedIdx = false;
+    for (unsigned i = 0; i < nodeIdxCount && !malformedIdx; ++i)
+      malformedIdx = localIdx[i] >= nodeVertCount;
+    if (malformedIdx)
+    {
+      logerr("collision node #%u: source index out of range (>= %u verts); excluded from grid BLAS", (unsigned)node->nodeIndex,
+        nodeVertCount);
+      continue;
+    }
     nodeVertsSrc.resize(nodeVertCount);
     for (unsigned i = 0; i < nodeVertCount; ++i)
       nodeVertsSrc[i] = v_ld(&nodeVerts[i].x);
     // SAH-leaf-order renumber (drops unreferenced verts, keeps co-leaf verts adjacent) + shared
     // window-block over-spread dup, both per node so the node's verts stay one contiguous block.
-    const unsigned nodeVertCountOpt = build_bvh::leafOrderVertexFetch(localIdx.data(), nodeIdxCount, nodeVertsSrc.data(),
-      nodeVertCount, QUAD_O1_MAX + 1u, nodeVertsOpt);
+    const unsigned nodeVertCountOpt =
+      build_bvh::leafOrderVertexFetch(localIdx.data(), nodeIdxCount, nodeVertsSrc.data(), nodeVertCount, nodeVertsOpt);
 
     // Phase 2: append the reordered + dup'd verts (localIdx is now node-local into nodeVertsOpt).
     const unsigned nodeVertStart = (unsigned)allVerts.size();
     for (unsigned i = 0; i < nodeVertCountOpt; ++i)
+    {
       allVerts.push_back(nodeVertsOpt[i]);
+      vertGroup.push_back(node->nodeIndex); // same source node for this whole appended block
+    }
 
-    // Phase 4: rebase indices to combined-stream space and append.
-    for (unsigned i = 0; i < nodeIdxCount; ++i)
+    // Phase 4: rebase indices to combined-stream space and append. Count the faces that survive
+    // buildQuadPrims' degenerate-drop (duplicate-index triangles): the combined builder drops exactly
+    // these, quad-merging never drops a face, so the emitted count = distinct-index source faces. The
+    // rebase is a constant per-node shift, so index equality (degeneracy) is identical in localIdx.
+    uint32_t emittedFaces = 0;
+    for (unsigned i = 0; i + 2 < nodeIdxCount; i += 3)
+    {
       allIdx.push_back(vertBase + localIdx[i]);
+      allIdx.push_back(vertBase + localIdx[i + 1]);
+      allIdx.push_back(vertBase + localIdx[i + 2]);
+      if (localIdx[i] != localIdx[i + 1] && localIdx[i + 1] != localIdx[i + 2] && localIdx[i] != localIdx[i + 2])
+        ++emittedFaces;
+    }
 
     // Phase 5: record this node's vert21-array range (srcNodeForLeaf maps a leaf's first vert21 index
-    // back to a node). Post-dup CAN exceed 65536 on pathological topology -- NOT fatal: NodeRange
-    // offsets are uint32 and the trace walk is index-width agnostic, so the node still traces. The
-    // 65536 bound's lone consumer is compactOwnVertices (packs the span into uint16 verticesCount),
-    // which already guards span > 65536 by leaving the node non-resident with its slice intact -- so
-    // an oversized node just isn't memory-compacted. Old 65536 check kept but downgraded G_ASSERTF ->
-    // logerr: unreachable on real assets after Phase 1, so a fire flags a pathological mesh worth
-    // investigating without aborting the level load.
-    const unsigned postDupVertCount = (unsigned)allVerts.size() - nodeVertStart;
-    if (postDupVertCount > 65536u)
-      logerr("collision BLAS node #%u post-dup vert count %u exceeds 65536; kept in BLAS but ownVertices not compacted",
-        (unsigned)node->nodeIndex, postDupVertCount);
-    NodeRange nr{};
-    nr.verticesOfs = vertBase;
-    nr.verticesEnd = vertBase + postDupVertCount;
-    nr.nodeIndex = node->nodeIndex;
-    blasNodeRanges.push_back(nr);
+    // back to a node). NodeRange offsets are uint32 and verticesCount is uint32, so a post-dup span
+    // over 65536 traces and goes resident like any other node -- nothing special to gate.
+    // Skip a fully-degenerate node (every triangle dropped): recording a zero-face range would mark it
+    // grid-resident with indicesCount==0 in stampBlasResidentNodes and hide it from the per-node chunk
+    // path. Leaving it out routes it to buildNodeBlasChunks, which logs and drops it like any degenerate
+    // node. The orphaned verts already appended stay unreferenced (buildQuadPrims dropped the faces).
+    if (emittedFaces > 0)
+    {
+      const unsigned postDupVertCount = (unsigned)allVerts.size() - nodeVertStart;
+      NodeRange nr{};
+      nr.verticesOfs = vertBase;
+      nr.verticesEnd = vertBase + postDupVertCount;
+      nr.facesCount = emittedFaces;
+      nr.nodeIndex = node->nodeIndex;
+      blasNodeRanges.push_back(nr);
+    }
 
     vertBase = (unsigned)allVerts.size();
   }
@@ -1189,12 +1461,17 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
     return;
   }
 
-  dag::Vector<bbox3f> primBoxes(prims.size());
-  build_bvh::addQuadPrimitivesAABBList(primBoxes.data(), prims.data(), (int)prims.size(), allVerts.data());
+  // Pair quads into double-quad leaves (up to 4 tris/leaf), constrained to the same source node via
+  // vertGroup (filled in lockstep with allVerts above) so a leaf never straddles two source nodes.
+  dag::Vector<build_bvh::DoubleQuadPrim> dqPrims;
+  build_bvh::buildDoubleQuadPrims(dqPrims, prims.data(), (int)prims.size(), allVerts.data(), vertGroup.data());
+
+  dag::Vector<bbox3f> primBoxes(dqPrims.size());
+  build_bvh::addDoubleQuadPrimitivesAABBList(primBoxes.data(), dqPrims.data(), (int)dqPrims.size(), allVerts.data());
 
   Tab<bbox3f> nodes;
   int maxDepth = 0;
-  build_bvh::create_bvh_node_sah(nodes, primBoxes.data(), (uint32_t)prims.size(), 4, maxDepth);
+  build_bvh::create_bvh_node_sah(nodes, primBoxes.data(), (uint32_t)dqPrims.size(), 4, maxDepth);
 
   // Quantization frame for both the BVH inner-node bboxes and the packed vert21 positions. safeSize
   // floors degenerate axes at blas_size_eps so the encoding stays well-defined for axis-flat meshes.
@@ -1205,23 +1482,63 @@ void CollisionResource::Grid::buildBLAS(CollisionResource *parent, uint8_t behav
   blasInvScale = v_rcp(blasScale); // cached once; every vert21 decode path reads g.blasInvScale
 
   const int packedVertCnt = (int)allVerts.size();
-  const int treeBytes = build_bvh::calcQuadBLASTreeBytes((int)nodes.size(), (int)prims.size());
+  const int treeBytes = build_bvh::calcBLASTreeBytes((int)nodes.size(), (int)dqPrims.size());
+  // The double-quad leaf stores each apex base as an unsigned 24-bit byte offset >> 2. If the
+  // [tree][pad][vert21] span pushes a base past that range, writeDoubleQuad* would clamp it and the
+  // leaf would trace against the wrong vertices. Abandon the grid BLAS (collision falls back to the
+  // per-node path, gated on blasData.empty()) rather than emit corrupt geometry; pre-passed meshes
+  // stay far under this (~64 MB/BLAS). vert21 starts at the 8-aligned blasVertsOfs() (padded
+  // treeBytes), so the farthest leaf base is blasVertsOfs() + (vertCount-1)*8 -- gate on the padded
+  // offset, not bare treeBytes, or a base sitting at the 24-bit edge would still clamp.
+  const int64_t vertsBegin = (int64_t)((treeBytes + 7) & ~7); // stackless vert offset (== stkVertsOfs below)
+  if (vertsBegin + (int64_t)(packedVertCnt - 1) * 8 > (int64_t)QUAD_BASE_BYTE_MAX)
+  {
+    logerr("collision grid BLAS span (tree %d B + %d verts) exceeds the unsigned 24-bit leaf base range; "
+           "skipping BLAS for this resource (per-node trace fallback)",
+      treeBytes, packedVertCnt);
+    blasNodeRanges.clear(); // empty-grid invariant: blasData stays empty, so the caller's
+                            // stampBlasResidentNodes marks no node grid-resident (matches the abandons above)
+    return;
+  }
+  if (!soa4_tree_fits_leaf_refs(treeBytes))
+  {
+    logerr("collision grid BLAS tree (%d B) exceeds the SoA4 LeafRef 32 MB node offset range; "
+           "skipping BLAS for this resource (per-node trace fallback)",
+      treeBytes);
+    blasNodeRanges.clear(); // empty-grid invariant, as the abandon above
+    return;
+  }
   const size_t vertBytes = (size_t)packedVertCnt * 8u;
-  blasTreeBytes = (uint32_t)treeBytes;
-  // The vert21 stream must start 8-aligned within blasData: MOC RenderBLAS recovers vertex INDICES
-  // as (leaf byte offset)/8 from the buffer base, so an unpadded tree (20 B leaves -> treeBytes % 8
-  // == 4 for odd prim counts) would shift every occluder vertex fetch by -4 bytes. blasVertsOfs()
-  // pads the gap; blasTreeBytes stays the real tree size (tree-walk bound).
-  blasData.resize((size_t)blasVertsOfs() + vertBytes, 0);
+  // vert21 stream padded to 8 for natural alignment of the 8-byte slots; not required for
+  // correctness: the byte-offset -> index recoveries (MOC, and the leaf -> source-node mapping)
+  // compute (apexByteOfs - blasVertsOfs()) / 8, so the stream base cancels and any 4-aligned base
+  // works (the vert21 load is unaligned).
+  const uint32_t stkVertsOfs = alignVert21StreamOfs((uint32_t)treeBytes);
+  dag::Vector<uint8_t> stkBuf((size_t)stkVertsOfs + vertBytes, 0);
 
   int dataOffset = 0;
-  build_bvh::writeQuadBVH2(blasData.data(), nodes.data(), prims.data(), blasScale, blasOfs,
-    /*vertDataOfs*/ (int)blasVertsOfs(), 0, 0, dataOffset);
+  build_bvh::writeDoubleQuadBVH2(stkBuf.data(), nodes.data(), dqPrims.data(), blasScale, blasOfs,
+    /*vertDataOfs*/ (int)stkVertsOfs, 0, 0, dataOffset);
   G_ASSERTF(dataOffset == treeBytes, "Grid::buildBLAS: tree wrote %d bytes, expected %d", dataOffset, treeBytes);
 
-  uint8_t *vertDst = blasData.data() + blasVertsOfs();
+  uint8_t *vertDst = stkBuf.data() + stkVertsOfs;
   for (int i = 0; i < packedVertCnt; ++i)
     build_bvh::packVert21(vertDst + i * 8, v_madd(allVerts[i], blasScale, blasOfs));
+
+  const soa4::ConvertResult cr = soa4::buildFromStackless(stkBuf.data(), 0, treeBytes, (int)stkVertsOfs, (int)vertBytes, blasData);
+  if (!cr.valid())
+  {
+    // Structurally impossible for a tree this builder just wrote (the converter round-trips 1:1);
+    // if it ever fires, refuse the BLAS loudly rather than trace corrupt geometry.
+    logerr("collision grid BLAS: SoA4 conversion failed (tree %d B, %d verts); skipping BLAS (per-node trace fallback)", treeBytes,
+      packedVertCnt);
+    blasData.clear();
+    blasData.shrink_to_fit();
+    blasNodeRanges.clear(); // empty-grid invariant, as the abandons above
+    return;
+  }
+  blasTreeBytes = (uint32_t)cr.treeBytes;
+  blasRootRef = cr.root;
 
   // blasNodeRanges (filled in the flatten loop, sorted by verticesOfs = insertion order) is the only
   // per-node side table kept: the trace dispatch binary-searches it to recover a leaf's source node
@@ -1239,96 +1556,295 @@ static const CollisionResource::Grid::NodeRange *find_blas_range_for_node(const 
   return nullptr;
 }
 
-// Phase F (BLAS-resident compaction). Called from CollisionResource::load and rendinst's
-// optimize_collres_on_load wrapper after buildBLAS. NOT from collapseAndOptimize -- the exporter and
-// editor pipelines read ownVertices back to write the asset binary and must not lose the verts.
-//
-//  Pass 1: stamp BLAS_RESIDENT + reinterpreted verticesOfs/Count for picked-up nodes, but only from
-//          the grid getBlasGridForResidentNode() resolves to later (the "other" grid would never be
-//          looked up by iterateNodeFaces / getNodeFaceVerts / capsule fallback -> empty/wrong data).
-//  Pass 2: copy non-resident slices to the head of a scratch buffer + swap into ownVertices.
-//  Pass 3: same for ownIndices. BLAS_RESIDENT implies MESH (CONVEX never enters the BLAS), so only
-//          resident MESH slices are dropped; CONVEX takes the non-resident path and keeps ownIndices.
-void CollisionResource::compactOwnVertices()
+// Pack one node's raw slice as an ownVerts21 block: [float bmin[3]][float invScale[3]][vert21 x N], and
+// return the EXACT pack scale (the chunk header stores it for the bit-exact q-space trace transform).
+// Per-node quantization frame over the slice (same 16.5 fixed-point encoding as the grid, see
+// packVert21). Per node -- NOT a resource-level box: with a resource frame, a small Jolt-fed node
+// inside a large resource would quantize on a grid orders of magnitude coarser than the
+// per-node-referenced-bounds grid validateVerticesForJolt cleared at export, merging verts that
+// Jolt's own quantization then rejects as degenerate.
+vec3f CollisionResource::packOwnVerts21Block(uint8_t *block, const Point3_vec4 *verts, uint32_t count)
 {
-  // Returns false (node left non-resident) when the post-dup vert21 block doesn't fit the 16-bit
-  // verticesCount. Such a node keeps its ownVertices/ownIndices slice (per-node reads stay valid) and
-  // its triangles still live in the BLAS, so nothing is lost -- only compaction is skipped. Without
-  // the guard, verticesCount = span-1 would silently wrap in release (the span<=65536 assert is out).
-  auto stampFromRange = [](CollisionNode &n, const Grid::NodeRange &nr) -> bool {
-    G_ASSERTF(nr.verticesEnd > nr.verticesOfs, "BLAS NodeRange for node %u has zero or negative span", (unsigned)n.nodeIndex);
-    const uint32_t span = nr.verticesEnd - nr.verticesOfs;
-    if (span == 0u || span > 65536u)
-      return false;
-    n.verticesOfs = nr.verticesOfs;
-    n.verticesCount = (uint16_t)(span - 1u); // count-minus-one
-    n.flags |= CollisionNode::BLAS_RESIDENT;
-    return true;
-  };
+  bbox3f bb;
+  v_bbox3_init_empty(bb);
+  for (uint32_t i = 0; i < count; ++i)
+    v_bbox3_add_pt(bb, v_ld(&verts[i].x));
+  const vec3f safeSize = v_max(v_bbox3_size(bb), v_splats(build_bvh::blas_size_eps));
+  const vec3f scale = v_div(v_splats(65535.f), safeSize);
+  const vec3f qOfs = v_neg(v_mul(bb.bmin, scale));
+  const vec3f invScale = v_rcp(scale); // exact IEEE division (v_div(1, x)), same as blasInvScale
+  v_stu_p3((float *)block, bb.bmin);
+  v_stu_p3((float *)block + 3, invScale);
+  uint8_t *vDst = block + OWN_VERTS21_HEADER_BYTES;
+  for (uint32_t i = 0; i < count; ++i)
+    build_bvh::packVert21(vDst + (size_t)i * 8u, v_madd(v_ld(&verts[i].x), scale, qOfs));
+  return scale;
+}
+
+// Owning-mode grid stamping, the shared tail of load / loadLegacyRawFormat / collapseAndOptimize.
+//
+// Stamps the GRID_TRACEABLE/GRID_PHYS membership flags from each grid's ranges (the trace dispatch
+// tests the WALKED grid's flag to skip nodes the grid walk covers -- residency cannot answer that,
+// being keyed off the AUTHORITATIVE grid, which can differ, e.g. a TRACEABLE|PHYS_COLLIDABLE node
+// whose collidable grid failed the size gate). Then reinterprets verticesOfs/Count for resident
+// nodes (isGridResident: the authoritative grid absorbed them) -- the "other" grid would never be
+// looked up by iterateNodeFaces / getNodeFaceVerts / capsule fallback. Empty grids stamp nothing.
+// Verts are NOT packed here: buildNodeBlasChunks already wrote every non-resident node's vert21
+// block into nodeBlasData, and residents live in the grid. The resource keeps no source-face index
+// list -- every node enumerates faces from its BLAS.
+void CollisionResource::stampBlasResidentNodes()
+{
+  // Clear first, then re-derive in full: flags arrive from disk / raw dumps, and collapse rebuilds
+  // the grids from scratch. Zero-span ranges (cannot happen; defensive) stamp nothing, so a set
+  // membership bit always implies a valid resident reinterpretation below. AUTH_GRID_PHYS freezes
+  // the authoritative-grid choice at this point: later behaviorFlags mutation (ECS node flag rules)
+  // must not re-route the storage decode.
+  for (CollisionNode &n : allNodesList)
+  {
+    n.flags &= ~(CollisionNode::ANY_GRID_RESIDENT | CollisionNode::AUTH_GRID_PHYS);
+    if (nodeAuthGridIsPhys(n))
+      n.flags |= CollisionNode::AUTH_GRID_PHYS;
+  }
+  for (const Grid::NodeRange &nr : gridForTraceable.blasNodeRanges)
+    if (nr.nodeIndex < allNodesList.size() && nr.verticesEnd > nr.verticesOfs)
+      allNodesList[nr.nodeIndex].flags |= CollisionNode::GRID_TRACEABLE;
+  for (const Grid::NodeRange &nr : gridForCollidable.blasNodeRanges)
+    if (nr.nodeIndex < allNodesList.size() && nr.verticesEnd > nr.verticesOfs)
+      allNodesList[nr.nodeIndex].flags |= CollisionNode::GRID_PHYS;
 
   for (CollisionNode &n : allNodesList)
   {
     if (n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX)
       continue;
-    if (n.indicesCount == 0)
+    if (!n.hasGeometry())
       continue;
-    if (n.flags & CollisionNode::BLAS_RESIDENT)
-      continue; // already stamped -- idempotent
-    // Pick the same grid the resolver uses at runtime; if it doesn't carry the node, leave it
-    // non-resident (the per-node fallback still works from ownVertices/ownIndices). Keeps stamp and
-    // resolve in sync.
+    if (!isGridResident(n))
+      continue; // authoritative grid did not absorb it; the per-node chunk stays the vert storage
+    // Reinterpret from the same grid the resolver uses at runtime, keeping stamp and resolve in
+    // sync. Values come straight from the current ranges, so a repeated stamp rewrites the same
+    // data (idempotent by value). verticesCount is uint32, so a post-dup span over 65536 is fine.
     const Grid &g = getBlasGridForResidentNode(n);
     if (const Grid::NodeRange *nr = find_blas_range_for_node(g, n.nodeIndex))
-      stampFromRange(n, *nr);
-  }
-
-  // Compact ownVertices: keep only non-resident mesh/convex slices. Write to a separate buffer and
-  // move it in at the end to avoid read-after-write inside ownVertices.
-  dag::Vector<Point3_vec4> newOwn;
-  newOwn.reserve(ownVertices.size()); // upper bound: nothing to compact (no BLAS_RESIDENT)
-  for (CollisionNode &n : allNodesList)
-  {
-    if (n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX)
-      continue;
-    if (n.indicesCount == 0)
-      continue;
-    if (n.flags & CollisionNode::BLAS_RESIDENT)
-      continue; // verts live in a grid's vert21 array; drop the ownVertices slice
-    const uint32_t srcOfs = n.verticesOfs;
-    const uint32_t cnt = (uint32_t)n.verticesCount + 1u;
-    const uint32_t dstOfs = (uint32_t)newOwn.size();
-    newOwn.insert(newOwn.end(), ownVertices.data() + srcOfs, ownVertices.data() + srcOfs + cnt);
-    n.verticesOfs = dstOfs;
-  }
-  ownVertices = eastl::move(newOwn);
-  ownVertices.shrink_to_fit();
-  meshVertsBase = ownVertices.data();
-
-  // Compact ownIndices: drop BLAS_RESIDENT slices (iterateNodeFaces / getNodeFaceVerts recover face
-  // data on demand by walking the active grid's BLAS, filtered to the node's vert21 range). Non-
-  // resident and all CONVEX nodes keep their slice, addressing the now-compacted ownVertices.
-  // indicesCount is preserved on dropped-slice nodes (getNodeFaceCount reads indicesCount/3); indicesOfs
-  // is reset to 0 (it would otherwise point into the old buffer).
-  dag::Vector<uint16_t> newOwnIdx;
-  newOwnIdx.reserve(ownIndices.size());
-  for (CollisionNode &n : allNodesList)
-  {
-    if (n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX)
-      continue;
-    if (n.indicesCount == 0)
-      continue;
-    if (n.flags & CollisionNode::BLAS_RESIDENT)
     {
-      n.indicesOfs = 0; // stale; the BLAS-walk path doesn't use it
-      continue;         // drop the slice
+      n.verticesOfs = nr->verticesOfs;
+      n.verticesCount = nr->verticesEnd - nr->verticesOfs;
+      n.indicesCount = nr->facesCount * 3u; // emitted (post degenerate-drop) count, known at grid build
     }
-    const uint32_t srcOfs = n.indicesOfs;
-    const uint32_t cnt = n.indicesCount;
-    const uint32_t dstOfs = (uint32_t)newOwnIdx.size();
-    newOwnIdx.insert(newOwnIdx.end(), ownIndices.data() + srcOfs, ownIndices.data() + srcOfs + cnt);
-    n.indicesOfs = dstOfs;
   }
-  ownIndices = eastl::move(newOwnIdx);
-  ownIndices.shrink_to_fit();
-  meshIndicesBase = ownIndices.data();
+
+  // indicesCount is the emitted (post degenerate-drop) face count: the grid stamp above and
+  // buildOneNodeBlasChunk both set it from the builder, so it already equals what iterateNodeFaces
+  // emits. getNodeFaceCount() reads indicesCount/3 and trace materialises the same walk, so a stale
+  // count would make those consumers over-read. In dev builds, walk and verify (curing on mismatch);
+  // release trusts the build-time count and skips the per-node walk entirely.
+#if DAGOR_DBGLEVEL > 0
+  for (CollisionNode &n : allNodesList)
+  {
+    if (n.type != COLLISION_NODE_TYPE_MESH && n.type != COLLISION_NODE_TYPE_CONVEX)
+      continue;
+    if (!n.hasGeometry())
+      continue;
+    if (!isGridResident(n) && n.nodeBlasOfs == ~0u)
+      continue; // no BLAS storage to walk (e.g. empty-staging reload) -- leave the count as-is
+    uint32_t faces = 0;
+    iterateNodeFaces((int)n.nodeIndex, [&](int, uint32_t, uint32_t, uint32_t) { ++faces; });
+    if (n.indicesCount != faces * 3u)
+    {
+      logerr("collision node #%u: cached indicesCount %u != BLAS walk %u faces; curing", (unsigned)n.nodeIndex, n.indicesCount,
+        faces * 3u);
+      n.indicesCount = faces * 3u;
+    }
+  }
+#endif
+}
+
+// ===== per-node BLAS chunks =====
+// A quad-BLAS over a single node's triangles, stored as [NodeBlasChunkHeader][quad tree][the
+// node's ownVerts21 block] in nodeBlasData, so leaf hits on big NON-grid-resident mesh/convex
+// nodes (animated resources, capsule traces -- nothing the combined behavior grids cover) can
+// descend a BVH instead of brute-forcing the whole triangle list. The chunked node's vert21 block
+// lives inside the chunk INSTEAD of ownVerts21 (single storage; getPackedNodeVerts21 resolves the
+// base through node.nodeBlasOfs), so the net memory cost is the tree alone.
+//
+// Drift-free by construction: the block is packed from the same raw staging slice (same
+// packOwnVerts21Block frame math), and the tree is built IN THE BLOCK'S OWN q-SPACE -- writeQuadBVH2
+// is fed the unpacked q values with scale=1/ofs=0, so packVert21(round(q)) == q exactly and inner-node
+// boxes are exact integer bounds. The header stores the EXACT pack scale (not rcp(block invScale)) so
+// the trace-time ray transform into q-space reproduces the build frame bit-for-bit.
+void CollisionResource::buildNodeBlasChunks(dag::ConstSpan<Point3_vec4> staging, dag::ConstSpan<uint32_t> staging_indices)
+{
+  G_STATIC_ASSERT(sizeof(NodeBlasChunkHeader) == 24);
+  // Runtime owning-mode loads only: chunks need the raw staging slices (node.verticesOfs/indicesOfs are
+  // still staging element indices here). The exporter raw workspace and stampBlasResidentNodes never reach
+  // this. The guard runs BEFORE the clear: a chunked node's vert block lives inside nodeBlasData, so
+  // clearing without rebuilding would destroy live storage.
+  if (staging.empty())
+    return;
+  nodeBlasData.clear();
+  for (CollisionNode &n : allNodesList)
+    n.nodeBlasOfs = ~0u;
+  // Full rebuild relocates every chunk offset: bump the generation so any per-node BLAS tri_ref minted
+  // against a prior layout is rejected, uniform with compactNodeBlasData() / bakeNodeTransform().
+  ++nodeBlasBuildId;
+
+  // Every non-grid-resident mesh/convex node gets a per-node BLAS chunk -- no size floor, so the
+  // owning vertex storage is always a chunk (or a grid), never a bare ownVerts21 block.
+  // 16-byte-aligned scratch (see the combined buildBLAS note on allocator choice).
+  dag::Vector<vec4f> nodeVertsSrc, nodeVertsOpt;
+  dag::Vector<Point3_vec4> packSrc;
+  dag::Vector<vec4f> qVerts;
+  dag::Vector<uint8_t> stkTmp, soaOut;
+
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
+  {
+    CollisionNode &node = allNodesList[mi];
+    if (node.type != COLLISION_NODE_TYPE_MESH && node.type != COLLISION_NODE_TYPE_CONVEX)
+      continue;
+    // A degenerate-dropped node (indicesCount==0) keeps stale verticesOfs/verticesCount; building a chunk
+    // would read past its (absent) staging slice in a mixed resource. It has no geometry -- skip it.
+    if (!node.hasGeometry())
+      continue;
+    // Skip nodes the grids absorb (residents already have combined-BVH coverage; chunking them would
+    // double their vert storage). Mirrors stampBlasResidentNodes' residency criterion; the AUTH bit
+    // is not stamped yet, so derive the authoritative grid from behavior flags like the stamp will.
+    if (find_blas_range_for_node(nodeAuthGridIsPhys(node) ? gridForCollidable : gridForTraceable, node.nodeIndex))
+      continue;
+    if (!buildOneNodeBlasChunk(node, staging.data() + node.verticesOfs, (unsigned)node.verticesCount,
+          staging_indices.data() + node.indicesOfs, (unsigned)node.indicesCount, nodeVertsSrc, nodeVertsOpt, packSrc, qVerts, stkTmp,
+          soaOut))
+    {
+      // Rejected chunk (reason logerr'd by the builder): drop its geometry -- no collision surface.
+      node.indicesCount = 0;
+    }
+  }
+  nodeBlasData.shrink_to_fit();
+}
+
+// Build a per-node BLAS chunk from the node's raw verts + indices: appends [NodeBlasChunkHeader]
+// [quad tree][vert21 block] to nodeBlasData (the connectivity is baked into the tree; nodeIdx is read
+// but not written back -- the SAH-leaf renumber + QUAD_O over-spread dup run on a local copy) and sets
+// node.nodeBlasOfs/verticesOfs/verticesCount. Returns false (node left unchunked, reason logerr'd here)
+// on a degenerate node (no quad prims), a malformed out-of-range index, or a chunk span past the 24-bit
+// leaf base range; the post-dup vert count is otherwise uncapped. Scratch buffers are caller-provided
+// for reuse across a node-list loop.
+bool CollisionResource::buildOneNodeBlasChunk(CollisionNode &node, const Point3_vec4 *nodeVerts, unsigned nodeVertCount,
+  const uint32_t *nodeIdx, unsigned nodeIdxCount, dag::Vector<vec4f> &nodeVertsSrc, dag::Vector<vec4f> &nodeVertsOpt,
+  dag::Vector<Point3_vec4> &packSrc, dag::Vector<vec4f> &qVerts, dag::Vector<uint8_t> &stkTmp, dag::Vector<uint8_t> &soaOut)
+{
+  // SAH-leaf renumber + QUAD_O over-spread dup: everything stays inside this node's index space,
+  // so the dup guard and the signed 13-bit quad-leaf offsets behave identically to the combined buildBLAS flatten.
+  dag::Vector<unsigned, framemem_allocator> localIdx((size_t)nodeIdxCount);
+  for (unsigned i = 0; i < nodeIdxCount; ++i)
+    localIdx[i] = (unsigned)nodeIdx[i];
+  // Defensive: a malformed asset can hold an index past the node's vert block; leafOrderVertexFetch
+  // would read srcVerts and write its renumber table out of bounds. Drop the node.
+  for (unsigned i = 0; i < nodeIdxCount; ++i)
+    if (localIdx[i] >= nodeVertCount)
+    {
+      logerr("collision node <%s>#%u: source index out of range (>= %u verts); dropping", getNodeNameStr(node),
+        (unsigned)node.nodeIndex, nodeVertCount);
+      return false;
+    }
+  nodeVertsSrc.resize(nodeVertCount);
+  for (unsigned i = 0; i < nodeVertCount; ++i)
+    nodeVertsSrc[i] = v_ld(&nodeVerts[i].x);
+  // SAH-leaf-order renumber + shared window-block over-spread dup (build_bvh): leafOrderVertexFetch
+  // runs its own SAH partition (no vertex-cache pre-pass), matching vert order to the leaf grouping.
+  const unsigned postDup =
+    build_bvh::leafOrderVertexFetch(localIdx.data(), nodeIdxCount, nodeVertsSrc.data(), nodeVertCount, nodeVertsOpt);
+
+  packSrc.resize(postDup);
+  for (unsigned i = 0; i < postDup; ++i)
+    v_st(&packSrc[i].x, nodeVertsOpt[i]);
+  // No 65536 cap: the index staging is uint32 and the leaf encoding addresses each vert by absolute byte
+  // offset (the signed 13-bit leaf field only bounds the dup'd intra-leaf spread, not the vert count), so a
+  // heavily-dup'd chunk past 65536 verts writes its connectivity back without truncation.
+
+  // Pack the block (it computes the per-node frame and returns the exact pack scale for the chunk
+  // header -- bmin lives only in the block), then unpack q values for the tree build.
+  dag::Vector<uint8_t, framemem_allocator> blockTmp;
+  blockTmp.resize(OWN_VERTS21_HEADER_BYTES + (size_t)postDup * 8u);
+  const vec3f scale = packOwnVerts21Block(blockTmp.data(), packSrc.data(), postDup);
+  qVerts.resize(postDup);
+  const uint8_t *q8 = blockTmp.data() + OWN_VERTS21_HEADER_BYTES;
+  for (unsigned i = 0; i < postDup; ++i)
+    qVerts[i] = RayData::unpackVert21(q8 + (size_t)i * 8u);
+
+  Tab<build_bvh::QuadPrim> prims;
+  int qc = 0, sc = 0;
+  build_bvh::buildQuadPrims(prims, qc, sc, localIdx.data(), (int)(nodeIdxCount / 3u), qVerts.data());
+  if (prims.empty())
+  {
+    logerr("collision node <%s>#%u: no buildable geometry (degenerate); dropping", getNodeNameStr(node), (unsigned)node.nodeIndex);
+    return false;
+  }
+  // Emitted face count is known here (quad = 2 tris, single = 1; degenerate faces were dropped). Stamp
+  // the node's cached count so consumers reading indicesCount/3 match the leaf walk without re-deriving.
+  node.indicesCount = (uint32_t)(qc * 2 + sc) * 3u;
+  // Pair quads into double-quad leaves (up to 4 tris/leaf). Single node, so pairing is unconstrained --
+  // every vert belongs to this node, so no vert_group is passed (cf. the grid buildBLAS, which must).
+  dag::Vector<build_bvh::DoubleQuadPrim> dqPrims;
+  build_bvh::buildDoubleQuadPrims(dqPrims, prims.data(), (int)prims.size(), qVerts.data());
+  dag::Vector<bbox3f> primBoxes(dqPrims.size());
+  build_bvh::addDoubleQuadPrimitivesAABBList(primBoxes.data(), dqPrims.data(), (int)dqPrims.size(), qVerts.data());
+  Tab<bbox3f> bvhNodes;
+  int maxDepth = 0;
+  build_bvh::create_bvh_node_sah(bvhNodes, primBoxes.data(), (uint32_t)dqPrims.size(), 4, maxDepth);
+  const int treeBytes = build_bvh::calcBLASTreeBytes((int)bvhNodes.size(), (int)dqPrims.size());
+  // Pad the tree region up to 8 before the vert21 block so the stream is 8-aligned (same invariant as
+  // the grid's blasVertsOfs); ownVertsBlockPtr / the chunk trace recompute this from hdr->treeBytes.
+  const uint32_t alignedTree = alignVert21StreamOfs((uint32_t)treeBytes);
+
+  // Same unsigned 24-bit leaf-base gate as the grid BLAS / writeDoubleQuadBLAS: past QUAD_BASE_BYTE_MAX
+  // packQuadA emits degenerate no-hit leaves, so traces would silently miss those triangles. This path
+  // is the grid's oversized fallback, so it must reject the node rather than write a corrupt chunk.
+  if ((int64_t)alignedTree + (int64_t)OWN_VERTS21_HEADER_BYTES + (int64_t)(postDup - 1) * 8 > (int64_t)QUAD_BASE_BYTE_MAX)
+  {
+    logerr("collision node <%s>#%u: per-node BLAS span (tree %d B + %u verts) exceeds the unsigned 24-bit leaf base range; dropping",
+      getNodeNameStr(node), (unsigned)node.nodeIndex, treeBytes, postDup);
+    return false;
+  }
+  if (!soa4_tree_fits_leaf_refs(treeBytes))
+  {
+    logerr("collision node <%s>#%u: per-node BLAS tree (%d B) exceeds the SoA4 LeafRef 32 MB node offset range; dropping",
+      getNodeNameStr(node), (unsigned)node.nodeIndex, treeBytes);
+    return false;
+  }
+
+  // The converter treats the whole ownVerts21 block (24 B header + vert21s) as its verbatim "vert
+  // region": real leaf apexes land past the header, 8-aligned (the header is 24 B), so base
+  // re-pointing stays exact.
+  stkTmp.assign((size_t)alignedTree + blockTmp.size(), 0);
+  int dataOffset = 0;
+  // q-space identity frame; vert array (8 B vert21s) sits past the tree AND the 24 B block header,
+  // both inside the region the trace walk addresses from the tree base.
+  build_bvh::writeDoubleQuadBVH2(stkTmp.data(), bvhNodes.data(), dqPrims.data(), V_C_ONE, v_zero(),
+    /*vertDataOfs*/ (int)alignedTree + (int)OWN_VERTS21_HEADER_BYTES, 0, 0, dataOffset);
+  G_ASSERTF(dataOffset == treeBytes, "node BLAS chunk: tree wrote %d bytes, expected %d", dataOffset, treeBytes);
+  memcpy(stkTmp.data() + alignedTree, blockTmp.data(), blockTmp.size());
+
+  const soa4::ConvertResult cr = soa4::buildFromStackless(stkTmp.data(), 0, treeBytes, (int)alignedTree, (int)blockTmp.size(), soaOut);
+  if (!cr.valid())
+  {
+    logerr("collision node <%s>#%u: SoA4 conversion failed (tree %d B); dropping", getNodeNameStr(node), (unsigned)node.nodeIndex,
+      treeBytes);
+    return false;
+  }
+
+  const uint32_t chunkOfs = (uint32_t)nodeBlasData.size();
+  nodeBlasData.resize(chunkOfs + sizeof(NodeBlasChunkHeader) + soaOut.size(), 0);
+  uint8_t *chunk = nodeBlasData.data() + chunkOfs;
+  NodeBlasChunkHeader *hdr = (NodeBlasChunkHeader *)chunk;
+  v_stu_p3(hdr->scale, scale);
+  hdr->treeBytes = (uint32_t)cr.treeBytes;
+  hdr->rootRef = cr.root;
+  hdr->_resv = 0;
+  memcpy(chunk + sizeof(NodeBlasChunkHeader), soaOut.data(), soaOut.size());
+
+  // The reordered connectivity (localIdx) is baked into the chunk tree above; nodeIdx is not written
+  // back (every caller discards it -- the chunk is the node's storage from here on).
+  node.nodeBlasOfs = chunkOfs;
+  node.verticesOfs = 0;
+  node.verticesCount = (uint32_t)postDup;
+  return true;
 }

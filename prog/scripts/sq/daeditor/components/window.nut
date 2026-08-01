@@ -165,7 +165,7 @@ function registerWindow(params) {
   return window
 }
 
-function getNumberOfRegisteredWindows() {
+function getNumberOfRegisteredWindows(): int {
   return registeredWindows.len()
 }
 

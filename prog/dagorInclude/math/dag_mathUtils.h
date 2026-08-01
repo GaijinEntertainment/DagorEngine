@@ -253,7 +253,7 @@ inline float angle_approach(float from_radians, float to_radians, float dt, floa
   return approach(from_radians, from_radians + angleD, dt, viscosity);
 }
 
-__forceinline bbox3f v_ldu_bbox3(const BBox3 &bbox) { return bbox3f{v_ldu(&bbox.lim[0].x), v_ldu_p3(&bbox.lim[1].x)}; }
+__forceinline bbox3f v_ldu_bbox3(const BBox3 &bbox) { return bbox3f{v_ldu(&bbox.lim[0].x), v_ldu_p3_safe(&bbox.lim[1].x)}; }
 
 __forceinline void v_stu_bbox3(BBox3 &out, bbox3f_cref box)
 {
@@ -368,8 +368,8 @@ void lookAt(const Point3 &eye, const Point3 &at, const Point3 &up, TMatrix &resu
 
 __forceinline bool test_segment_box_intersection(const Point3 &start1, const Point3 &end1, const BBox3 &box1)
 {
-  vec3f start = v_ldu(&start1.x);
-  vec3f end = v_ldu(&end1.x);
+  vec3f start = v_ldu_p3_safe(&start1.x);
+  vec3f end = v_ldu_p3_safe(&end1.x);
   bbox3f box = v_ldu_bbox3(box1);
   return v_test_segment_box_intersection(start, end, box);
 }
@@ -742,8 +742,6 @@ inline float get_box_bounding_plane_dist(const BBox3 &bbox, const Point3 &axis)
 }
 
 bool clip_homogeneous(Point4 &p0, Point4 &p1);
-
-bool test_point_convex_intersection(const Point2 &p, const Point2 *pts, int32_t count);
 
 
 inline float perlin_noise_1d(int x)

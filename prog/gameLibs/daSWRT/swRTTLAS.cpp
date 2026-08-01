@@ -11,9 +11,9 @@
 #include <perfMon/dag_statDrv.h>
 #include <generic/dag_carray.h>
 
-#include "swCommon.h"
+#include <daBVH/swCommon.h>
 #include "swRTbuffer.h"
-#include "shaders/swBVHDefine.hlsli"
+#include <daBVH/swBVHDefine.hlsli>
 #include <memory/dag_framemem.h>
 #include <generic/dag_tab.h>
 

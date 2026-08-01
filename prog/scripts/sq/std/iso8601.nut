@@ -14,7 +14,7 @@ let marks = {
   }
 }
 
-function parse_duration(str) {
+function parse_duration(str): table {
   let res = {}
   if (str == "")
     return res

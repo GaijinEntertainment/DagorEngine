@@ -2,7 +2,6 @@
 #pragma once
 
 #include "../controllers/animCtrlData.h"
-#include "../controllers/ctrlType.h"
 #include <propPanel/control/listBoxInterface.h>
 #include <propPanel/control/menu.h>
 #include <propPanel/c_common.h>

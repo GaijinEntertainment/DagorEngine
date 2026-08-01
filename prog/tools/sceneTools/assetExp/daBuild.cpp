@@ -28,6 +28,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_globalMutex.h>
+#include <util/dag_jobPool.h>
 #include <debug/dag_debug.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -99,7 +100,6 @@ static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, da
   if (stripPrefix.length() && stripPrefix[stripPrefix.length() - 1] != '/')
     stripPrefix += "/";
 
-  debug("total: %d assets", assets.size());
   FastIntList exp_reject_types;
   if (profile)
     if (const DataBlock *b = expblk.getBlockByNameEx("profiles")->getBlockByName(profile))
@@ -189,6 +189,9 @@ static void makePack(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, da
       }
     }
   }
+
+  debug("total: %d assets in %d packs for target=%s", assets.size(),
+    (tex_pack.size() - tex_pack_init_cnt) + (grp_pack.size() - grp_pack_init_cnt), target_str);
 }
 bool detect_valid_patch(const DataBlock &expblk, const char *pkg_name, const char *app_dir, const char *target_str,
   const char *profile, char *out_md5)
@@ -368,13 +371,19 @@ static const String to_patch_dir(const char *dir)
   return patch_dir;
 }
 
+// out_target_mismatch, if non-null, reports specifically the "cache parses fine but the target pack's own
+// content differs from what it recorded" case - as opposed to a broken cache file or a missing target -
+// since that's the only case a cache is unambiguously stale rather than just not-yet-built.
 static bool is_cache_outdated(AssetExportCache &gdc, const char *cache_fname, DagorAssetMgr &mgr, const char *pack_fname,
-  ILogWriter &log, bool remove_outdated = true)
+  ILogWriter &log, bool remove_outdated = true, bool *out_target_mismatch = nullptr)
 {
   bool cache_loaded = gdc.load(cache_fname, mgr);
   bool target_file_uptodate = cache_loaded && !gdc.checkTargetFileChanged(pack_fname);
   if (cache_loaded && target_file_uptodate)
     return false;
+
+  if (out_target_mismatch)
+    *out_target_mismatch = cache_loaded && dd_file_exist(pack_fname);
 
   if (remove_outdated && dd_file_exist(cache_fname))
   {
@@ -1551,6 +1560,273 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
       else if (gdc.isTimeChanged())
         gdc.save(cache_fname, mgr);
     }
+  }
+
+  RELEASE_ASSETS_PACKS();
+  return changed;
+}
+
+struct QuickPackCheckTask
+{
+  bool isTex = false;
+  bool ready = false;
+  bool cacheRemoved = false;
+  String packFname, cacheFname;
+  Tab<DagorAsset *> assets;
+  QuickPackCheckTask() : assets(tmpmem) {}
+};
+
+// Unlinking a stale cache file, or resaving a pruned/mtime-fixed-up one, here (unlike the rest of the
+// quick path) is safe to do from a worker thread: each task has its own cache_fname, so no two tasks ever
+// touch the same file. The log message for the unlink is deferred to the main thread (in
+// run_quick_pack_checks(), after all workers are done) since ILogWriter isn't necessarily safe to call
+// concurrently.
+static bool run_one_quick_pack_check(QuickPackCheckTask &t, DagorAssetMgr &mgr, ILogWriter &log, unsigned target_code, bool be)
+{
+  AssetExportCache gdc;
+  bool target_mismatch = false;
+  if (is_cache_outdated(gdc, t.cacheFname, mgr, t.packFname, log, /*remove_outdated*/ false, &target_mismatch))
+  {
+    if (target_mismatch && dd_file_exist(t.cacheFname))
+    {
+      unlink(t.cacheFname);
+      t.cacheRemoved = true;
+    }
+    return false;
+  }
+
+  bool ready = t.isTex ? quickCheckDdsxTexPackReady(target_code, be, t.assets, gdc, t.packFname)
+                       : quickCheckGameResPackReady(t.assets, gdc, t.packFname);
+  // Confirmed fully up to date - safe to drop whatever's left untouched (same fossils this quick check
+  // would otherwise re-report forever, since this path doesn't rebuild anything to naturally prune them).
+  // No other condition stands between here and the save below, so this is genuinely certain to save.
+  if (ready)
+    gdc.removeUntouched(/*confident_will_save*/ true);
+  // Persists pruned fossils (or a corrected mtime) so a repeat run doesn't keep re-detecting the same
+  // ones - a no-op write when nothing needed it, since isTimeChanged() only gets set when something did.
+  if (gdc.isTimeChanged())
+    gdc.save(t.cacheFname, mgr);
+  return ready;
+}
+
+// daBuild.dll has its own copy of cpujobs/threadpool state, separate from the host tool exe's (same
+// gotcha as any other cross-binary global) - so this inits the pool on demand if it isn't already running
+// in this binary, and shuts down only what it started itself, mirroring
+// DagorAssetMgr::loadAssetsBase()'s own on-demand init/shutdown pattern. JobPool is pull-based (workers
+// dequeue from a shared queue), so a core that finishes a small pack quickly picks up the next one instead
+// of idling while another core is stuck on a big one; it also degrades to running synchronously if the
+// pool ends up with zero workers.
+static void run_quick_pack_checks(Tab<QuickPackCheckTask> &tasks, DagorAssetMgr &mgr, ILogWriter &log, unsigned target_code, bool be,
+  DabuildQuickCheckStats *out_stats)
+{
+  if (tasks.empty())
+    return;
+
+  bool cpujobs_inited_locally = false, threadpool_inited_locally = false;
+  if (threadpool::get_num_workers() == 0)
+  {
+    if ((cpujobs_inited_locally = !cpujobs::is_inited()) != false)
+      cpujobs::init();
+    threadpool::init(min(cpujobs::get_core_count(), 16), 1024, 128 << 10);
+    threadpool_inited_locally = true;
+  }
+
+  int workerCount;
+  {
+    threadpool::JobPool pool(16);
+    workerCount = (int)pool.workers.size();
+    for (QuickPackCheckTask &t : tasks)
+      pool.add([&t, &mgr, &log, target_code, be]() { t.ready = run_one_quick_pack_check(t, mgr, log, target_code, be); });
+    pool.wait();
+  }
+
+  if (threadpool_inited_locally)
+    threadpool::shutdown();
+  if (cpujobs_inited_locally)
+    cpujobs::term(true);
+
+  int readyCount = 0, removedCount = 0;
+  for (QuickPackCheckTask &t : tasks)
+  {
+    readyCount += t.ready ? 1 : 0;
+    if (t.cacheRemoved)
+    {
+      removedCount++;
+      log.addMessage(log.WARNING, "removed outdated cache: %s (target file differs %s)", t.cacheFname, t.packFname);
+    }
+  }
+  if (out_stats)
+  {
+    out_stats->readyPacks += readyCount;
+    out_stats->totalPacks += tasks.size();
+    out_stats->removedCacheFiles += removedCount;
+    out_stats->workerThreads = workerCount;
+  }
+}
+
+// Fast, UI-only counterpart to checkUpToDate(): never calls gatherSrcDataFiles(), never removes an
+// outdated cache file, and marks readiness per-pack, not per-asset. Never use this to drive a real build.
+bool quickCheckUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, const char *profile, int tc_flags,
+  dag::ConstSpan<const char *> packs_to_check, dag::ConstSpan<bool> exp_types_mask, const DataBlock &appblk, ILogWriter &log,
+  DabuildQuickCheckStats *out_stats)
+{
+  TIME_PROFILE(quickCheckUpToDate);
+  const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
+
+  const char *addTexPfx = expblk.getStr("addTexPrefix", "");
+
+  Tab<AssetPack *> grp_pack(tmpmem), tex_pack(tmpmem);
+  FastNameMapEx addPackages;
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(targetCode, tc_storage);
+  makePack(mgr, mgr.getAssets(), exp_types_mask, expblk, tex_pack, grp_pack, addPackages, log, true, true, target_str, profile);
+
+  bool patch_detected = false;
+  Tab<bool> pkg_patch_build(addPackages.nameCount() + 1, false);
+  if (dabuild_allow_patch_build)
+    patch_detected = detect_valid_patches(pkg_patch_build, expblk, addPackages, app_dir, target_str, profile);
+
+  AssetExportCache::setSdkRoot(app_dir, "develop");
+  String cache_fname, pack_fname, pack_fname_prefix;
+
+  if (packs_to_check.size())
+  {
+    for (int i = 0; i < grp_pack.size(); i++)
+      grp_pack[i]->exported = false;
+    for (int i = 0; i < tex_pack.size(); i++)
+      tex_pack[i]->exported = false;
+
+    int packsCnt = packs_to_check.size();
+    for (int i = 0; i < packsCnt; i++)
+    {
+      bool found = false;
+      for (int j = -1; j < addPackages.nameCount(); j++)
+      {
+        int g_id = get_pack_id(grp_pack, j, packs_to_check[i], false);
+        int t_id = get_pack_id(tex_pack, j, packs_to_check[i], false);
+
+        if (g_id >= 0)
+          grp_pack[g_id]->exported = true, found = true;
+        if (t_id >= 0)
+          tex_pack[t_id]->exported = true, found = true;
+      }
+      if (!found)
+        log.addMessage(log.WARNING, "unknown pack: %s, skipped", packs_to_check[i]);
+    }
+  }
+
+  String cache_base = make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache"), true);
+  String cache_base_patch(260, "%spatch/", cache_base.str());
+  String dest_base;
+
+  Tab<DagorAsset *> asset_list(tmpmem);
+  bool be = dagor_target_code_be(targetCode);
+  Tab<QuickPackCheckTask> tasks(tmpmem);
+
+  auto addTask = [&](bool is_tex) {
+    tasks.push_back();
+    QuickPackCheckTask &t = tasks.back();
+    t.isTex = is_tex;
+    t.packFname = pack_fname;
+    t.cacheFname = cache_fname;
+    t.assets = asset_list;
+  };
+
+  if (assethlp::validate_exp_blk(addPackages.nameCount() > 0, expblk, target_str, profile, log))
+  {
+    for (int i = 0; i < tex_pack.size(); i++)
+    {
+      if (!tex_pack[i]->exported)
+        continue;
+      if (!get_exported_assets(asset_list, tex_pack[i]->assets, target_str, profile))
+        continue;
+
+      int pkid = tex_pack[i]->packageId;
+      bool done_via_patch = false;
+
+      if (patch_detected && pkg_patch_build[pkid + 1])
+      {
+        assethlp::build_package_dest_strings(dest_base, pack_fname_prefix, expblk, pkid < 0 ? nullptr : addPackages.getName(pkid),
+          app_dir, target_str, profile, true);
+        make_cache_fname(cache_fname, cache_base_patch, addPackages.getName(pkid), tex_pack[i]->packName, target_str, profile);
+        simplify_fname(cache_fname);
+
+        pack_fname.printf(260, "%s%s/%s%s", dest_base.str(), addTexPfx, pack_fname_prefix.str(), tex_pack[i]->packName.str());
+        simplify_fname(pack_fname);
+
+        if (dd_file_exist(pack_fname))
+        {
+          addTask(/*is_tex*/ true);
+          done_via_patch = true;
+        }
+      }
+      if (done_via_patch)
+        continue;
+
+      assethlp::build_package_dest_strings(dest_base, pack_fname_prefix, expblk, pkid < 0 ? nullptr : addPackages.getName(pkid),
+        app_dir, target_str, profile);
+      make_cache_fname(cache_fname, cache_base, addPackages.getName(pkid), tex_pack[i]->packName, target_str, profile);
+
+      simplify_fname(cache_fname);
+
+      pack_fname.printf(260, "%s%s/%s%s", dest_base.str(), addTexPfx, pack_fname_prefix.str(), tex_pack[i]->packName.str());
+      simplify_fname(pack_fname);
+
+      addTask(/*is_tex*/ true);
+    }
+
+    for (int i = 0; i < grp_pack.size(); i++)
+    {
+      if (!grp_pack[i]->exported)
+        continue;
+      if (!get_exported_assets(asset_list, grp_pack[i]->assets, target_str, profile))
+        continue;
+
+      int pkid = grp_pack[i]->packageId;
+      bool done_via_patch = false;
+
+      if (patch_detected && pkg_patch_build[pkid + 1])
+      {
+        assethlp::build_package_dest_strings(dest_base, pack_fname_prefix, expblk, pkid < 0 ? nullptr : addPackages.getName(pkid),
+          app_dir, target_str, profile, true);
+        make_cache_fname(cache_fname, cache_base_patch, addPackages.getName(pkid), grp_pack[i]->packName, target_str, profile);
+
+        simplify_fname(cache_fname);
+
+        pack_fname.printf(260, "%s%s/%s%s", dest_base.str(), addTexPfx, pack_fname_prefix.str(), grp_pack[i]->packName.str());
+        simplify_fname(pack_fname);
+
+        if (dd_file_exist(pack_fname))
+        {
+          addTask(/*is_tex*/ false);
+          done_via_patch = true;
+        }
+      }
+      if (done_via_patch)
+        continue;
+
+      assethlp::build_package_dest_strings(dest_base, pack_fname_prefix, expblk, pkid < 0 ? nullptr : addPackages.getName(pkid),
+        app_dir, target_str, profile);
+      make_cache_fname(cache_fname, cache_base, addPackages.getName(pkid), grp_pack[i]->packName, target_str, profile);
+
+      simplify_fname(cache_fname);
+
+      pack_fname.printf(260, "%s%s%s", dest_base.str(), pack_fname_prefix.str(), grp_pack[i]->packName.str());
+      simplify_fname(pack_fname);
+
+      addTask(/*is_tex*/ false);
+    }
+  }
+
+  run_quick_pack_checks(tasks, mgr, log, targetCode, be, out_stats);
+
+  bool changed = false;
+  for (QuickPackCheckTask &t : tasks)
+  {
+    for (DagorAsset *a : t.assets)
+      t.ready ? a->setUserFlags(tc_flags) : a->clrUserFlags(tc_flags);
+    if (!t.ready)
+      changed = true;
   }
 
   RELEASE_ASSETS_PACKS();

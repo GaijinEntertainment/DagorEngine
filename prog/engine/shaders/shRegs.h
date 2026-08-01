@@ -3,6 +3,7 @@
 
 #include <drv/3d/dag_resId.h>
 #include <math/dag_color.h>
+#include <math/dag_TMatrix.h>
 #include <vecmath/dag_vecMath.h>
 #include <shaders/shInternalTypes.h>
 #include <supp/dag_alloca.h>
@@ -92,6 +93,23 @@ static INLINE real &real_reg(char *rb, int o) { return make_ref<real>(&rb[o * 4]
 static INLINE Color4 &color4_reg(char *rb, int o) { return make_ref<Color4>(&rb[o * 4]); }
 static INLINE IPoint4 &ipoint4_reg(char *rb, int o) { return make_ref<IPoint4>(&rb[o * 4]); }
 static INLINE TMatrix4 &float4x4_reg(char *rb, int o) { return make_ref<TMatrix4>(&rb[o * 4]); }
+static INLINE void set_float3x4_reg(char *rb, int o, const TMatrix &tm)
+{
+  float *dst = (float *)&rb[o * 4];
+  // Tmatrix is row major. Hlsl float4x3 (4 rows of 3 columns) is column major
+  dst[0] = tm.m[0][0];
+  dst[1] = tm.m[1][0];
+  dst[2] = tm.m[2][0];
+  dst[3] = tm.m[3][0];
+  dst[4] = tm.m[0][1];
+  dst[5] = tm.m[1][1];
+  dst[6] = tm.m[2][1];
+  dst[7] = tm.m[3][1];
+  dst[8] = tm.m[0][2];
+  dst[9] = tm.m[1][2];
+  dst[10] = tm.m[2][2];
+  dst[11] = tm.m[3][2];
+}
 static INLINE vec4f get_vec_reg(char *rb, int o) { return v_ldu((float *)&rb[o * 4]); }
 static INLINE void set_vec_reg(vec4f v, char *rb, int o) { return v_stu(&rb[o * 4], v); }
 static INLINE RaytraceTopAccelerationStructure *&tlas_reg(char *rb, int o)

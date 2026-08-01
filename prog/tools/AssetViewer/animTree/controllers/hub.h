@@ -13,6 +13,8 @@ struct AnimParamData;
 struct AnimCtrlData;
 struct BlendNodeData;
 class DataBlock;
+class AnimTreePlugin;
+class IListReorderHandler;
 
 void hub_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx);
 void hub_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
@@ -22,3 +24,5 @@ void hub_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataB
 const char *hub_get_child_name_by_idx(const DataBlock &settings, int idx);
 bool hub_get_child_is_optional_by_idx(const DataBlock &settings, int idx);
 void hub_update_child_name(DataBlock &settings, const char *name, const String &old_name);
+IListReorderHandler *hub_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data);

@@ -109,6 +109,11 @@ public:
 
   virtual void renderOneDynModelInstance(DynamicRenderableSceneInstance *sceneInstance, Stage stage, int *optional_inst_seed = nullptr,
     bool raw_render = false) = 0;
+
+  virtual void invalidateEditorClipmap() {}
+  virtual void updateEditorLandmesh() {}
+
+  virtual void onGrassCreated(const DataBlock *) {}
 };
 
 class IRenderHelperService

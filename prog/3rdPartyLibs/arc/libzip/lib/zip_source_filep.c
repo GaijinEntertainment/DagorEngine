@@ -241,15 +241,17 @@ static int
 create_temp_output(struct read_file *ctx)
 {
     char *temp;
+    size_t templen;
     int tfd;
     mode_t mask;
     FILE *tfp;
 
-    if ((temp=(char *)malloc(strlen(ctx->fname)+8)) == NULL) {
+    templen = strlen(ctx->fname)+8;
+    if ((temp=(char *)malloc(templen)) == NULL) {
 	zip_error_set(&ctx->error, ZIP_ER_MEMORY, 0);
 	return -1;
     }
-    sprintf(temp, "%s.XXXXXX", ctx->fname);
+    snprintf(temp, templen, "%s.XXXXXX", ctx->fname);
 
     mask = umask(_SAFE_MASK);
 
@@ -291,6 +293,7 @@ zip_int64_t
 static create_temp_output_cloning(struct read_file *ctx, zip_uint64_t offset)
 {
     char *temp;
+    size_t templen;
     FILE *tfp;
 
     if (offset > ZIP_OFF_MAX) {
@@ -298,11 +301,12 @@ static create_temp_output_cloning(struct read_file *ctx, zip_uint64_t offset)
         return -1;
     }
 
-    if ((temp=(char *)malloc(strlen(ctx->fname)+8)) == NULL) {
+    templen = strlen(ctx->fname)+8;
+    if ((temp=(char *)malloc(templen)) == NULL) {
         zip_error_set(&ctx->error, ZIP_ER_MEMORY, 0);
         return -1;
     }
-    sprintf(temp, "%s.XXXXXX", ctx->fname);
+    snprintf(temp, templen, "%s.XXXXXX", ctx->fname);
 
     if (mktemp(temp) == NULL) {
         zip_error_set(&ctx->error, ZIP_ER_TMPOPEN, errno);

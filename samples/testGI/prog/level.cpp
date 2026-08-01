@@ -166,9 +166,6 @@ void StrmSceneHolder::onSceneLoaded()
 }
 
 
-void frustumCulling(LodGridCullData &cull_data, const Point3 &world_pos, float water_level, const Frustum &frustum,
-  const Occlusion *occlusion, const HeightmapHandler &handler, const TMatrix4 &proj);
-
 void StrmSceneHolder::renderHeightmap(const vec4f &vp, const Frustum &frustum, const TMatrix4 &proj)
 {
   if (state == No)
@@ -186,7 +183,7 @@ void StrmSceneHolder::renderHeightmap(const vec4f &vp, const Frustum &frustum, c
 
   heightmap.makeBookKeeping();
   heightmap.setVars();
-  if (heightmap.prepare(viewPos))
+  if (heightmap.prepare(viewPos, 1.0f))
   {
     LodGridCullData cullData;
     HeightmapMetricsQuality mq = {proj_to_distance_scale(proj)};

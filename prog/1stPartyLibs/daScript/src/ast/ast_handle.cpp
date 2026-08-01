@@ -75,8 +75,9 @@ namespace das {
 
     TypeInfo * BasicStructureAnnotation::getFieldType ( const string & na ) const {
         updateTypeInfo();
-        for ( uint32_t n=0; n!=sti->count; ++n ) {
-            auto & fi = sti->fields[n];
+        auto sinfo = this->sti.load();
+        for ( uint32_t n=0; n!=sinfo->count; ++n ) {
+            auto & fi = sinfo->fields[n];
             if ( fi->name == na ) {
                 return fi;
             }
@@ -166,29 +167,30 @@ namespace das {
     }
 
     void BasicStructureAnnotation::updateTypeInfo() const {
-        lock_guard<recursive_mutex> guard(walkMutex);
-        if ( !sti ) {
+        if ( sti.load() ) return;
+        lock_guard<recursive_mutex> guard(g_handleTypeInfoMutex);
+        if ( !sti.load() ) {
             auto debugInfo = helpA.debugInfo;
-            sti = debugInfo->template makeNode<StructInfo>();
-            sti->name = debugInfo->allocateName(name);
+            StructInfo * sinfo = debugInfo->template makeNode<StructInfo>();
+            sinfo->name = debugInfo->allocateName(name);
             sti_gc = debugInfo->template makeNode<StructInfo>();
-            sti_gc->name = sti->name;
+            sti_gc->name = sinfo->name;
             // flags
-            sti->flags = 0;
+            sinfo->flags = 0;
             sti_gc->flags = 0;
             // count fields
-            sti->count = 0;
+            sinfo->count = 0;
             for ( auto & fi : fields ) {
                 auto & var = fi.second;
                 if ( var.offset != -1U ) {
-                    sti->count ++;
+                    sinfo->count ++;
                 }
             }
             // and allocate
             sti_gc->count = 0;
-            sti->size = (uint32_t) getSizeOf();
-            sti_gc->size = sti->size;
-            sti->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sti->count );
+            sinfo->size = (uint32_t) getSizeOf();
+            sti_gc->size = sinfo->size;
+            sinfo->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sinfo->count );
             int i = 0;
             for ( const auto & fn : fieldsInOrder ) {
                 auto itvar = fields.find(fn);
@@ -199,7 +201,7 @@ namespace das {
                         helpA.makeTypeInfo(vi, var.decl);
                         vi->name = debugInfo->allocateName(fn);
                         vi->offset = var.offset;
-                        sti->fields[i++] = vi;
+                        sinfo->fields[i++] = vi;
                         if ( vi->flags & (TypeInfo::flag_heapGC | TypeInfo::flag_stringHeapGC)   ) {
                             sti_gc->count++;
                         }
@@ -209,8 +211,8 @@ namespace das {
             if ( sti_gc->count ) {
                 sti_gc->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sti_gc->count );
                 int j = 0;
-                for ( uint32_t n=0; n!=sti->count; ++n ) {
-                    auto & fi = sti->fields[n];
+                for ( uint32_t n=0; n!=sinfo->count; ++n ) {
+                    auto & fi = sinfo->fields[n];
                     if ( fi->flags & (TypeInfo::flag_heapGC | TypeInfo::flag_stringHeapGC) ) {
                         sti_gc->fields[j++] = fi;
                     }
@@ -218,7 +220,8 @@ namespace das {
             } else {
                 sti_gc->fields = nullptr;
             }
-            sti->module_name = debugInfo->allocateCachedName(this->module->name);
+            sinfo->module_name = debugInfo->allocateCachedName(this->module->name);
+            this->sti.store(sinfo);
         }
     }
 
@@ -229,7 +232,7 @@ namespace das {
                 walker.walk_struct((char *)data, sti_gc);
             }
         } else {
-            walker.walk_struct((char *)data, sti);
+            walker.walk_struct((char *)data, sti.load());
         }
     }
 

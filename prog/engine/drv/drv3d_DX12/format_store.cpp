@@ -588,7 +588,7 @@ FormatInfo<TEXFMT_DXT1,           DXGI_FORMAT_BC1_TYPELESS,           DXGI_FORMA
 FormatInfo<TEXFMT_DXT3,           DXGI_FORMAT_BC2_TYPELESS,           DXGI_FORMAT_BC2_UNORM,            DXGI_FORMAT_BC2_UNORM_SRGB>,
 FormatInfo<TEXFMT_DXT5,           DXGI_FORMAT_BC3_TYPELESS,           DXGI_FORMAT_BC3_UNORM,            DXGI_FORMAT_BC3_UNORM_SRGB>,
 FormatInfo<TEXFMT_R32G32UI,       DXGI_FORMAT_R32G32_TYPELESS,        DXGI_FORMAT_R32G32_UINT,          DXGI_FORMAT_R32G32_UINT>,
-DummyFormatInfo<0x0F000000U>,
+FormatInfo<TEXFMT_BC5S,           DXGI_FORMAT_BC5_TYPELESS,           DXGI_FORMAT_BC5_SNORM,            DXGI_FORMAT_BC5_SNORM>,
 FormatInfo<TEXFMT_L16,            DXGI_FORMAT_R16_TYPELESS,           DXGI_FORMAT_R16_UNORM,            DXGI_FORMAT_R16_UNORM>,
 FormatInfo<TEXFMT_A8,             DXGI_FORMAT_A8_UNORM,               DXGI_FORMAT_A8_UNORM,             DXGI_FORMAT_A8_UNORM>,
 FormatInfo<TEXFMT_R8,             DXGI_FORMAT_R8_TYPELESS,            DXGI_FORMAT_R8_UNORM,             DXGI_FORMAT_R8_UNORM>,
@@ -753,6 +753,7 @@ bool FormatStore::isHDRFormat() const
     case TEXFMT_DXT5 >> create_flags_format_shift:
     case TEXFMT_ATI1N >> create_flags_format_shift:
     case TEXFMT_ATI2N >> create_flags_format_shift:
+    case TEXFMT_BC5S >> create_flags_format_shift:
     case TEXFMT_BC6H >> create_flags_format_shift:
     case TEXFMT_BC7 >> create_flags_format_shift:
     // SDR
@@ -810,7 +811,8 @@ bool FormatStore::isColor() const
     case TEXFMT_BC6H >> create_flags_format_shift:
     case TEXFMT_BC7 >> create_flags_format_shift:
     case TEXFMT_R8UI >> create_flags_format_shift:
-    case TEXFMT_R16UI >> create_flags_format_shift: return true;
+    case TEXFMT_R16UI >> create_flags_format_shift:
+    case TEXFMT_BC5S >> create_flags_format_shift: return true;
     case TEXFMT_DEPTH24 >> create_flags_format_shift:
     case TEXFMT_DEPTH16 >> create_flags_format_shift:
     case TEXFMT_DEPTH32 >> create_flags_format_shift:
@@ -859,7 +861,8 @@ bool FormatStore::isDepth() const
     case TEXFMT_BC6H >> create_flags_format_shift:
     case TEXFMT_BC7 >> create_flags_format_shift:
     case TEXFMT_R8UI >> create_flags_format_shift:
-    case TEXFMT_R16UI >> create_flags_format_shift: return false;
+    case TEXFMT_R16UI >> create_flags_format_shift:
+    case TEXFMT_BC5S >> create_flags_format_shift: return false;
     case TEXFMT_DEPTH24 >> create_flags_format_shift:
     case TEXFMT_DEPTH16 >> create_flags_format_shift:
     case TEXFMT_DEPTH32 >> create_flags_format_shift:
@@ -909,7 +912,8 @@ bool FormatStore::isStencil() const
     case TEXFMT_BC6H >> create_flags_format_shift:
     case TEXFMT_BC7 >> create_flags_format_shift:
     case TEXFMT_R8UI >> create_flags_format_shift:
-    case TEXFMT_R16UI >> create_flags_format_shift: return false;
+    case TEXFMT_R16UI >> create_flags_format_shift:
+    case TEXFMT_BC5S >> create_flags_format_shift: return false;
     case TEXFMT_DEPTH24 >> create_flags_format_shift: return true;
     case TEXFMT_DEPTH16 >> create_flags_format_shift: return false;
     case TEXFMT_DEPTH32 >> create_flags_format_shift: return false;

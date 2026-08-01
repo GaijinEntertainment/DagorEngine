@@ -20,6 +20,7 @@
 #include "predicted_latency_waiter.h"
 #include "pipeline_barrier.h"
 #include "swapchain.h"
+#include "vk_to_string.h"
 #include "backend/cmd/debug.h"
 
 using namespace drv3d_vulkan;
@@ -528,6 +529,33 @@ void drv3d_vulkan::debug_ui_misc()
 
 void drv3d_vulkan::debug_ui_swapchain()
 {
+  {
+    SwapchainMode mode = Frontend::swapchain.getMode();
+    ImGui::Text("surface: %016llX", (unsigned long long)generalize(mode.surfaceAndWindow.first));
+    ImGui::Text("window: %p", mode.surfaceAndWindow.second);
+    ImGui::Text("presentMode: %s", formatPresentMode(mode.presentMode));
+    ImGui::Text("extent: %u x %u", mode.extent.width, mode.extent.height);
+    ImGui::Text("format: %s", mode.format.getNameString());
+    ImGui::Text("extraBusyImages: %u", (unsigned)mode.extraBusyImages);
+    ImGui::Text("enableSrgb: %d", (int)mode.enableSrgb);
+    ImGui::Text("fullscreen: %d", (int)mode.fullscreen);
+    ImGui::Text("mutableFormat: %d", (int)mode.mutableFormat);
+    ImGui::Text("mismatchedExtents: %d", (int)mode.mismatchedExtents);
+    ImGui::Text("usesHdr: %d", (int)mode.usesHdr);
+    ImGui::Text("canUseHdr: %d", (int)mode.canUseHdr);
+    ImGui::Text("modifySource: %s", mode.modifySource ? mode.modifySource : "<null>");
+  }
+
+  bool beOnlyAcq = Frontend::swapchain.isBackendOnlyAcquire();
+  ImGui::Text("Backend only acquire: %s", beOnlyAcq ? "yes" : "no");
+  if (beOnlyAcq)
+    ImGui::Text("Presented ring size: <unavailable in backend only acquire mode>");
+  else
+    ImGui::Text("Presented ring size: %u", Frontend::swapchain.getPresentedRingSize());
+
+  if (ImGui::Button("Toggle backend only acquire"))
+    Frontend::swapchain.toggleBackendOnlyAcquire();
+
   if (ImGui::Button("Recreate"))
   {
     SwapchainMode newMode = Frontend::swapchain.getMode();

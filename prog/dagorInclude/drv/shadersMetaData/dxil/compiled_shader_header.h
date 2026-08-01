@@ -424,6 +424,23 @@ BINDUMP_BEGIN_LAYOUT(ShaderContainer)
   VecHolder<uint8_t> data;
 BINDUMP_END_LAYOUT()
 
+/// Ray-trace pipeline flags authored in DSHL and carried in the bindump (NOT in DXIL), so the
+/// driver can decide CPU-side whether to enable an optional pipeline feature based on device caps.
+enum RayTracePipelineFlags : uint32_t
+{
+  RT_PIPELINE_FLAG_NONE = 0,
+  /// Shader opts into Opacity Micro Maps. The driver enables the D3D12 OMM pipeline flag only when
+  /// the device actually supports OMM, so a single shader variant works on OMM and non-OMM GPUs.
+  RT_PIPELINE_FLAG_ALLOW_OMM = 1u << 0,
+  /// A DSHL raytrace_pipeline block authored the pipeline config (recursion + flags). The driver
+  /// builds the pipeline-config subobject CPU-side from the bindump instead of the DXIL-embedded one.
+  RT_PIPELINE_FLAG_HAS_EXPLICIT_CONFIG = 1u << 1,
+  /// The shader carries an inline HLSL RaytracingPipelineConfig baked into DXIL (and no DSHL block).
+  /// Such a library cannot be combined into a pipeline whose config the driver builds itself, because
+  /// the embedded config would conflict with the driver-built one.
+  RT_PIPELINE_FLAG_HAS_DXIL_CONFIG = 1u << 2,
+};
+
 /// Properties of a individual shader in a shader library.
 struct LibraryShaderProperties
 {
@@ -442,6 +459,8 @@ struct LibraryShaderProperties
   ShaderResourceUsageTable resourceUsageTable;
   /// Requirements the device has to fulfill to be used.
   ShaderDeviceRequirement deviceRequirement;
+  /// RayTracePipelineFlags authored in DSHL; OR-reduced across the pipeline's shaders by the driver.
+  uint32_t rtPipelineFlags;
 };
 
 /// Composition of all resource usages of the shader library.
@@ -523,6 +542,8 @@ struct FunctionExtraInfo
   uint32_t recursionDepth = 0;
   uint32_t maxPayLoadSizeInBytes = 0;
   uint32_t maxAttributeSizeInBytes = 0;
+  /// RayTracePipelineFlags for this shader, authored in DSHL and carried through to LibraryShaderProperties.
+  uint32_t rtPipelineFlags = RT_PIPELINE_FLAG_NONE;
 };
 
 using FunctionExtraDataQuery = eastl::function<eastl::optional<FunctionExtraInfo>(ShaderStage, const eastl::string &)>;

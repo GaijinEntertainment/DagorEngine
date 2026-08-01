@@ -18,6 +18,21 @@ float clouds_turbulence_scale = 0.21;
 float clouds_extinction_low_val = 1;//not used - assumed 1
 float clouds_extinction_high_mul = 1;//not used - assumed 1
 
+//flow-noise erosion: curl-warped erosion lookup instead of an unwarped isotropic worley fetch
+int clouds_erosion_flow = 0;
+interval clouds_erosion_flow: off < 1, on;
+assume_if_not_assumed clouds_erosion_flow = on;
+
+float clouds_erosion_flow_warp = 0.12;//in erosion-tile UV: 0.12 ~ 100 m displacement
+//biases are independent multiplicative fades, 0 = warp everywhere, 1 = fully proportional to the factor
+float clouds_erosion_flow_height_bias = 0.5;//fade warp towards cloud base
+float clouds_erosion_flow_edge_bias = 0.5;//fade warp inside dense cores
+float clouds_erosion_flow_curl_size = 2;//curl feature size multiplier over the 1311 m base
+texture clouds_curl_3d;
+//stretch detail along the wind with altitude (fractus look); in erosion-tile UV at cloud top
+float clouds_erosion_shear = 0.05;
+float4 clouds_erosion_wind_dir = (0, 0, 0, 0);
+
 float clouds_second_layer_density = 0.25;
 float clouds_first_layer_density = 1.;
 
@@ -29,10 +44,20 @@ macro SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
     clouds_erosion_offset@f4 = (clouds_erosion_noise_wind_ofs.x/clouds_erosion_noise_tile_size, clouds_erosion_noise_wind_ofs.z/clouds_erosion_noise_tile_size, 65536*1./clouds_erosion_noise_tile_size, 1./clouds_erosion_noise_tile_size);
     weather_size@f4 = (clouds_weather_size, 1./clouds_weather_size,clouds_shape_scale/clouds_weather_size,clouds_cumulonimbus_shape_scale/clouds_weather_size);//clouds_cumulonimbus_shape_scale
   }
+  if (clouds_erosion_flow == on) {
+    (code) {
+      clouds_erosion_flow_p@f4 = (clouds_erosion_flow_warp, clouds_erosion_flow_height_bias, clouds_erosion_flow_edge_bias, 1/(1311*max(clouds_erosion_flow_curl_size, 0.01)));
+      clouds_curl_3d@tex3d = clouds_curl_3d;
+    }
+  }
+  (code) {
+    clouds_erosion_shear_p@f2 = (clouds_erosion_wind_dir.x*clouds_erosion_shear, clouds_erosion_wind_dir.z*clouds_erosion_shear, 0, 0);
+  }
   INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   EROSION_HEIGHT_MATH(code)
   hlsl(code) {
     #define gen_cloud_detail_samplerstate global_linear_wrap_sampler
+    #define clouds_curl_3d_samplerstate global_linear_wrap_sampler
     #define CLOUDS_SIGMA (global_clouds_sigma.x)
     #define CLOUD_SHAPE_METERS_SCALE (weather_size.z)
     #define WEATHER_SIZE (weather_size.x)
@@ -59,16 +84,27 @@ macro SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
       if (erosion_level_global>0 && density>0)
       {
         float3 clouds_detail_sampling_coord = float3(p.xz*clouds_erosion_offset.w + clouds_erosion_offset.xy, p.y*clouds_erosion_offset.w).xzy;
-        //this enhances quality
-        //float2 curl_ofs = decode_curl(tex3Dlod(clouds_curl_3d, float4(clouds_detail_sampling_coord.zxy*0.27, 0)).xy);
-        //clouds_detail_sampling_coord.xy += curl_ofs*0.15*saturate(1.1-heightFraction);
+        //wind shear: stretch detail along the wind with altitude (fractus look); identity at shear 0
+        clouds_detail_sampling_coord.xz += clouds_erosion_shear_p*heightFraction;
+        ##if clouds_erosion_flow == on
+        //flow noise: curl-warp the erosion lookup - filaments instead of round worley holes.
+        //3d curl so the warp varies with altitude (a 2d layer stacks the same pattern into
+        //column-coherent streaks on tall faces); measured equal cost to one 2d bilinear tap.
+        //biases fade the warp independently (multiplicative), so no knob combination saturates another
+        float2 curl = decode_curl(tex3Dlod(clouds_curl_3d, float4(float3(p.xz, p.y)*clouds_erosion_flow_p.w, 0)).xy);
+        float warpAmp = clouds_erosion_flow_p.x
+          * lerp(1, heightFraction, clouds_erosion_flow_p.y)
+          * lerp(1, 1-density, clouds_erosion_flow_p.z);
+        clouds_detail_sampling_coord.xz += curl*warpAmp;
+        ##endif
         float highFreqNoiseModifier = tex3Dlod(gen_cloud_detail, float4(clouds_detail_sampling_coord, lod)).x;
         highFreqNoiseModifier *= erosion_level_global*erosionFunctionMath(heightFraction, density);
         density = saturate((density-highFreqNoiseModifier)*rcp(1-highFreqNoiseModifier));
       }
       //return density*saturate(fastSqrtNR0(baseDensity));//this is how it was from dawn of daSkies2
       //return density;//this is the harshest, would probably require decreasing extinction
-      return density*saturate(baseDensity*2 + 0.25);//this still ease out a bit at zero, while converges to harshest one at density ~0.4
+      //defaults (2, 0.25) still ease out a bit at zero, while converging to harshest one at density ~0.4
+      return density*saturate(baseDensity*clouds_erosion_strength_p.z + clouds_erosion_strength_p.w);
     }
   }
 endmacro
@@ -77,7 +113,7 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
   SAMPLE_CLOUDS_DENSITY_COMMON(code, clouds_view_pos)
   (code) {
     gen_cloud_shape@tex3d = gen_cloud_shape;
-    clouds_curl_2d@smp2d = clouds_curl_2d;
+    clouds_curl_2d@tex2d = clouds_curl_2d;
     clouds_weather_texture@tex2d = clouds_weather_texture;
     clouds_turbulence@f4 = (clouds_turbulence_freq, clouds_turbulence_scale/clouds_turbulence_freq, clouds_first_layer_density, clouds_second_layer_density);
   }
@@ -86,9 +122,11 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
   hlsl(code) {
     #define clouds_weather_texture_samplerstate global_linear_wrap_sampler
     #define gen_cloud_shape_samplerstate global_linear_wrap_sampler
+    #define clouds_curl_2d_samplerstate global_linear_wrap_sampler
     #define CLOUDS_PREBAKED_FIELD 0
     #define DENSITY_LAYER1 (clouds_turbulence.z)
     #define DENSITY_LAYER2 (clouds_turbulence.w)
+    //fake 3D curl: z blends between diagonally offset reads of the tiling 2D curl texture
     float2 get_pseudo_3d_curl(float3 curlTC)
     {
       float fIndex = floor(curlTC.z*16);

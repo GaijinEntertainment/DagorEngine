@@ -33,6 +33,7 @@
 int patch_update_game_resources_verbose = 0;
 int patch_update_game_resources_file_open_mode = DF_READ;
 PatchGameResourcesStrategy patch_update_game_resources_strategy = PatchGameResourcesStrategy::Full;
+int64_t patch_update_game_resources_max_pack_data_size = 0;
 
 #if !_TARGET_64BIT
 static bool transcode_old_vromfs_dump(Tab<char> &dest, const char *fname)
@@ -214,15 +215,37 @@ static bool load_grp(GrpBinData &dest, IGenLoad &crd, int file_size)
 {
   gamerespackbin::GrpHeader hdr;
 
-  crd.read(&hdr, sizeof(hdr));
+  if (crd.tryRead(&hdr, sizeof(hdr)) != (int)sizeof(hdr))
+  {
+    logwarn("resUpd: %s: short header read (grp)", crd.getTargetName());
+    return false;
+  }
 
   if (hdr.label != _MAKE4C('GRP2') && hdr.label != _MAKE4C('GRP3'))
     return false;
   if (file_size > 0 && hdr.restFileSize + sizeof(hdr) != file_size)
     return false;
 
-  gamerespackbin::GrpData *gdata = gdata = (gamerespackbin::GrpData *)memalloc(hdr.fullDataSize, tmpmem);
-  crd.read(gdata, hdr.fullDataSize);
+  if (file_size > 0 ? (int64_t(sizeof(hdr)) + hdr.fullDataSize > file_size)
+                    : (patch_update_game_resources_max_pack_data_size > 0 &&
+                        int64_t(hdr.fullDataSize) > patch_update_game_resources_max_pack_data_size))
+  {
+    logwarn("resUpd: %s: bad size (grp) fullDataSize=%u file_size=%d", crd.getTargetName(), hdr.fullDataSize, file_size);
+    return false;
+  }
+
+  gamerespackbin::GrpData *gdata = (gamerespackbin::GrpData *)tmpmem->tryAlloc(hdr.fullDataSize);
+  if (!gdata)
+  {
+    logwarn("resUpd: %s: alloc failed (grp) fullDataSize=%u", crd.getTargetName(), hdr.fullDataSize);
+    return false;
+  }
+  if (crd.tryRead(gdata, hdr.fullDataSize) != int(hdr.fullDataSize))
+  {
+    logwarn("resUpd: %s: truncated body (grp) fullDataSize=%u", crd.getTargetName(), hdr.fullDataSize);
+    memfree(gdata, tmpmem);
+    return false;
+  }
 
   dest.data = gdata;
   dest.fullSz = hdr.restFileSize + sizeof(hdr);
@@ -287,13 +310,35 @@ static bool load_grp(GrpBinData &dest, IGenLoad &crd, int file_size)
 static bool load_dxp_old(DxpBinData &dest, IGenLoad &crd, int file_size)
 {
   unsigned hdr[4];
-  crd.read(hdr, sizeof(hdr));
+  if (crd.tryRead(hdr, sizeof(hdr)) != (int)sizeof(hdr))
+  {
+    logwarn("resUpd: %s: short header read (dxp_old)", crd.getTargetName());
+    return false;
+  }
 
   if (hdr[0] != _MAKE4C('DxP2') || hdr[1] != 1)
     return false;
 
-  DxpDump32 *tdata = (DxpDump32 *)memalloc(hdr[3], tmpmem);
-  crd.read(tdata, hdr[3]);
+  if (hdr[3] < sizeof(DxpDump32) || (file_size > 0 ? (int64_t(sizeof(hdr)) + hdr[3] > file_size)
+                                                   : (patch_update_game_resources_max_pack_data_size > 0 &&
+                                                       int64_t(hdr[3]) > patch_update_game_resources_max_pack_data_size)))
+  {
+    logwarn("resUpd: %s: bad size (dxp_old) sz=%u file_size=%d", crd.getTargetName(), hdr[3], file_size);
+    return false;
+  }
+
+  DxpDump32 *tdata = (DxpDump32 *)tmpmem->tryAlloc(hdr[3]);
+  if (!tdata)
+  {
+    logwarn("resUpd: %s: alloc failed (dxp_old) sz=%u", crd.getTargetName(), hdr[3]);
+    return false;
+  }
+  if (crd.tryRead(tdata, hdr[3]) != int(hdr[3]))
+  {
+    logwarn("resUpd: %s: truncated body (dxp_old) sz=%u", crd.getTargetName(), hdr[3]);
+    memfree(tdata, tmpmem);
+    return false;
+  }
 
   dest.oldDump32 = tdata;
   dest.data = (DxpBinData::Dump *)memalloc(sizeof(DxpBinData::Dump), tmpmem);
@@ -360,7 +405,11 @@ static bool load_dxp_old(DxpBinData &dest, IGenLoad &crd, int file_size)
 static bool load_dxp(DxpBinData &dest, IGenLoad &crd, int file_size, bool old_file)
 {
   unsigned hdr[4];
-  crd.read(hdr, sizeof(hdr));
+  if (crd.tryRead(hdr, sizeof(hdr)) != (int)sizeof(hdr))
+  {
+    logwarn("resUpd: %s: short header read (dxp)", crd.getTargetName());
+    return false;
+  }
 
 #if !_TARGET_64BIT
   if (hdr[0] == _MAKE4C('DxP2') && hdr[1] == 1 && old_file)
@@ -374,8 +423,26 @@ static bool load_dxp(DxpBinData &dest, IGenLoad &crd, int file_size, bool old_fi
   if (hdr[0] != _MAKE4C('DxP2') || (hdr[1] != 2 && hdr[1] != 3))
     return false;
 
-  DxpBinData::Dump *tdata = (DxpBinData::Dump *)memalloc(hdr[3], tmpmem);
-  crd.read(tdata, hdr[3]);
+  if (hdr[3] < sizeof(DxpBinData::Dump) || (file_size > 0 ? (int64_t(sizeof(hdr)) + hdr[3] > file_size)
+                                                          : (patch_update_game_resources_max_pack_data_size > 0 &&
+                                                              int64_t(hdr[3]) > patch_update_game_resources_max_pack_data_size)))
+  {
+    logwarn("resUpd: %s: bad size (dxp) sz=%u file_size=%d", crd.getTargetName(), hdr[3], file_size);
+    return false;
+  }
+
+  DxpBinData::Dump *tdata = (DxpBinData::Dump *)tmpmem->tryAlloc(hdr[3]);
+  if (!tdata)
+  {
+    logwarn("resUpd: %s: alloc failed (dxp) sz=%u", crd.getTargetName(), hdr[3]);
+    return false;
+  }
+  if (crd.tryRead(tdata, hdr[3]) != int(hdr[3]))
+  {
+    logwarn("resUpd: %s: truncated body (dxp) sz=%u", crd.getTargetName(), hdr[3]);
+    memfree(tdata, tmpmem);
+    return false;
+  }
 
   dest.data = tdata;
   clear_and_resize(dest.hdrData, hdr[3] + sizeof(hdr));

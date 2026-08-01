@@ -90,7 +90,9 @@ The debug server talks to the target device using the Duktape debug protocol
 
 <script src="jquery-1.11.1.min.js" type="text/javascript"></script>
 <script src="jquery-ui.min.js" type="text/javascript"></script>
-<script src="socket.io-1.2.0.js" type="text/javascript"></script>
+<!-- served by the socket.io server itself, so the client always matches the
+     installed server version (a 2.x server rejects a 1.x client handshake) -->
+<script src="/socket.io/socket.io.js" type="text/javascript"></script>
 <script src="webui.js" type="text/javascript"></script>
 </body>
 </html>

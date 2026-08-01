@@ -2,6 +2,7 @@
 
 #include "linearPoly.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 #include "../animTreePanelPids.h"
 #include "../animTree.h"
 #include "animCtrlData.h"
@@ -26,7 +27,7 @@ void linear_poly_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Conta
 
 void linear_poly_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
 {
-  remove_param_if_default_str(params, panel, "varname");
+  remove_param_if_default_str(params, panel, "varname", get_default_varname_from_name(params, panel));
   remove_param_if_default_float(params, panel, "morphTime");
   remove_param_if_default_bool(params, panel, "enclosed");
   remove_param_if_default_float(params, panel, "paramTau");
@@ -40,11 +41,12 @@ void linear_poly_init_block_settings(PropPanel::ContainerPropertyControl *panel,
 {
   Tab<String> names;
   names.reserve(settings->blockCount());
+  const int childNid = settings->getNameId("child");
   for (int i = 0; i < settings->blockCount(); ++i)
   {
     const DataBlock *block = settings->getBlock(i);
-    if (block->paramExists("name"))
-      names.emplace_back(block->getStr("name"));
+    if (block->getNameId() == childNid)
+      names.emplace_back(block->getStr("name", ""));
   }
 
   const DataBlock *defaultBlock = settings->getBlockByNameEx("child");
@@ -66,8 +68,8 @@ void AnimTreePlugin::linearPolySaveBlockSettings(PropPanel::ContainerPropertyCon
 
   const SimpleString selectedName = panel->getText(PID_CTRLS_NODES_LIST);
   const SimpleString fieldName = panel->getText(PID_CTRLS_LINEAR_POLY_NODE_NAME);
-  const int blockIdx = get_child_block_idx_by_list_idx(settings, selectedIdx);
-  DataBlock *selectedBlock = settings->getBlock(blockIdx);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "child");
+  DataBlock *selectedBlock = selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : nullptr;
 
   if (!selectedBlock)
   {
@@ -100,12 +102,10 @@ void linear_poly_set_selected_node_list_settings(PropPanel::ContainerPropertyCon
   // Find child block based on idx, becuse names can duplicate
   const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
   const SimpleString name = panel->getText(PID_CTRLS_NODES_LIST);
-  const int blockIdx = get_child_block_idx_by_list_idx(settings, selectedIdx);
-  const DataBlock *selectedBlock = settings->getBlock(blockIdx);
-
-  // In case if we add new_node
-  if (!selectedBlock)
-    selectedBlock = &DataBlock::emptyBlock;
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "child");
+  // In case if we add new_node selected idx can be out of positions range
+  const DataBlock *selectedBlock =
+    selectedIdx >= 0 && selectedIdx < positions.size() ? settings->getBlock(positions[selectedIdx]) : &DataBlock::emptyBlock;
 
   panel->setText(PID_CTRLS_LINEAR_POLY_NODE_NAME, name.c_str());
   panel->setFloat(PID_CTRLS_LINEAR_POLY_NODE_VAL, selectedBlock->getReal("val", 0.f));
@@ -117,19 +117,13 @@ void linear_poly_set_selected_node_list_settings(PropPanel::ContainerPropertyCon
 void linear_poly_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
-  if (selectedIdx < settings->blockCount())
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "child");
+  if (removeIdx >= 0 && removeIdx < positions.size())
   {
-    const int removeIdx = get_child_block_idx_by_list_idx(settings, selectedIdx);
-    if (removeIdx == -1)
-    {
-      logerr("Can't find block with idx from list <%d> and name <%s>", selectedIdx, removeName.c_str());
-      return;
-    }
-
-    const char *blockName = settings->getBlock(removeIdx)->getStr("name");
+    const char *blockName = settings->getBlock(positions[removeIdx])->getStr("name");
     G_ASSERTF(removeName == blockName, "Remove wrong child block in blk: %s, expected from list: %s", blockName, removeName.c_str());
-    settings->removeBlock(removeIdx);
+    settings->removeBlock(positions[removeIdx]);
   }
 }
 
@@ -149,7 +143,7 @@ const char *linear_poly_get_child_name_by_idx(const DataBlock &settings, int idx
 
 String linear_poly_get_child_prefix_name(const DataBlock &settings, int idx)
 {
-  return String(0, "[%f] ", settings.getBlock(idx)->getReal("val", 0.f));
+  return String(0, "[%g] ", settings.getBlock(idx)->getReal("val", 0.f));
 }
 
 void linear_poly_update_child_name(DataBlock &settings, const char *name, const String &old_name)
@@ -162,4 +156,32 @@ void linear_poly_update_child_name(DataBlock &settings, const char *name, const 
     if (childName && get_updated_child_name(name, old_name, childName, writeName))
       child->setStr("name", writeName.c_str());
   }
+}
+
+class LinearPolyReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  LinearPolyReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data) :
+    BaseCtrlReorderHandler(plugin, controllers, panel), ctrlData(ctrl_data)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    // ctrlData is re-fetched on each panel rebuild, so it stays valid while the
+    // settings panel is open.
+    dag::Vector<int> positions = collect_block_positions_by_name(settings, "child");
+    move_block_at_positions(settings, positions, from, to);
+    if (ctrlData && positions.size() == ctrlData->childs.size())
+      move_childs(ctrlData->childs, from, to);
+  }
+
+  AnimCtrlData *ctrlData;
+};
+
+IListReorderHandler *linear_poly_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data)
+{
+  return new LinearPolyReorderHandler(plugin, controllers, panel, ctrl_data);
 }

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "driver.h"
+#include "mirrored_ring_memory.h"
 
 #include <atomic>
 #include <EASTL/numeric.h>
@@ -12,6 +13,7 @@
 #include <osApiWrappers/dag_addressWait.h>
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <perfMon/dag_statDrv.h>
+#include <debug/dag_debug.h>
 
 
 template <typename...>
@@ -1833,7 +1835,14 @@ private:
   alignas(false_sharing_avoidance_alignment) std::atomic<size_t> freeCount{0};
   // if a consumer enters the wait queue this will be greater than zero, producers will then notify the consumers on next commit
   alignas(false_sharing_avoidance_alignment) std::atomic<size_t> consumerWaiting{0};
+  // Fallback storage: ring plus a tail appendix, used when the mirror can not
+  // be created.
   alignas(false_sharing_avoidance_alignment) eastl::unique_ptr<DataStoreType[]> store;
+  // Preferred storage: 2*size virtual range mirroring one physical copy, which
+  // makes the appendix unnecessary.
+  drv3d_dx12::MirroredRingMemory mirror;
+  // Points at whichever backing is active; all element access goes through it.
+  DataStoreType *data = nullptr;
 
   size_t calculateFreeSize(size_t alloc_pos, size_t free_pos) const
   {
@@ -1956,23 +1965,19 @@ public:
     auto range = getVisitableRange();
     while (range)
     {
-      range += destroyAt(&store[range.index(size)]);
+      range += destroyAt(&data[range.index(size)]);
     }
     committedCount.store(0, std::memory_order_relaxed);
     allocationCount.store(0, std::memory_order_relaxed);
     freeCount.store(0, std::memory_order_relaxed);
   }
 
-  // If operation mode is vector then its a normal vector growing operation, with object migration
-  // to new store If operation mode is ring then this requires the ring, this requires that the ring
-  // is empty otherwise the resize will be ignored Both appendix_numerator and appendix_denominator
-  // have no effect in vector operation mode.
-  void resize(size_t ring_size, size_t appendix_numerator = 1, size_t appendix_denominator = 1)
+  // Requires the ring to be empty; a resize while objects are still in flight is
+  // ignored. Prefers a mirrored allocation (no extra physical memory); when that
+  // is unavailable it falls back to a plain buffer with a full-ring-size tail so
+  // a wrapping object can always be stored contiguously.
+  void resize(size_t ring_size, bool allow_mirror = true)
   {
-    G_ASSERTF(appendix_numerator > 0, "A memory appendix has to be allocated to handle wrapping "
-                                      "correctly!");
-    G_ASSERTF(appendix_denominator > 0, "Denominator has to be greater than zero or division by "
-                                        "zero!");
     G_ASSERTF(allocationCount == freeCount && committedCount == freeCount, "You can not resize a "
                                                                            "ring buffer with "
                                                                            "active objects in "
@@ -1982,12 +1987,34 @@ public:
       return;
     }
 
-    // We add extra appendix memory, which is used when an object needs to be stored that is
-    // bigger as the rest of available memory before we need to wrap around. With this we can
-    // store the whole object as normal and the wrapping logic still works without problems as we
-    // only index into the front of each element.
-    store = eastl::make_unique<DataStoreType[]>(ring_size + (ring_size * appendix_numerator) / appendix_denominator);
-    size = ring_size;
+    mirror.reset();
+    store.reset();
+    data = nullptr;
+
+    if (allow_mirror)
+    {
+      auto created = drv3d_dx12::MirroredRingMemory::create(ring_size);
+      if (created)
+        mirror = eastl::move(created.value());
+      else
+        logwarn("DX12: command stream mirror unavailable (%s), using fallback storage", to_string(created.error()));
+    }
+
+    if (mirror)
+    {
+      // The mirror rounds up to the allocation granularity; the extra bytes are
+      // usable ring capacity.
+      size = mirror.size();
+      data = mirror.data();
+    }
+    else
+    {
+      // No mirror: allocate the ring plus a full-ring-size tail so a wrapping
+      // object is stored linearly, matching the mirror's contiguity.
+      store = eastl::make_unique<DataStoreType[]>(ring_size * 2);
+      size = ring_size;
+      data = store.get();
+    }
   }
 
   template <typename T>
@@ -1997,7 +2024,7 @@ public:
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template moveConstructAt<T>(&store[allocResult % size], eastl::forward<T>(v));
+    this->template moveConstructAt<T>(&data[allocResult % size], eastl::forward<T>(v));
 
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }
@@ -2008,7 +2035,7 @@ public:
     auto range = getVisitableRange();
     while (range)
     {
-      range += callAt(&store[range.index(size)], visitor);
+      range += callAt(&data[range.index(size)], visitor);
     }
   }
 
@@ -2024,7 +2051,7 @@ public:
     uint32_t count = 0;
     for (; range; ++count)
     {
-      range += callAtAndDestroy(&store[range.index(size)], visitor);
+      range += callAtAndDestroy(&data[range.index(size)], visitor);
     }
     updateFree(range);
     return count;
@@ -2041,7 +2068,7 @@ public:
     auto range = getVisitableRange();
     if (range)
     {
-      range = callAtAndDestroy(&store[range.index(size)], eastl::forward<U>(visitor));
+      range = callAtAndDestroy(&data[range.index(size)], eastl::forward<U>(visitor));
       updateFree(range);
       return true;
     }
@@ -2059,6 +2086,9 @@ public:
     wait(committedCount, freeCount.load(std::memory_order_relaxed));
     --consumerWaiting;
   }
+
+  size_t getRingSize() const { return size; }
+  bool usesMirror() const { return static_cast<bool>(mirror); }
 
   /// Waits until there are no commands pending for execution.
   void waitUntilEmpty()
@@ -2081,7 +2111,7 @@ public:
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template moveConstructAt<T, P0>(&store[allocResult % size], eastl::forward<T>(v), p0, p0_count);
+    this->template moveConstructAt<T, P0>(&data[allocResult % size], eastl::forward<T>(v), p0, p0_count);
 
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }
@@ -2093,7 +2123,7 @@ public:
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template moveConstructDataGeneratorAt<T, P0, G0>(&store[allocResult % size], eastl::forward<T>(v), p0_count, g0);
+    this->template moveConstructDataGeneratorAt<T, P0, G0>(&data[allocResult % size], eastl::forward<T>(v), p0_count, g0);
 
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }
@@ -2106,7 +2136,7 @@ public:
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template copyConstructAt<T, P0, P1>(&store[allocResult % size], v, p0, p0_count, p1, p1_count);
+    this->template copyConstructAt<T, P0, P1>(&data[allocResult % size], v, p0, p0_count, p1, p1_count);
 
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }
@@ -2120,7 +2150,7 @@ public:
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template copyConstructExtended2DataGenerator<T, P0, P1>(&store[allocResult % size], v, p0_count, p1_count, g);
+    this->template copyConstructExtended2DataGenerator<T, P0, P1>(&data[allocResult % size], v, p0_count, p1_count, g);
 
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }
@@ -2135,7 +2165,7 @@ public:
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template copyConstructExtended3DataGenerator<T, P0, P1, P2>(&store[allocResult % size], v, p0_count, p1_count, p2_count, g);
+    this->template copyConstructExtended3DataGenerator<T, P0, P1, P2>(&data[allocResult % size], v, p0_count, p1_count, p2_count, g);
 
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }

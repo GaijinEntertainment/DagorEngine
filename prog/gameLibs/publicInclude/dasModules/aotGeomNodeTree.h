@@ -9,6 +9,7 @@
 #include <math/dag_geomTree.h>
 #include <math/dag_geomNodeUtils.h>
 #include <dasModules/aotDagorMath.h>
+#include <util/dag_bitwise_cast.h>
 
 MAKE_TYPE_FACTORY(GeomNodeTree, GeomNodeTree);
 
@@ -47,11 +48,14 @@ inline mat44f &geomtree_get_node_wtm_rel(GeomNodeTree &geom_node_tree, int node_
 
 inline void geomtree_get_node_tm_scalar(const GeomNodeTree &geom_node_tree, int node_idx, das::float3x4 &out_tm)
 {
-  geom_node_tree.getNodeTmScalar(dag::Index16(node_idx), reinterpret_cast<TMatrix &>(out_tm));
+  TMatrix tm;
+  geom_node_tree.getNodeTmScalar(dag::Index16(node_idx), tm);
+  out_tm = dag::bit_cast<das::float3x4>(tm);
 }
 
 inline void geomtree_set_node_wtm_rel_scalar(GeomNodeTree &geom_node_tree, int node_idx, const das::float3x4 &in_wtm)
 {
+  // FIXME: here and below - this reinterpret_cast violates strict aliasing
   geom_node_tree.setNodeWtmRelScalar(dag::Index16(node_idx), reinterpret_cast<const TMatrix &>(in_wtm));
 }
 
@@ -76,14 +80,18 @@ inline void geomtree_get_node_wtm(const GeomNodeTree &geom_node_tree, int node_i
   das::LineInfoArg *line_info)
 {
   check_geomtree_out_of_bounds(geom_node_tree, node_id, context, line_info);
-  geom_node_tree.getNodeWtmScalar(dag::Index16(node_id), reinterpret_cast<TMatrix &>(out_wtm));
+  TMatrix wtm;
+  geom_node_tree.getNodeWtmScalar(dag::Index16(node_id), wtm);
+  out_wtm = dag::bit_cast<das::float3x4>(wtm);
 }
 
 inline void geomtree_get_node_rel_wtm(const GeomNodeTree &geom_node_tree, int node_id, das::float3x4 &out_wtm, das::Context *context,
   das::LineInfoArg *line_info)
 {
   check_geomtree_out_of_bounds(geom_node_tree, node_id, context, line_info);
-  geom_node_tree.getNodeWtmRelScalar(dag::Index16(node_id), reinterpret_cast<TMatrix &>(out_wtm));
+  TMatrix wtm;
+  geom_node_tree.getNodeWtmRelScalar(dag::Index16(node_id), wtm);
+  out_wtm = dag::bit_cast<das::float3x4>(wtm);
 }
 
 inline void geomtree_set_node_wtm(GeomNodeTree &geom_node_tree, int node_id, const das::float3x4 &in_wtm, das::Context *context,

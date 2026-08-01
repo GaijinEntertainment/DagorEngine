@@ -518,15 +518,15 @@ namespace das {
     }
 
     float4 quat_from_unit_arc(float3 v0, float3 v1) {
-        return v_quat_from_unit_arc(v_ldu_p3(&v0.x), v_ldu_p3(&v1.x));
+        return v_quat_from_unit_arc(vec_loadu3(&v0.x), vec_loadu3(&v1.x));
     }
 
     float4 quat_from_unit_vec_ang(float3 v, float ang) {
-        return v_quat_from_unit_vec_ang(v_ldu_p3(&v.x), v_splats(ang));
+        return v_quat_from_unit_vec_ang(vec_loadu3(&v.x), v_splats(ang));
     }
 
     float4 quat_from_euler_vec(float3 v) {
-        return v_quat_from_euler(v_ldu_p3(&v.x));
+        return v_quat_from_euler(vec_loadu3(&v.x));
     }
 
     float4 quat_from_euler(float x, float y, float z) {

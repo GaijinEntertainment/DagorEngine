@@ -21,7 +21,6 @@
 #include <EASTL/unique_ptr.h>
 #include <math/integer/dag_IPoint2.h>
 #include <util/dag_convar.h>
-#include <shaders/dag_dynamicResolutionStcode.h>
 
 #define debug(...) logmessage(_MAKE4C('OCCL'), __VA_ARGS__)
 
@@ -46,11 +45,9 @@ public:
   void buildMips();
   void prepareDebug();
   void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, mat44f_cref cockpit_proj,
-    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth,
-    const DynRes *dynamic_resolution = nullptr);
+    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth);
   void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, mat44f_cref cockpit_proj,
-    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
-    const DynRes *dynamic_resolution = nullptr);
+    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index);
   void setReprojectionUseCameraTranslatedSpace(bool enabled);
   bool getReprojectionUseCameraTranslatedSpace() const;
   void initSWRasterization();
@@ -75,8 +72,7 @@ public:
 private:
   template <bool ignoreVr>
   void prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, mat44f_cref cockpit_proj,
-    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
-    const DynRes *dynamic_resolution);
+    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index);
 
   void initVrRes();
   bool process(float *destData, uint32_t &frame);
@@ -239,18 +235,18 @@ void OcclusionImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, cons
     // int result = v_frustum_intersect(v_add(bmax, bmin), v_sub(bmax, bmin), clip);
     // if (!result)
     //   continue;
-    vec4f minmax_x = v_perm_xXxX(bmin, bmax);
-    vec4f minmax_y = v_perm_yyYY(bmin, bmax);
+    vec4f minmax_x = v_perm_xaxa(bmin, bmax);
+    vec4f minmax_y = v_perm_yybb(bmin, bmax);
     vec4f minmax_z_0 = v_splat_z(bmin);
     vec4f minmax_z_1 = v_splat_z(bmax);
 
     // transform points to clip space
     vec4f points_cs[8];
 
-    vis_transform_points_4(points_cs + 0, minmax_x, minmax_y, minmax_z_0, clip);
+    v_is_transform_points_4(points_cs + 0, minmax_x, minmax_y, minmax_z_0, clip);
     v_mat44_transpose(points_cs[0], points_cs[1], points_cs[2], points_cs[3]);
 
-    vis_transform_points_4(points_cs + 4, minmax_x, minmax_y, minmax_z_1, clip);
+    v_is_transform_points_4(points_cs + 4, minmax_x, minmax_y, minmax_z_1, clip);
     v_mat44_transpose(points_cs[4], points_cs[5], points_cs[6], points_cs[7]);
 
     moc->RenderTriangles((float *)points_cs, box_indices, 12, nullptr, MaskedOcclusionCulling::BACKFACE_CW,
@@ -273,18 +269,18 @@ void OcclusionImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, cons
     // int result = v_frustum_intersect(v_add(bmax, bmin), v_sub(bmax, bmin), clip);
     // if (!result)
     //   continue;
-    vec4f minmax_x = v_perm_xXxX(bmin, bmax);
-    vec4f minmax_y = v_perm_yyYY(bmin, bmax);
+    vec4f minmax_x = v_perm_xaxa(bmin, bmax);
+    vec4f minmax_y = v_perm_yybb(bmin, bmax);
     vec4f minmax_z_0 = v_splat_z(bmin);
     vec4f minmax_z_1 = v_splat_z(bmax);
 
     // transform points to clip space
     vec4f points_cs[8];
 
-    vis_transform_points_4(points_cs + 0, minmax_x, minmax_y, minmax_z_0, clip);
+    v_is_transform_points_4(points_cs + 0, minmax_x, minmax_y, minmax_z_0, clip);
     v_mat44_transpose(points_cs[0], points_cs[1], points_cs[2], points_cs[3]);
 
-    vis_transform_points_4(points_cs + 4, minmax_x, minmax_y, minmax_z_1, clip);
+    v_is_transform_points_4(points_cs + 4, minmax_x, minmax_y, minmax_z_1, clip);
     v_mat44_transpose(points_cs[4], points_cs[5], points_cs[6], points_cs[7]);
 
     moc->RenderTriangles((float *)points_cs, box_indices, 12, nullptr, MaskedOcclusionCulling::BACKFACE_CW,
@@ -304,7 +300,7 @@ void OcclusionImpl::rasterizeQuads(mat44f_cref viewproj, const vec4f *vert, int 
   {
     vec4f points_cs[4] = {vert[0], vert[1], vert[2], vert[3]};
     v_mat44_transpose(points_cs[0], points_cs[1], points_cs[2], points_cs[3]);
-    vis_transform_points_4(points_cs, points_cs[0], points_cs[1], points_cs[2], viewproj);
+    v_is_transform_points_4(points_cs, points_cs[0], points_cs[1], points_cs[2], viewproj);
     // vec4f zclip = v_cmp_ge(points_cs[2], points_cs[3]);
     v_mat44_transpose(points_cs[0], points_cs[1], points_cs[2], points_cs[3]);
     // since, very limited amount of tris, better clip them all
@@ -337,25 +333,24 @@ void OcclusionImpl::startRasterization(float zn)
 }
 
 void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj,
-  mat44f_cref cockpit_proj, bool has_separate_cockpit_proj, float zn, float zf, Texture *depth, Texture *base_depth,
-  const DynRes *dynamic_resolution)
+  mat44f_cref cockpit_proj, bool has_separate_cockpit_proj, float zn, float zf, Texture *depth, Texture *base_depth)
 {
   prepareNextFrameImpl<true>(view_pos, view, proj, view_proj, cockpit_proj, has_separate_cockpit_proj, zn, zf, depth, base_depth,
-    StereoIndex::Mono, dynamic_resolution);
+    StereoIndex::Mono);
 }
 
 void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj,
   mat44f_cref cockpit_proj, bool has_separate_cockpit_proj, float zn, float zf, Texture *depth, Texture *base_depth,
-  StereoIndex stereo_index, const DynRes *dynamic_resolution)
+  StereoIndex stereo_index)
 {
   prepareNextFrameImpl<false>(view_pos, view, proj, view_proj, cockpit_proj, has_separate_cockpit_proj, zn, zf, depth, base_depth,
-    stereo_index, dynamic_resolution);
+    stereo_index);
 }
 
 template <bool ignoreVr>
 void OcclusionImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj,
   mat44f_cref cockpit_proj, bool has_separate_cockpit_proj, float zn, float zf, Texture *depth, Texture *base_depth,
-  StereoIndex stereo_index, const DynRes *dynamic_resolution)
+  StereoIndex stereo_index)
 {
   G_ASSERT_RETURN(depth, );
   if (ignoreVr || stereo_index != StereoIndex::Right)
@@ -374,8 +369,8 @@ void OcclusionImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44
     TextureInfo tinfo;
     depth->getinfo(tinfo, 0);
 
-    const int w = dynamic_resolution ? dynamic_resolution->dynamicResolution.x / 2 : tinfo.w;
-    const int h = dynamic_resolution ? dynamic_resolution->dynamicResolution.y / 2 : tinfo.h;
+    const int w = tinfo.w;
+    const int h = tinfo.h;
 
     int lod = 0;
     while (((w >> (lod + 1)) > width || (h >> (lod + 1)) > height) && lod < depth->level_count() - 1)
@@ -786,17 +781,16 @@ bool Occlusion::getReprojectionUseCameraTranslatedSpace() const
   return impl->getReprojectionUseCameraTranslatedSpace();
 }
 
-void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, const DynRes *dynamic_resolution)
+void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth)
 {
-  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, cockpitProjTm, hasSeparateCockpitProj, zn, zf, mipped_depth, depth,
-    dynamic_resolution);
+  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, cockpitProjTm, hasSeparateCockpitProj, zn, zf, mipped_depth,
+    depth);
 }
 
-void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
-  const DynRes *dynamic_resolution)
+void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index)
 {
   impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, cockpitProjTm, hasSeparateCockpitProj, zn, zf, mipped_depth, depth,
-    stereo_index, dynamic_resolution);
+    stereo_index);
 }
 
 void Occlusion::startSWOcclusion(float zn)

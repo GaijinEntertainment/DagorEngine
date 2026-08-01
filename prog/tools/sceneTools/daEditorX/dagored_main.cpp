@@ -182,7 +182,6 @@ public:
         fflush(stderr);
         _exit(13);
       }
-      DAGORED2->preparePluginsListmenu();
     }
 
     if (batchFname && asyncBatch)
@@ -265,12 +264,11 @@ int DagorWinMain(int, bool /*debugmode*/)
   prev_dev_fatal_handler = dgs_fatal_handler;
   dgs_fatal_handler = de3_default_fatal_handler;
 
-  da_profiler::tick_frame();
-
   EditorMainWindow mainWindow(appManager);
   mainWindow.run([&appManager](const dag::Vector<String> &files) -> bool { return appManager.onDropFiles(files); });
 
-  da_profiler::shutdown();
+  quit_game(0);
+  G_ASSERT(false);
 
   return 0;
 }

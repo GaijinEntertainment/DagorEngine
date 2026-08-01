@@ -531,7 +531,7 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
         uint groupMask = bvhGroupHardShadow;
         uint extraFlags = 0;
 
-        bool shadowHit = !trace_ray(bvhMain, cameraPos.xyz, to_sun_dir, 0, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
+        bool shadowHit = !trace_ray(bvhMain, cameraPos.xyz, to_sun_dir, 0, 100000, w, groupMask, hitInfo, rayColor, translucentT, extraFlags);
         WRITE_MASK(get_project_defined_swrt_blend(shadowHit, fade));
         return;
       }

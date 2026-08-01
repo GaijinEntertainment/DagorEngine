@@ -190,6 +190,9 @@ struct X11
     XTranslateCoordinates(rootDisplay, mainWindow, rootWindow, 0, 0, &trAttrib.x, &trAttrib.y, &dummy);
   }
 
+  void cacheWindowFrameExtents();
+  void cacheWindowMaximizedState();
+
   const XWindowAttributes &getWindowAttrib(Window w, bool translated);
 
   enum
@@ -218,6 +221,8 @@ struct X11
   Window mainWindow;
   Atom wmDelete;
   Atom wmPing;
+  Atom wmNetFrameExtents;
+  Atom wmNetState;
 
   XIM im;
   XIC ic;
@@ -233,5 +238,7 @@ struct X11
   void cacheCursorPosition();
 
   XWindowAttributes windowAttribs[WND_COUNT];
+  linux_GUI::RECT lastFrameExtents{};
+  bool lastMaximized = false;
   bool selectionReady = false;
 };

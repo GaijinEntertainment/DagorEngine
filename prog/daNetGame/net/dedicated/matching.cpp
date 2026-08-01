@@ -11,6 +11,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
+#include <time.h>
 
 namespace dedicated_matching
 {
@@ -314,6 +315,37 @@ const char *get_player_custom_info(matching::UserId uid)
   if (member.isNull())
     return "";
   return member["public"]["custom"].asCString();
+}
+
+bool has_player_penalty(matching::UserId uid, const char *penalty)
+{
+  // Expiry is never pushed by matching, so activity is computed per call.
+  // start is epoch sec by the matching cluster clock; duration < 0 = permanent.
+  if (penalty == nullptr || *penalty == '\0')
+    return false;
+  const Json::Value &member = get_room_member(uid);
+  if (member.isNull())
+    return false;
+  const Json::Value &list = member["private"]["penalties"];
+  if (!list.isArray())
+    return false;
+  const int64_t now = (int64_t)time(nullptr);
+  for (Json::ArrayIndex i = 0; i < list.size(); ++i)
+  {
+    const Json::Value &rec = list[i];
+    if (!rec.isObject())
+      continue;
+    const Json::Value &kind = rec["penalty"];
+    if (!kind.isString() || strcmp(kind.asCString(), penalty) != 0)
+      continue;
+    const Json::Value &start = rec["start"], &dur = rec["duration"];
+    if (!start.isIntegral() || !dur.isIntegral())
+      continue;
+    const int64_t duration = dur.asInt64();
+    if (duration < 0 || start.asInt64() + duration > now)
+      return true;
+  }
+  return false;
 }
 
 const eastl::unordered_map<matching::UserId, Json::Value> &get_session_players() { return room_members; }

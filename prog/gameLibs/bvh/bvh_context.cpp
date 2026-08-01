@@ -63,12 +63,6 @@ void Object::teardown(ContextId context_id, uint64_t object_id)
   else if (type == BvhType::Dyn && blas)
     unitedvdata::dmUnitedVdata.adjustBlasSize(-int64_t(blas.getASSize()));
   blas.reset();
-  for (auto &mesh : meshes)
-    mesh.teardown(context_id);
-
-  if (metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
-    context_id->freeMetaRegion(metaAllocId);
-
   if (auto iter = context_id->stationaryTreeBuffers.find(object_id); iter != context_id->stationaryTreeBuffers.end())
   {
     if (iter->second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
@@ -80,6 +74,12 @@ void Object::teardown(ContextId context_id, uint64_t object_id)
     iter->second.blas.reset();
     context_id->stationaryTreeBuffers.erase(iter);
   }
+
+  for (auto &mesh : meshes)
+    mesh.teardown(context_id);
+
+  if (metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
+    context_id->freeMetaRegion(metaAllocId);
 }
 
 void Object::ensureMetaAllocated(ContextId context_id, int size)
@@ -91,6 +91,19 @@ void Object::ensureMetaAllocated(ContextId context_id, int size)
 void Mesh::teardown(ContextId context_id)
 {
   TIME_PROFILE(bvh::Mesh::teardown);
+
+  if (context_id->ommEnabled)
+  {
+    for (OmmSlot &slot : ommSlots)
+    {
+      if (slot.state == OmmState::Baking)
+        render::omm::discard_bake(context_id->ommContext, slot.bakeHandle);
+      render::omm::clear_result(slot.bakeResult);
+      slot.omm.reset();
+      slot.bakeHandle = {};
+      slot.state = OmmState::None;
+    }
+  }
 
   context_id->releaseTexture(albedoTextureId);
   context_id->releaseTexture(alphaTextureId);
@@ -206,6 +219,15 @@ void Context::teardown()
 #endif
 
   del_d3dres(stubTexture);
+
+  for (auto iter = ommTextureWaitRefs.begin(); iter != ommTextureWaitRefs.end(); ++iter)
+    release_managed_tex(iter->first);
+  ommTextureWaitRefs.clear();
+  ommTextureWaitsByObject.clear();
+
+  if (ommEnabled)
+    render::omm::shutdown(ommContext);
+  ommEnabled = false;
 
 #if DAGOR_DBGLEVEL > 0
   for (auto &[alloc, _] : sourceGeometryAllocators)

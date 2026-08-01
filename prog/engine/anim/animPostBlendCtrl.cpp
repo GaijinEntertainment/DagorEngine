@@ -25,17 +25,10 @@ using namespace AnimV20;
 
 static int __cdecl cmp_grow_up(const void *p1, const void *p2)
 {
-  int i1 = *(int *)p1;
-  int i2 = *(int *)p2;
-  if (i1 == -1 && i2 == -1)
-    return 0;
-
-  if (i1 == -1)
-    return 1;
-  if (i2 == -1)
-    return -1;
-
-  return i1 - i2;
+  // elements begin with dag::Index16 target; unsigned compare puts invalid (0xFFFF) last
+  unsigned i1 = *(const uint16_t *)p1;
+  unsigned i2 = *(const uint16_t *)p2;
+  return (int)i1 - (int)i2;
 }
 
 static dag::Index16 resolve_node_by_name(const GeomNodeTree &tree, const char *node)
@@ -415,7 +408,7 @@ void DeltaAnglesCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &t
   {
     vec3f node_dir = (&n_wtm.col0)[sideAxisIdx];
     vec4f root_side = v_dir_to_angles(nr_wtm.col0);
-    vec4f node_side = v_dir_to_angles(v_xor(node_dir, v_bool_to_msbit(invFwd)));
+    vec4f node_side = v_dir_to_angles(v_xor(node_dir, v_bool_to_msbit(invSide)));
     vec4f sAng = v_norm_s_angle(v_sub(node_side, root_side));
     st.setParam(destLeanVarId, v_extract_y(sAng) * scaleL * wt);
   }
@@ -600,6 +593,8 @@ void AnimPostBlendAlignExCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree
 
 void AnimPostBlendAlignExCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
+  if (wt <= 0.001f)
+    return;
   NodeId &nodeId = *(NodeId *)st.getInlinePtr(varId);
   if (tree.empty() || !nodeId.hlp)
     return;
@@ -624,8 +619,8 @@ void AnimPostBlendAlignExCtrl::process(AnimGraphStateHolder &st, real wt, GeomNo
     helpTm.col1 = hlpCol[1] > 0 ? (&n_wtm.col0)[hlpCol[1] - 1] : v_neg((&n_wtm.col0)[-hlpCol[1] - 1]);
     helpTm.col2 = hlpCol[2] > 0 ? (&n_wtm.col0)[hlpCol[2] - 1] : v_neg((&n_wtm.col0)[-hlpCol[2] - 1]);
 
-    quat4f qs = v_quat_from_mat(v_norm3(helpTm.col0), v_norm3(helpTm.col1), v_norm3(helpTm.col2));
-    quat4f qd = v_quat_from_mat(v_norm3(rootTm.col0), v_norm3(rootTm.col1), v_norm3(rootTm.col2));
+    quat4f qs = v_quat_from_mat33(helpTm); // v_quat_from_mat33 removes scale itself
+    quat4f qd = v_quat_from_mat33(rootTm);
     qd = v_quat_mul_quat(qd, v_quat_conjugate(qs));
 
     float w = wt * (i + 1 < targetNode.size() ? targetNode[nodeId.id[i].nodeRemap].wt : 1.0f);
@@ -765,7 +760,7 @@ void AnimPostBlendRotateCtrl::process(AnimGraphStateHolder &st, real wt, GeomNod
         v_mat4_decompose(n_tm, pos, rot, scl);
         originScl = v_add(originScl, v_splats(-1));
         scl = v_sub(scl, originScl);
-        int mask = v_signmask(v_cmp_gt(v_sub(scl, V_C_ONE), v_splats(0.001f)));
+        int mask = v_truemask(v_cmp_gt(v_sub(scl, V_C_ONE), v_splats(0.001f)));
         if (mask & 1)
           nodeMat.col0 = v_mul(nodeMat.col0, v_splat_x(scl));
         if (mask & 2)
@@ -1148,7 +1143,9 @@ void AnimPostBlendMoveCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeT
         dir = v_mat44_mul_vec3v(n_tm, dirAxis);
       else if (frameRef == FRAME_REF_GLOBAL)
       {
-        mat33f &parentWtm = (mat33f &)(tree.getNodeWtmRel(tree.getParentNodeIdx(n_idx)));
+        auto parentIdx = tree.getParentNodeIdx(n_idx);
+        tree.partialCalcWtm(parentIdx);
+        mat33f &parentWtm = (mat33f &)(tree.getNodeWtmRel(parentIdx));
         mat33f parentWtmInv;
         v_mat33_inverse(parentWtmInv, parentWtm);
         dir = v_mat33_mul_vec3(parentWtmInv, dirAxis);
@@ -2421,9 +2418,13 @@ void AnimPostBlendNodeLookatCtrl::process(AnimGraphStateHolder &st, real wt, Geo
     mat33f wtm;
     v_mat33_mul(wtm, nodeWtm, tmRot);
 
-    vec3f dir = v_norm3(v_sub(v_pos, n_wtm.col3));
-    wtm.col2 = dir;
-    wtm.col1 = v_norm3(v_cross3(wtm.col2, wtm.col0));
+    vec3f dir = v_sub(v_pos, n_wtm.col3);
+    vec3f up = v_cross3(dir, wtm.col0);
+    // degenerate when target coincides with node or lookat dir is parallel to col0: keep current pose
+    if (v_extract_x(v_length3_sq_x(dir)) < 1e-12f || v_extract_x(v_length3_sq_x(up)) < 1e-12f)
+      continue;
+    wtm.col2 = v_norm3(dir);
+    wtm.col1 = v_norm3(up);
     wtm.col0 = v_norm3(v_cross3(wtm.col1, wtm.col2));
     if (swapYZ)
     {
@@ -2516,19 +2517,24 @@ void AnimPostBlendNodeLookatNodeCtrl::process(AnimGraphStateHolder &st, real wt,
     return;
 
   mat44f &n_wtm = tree.getNodeWtmRel(n_idx);
-  const vec4f lookatDir = v_norm3(v_sub(v_pos, n_wtm.col3));
+  const vec4f lookatVec = v_sub(v_pos, n_wtm.col3);
   vec4f dirUp;
   if (!upNodeName.empty())
   {
     const vec4f upNodePos = tree.getNodeWposRel(ldata.upNodeId);
-    dirUp = v_norm3(v_sub(upNodePos, n_wtm.col3));
+    dirUp = v_sub(upNodePos, n_wtm.col3);
   }
   else
   {
     dirUp = v_ldu_p3(&upVector.x);
   }
 
-  const vec4f sideDir = v_norm3(v_cross3(lookatDir, dirUp));
+  const vec4f side = v_cross3(lookatVec, dirUp);
+  // degenerate when lookat target coincides with the node or lookat dir is parallel to up: keep current pose
+  if (v_extract_x(v_length3_sq_x(lookatVec)) < 1e-12f || v_extract_x(v_length3_sq_x(side)) < 1e-12f)
+    return;
+  const vec4f lookatDir = v_norm3(lookatVec);
+  const vec4f sideDir = v_norm3(side);
   const vec4f upDir = v_norm3(v_cross3(sideDir, lookatDir));
 
   (&n_wtm.col0)[lookatAxis] = lookatDir;
@@ -2823,9 +2829,9 @@ void AnimPostBlendNodesFromAttachement::process(AnimGraphStateHolder &st, real w
 
   if (!att_tree)
     return;
+  const float w = wt * getWeightMul(st, wScaleVarId, wScaleInverted);
   for (int i = 0; i < ldata.nodePairs.size(); i += 2)
   {
-    float w = wt * getWeightMul(st, wScaleVarId, wScaleInverted);
     mat44f m4 = att_tree->getNodeTm(ldata.nodePairs[i + 0]);
     m4.col3 = tree.getNodeTm(ldata.nodePairs[i + 1]).col3;
 
@@ -3207,7 +3213,7 @@ void AnimPostBlendCompoundRotateShift::process(AnimGraphStateHolder &st, real wt
   if (ldata.moveAlongNode)
   {
     mat44f &moveAlong_wtm = tree.getNodeWtmRel(ldata.moveAlongNode);
-    tree.partialCalcWtm(ldata.alignAsNode);
+    tree.partialCalcWtm(ldata.moveAlongNode);
 
     m2.col0 = moveAlong_wtm.col0;
     m2.col1 = moveAlong_wtm.col1;
@@ -3759,6 +3765,9 @@ void AnimPostBlendTwoBonesIK::process(AnimGraphStateHolder &st, real wt, GeomNod
 
   for (int i = 0; i < rec.size(); i++)
   {
+    if (!nodes[i].startNodeId || !nodes[i].middleNodeId || !nodes[i].endNodeId)
+      continue;
+
     mat44f &start_wtm = tree.getNodeWtmRel(nodes[i].startNodeId);
     mat44f &middle_wtm = tree.getNodeWtmRel(nodes[i].middleNodeId);
     mat44f &end_wtm = tree.getNodeWtmRel(nodes[i].endNodeId);

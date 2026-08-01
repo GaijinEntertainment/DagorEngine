@@ -73,6 +73,8 @@ unw_is_signal_frame (unw_cursor_t *cursor)
   arg = c->dwarf.as_arg;
 
   ip = c->dwarf.ip;
+  if (unlikely(!ip))
+    return 0;
 
   ret = (*a->access_mem) (as, ip, &w0, 0, arg);
   if (ret < 0)

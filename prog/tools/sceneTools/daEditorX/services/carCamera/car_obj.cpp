@@ -23,7 +23,6 @@
 #include <perfMon/dag_cpuFreq.h>
 
 #include <gui/dag_stdGuiRenderEx.h>
-#include <render/dag_cur_view.h>
 
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
@@ -191,8 +190,11 @@ void VehicleViewer::beforeRenderObjects()
   IPhysCarLegacyRender *carRender = car ? car->getLegacyRender() : nullptr;
   if (!carRender)
     return;
-  carphyssimulator::beforeRender();
-  carRender->beforeRender(::grs_cur_view.pos, EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
+  TMatrix cameraTm = TMatrix::IDENT;
+  if (vpw)
+    vpw->getCameraTransform(cameraTm);
+  carphyssimulator::beforeRender(cameraTm.getcol(3));
+  carRender->beforeRender(cameraTm.getcol(3), EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder());
 }
 
 

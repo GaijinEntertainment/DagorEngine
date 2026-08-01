@@ -2,20 +2,18 @@ import os
 import argparse
 import fnmatch
 
-def find_files(directory, pattern):
+def find_files(directory, patterns):
     for root, dirs, files in os.walk(directory):
         for basename in files:
-            if fnmatch.fnmatch(basename, pattern):
+            if any(fnmatch.fnmatch(basename, pattern) for pattern in patterns):
                 yield os.path.join(root, basename)
 
-parser = argparse.ArgumentParser(description='Java source preprocessor - replaces {DEFINE} placeholders in .java files')
-parser.add_argument('PATH', help='Directory to search for .java files')
+parser = argparse.ArgumentParser(description='Java/Kotlin source preprocessor - replaces {DEFINE} placeholders in .java/.kt files')
+parser.add_argument('PATH', help='Directory to search for .java/.kt files')
 parser.add_argument('--define', metavar='KEY=VALUE', action='append', default=[],
                     help='Replace {KEY} with VALUE (can be repeated)')
 parser.add_argument('--external-libs', nargs='*', default=None, metavar='LIB',
                     help='Generate System.loadLibrary() calls for {EXTERNAL_LIBS}')
-parser.add_argument('--debug', default=None,
-                    help='Set {DEBUG} to true/false (pass yes or no)')
 
 args = parser.parse_args()
 
@@ -43,14 +41,10 @@ if args.external_libs is not None:
     else:
         defines['EXTERNAL_LIBS'] = ''
 
-# Handle --debug: maps yes/no to true/false for {DEBUG}
-if args.debug is not None:
-    defines['DEBUG'] = 'false' if args.debug in ('', 'no') else 'true'
-
 if not defines:
     print('No defines specified, nothing to do')
 else:
-    for filename in find_files(args.PATH, '*.java'):
+    for filename in find_files(args.PATH, ['*.java', '*.kt']):
         with open(filename, 'r') as f:
             content = f.readlines()
 

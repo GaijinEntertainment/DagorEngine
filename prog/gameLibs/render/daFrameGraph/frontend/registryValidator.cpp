@@ -582,9 +582,33 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
     }
   }
 
+  bool anyInvalidRefinedBlocks = false;
+  for (const auto &[blockId, bindings] : nodeData.refinedBlockBindings)
+  {
+    for (const auto &[svId, binding] : bindings)
+    {
+      if (svId < 0)
+      {
+        logerr("daFG: Node '%s' forBlock-references invalid slot %d in refined block '%s'! Disabling this node!",
+          registry.knownNames.getName(nodeId), svId, registry.knownNames.getName(blockId));
+        anyInvalidRefinedBlocks = true;
+        continue;
+      }
+      const auto resolvedResId = nameResolver.resolve(binding.resource);
+      if (resolvedResId == ResNameId::Invalid && !binding.optional)
+      {
+        logerr("daFG: Node '%s' forBlock-references resource '%s' in refined block '%s', "
+               "but the resource is not available! Disabling this node!",
+          registry.knownNames.getName(nodeId), registry.knownNames.getName(binding.resource), registry.knownNames.getName(blockId));
+        anyInvalidRefinedBlocks = true;
+      }
+    }
+  }
+
   return noErronousIntroductions && noErronousConsumptions && !anyUnfilledSlotRequests && !anyBindingTypeMismatches &&
          !anyUsageConflictsAfterNameResolution && !anyFaultyHistoryRequests && !anyFramebufferUsageMismatches &&
-         !anyInvalidBackbufferRequests && !invalidBackbufferPass && !anySubtypeTagMismatches && usagesValid;
+         !anyInvalidBackbufferRequests && !invalidBackbufferPass && !anySubtypeTagMismatches && usagesValid &&
+         !anyInvalidRefinedBlocks;
 }
 
 void RegistryValidator::validateRegistry()

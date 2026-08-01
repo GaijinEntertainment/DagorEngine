@@ -36,7 +36,7 @@ void RefinedBlockLayout::link(dag::ConstSpan<int> global_var_link_table)
     {
       int &word = decl.computedStcode[i];
       int op = shaderopcode::getOp(word);
-      if (op == SHCOD_GET_GREAL || op == SHCOD_GET_GVEC || op == SHCOD_GET_GMAT44 || op == SHCOD_GET_GINT ||
+      if (op == SHCOD_GET_GREAL || op == SHCOD_GET_GVEC || op == SHCOD_GET_GMAT44 || op == SHCOD_GET_GMAT43 || op == SHCOD_GET_GINT ||
           op == SHCOD_GET_GINT_TOREAL || op == SHCOD_GET_GIVEC_TOREAL || op == SHCOD_GET_GTLAS || op == SHCOD_GET_GBUF ||
           op == SHCOD_GET_GTEX)
       {
@@ -148,6 +148,8 @@ void RefinedBlockLayout::generateStcode()
     {
       if (vt == VariableType::f44)
         stcode.push_back(shaderopcode::makeOp2(SHCOD_GET_GMAT44, 0, varId));
+      else if (vt == VariableType::f43)
+        stcode.push_back(shaderopcode::makeOp2(SHCOD_GET_GMAT43, 0, varId));
       else if (vt_is_integer(vt))
       {
         if (vt_float_size(vt) == 1)
@@ -416,6 +418,12 @@ void RefinedBlockLayout::generateCppStcode(TargetContext &ctx)
       routine.addFormattedStatement("rb_get_mat44(%d, &%s);\n", varId, e->varName.c_str());
       routine.addShaderConst(STAGE_VS, SHVT_FLOAT4X4, vt, e->varName.c_str(), e->cbufOffset.value(), e->varName.c_str(), 0);
     }
+    else if (vt == VariableType::f43 && e->cbufOffset.has_value())
+    {
+      routine.addFormattedStatement("float4x3 %s;\n", e->varName.c_str());
+      routine.addFormattedStatement("rb_get_mat43(%d, &%s);\n", varId, e->varName.c_str());
+      routine.addShaderConst(STAGE_VS, SHVT_FLOAT4x3, vt, e->varName.c_str(), e->cbufOffset.value(), e->varName.c_str(), 0);
+    }
     else if (e->cbufOffset.has_value())
     {
       eastl::string getter;
@@ -453,8 +461,12 @@ void RefinedBlockLayout::generateCppStcode(TargetContext &ctx)
   HlslRegRange vsRange = routine.collectSetRegistersRange(STAGE_VS);
   vsRange.min = 0; // Must be always 0 since regs may be preallocated from previous compilations
   for (const RefinedBlockVar *e : sorted)
+  {
     if (e->varType == VariableType::f44 && e->cbufOffset.has_value())
       vsRange.cap = eastl::max(vsRange.cap, e->cbufOffset.value() + 16);
+    if (e->varType == VariableType::f43 && e->cbufOffset.has_value())
+      vsRange.cap = eastl::max(vsRange.cap, e->cbufOffset.value() + 12);
+  }
 
   const int id = ctx.cppStcode().addCode(eastl::move(routine), {}, vsRange);
   if (id < 0)

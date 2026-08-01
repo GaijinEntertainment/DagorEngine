@@ -40,6 +40,7 @@ bool compile_compute_shader(const char *hlsl_text, unsigned len, const char *ent
         .enableFp16 = false,
       },
     .PDBDir = nullptr,
+    .PDBName = nullptr,
     .streamOutputComponents = {}});
   if (!result.errors.empty())
     out_err.aprintf(0, "%s\n", result.errors.c_str());

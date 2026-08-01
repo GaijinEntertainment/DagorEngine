@@ -2,6 +2,7 @@
 
 #include "defClampCtrl.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
@@ -14,9 +15,9 @@ void def_clamp_ctrl_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Co
 void def_clamp_ctrl_init_block_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings)
 {
   Tab<String> names;
-  const int attachNid = settings->getNameId("paramContr");
+  const int paramContrNid = settings->getNameId("paramContr");
   for (int i = 0; i < settings->blockCount(); ++i)
-    if (settings->getBlock(i)->getBlockNameId() == attachNid)
+    if (settings->getBlock(i)->getBlockNameId() == paramContrNid)
       names.emplace_back(settings->getBlock(i)->getStr("param", ""));
 
   bool isEditable = !names.empty();
@@ -32,7 +33,6 @@ void def_clamp_ctrl_init_block_settings(PropPanel::ContainerPropertyControl *pan
 void def_clamp_ctrl_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
   if (listName.empty())
     return;
 
@@ -82,8 +82,30 @@ void def_clamp_ctrl_set_selected_node_list_settings(PropPanel::ContainerProperty
 
 void def_clamp_ctrl_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (removeName == settings->getBlock(i)->getStr("param", nullptr))
-      settings->removeBlock(i);
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "paramContr");
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
+}
+
+class DefClampCtrlReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  DefClampCtrlReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    dag::Vector<int> positions = collect_block_positions_by_name(settings, "paramContr");
+    move_block_at_positions(settings, positions, from, to);
+  }
+};
+
+IListReorderHandler *def_clamp_ctrl_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new DefClampCtrlReorderHandler(plugin, controllers, panel);
 }

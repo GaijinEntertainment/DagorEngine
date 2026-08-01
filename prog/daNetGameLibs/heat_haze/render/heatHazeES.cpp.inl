@@ -5,13 +5,13 @@
 #include <daECS/core/entitySystem.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/daFrameGraph/daFG.h>
-#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/heatHazeRenderer.h>
 #include <render/deferredRenderer.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
 #include <render/resolution.h>
 #include <render/renderer.h>
+#include <render/world/dafgCameraRegistrator.h>
 #include <render/world/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/cameraViewVisibilityManager.h>
@@ -70,117 +70,119 @@ static dafg::NodeHandle makeHeatHazeRenderBeforeParticlesNode()
   });
 }
 
-static dafg::NodeHandle makeHeatHazeRenderParticlesNode(HeatHazeRenderer *heatHazeRenderer, int heatHazeLod)
+static dafg::NodeHandle makeHeatHazeRenderParticlesNode(
+  HeatHazeRenderer *heatHazeRenderer, int heatHazeLod, const char *view_ns, bool is_main_view)
 {
-  return dafg::register_node("heat_haze_render_particles_node", DAFG_PP_NODE_SRC,
-    [heatHazeRenderer, heatHazeLod](dafg::Registry registry) {
-      registry.orderMeAfter("under_water_fog_node");
-      registry.readBlob<OrderingToken>("acesfx_update_token");
-      registry.orderMeBefore("transparent_scene_late_node");
-      registry.allowAsyncPipelines();
+  return (dafg::root() / view_ns)
+    .registerNode("heat_haze_render_particles_node", DAFG_PP_NODE_SRC,
+      [heatHazeRenderer, heatHazeLod, view_ns, is_main_view](dafg::Registry registry) {
+        registry.readBlob<OrderingToken>("acesfx_update_token");
+        registry.allowAsyncPipelines();
 
-      auto hazeRenderedHndl = registry.modifyBlob<bool>("haze_rendered").handle();
-      auto farDownsampledDepth = registry.readTexture("far_downsampled_depth")
-                                   .atStage(dafg::Stage::POST_RASTER)
-                                   .bindToShaderVar("downsampled_far_depth_tex")
-                                   .handle();
+        registry.readBlob("after_under_water_fog_node_token");
+        registry.createBlob<OrderingToken>("after_heat_haze_render_particles_nodes");
 
-      const bool hasCamCamFeature = renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA);
-      const bool hasStencil = hasCamCamFeature;
-      const dafg::Usage depthForTransparencyUsage =
-        hasCamCamFeature ? dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE : dafg::Usage::SHADER_RESOURCE;
+        auto hazeRenderedHndl = registry.modifyBlob<bool>("haze_rendered").handle();
+        auto farDownsampledDepth = registry.readTexture("far_downsampled_depth")
+                                     .atStage(dafg::Stage::POST_RASTER)
+                                     .bindToShaderVar("downsampled_far_depth_tex")
+                                     .handle();
 
-      const int resDivisor = heatHazeRenderer->getHazeResolutionDivisor();
-      G_ASSERTF(resDivisor <= 2 || !hasStencil,
-        "heat_haze_render_particles_node requires depth target to be the same size as RT when stencil test is used. Yet we support "
-        "only full-res or half-res "
-        "depth tex. "
-        "Requested divisor is %d. It's unsupported.",
-        resDivisor);
-      const char *depthTexName = resDivisor == 1 || !hasStencil ? "depth_for_transparency" : "downsampled_depth_with_late_water";
+        const bool hasCamCamFeature = renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA);
+        const bool hasStencil = hasCamCamFeature;
+        const dafg::Usage depthForTransparencyUsage =
+          hasCamCamFeature ? dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE : dafg::Usage::SHADER_RESOURCE;
 
-      auto depthForTransparencyHndl =
-        registry.readTexture(depthTexName).atStage(dafg::Stage::PS).useAs(depthForTransparencyUsage).handle();
+        const int resDivisor = heatHazeRenderer->getHazeResolutionDivisor();
+        G_ASSERTF(resDivisor <= 2 || !hasStencil,
+          "heat_haze_render_particles_node requires depth target to be the same size as RT when stencil test is used. Yet we support "
+          "only full-res or half-res "
+          "depth tex. "
+          "Requested divisor is %d. It's unsupported.",
+          resDivisor);
+        const char *depthTexName = resDivisor == 1 || !hasStencil ? "depth_for_transparency" : "downsampled_depth_with_late_water";
 
-      auto texCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
-      auto cameraHndl = use_camera_in_camera(registry, false).handle();
+        auto depthForTransparencyHndl =
+          registry.readTexture(depthTexName).atStage(dafg::Stage::PS).useAs(depthForTransparencyUsage).handle();
 
-      registry.requestState().setFrameBlock("global_frame");
+        auto texCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
+        auto cameraHndl = use_camera_view(registry, view_ns, false).handle();
 
-      auto hazeDepthHndl =
-        registry.modifyTexture("haze_depth").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
-      auto hazeOffsetHndl =
-        registry.modifyTexture("haze_offset").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
-      auto hazeColorHndl = registry.modifyTexture("haze_color")
-                             .atStage(dafg::Stage::POST_RASTER)
-                             .useAs(dafg::Usage::COLOR_ATTACHMENT)
-                             .optional()
-                             .handle();
+        registry.requestState().setFrameBlock("global_frame");
 
-      struct HeatHazeNodeHandles
-      {
-        dafg::VirtualResourceHandle<const BaseTexture, true, false> farDownsampledDepth;
-        dafg::VirtualResourceHandle<const BaseTexture, true, false> depthForTransparencyHndl;
-        dafg::VirtualResourceHandle<BaseTexture, true, false> hazeDepthHndl;
-        dafg::VirtualResourceHandle<BaseTexture, true, false> hazeOffsetHndl;
-        dafg::VirtualResourceHandle<BaseTexture, true, true> hazeColorHndl;
+        auto hazeDepthHndl =
+          registry.modifyTexture("haze_depth").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
+        auto hazeOffsetHndl =
+          registry.modifyTexture("haze_offset").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
+        auto hazeColorHndl = registry.modifyTexture("haze_color")
+                               .atStage(dafg::Stage::POST_RASTER)
+                               .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                               .optional()
+                               .handle();
 
-        dafg::VirtualResourceHandle<const TexStreamingContext, false, false> texCtxHndl;
-        dafg::VirtualResourceHandle<const CameraParams, false, false> cameraHndl;
-        dafg::VirtualResourceHandle<bool, false, false> hazeRenderedHndl;
+        struct HeatHazeNodeHandles
+        {
+          dafg::VirtualResourceHandle<const BaseTexture, true, false> farDownsampledDepth;
+          dafg::VirtualResourceHandle<const BaseTexture, true, false> depthForTransparencyHndl;
+          dafg::VirtualResourceHandle<BaseTexture, true, false> hazeDepthHndl;
+          dafg::VirtualResourceHandle<BaseTexture, true, false> hazeOffsetHndl;
+          dafg::VirtualResourceHandle<BaseTexture, true, true> hazeColorHndl;
 
-        bool hasStencil;
-      };
+          dafg::VirtualResourceHandle<const TexStreamingContext, false, false> texCtxHndl;
+          dafg::VirtualResourceHandle<const CameraParams, false, false> cameraHndl;
+          dafg::VirtualResourceHandle<bool, false, false> hazeRenderedHndl;
 
-      return [handles = eastl::make_unique<HeatHazeNodeHandles>(HeatHazeNodeHandles{farDownsampledDepth, depthForTransparencyHndl,
-                hazeDepthHndl, hazeOffsetHndl, hazeColorHndl, texCtxHndl, cameraHndl, hazeRenderedHndl, hasStencil}),
-               heatHazeRenderer, heatHazeLod](const dafg::multiplexing::Index &multiplexing_index) {
-        auto [farDownsampledDepth, depthForTransparencyHndl, hazeDepthHndl, hazeOffsetHndl, hazeColorHndl, texCtxHndl, cameraHndl,
-          hazeRenderedHndl, hasStencil] = *handles;
-
-        const CameraParams &camera = cameraHndl.ref();
-        RiGenVisibility *riMainVisibility = camera.jobsMgr->getRiMainVisibility();
-
-        auto riHazeRender = [&]() {
-          TIME_D3D_PROFILE(rendinst_distortion);
-          rendinst::render::renderRIGen(rendinst::RenderPass::Normal, riMainVisibility, camera.viewItm,
-            rendinst::LayerFlag::Distortion, rendinst::OptimizeDepthPass::No, 1U, rendinst::AtestStage::All, nullptr,
-            handles->texCtxHndl.ref());
-
-          g_entity_mgr->broadcastEventImmediate(
-            UpdateStageInfoRenderDistortion(camera.viewTm, camera.noJitterProjTm, camera.viewItm, handles->texCtxHndl.ref()));
+          bool hasStencil;
         };
 
-        if (!will_render_haze(riMainVisibility))
-        {
-          UpdateStageInfoNeedDistortion needDistortion(camera.viewTm, camera.noJitterProjTm, camera.viewItm);
-          g_entity_mgr->broadcastEventImmediate(needDistortion);
-          if (!needDistortion.needed)
-            return;
-        }
+        return [handles = eastl::make_unique<HeatHazeNodeHandles>(HeatHazeNodeHandles{farDownsampledDepth, depthForTransparencyHndl,
+                  hazeDepthHndl, hazeOffsetHndl, hazeColorHndl, texCtxHndl, cameraHndl, hazeRenderedHndl, hasStencil}),
+                 heatHazeRenderer, heatHazeLod, is_main_view]() {
+          auto [farDownsampledDepth, depthForTransparencyHndl, hazeDepthHndl, hazeOffsetHndl, hazeColorHndl, texCtxHndl, cameraHndl,
+            hazeRenderedHndl, hasStencil] = *handles;
 
-        hazeRenderedHndl.ref() = true;
+          const CameraParams &camera = cameraHndl.ref();
+          RiGenVisibility *riMainVisibility = camera.jobsMgr->getRiMainVisibility();
 
-        G_ASSERT(heatHazeLod >= 0);
-        const auto lodDepth = heatHazeLod == 0 ? depthForTransparencyHndl.view() : farDownsampledDepth.view();
+          auto riHazeRender = [&]() {
+            TIME_D3D_PROFILE(rendinst_distortion);
+            rendinst::render::renderRIGen(rendinst::RenderPass::Normal, riMainVisibility, camera.viewItm,
+              rendinst::LayerFlag::Distortion, rendinst::OptimizeDepthPass::No, 1U, rendinst::AtestStage::All, nullptr,
+              handles->texCtxHndl.ref());
 
-        const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
-        Texture *stencil = hasStencil ? depthForTransparencyHndl.view().getTex2D() : nullptr;
-        acesfx::set_dafx_globaldata(camera.jitterGlobtm, camera.viewItm, camera.viewItm.getcol(3));
+            g_entity_mgr->broadcastEventImmediate(
+              UpdateStageInfoRenderDistortion(camera.viewTm, camera.noJitterProjTm, camera.viewItm, handles->texCtxHndl.ref()));
+          };
 
-        heatHazeRenderer->renderHazeParticles(hazeDepthHndl.get(), hazeOffsetHndl.get(), lodDepth.getTex2D(),
-          eastl::max(heatHazeLod - 1, 0), acesfx::renderTransHaze, riHazeRender, stencil);
+          if (!will_render_haze(riMainVisibility))
+          {
+            UpdateStageInfoNeedDistortion needDistortion(camera.viewTm, camera.noJitterProjTm, camera.viewItm);
+            g_entity_mgr->broadcastEventImmediate(needDistortion);
+            if (!needDistortion.needed)
+              return;
+          }
 
-        if (hazeColorHndl.get())
-          heatHazeRenderer->renderColorHaze(hazeColorHndl.get(), acesfx::renderTransHaze, riHazeRender, stencil);
-      };
-    });
+          hazeRenderedHndl.ref() = true;
+
+          G_ASSERT(heatHazeLod >= 0);
+          const auto lodDepth = heatHazeLod == 0 ? depthForTransparencyHndl.view() : farDownsampledDepth.view();
+
+          const camera_in_camera::ApplyMasterState camcam{is_main_view};
+          Texture *stencil = hasStencil ? depthForTransparencyHndl.view().getTex2D() : nullptr;
+          acesfx::set_dafx_globaldata(camera.jitterGlobtm, camera.viewItm, camera.viewItm.getcol(3));
+
+          heatHazeRenderer->renderHazeParticles(hazeDepthHndl.get(), hazeOffsetHndl.get(), lodDepth.getTex2D(),
+            eastl::max(heatHazeLod - 1, 0), acesfx::renderTransHaze, riHazeRender, stencil);
+
+          if (hazeColorHndl.get())
+            heatHazeRenderer->renderColorHaze(hazeColorHndl.get(), acesfx::renderTransHaze, riHazeRender, stencil);
+        };
+      });
 }
 
 static dafg::NodeHandle makeHeatHazeApplyNode(HeatHazeRenderer *heatHazeRenderer)
 {
   return dafg::register_node("heat_haze_apply_node", DAFG_PP_NODE_SRC, [heatHazeRenderer](dafg::Registry registry) {
-    registry.orderMeAfter("heat_haze_render_particles_node");
     // Heat haze is actually applied inside post fx node. We need to just set shader variables here before post_fx
     registry.orderMeBefore("post_fx_node");
 
@@ -227,55 +229,59 @@ int get_haze_divisor()
   return hazeDivisor;
 }
 
-static void setup_heat_haze(HeatHazeManager &heatHazeManager,
-  dafg::NodeHandle &heatHazeRenderClearNode,
-  dafg::NodeHandle &heatHazeRenderBeforeParticlesNode,
-  dafg::NodeHandle &heatHazeRenderParticlesNode,
-  dafg::NodeHandle &heatHazeApplyNode,
-  int &heatHazeLod)
+static void setup_heat_haze(HeatHazeManager &heatHazeManager, int &heatHazeLod)
 {
   heatHazeManager.renderer.reset();
   heatHazeLod = -1;
-
-  heatHazeRenderClearNode = {};
-  heatHazeRenderParticlesNode = {};
-  heatHazeRenderBeforeParticlesNode = {};
-  heatHazeApplyNode = {};
 
   if (renderer_has_feature(FeatureRenderFlags::HAZE))
   {
     float hazeDivisor = get_haze_divisor();
     heatHazeManager.renderer = eastl::make_unique<HeatHazeRenderer>(hazeDivisor);
     heatHazeLod = get_log2w(hazeDivisor);
-
-    heatHazeRenderClearNode = makeHeatHazeRenderClearNode(heatHazeManager.renderer.get());
-    heatHazeRenderBeforeParticlesNode = makeHeatHazeRenderBeforeParticlesNode();
-    heatHazeRenderParticlesNode = makeHeatHazeRenderParticlesNode(heatHazeManager.renderer.get(), heatHazeLod);
-    heatHazeApplyNode = makeHeatHazeApplyNode(heatHazeManager.renderer.get());
   }
 }
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeatures, SetResolutionEvent)
-static void init_heat_haze_es(const ecs::Event &evt,
-  HeatHazeManager &heat_haze__manager,
-  dafg::NodeHandle &heat_haze__render_clear_node,
-  dafg::NodeHandle &heat_haze__render_before_particles_node,
-  dafg::NodeHandle &heat_haze__render_particles_node,
-  dafg::NodeHandle &heat_haze__apply_node,
-  int &heat_haze__lod)
+static void init_heat_haze_es(
+  const ecs::Event &evt, HeatHazeManager &heat_haze__manager, int &heat_haze__lod, const ecs::string &dafg_camera_registrator__name)
 {
   if (!get_world_renderer())
     return;
 
   if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>();
-      changedFeatures && !(changedFeatures->isFeatureChanged(FeatureRenderFlags::HAZE) ||
-                           changedFeatures->isFeatureChanged(FeatureRenderFlags::CAMERA_IN_CAMERA)))
+      changedFeatures && !changedFeatures->isFeatureChanged(FeatureRenderFlags::HAZE))
     return;
 
   if (auto *resEvt = evt.cast<SetResolutionEvent>(); resEvt && resEvt->type == SetResolutionEvent::Type::DYNAMIC_RESOLUTION)
     return;
 
-  setup_heat_haze(heat_haze__manager, heat_haze__render_clear_node, heat_haze__render_before_particles_node,
-    heat_haze__render_particles_node, heat_haze__apply_node, heat_haze__lod);
+  setup_heat_haze(heat_haze__manager, heat_haze__lod);
+  recreate_camera_registrator_nodes(dafg_camera_registrator__name);
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraMainViewNodeConstruction)
+static void heat_haze_view_nodes_es(const OnCameraMainViewNodeConstruction &evt, const HeatHazeManager &heat_haze__manager)
+{
+  if (!heat_haze__manager.renderer)
+    return;
+
+  evt.nodes->push_back(makeHeatHazeRenderClearNode(heat_haze__manager.renderer.get()));
+  evt.nodes->push_back(makeHeatHazeRenderBeforeParticlesNode());
+  evt.nodes->push_back(makeHeatHazeApplyNode(heat_haze__manager.renderer.get()));
+}
+
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraPerViewNodeConstruction)
+static void heat_haze_view_nodes_es(
+  const OnCameraPerViewNodeConstruction &evt, const HeatHazeManager &heat_haze__manager, int heat_haze__lod)
+{
+  if (!heat_haze__manager.renderer)
+    return;
+
+  evt.nodes->push_back(
+    makeHeatHazeRenderParticlesNode(heat_haze__manager.renderer.get(), heat_haze__lod, evt.viewNsName, evt.isMainView));
 }

@@ -28,7 +28,7 @@ if $(VRDeviceOptional) = yes {
 if $(Platform) = android {
   Sources += openXrAndroidLoader.cpp ;
   AddLibs += $(OpenXrSdkPath)/$(Platform)/arm64-v8a/Release/libopenxr_loader.so ;
-} else if $(Platform) in windows && ! $(PlatformArch) in arm64 {
+} else if $(Platform) in windows {
   AddLibs += $(OpenXrSdkPath)/$(LegacyPlatformSuffix)/lib/openxr_loader.lib ;
 }
 

@@ -154,6 +154,8 @@ int bind_dabuild_cache_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
   dabuild = pcount ? dabuildcache::get_dabuild() : NULL;
   assetMgr = pcount ? &mgr : NULL;
   patchBuildMode = appblk.getBool("av_patch_build", true);
+  if (dabuild)
+    dabuild->allowPatchBuild(patchBuildMode);
   if (texconvcache::init(mgr, appblk, startDir, false, true))
   {
     get_app().getConsole().addMessage(ILogWriter::NOTE, "texture conversion cache inited");
@@ -268,6 +270,9 @@ void update_dabuild_background(PropPanel::IMenu *mm)
   bool ok = (status == 2);
   interlocked_exchange(dabuildStatus, 0);
   close_progress_shm();
+
+  // the batch run may have changed respacks/patch validity on disk regardless of its outcome
+  dabuildcache::invalidate_respack_caches();
 
   bool shouldHideConsole = (ok == buildPostParams.hideConsoleOnSuccess);
   if (shouldHideConsole && !buildPostParams.consoleWasOpen)
@@ -678,9 +683,8 @@ static void getPackForFolder(FastNameMap &packs, dag::ConstSpan<int> folders_idx
 String get_asset_pack_name(DagorAsset *asset) { return dabuild ? dabuild->getPackName(asset) : String(); }
 String get_asset_pkg_name(DagorAsset *asset) { return dabuild ? dabuild->getPkgName(asset) : String(); }
 
-bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, [[maybe_unused]] bool tex, [[maybe_unused]] bool res)
+static bool do_check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool quick)
 {
-  TIME_PROFILE(check_assets_base_up_to_date);
   if (!dabuild)
     return false;
 
@@ -693,8 +697,9 @@ bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, [[maybe_un
   int64_t startTime = profile_ref_ticks();
 
   ILogWriter *log = &::get_app().getConsole();
+  const char *quickSuffix = quick ? " (quick)" : "";
 
-  log->addMessage(ILogWriter::NOTE, "checking assets up-to-date");
+  log->addMessage(ILogWriter::NOTE, "checking assets up-to-date%s", quickSuffix);
 
   dabuild->setupReports(log, &::get_app().getConsole());
 
@@ -720,24 +725,46 @@ bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, [[maybe_un
       log->addMessage(ILogWriter::ERROR, "unsupported platform <%u> '%c%c%c%c'", platforms[i], _DUMP4C(platforms[i]));
       dabuild->setupReports(NULL, NULL);
 
-      log->addMessage(ILogWriter::ERROR, "checking assets up-to-date...failed!");
+      log->addMessage(ILogWriter::ERROR, "checking assets up-to-date%s...failed!", quickSuffix);
       return false;
     }
   }
 
   G_ASSERT(platforms.size() == platformFlags.size());
 
-  bool ret = dabuild->checkUpToDate(platforms, make_span(platformFlags), packs);
+  int readyPacks = 0, totalPacks = 0, removedCacheFiles = 0, workerThreads = 0;
+  bool ret = quick ? dabuild->quickCheckUpToDate(platforms, make_span(platformFlags), packs, //
+                       readyPacks, totalPacks, removedCacheFiles, workerThreads)
+                   : dabuild->checkUpToDate(platforms, make_span(platformFlags), packs);
 
   dabuild->setupReports(NULL, NULL);
 
-  log->addMessage(ILogWriter::NOTE, "checking assets up-to-date...complete in %.2fs", ((float)profile_time_usec(startTime)) / 1e6f);
+  if (quick)
+    log->addMessage(ILogWriter::NOTE,
+      "checking assets up-to-date%s...complete in %.2fs using %d threads "
+      "(%d up-to-date packs of %d total; %d stale cachefiles removed)",
+      quickSuffix, ((float)profile_time_usec(startTime)) / 1e6f, workerThreads, readyPacks, totalPacks, removedCacheFiles);
+  else
+    log->addMessage(ILogWriter::NOTE, "checking assets up-to-date%s...complete in %.2fs", quickSuffix,
+      ((float)profile_time_usec(startTime)) / 1e6f);
 
   EDITORCORE->updateViewports();
   EDITORCORE->invalidateViewportCache();
   ::get_app().afterUpToDateCheck(ret);
 
   return ret;
+}
+
+bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, [[maybe_unused]] bool tex, [[maybe_unused]] bool res)
+{
+  TIME_PROFILE(check_assets_base_up_to_date);
+  return do_check_assets_base_up_to_date(packs, false);
+}
+
+bool quick_check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, [[maybe_unused]] bool tex, [[maybe_unused]] bool res)
+{
+  TIME_PROFILE(quick_check_assets_base_up_to_date);
+  return do_check_assets_base_up_to_date(packs, true);
 }
 
 void rebuild_assets_in_folders_single(unsigned trg_code, dag::ConstSpan<int> folders_idx, bool tex, bool res)

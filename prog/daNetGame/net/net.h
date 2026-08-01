@@ -25,6 +25,11 @@ struct MessageNetDesc;
 
 bool is_this_thread_net_em_owner();
 bool topology_read_pin_active();
+// Transfers EM ownership and keeps the lock-free owner check above in sync.
+// Use instead of a bare EntityManager::setOwnerThreadId for any EM that may be net-bound.
+// Lock order: the TopologyLock rwlock stays outermost; this takes the internal net-EM
+// spinlock, so it must never be entered by code already holding that spinlock.
+void change_em_ownership(ecs::EntityManager &mgr, int64_t new_owner_tid);
 
 enum class ServerFlags : uint16_t
 {
@@ -57,6 +62,27 @@ struct ConnectParams
   eastl::string sessionId;
   eastl::string relayStunRequestAddr; // if set, UDP punch to this relay addr is queued on connect
 };
+
+// RAII guard at job roots / main / user threads: lazily syncs TLS, gates READ_SNAPSHOT.
+// Nested instances and owner-thread instances no-op. assumeSingleUpdate=true asserts (via
+// LOGERR_ONCE) on publish-during-scope; long-running jobs spanning publishes pass false.
+// `label` (any string literal) identifies the scope site in single-update-violation /
+// stale-TLS LOGERR_ONCE diagnostics; pass a short job/site name when constructing.
+struct NetSnapshotScope
+{
+  explicit NetSnapshotScope(bool assumeSingleUpdate = true, const char *label = "anon");
+  ~NetSnapshotScope();
+  NetSnapshotScope(const NetSnapshotScope &) = delete;
+  NetSnapshotScope &operator=(const NetSnapshotScope &) = delete;
+
+private:
+  const char *label;
+  bool wasValidAtCtor; // True if net_snap_valid was already set (owner thread, or nested scope).
+                       // The dtor only clears the flag when we were the ones to set it.
+  bool assumeSingle;
+  uint32_t capturedVersion = 0;
+};
+
 } // namespace net
 
 uint32_t get_current_server_route_id();

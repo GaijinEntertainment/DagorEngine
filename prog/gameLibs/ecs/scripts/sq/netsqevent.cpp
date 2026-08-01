@@ -55,7 +55,7 @@ static void server_send_sqevent(ecs::EntityId to_eid, const ecs::SchemelessEvent
 {
   bool bcast = !to_eid;
   SQEventMsg evMsg(bcast, to_eid, danet::BitStream{});
-  ecs::serialize_to(evt, evMsg.get<2>());
+  ecs::serialize_to(*g_entity_mgr, evt, evMsg.get<2>());
   if (is_null_array(to_whom)) // broadcast to all connections
     send_net_msg(net::get_msg_sink(), eastl::move(evMsg));
   else
@@ -80,7 +80,7 @@ static void do_send_sqevent_server(ecs::EntityId to_eid, ecs::SchemelessEvent &e
 void client_send_net_sqevent(ecs::EntityId to_eid, const ecs::SchemelessEvent &evt, bool bcastevt)
 {
   danet::BitStream bs;
-  ecs::serialize_to(evt, bs); // assume single player if there is no server connection
+  ecs::serialize_to(*g_entity_mgr, evt, bs); // assume single player if there is no server connection
   send_net_msg(net::get_msg_sink(), ClientSQEventMsg(bcastevt, to_eid, eastl::move(bs)));
 }
 
@@ -161,7 +161,7 @@ static void sq_event_msg_handler(const net::IMessage *msg_)
   net::IConnection *conn = msg_->connection;
   auto msg = msg_->cast<T>();
   G_ASSERT(msg);
-  if (ecs::MaybeSchemelessEvent maybeEvent = ecs::deserialize_from(msg->template get<2>()))
+  if (ecs::MaybeSchemelessEvent maybeEvent = ecs::deserialize_from(*g_entity_mgr, msg->template get<2>()))
   {
     // To consider: add non-payload field to native SchemelessEvent instead?
     maybeEvent->getRWData().addMember(ECS_HASH("fromconnid"), conn ? (int)conn->getId() : -1);

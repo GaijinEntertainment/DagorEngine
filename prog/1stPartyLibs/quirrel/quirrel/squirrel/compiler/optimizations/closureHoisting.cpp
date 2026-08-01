@@ -77,6 +77,21 @@ class CaptureAnalyzer : public Visitor {
   // at all — stop traversing early.
   bool canHoist() const { return !info.capturesImmediateParent; }
 
+  // Hoisting must retain outer scopes used by captures and name checks.
+  void recordOuterScopeDependency(const char *name) {
+    ScopeContext *parentScope = funcScope->parent;
+    if (!parentScope)
+      return;
+
+    int depth = parentScope->findNameDepth(name);
+    if (depth >= 0) {
+      info.maxCaptureDepth = std::max(info.maxCaptureDepth, depth);
+
+      if (parentScope->isIndirectLocalAtDepth(name, depth))
+        info.maxIndirectCaptureDepth = std::max(info.maxIndirectCaptureDepth, depth);
+    }
+  }
+
 public:
   CaptureAnalyzer(CaptureInfo &i, ScopeContext *fs, const char *sn,
                    FuncLocalsMap &fl, Arena *a)
@@ -109,17 +124,18 @@ public:
     if (funcScope->isInImmediateParent(name))
       info.capturesImmediateParent = true;
 
-    // Find capture depth relative to the function's parent
-    int depth = funcScope->parent ? funcScope->parent->findNameDepth(name) : -1;
-    if (depth >= 0) {
-      info.maxCaptureDepth = std::max(info.maxCaptureDepth, depth);
+    recordOuterScopeDependency(name);
+  }
 
-      // Check if this capture is from a nested block (not directly in the scope's block).
-      // Such captures prevent hoisting to that depth.
-      if (funcScope->parent->isIndirectLocalAtDepth(name, depth)) { //-V1004
-        info.maxIndirectCaptureDepth = std::max(info.maxIndirectCaptureDepth, depth);
-      }
-    }
+  void visitConstDecl(ConstDecl *c) override {
+    if (!canHoist()) return;
+    recordOuterScopeDependency(c->name());
+    Visitor::visitConstDecl(c);
+  }
+
+  void visitEnumDecl(EnumDecl *e) override {
+    if (!canHoist()) return;
+    recordOuterScopeDependency(e->name());
   }
 
   // Descend into nested functions: push their pre-computed locals, visit, pop.
@@ -257,6 +273,9 @@ void ClosureHoistingOpt::collectDirectLocals(Block *block, ScopeContext &scope) 
       case TO_CONST:
         scope.directLocalNames->insert(static_cast<ConstDecl *>(stmt)->name());
         break;
+      case TO_ENUM:
+        scope.directLocalNames->insert(static_cast<EnumDecl *>(stmt)->name());
+        break;
       case TO_DECL_GROUP:
       case TO_DESTRUCTURE:
         for (auto decl : static_cast<DeclGroup *>(stmt)->declarations())
@@ -291,6 +310,9 @@ void ClosureHoistingOpt::HoistingVisitor::collectDeclNames(
       break;
     case TO_CONST:
       out.push_back(static_cast<ConstDecl *>(n)->name());
+      break;
+    case TO_ENUM:
+      out.push_back(static_cast<EnumDecl *>(n)->name());
       break;
     case TO_DECL_GROUP:
     case TO_DESTRUCTURE:
@@ -470,6 +492,10 @@ void ClosureHoistingOpt::HoistingVisitor::visitConstDecl(ConstDecl *c) {
     c->value()->visit(this);
     insideConstDecl = wasInConstDecl;
   }
+}
+
+void ClosureHoistingOpt::HoistingVisitor::visitEnumDecl(EnumDecl *e) {
+  currentScope->localNames->insert(e->name());
 }
 
 // try/catch bodies are not force-wrapped to a Block, so a bare declaration body needs

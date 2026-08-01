@@ -45,7 +45,7 @@ void register_random(SqModules *module_mgr)
     .Func("rnd_range", [](int a, int b) { return _rnd_range(script_rnd_seed, a, b); })
     .Func("set_rnd_seed", script_set_rnd_seed)
     .Func("get_rnd_seed", script_get_rnd_seed)
-    .SquirrelFuncDeclString(gauss_rnd_safe, "gauss_rnd(n: number): float")
+    .SquirrelFuncDeclString(gauss_rnd_safe, "fastcall gauss_rnd(n: number): float")
 
     //  !!do not bind _rnd, _frnd, _srnd functions! seed cannot be setup via script as seed is reference, not int
 

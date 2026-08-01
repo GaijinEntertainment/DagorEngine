@@ -201,26 +201,53 @@ void BhvTextArea::onRecalcLayout(Element *elem)
   if (!fmtText)
     return;
 
+  if (fmtText->embeddedComps.empty())
+    return;
+
+  const ScreenCoord &sc = elem->screenCoord;
+  ElemAlign halign = elem->layout.hAlign;
+  const int lowLineCount = elem->props.getInt(elem->csk->lowLineCount, 0);
+  const ElemAlign lowLineCountAlign = elem->props.getInt<ElemAlign>(elem->csk->lowLineCountAlign, PLACE_DEFAULT);
+  if (int(fmtText->lines.size()) <= lowLineCount && lowLineCountAlign != PLACE_DEFAULT)
+    halign = lowLineCountAlign;
+
   eastl::vector_set<Element *, eastl::less<Element *>, framemem_allocator> processedChildren;
-  for (auto &p : fmtText->embeddedComps)
-  {
-    TextBlock *block = p.first;
-    const Sqrat::Object &comp = p.second;
 
-    for (Element *child : elem->children)
+  auto positionEmbed = [&](TextBlock *block, const Point2 &block_offset) {
+    for (auto &p : fmtText->embeddedComps)
     {
-      if (processedChildren.find(child) != processedChildren.end())
+      if (p.first != block)
         continue;
-
-      if (child->props.scriptDesc.IsEqual(comp) || child->props.scriptBuilder.IsEqual(comp))
+      const Sqrat::Object &comp = p.second;
+      for (Element *child : elem->children)
       {
-        child->screenCoord.relPos = block->position;
-        child->screenCoord.size = block->size;
-        // child->recalcScreenPositions();
-        child->screenCoord.screenPos = elem->screenCoord.screenPos + child->screenCoord.relPos;
-        processedChildren.insert(child);
+        if (processedChildren.find(child) != processedChildren.end())
+          continue;
+        if (child->props.scriptDesc.IsEqual(comp) || child->props.scriptBuilder.IsEqual(comp))
+        {
+          child->screenCoord.relPos = block->position + block_offset;
+          child->screenCoord.size = block->size;
+          child->screenCoord.screenPos = elem->screenCoord.screenPos + child->screenCoord.relPos;
+          child->recalcScreenPositions();
+          processedChildren.insert(child);
+          return;
+        }
       }
+      return;
     }
+  };
+
+  for (const TextLine &line : fmtText->lines)
+  {
+    float xLineOffs = 0;
+    if (halign == ALIGN_RIGHT)
+      xLineOffs = sc.size.x - line.contentWidth;
+    else if (halign == ALIGN_CENTER)
+      xLineOffs = floorf((sc.size.x - line.contentWidth) * 0.5f);
+
+    const Point2 blockOffset(xLineOffs, fmtText->yOffset);
+    for (TextBlock *block : line.blocks)
+      positionEmbed(block, blockOffset);
   }
 }
 

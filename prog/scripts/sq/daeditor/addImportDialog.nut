@@ -11,7 +11,7 @@ let {scan_folder, mkpath, file_exists, resolve_mountpoint} = require("dagor.fs")
 let textInput = require("%daeditor/components/textInput.nut")
 let datablock = require("DataBlock")
 
-let isSandbox = @() argv.contains("-devMode")
+let isSandbox = @(): bool argv.contains("-devMode")
 let isNewImportMode = Watched(false)
 let filterImportString = mkWatched(persist, "filterImportString", "")
 let selectedImport = Watched("")

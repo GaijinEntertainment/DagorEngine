@@ -40,8 +40,8 @@ inline constexpr size_t lcm(size_t a, size_t b)
   const size_t prod = a * b;
   while (b != 0)
   {
-    const size_t mx = max(a, b);
-    const size_t mn = min(a, b);
+    const size_t mx = eastl::max(a, b);
+    const size_t mn = eastl::min(a, b);
     a = mx - mn;
     b = mn;
   }
@@ -55,6 +55,13 @@ struct IsExpectedSpecImpl : eastl::false_type
 
 template <class T>
 inline constexpr bool is_expected_spec_v = IsExpectedSpecImpl<eastl::remove_cvref_t<T>>::value;
+
+template <class T>
+struct IsUnexpectedSpecImpl : eastl::false_type
+{};
+
+template <class T>
+inline constexpr bool is_unexpected_spec_v = IsUnexpectedSpecImpl<eastl::remove_cvref_t<T>>::value;
 
 } // namespace detail
 
@@ -120,6 +127,13 @@ private:
 template <typename TErr>
 Unexpected(TErr &&) -> Unexpected<eastl::remove_reference_t<TErr>>;
 
+namespace detail
+{
+template <class E>
+struct IsUnexpectedSpecImpl<Unexpected<E>> : eastl::true_type
+{};
+} // namespace detail
+
 template <typename T, typename E>
 class [[nodiscard]] Expected
 {
@@ -137,10 +151,11 @@ public:
 
   template <typename U = T>
   constexpr Expected(U &&val)
-    requires eastl::is_convertible_v<U, T> && eastl::is_move_constructible_v<T>
+    requires eastl::is_convertible_v<U, T> && eastl::is_move_constructible_v<T> && (!detail::is_expected_spec_v<U>) &&
+             (!detail::is_unexpected_spec_v<U>)
     : mHasValue(true)
   {
-    detail::construct_at(reinterpret_cast<T *>(mStorage), eastl::move(val));
+    detail::construct_at(reinterpret_cast<T *>(mStorage), eastl::forward<U>(val));
   }
 
   template <typename G = E>
@@ -218,19 +233,78 @@ public:
       eastl::destroy_at(reinterpret_cast<E *>(mStorage));
   }
 
+  // These must be non-template: a templated operator=/constructor is never the
+  // copy/move special member, so without them the compiler emits a shallow
+  // byte-copy of mStorage, aliasing the contained T/E and double-freeing it.
+  // The requires clauses keep is_copy/move_constructible accurate: when a
+  // clause fails the member is not declared, so the trait reports false rather
+  // than hard-erroring when a copy/move is actually attempted.
+  constexpr Expected(const Expected &other)
+    requires eastl::is_copy_constructible_v<T> && eastl::is_copy_constructible_v<E>
+    : mHasValue(other.mHasValue)
+  {
+    if (mHasValue)
+      detail::construct_at(reinterpret_cast<T *>(mStorage), other.value());
+    else
+      detail::construct_at(reinterpret_cast<E *>(mStorage), other.error());
+  }
+  constexpr Expected(Expected &&other)
+    requires eastl::is_move_constructible_v<T> && eastl::is_move_constructible_v<E>
+    : mHasValue(other.mHasValue)
+  {
+    if (mHasValue)
+      detail::construct_at(reinterpret_cast<T *>(mStorage), eastl::move(other.value()));
+    else
+      detail::construct_at(reinterpret_cast<E *>(mStorage), eastl::move(other.error()));
+  }
+
+  constexpr Expected &operator=(const Expected &other)
+    requires eastl::is_copy_constructible_v<T> && eastl::is_copy_constructible_v<E>
+  {
+    if (this == &other)
+      return *this;
+    if (mHasValue)
+      eastl::destroy_at(reinterpret_cast<T *>(mStorage));
+    else
+      eastl::destroy_at(reinterpret_cast<E *>(mStorage));
+    mHasValue = other.mHasValue;
+    if (mHasValue)
+      detail::construct_at(reinterpret_cast<T *>(mStorage), other.value());
+    else
+      detail::construct_at(reinterpret_cast<E *>(mStorage), other.error());
+    return *this;
+  }
+  constexpr Expected &operator=(Expected &&other)
+    requires eastl::is_move_constructible_v<T> && eastl::is_move_constructible_v<E>
+  {
+    if (this == &other)
+      return *this;
+    if (mHasValue)
+      eastl::destroy_at(reinterpret_cast<T *>(mStorage));
+    else
+      eastl::destroy_at(reinterpret_cast<E *>(mStorage));
+    mHasValue = other.mHasValue;
+    if (mHasValue)
+      detail::construct_at(reinterpret_cast<T *>(mStorage), eastl::move(other.value()));
+    else
+      detail::construct_at(reinterpret_cast<E *>(mStorage), eastl::move(other.error()));
+    return *this;
+  }
+
   template <typename U = T>
   constexpr Expected &operator=(U &&val)
-    requires eastl::is_assignable_v<T, U> && eastl::is_constructible_v<T, U>
+    requires eastl::is_assignable_v<T, U> && eastl::is_constructible_v<T, U> && (!detail::is_expected_spec_v<U>) &&
+             (!detail::is_unexpected_spec_v<U>)
   {
     if (mHasValue)
     {
-      *reinterpret_cast<T *>(mStorage) = eastl::move(val);
+      *reinterpret_cast<T *>(mStorage) = eastl::forward<U>(val);
     }
     else
     {
       mHasValue = true;
       eastl::destroy_at(reinterpret_cast<E *>(mStorage));
-      detail::construct_at(reinterpret_cast<T *>(mStorage), eastl::move(val));
+      detail::construct_at(reinterpret_cast<T *>(mStorage), eastl::forward<U>(val));
     }
     return *this;
   }
@@ -526,7 +600,7 @@ public:
   }
   template <class F>
     requires eastl::is_copy_constructible_v<E>
-  constexpr Expected<T, eastl::remove_cv_t<eastl::invoke_result_t<F, const E &>>> transform_error(F &&f) &&
+  constexpr Expected<T, eastl::remove_cv_t<eastl::invoke_result_t<F, const E &>>> transform_error(F &&f) const &
   {
     if (has_value())
       return value();
@@ -535,7 +609,7 @@ public:
   }
   template <class F>
     requires eastl::is_move_constructible_v<E>
-  constexpr Expected<T, eastl::remove_cv_t<eastl::invoke_result_t<F, E &&>>> transform_error(F &&f) const &
+  constexpr Expected<T, eastl::remove_cv_t<eastl::invoke_result_t<F, E &&>>> transform_error(F &&f) &&
   {
     if (has_value())
       return eastl::move(value());
@@ -602,7 +676,7 @@ public:
   }
 
 private:
-  alignas(detail::lcm(alignof(T), alignof(E))) unsigned char mStorage[max(sizeof(T), sizeof(E))]{};
+  alignas(detail::lcm(alignof(T), alignof(E))) unsigned char mStorage[eastl::max(sizeof(T), sizeof(E))]{};
   bool mHasValue = false;
 };
 
@@ -669,6 +743,48 @@ public:
   {
     if (!mHasValue)
       eastl::destroy_at(reinterpret_cast<E *>(mStorage));
+  }
+
+  // Non-template so they act as the real copy/move special members; see the
+  // primary template above. Constrained on E only (T is void).
+  constexpr Expected(const Expected &other)
+    requires eastl::is_copy_constructible_v<E>
+    : mHasValue(other.mHasValue)
+  {
+    if (!mHasValue)
+      detail::construct_at(reinterpret_cast<E *>(mStorage), other.error());
+  }
+  constexpr Expected(Expected &&other)
+    requires eastl::is_move_constructible_v<E>
+    : mHasValue(other.mHasValue)
+  {
+    if (!mHasValue)
+      detail::construct_at(reinterpret_cast<E *>(mStorage), eastl::move(other.error()));
+  }
+
+  constexpr Expected &operator=(const Expected &other)
+    requires eastl::is_copy_constructible_v<E>
+  {
+    if (this == &other)
+      return *this;
+    if (!mHasValue)
+      eastl::destroy_at(reinterpret_cast<E *>(mStorage));
+    mHasValue = other.mHasValue;
+    if (!mHasValue)
+      detail::construct_at(reinterpret_cast<E *>(mStorage), other.error());
+    return *this;
+  }
+  constexpr Expected &operator=(Expected &&other)
+    requires eastl::is_move_constructible_v<E>
+  {
+    if (this == &other)
+      return *this;
+    if (!mHasValue)
+      eastl::destroy_at(reinterpret_cast<E *>(mStorage));
+    mHasValue = other.mHasValue;
+    if (!mHasValue)
+      detail::construct_at(reinterpret_cast<E *>(mStorage), eastl::move(other.error()));
+    return *this;
   }
 
   template <typename G = E>
@@ -912,7 +1028,7 @@ public:
   }
   template <class F>
     requires eastl::is_copy_constructible_v<E>
-  constexpr Expected<void, eastl::remove_cv_t<eastl::invoke_result_t<F, const E &>>> transform_error(F &&f) &&
+  constexpr Expected<void, eastl::remove_cv_t<eastl::invoke_result_t<F, const E &>>> transform_error(F &&f) const &
   {
     if (has_value())
       return {};
@@ -921,7 +1037,7 @@ public:
   }
   template <class F>
     requires eastl::is_move_constructible_v<E>
-  constexpr Expected<void, eastl::remove_cv_t<eastl::invoke_result_t<F, E &&>>> transform_error(F &&f) const &
+  constexpr Expected<void, eastl::remove_cv_t<eastl::invoke_result_t<F, E &&>>> transform_error(F &&f) &&
   {
     if (has_value())
       return {};
@@ -956,7 +1072,7 @@ public:
     }
     else
     {
-      other = eastl::move(error());
+      other = dag::Unexpected<E>{eastl::move(error())};
       *this = {};
     }
   }

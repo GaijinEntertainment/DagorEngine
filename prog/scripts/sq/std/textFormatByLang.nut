@@ -1,7 +1,7 @@
 let { intToStrWithDelimiter } = require("string.nut")
 let { roundToDigits } = require("math.nut")
 
-function simpleKeys(table) {
+function simpleKeys(table): table {
   let res = {}
   foreach(keys, v in table)
     foreach(k in keys)
@@ -16,7 +16,7 @@ let decimalFormatByLangs = simpleKeys({
   [["Chinese", "TChinese", "HChinese"]] = @(value) intToStrWithDelimiter(value, ",", 4),
 })
 
-function shortTextFromNumDefault(num) {
+function shortTextFromNumDefault(num: number): string {
   let needSymbol = num >= 9999.5
   let roundNum = roundToDigits(num, needSymbol ? 3 : 4)
   if (!needSymbol)
@@ -28,7 +28,7 @@ function shortTextFromNumDefault(num) {
   return $"{0.001 * roundNum}K"
 }
 
-let mkChineseStyleNumberCut = @(char10k, char100m) function(num) {
+let mkChineseStyleNumberCut = @(char10k, char100m) function(num: number): string {
   let needSymbol = num >= 99999.5
   let roundNum = roundToDigits(num, needSymbol ? 4 : 5)
   if (!needSymbol)

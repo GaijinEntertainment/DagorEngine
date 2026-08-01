@@ -3,6 +3,8 @@
 
 #include <bvh/bvh.h>
 #include <EASTL/unordered_map.h>
+#include <EASTL/vector.h>
+#include <EASTL/string.h>
 
 namespace bvh
 {
@@ -19,90 +21,60 @@ enum class DebugMode
   CamoTexcoord,
   VertexColor,
   GI,
-  TwoSided,
   Paint,
   IntersectionCount,
   Instances,
-  NaN
+  NaN,
+  Lod
 };
 
-struct MemoryStatistics
+// Real RT-only memory overhead, computed from the ground up (every GPU resource the BVH context
+// allocates), categorized logically.
+struct RtMemoryOverhead
 {
-  int64_t tlasSize;
-  int64_t tlasUploadSize;
-  int64_t scratchBuffersSize;
-  int64_t transformBuffersSize;
-  int64_t meshMetaSize;
-  struct MeshStats
+  struct Item
   {
-    int meshCount = 0;
-    int64_t meshBlasSize = 0;
-    int64_t meshVBSize = 0;
+    int64_t bytes;
+    eastl::string category;
+    eastl::string sub;
+    eastl::string note; // extra, non-additive detail (count, free headroom, sub-splits); shown in brackets
   };
-  eastl::unordered_map<const char *, MeshStats> meshStats;
-  int skinCount;
-  int64_t skinBLASSize;
-  int64_t skinVBSize;
-  int skinCacheCount;
-  int64_t skinCacheBLASSize;
-  int treeCount;
-  int64_t treeBLASSize;
-  int64_t treeVBSize;
-  int stationaryTreeCount;
-  int64_t stationaryTreeBLASSize;
-  int64_t stationaryTreeVBSize;
-  int treeCacheCount;
-  int64_t treeCacheBLASSize;
-  int treeRiExCount;
-  int64_t treeRiExBLASSize;
-  int64_t treeRiExVBSize;
-  int treeRiExCacheCount;
-  int64_t treeRiExCacheBLASSize;
-  int flagCount;
-  int64_t flagBLASSize;
-  int64_t flagVBSize;
-  int64_t dynamicVBAllocatorSize;
-  int64_t dynamicVBAllocatorFreeSize;
-  int64_t terrainBlasSize;
-  int64_t terrainVBSize;
-  int64_t grassBlasSize;
-  int64_t grassVBSize;
-  int64_t grassIBSize;
-  int64_t grassMetaSize;
-  int64_t grassQuerySize;
-  int64_t cableBLASSize;
-  int64_t cableVBSize;
-  int64_t cableIBSize;
-  int binSceneCount;
-  int waterCount;
-  int64_t waterBLASSize;
-  int64_t waterVBSize;
-  int64_t waterIBSize;
-  int gpuGrassCount;
-  int64_t gpuGrassMemory;
-  int64_t gpuGrassTexturesMemory;
-  int64_t gobjMetaSize;
-  int64_t gobjQuerySize;
-  int splineGenCount;
-  int64_t splineGenBLASSize;
-  int64_t splineGenVBSize;
-  int smokeTracerCount;
-  int64_t smokeTracerBLASSize;
-  int64_t smokeTracerVBSize;
-  int blasCount;
-  int64_t perInstanceDataSize;
-  int64_t compactionSize;
-  int64_t peakCompactionSize;
-  int compactionCount;
-  int compactionSizeBufferSize;
-  int64_t atmosphereTextureSize;
-  int64_t totalMemory;
-  int deathRowBufferCount;
-  int64_t deathRowBufferSize;
-  int indexProcessorBufferCount;
-  int64_t indexProcessorBufferSize;
+  eastl::vector<Item> items;
+  int64_t total = 0;
+  int64_t blasTotalBytes = 0;
+  int blasCount = 0;
+  int64_t lastLodBlasBytes = 0; // this is practically a constant overhead, since they are loaded no matter what
+  int lastLodBlasCount = 0;
+
+  void add(const char *category, const char *sub, int64_t b, const char *note = nullptr)
+  {
+    items.push_back(Item{b, category, sub, note ? note : ""});
+    total += b;
+  }
+
+  template <typename CategoryStartFn, typename ItemFn, typename CategoryEndFn>
+  void forEachCategory(CategoryStartFn on_category_start, ItemFn on_item, CategoryEndFn on_category_end) const
+  {
+    const eastl::string *curCat = nullptr;
+    int64_t catSum = 0;
+    for (const auto &it : items)
+    {
+      if (!curCat || *curCat != it.category)
+      {
+        if (curCat)
+          on_category_end(*curCat, catSum);
+        curCat = &it.category;
+        catSum = 0;
+        on_category_start(*curCat);
+      }
+      catSum += it.bytes;
+      on_item(it);
+    }
+    if (curCat)
+      on_category_end(*curCat, catSum);
+  }
 };
 
-MemoryStatistics get_memory_statistics(ContextId context_id);
+RtMemoryOverhead get_rt_memory_overhead(ContextId context_id);
 
 } // namespace bvh

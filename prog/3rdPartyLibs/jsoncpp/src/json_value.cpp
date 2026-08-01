@@ -66,6 +66,12 @@ duplicateStringValue( const char *value,
 {
    if ( length == unknown )
       length = (unsigned int)strlen(value);
+
+   // Avoid an integer overflow in the call to malloc below by limiting length
+   // to a sane value.
+   if ( length >= (unsigned)Value::maxInt )
+      length = Value::maxInt - 1;
+
    char *newString = static_cast<char *>( malloc( length + 1 ) );
    JSON_ASSERT_MESSAGE( newString != 0, "Failed to allocate string value buffer" );
    memcpy( newString, value, length );
@@ -129,7 +135,10 @@ void
 Value::CommentInfo::setComment( const char *text )
 {
    if ( comment_ )
+   {
       releaseStringValue( comment_ );
+      comment_ = 0; // avoid dangling pointer if the asserts below bail out
+   }
    JSON_ASSERT( text != 0 );
    JSON_ASSERT_MESSAGE( text[0]=='\0' || text[0]=='/', "Comments must start with /");
    // It seems that /**/ style comments are acceptable as well.

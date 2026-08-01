@@ -21,6 +21,7 @@
  ********************************************************************/
 
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <ogg/ogg.h>
 
@@ -56,17 +57,17 @@ ogg_int64_t ogg_page_granulepos(ogg_page *og){
 }
 
 int ogg_page_serialno(ogg_page *og){
-  return(og->header[14] |
-         (og->header[15]<<8) |
-         (og->header[16]<<16) |
-         (og->header[17]<<24));
+  return((int)((ogg_uint32_t)og->header[14]) |
+              ((ogg_uint32_t)og->header[15]<<8) |
+              ((ogg_uint32_t)og->header[16]<<16) |
+              ((ogg_uint32_t)og->header[17]<<24));
 }
 
 ogg_int32_t ogg_page_pageno(ogg_page *og){
-  return(og->header[18] |
-         (og->header[19]<<8) |
-         (og->header[20]<<16) |
-         (og->header[21]<<24));
+  return((ogg_int32_t)((ogg_uint32_t)og->header[18]) |
+               ((ogg_uint32_t)og->header[19]<<8) |
+               ((ogg_uint32_t)og->header[20]<<16) |
+               ((ogg_uint32_t)og->header[21]<<24));
 }
 
 
@@ -225,19 +226,29 @@ int ogg_stream_destroy(ogg_stream_state *os){
 /* Helpers for ogg_stream_encode; this keeps the structure and
    what's happening fairly clear */
 
-static void _os_body_expand(ogg_stream_state *os,int needed){
-  if(os->body_storage<=os->body_fill+needed){
-    os->body_storage+=(needed+1024);
+static int _os_body_expand(ogg_stream_state *os,int needed){
+  if(os->body_storage-needed<=os->body_fill){
+    ogg_int32_t body_storage;
+    if(os->body_storage>INT_MAX-needed)return -1;
+    body_storage=os->body_storage+needed;
+    if(body_storage<INT_MAX-1024)body_storage+=1024;
+    os->body_storage=body_storage;
     os->body_data=_ogg_realloc(os->body_data,os->body_storage*sizeof(*os->body_data));
   }
+  return 0;
 }
 
-static void _os_lacing_expand(ogg_stream_state *os,int needed){
-  if(os->lacing_storage<=os->lacing_fill+needed){
-    os->lacing_storage+=(needed+32);
+static int _os_lacing_expand(ogg_stream_state *os,int needed){
+  if(os->lacing_storage-needed<=os->lacing_fill){
+    ogg_int32_t lacing_storage;
+    if(os->lacing_storage>INT_MAX-needed)return -1;
+    lacing_storage=os->lacing_storage+needed;
+    if(lacing_storage<INT_MAX-32)lacing_storage+=32;
+    os->lacing_storage=lacing_storage;
     os->lacing_vals=_ogg_realloc(os->lacing_vals,os->lacing_storage*sizeof(*os->lacing_vals));
     os->granule_vals=_ogg_realloc(os->granule_vals,os->lacing_storage*sizeof(*os->granule_vals));
   }
+  return 0;
 }
 
 /* checksum the page */
@@ -284,8 +295,8 @@ int ogg_stream_packetin(ogg_stream_state *os,ogg_packet *op){
   }
 
   /* make sure we have the buffer storage */
-  _os_body_expand(os,op->bytes);
-  _os_lacing_expand(os,lacing_vals);
+  if(_os_body_expand(os,op->bytes)||_os_lacing_expand(os,lacing_vals))
+    return -1;
 
   /* Copy in the submitted packet.  Yes, the copy is a waste; this is
      the liability of overly clean abstraction for the time being.  It
@@ -514,8 +525,11 @@ char *ogg_sync_buffer(ogg_sync_state *oy, ogg_int32_t size){
 
   if(size>oy->storage-oy->fill){
     /* We need to extend the internal buffer */
-    ogg_int32_t newsize=size+oy->fill+4096; /* an extra page to be nice */
+    ogg_int32_t newsize;
 
+    if(size>INT_MAX-4096-oy->fill)
+      return NULL;
+    newsize=size+oy->fill+4096; /* an extra page to be nice */
     if(oy->data)
       oy->data=_ogg_realloc(oy->data,newsize);
     else
@@ -716,7 +730,7 @@ int ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
   if(serialno!=os->serialno)return(-1);
   if(version>0)return(-1);
 
-  _os_lacing_expand(os,segments+1);
+  if(_os_lacing_expand(os,segments+1))return(-1);
 
   /* are we in sequence? */
   if(pageno!=os->pageno){
@@ -753,7 +767,7 @@ int ogg_stream_pagein(ogg_stream_state *os, ogg_page *og){
   }
 
   if(bodysize){
-    _os_body_expand(os,bodysize);
+    if(_os_body_expand(os,bodysize))return(-1);
     memcpy(os->body_data+os->body_fill,body,bodysize);
     os->body_fill+=bodysize;
   }

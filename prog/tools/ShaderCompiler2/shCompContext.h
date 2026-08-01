@@ -21,13 +21,15 @@ class CompilationContext
   const ShCompilationInfo *mInfo = nullptr;
   eastl::string commonHlslDefinesCached;
   FILE *dependencyDumpFile = nullptr;
-  RefinedBlockRegisterAllocator mRbAllocator;
+  eastl::unique_ptr<RefinedBlockRegisterAllocator> mRbAllocator;
   VarNameMap mRbVarNameMap;
   dag::VectorMap<int, RefinedBlockRegister> mRbVarIdToRegInfo;
+  ShCompilationLimits mLimits;
 
 public:
-  CompilationContext(const ShCompilationInfo &info) : mInfo{&info}
+  CompilationContext(const ShCompilationInfo &info, const ShCompilationLimits &limits) : mInfo{&info}, mLimits{limits}
   {
+    mRbAllocator = eastl::make_unique<RefinedBlockRegisterAllocator>();
     commonHlslDefinesCached = assembly::build_common_hardware_defines_hlsl(*this);
     if (shc::config().dependencyDumpMode)
     {
@@ -60,8 +62,8 @@ public:
 
   const eastl::string &commonHlslDefines() const { return commonHlslDefinesCached; }
 
-  auto &rbAllocator() { return mRbAllocator; }
-  const auto &rbAllocator() const { return mRbAllocator; }
+  auto &rbAllocator() { return *mRbAllocator; }
+  const auto &rbAllocator() const { return *mRbAllocator; }
 
   auto &rbVarNameMap() { return mRbVarNameMap; }
   const auto &rbVarNameMap() const { return mRbVarNameMap; }
@@ -77,6 +79,9 @@ public:
     if (dependencyDumpFile)
       fprintf(dependencyDumpFile, "%s\n", name);
   }
+
+  bool toolsShadersDetected() const { return mLimits.toolsShadersDetected; }
+  int inTargetShaderAmountLimit() const { return mLimits.inTargetShaderAmountLimit; }
 };
 
 } // namespace shc

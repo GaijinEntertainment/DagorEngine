@@ -36,7 +36,6 @@ const mat43f &getRIGenExtra43(riex_handle_t id);
 const mat43f &getRIGenExtra43(riex_handle_t id, uint32_t &seed);
 void getRIGenExtra44(riex_handle_t id, mat44f &out_tm);
 
-uint32_t getRIGenExtraPoolCount();
 dag::ConstSpan<mat43f> getAllRIGenExtra43FromPool(uint32_t pool);
 
 void getRIExtraCollInfo(riex_handle_t id, CollisionResource **out_collision, BSphere3 *out_bsphere);

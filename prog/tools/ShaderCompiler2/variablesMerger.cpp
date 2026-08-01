@@ -99,7 +99,7 @@ void VariablesMerger::mergeVars(MergeableStateBlocks &blocks, MergedVarsMap &var
     auto cleanupVarSourceRegs = [&](Var &var) {
       if (var.lhsReg >= 0)
         callbacks.releaseRegister(eastl::exchange(var.lhsReg, -1));
-      if (var.rhsReg > 0)
+      if (var.rhsReg >= 0)
         callbacks.releaseRegister(eastl::exchange(var.rhsReg, -1));
     };
 

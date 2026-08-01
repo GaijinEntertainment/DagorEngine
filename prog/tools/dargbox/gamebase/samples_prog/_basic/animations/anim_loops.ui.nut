@@ -7,7 +7,7 @@ let DURATION = 1
 const animId = {}
 local isPaused = false
 
-let function makeAnim(params) {
+function makeAnim(params) {
   return [
     { prop=AnimProp.rotate, from=0, to=90, duration=DURATION, play=true, easing=InOutCubic, loop=true, trigger=animId }.__merge(params)
   ]

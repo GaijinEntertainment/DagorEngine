@@ -43,6 +43,9 @@ public:
   // Use all the available height.
   static constexpr hdpi::Px LISTBOX_FULL_HEIGHT = (hdpi::Px)1;
 
+  // Use the frame height (ImGui::GetFrameHeight()) for simple color button's size.
+  static constexpr hdpi::Px SIMPLE_COLOR_BUTTON_FRAME_SIZE = (hdpi::Px)1;
+
   // The length of the splitter's resize grip along the split axis. So for a vertical splitter this is the height of the grip.
   static constexpr int SPLITTER_GRIP_LENGTH = 32;
 

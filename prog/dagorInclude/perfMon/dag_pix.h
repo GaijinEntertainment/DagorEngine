@@ -7,9 +7,6 @@
 #include <cstdint>
 
 
-void PIX_BEGIN_CPU_EVENT(const char *name);
-void PIX_END_CPU_EVENT();
-
 namespace perfmon
 {
 inline void add_named_counter(const char * /*name*/, float /*val*/) {}

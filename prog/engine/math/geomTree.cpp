@@ -27,28 +27,64 @@ static int perf_cnt = 0, perf_tm_cnt = 0;
 static int perf_frameno_start = 0;
 #endif
 
-template <class T>
-static inline void copy_rebased_slice(dag::Span<T> &dest, dag::Span<T> src, ptrdiff_t rebase_ofs)
+GeomNodeTree::~GeomNodeTree()
 {
-  dest.set((T *)(rebase_ofs + (char *)src.data()), src.size());
+  if (!dataCoalloc && data.data())
+    memfree(data.data(), midmem);
+}
+
+void GeomNodeTree::copyDataFrom(const GeomNodeTree &from)
+{
+  const intptr_t dataSz = from.data.size();
+  G_ASSERT(data.size() == dataSz);
+  if (dataSz)
+    memcpy(data.data(), from.data.data(), dataSz);
+
+  numNodes = from.numNodes;
+  lastValidWtmIndex = from.lastValidWtmIndex;
+  invalidTmOfs = from.invalidTmOfs;
+  lastUnimportantCount = from.lastUnimportantCount;
+  setWtmOfs(from.wofs); // node arrays derive from data+numNodes, so no pointer fixup is needed
 }
 
 GeomNodeTree &GeomNodeTree::operator=(const GeomNodeTree &from)
 {
-  data = from.data;
-  if (data.data())
-    setWtmOfs(from.wofs);
-  lastValidWtmIndex = from.lastValidWtmIndex;
-  invalidTmOfs = from.invalidTmOfs;
-  lastUnimportantCount = from.lastUnimportantCount;
-
-  ptrdiff_t rebase_ofs = data.data() - from.data.data();
-  copy_rebased_slice(wtm, from.wtm, rebase_ofs);
-  copy_rebased_slice(tm, from.tm, rebase_ofs);
-  copy_rebased_slice(parentId, from.parentId, rebase_ofs);
-  copy_rebased_slice(childrenRef, from.childrenRef, rebase_ofs);
-  copy_rebased_slice(nameOfs, from.nameOfs, rebase_ofs);
+  const intptr_t dataSz = from.data.size();
+  G_ASSERT(!dataCoalloc || data.size() == dataSz); // co-allocated data can't be resized, see make()
+  if (!dataCoalloc && data.size() != dataSz)
+  {
+    if (data.data())
+      memfree(data.data(), midmem);
+    data.set(dataSz ? (char *)memalloc(dataSz, midmem) : nullptr, dataSz);
+  }
+  copyDataFrom(from);
   return *this;
+}
+
+/* static */
+GeomNodeTree *GeomNodeTree::allocWithData(intptr_t data_sz)
+{
+  char *blk = (char *)memalloc(sizeof(GeomNodeTree) + data_sz, midmem);
+  GeomNodeTree *tree = ::new (blk) GeomNodeTree();
+
+  tree->data.set(data_sz ? blk + sizeof(GeomNodeTree) : nullptr, data_sz);
+  tree->dataCoalloc = true;
+  return tree;
+}
+
+/* static */
+GeomNodeTree *GeomNodeTree::make(const GeomNodeTree &from)
+{
+  GeomNodeTree *tree = allocWithData(from.data.size());
+  tree->copyDataFrom(from);
+  return tree;
+}
+
+void GeomNodeTree::destroy()
+{
+  G_ASSERT(dataCoalloc);
+  this->~GeomNodeTree();
+  memfree(this, midmem);
 }
 
 dag::Index16 GeomNodeTree::findNodeIndex(const char *name) const
@@ -72,15 +108,16 @@ void GeomNodeTree::calcWtm()
   int important_nodes = nodesCount - lastUnimportantCount;
   if (lastValidWtmIndex >= important_nodes - 1 || !important_nodes)
     return;
+  markPoseChanged();
 #if MEASURE_PERF
   perf_tm.go();
 #endif
 
   Index16 p_idx;
   mat44f p_wtm, c_wtm;
-  mat44f *__restrict wtmPtr = wtm.data();
-  mat44f *__restrict tmPtr = tm.data();
-  const dag::Index16 *__restrict parentIdPtr = parentId.data();
+  mat44f *__restrict wtmPtr = wtm().data();
+  mat44f *__restrict tmPtr = tm().data();
+  const dag::Index16 *__restrict parentIdPtr = parentId().data();
 
   if (lastValidWtmIndex < 0)
   {
@@ -160,6 +197,7 @@ void GeomNodeTree::partialCalcWtm(dag::Index16 upto_ni)
 {
   if (lastValidWtmIndex + 1 >= (int)nodeCount() || !nodeCount())
     return;
+  markPoseChanged();
 #if MEASURE_PERF
   perf_tm.go();
 #endif
@@ -170,9 +208,9 @@ void GeomNodeTree::partialCalcWtm(dag::Index16 upto_ni)
   if (lastValidWtmIndex < 0)
   {
     p_idx = Index16(0);
-    p_wtm = tm[0];
+    p_wtm = tm()[0];
 
-    wtm[0] = p_wtm;
+    wtm()[0] = p_wtm;
     lastValidWtmIndex = 0;
     if (nodeCount() == 1)
     {
@@ -185,8 +223,8 @@ void GeomNodeTree::partialCalcWtm(dag::Index16 upto_ni)
   }
   else
   {
-    p_idx = parentId[lastValidWtmIndex + 1];
-    p_wtm = wtm[p_idx.index()];
+    p_idx = parentId()[lastValidWtmIndex + 1];
+    p_wtm = wtm()[p_idx.index()];
   }
 
   int upto_nodeid = upto_ni ? upto_ni.index() : 0;
@@ -195,10 +233,10 @@ void GeomNodeTree::partialCalcWtm(dag::Index16 upto_ni)
 
   if (upto_nodeid > lastValidWtmIndex)
   {
-    mat44f *__restrict wtmPtr = wtm.data();
-    mat44f *__restrict tmPtr = tm.data();
+    mat44f *__restrict wtmPtr = wtm().data();
+    mat44f *__restrict tmPtr = tm().data();
     int i = lastValidWtmIndex + 1;
-    const Index16 *__restrict parentIdPtr = parentId.data() + i + 1;
+    const Index16 *__restrict parentIdPtr = parentId().data() + i + 1;
     for (; i < upto_nodeid; ++i, ++parentIdPtr)
     {
       v_mat44_mul43(c_wtm, p_wtm, tmPtr[i]);
@@ -254,12 +292,13 @@ struct OldGeomTreeNode
 };
 } // namespace
 
-void GeomNodeTree::load(IGenLoad &_cb)
+/* static */
+GeomNodeTree *GeomNodeTree::load(IGenLoad &_cb)
 {
   unsigned ofs = _cb.readInt();
-  unsigned numNodes = _cb.readInt();
-  bool compr = (numNodes & 0x80000000) != 0;
-  numNodes &= ~0x80000000;
+  unsigned nodeCnt = _cb.readInt();
+  bool compr = (nodeCnt & 0x80000000) != 0;
+  nodeCnt &= ~0x80000000;
 
   MemoryChainedData *unpacked_data = nullptr;
   unsigned blockFlags = 0;
@@ -284,19 +323,18 @@ void GeomNodeTree::load(IGenLoad &_cb)
   MemoryLoadCB crd(unpacked_data, true);
   IGenLoad &cb = compr ? static_cast<IGenLoad &>(crd) : _cb;
 
-  invalidTmOfs = ofs & 0xFFFFF;
-  lastUnimportantCount = ofs >> 20;
+  const unsigned old_data_sz = ofs & 0xFFFFF;
 
-  G_ASSERT(numNodes * (elem_size(wtm) + elem_size(tm)) <= invalidTmOfs);
+  G_ASSERT(nodeCnt * 2 * sizeof(mat44f) <= old_data_sz);
 
   // read older dump
   SmallTab<char, TmpmemAlloc> old_data;
-  clear_and_resize(old_data, invalidTmOfs);
-  cb.read(old_data.data(), invalidTmOfs);
+  clear_and_resize(old_data, old_data_sz);
+  cb.read(old_data.data(), old_data_sz);
 
   PatchableTab<OldGeomTreeNode> old_nodes;
   int name_pool_sz = 0;
-  old_nodes.init(old_data.data(), numNodes);
+  old_nodes.init(old_data.data(), nodeCnt);
   for (int i = 0; i < old_nodes.size(); ++i)
   {
     OldGeomTreeNode &n = old_nodes[i];
@@ -309,34 +347,37 @@ void GeomNodeTree::load(IGenLoad &_cb)
   }
 
   // build new layout
-  int pers_wofs_ofs = 0; //<- to be removed later!
-  int wtm_ofs = pers_wofs_ofs + sizeof(vec4f);
-  int tm_ofs = wtm_ofs + elem_size(wtm) * numNodes;
-  int parentId_ofs = tm_ofs + elem_size(tm) * numNodes;
-  int childrenRef_ofs = parentId_ofs + elem_size(parentId) * numNodes;
-  int nameOfs_ofs = childrenRef_ofs + elem_size(childrenRef) * numNodes;
-  invalidTmOfs = nameOfs_ofs + elem_size(nameOfs) * numNodes + name_pool_sz;
+  int wtm_ofs = 0;
+  int tm_ofs = wtm_ofs + int(sizeof(mat44f)) * nodeCnt;
+  int parentId_ofs = tm_ofs + int(sizeof(mat44f)) * nodeCnt;
+  int childrenRef_ofs = parentId_ofs + int(sizeof(Index16)) * nodeCnt;
+  int nameOfs_ofs = childrenRef_ofs + int(sizeof(ChildRef)) * nodeCnt;
+  int invalid_tm_ofs = nameOfs_ofs + int(sizeof(uint16_t)) * nodeCnt + name_pool_sz;
 
-  clear_and_resize(data, invalidTmOfs + (numNodes + 7) / 8);
-  mem_set_0(data);
+  const intptr_t dataSz = invalid_tm_ofs + (nodeCnt + 7) / 8;
+  GeomNodeTree *tree = allocWithData(dataSz);
+  dag::Span<char> &data = tree->data;
+  if (dataSz)
+    memset(data.data(), 0, dataSz); // leaf childrenRef and the invalid-tm bits are left zeroed
+  tree->numNodes = nodeCnt;
+  tree->invalidTmOfs = invalid_tm_ofs;
+  tree->lastUnimportantCount = ofs >> 20;
 
-#define INIT_SLICE(NM, TYPE) NM.set((TYPE *)&data[NM##_ofs], old_nodes.size());
-  INIT_SLICE(wtm, mat44f);
-  INIT_SLICE(tm, mat44f);
-  INIT_SLICE(parentId, Index16);
-  INIT_SLICE(childrenRef, ChildRef);
-  INIT_SLICE(nameOfs, uint16_t);
-#undef INIT_SLICE
+  auto wtmA = tree->wtm();
+  auto tmA = tree->tm();
+  auto parentIdA = tree->parentId();
+  auto childrenRefA = tree->childrenRef();
+  auto nameOfsA = tree->nameOfs();
 
   // copy data from older dump to new layout
-  for (int i = 0, nm_cur_ofs = elem_size(nameOfs) * numNodes; i < old_nodes.size(); ++i)
+  for (int i = 0, nm_cur_ofs = int(sizeof(uint16_t)) * nodeCnt; i < old_nodes.size(); ++i)
   {
     OldGeomTreeNode &n = old_nodes[i];
-    tm[i] = n.tm;
-    wtm[i] = n.wtm;
-    parentId[i] = (n.parent && n.parent != &n) ? Index16(n.parent.get() - old_nodes.data()) : Index16();
+    tmA[i] = n.tm;
+    wtmA[i] = n.wtm;
+    parentIdA[i] = (n.parent && n.parent != &n) ? Index16(n.parent.get() - old_nodes.data()) : Index16();
 
-    nameOfs[i] = nm_cur_ofs;
+    nameOfsA[i] = nm_cur_ofs;
     int nm_len = (int)strlen(n.name);
     memcpy(&data[nameOfs_ofs + nm_cur_ofs], n.name, nm_len + 1);
     nm_cur_ofs += nm_len + 1;
@@ -346,19 +387,20 @@ void GeomNodeTree::load(IGenLoad &_cb)
       int first_child_idx = n.child.data() - old_nodes.data();
       G_ASSERTF_CONTINUE(first_child_idx >= i && first_child_idx < i + (1 << 16) && n.child.size() < (1 << 16),
         "for node[%d]: first_child_idx=%d child.count=%d", i, first_child_idx, n.child.size());
-      childrenRef[i].count = n.child.size();
-      childrenRef[i].relOfs = first_child_idx - i;
+      childrenRefA[i].count = n.child.size();
+      childrenRefA[i].relOfs = first_child_idx - i;
     }
   }
 
-  invalidateWtm();
+  tree->invalidateWtm();
+  return tree;
 }
 
 
 void GeomNodeTree::calcWorldBox(bbox3f &box) const
 {
   v_bbox3_init_empty(box);
-  for (auto &m : wtm)
+  for (auto &m : wtm())
     v_bbox3_add_pt(box, m.col3);
 }
 
@@ -375,27 +417,29 @@ void GeomNodeTree::validateTm(dag::Index16 from_nodeid)
   mat44f p_iwtm;
 
   v_mat44_ident(p_iwtm);
+  const Index16 *parentIdPtr = parentId().data();
+  mat44f *wtmPtr = wtm().data(), *tmPtr = tm().data();
   for (unsigned i = from_nodeid.index(); i <= lastValidWtmIndex; ++i)
     if (data[invalidTmOfs + (i >> 3)] & (1 << (i & 7)))
     {
       data[invalidTmOfs + (i >> 3)] &= ~(1 << (i & 7));
 
-      if (p_idx != parentId[i])
+      if (p_idx != parentIdPtr[i])
       {
-        p_idx = parentId[i];
-        v_mat44_inverse43(p_iwtm, wtm[p_idx.index()]);
+        p_idx = parentIdPtr[i];
+        v_mat44_inverse43(p_iwtm, wtmPtr[p_idx.index()]);
       }
-      v_mat44_mul43(tm[i], p_iwtm, wtm[i]);
+      v_mat44_mul43(tmPtr[i], p_iwtm, wtmPtr[i]);
     }
 }
 
 void GeomNodeTree::verifyAllData() const
 {
 #if DAGOR_DBGLEVEL > 0
-  for (const mat44f &m : wtm)
-    G_ASSERTF(is_valid_tm(m), "Bad wtm[%i] " FMT_TM, int(&m - wtm.data()), VTMD(m));
-  for (const mat44f &m : tm)
-    G_ASSERTF(is_valid_tm(m), "Bad tm[%i] " FMT_TM, int(&m - tm.data()), VTMD(m));
+  for (auto wtmA = wtm(); const mat44f &m : wtmA)
+    G_ASSERTF(is_valid_tm(m), "Bad wtm[%i] " FMT_TM, int(&m - wtmA.data()), VTMD(m));
+  for (auto tmA = tm(); const mat44f &m : tmA)
+    G_ASSERTF(is_valid_tm(m), "Bad tm[%i] " FMT_TM, int(&m - tmA.data()), VTMD(m));
   G_ASSERTF(is_valid_pos(wofs), "Bad wofs " FMT_P3, V3D(wofs));
 #endif
 }
@@ -404,13 +448,14 @@ void GeomNodeTree::verifyOnlyTmFast() const
 {
 #if DAGOR_DBGLEVEL > 0
   vec3f res = v_zero();
-  for (mat44f m : tm)
+  for (auto tmA = tm(); mat44f m : tmA)
     res = v_add(res, m.col3);
-  if (!is_valid_pos(v_safediv(res, v_splats(tm.size()))))
+  if (!is_valid_pos(v_safediv(res, v_splats(numNodes))))
   {
     debug("GeomNodeTree nodes tm dump:");
+    auto tmA = tm();
     for (Index16 i(0), ie(nodeCount()); i != ie; ++i)
-      debug("\t%s " FMT_TM, getNodeName(i), VTMD(tm[i.index()]));
+      debug("\t%s " FMT_TM, getNodeName(i), VTMD(tmA[i.index()]));
     logerr("Invalid tm in GeomNodeTree. Nodes tm dumped to log.");
   }
 #endif

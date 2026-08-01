@@ -1062,33 +1062,68 @@ protected:
       auto &ch = chan[channelId];
       acl::track_array_qvvf trackArray(alloc, ch.nodeNum);
 
+      // resolve per-node parents up front and feed ACL tracks in parent-first
+      // order: acl error metric computes object-space transforms in track
+      // order and reads an uninitialized/stale parent transform when a parent
+      // track comes after its child (also makes output history-dependent);
+      // output_index keeps the original node order, so runtime is unaffected
+      Tab<int> nodeParent(tmpmem);
+      nodeParent.resize(ch.nodeNum);
       for (int i = 0; i < ch.nodeNum; i++)
       {
+        nodeParent[i] = -1;
+        const char *nodeName = namePool.data() + (intptr_t)ch.nodeName[i];
+        auto findParentIndex = [&](const Node *parent) {
+          if (!parent)
+            return;
+          for (int pi = 0; pi < ch.nodeNum; pi++)
+            if (strcmp(parent->name.str(), namePool.data() + (intptr_t)ch.nodeName[pi]) == 0)
+            {
+              nodeParent[i] = pi;
+              break;
+            }
+        };
+        if (auto_completed_skeleton)
+          if (auto node = auto_completed_skeleton->find_node(nodeName))
+            findParentIndex(node->parent);
+        if (nodeParent[i] == -1 && original_skeleton)
+          if (auto node = original_skeleton->find_node(nodeName))
+            findParentIndex(node->parent);
+      }
+
+      Tab<int> trackOrder(tmpmem), nodePos(tmpmem);
+      nodePos.resize(ch.nodeNum);
+      mem_set_ff(nodePos);
+      trackOrder.reserve(ch.nodeNum);
+      for (bool changed = true; changed && trackOrder.size() < ch.nodeNum;)
+      {
+        changed = false;
+        for (int i = 0; i < ch.nodeNum; i++)
+          if (nodePos[i] < 0 && (nodeParent[i] < 0 || nodePos[nodeParent[i]] >= 0))
+          {
+            nodePos[i] = trackOrder.size();
+            trackOrder.push_back(i);
+            changed = true;
+          }
+      }
+      for (int i = 0; i < ch.nodeNum; i++) // parent cycles: break them, should not happen
+        if (nodePos[i] < 0)
+        {
+          nodeParent[i] = -1;
+          nodePos[i] = trackOrder.size();
+          trackOrder.push_back(i);
+        }
+
+      for (int trackPos = 0; trackPos < ch.nodeNum; trackPos++)
+      {
+        const int i = trackOrder[trackPos];
         bool convertAnim = false;
         TMatrix origParentTm = TMatrix::IDENT;
         TMatrix parentTmInv = TMatrix::IDENT;
         const char *nodeName = namePool.data() + (intptr_t)ch.nodeName[i];
         checkNeedConvert(nodeName, convertAnim, origParentTm, parentTmInv);
 
-        int parentIndex = -1;
-        auto findParentIndex = [&parentIndex, &ch, &namePool](const Node *parent) {
-          if (!parent)
-            return;
-          for (int pi = 0; pi < ch.nodeNum; pi++)
-            if (strcmp(parent->name.str(), namePool.data() + (intptr_t)ch.nodeName[pi]) == 0)
-            {
-              parentIndex = pi;
-              break;
-            }
-        };
-
-        if (auto_completed_skeleton)
-          if (auto node = auto_completed_skeleton->find_node(nodeName))
-            findParentIndex(node->parent);
-
-        if (parentIndex == -1 && original_skeleton)
-          if (auto node = original_skeleton->find_node(nodeName))
-            findParentIndex(node->parent);
+        const int parentIndex = nodeParent[i];
 
         int keyNum = ch.nodeAnim[i].keyNum;
 
@@ -1206,7 +1241,7 @@ protected:
         acl::track_desc_transformf desc;
         desc.output_index = i;
         if (parentIndex != -1)
-          desc.parent_index = parentIndex;
+          desc.parent_index = nodePos[parentIndex];
         desc.shell_distance = shellDistance;
         desc.precision = qvvfPrecision;
 
@@ -1230,7 +1265,7 @@ protected:
           tr[si].scale = s;
         }
 
-        trackArray[i] = eastl::move(tr);
+        trackArray[trackPos] = eastl::move(tr);
 
         freeNodeAnim(ch.nodeAnim[i]);
       }

@@ -6,9 +6,9 @@
 #include <startup/dag_addBasePathDef.h>
 #include <locale.h>
 #include <supp/dag_dllexport.h>
-#include <landMesh/landRayTracer.h>
 #include <heightmap/heightmapPhysHandler.h>
 #include <fftWater/fftWater.h>
+#include <landMesh/landRayTracerSoA4.h>
 #include <osApiWrappers/dag_sharedMem.h>
 #include <gameRes/dag_gameResProxyFactory.h>
 #include <gameRes/dag_stdGameRes.h>
@@ -35,7 +35,7 @@ static void term_res_factories_for_hosted_internal_server();
 DAG_DLL_EXPORT
 void exit_game_exported(const char *reason_static_str)
 {
-  if (auto *shared_mem = LandRayTracer::sharedMem)
+  if (auto *shared_mem = HeightmapPhysHandler::sharedMem)
     shared_mem->dumpContents("HIS:beforeExit");
   debug("exit game exported %s", reason_static_str);
   exit_game(reason_static_str);
@@ -76,10 +76,11 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
   if (auto *shared_mem = (GlobalSharedMemStorage *)(void *)inp.getInt64("sharedMemPtr", 0))
   {
     shared_mem->addRefLocal();
-    LandRayTracer::sharedMem = shared_mem;
     HeightmapPhysHandler::sharedMem = shared_mem;
     HeightmapPhysHandler::dumpSharingReadOnly = inp.getBool("shareHmapRO", false);
+    LandRayTracerSoA4::sharedMem = shared_mem;
     fft_water::WaterHeightmap::sharedMem = shared_mem;
+    set_vromfs_shared_mem_storage(shared_mem);
   }
 
   ::dgs_execute_quiet = ::dgs_get_argv("quiet");
@@ -119,11 +120,12 @@ bool __cdecl start_internal_server(const DataBlock &inp, void(__cdecl *handler)(
   DagorWinMainInit(0, debugmode);
   int retcode = DagorWinMain(0, debugmode);
 
-  if (auto *shared_mem = LandRayTracer::sharedMem)
+  if (auto *shared_mem = HeightmapPhysHandler::sharedMem)
   {
-    LandRayTracer::sharedMem = nullptr;
     HeightmapPhysHandler::sharedMem = nullptr;
+    LandRayTracerSoA4::sharedMem = nullptr;
     fft_water::WaterHeightmap::sharedMem = nullptr;
+    set_vromfs_shared_mem_storage(nullptr);
     shared_mem->delRefLocal();
   }
   term_res_factories_for_hosted_internal_server();

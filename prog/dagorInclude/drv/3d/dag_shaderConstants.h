@@ -140,18 +140,15 @@ bool set_const_buffer(unsigned stage, unsigned slot, const float *data, unsigned
  * @brief Sets a constant buffer for the specified stage using a buffer object.
  *
  * Constant buffers are valid until driver acquire call or end of frame.
- * To unbind, use set_const_buffer(stage, 0, nullptr).
+ * To unbind, use set_const_buffer(stage, slot, nullptr).
  *
  * @param stage The shader stage (STAGE_VS, STAGE_PS, STAGE_CS).
- * @param slot The buffer slot.
- * @param buffer Pointer to the buffer object. Must be created with d3d::buffers::create_persistent_cb or
- * d3d::buffers::create_one_frame_cb.
- * @param consts_offset The offset of the constants in the buffer. (Not used)
- * @param consts_size The size of the constants in the buffer. (Not used)
- * @todo consts_offset and consts_size are not used. Remove them?
+ * @param slot The buffer slot. Must be less than the platform constant-buffer count; [0, 12) is portable.
+ * @param buffer Pointer to the buffer object. When non-null it must have SBCF_BIND_CONSTANT (created with
+ * d3d::buffers::create_persistent_cb or d3d::buffers::create_one_frame_cb).
  * @return True if the constant buffer was set successfully, false otherwise.
  */
-bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset = 0, uint32_t consts_size = 0);
+bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer);
 
 /**
  * @brief Sets the size of the vertex shader constant buffer that can be filled with set_const call.
@@ -228,10 +225,7 @@ inline bool set_immediate_const(unsigned stage, const uint32_t *data, unsigned n
 inline int set_vs_constbuffer_register_count(int required_count) { return d3di.set_vs_constbuffer_register_count(required_count); }
 inline int set_cs_constbuffer_register_count(int required_count) { return d3di.set_cs_constbuffer_register_count(required_count); }
 
-inline bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
-{
-  return d3di.set_const_buffer(stage, slot, buffer, consts_offset, consts_size);
-}
+inline bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer) { return d3di.set_const_buffer(stage, slot, buffer); }
 
 } // namespace d3d
 #endif

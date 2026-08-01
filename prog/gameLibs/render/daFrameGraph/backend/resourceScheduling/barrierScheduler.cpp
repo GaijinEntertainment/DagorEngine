@@ -108,12 +108,22 @@ auto BarrierScheduler::scheduleEvents(EventsCollection &node_events, const inter
       debug_clear_resource_barriers();
       for (auto [resIdx, placedEvents] : cachedResourceEvents.enumerate())
         for (const auto &pe : placedEvents)
-          if (auto *barrier = eastl::get_if<Event::Barrier>(&pe.event.data))
-            if (graph.resources.isMapped(pe.event.resource))
-            {
-              auto resId = graph.resources[pe.event.resource].frontendResources.front();
-              debug_rec_resource_barrier(resId, pe.event.frameResourceProducedOn, pe.nodeTimepoint, pe.eventFrame, barrier->barrier);
-            }
+        {
+          auto *barrier = eastl::get_if<Event::Barrier>(&pe.event.data);
+          auto *bufferBarrier = eastl::get_if<Event::EnhancedBufferBarrier>(&pe.event.data);
+          auto *textureBarrier = eastl::get_if<Event::EnhancedTextureBarrier>(&pe.event.data);
+          if ((!barrier && !bufferBarrier && !textureBarrier) || !graph.resources.isMapped(pe.event.resource))
+            continue;
+          const auto resId = graph.resources[pe.event.resource].frontendResources.front();
+          if (barrier)
+            debug_rec_resource_barrier(resId, pe.event.frameResourceProducedOn, pe.nodeTimepoint, pe.eventFrame, barrier->barrier);
+          else if (bufferBarrier)
+            debug_rec_enhanced_buffer_barrier(resId, pe.event.frameResourceProducedOn, pe.nodeTimepoint, pe.eventFrame,
+              bufferBarrier->barrier);
+          else
+            debug_rec_enhanced_texture_barrier(resId, pe.event.frameResourceProducedOn, pe.nodeTimepoint, pe.eventFrame,
+              textureBarrier->barrier);
+        }
     }
   }
 
@@ -291,6 +301,10 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
 
       const auto &resource = graph.resources[resIdx];
 
+      const bool untrackedBuffer = resource.isUntrackedBuffer();
+      const bool untrackedTexture = resource.isUntrackedTexture();
+      const bool untracked = untrackedBuffer || untrackedTexture;
+
       // Carefully place split or regular barriers between usage
       // occurrences that yield one
       if (resource.getResType() != ResourceType::Blob)
@@ -302,7 +316,7 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
 
           ResourceBarrier barrier = barrier_for_transition(prev.usage, curr.usage);
 
-          if (barrier == RB_NONE)
+          if (barrier == RB_NONE && !(untracked && curr.usage.access == Access::READ_WRITE))
             continue;
 
           uint32_t eventAfterPreviousNode = *gracePoints.lower_bound(prev.nodeIndex + 1);
@@ -327,7 +341,20 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
           G_ASSERT(prev.frame != curr.frame || eventAfterPreviousNode <= eventBeforeCurrentNode);
 
           auto cacheBarrier = [&, resIdx = resIdx](uint32_t time, ResourceBarrier additional_flags) {
-            Event event{resIdx, frame, Event::Barrier{barrier | additional_flags}};
+            Event::Payload payload;
+            if (untracked)
+            {
+              // TODO: enhanced barriers drop split-barrier flags
+              G_ASSERTF(additional_flags == RB_NONE,
+                "daFG: enhanced barriers can't carry split-barrier flags for untracked resources");
+              if (untrackedBuffer)
+                payload = Event::EnhancedBufferBarrier{enhanced_buffer_barrier_for_transition(prev.usage, curr.usage)};
+              else
+                payload = Event::EnhancedTextureBarrier{enhanced_texture_barrier_for_transition(prev.usage, curr.usage)};
+            }
+            else
+              payload = Event::Barrier{barrier | additional_flags};
+            Event event{resIdx, frame, payload};
             cachedResourceEvents[resIdx].push_back(PlacedEvent{event, time, prev.frame});
           };
 
@@ -337,7 +364,7 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
             // place a regular barrier at the end of prev frame.
             cacheBarrier(graph.nodes.totalKeys(), RB_NONE);
           }
-          else if (eventAfterPreviousNode == eventBeforeCurrentNode || resource.getResType() == ResourceType::Buffer)
+          else if (eventAfterPreviousNode == eventBeforeCurrentNode || resource.getResType() == ResourceType::Buffer || untracked)
           {
             cacheBarrier(eventAfterPreviousNode, RB_NONE);
           }
@@ -365,7 +392,14 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
         Event::Payload payload;
 
         if (scheduledRes.isGpuResource())
-          payload = Event::Deactivation{};
+        {
+          Event::Deactivation deactivation{};
+          if (untrackedBuffer)
+            deactivation.release = enhanced_buffer_barrier_for_release(lastUsageOccurrence.usage);
+          else if (untrackedTexture)
+            deactivation.release = enhanced_texture_barrier_for_release(lastUsageOccurrence.usage);
+          payload = deactivation;
+        }
         else
           payload = Event::CpuDeactivation{scheduledRes.getCpuDescription().dtor};
 
@@ -385,7 +419,12 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
         if (resource.asScheduled().isGpuResource())
         {
           const auto &basicResDesc = graph.resources[resIdx].asScheduled().getGpuDescription().asBasicRes;
-          payload = Event::Activation{basicResDesc.activation, resource.asScheduled().clearValue};
+          Event::Activation activation{basicResDesc.activation, resource.asScheduled().clearValue};
+          if (untrackedBuffer)
+            activation.enhancedBarrier = enhanced_buffer_barrier_for_activation(firstUsageOccurrence.usage);
+          else if (untrackedTexture)
+            activation.enhancedBarrier = enhanced_texture_barrier_for_activation(firstUsageOccurrence.usage);
+          payload = activation;
         }
         else
         {

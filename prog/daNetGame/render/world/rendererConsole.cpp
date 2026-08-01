@@ -41,6 +41,9 @@
 
 #include <ioSys/dag_fileIo.h>
 #include <scene/dag_occlusion.h>
+#include <rendInst/riSceneDump.h>
+#include <vecmath/dag_vecMath.h>
+#include <util/dag_string.h>
 
 #include <gui/dag_visualLog.h>
 #include <shaders/dag_shaderDbg.h>
@@ -49,7 +52,7 @@ float get_camera_fov();
 extern void set_up_show_shadows_entity(int show_shadows);
 extern void set_up_show_gbuffer_entity();
 extern void set_up_debug_indoor_probes_on_screen_entity(bool render);
-extern void set_up_show_depth_above_entity(bool render, bool show_normal);
+extern void set_up_show_depth_above_entity(bool render, int show_mode);
 
 class RendererConsole : public console::ICommandProcessor
 {
@@ -279,31 +282,20 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("render", "show_depth_above", 1, 2)
   {
     static bool show_depth_above = false;
-    static bool show_normal = false;
+    static int show_mode = 0; // 0 = plain, 1 = normals, 2 = texel-size chessboard
     if (argc == 1)
       show_depth_above = !show_depth_above;
     else
     {
       int mode = console::to_int(argv[1]);
-      switch (mode)
-      {
-        default:
-        case 0:
-          show_depth_above = false;
-          show_normal = false;
-          break;
-        case 1:
-          show_depth_above = true;
-          show_normal = false;
-          break;
-        case 2:
-          show_depth_above = true;
-          show_normal = true;
-          break;
-      }
+      show_depth_above = mode != 0;
+      show_mode = max(0, mode - 1);
     }
-    set_up_show_depth_above_entity(show_depth_above, show_normal);
-    console::print("show_depth_above %s %s", show_depth_above ? "on" : "off", show_normal ? "with normals" : "without normals");
+    set_up_show_depth_above_entity(show_depth_above, show_mode);
+    const char *modeName = show_mode == 1 ? "normals" : show_mode == 2 ? "texel size" : "plain";
+    console::print(
+      "show_depth_above %s (%s) (usage: 0 - off, 1 - is pixel under depth above height, 2 - depth above normals, 3 - texel size)",
+      show_depth_above ? "on" : "off", modeName);
   }
   CONSOLE_CHECK_NAME("render", "show_gbuffer_with_vectors", 1, 4)
   {
@@ -511,6 +503,58 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
       FullFileSaveCB cb(name);
       save_occlusion(cb, *occl);
       console::print_d("saved to: (%s)", name);
+    }
+    else
+      console::print_d("no occlusion!");
+  }
+  // Per-viewpoint capture for the offline riExtra scene-representation benchmark: the current camera
+  // and HZB (via save_occlusion) plus the culling reference (visible counts with and without culling,
+  // per scene) for those exact inputs. Pair with `ri.dump_scenes` (dumped once per level) to feed the
+  // tools/miscUtils harness. Scenes are intentionally not re-dumped here - they change only at load.
+  CONSOLE_CHECK_NAME("render", "dump_ri_cull", 1, 2)
+  {
+    Occlusion *occl = wr->getMainCameraOcclusion();
+    if (occl)
+    {
+      const char *name = argc > 1 ? argv[1] : "ri_cull.bin";
+      FullFileSaveCB cb(name);
+      if (cb.fileHandle)
+      {
+        save_occlusion(cb, *occl); // camera + HZB
+        const vec4f vpos_distscale = v_perm_xyzd(occl->getCurViewPos(), V_C_ONE);
+        rendinst::dumpCullingReference(cb, occl->getCurViewProj(), vpos_distscale, occl); // visible w/ and w/o culling
+        console::print_d("saved camera + HZB + riExtra culling reference to: (%s)", name);
+      }
+      else
+        console::print_d("file %s can't be open for save", name);
+    }
+    else
+      console::print_d("no occlusion!");
+  }
+  // Atomic capture: scenes AND the culling reference are written under ONE riExtra read lock
+  // (rendinst::dumpBenchmarkCapture), so even the dynamic scene (scene 0) is byte-consistent between the
+  // two files. Using ri.dump_scenes + render.dump_ri_cull separately captures different states: dynamic
+  // instances drift and scene 0's visible hash mismatches (counts still match). Writes
+  // <prefix>_scenes.bin and <prefix>_cull.bin; both files are opened before anything is written.
+  CONSOLE_CHECK_NAME("render", "dump_ri_bench", 1, 2)
+  {
+    Occlusion *occl = wr->getMainCameraOcclusion();
+    if (occl)
+    {
+      const char *prefix = argc > 1 ? argv[1] : "ri_bench";
+      const String scenesName(0, "%s_scenes.bin", prefix);
+      const String cullName(0, "%s_cull.bin", prefix);
+      FullFileSaveCB scenesCb(scenesName);
+      FullFileSaveCB cullCb(cullName);
+      if (!scenesCb.fileHandle || !cullCb.fileHandle)
+        console::print_d("can't open %s for save", !scenesCb.fileHandle ? scenesName.str() : cullName.str());
+      else
+      {
+        save_occlusion(cullCb, *occl); // camera + HZB (render-side, independent of the riExtra lock)
+        const vec4f vpos_distscale = v_perm_xyzd(occl->getCurViewPos(), V_C_ONE);
+        rendinst::dumpBenchmarkCapture(scenesCb, cullCb, occl->getCurViewProj(), vpos_distscale, occl);
+        console::print_d("saved atomic ri benchmark set: (%s) + (%s)", scenesName.str(), cullName.str());
+      }
     }
     else
       console::print_d("no occlusion!");

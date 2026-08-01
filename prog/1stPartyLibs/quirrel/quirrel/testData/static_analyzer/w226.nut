@@ -3,7 +3,7 @@
 
 let o = {}
 
-let function x(y) {
+function x(y) {
   if (y == 1)
     return "y == 1"
   else if (y == 2)

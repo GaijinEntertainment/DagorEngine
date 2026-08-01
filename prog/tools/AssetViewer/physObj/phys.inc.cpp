@@ -245,6 +245,38 @@ static __forceinline void add_impulse(int obj_idx, int sub_body_idx, const Point
 
   pb->addImpulse(pos, normalize(delta) * force * dt);
 }
+
+static __forceinline void phys_set_joints_motor_settings(float twist_freq, float twist_damp, float swing_freq, float swing_damp)
+{
+  for (PhysSystemInstance *ps : simPhysSys)
+    if (ps)
+      ps->setJointsMotorSettings(twist_freq, twist_damp, swing_freq, swing_damp);
+}
+
+static __forceinline void phys_set_ragdoll_drive(void *ragdoll, bool drive)
+{
+  if (ragdoll)
+    ((PhysRagdoll *)ragdoll)->setDriveBodiesToAnimchar(drive);
+}
+
+static __forceinline void phys_wake_up_ragdoll(void *ragdoll)
+{
+  if (ragdoll)
+    ((PhysRagdoll *)ragdoll)->wakeUp();
+}
+
+static __forceinline void phys_set_body_static(int body_idx, bool make_static, float mass, const Point3 &momj)
+{
+  for (PhysSystemInstance *ps : simPhysSys)
+    if (ps && body_idx >= 0 && body_idx < ps->getBodyCount())
+      if (PhysBody *b = ps->getBody(body_idx))
+      {
+        // Lock the body as a kinematic/static anchor so the rest of the ragdoll simulates relative to it.
+        b->setLockedStatic(make_static, mass, momj);
+        if (!make_static)
+          b->activateBody(true);
+      }
+}
 static __forceinline void *phys_start_ragdoll(AnimV20::AnimcharBaseComponent *animChar, AnimV20::AnimcharFinalMat44 *finalWtm,
   const Point3 &vel0)
 {
@@ -278,6 +310,13 @@ static __forceinline void *phys_start_ragdoll(AnimV20::AnimcharBaseComponent *an
   void phys_##PHYS##_init() { phys_init(); }                                                                                   \
   void phys_##PHYS##_close() { phys_close(); }                                                                                 \
   void phys_##PHYS##_before_render() { phys_before_render(); }                                                                 \
+  void phys_##PHYS##_set_joints_motor_settings(float tf, float td, float sf, float sd)                                         \
+  {                                                                                                                            \
+    phys_set_joints_motor_settings(tf, td, sf, sd);                                                                            \
+  }                                                                                                                            \
+  void phys_##PHYS##_set_ragdoll_drive(void *ragdoll, bool drive) { phys_set_ragdoll_drive(ragdoll, drive); }                  \
+  void phys_##PHYS##_wake_up_ragdoll(void *ragdoll) { phys_wake_up_ragdoll(ragdoll); }                                         \
+  void phys_##PHYS##_set_body_static(int bi, bool st, float m, const Point3 &mj) { phys_set_body_static(bi, st, m, mj); }      \
   void phys_##PHYS##_render() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_OPAQUE); }                            \
   void phys_##PHYS##_render_decals() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_DECALS); }                     \
   void phys_##PHYS##_render_trans() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_TRANS); }                       \

@@ -61,6 +61,7 @@ void initRIGen(bool need_render, int cell_pool_sz, float poi_radius, ri_register
   ri_unregister_collision_cb unreg_coll_cb = nullptr, int job_manager_id = -1, float sec_layer_poi_radius = 256.0f,
   bool simplified_render = false, bool should_init_gpu_objects = true);
 void termRIGen();
+void termRIGenJobs();
 
 void setPoiRadius(float poi_radius);
 
@@ -103,6 +104,7 @@ int getRIGenLoadedInstancesCount();
 CollisionResource *getRIGenCollInfo(const rendinst::RendInstDesc &desc);
 
 float getMaxRiGenLoadingDistance();
+float getMaxRiGenCellSize();
 void registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list);
 int scheduleRIGenPrepare(dag::ConstSpan<Point3> poi);
 bool isRIGenPrepareFinished();

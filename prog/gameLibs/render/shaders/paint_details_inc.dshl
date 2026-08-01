@@ -11,14 +11,16 @@ macro USE_PAINT_DETAILS()
 
     float3 getColorMul(uint hashVal)
     {
+      uint paint_palette_row = get_paint_palette_row_index().x;
+      uint palette_index = get_paint_palette_row_index().y;
+    #if RENDINST_IMPOSTOR_VOXEL
+      return float3(paint_palette_row, palette_index, 0);
+    #else
       float correction = COLOR_CORRECTION_MULTIPLIER;
       uint paint_palette_col = hashVal;
       uint2 dim;
       paint_details_tex.GetDimensions(dim.x, dim.y);
       dim.x >>= 1; // 2 palettes merged together, palette_index will select one of them (but stub textures may have only 1, hence the max 1 below)
-
-      uint paint_palette_row = get_paint_palette_row_index().x;
-      uint palette_index = get_paint_palette_row_index().y;
 
       ##assert(palette_index <= 1, "ASSET ISSUE: Paint details palette index is OOB. Look for MAGENTA-glowing assets! >> palette_index:%d (must be 0 or 1). You can change the debug validation color via params_validation_debug_color shadervar", palette_index);
       const bool useVisualValidation = palette_index > 1;
@@ -32,6 +34,7 @@ macro USE_PAINT_DETAILS()
         colorMul = params_validation_debug_color.rgb*params_validation_debug_color.a;
 
       return colorMul;
+    #endif
     }
   }
 endmacro

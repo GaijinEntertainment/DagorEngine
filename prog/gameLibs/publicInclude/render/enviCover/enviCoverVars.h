@@ -15,4 +15,5 @@ void set_params(const Point4 &envi_cover_intensity_map_left_top_right_bottom, co
   float envi_cover_depth_pow_exponent, float envi_cover_noise_high_frequency, float envi_cover_noise_low_frequency,
   float envi_cover_noise_mask_factor, float envi_cover_depth_mask_threshold, float envi_cover_normal_mask_threshold,
   float envi_cover_depth_mask_contrast, float envi_cover_normal_mask_contrast, float envi_cover_lowest_intensity);
+void unset_intensity_map();
 } // namespace envi_cover_vars

@@ -103,7 +103,7 @@ shader gpu_grass_bvh_instantiate
   USE_GPU_GRASS_BVH_BURNING(cs)
   hlsl(cs)
   {
-    static const uint bvhGroupGrass = 1 << 4;
+    static const uint bvhGroupGrass = 1 << 3;
 
     [numthreads(DISPATCH_X,1,1)]
     void make_instances(uint dtid : SV_DispatchThreadID)

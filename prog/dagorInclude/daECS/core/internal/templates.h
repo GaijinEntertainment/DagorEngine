@@ -93,7 +93,7 @@ inline const void *Templates::getTemplateData(template_t t, uint32_t ofs, uint32
   if (t >= templates.size())
     return nullptr;
   const InstantiatedTemplate &tInfo = templates[t];
-  if (cid >= tInfo.componentsCount || !tInfo.isInited(cid) || ofs > tInfo.alignedEntitySize)
+  if (cid >= tInfo.componentsCount || !tInfo.isInited(cid) || ofs >= tInfo.alignedEntitySize)
     return nullptr;
   return tInfo.initialData.get() + ofs;
 }

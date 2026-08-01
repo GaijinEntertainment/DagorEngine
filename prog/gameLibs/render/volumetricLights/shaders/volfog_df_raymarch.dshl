@@ -16,12 +16,14 @@ include "volfog_hardcoded_media.dshl"
 
 
 
-texture clouds_shadows_2d;
+include "clouds2/clouds_bsm.dshl"
+
 float4 nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m;
 float4 clouds_origin_offset;
 float4 clouds_hole_pos;
+float clouds_start_altitude2;
+float clouds_thickness2;
 
-// statistical cloud shadows, without relying on preshader
 macro USE_FOG_SHADOWS(code)
   (code){
     nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m@f4 =
@@ -29,8 +31,10 @@ macro USE_FOG_SHADOWS(code)
     skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
     clouds_origin_offset@f3 = clouds_origin_offset;
     clouds_hole_pos@f4 = clouds_hole_pos;
-    clouds_shadows_2d@smp2d = clouds_shadows_2d;
   }
+  //Beer shadow map replaced the legacy 2D map: valid at any receiver altitude
+  INIT_CLOUDS_BSM(code)
+  USE_CLOUDS_BSM(code)
   hlsl(code) {
     #include <atmosphere/statistical_clouds_shadow.hlsli>
   }

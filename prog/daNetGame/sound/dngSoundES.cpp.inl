@@ -72,7 +72,6 @@ static eastl::vector<vca_name_t> g_vca_names;
 static int g_muteable_vca_index = -1;
 static bool g_mute_inactive_app = true;
 
-
 static dag::AtomicInteger<bool> g_is_record_list_changed = false;
 static dag::AtomicInteger<bool> g_is_output_list_changed = false;
 
@@ -185,7 +184,8 @@ static float height_above_ground_impl(const Point3 &pos)
 
 static dag::AtomicFloat<float> g_listener_height_above_ground = 0.f;
 static constexpr float g_underground_depth_dist_inv = 1. / 3.;
-static constexpr float g_underground_suppress_value = 2.f; // fmod-specific value in banks to completely mute sound
+static constexpr float g_default_occlusion_suppress_value = 2.f;
+static float g_occlusion_suppress_value = g_default_occlusion_suppress_value; // fmod-specific value in banks to completely mute sound
 static float underground_factor(const Point3 &source)
 {
   const float sourceHeightAboveGround = height_above_ground_impl(source);
@@ -209,7 +209,7 @@ static void occlusion_gpu_external_factor(
   const Point3 & /*listener*/, const Point3 &blob_pos, float distance_sq, float occlusion, bool occlusion_valid, Point3 &factor)
 {
   factor.x = (occlusion > 0.5f || !occlusion_valid || distance_sq > 50.f * 50.f) ? underground_factor(blob_pos) : 0.f;
-  factor.y = g_underground_suppress_value;
+  factor.y = g_occlusion_suppress_value;
 }
 
 void init()
@@ -307,6 +307,8 @@ void init()
       ctype.device_list_changed = true;
       ctype.record_list_changed = true;
       sndsys::set_system_callbacks(ctype);
+
+      g_occlusion_suppress_value = sndblk.getReal("occlusionSuppressValue", g_default_occlusion_suppress_value);
 
       sndsys::occlusion_gpu::set_external_factor(occlusion_gpu_external_factor);
     }

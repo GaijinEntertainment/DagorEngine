@@ -1,0 +1,7 @@
+"@override:source" {
+  file:t = "../../../prog/gameLibs/render/omm/shaders/omm.dshl"
+  file:t = "../../../prog/gameLibs/render/omm/shaders/omm_debug.dshl"
+}
+
+incDir:t="../../../prog/gameLibs/render/omm/shaders"
+incDir:t="../../../prog/3rdPartyLibs/omm_sdk/shaders"

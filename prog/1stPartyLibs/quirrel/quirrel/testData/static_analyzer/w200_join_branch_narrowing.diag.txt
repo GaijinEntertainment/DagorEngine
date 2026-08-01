@@ -1,0 +1,36 @@
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_join_branch_narrowing.nut:12:9
+
+  }
+  return x + 1
+         ^
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_join_branch_narrowing.nut:21:9
+
+  }
+  return x + 1
+         ^
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_join_branch_narrowing.nut:33:9
+
+  }
+  return x + 1
+         ^
+}
+
+
+WARNING: w200 (potentially-nulled-ops) Arithmetic operation with potentially nullable expression.
+testData/static_analyzer/w200_join_branch_narrowing.nut:43:9
+
+  }
+  return x + 1
+         ^
+}
+
+

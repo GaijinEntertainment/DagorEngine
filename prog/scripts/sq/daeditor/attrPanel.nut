@@ -62,7 +62,7 @@ allModifiableScenes.subscribe_with_nasty_disregard_of_frp_update(function(v) {
   allSceneTexts.get().append(noSceneParent)
 })
 
-function onMoveResize(dx, dy, dw, dh) {
+function onMoveResize(dx, dy, dw, dh): table {
   let w = windowState.get()
   w.pos[0] = math.clamp(w.pos[0]+dx, -(sw(100)-w.size[0]), 0)
   w.pos[1] = math.max(w.pos[1]+dy, 0)
@@ -71,7 +71,7 @@ function onMoveResize(dx, dy, dw, dh) {
   return w
 }
 
-function get_tags(comp_flags){
+function get_tags(comp_flags: int|null): array {
   let tags = []
   comp_flags = comp_flags ?? 0
   if (comp_flags & ecs.COMP_FLAG_REPLICATED)
@@ -81,7 +81,7 @@ function get_tags(comp_flags){
   return tags
 }
 
-function get_tagged_comp_name(comp_flags, comp_name) {
+function get_tagged_comp_name(comp_flags: int|null, comp_name) {
   local tags = get_tags(comp_flags).map(@(v) $"[{v}]")
   tags = "".join(tags)
   if (tags.len() <= 0)
@@ -89,9 +89,9 @@ function get_tagged_comp_name(comp_flags, comp_name) {
   return $"{tags} {comp_name}"
 }
 
-function makeBgToggle(initial=true) {
+function makeBgToggle(initial=true): function {
   local showBg = !initial
-  function toggleBg() {
+  function toggleBg(): bool {
     showBg = !showBg
     return showBg
   }
@@ -99,7 +99,7 @@ function makeBgToggle(initial=true) {
 }
 
 
-function getModComps() {
+function getModComps(): table|null {
   if (selectedEntity.get() == ecs.INVALID_ENTITY_ID)
     return {}
   let comps = entity_editor?.get_saved_components(selectedEntity.get())
@@ -112,11 +112,11 @@ function getModComps() {
 let modifiedComponents = Watched(getModComps())
 let updateModComps = @() modifiedComponents.set(getModComps())
 
-function isNonSceneEntity() {
+function isNonSceneEntity(): bool {
   return modifiedComponents.get() == null
 }
 
-function isModifiedComponent(cname, cpath) {
+function isModifiedComponent(cname, cpath): bool {
   if (cname == null || (cpath?.len()??0) > 0)
     return false
   if (cname == "transform")
@@ -143,7 +143,7 @@ function doResetSelectedComponent() {
   doResetComponent(eid, selectedCompComp.get())
 }
 
-function panelRowColor(stateFlags, isOdd) {
+function panelRowColor(stateFlags: int, isOdd) {
   return stateFlags & S_TOP_HOVER ? colors.GridRowHover
     : isOdd ? colors.GridBg[0]
     : colors.GridBg[1]
@@ -284,7 +284,7 @@ function mkPanelCompRow(params={}) {
   }
 }
 
-let removeSelectedByEditorTemplate = @(tname) tname.replace("+daeditor_selected+","+").replace("+daeditor_selected","").replace("daeditor_selected+","")
+let removeSelectedByEditorTemplate = @(tname: string): string tname.replace("+daeditor_selected+","+").replace("+daeditor_selected","").replace("daeditor_selected+","")
 
 const attrPanelAddEntityTemplateUID = "attr_panel_add_entity_template"
 
@@ -482,7 +482,7 @@ let hiddenComponents = {
   daeditor__selected = true
 }
 
-function isComponentHidden(k){
+function isComponentHidden(k): bool {
   if (hiddenComponents?[k] || k.slice(0,1)=="_")
     return true
   if (endswith(k, "$copy"))
@@ -490,7 +490,7 @@ function isComponentHidden(k){
   return false
 }
 
-function isKeyInFilter(key, filterStr=null){
+function isKeyInFilter(key, filterStr=null): bool {
   if (filterStr==null || filterStr.len()==0 || key.tolower().contains(filterStr.tolower()))
     return true
   return false
@@ -978,9 +978,10 @@ let mkCompFlagTag = memoize(@(text) mkTagFromTextColor(text, Color(40,90,90, 50)
 let mkFlagTags = @(eid, rawComponentName)
   get_tags(ecs.get_comp_flags(eid, rawComponentName)).map(mkCompFlagTag)
 
+let updateAttrComponentTimer = @() selectedCompName.trigger()
 function updateAttrComponent(eid, cname) {
   updateComp(eid, cname)
-  gui_scene.resetTimeout(0.1, @() selectedCompName.trigger())
+  gui_scene.resetTimeout(0.1, updateAttrComponentTimer)
 }
 
 mkCompObject = function(eid, rawComponentName, rawObject, isLocked, caption=null, onChange = null, path = null){
@@ -1017,7 +1018,7 @@ mkCompObject = function(eid, rawComponentName, rawObject, isLocked, caption=null
   return mkCollapsible(isConst, caption, childrenCtor, objLen, tags, eid, rawComponentName, path)
 }
 
-function compTypeName(object) {
+function compTypeName(object): string {
   local typeName = ""
   if (type(object)=="array")
     typeName = "Array"
@@ -1136,7 +1137,7 @@ function getSceneForEntity(eid) {
   return {}
 }
 
-function getSceneIdTextForEntity(eid) {
+function getSceneIdTextForEntity(eid): string {
   if (eid != ecs.INVALID_ENTITY_ID) {
     local loadTypeVal = entity_editor?.get_instance().getEntityRecordLoadType(eid)
     if (loadTypeVal != 0) {

@@ -40,23 +40,11 @@ void RenderViewport::setViewProjTms()
   ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
 
   d3d::settm(TM_VIEW, viewMatrix);
-  if (projectionMatrix[0][1] == 0 && projectionMatrix[0][2] == 0 && projectionMatrix[0][3] == 0 && projectionMatrix[1][0] == 0 &&
-      projectionMatrix[1][2] == 0 && projectionMatrix[1][3] == 0 && projectionMatrix[2][0] == 0 && projectionMatrix[2][1] == 0 &&
-      projectionMatrix[2][3] == 1 && projectionMatrix[3][0] == 0 && projectionMatrix[3][1] == 0 && projectionMatrix[3][3] == 0)
-  {
-    d3d::setpersp(Driver3dPerspective(projectionMatrix[0][0], projectionMatrix[1][1], -projectionMatrix[3][2] / projectionMatrix[2][2],
-      projectionMatrix[3][2] / (1 - projectionMatrix[2][2]), 0, 0));
-  }
-  else
-    d3d::settm(TM_PROJ, &projectionMatrix);
+  d3d::settm(TM_PROJ, &projectionMatrix);
 }
 
 
-void RenderViewport::setPersp(real wk, real hk, real zn, real zf)
-{
-  float q = zf / (zf - zn);
-  projectionMatrix = Matrix44(wk, 0, 0, 0, 0, hk, 0, 0, 0, 0, q, 1, 0, 0, -q * zn, 0);
-}
+void RenderViewport::setPersp(real wk, real hk, real zn, real zf) { projectionMatrix = matrix_perspective_reverse(wk, hk, zn, zf); }
 
 
 void RenderViewport::setPerspHFov(real fov, real zn, real zf)

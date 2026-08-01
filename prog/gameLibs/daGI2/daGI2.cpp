@@ -14,6 +14,7 @@
 #include <render/globTMVars.h>
 #include <math/dag_frustum.h>
 #include <math/dag_mathUtils.h>
+#include <render/noiseTex.h>
 #include "giFrameInfo.h"
 #include "screenSpaceProbes.h"
 #include "volumetricGI.h"
@@ -106,11 +107,13 @@ struct DaGIImpl final : public DaGI
       d3d::get_driver_desc().caps.hasWaveOps && (d3d::get_driver_desc().minWarpSize == 64));
     worldSdf.reset(new_world_sdf());
     view.frustum = Frustum(TMatrix4::IDENT);
+    init_and_get_blue_noise(); // jitter sequences sample blue_noise_tex
 #if RADIANCE_CACHE
     radianceCache.reset(new RadianceCache);
 #endif
     // these below are not needed on low quality
   }
+  ~DaGIImpl() { release_blue_noise(); }
   eastl::unique_ptr<RadianceGrid> radianceGrid;
 #if RADIANCE_CACHE
   eastl::unique_ptr<RadianceCache> radianceCache;
@@ -276,7 +279,7 @@ void DaGIImpl::debugRenderScreenDepth()
 {
   set_view_vars(view);
   if (worldSdf)
-    worldSdf->debugRender();
+    worldSdf->debugRender(view.globTm);
   if (albedoScene)
     albedoScene->debugRenderScreen();
 }

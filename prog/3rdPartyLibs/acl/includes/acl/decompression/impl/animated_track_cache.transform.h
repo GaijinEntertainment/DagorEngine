@@ -1707,7 +1707,7 @@ namespace acl
 			}
 
 			template<class decompression_settings_type>
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index, float interpolation_alpha)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::quatf RTM_SIMD_CALL unpack_rotation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
 				ACL_ASSERT(unpack_index < rotations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
@@ -1716,15 +1716,31 @@ namespace acl
 				const rtm::vector4f sample_as_vec0 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, clip_sampling_context_rotations, segment_sampling_context_rotations[0]);
 				const rtm::vector4f sample_as_vec1 = unpack_single_animated_quat<decompression_settings_type>(decomp_context, unpack_index, group_size, clip_sampling_context_rotations, segment_sampling_context_rotations[1]);
 
+				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
+				const float interpolation_alpha = decomp_context.interpolation_alpha;
+				const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, interpolation_alpha);
+
 				rtm::quatf sample0;
 				rtm::quatf sample1;
 
 				// Reconstruct our quaternion W component
-				const rotation_format8 rotation_format = get_rotation_format<decompression_settings_type>(decomp_context.rotation_format);
 				if (rotation_format != rotation_format8::quatf_full || !decompression_settings_type::is_rotation_format_supported(rotation_format8::quatf_full))
 				{
-					sample0 = rtm::quat_from_positive_w(sample_as_vec0);
-					sample1 = rtm::quat_from_positive_w(sample_as_vec1);
+					sample0 = quat_from_positive_w_stable(sample_as_vec0);
+					sample1 = quat_from_positive_w_stable(sample_as_vec1);
+
+					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
+					{
+						// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
+						// isn't very accurate on small inputs, we need to normalize
+						// If we support per track rounding, we need to normalize as we might not interpolate
+						// Otherwise, if we don't interpolate we also need to normalize
+						if (decompression_settings_type::is_per_track_rounding_supported() || !should_interpolate)
+						{
+							sample0 = quat_normalize_stable(sample0);
+							sample1 = quat_normalize_stable(sample1);
+						}
+					}
 				}
 				else
 				{
@@ -1734,13 +1750,12 @@ namespace acl
 
 				rtm::quatf result;
 
-				const bool should_interpolate = should_interpolate_samples<decompression_settings_type>(rotation_format, interpolation_alpha);
 				if (should_interpolate)
 				{
 					// Due to the interpolation, the result might not be anywhere near normalized!
 					// Make sure to normalize afterwards before using
 					if (decompression_settings_type::get_rotation_normalization_policy() >= rotation_normalization_policy_t::lerp_only)
-						result = rtm::quat_lerp(sample0, sample1, interpolation_alpha);
+						result = quat_lerp_stable(sample0, sample1, interpolation_alpha);
 					else
 						result = quat_lerp_no_normalization(sample0, sample1, interpolation_alpha);
 				}
@@ -1756,7 +1771,7 @@ namespace acl
 						{
 							// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 							// isn't very accurate on small inputs, we need to normalize
-							result = rtm::quat_normalize(result);
+							result = quat_normalize_stable(result);
 						}
 					}
 				}
@@ -1876,14 +1891,14 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index, float interpolation_alpha)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_translation_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
 				ACL_ASSERT(unpack_index < translations.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
 				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_translations, segment_sampling_context_translations[0]);
 				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_translations, segment_sampling_context_translations[1]);
 
-				return rtm::vector_lerp(sample0, sample1, interpolation_alpha);
+				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
 			RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_translation(sample_rounding_policy policy)
@@ -1998,14 +2013,14 @@ namespace acl
 			}
 
 			template<class decompression_settings_adapter_type>
-			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index, float interpolation_alpha)
+			RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL unpack_scale_within_group(const persistent_transform_decompression_context_v0& decomp_context, uint32_t unpack_index)
 			{
 				ACL_ASSERT(unpack_index < scales.num_left_to_unpack && unpack_index < 4, "Cannot unpack sample that isn't present");
 
 				const rtm::vector4f sample0 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[0]);
 				const rtm::vector4f sample1 = unpack_single_animated_vector3<decompression_settings_adapter_type>(decomp_context, unpack_index, clip_sampling_context_scales, segment_sampling_context_scales[1]);
 
-				return rtm::vector_lerp(sample0, sample1, interpolation_alpha);
+				return rtm::vector_lerp(sample0, sample1, decomp_context.interpolation_alpha);
 			}
 
 			RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK const rtm::vector4f& consume_scale(sample_rounding_policy policy)

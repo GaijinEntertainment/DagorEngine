@@ -8,10 +8,10 @@
 #include <generic/dag_smallTab.h>
 #include <generic/dag_DObject.h>
 #include <util/dag_index16.h>
+#include <math/dag_geomTree.h>
 
 
 class TMatrix;
-class GeomNodeTree;
 class DynamicPhysObjectData;
 class DynamicRenderableSceneInstance;
 
@@ -22,7 +22,7 @@ template <class TPhysWorld = PhysWorld>
 class SimplePhysObjectClass
 {
 public:
-  SimplePhysObjectClass();
+  SimplePhysObjectClass() = default;
   ~SimplePhysObjectClass();
 
 
@@ -34,7 +34,7 @@ public:
   void resetTm(const TMatrix &tm);
 
   PhysBody *getBody() const { return body; }
-  GeomNodeTree *getNodeTree() const { return nodeTree; }
+  GeomNodeTree *getNodeTree() const { return nodeTree.get(); }
 
   const TMatrix &getModel2BodyTm() const { return *tmModel2body; }
   const TMatrix &getBody2ModelTm() const { return *tmBody2model; }
@@ -52,14 +52,14 @@ public:
   }
 
 protected:
-  PhysBody *body;
-  GeomNodeTree *nodeTree;
-  const TMatrix *tmModel2body;
-  const TMatrix *tmBody2model;
+  PhysBody *body = nullptr;
+  GeomNodeTreeUniquePtr nodeTree;
+  const TMatrix *tmModel2body = nullptr;
+  const TMatrix *tmBody2model = nullptr;
 
-  DynamicRenderableSceneInstance *model;
+  DynamicRenderableSceneInstance *model = nullptr;
   SmallTab<dag::Index16, MidmemAlloc> treeHelpers;
 
-  const TMatrix *extRenderTm;
+  const TMatrix *extRenderTm = nullptr;
   Ptr<DObject> physRes;
 };

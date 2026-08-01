@@ -19,7 +19,8 @@
 static inline void set_canonical_app_dir_mount(const char *app_dir)
 {
   String path;
-  if (strchr("\\/%", app_dir[0]) || strstr(app_dir, ":/") || strstr(app_dir, ":\\") || strncmp(app_dir, "\\\\", 2) == 0)
+  if (app_dir[0] && //
+      (strchr("\\/%", app_dir[0]) || strstr(app_dir, ":/") || strstr(app_dir, ":\\") || strncmp(app_dir, "\\\\", 2) == 0))
     path = app_dir;
   else
   {

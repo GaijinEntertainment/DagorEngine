@@ -28,6 +28,14 @@ ENET_API ENetPacket *        enet_dagor_peer_receive_unconnected_messages (ENetP
 ENET_API ENetPeer * enet_dagor_host_connect_peer_from_the_end (ENetHost *, const ENetAddress *, size_t, enet_uint32);
 ENET_API int        enet_dagor_host_service_only_incoming_commands (ENetHost *, ENetEvent *);
 
+/** Resolve a host name to an ENetAddress, trying IP-literal first.
+    Upstream enet_address_set_host calls gethostbyname unconditionally which on Windows can
+    block for ~3s on IP literals like "127.0.0.1" when the local DNS resolver chooses to
+    consult DNS before falling back to inet_addr. Caller code keeps using
+    enet_address_set_host; the macro below routes through this wrapper instead. */
+ENET_API int enet_dagor_address_set_host (ENetAddress * address, const char * name);
+#define enet_address_set_host enet_dagor_address_set_host
+
 //only here to share the method, not really part of an API
 //not having dagor prefix is intentional, it's a native enet method
 int enet_protocol_receive_incoming_commands (ENetHost * host, ENetEvent * event);

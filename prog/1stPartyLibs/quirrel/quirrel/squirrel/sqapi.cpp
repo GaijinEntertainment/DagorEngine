@@ -863,6 +863,7 @@ SQRESULT sq_new_closure_slot_from_decl_string(HSQUIRRELVM v, SQFUNCTION func, SQ
     nc->_name = ft.functionName;
     nc->_purefunction = ft.pure;
     nc->_nodiscard = ft.nodiscard;
+    nc->_isfastcall = ft.fastcall;
 
     nc->_typecheck.resize(ft.argTypeMask.size() + 1);
     nc->_typecheck[0] = ft.objectTypeMask;
@@ -1293,13 +1294,20 @@ void sq_settop(HSQUIRRELVM v, SQInteger newtop)
 
 void sq_pop(HSQUIRRELVM v, SQInteger nelemstopop)
 {
-    assert(v->_top >= nelemstopop);
+    SQInteger avail = v->_top - v->_stackbase;
+    if (SQ_UNLIKELY(nelemstopop > avail)) {
+        assert(!"sq_pop: stack underflow");
+        nelemstopop = avail > 0 ? avail : 0;
+    }
     v->Pop(nelemstopop);
 }
 
 void sq_poptop(HSQUIRRELVM v)
 {
-    assert(v->_top >= 1);
+    if (SQ_UNLIKELY(v->_top - v->_stackbase < 1)) {
+        assert(!"sq_poptop: stack underflow");
+        return;
+    }
     v->Pop();
 }
 
@@ -1588,11 +1596,17 @@ void sq_getlasterror(HSQUIRRELVM v)
 
 SQRESULT sq_reservestack(HSQUIRRELVM v,SQInteger nsize)
 {
-    if (((SQUnsignedInteger)v->_top + nsize) > v->_stack.size()) {
+    if (nsize < 0)
+        return sq_throwerror(v, "stack reservation size must not be negative");
+    if (v->_top > MAX_SQ_STACK_SIZE || nsize > MAX_SQ_STACK_SIZE - v->_top)
+        return sq_throwerror(v, "stack overflow, cannot resize stack");
+
+    SQInteger newtop = v->_top + nsize;
+    if ((SQUnsignedInteger)newtop > v->_stack.size()) {
         if(v->_nmetamethodscall) {
             return sq_throwerror(v,"cannot resize stack while in a metamethod");
         }
-        v->_stack.resize(v->_stack.size() + ((v->_top + nsize) - v->_stack.size()));
+        v->_stack.resize(newtop);
         v->RelocateOuters();
     }
     return SQ_OK;
@@ -1622,6 +1636,11 @@ SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_handler)
 SQRESULT sq_call(HSQUIRRELVM v,SQInteger params,SQBool retval,SQBool invoke_err_handler)
 {
     v->ValidateThreadAccess();
+
+    if (SQ_UNLIKELY(params < 0 || params + 1 > v->_top - v->_stackbase)) {
+        assert(!"sq_call: params exceed stack");
+        return SQ_ERROR;
+    }
 
     SQObjectPtr res;
     if(!v->Call(v->GetUp(-(params+1)),params,v->_top-params,res,invoke_err_handler?true:false)){

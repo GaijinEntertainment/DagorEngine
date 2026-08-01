@@ -301,6 +301,12 @@ bool EcRender::isLinesVbufferValid(DebugPrimitivesVbuffer &vbuf) const { return 
 void EcRender::setVbufferTm(DebugPrimitivesVbuffer &vbuf, const TMatrix &tm) const { vbuf.setTm(tm); }
 
 
+void EcRender::setVbufferZBias(DebugPrimitivesVbuffer &vbuf, float z_bias, float slope_z_bias) const
+{
+  vbuf.setZBias(z_bias, slope_z_bias);
+}
+
+
 //==================================================================================================
 DynamicShadersBuffer *EcRender::newDynamicShadersBuffer(IMemAlloc *alloc) const { CREATE_OBJECT(DynamicShadersBuffer, alloc); }
 
@@ -459,7 +465,7 @@ bool EcConsole::delConProc(console::ICommandProcessor *proc) { return del_con_pr
 
 //==================================================================================================
 int EcConsole::conCollectorCmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description,
-  const char *argsDescription, const char *varValue, eastl::vector<console::CommandOptions> &&cmdOptions)
+  const char *argsDescription, const char *varValue, eastl::vector<console::CommandOptions> *cmdOptions)
 {
-  return console::collector_cmp(arg, ac, cmd, min_ac, max_ac, description, argsDescription, varValue, eastl::move(cmdOptions));
+  return console::collector_cmp(arg, ac, cmd, min_ac, max_ac, description, argsDescription, varValue, cmdOptions);
 }

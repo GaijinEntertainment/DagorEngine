@@ -91,7 +91,7 @@ bool rebuildNavMesh_saveToFile(const char *) { return false; }
 
 void rebuildNavMesh_close() {}
 
-uint32_t patchedNavMesh_getFileSizeAndNumTiles(const char *, int &) { return 0u; }
+PatchedNavMeshFileInfo patchedNavMesh_getFileInfo(const char *) { return {}; }
 
 bool patchedNavMesh_loadFromFile(const char *, dtTileCache *, uint8_t *, ska::flat_hash_set<uint32_t> &) { return false; }
 

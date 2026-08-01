@@ -26,6 +26,9 @@ public:
   using base_type::mWord;
 
   static_assert(N > 0, "Bitset<0> is not supported");
+  // dag_intrin.h has no sub-int overloads: integral promotion would route __clz_unsafe
+  // to the 32-bit variant and make find_last() return garbage
+  static_assert(sizeof(WordType) >= sizeof(unsigned int), "WordType smaller than unsigned int is not supported");
 
   static constexpr size_t NUM_WORDS = BITSET_WORD_COUNT(N, WordType);
   static constexpr bool SINGLE_WORD = (NUM_WORDS == 1);
@@ -312,7 +315,7 @@ private:
     bool hasRange;
     size_type currentStart;
     size_type rangeEnd;
-    const WordType *const pWord;
+    const WordType *pWord;
   };
 
   template <typename Iter, auto firstWord>

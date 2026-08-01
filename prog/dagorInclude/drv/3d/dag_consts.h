@@ -296,18 +296,11 @@ enum class XessState
   READY
 };
 
-enum class Fsr2State
-{
-  NOT_CHECKED,
-  INIT_ERROR,
-  SUPPORTED,
-  READY
-};
-
 enum class MtlfxUpscaleState
 {
-  UNSUPPORTED,
-  READY
+  UNSUPPORTED = 0,
+  SPATIAL = 1,
+  TEMPORAL = 2
 };
 
 enum class HdrOutputMode // corresponding values in hdr_ps_output.sh

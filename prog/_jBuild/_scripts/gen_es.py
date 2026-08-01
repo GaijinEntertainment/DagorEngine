@@ -79,6 +79,19 @@ clang_args = clang_args + ['-D_ECS_CODEGEN']
 all_gets = []
 allParsedFunctions = parse_ecs_functions(input_file_name, os.path.basename(input_file_name), clang_args, is_es_name, False, compiler_errors, all_gets)
 
+# clang recovers from syntax errors by dropping code (e.g. a misplaced ECS_REQUIRE
+# annotation), which silently generates wrong query descriptors. Fail only on parse
+# issues in the parsed file itself: semantic errors (undefined ecs_query templates,
+# incomplete types) are expected as codegen parses an incomplete translation unit.
+input_file_errors = [e for e in compiler_errors
+                     if e['category'] == 'Parse Issue'
+                     and e['file'] and os.path.normcase(os.path.realpath(e['file'])) == os.path.normcase(os.path.realpath(input_file_name))]
+if len(input_file_errors) > 0:
+  for e in input_file_errors:
+    print("{file}:{line}:{column}: error: {spelling}".format(**e))
+  print("ERROR: clang failed to parse " + input_file_name + ", generated code would be incomplete")
+  sys.exit(1)
+
 resultCode = gen_es(allParsedFunctions, event_handler_suffix, input_file_name)
 gets_code = ""
 gets_type_code = ""

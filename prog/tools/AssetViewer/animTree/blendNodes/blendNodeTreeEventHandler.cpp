@@ -86,13 +86,13 @@ int BlendNodeTreeEventHandler::onMenuItemClick(unsigned id)
 
 void BlendNodeTreeEventHandler::setAsset(DagorAsset *cur_asset) { asset = cur_asset; }
 
-const char *BlendNodeTreeEventHandler::getA2dName()
+String BlendNodeTreeEventHandler::getA2dName()
 {
   PropPanel::TLeafHandle includeLeaf = nodesTree->getParentLeaf(selLeaf);
   String fullPath;
   DataBlock props = get_props_from_include_leaf(paths, *asset, nodesTree, includeLeaf, fullPath);
   if (DataBlock *settings = find_a2d_node_settings(props, nodesTree->getCaption(selLeaf)))
-    return settings->getStr("a2d", "");
+    return String(settings->getStr("a2d", ""));
 
-  return "";
+  return String("");
 }

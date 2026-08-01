@@ -143,7 +143,7 @@ static float compute_threshold_length(const ShaderMeshData &mesh, float threshol
 
 
 RenderableInstanceLodsResSrc::VoxelMip::VoxelMip(const IPoint3 nb, float vs) :
-  numBlocks(nb), voxelSize(vs), bitmap(tmpmem), rgbaBlocks(tmpmem), normBlocks(tmpmem)
+  numBlocks(nb), voxelSize(vs), bitmap(tmpmem), rgbaBlocks(tmpmem), normBlocks(tmpmem), palBlocks(tmpmem)
 {
   bitmap.resize(nb.x * nb.y * nb.z);
   for (uint32_t fi = 0; fi < 6; fi++)
@@ -183,11 +183,29 @@ bool RenderableInstanceLodsResSrc::addVoxelLod(int first_mip, int num_mips, real
   auto &relem = lod.rigid.meshData.elems[0];
   G_ASSERT(relem.vertexData->numv == relem.numv);
 
+  lod.voxelSurface = new (tmpmem) VoxelSurfaceSrc();
+  int numRgbaBlocks = 0;
+  int numNormBlocks = 0;
+  for (int mi = first_mip, me = first_mip + num_mips; mi < me; mi++)
+  {
+    const auto &mip = voxelMips[mi];
+    numRgbaBlocks += mip.rgbaBlocks.size();
+    numNormBlocks += mip.normBlocks.size();
+    G_ASSERT(mip.palBlocks.size() == mip.rgbaBlocks.size());
+  }
+  lod.voxelSurface->rgbaBlocks.reserve(numRgbaBlocks);
+  lod.voxelSurface->normBlocks.reserve(numNormBlocks);
+
   // add mip data to VB
   const uint32_t numLayers = numVoxelLayers;
   int size = 0;
   size += 4;            // number of mips, number of layers
   size += num_mips * 4; // mip offsets
+
+  G_ASSERT(data_size(voxelPalette) % 4 == 0);
+  size += data_size(voxelPalette);
+  size += numRgbaBlocks * 4; // palette blocks
+
   for (int mi = first_mip, me = first_mip + num_mips; mi < me; mi++)
   {
     const auto &mip = voxelMips[mi];
@@ -203,22 +221,18 @@ bool RenderableInstanceLodsResSrc::addVoxelLod(int first_mip, int num_mips, real
   auto rawData = relem.vertexData->attachRawData(size);
   relem.numv = relem.vertexData->numv;
 
-  lod.voxelSurface = new (tmpmem) VoxelSurfaceSrc();
-  int numRgbaBlocks = 0;
-  int numNormBlocks = 0;
-  for (int mi = first_mip, me = first_mip + num_mips; mi < me; mi++)
-  {
-    const auto &mip = voxelMips[mi];
-    numRgbaBlocks += mip.rgbaBlocks.size();
-    numNormBlocks += mip.normBlocks.size();
-  }
-  lod.voxelSurface->rgbaBlocks.reserve(numRgbaBlocks);
-  lod.voxelSurface->normBlocks.reserve(numNormBlocks);
-
   auto ptr = (uint32_t *)rawData.data();
   *ptr++ = num_mips | numLayers << 16;
   auto offsets = ptr;
   ptr += num_mips;
+
+  // palette
+  memcpy(ptr, voxelPalette.data(), data_size(voxelPalette));
+  ptr += data_size(voxelPalette) >> 2;
+
+  // palette blocks
+  auto palBlocks = ptr;
+  ptr += numRgbaBlocks;
 
   int rgbaIndexOffset = 0;
   int normIndexOffset = 0;
@@ -228,6 +242,9 @@ bool RenderableInstanceLodsResSrc::addVoxelLod(int first_mip, int num_mips, real
     offsets[mi - first_mip] = (uint8_t *)ptr - rawData.data();
     append_items(lod.voxelSurface->rgbaBlocks, mip.rgbaBlocks.size(), mip.rgbaBlocks.data());
     append_items(lod.voxelSurface->normBlocks, mip.normBlocks.size(), mip.normBlocks.data());
+
+    memcpy(palBlocks, mip.palBlocks.data(), mip.palBlocks.size() * 4);
+    palBlocks += mip.palBlocks.size();
 
     *ptr++ = mip.numBlocks.x;
     *ptr++ = mip.numBlocks.y;
@@ -283,7 +300,10 @@ bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataB
     return false;
 
   const auto vblk = blk.getBlockByNameEx("voxel_impostor");
-  const float projScale = vblk->getReal("projScale", default_voxel_params.getReal("projScale", defaults::projScale));
+  const float targetFov = vblk->getReal("targetFov", default_voxel_params.getReal("targetFov", defaults::targetFov));
+  const float targetResolution =
+    vblk->getReal("targetResolution", default_voxel_params.getReal("targetResolution", defaults::targetResolution));
+  const float projScale = voxelcache::compute_proj_scale(targetFov, targetResolution);
   const float triangleThreshold =
     vblk->getReal("triangleThreshold", default_voxel_params.getReal("triangleThreshold", defaults::triangleThreshold));
   const bool adjustMeshLodRanges =
@@ -310,8 +330,9 @@ bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataB
         debug("LOD %d of rendInst %s has no usable triangles", li, assetName.c_str());
       else
       {
-        float vsize = len * 0.5f;         // threshold when triangle is about 2 voxels/pixels
-        range = projScale * 0.5f * vsize; // 0.5 is from radius/diameter, see defaults::projScale comment
+        float vsize = len * 0.5f; // threshold when triangle is about 2 voxels/pixels
+        range = projScale * vsize;
+        debug("LOD %d threshold range is %f (configured range is %f) in %s", li, range, lod.range, assetName.c_str());
       }
 
       if (range > lod.range)
@@ -321,7 +342,7 @@ bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataB
 
       if (range != lod.range)
       {
-        debug("adjusting LOD %d range from %g to %g in %s", li, lod.range, range, assetName.c_str());
+        debug("adjusting LOD %d range from %f to %f in %s", li, lod.range, range, assetName.c_str());
         lod.range = range;
       }
     }
@@ -331,11 +352,11 @@ bool RenderableInstanceLodsResSrc::buildVoxels(const DataBlock &blk, const DataB
   for (int li = 0; li < numVoxelLods; li++)
   {
     float voxelSize = voxelMips[li == numVoxelLods - 1 ? voxelMips.size() - 1 : li].voxelSize;
-    float range = projScale * 0.5f * voxelSize;
+    float range = projScale * voxelSize;
     if (range <= lods.back().range)
     {
       if (log)
-        log->addMessage(log->WARNING, "LOD #%d range is too large in %s, %g >= %g (for voxel size %g)", lods.size() - 1,
+        log->addMessage(log->WARNING, "LOD #%d range is too large in %s, %f >= %f (for voxel size %f)", lods.size() - 1,
           assetName.c_str(), lods.back().range, range, voxelSize);
       else
         logwarn("LOD #%d range is too large in %s, %g >= %g (for voxel size %g)", lods.size() - 1, assetName.c_str(),
@@ -401,10 +422,26 @@ struct NormalAverager
   vec3f result(uint32_t num) const { return v_div(sum, v_splats(num)); }
 };
 
+struct PaletteAverager
+{
+  carray<uint32_t, RenderableInstanceLodsResSrc::MAX_VOXEL_PALETTE_COLORS> counts;
+  PaletteAverager() { mem_set_0(counts); }
+  void add(uint8_t p) { counts[p % counts.size()]++; }
+  uint8_t result(uint32_t)
+  {
+    uint32_t mi = 0, mc = counts[0];
+    for (uint32_t i = 1; i < counts.size(); i++)
+      if (counts[i] > mc)
+        mi = i, mc = counts[i];
+    return mi;
+  }
+};
+
 struct VoxelAverager
 {
   ScalarAverager<vec4f> albedoColoring, srmt;
   NormalAverager normal;
+  PaletteAverager palette;
   uint32_t num = 0;
 
   bool empty() const { return num == 0; }
@@ -418,16 +455,18 @@ struct VoxelAverager
     albedoColoring.add(ac);
     srmt.add(v_mul(v_make_vec4f(p.smoothness, p.reflectance, p.metalness, p.translucency), v_splats(1.0f / 255)));
     normal.add(v_sub(v_mul(v_make_vec3f(p.normalX, p.normalY, p.normalZ), v_splats(2.0f / 255)), V_C_ONE));
+    palette.add(p.palette);
     num++;
   }
 
-  void result(RgbaPixel32 &rgba0, RgbaPixel32 &rgba1, TexPixelRg<uint8_t> &norm)
+  void result(RgbaPixel32 &rgba0, RgbaPixel32 &rgba1, TexPixelRg<uint8_t> &norm, uint8_t &pal)
   {
     if (num == 0)
     {
       rgba0.u = 0xff00ff;
       rgba1.u = 0;
       norm = {0, 0};
+      pal = 0;
     }
     else
     {
@@ -455,6 +494,8 @@ struct VoxelAverager
       Point2 onorm = gamemath::p3_to_oct(Point3(v_extract_x(n), v_extract_y(n), v_extract_z(n))) * HALF255 + Point2(HALF255, HALF255);
       norm.r = uint8_t(roundf(onorm.x));
       norm.g = uint8_t(roundf(onorm.y));
+
+      pal = palette.result(num);
     }
   }
 };
@@ -463,6 +504,7 @@ struct VoxelSurfaceBlock
 {
   carray<RgbaPixel32, 4 * 4> rgba0, rgba1;
   carray<TexPixelRg<uint8_t>, 4 * 4> norm;
+  carray<uint8_t, 4 * 4> pal;
   uint16_t mask = 0;
 };
 
@@ -551,8 +593,9 @@ struct RgbaMerger
   }
 
   carray<RgbaPixel32, 4 * 4> rgba0, rgba1;
+  carray<uint8_t, 4 * 4> pal;
   uint16_t mask;
-  RgbaMerger(const VoxelSurfaceBlock &b) : rgba0(b.rgba0), rgba1(b.rgba1), mask(b.mask) {}
+  RgbaMerger(const VoxelSurfaceBlock &b) : rgba0(b.rgba0), rgba1(b.rgba1), pal(b.pal), mask(b.mask) {}
 
   bool tryMerge(const VoxelSurfaceBlock &s)
   {
@@ -564,6 +607,8 @@ struct RgbaMerger
         return false;
       if (use1 and !rgba_eq(rgba1[i], s.rgba1[i]))
         return false;
+      if (pal[i] != s.pal[i])
+        return false;
     }
     for (uint32_t i = 0, m = s.mask & ~mask; m != 0; i++, m >>= 1)
     {
@@ -571,6 +616,7 @@ struct RgbaMerger
         continue;
       rgba0[i] = s.rgba0[i];
       rgba1[i] = s.rgba1[i];
+      pal[i] = s.pal[i];
     }
     mask |= s.mask;
     return true;
@@ -679,6 +725,19 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
   const IPoint3 srcBitMul(1, srcSize.z * srcSize.x, srcSize.x);
   const IPoint3 srcMin = cache->ibbox[0];
 
+  if (cache->palette.size() > MAX_VOXEL_PALETTE_COLORS)
+  {
+    if (log)
+      log->addMessage(log->WARNING, "Too many palette colors are used in %s, %d >= %d", assetName.c_str(), cache->palette.size(),
+        MAX_VOXEL_PALETTE_COLORS);
+    else
+      logwarn("Too many palette colors are used in %s, %d >= %d", assetName.c_str(), cache->palette.size(), MAX_VOXEL_PALETTE_COLORS);
+  }
+
+  memcpy(voxelPalette.data(), cache->palette.data(), min(data_size(cache->palette), data_size(voxelPalette)));
+  for (int i = cache->palette.size(); i < voxelPalette.size(); i++)
+    voxelPalette[i] = 0;
+
   const auto vblk = blk.getBlockByNameEx("voxel_impostor");
   const uint32_t maxLayers = clamp<int>(vblk->getInt("maxLayers", default_params.getInt("maxLayers", 2)), 1, MAX_VOXEL_LAYERS);
   numVoxelLayers = maxLayers;
@@ -728,7 +787,6 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
     uint32_t cover;
   };
   Tab<SemiVoxel> semiVoxels(tmpmem);
-  Tab<SemiVoxel> semiVoxelsBuf(tmpmem);
 
   double voxelSize = cache->targetVoxelSize;
   for (int iterations = 32; iterations > 0; iterations--)
@@ -785,6 +843,40 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
                     if (!coverBits.exchange(fx * srcPerVoxel + fy + srcPerVoxelSq * 2, true))
                       cover.z++;
                   }
+
+            // check neighbor voxels in normal directions to avoid holes in thin walls
+            if (cover.x > 0 and cover.x < srcPerVoxelSq)
+            {
+              for (int dn = -srcPerVoxel; dn <= int(srcPerVoxel); dn += srcPerVoxel * 2)
+                for (uint32_t fy = 0; fy < srcPerVoxel; fy++)
+                  for (uint32_t fz = 0; fz < srcPerVoxel; fz++)
+                    for (uint32_t fx = 0; fx < srcPerVoxel; fx++)
+                      if (isSrcSolid(IPoint3(fx + dn, fy, fz) + srcPos))
+                        if (!coverBits.exchange(fy * srcPerVoxel + fz, true))
+                          cover.x++;
+            }
+
+            if (cover.y > 0 and cover.y < srcPerVoxelSq)
+            {
+              for (int dn = -srcPerVoxel; dn <= int(srcPerVoxel); dn += srcPerVoxel * 2)
+                for (uint32_t fy = 0; fy < srcPerVoxel; fy++)
+                  for (uint32_t fz = 0; fz < srcPerVoxel; fz++)
+                    for (uint32_t fx = 0; fx < srcPerVoxel; fx++)
+                      if (isSrcSolid(IPoint3(fx, fy + dn, fz) + srcPos))
+                        if (!coverBits.exchange(fz * srcPerVoxel + fx + srcPerVoxelSq, true))
+                          cover.y++;
+            }
+
+            if (cover.z > 0 and cover.z < srcPerVoxelSq)
+            {
+              for (int dn = -srcPerVoxel; dn <= int(srcPerVoxel); dn += srcPerVoxel * 2)
+                for (uint32_t fy = 0; fy < srcPerVoxel; fy++)
+                  for (uint32_t fz = 0; fz < srcPerVoxel; fz++)
+                    for (uint32_t fx = 0; fx < srcPerVoxel; fx++)
+                      if (isSrcSolid(IPoint3(fx, fy, fz + dn) + srcPos))
+                        if (!coverBits.exchange(fx * srcPerVoxel + fy + srcPerVoxelSq * 2, true))
+                          cover.z++;
+            }
 
             uint32_t maxCover = max(max(cover.x, cover.y), cover.z);
             if (maxCover == 0) {}
@@ -1065,7 +1157,7 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
                       tracePos(backFace, sx, sy, 0);
                 }
 
-                avg.result(s.rgba0[li], s.rgba1[li], s.norm[li]);
+                avg.result(s.rgba0[li], s.rgba1[li], s.norm[li], s.pal[li]);
               }
           }
         }
@@ -1143,11 +1235,13 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
       struct RgbaSurface
       {
         carray<RgbaPixel32, 4 * 4> rgba0, rgba1;
+        carray<uint8_t, 4 * 4> pal;
         uint16_t mask;
         void copyPixel(uint32_t from, uint32_t to)
         {
           rgba0[to] = rgba0[from];
           rgba1[to] = rgba1[from];
+          pal[to] = pal[from];
         }
       };
       Tab<RgbaSurface> surf(tmpmem);
@@ -1162,6 +1256,7 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
         {
           d.rgba0 = s.rgba0;
           d.rgba1 = s.rgba1;
+          d.pal = s.pal;
           d.mask = s.mask;
         }
         else
@@ -1172,6 +1267,7 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
               continue;
             d.rgba0[j] = s.rgba0[j];
             d.rgba1[j] = s.rgba1[j];
+            d.pal[j] = s.pal[j];
           }
           d.mask |= s.mask;
         }
@@ -1180,7 +1276,12 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
       remap_rgba_indices(mip.faces, maxLayers, make_span_const(oldToNew));
 
       // compress blocks and build binary data
-      Tab<carray<uint8_t, 4 * 4 * 2>> rgbaBlocks;
+      struct CompressedRgbaBlocks
+      {
+        carray<uint8_t, 4 * 4 * 2> rgba;
+        uint32_t pal;
+      };
+      Tab<CompressedRgbaBlocks> rgbaBlocks;
       rgbaBlocks.resize_noinit(surfNum);
 
 #if TEX_CANNOT_USE_ISPC
@@ -1204,17 +1305,48 @@ bool RenderableInstanceLodsResSrc::buildVoxelMips(const DataBlock &blk, const Da
         }
 
         rgba_surface cs{.ptr = (uint8_t *)&pixels[0], .width = 4, .height = 4, .stride = 4 * 4};
-        CompressBlocksBC7(&cs, d.data(), &bc7Settings);
+        CompressBlocksBC7(&cs, d.rgba.data(), &bc7Settings);
         cs.ptr = (uint8_t *)&pixels[4 * 4];
-        CompressBlocksBC7(&cs, d.data() + 4 * 4, &bc7Settings);
+        CompressBlocksBC7(&cs, d.rgba.data() + 4 * 4, &bc7Settings);
+
+        // find two most used palette colors
+        carray<uint8_t, MAX_VOXEL_PALETTE_COLORS> palCounts;
+        mem_set_0(palCounts);
+        for (auto p : s.pal)
+          palCounts[p % MAX_VOXEL_PALETTE_COLORS]++;
+        uint8_t p0 = 0, p1 = 0;
+        for (uint32_t i = 1; i < MAX_VOXEL_PALETTE_COLORS; i++)
+        {
+          if (palCounts[i] > palCounts[p0])
+          {
+            p1 = p0;
+            p0 = i;
+          }
+          if (palCounts[i] > palCounts[p1])
+            p1 = i;
+        }
+
+        // build bitmap
+        uint32_t bitmap = 0;
+        for (auto p : s.pal)
+        {
+          bitmap >>= 1;
+          if (p != p0)
+            bitmap |= 1u << 23;
+        }
+        d.pal = bitmap | p1 << 4 | p0;
       }
 #endif
 
       oldToNew.resize(surfNum);
-      int num = merge_surface<BinaryMerger<decltype(rgbaBlocks)::value_type>>(make_span_const(rgbaBlocks), make_span(oldToNew));
+      int num = merge_surface<BinaryMerger<CompressedRgbaBlocks>>(make_span_const(rgbaBlocks), make_span(oldToNew));
       mip.rgbaBlocks.resize_noinit(num);
+      mip.palBlocks.resize_noinit(num);
       for (uint32_t i = 0; i < surfNum; i++)
-        mip.rgbaBlocks[oldToNew[i]] = rgbaBlocks[i];
+      {
+        mip.rgbaBlocks[oldToNew[i]] = rgbaBlocks[i].rgba;
+        mip.palBlocks[oldToNew[i]] = rgbaBlocks[i].pal;
+      }
 
       remap_rgba_indices(mip.faces, maxLayers, make_span_const(oldToNew));
 

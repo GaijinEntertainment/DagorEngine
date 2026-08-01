@@ -22,7 +22,6 @@ bool ResetRandomSwitchListEventHandler::onListBoxContextMenu(int pcb_id, PropPan
 {
   if (pcb_id == PID_NODES_RESET_RANDOM_SWITCH_LIST)
   {
-    PropPanel::ContainerPropertyControl *ctrlsTree = pluginPanel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
     const SimpleString selectedName = pluginPanel->getText(PID_NODES_RESET_RANDOM_SWITCH_LIST);
     if (selectedName.empty())
       return false;

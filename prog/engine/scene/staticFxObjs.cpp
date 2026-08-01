@@ -10,8 +10,6 @@
 
 #include <math/dag_frustum.h>
 #include <scene/dag_occlusion.h>
-#include <drv/3d/dag_matricesAndPerspective.h>
-#include <drv/3d/dag_driver.h>
 #include <scene/dag_occlusionMap.h>
 #include <debug/dag_log.h>
 
@@ -58,30 +56,25 @@ static __forceinline bool is_sphere_visible(BSphere3 &sp, const Frustum &frustum
   return true;
 }
 
-void StaticFxObjects::render(int render_type, const TMatrix &view_itm, const Occlusion *occlusion)
+void StaticFxObjects::before_render(const Frustum &culling_frustum, const TMatrix &view_itm, const Occlusion *occlusion)
 {
-  if (render_type == FX_RENDER_BEFORE)
+  for (int i = 0; i < objects.size(); i++)
   {
-    mat44f gtm;
-    d3d::getglobtm(gtm);
-    Frustum frustum(gtm);
-    for (int i = 0; i < objects.size(); i++)
-    {
-      Effect &e = objects[i];
-      e.visible = e.bindumpRenderable && is_sphere_visible(e.sph, frustum, occlusion);
+    Effect &e = objects[i];
+    e.visible = e.bindumpRenderable && is_sphere_visible(e.sph, culling_frustum, occlusion);
 
-      if (e.visible)
-        e.fx->render(FX_RENDER_BEFORE, view_itm);
-    }
+    if (e.visible)
+      e.fx->render(FX_RENDER_BEFORE, view_itm);
   }
-  else
+}
+
+void StaticFxObjects::render(int render_type, const TMatrix &view_itm)
+{
+  for (int i = 0; i < objects.size(); i++)
   {
-    for (int i = 0; i < objects.size(); i++)
-    {
-      Effect &e = objects[i];
-      if (e.visible)
-        e.fx->render(render_type, view_itm);
-    }
+    Effect &e = objects[i];
+    if (e.visible)
+      e.fx->render(render_type, view_itm);
   }
 }
 

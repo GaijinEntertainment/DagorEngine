@@ -12,6 +12,9 @@ public:
 
   Tab<UndoRedoObject *> obj;
   String name;
+  // Opaque owner of this top-level operation, stamped from UndoSystemImpl::curOwner at accept().
+  // The undo system never dereferences it; the editor app uses it to attribute the op to a plugin.
+  void *owner = nullptr;
 
   UndoRedoHolder() : obj(midmem), name(strmem) {}
 
@@ -94,6 +97,9 @@ public:
 
   bool dirtyFlag;
 
+  // Stamped onto each operation at accept(); see set_op_owner.
+  void *curOwner = nullptr;
+
 
   UndoSystemImpl(const char *nm, int sz, IUndoRedoWndClient *_wnd) :
     wnd(_wnd), stack(tmpmem), name(inimem), curop(0), max_size(sz), dirtyFlag(false)
@@ -118,6 +124,57 @@ public:
     curop = 0;
     if (wnd)
       wnd->updateUndoRedoMenu();
+  }
+
+  void set_op_owner(void *owner) override { curOwner = owner; }
+
+  void *get_undo_owner() override
+  {
+    if (!can_undo())
+    {
+      return NULL;
+    }
+    return static_cast<UndoRedoHolder *>(stack.back()->obj[curop - 1])->owner;
+  }
+
+  void *get_redo_owner() override
+  {
+    if (!can_redo())
+    {
+      return NULL;
+    }
+    return static_cast<UndoRedoHolder *>(stack.back()->obj[curop])->owner;
+  }
+
+  void remove_ops_by_owner(void *owner) override
+  {
+    if (is_holding())
+    {
+      return;
+    }
+    UndoRedoHolder *h = stack.back();
+    for (int i = h->obj.size() - 1; i >= 0; --i)
+    {
+      if (static_cast<UndoRedoHolder *>(h->obj[i])->owner != owner)
+      {
+        continue;
+      }
+      delete h->obj[i];
+      erase_items(h->obj, i, 1);
+      // Removing an op at or below curop shifts the undo position down by one.
+      if (i < curop)
+      {
+        --curop;
+      }
+    }
+    if (curop > h->obj.size())
+    {
+      curop = h->obj.size();
+    }
+    if (wnd)
+    {
+      wnd->updateUndoRedoMenu();
+    }
   }
 
   void set_max_size(int sz) override { max_size = sz; }
@@ -197,6 +254,7 @@ public:
     dirtyFlag = true;
 
     h->name = nm;
+    h->owner = curOwner;
     h->accepted();
     stack.pop_back();
 

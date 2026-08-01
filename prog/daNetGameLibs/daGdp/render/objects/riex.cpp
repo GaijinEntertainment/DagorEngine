@@ -1037,6 +1037,9 @@ void riex_finalize_view(const ViewInfo &view_info,
   for (auto value : maxDrawCallsPerViewport)
     constants.maxDrawCallsPerViewport += value;
 
+  if (constants.maxDrawCallsPerViewport == 0)
+    return;
+
   constants.haveDynamicRegions = view_builder.dynamicInstanceRegion.maxCount > 0;
   constants.isExtendedArgs = uses_extended_multi_draw_struct();
 

@@ -116,12 +116,14 @@ shader calc_current_gi_froxels_cs
       uint3 volumeProbeCoordinates = uint3(targetCoord.xy/volumetric_gi_get_radiance_res(), targetCoord.z);
       uint2 octCoord = targetCoord.xy%volumetric_gi_get_radiance_res();
 
-      uint dir_jitter;
-      float3 jitteredCoord = gi_volumetric_jittered_coord(volumeProbeCoordinates.xyz, gi_froxels_temporal_frame.x, dir_jitter);
+      // monotonic frame (.w): the position jitter rotates each 8-sample block, and the
+      // directional jitter must advance every frame or a static froxel traces the same
+      // ray set forever (angular banding no temporal accumulation can remove)
+      float3 jitteredCoord = gi_volumetric_jittered_coord(volumeProbeCoordinates.xyz, gi_froxels_temporal_frame.w);
       float2 screenTC = jitteredCoord.xy*inv_gi_froxels_size.xy;//fixme: one madd
       float froxelLinearDepth = volumetric_gi_get_linear_w(jitteredCoord.z);
-      //add directional jitter
-      float2 octUV = (octCoord + (float2(dir_jitter>>3, dir_jitter&7)*1./8. + 0.5/8))/volumetric_gi_get_radiance_res();//fixme: one madd with const
+      float2 dirJitter = gi_volumetric_direction_jitter(targetCoord, gi_froxels_temporal_frame.w);
+      float2 octUV = (octCoord + dirJitter)/volumetric_gi_get_radiance_res();//fixme: one madd with const
       //float2 octUV = (octCoord + 0.5)/volumetric_gi_get_radiance_res();//fixme: one madd
       float3 worldPos = gi_froxels_world_view_pos + froxelLinearDepth*gi_froxels_getViewVecOptimized(screenTC.xy);
 

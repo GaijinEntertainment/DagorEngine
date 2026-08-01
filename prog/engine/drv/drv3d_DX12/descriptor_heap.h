@@ -16,6 +16,11 @@
 
 namespace drv3d_dx12
 {
+// Result of allocating a single descriptor (CPU handle) from a descriptor heap.
+using DescriptorHandleAllocationResult = dag::Expected<D3D12_CPU_DESCRIPTOR_HANDLE, HRESULT>;
+// Result of allocating a descriptor heap object that backs descriptors.
+using DescriptorHeapAllocationResult = dag::Expected<ComPtr<ID3D12DescriptorHeap>, HRESULT>;
+
 template <typename Policy>
 class DescriptorHeap
 {
@@ -43,8 +48,6 @@ class DescriptorHeap
 public:
   typedef Policy ThisPolicy;
 
-  using AllocationResult = dag::Expected<D3D12_CPU_DESCRIPTOR_HANDLE, HRESULT>;
-
   DescriptorHeap() = default;
   ~DescriptorHeap() = default;
 
@@ -62,44 +65,44 @@ public:
     data.reset();
   }
 
-  AllocationResult allocate(ID3D12Device *device)
+  DescriptorHandleAllocationResult allocate(ID3D12Device *device)
   {
-    D3D12_CPU_DESCRIPTOR_HANDLE result = {};
     for (auto &&heap : heaps)
     {
       uint32_t slot = heap.allocate();
       if (heap.isValidSlot(slot))
       {
-        result.ptr = heap.cpuBegin.ptr + data.slotSize() * slot;
-        return result;
+        return D3D12_CPU_DESCRIPTOR_HANDLE{heap.cpuBegin.ptr + data.slotSize() * slot};
       }
     }
 
-    auto &target = heaps.emplace_back();
+    SubHeap target;
     target.init(data);
-    target.heap = ThisPolicy::allocateHeap(device, data, target);
-    if (!target.heap)
-    {
-      const HRESULT removedReason = device->GetDeviceRemovedReason();
-      if (removedReason == S_OK)
-      {
-        logdbg("DX12: heap count was %u", heaps.size());
-        DAG_FATAL("DX12: DescriptorHeap::allocate: failed to allocate descriptor");
-      }
-      else
-      {
-        logdbg("DX12: Trying to 'DescriptorHeap::allocate' and recovery was not started yet");
-      }
+    return ThisPolicy::allocateHeap(device, data, target)
+      .and_then([&](auto &&heap) -> DescriptorHandleAllocationResult {
+        target.heap = eastl::move(heap);
+        target.cpuBegin = target.heap->GetCPUDescriptorHandleForHeapStart();
+        target.cpuEnd = target.cpuBegin;
+        target.cpuEnd.ptr += target.getTotalSlots() * data.slotSize();
+        uint32_t slot = target.allocate();
+        const D3D12_CPU_DESCRIPTOR_HANDLE handle{target.cpuBegin.ptr + data.slotSize() * slot};
+        heaps.push_back(eastl::move(target));
+        return handle;
+      })
+      .or_else([&](HRESULT errorCode) -> DescriptorHandleAllocationResult {
+        const HRESULT removedReason = device->GetDeviceRemovedReason();
+        if (removedReason == S_OK)
+        {
+          logdbg("DX12: heap count was %u", heaps.size());
+          DAG_FATAL("DX12: DescriptorHeap::allocate: failed to allocate descriptor");
+        }
+        else
+        {
+          logdbg("DX12: Trying to 'DescriptorHeap::allocate' and recovery was not started yet");
+        }
 
-      heaps.pop_back();
-      return dag::Unexpected{removedReason == S_OK ? E_OUTOFMEMORY : removedReason};
-    }
-    target.cpuBegin = target.heap->GetCPUDescriptorHandleForHeapStart();
-    target.cpuEnd = target.cpuBegin;
-    target.cpuEnd.ptr += target.getTotalSlots() * data.slotSize();
-    uint32_t slot = target.allocate();
-    result.ptr = target.cpuBegin.ptr + data.slotSize() * slot;
-    return result;
+        return dag::Unexpected{removedReason == S_OK ? errorCode : removedReason};
+      });
   }
   void free(D3D12_CPU_DESCRIPTOR_HANDLE slot)
   {
@@ -164,15 +167,19 @@ struct BasicBlockHeap
     void freeAll() { freeMap.set(); }
   };
 
-  static ComPtr<ID3D12DescriptorHeap> allocateHeap(ID3D12Device *device, const HeapData &, SubHeapData &)
+  static DescriptorHeapAllocationResult allocateHeap(ID3D12Device *device, const HeapData &, SubHeapData &)
   {
-    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-    desc.Type = Type;
-    desc.NumDescriptors = BlockSize;
-    if (Gpu)
-      desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    D3D12_DESCRIPTOR_HEAP_DESC desc = {
+      .Type = Type,
+      .NumDescriptors = BlockSize,
+      .Flags = Gpu ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+    };
     ComPtr<ID3D12DescriptorHeap> result;
-    DX12_CHECK_RESULT(device->CreateDescriptorHeap(&desc, COM_ARGS(&result)));
+    const HRESULT errorCode = DX12_CHECK_RESULT(device->CreateDescriptorHeap(&desc, COM_ARGS(&result)));
+    if (FAILED(errorCode))
+    {
+      return dag::Unexpected{errorCode};
+    }
 
     return result;
   }
@@ -289,17 +296,19 @@ struct BasicFreeListHeap
     }
   };
 
-  static ComPtr<ID3D12DescriptorHeap> allocateHeap(ID3D12Device *device, const HeapData &, SubHeapData &heap)
+  static DescriptorHeapAllocationResult allocateHeap(ID3D12Device *device, const HeapData &, SubHeapData &heap)
   {
-    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-    desc.Type = Type;
-    desc.NumDescriptors = heap.totalSlots;
-    if (Gpu)
-    {
-      desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    }
+    D3D12_DESCRIPTOR_HEAP_DESC desc = {
+      .Type = Type,
+      .NumDescriptors = heap.totalSlots,
+      .Flags = Gpu ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+    };
     ComPtr<ID3D12DescriptorHeap> result;
-    DX12_CHECK_RESULT(device->CreateDescriptorHeap(&desc, COM_ARGS(&result)));
+    const HRESULT errorCode = DX12_CHECK_RESULT(device->CreateDescriptorHeap(&desc, COM_ARGS(&result)));
+    if (FAILED(errorCode))
+    {
+      return dag::Unexpected{errorCode};
+    }
 
     return result;
   }
@@ -541,12 +550,12 @@ class ShaderResourceViewDescriptorHeapManager
         return;
       }
       device->CopyDescriptorsSimple(size, getCpuAddress(0), base_ptr, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+      bindlessRev = rev;
     }
   };
   dag::Vector<Heap> heaps;
   uint32_t activeHeapIndex = 0;
   uint32_t entrySize = 0;
-  uint32_t bindlessRev = 0;
 
   void nextHeap(ID3D12Device *device)
   {
@@ -555,7 +564,6 @@ class ShaderResourceViewDescriptorHeapManager
     {
       heaps.emplace_back(device, entrySize);
     }
-    bindlessRev = 0;
   }
 
 public:
@@ -577,7 +585,6 @@ public:
   void clearScratchSegments()
   {
     activeHeapIndex = 0;
-    bindlessRev = 0;
 
     for (auto &heap : heaps)
     {
@@ -648,16 +655,17 @@ public:
   {
     // with size of 0, GDK will crash, as MS decided to implemented it with a do while loop that copies in revers which
     // breaks when supplied with 0.
-    if (bindlessRev == rev || 0 == size)
+    if (0 == size)
     {
       return;
     }
 
-    for (auto &heap : heaps)
+    // Only heaps [0, activeHeapIndex] can be bound this frame. Higher leftover sub-heaps are
+    // refreshed lazily when they become active again (their stale revision forces a copy).
+    for (uint32_t i = 0; i <= activeHeapIndex; ++i)
     {
-      heap.updateBindlessSegment(device, base_ptr, size, rev);
+      heaps[i].updateBindlessSegment(device, base_ptr, size, rev);
     }
-    bindlessRev = rev;
   }
 
   DescriptorHeapIndex appendToConstScratchSegment(ID3D12Device *device, D3D12_CPU_DESCRIPTOR_HANDLE descriptors, uint32_t count)

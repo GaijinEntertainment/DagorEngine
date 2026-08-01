@@ -2,6 +2,7 @@
 
 #include "footLockerIK.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
@@ -90,7 +91,6 @@ void foot_locker_ik_init_block_settings(PropPanel::ContainerPropertyControl *pan
 void foot_locker_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
   if (listName.empty())
     return;
 
@@ -150,8 +150,30 @@ void foot_locker_ik_set_selected_node_list_settings(PropPanel::ContainerProperty
 
 void foot_locker_ik_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (removeName == settings->getBlock(i)->getStr("hip", nullptr))
-      settings->removeBlock(i);
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "leg");
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
+}
+
+class FootLockerIKReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  FootLockerIKReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    dag::Vector<int> positions = collect_block_positions_by_name(settings, "leg");
+    move_block_at_positions(settings, positions, from, to);
+  }
+};
+
+IListReorderHandler *foot_locker_ik_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new FootLockerIKReorderHandler(plugin, controllers, panel);
 }

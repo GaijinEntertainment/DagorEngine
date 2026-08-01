@@ -273,7 +273,7 @@ void DepthAOAboveRenderer::BlurDepthRenderer::render(BaseTexture *target, TEXTUR
 
 
 void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> regions, IRenderDepthAOCB &renderDepthCb,
-  BaseTexture *depthTex, RenderDepthAOType type, RenderDepthAOClearFirst clear_mode, int cascade_no)
+  BaseTexture *depthTex, RenderDepthAOType type, RenderDepthAOClearFirst clear_mode, int cascade_no, bool collect_refreshed)
 {
   TIME_D3D_PROFILE(render_depth_above_quads);
 
@@ -319,6 +319,8 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
     if (type & RenderDepthAOType::Transparent)
       shaders::overrides::set(zWriteOnStateId);
     Point3 origin = Point3::xVy(reg.center(), 0.5 * (sceneMinMaxZ.x + sceneMinMaxZ.y));
+    if (collect_refreshed && region.isRefreshTile)
+      cascadeDependantData[cascade_no].refreshedRegions.push_back(reg);
     renderDepthCb.renderDepthAO(origin, (mat44f_cref)regions[i].cullViewProj, cascadeData.depthAroundDistance, i, type, cascade_no);
     if (type & RenderDepthAOType::Transparent)
       shaders::overrides::reset();
@@ -359,7 +361,7 @@ void DepthAOAboveRenderer::renderAODepthQuadsTransparent(dag::ConstSpan<RegionTo
   {
     copyDepthAboveRegions(regions, worldAODepthWithTransparency.getArrayTex(), cascade_no);
     renderAODepthQuads(regions, renderDepthCb, worldAODepthWithTransparency.getArrayTex(), RenderDepthAOType::Transparent, clear_mode,
-      cascade_no);
+      cascade_no, false);
   }
 }
 
@@ -377,7 +379,7 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
   CascadeDependantData &cascadeData = cascadeDependantData[cascade_no];
 
   renderAODepthQuads(regions, renderDepthCb, worldAODepth.getArrayTex(),
-    (RenderDepthAOType)(RenderDepthAOType::Terrain | RenderDepthAOType::Opaque), RenderDepthAOClearFirst::Yes, cascade_no);
+    (RenderDepthAOType)(RenderDepthAOType::Terrain | RenderDepthAOType::Opaque), RenderDepthAOClearFirst::Yes, cascade_no, true);
   renderAODepthQuadsTransparent(regions, renderDepthCb, RenderDepthAOClearFirst::No, cascade_no);
 
   TIME_D3D_PROFILE(depth_blur);
@@ -395,10 +397,15 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
     const IPoint2 viewRb = viewLt + wd;
     const int blurKernel = 11; // we have 11x11 gaussian blur
     const int halfKernel = blurKernel / 2;
-    const IPoint2 fblurLt =
-      IPoint2(viewLt.x - (splitLine.x == viewLt.x ? 0 : halfKernel), viewLt.y - (splitLine.y == viewLt.y ? 0 : halfKernel));
-    const IPoint2 fblurRb = IPoint2(viewRb.x + (splitLine.x == ((viewLt.x + wd.x) % texSize) ? 0 : halfKernel),
-      viewRb.y + (splitLine.y == ((viewLt.y + wd.y) % texSize) ? 0 : halfKernel));
+    const int texWrap = texSize;
+
+    const int leftDist = min((viewLt.x - splitLine.x + texWrap) % texWrap, halfKernel);
+    const int rightDist = min((splitLine.x - viewRb.x + texWrap) % texWrap, halfKernel);
+    const int topDist = min((viewLt.y - splitLine.y + texWrap) % texWrap, halfKernel);
+    const int bottomDist = min((splitLine.y - viewRb.y + texWrap) % texWrap, halfKernel);
+
+    const IPoint2 fblurLt = IPoint2(viewLt.x - leftDist, viewLt.y - topDist);
+    const IPoint2 fblurRb = IPoint2(viewRb.x + rightDist, viewRb.y + bottomDist);
 
     // if unclamped (blurLt, blurWd) is out of texture, we actually have to render these (wrapped) regions either!
     // split quads
@@ -432,9 +439,6 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
 
 void DepthAOAboveRenderer::prepareRenderRegions(const Point3 &origin, float scene_min_z, float scene_max_z, float splitThreshold)
 {
-  if (always_update_range > 0)
-    invalidateAO(BBox3(origin, always_update_range));
-
   for (int i = 0; i < cascadeDependantData.size(); ++i)
     prepareRenderRegionsForCascade(origin, scene_min_z, scene_max_z, splitThreshold, i);
 }
@@ -535,6 +539,9 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
 
   G_ASSERT(cascade_no < cascadeDependantData.size());
   G_ASSERT_RETURN(scene_min_z != scene_max_z, );
+  if (always_update_range > 0 && cascade_no == 0) // only for first cascade
+    invalidateAO(BBox3(origin, always_update_range));
+
   sceneMinMaxZ = Point2(scene_min_z, scene_max_z);
 
   CascadeDependantData &cascadeData = cascadeDependantData[cascade_no];
@@ -557,10 +564,17 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
   if (move.x >= THRESHOLD || move.y >= THRESHOLD)
   {
     TIME_D3D_PROFILE(depth_above);
+
     const float fullUpdateThreshold = 0.45;
     const int fullUpdateThresholdTexels = fullUpdateThreshold * texSize;
-    if (max(move.x, move.y) < fullUpdateThresholdTexels) // if distance travelled is too big, there is no need to update movement in
-                                                         // two steps
+
+    // if distance travelled is too big, there is no need to update movement in two steps
+    const bool fullUpdate = max(move.x, move.y) >= fullUpdateThresholdTexels;
+    const bool secondStepPending = !fullUpdate && min(move.x, move.y) >= THRESHOLD;
+    if (fullUpdate || secondStepPending)
+      cascadeData.validAtAnyQuality = false;
+
+    if (!fullUpdate)
     {
       if (move.x < move.y)
         newTexelsOrigin.x = cascadeData.worldAODepthData.curOrigin.x;
@@ -598,6 +612,9 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
         cascadeData.regionsToRender.emplace_back(r);
     }
   }
+
+  if (cascadeData.regionsToRender.empty() && cascadeData.invalidAORegions.empty())
+    cascadeData.validAtAnyQuality = true;
 
   if (cascadeData.regionsToRender.empty() && !cascadeData.invalidAORegions.empty())
     updateInvalidRegionsToRender(cascadeData, splitThreshold);
@@ -645,18 +662,21 @@ void DepthAOAboveRenderer::refreshDebugRegionMap(int cascade_no)
       cascadeDependantData.size(), TEXCF_WRITEONLY | TEXFMT_R8, 1, "depth_around_debug_regionmap", RESTAG_AO);
   }
 
-  if (auto lockedTex = lock_texture<uint8_t>(debugRegionMap.getArrayTex(), cascade_no, 0, TEXLOCK_WRITE))
+  if (auto lockedTex = lock_texture<uint8_t>(debugRegionMap.getArrayTex(), 0, TEXLOCK_WRITE, cascade_no))
   {
     for (int j = 0; j < CascadeDependantData::REFRESH_TILE_DIM; ++j)
       for (int i = 0; i < CascadeDependantData::REFRESH_TILE_DIM; ++i)
         lockedTex.at(i, j) = cascadeDependantData[cascade_no].refreshTileMap[i + j * CascadeDependantData::REFRESH_TILE_DIM] ? 255 : 0;
   }
+  else
+    LOGERR_ONCE("DepthAOAboveRenderer: Failed to lock 'debugRegionMap' texture");
 }
 
 void DepthAOAboveRenderer::renderPreparedRegions(IRenderDepthAOCB &renderDepthCb)
 {
   for (int i = 0; i < cascadeDependantData.size(); ++i)
   {
+    cascadeDependantData[i].refreshedRegions.clear();
     renderAODepthQuads(cascadeDependantData[i].regionsToRender, renderDepthCb, i);
     refreshDebugRegionMap(i);
   }
@@ -665,6 +685,7 @@ void DepthAOAboveRenderer::renderPreparedRegions(IRenderDepthAOCB &renderDepthCb
 void DepthAOAboveRenderer::renderPreparedRegionsForCascade(IRenderDepthAOCB &renderDepthCb, int cascade_no)
 {
   G_ASSERT(cascade_no < cascadeDependantData.size());
+  cascadeDependantData[cascade_no].refreshedRegions.clear();
   renderAODepthQuads(cascadeDependantData[cascade_no].regionsToRender, renderDepthCb, cascade_no);
   refreshDebugRegionMap(cascade_no);
 }
@@ -674,10 +695,11 @@ void DepthAOAboveRenderer::invalidateAO(bool force)
   for (auto &cascade : cascadeDependantData)
   {
     cascade.invalidAORegions.clear();
+    cascade.validAtAnyQuality = false;
     if (!force)
     {
       cascade.invalidAORegions.push_back(get_texture_box(cascade.worldAODepthData));
-      return;
+      continue;
     }
     // forced update!
     cascade.worldAODepthData.curOrigin = IPoint2(-1000000, 1000000);
@@ -695,8 +717,9 @@ void DepthAOAboveRenderer::invalidateAO(const BBox3 &box)
 
     toroidal_clip_region(cascade.worldAODepthData, ibox);
     if (ibox.isEmpty())
-      return;
+      continue;
     add_non_intersected_box(cascade.invalidAORegions, ibox);
+    cascade.validAtAnyQuality = false;
   }
 }
 
@@ -747,5 +770,13 @@ bool DepthAOAboveRenderer::isValid() const
   bool valid = true;
   for (const auto &cascade : cascadeDependantData)
     valid &= cascade.regionsToRender.empty();
+  return valid;
+}
+
+bool DepthAOAboveRenderer::isValidAtAnyQuality() const
+{
+  bool valid = true;
+  for (const auto &cascade : cascadeDependantData)
+    valid &= cascade.validAtAnyQuality;
   return valid;
 }

@@ -27,6 +27,14 @@ static const char *get_sh_var_value(const String &name, int var_id, ShaderVarTyp
         P4D(mat.getrow(0)), P4D(mat.getrow(1)), P4D(mat.getrow(2)), P4D(mat.getrow(3)));
     }
     break;
+    case SHVT_FLOAT4x3:
+    {
+      TMatrix mat = ShaderGlobal::get_float4x3(var_id);
+      SNPRINTF(buf, b_size, "(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)<br/>(%.3f %.3f %.3f)", mat.m[0][0],
+        mat.m[0][1], mat.m[0][2], mat.m[1][0], mat.m[1][1], mat.m[1][2], mat.m[2][0], mat.m[2][1], mat.m[2][2], mat.m[3][0],
+        mat.m[3][1], mat.m[3][2]);
+    }
+    break;
     case SHVT_INT:
     {
       ShaderGlobal::Interval interv(name, name.length());

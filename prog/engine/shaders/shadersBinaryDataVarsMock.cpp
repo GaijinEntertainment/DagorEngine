@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <shaders/dag_shaderVar.h>
+#include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_color.h>
 #include <math/dag_dxmath.h>
@@ -34,6 +35,23 @@ static Color4 to_color4(const XMFLOAT3 &rgb, float a) { return Color4{rgb.x, rgb
 static Color4 to_color4(const XMFLOAT4 &value) { return Color4{value.x, value.y, value.z, value.w}; }
 
 static TMatrix4 to_tmatrix4(const XMFLOAT4X4 &value);
+static TMatrix to_tmatrix(const XMFLOAT4X3 &value);
+
+static TMatrix to_tmatrix(FXMMATRIX value)
+{
+  XMFLOAT4X3 storedValue;
+  XMStoreFloat4x3(&storedValue, value);
+  return to_tmatrix(storedValue);
+}
+
+static TMatrix to_tmatrix(const XMFLOAT4X3 &value)
+{
+  TMatrix result;
+  for (int row = 0; row < 4; ++row)
+    for (int col = 0; col < 3; ++col)
+      result.m[row][col] = value.m[row][col];
+  return result;
+}
 
 static TMatrix4 to_tmatrix4(FXMMATRIX value)
 {
@@ -75,6 +93,8 @@ static void normalize_value(eastl::any &value)
     value = to_tmatrix4(*v);
   else if (auto *v = eastl::any_cast<XMMATRIX>(&value))
     value = to_tmatrix4(*v);
+  else if (auto *v = eastl::any_cast<XMFLOAT4X3>(&value))
+    value = to_tmatrix(*v);
 }
 
 void reset()
@@ -127,6 +147,8 @@ int get_value_type(eastl::any *value)
     return SHVT_INT4;
   if (eastl::any_cast<TMatrix4>(value))
     return SHVT_FLOAT4X4;
+  if (eastl::any_cast<TMatrix>(value))
+    return SHVT_FLOAT4x3;
   if (eastl::any_cast<d3d::SamplerHandle>(value))
     return SHVT_SAMPLER;
   if (eastl::any_cast<BaseTexture *>(value))
@@ -332,6 +354,23 @@ bool ShaderGlobal::set_float4x4(int variable_id, FXMMATRIX value)
   shader_vars_mock::set_value(variable_id, SHVT_FLOAT4X4, shader_vars_mock::to_tmatrix4(storedValue));
   return true;
 }
+bool ShaderGlobal::set_float4x3(int variable_id, const TMatrix &value)
+{
+  shader_vars_mock::set_value(variable_id, SHVT_FLOAT4x3, value);
+  return true;
+}
+bool ShaderGlobal::set_float4x3(int variable_id, const XMFLOAT4X3 &value)
+{
+  shader_vars_mock::set_value(variable_id, SHVT_FLOAT4x3, shader_vars_mock::to_tmatrix(value));
+  return true;
+}
+bool ShaderGlobal::set_float4x3(int variable_id, FXMMATRIX value)
+{
+  XMFLOAT4X3 storedValue;
+  XMStoreFloat4x3(&storedValue, value);
+  shader_vars_mock::set_value(variable_id, SHVT_FLOAT4x3, shader_vars_mock::to_tmatrix(storedValue));
+  return true;
+}
 bool ShaderGlobal::set_float(int variable_id, real value)
 {
   shader_vars_mock::set_value(variable_id, SHVT_REAL, value);
@@ -342,6 +381,7 @@ int ShaderGlobal::get_int_fast(int variable_id) { return shader_vars_mock::get_o
 real ShaderGlobal::get_float(int variable_id) { return shader_vars_mock::get_or_default<real>(variable_id); }
 Color4 ShaderGlobal::get_float4(int variable_id) { return shader_vars_mock::get_or_default<Color4>(variable_id); }
 TMatrix4 ShaderGlobal::get_float4x4(int variable_id) { return shader_vars_mock::get_or_default<TMatrix4>(variable_id); }
+TMatrix ShaderGlobal::get_float4x3(int variable_id) { return shader_vars_mock::get_or_default<TMatrix>(variable_id); }
 IPoint4 ShaderGlobal::get_int4(int variable_id) { return shader_vars_mock::get_or_default<IPoint4>(variable_id, IPoint4::ZERO); }
 TEXTUREID ShaderGlobal::get_tex_fast(int)
 {

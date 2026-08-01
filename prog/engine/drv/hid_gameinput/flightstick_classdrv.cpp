@@ -77,7 +77,10 @@ IGenJoystick *FlightStickClassDriver::getDeviceByUserId(unsigned short user_id) 
   return secondaryDriver ? secondaryDriver->getDeviceByUserId(user_id) : nullptr;
 }
 
-bool FlightStickClassDriver::isDeviceConfigChanged() const { return isDevicesNeedsRefresh; }
+bool FlightStickClassDriver::isDeviceConfigChanged() const
+{
+  return devicesConfigGen != gameinput::get_devices_config_generation(GameInputKindFlightStick);
+}
 
 void FlightStickClassDriver::useDefClient(IGenJoystickClient *client)
 {
@@ -122,23 +125,21 @@ void FlightStickClassDriver::add_device(DeviceList &old_devices, DeviceList &new
   new_devices.push_back(eastl::move(device));
 }
 
-FlightStickClassDriver::FlightStickClassDriver()
-{
-  devicesChangeCallbackIdx = gdk::gameinput::add_devices_config_change_cb([this]() { this->isDevicesNeedsRefresh = true; });
-}
+FlightStickClassDriver::FlightStickClassDriver() { gameinput::init(); }
 
-FlightStickClassDriver::~FlightStickClassDriver() { gdk::gameinput::remove_devices_config_change_cb(devicesChangeCallbackIdx); }
+FlightStickClassDriver::~FlightStickClassDriver() { gameinput::shutdown(); }
 
 void FlightStickClassDriver::refreshDeviceList()
 {
-  if (isDevicesNeedsRefresh)
+  unsigned gen = gameinput::get_devices_config_generation(GameInputKindFlightStick);
+  if (devicesConfigGen != gen)
   {
     DeviceList oldDevices;
     eastl::swap(devices, oldDevices);
     devices.clear();
 
-    gdk::gameinput::DevicesList controllers;
-    gdk::gameinput::get_devices(GameInputKindFlightStick, controllers);
+    gameinput::DevicesList controllers;
+    gameinput::get_devices(GameInputKindFlightStick, controllers);
 
     for (IGameInputDevice *sysDevice : controllers)
       if (sysDevice)
@@ -152,7 +153,7 @@ void FlightStickClassDriver::refreshDeviceList()
         break;
       }
     }
-    isDevicesNeedsRefresh = false;
+    devicesConfigGen = gen;
   }
 
   if (secondaryDriver)

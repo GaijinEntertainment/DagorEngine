@@ -32,4 +32,9 @@ gpu_driven_debug_render{
   _singleton:b=yes
   _tags:t="render,dev"
   "gpu_driven_debug_render:GpuDrivenDebugRender"{_tags:t="render"}
+
+  _group{
+    _tags:t="render"
+    dafg_camera_registrator__name:t="gpu_driven_debug_render"
+  }
 }

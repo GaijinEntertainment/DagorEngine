@@ -1,1 +1,0 @@
-static const int OCTAHEDRAL_TILE_SIDE_LENGTH = 16; // must be power of two

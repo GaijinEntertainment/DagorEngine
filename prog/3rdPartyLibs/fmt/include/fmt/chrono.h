@@ -1025,10 +1025,9 @@ inline auto to_nonnegative_int(T value, Int upper) -> Int {
 }
 template <typename T, typename Int, FMT_ENABLE_IF(!std::is_integral<T>::value)>
 inline auto to_nonnegative_int(T value, Int upper) -> Int {
-  auto int_value = static_cast<Int>(value);
-  if (int_value < 0 || value > static_cast<T>(upper))
+  if (value < 0 || value >= static_cast<T>(upper) + 1)
     FMT_THROW(format_error("invalid value"));
-  return int_value;
+  return static_cast<Int>(value);
 }
 
 constexpr auto pow10(std::uint32_t n) -> long long {
@@ -1283,6 +1282,7 @@ class tm_writer {
 
   template <typename T, FMT_ENABLE_IF(has_tm_zone<T>::value)>
   void format_tz_name(const T& tm) {
+    if (!tm.tm_zone) FMT_THROW(format_error("no timezone"));
     out_ = write_tm_str<Char>(out_, tm.tm_zone, loc_);
   }
   template <typename T, FMT_ENABLE_IF(!has_tm_zone<T>::value)>

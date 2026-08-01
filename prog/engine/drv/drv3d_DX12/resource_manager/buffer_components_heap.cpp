@@ -28,6 +28,7 @@ void BufferHeap::Heap::applyFirstAllocation(uint64_t payload_size)
     maxFreeRangeSize = freeRanges.front().size();
   }
   notifyMaxFreeRangeSizeChanged();
+  notifyBufferMemoryAllocate(payload_size);
 }
 
 ValueRange<uint64_t> BufferHeap::Heap::allocate(uint64_t size, uint64_t alignment)
@@ -74,6 +75,7 @@ ValueRange<uint64_t> BufferHeap::Heap::allocate(uint64_t size, uint64_t alignmen
     ref->stop -= size;
   }
   updateMaxFreeRangeSize();
+  notifyBufferMemoryAllocate(size);
   return make_value_range<uint64_t>(offset, size);
 }
 
@@ -92,6 +94,7 @@ ValueRange<uint64_t> BufferHeap::Heap::allocateExact(uint64_t size, uint64_t ali
   auto s = ref->start;
   freeRanges.erase(ref);
   updateMaxFreeRangeSize();
+  notifyBufferMemoryAllocate(size);
   return make_value_range<uint64_t>(s, size);
 }
 
@@ -122,12 +125,14 @@ void BufferHeap::Heap::rangeAllocate(ValueRange<uint64_t> range)
   }
 
   updateMaxFreeRangeSize();
+  notifyBufferMemoryAllocate(range.size());
 }
 
 bool BufferHeap::Heap::free(ValueRange<uint64_t> range)
 {
   free_list_insert_and_coalesce(freeRanges, range);
   updateMaxFreeRangeSize();
+  notifyBufferMemoryRelease(range.size());
   return freeRanges.front().size() == bufferMemory.size;
 }
 

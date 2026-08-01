@@ -28,6 +28,7 @@
 #include "texture.h"
 #include "shadersPreCache.h"
 #include "bindless.h"
+#include "pools.h"
 
 #include "buffBindPoints.h"
 
@@ -183,6 +184,8 @@ struct SamplerState
   }
 };
 
+struct ASBuildInfo;
+
 class Render
 {
 public:
@@ -235,6 +238,7 @@ public:
     CopyAccelerationStruct,
     BuildAccelerationStructure,
     DoMetalFX,
+    DoMetalFXTemporal,
     DoQuery,
     PresentDrawable,
     BeginEvent,
@@ -412,26 +416,41 @@ public:
 #if USE_METALFX_UPSCALE
   struct MTLFXUpscale
   {
-    eastl::unordered_map<uint64_t, id> spatialScalers;
+    eastl::unordered_map<uint64_t, id> scalers;
     bool supported = false;
+    bool temporalSupported = false;
   };
   MTLFXUpscale upscale;
 #endif
 
   struct Query
   {
-    int offset;
-    int status;
-    int64_t value;
-    int used;
-
-    Query()
+    enum class Status : int
     {
-      offset = 0;
-      status = 0;
-      value = 0;
-      used = 0;
+      Invalid = 0,
+      Queued = 1,
+      Done = 2
     };
+
+    enum class Type : int
+    {
+      Invalid = 0,
+      Event,
+      Visibility,
+      Timestamp
+    };
+
+    // ref_bit is intentionally first because it is used as free bit in linked list
+    int ref_bit : 10;
+    Type type : 3;
+    Status status : 3;
+    int index : 16;
+    uint32_t generation;
+
+    int64_t value;
+    uint64_t submit;
+
+    void destroyObject() {}
   };
 
   struct UploadTex
@@ -502,6 +521,7 @@ public:
 
   std::mutex dynamic_buffer_lock, delete_lock, copy_tex_lock;
   Tab<DeletedResource> resources2delete;
+  Tab<DeletedResource> residency2delete;
 
   Tab<RingBufferItem> constant_buffers_free;
   RingBufferItem constant_buffer;
@@ -509,7 +529,7 @@ public:
   Tab<RingBufferItem> dynamic_buffers_free;
   RingBufferItem dynamic_buffer;
 
-  Tab<RaytraceAccelerationStructure *> blases2create;
+  Tab<id<MTLAccelerationStructure>> blases2create;
   Tab<UploadTex> textures2upload;
   Tab<CopyBuf> buffers2copy;
   Tab<TexCopyRegion> regions2copy;
@@ -822,8 +842,7 @@ public:
 
   static constexpr int QUERIES_MAX = 8192;
 
-  int used_query;
-  carray<Query, QUERIES_MAX> queries;
+  drv3d_generic::ObjectPoolWithLock<Query> queries;
 
   CritSecStorage acquireSec;
   CritSecStorage rcSec;
@@ -1282,6 +1301,25 @@ public:
   BindlessTextureCache bindlessTexturesCubeArray;
   BindlessBufferCache bindlessBuffers;
 
+  struct PendingBindlessUpdate
+  {
+    enum class Op : uint8_t
+    {
+      Resize,
+      Update,
+      Null
+    };
+    Op op;
+    D3DResourceType type;
+    uint32_t index = 0; // new array size for Resize
+    uint32_t count = 0; // number of slots for Null
+    D3dResource *res = nullptr;
+  };
+  std::mutex pending_bindless_lock;
+  eastl::vector<PendingBindlessUpdate> pending_bindless_updates;
+  eastl::vector<PendingBindlessUpdate> pending_bindless_updates_render_acquired;
+  std::atomic<uint32_t> pending_bindless_count{0};
+
   Buffer *bindlessSamplerIdBuffer = nullptr;
   eastl::vector<float> bindlessSamplerBiases;
   eastl::vector<uint64_t> bindlessSamplersCache;
@@ -1389,12 +1427,21 @@ public:
   void copyTex(Texture *src, Texture *dest);
   void copyTexRegion(Texture *src, int src_level, int src_x, int src_y, int src_z, int src_w, int src_h, int src_d, Texture *dest,
     int dest_level, int dest_x, int dest_y, int dest_z);
-  void executeUpscale(Texture *color, Texture *output, uint32_t colorMode);
+  void executeSpatialUpscale(Texture *color, Texture *output, uint32_t colorMode);
+  void executeTemporalUpscale(Texture *color, Texture *motion, Texture *depth, Texture *output, float jitterX, float jitterY,
+    float motionScaleX, float motionScaleY);
 
   int setSampler(unsigned stage, int slot, int sampler, float bias = 0.f);
 
   bool updateBindlessResource(D3DResourceType range_type, uint32_t index, D3dResource *res);
   int updateBindlessResourcesToNull(D3DResourceType type, uint32_t index, uint32_t count);
+  void resizeBindlessArray(D3DResourceType type, uint32_t new_size);
+
+  bool updateBindlessResourceAnyThread(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *> &resources);
+  void updateBindlessResourcesToNullAnyThread(D3DResourceType type, uint32_t index, uint32_t count);
+  void resizeBindlessArrayAnyThread(D3DResourceType type, uint32_t new_size);
+  void purgeQueuedBindlessUpdates(D3dResource *res);
+  void applyQueuedBindlessUpdates();
 
   void prepareBindlessResources(uint32_t requestedTypes);
 
@@ -1579,7 +1626,7 @@ public:
   IndicesManager<RaytraceAccelerationStructure> blases;
   id<MTLAccelerationStructure> defaultBlas = nil;
   id<MTLAccelerationStructure> defaultTlas = nil;
-  NSMutableArray *nativeBlases = nil;
+  eastl::vector<id<MTLAccelerationStructure>> nativeBlases;
 
   RaytraceAccelerationStructure *createAccelerationStructure(RaytraceBuildFlags flags, uint32_t size, bool blas);
 
@@ -1587,20 +1634,19 @@ public:
 
   void setTLAS(RaytraceTopAccelerationStructure *tlas, ShaderStage stage, int slot);
 
-  void buildAccelerationStructure(RaytraceAccelerationStructure *as, MTLAccelerationStructureDescriptor *desc, Sbuffer *space_buffer,
-    uint32_t space_buffer_offset, bool refit);
+  void buildAccelerationStructure(RaytraceAccelerationStructure *as, MTLAccelerationStructureDescriptor *desc, ASBuildInfo &info);
 
   void buildBLAS(RaytraceBottomAccelerationStructure *as, const ::raytrace::BottomAccelerationStructureBuildInfo &basbi);
   void buildTLAS(RaytraceTopAccelerationStructure *as, const ::raytrace::TopAccelerationStructureBuildInfo &tasbi);
-  void copyAccelerationStruct(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src);
+  void copyAccelerationStruct(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact = false);
 
   void checkNoRenderPass();
 
-  Query *createQuery();
+  Query *createQuery(Query::Type type);
   void startFence(Query *query);
   void startQuery(Query *query);
   void finishQuery(Query *query);
-  uint64_t getQueryResult(Query *query, bool force_flush);
+  int64_t getQueryResult(Query *query, bool force_flush);
   void releaseQuery(Query *query);
 
   void deleteBuffer(Buffer *buff);

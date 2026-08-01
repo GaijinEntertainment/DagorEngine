@@ -24,9 +24,111 @@ function watchElemState(builder, params={}) {
 }
 
 /*
+  mkKeyedList: dynamic list that builds each item's component (and the observables it owns)
+  once, keyed by a stable id, instead of reconstructing every item on each rebuild.
+
+  The cache is synced off the build path (in a subscription wired at onAttach), so the container
+  builder is a pure id -> cached-component lookup; it constructs nothing per rebuild. Removing an
+  item from the source evicts and GCs its component. Because cached identity is stable per id,
+  daRg reuses the item elements across reorders.
+
+  params:
+    source         - Watched/Computed holding the array of item models
+    mkItem         - @(item) -> component; called once per new id, off the build path. May freely
+                     construct observables/subscriptions - that is where per-item state belongs.
+    keyOf          - @(item) -> stable unique id. Required: the cache is only correct if the key
+                     is a stable logical id that survives a data refresh (new item table, same
+                     entity), so it is a conscious choice, not a default.
+                     If not specified, looks up "id" field.
+    containerProps - extra props merged into the wrapper element (flow, gap, size, rendObj, ...).
+                     watch/children/onAttach/onDetach are owned by the helper and rejected here;
+                     put your own lifecycle/watch on an element wrapping the list.
+
+  Call at a once scope (module scope or a factory body), never inside a builder - otherwise the
+  cache and subscription are rebuilt every rebuild, the very cost this avoids.
+*/
+function mkKeyedList(params) {
+  let {source, mkItem, keyOf = @(v) v.id} = params
+  let containerProps = params?.containerProps ?? const {}
+  foreach (k in ["watch", "onAttach", "onDetach", "children"])
+    assert(k not in containerProps, @() $"mkKeyedList: '{k}' is owned by the helper; put it on a wrapping element")
+
+  let cache = {} // id -> component, built once per id
+
+  function ensure(item) {
+    let id = keyOf(item)
+    assert(id != null, "mkKeyedList: key returned null; keys must be stable non-null ids")
+    if (id not in cache)
+      cache[id] <- mkItem(item)
+    return id
+  }
+
+  function sync(items) { // prewarm cache + evict removed, off the build path
+    let seen = {}
+    foreach (item in items ?? const [])
+      seen[ensure(item)] <- true
+    foreach (id in cache.keys())
+      if (id not in seen)
+        cache.rawdelete(id)
+  }
+
+  sync(source.get()) // initial population before first build
+
+  let onAttach = function() {
+    source.subscribe(sync)
+    sync(source.get()) // reconcile removals that might happen
+  }
+
+  let onDetach = @() source.unsubscribe(sync)
+
+  return @() containerProps.__merge({
+    watch = source
+    onAttach
+    onDetach
+    children = (source.get() ?? const []).map(@(item) cache[ensure(item)])
+  })
+}
+
+/*
+  mkAsyncImage: image that shows a placeholder component while its picture is still loading.
+  Complements rendObj fallbackImage, which covers load failure and can only be a picture.
+
+  picture     - Picture instance (or null)
+  placeholder - component shown while the load is in flight; it is mounted and unmounted, so an
+                autoplay fade-in and a playFadeOut fade-out are all it needs
+  imageProps  - props for the image element (size, keepAspect, fallbackImage, ...). 'watch' and
+                'behavior' are merged with the helper's own, 'children' is not allowed.
+
+  Call at a once scope, never inside a builder: the loading flag is per-picture state.
+*/
+function mkAsyncImage(picture, placeholder, imageProps = {}) {
+  assert("children" not in imageProps,
+    "mkAsyncImage: 'children' holds the placeholder; wrap the image if you need more")
+
+  // seeded from prefetch(): a picture that resolves synchronously must not flash the placeholder
+  let imageLoading = Watched(picture != null && picture.prefetch())
+
+  local watch = imageProps?.watch ?? []
+  if (type(watch) != "array")
+    watch = [watch]
+  local behavior = imageProps?.behavior ?? []
+  if (type(behavior) != "array")
+    behavior = [behavior]
+
+  return @() imageProps.__merge({
+    rendObj = ROBJ_IMAGE
+    image = picture
+    imageLoading
+    behavior = [Behaviors.ImageLoadState].extend(behavior)
+    watch = [imageLoading].extend(watch)
+    children = imageLoading.get() ? placeholder : null
+  })
+}
+
+/*
 //===== DARG specific methods=====
 */
-function isDargComponent(comp) {
+function isDargComponent(comp): bool {
 //better to have natived daRg function to check if it is valid component!
   local c = comp
   if (type(c) == "function") {
@@ -136,7 +238,7 @@ function dump_observables() {
 }
 
 let colorPart = @(value) min(255, (value + 0.5).tointeger())
-function [pure] mul_color(color, mult, alpha_mult=1) {
+function [pure] mul_color(color: int, mult: number, alpha_mult: number=1) {
   return Color(  colorPart(((color >> 16) & 0xff) * mult),
                  colorPart(((color >>  8) & 0xff) * mult),
                  colorPart((color & 0xff) * mult),
@@ -188,6 +290,8 @@ return freeze(darg.__merge({
   hdpx
   hdpxi
   watchElemState
+  mkKeyedList
+  mkAsyncImage
   isDargComponent
   fsh
   Behaviors

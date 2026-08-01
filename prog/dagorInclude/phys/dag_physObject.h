@@ -5,13 +5,14 @@
 #pragma once
 
 #include <generic/dag_smallTab.h>
+#include <generic/dag_functionRef.h>
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physUserData.h>
 #include <generic/dag_tab.h>
 #include <util/dag_index16.h>
+#include <math/dag_geomTree.h>
 
 class TMatrix;
-class GeomNodeTree;
 class DynamicPhysObjectData;
 struct TwistCtrlParams;
 class DynamicRenderableSceneLodsResource;
@@ -23,7 +24,7 @@ template <class TPhysWorld = PhysWorld>
 class DynamicPhysObjectClass
 {
 public:
-  DynamicPhysObjectClass();
+  DynamicPhysObjectClass() = default;
   DynamicPhysObjectClass(const DynamicPhysObjectClass &) = delete;
   DynamicPhysObjectClass &operator=(const DynamicPhysObjectClass &) = delete;
   ~DynamicPhysObjectClass();
@@ -40,29 +41,31 @@ public:
   void replaceModel(int index, DynamicRenderableSceneLodsResource *res);
 
   void getBodyVisualTm(int body_index, TMatrix &tm);
-  void beforeRender(const Point3 &cam_pos);
+  void beforeRender(const Point3 &cam_pos, dag::FunctionRef<TMatrix(int)> get_body_tm = {},
+    dag::FunctionRef<bool(int)> is_body_visible = {});
 
   PhysSystemInstance *getPhysSys() const { return physSys; }
 
-  GeomNodeTree *getNodeTree() const { return nodeTree; }
+  GeomNodeTree *getNodeTree() const { return nodeTree.get(); }
 
   const DynamicPhysObjectData *getData() const { return data; }
 
 protected:
-  const DynamicPhysObjectData *data;
+  const DynamicPhysObjectData *data = nullptr;
 
   struct ModelEntry
   {
-    DynamicRenderableSceneInstance *model;
+    DynamicRenderableSceneInstance *model = nullptr;
 
     SmallTab<TMatrix *, MidmemAlloc> nodeHelpers;
     SmallTab<dag::Index16, MidmemAlloc> treeIndex;
+    SmallTab<int, MidmemAlloc> nodeToBody;
     Tab<TwistCtrlParams> twistCtrl;
   };
   SmallTab<ModelEntry *> modelEntries;
 
   PhysSystemInstance *physSys = nullptr;
-  GeomNodeTree *nodeTree = nullptr;
+  GeomNodeTreeUniquePtr nodeTree;
 
-  PhysObjectUserData ud;
+  PhysObjectUserData ud{_MAKE4C('DPOJ')};
 };

@@ -22,7 +22,7 @@ AotJamfile = $(Root)/samples/dngSceneViewer/prog/_aot/jamfile ;
 DAS_AOT_COMPILER_OPT = -- --config $(Root)/$(Location)/_aot/aot_config.blk -sConfig $(Config) ;
 include $(Root)/prog/daNetGame/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
 
-if $(Platform) in windows && $(PlatformArch) != arm64 { VRDeviceSupport ?= yes ; }
+if $(Platform) in windows { VRDeviceSupport ?= yes ; }
 if $(Dedicated) = yes { Exit $(Target) is not expected to be used as dedicated server ; }
 
 SetupOutputDir ;
@@ -136,12 +136,7 @@ AutoscanBuildLists $(AllSrcFolder_ES)  : *ES.cpp.inl : SourceES ;
 for s in $(SourceES) { GenESSourceFile $(s) ; }
 SourceES = ;
 
-if $(VRDeviceSupport) = yes {
-  BundleCopy +=
-    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
-    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
-  ;
-}
+if $(VRDeviceSupport) = yes { include $(Root)/prog/engine/drv/vr_device/bundle.jam ; }
 
 if $(DumpBuildCmds) != yes {
 echo building Target\=$(Target) to $(_Output) "

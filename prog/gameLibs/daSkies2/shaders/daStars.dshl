@@ -37,7 +37,9 @@ shader daStars, daMoon
       starIntensity@f2 = (stars_scale, star_intensity + 1.2e-07, 0, 0);        // Add ~FLT_EPSILON to compensate for FP errors in interpolation. Background sky bright points randomly blend through the moon on GeForce.
       sincosLat_lst@f4 = (sin(stars_lattitude*(PI/180)), cos(stars_lattitude*(PI/180)), stars_lst*(15*PI/180), -0.5*PI);
     }
-    (ps) { stars_tex@smp2d = stars_tex; }
+    (ps) { stars_tex@tex2d = stars_tex; }
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+    hlsl(ps) { #define stars_tex_samplerstate global_linear_wrap_sampler }
     blend_src = 1; blend_dst = 1;
   } else
   {
@@ -54,7 +56,9 @@ shader daStars, daMoon
   {
     INIT_CLOUDS_ALPHA_PANORAMA()
     USE_CLOUDS_ALPHA_PANORAMA()
-    (ps) {sky_panorama_tex@smp2d = sky_panorama_tex; }
+    (ps) {sky_panorama_tex@tex2d = sky_panorama_tex; }
+    INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(ps)
+    hlsl(ps) { #define sky_panorama_tex_samplerstate global_linear_wrap_u_clamp_v_sampler }
   }
 
   USE_SPECIAL_VISION()

@@ -7,8 +7,10 @@
 
 #include <render/depthAOAboveRenderer.h>
 
-#define DEPTH_AROUND_TEX_SIZE 1024
-#define DEPTH_AROUND_DISTANCE 320
+static constexpr int DEPTH_AROUND_TEX_SIZE = 1024;
+static constexpr int DEPTH_AROUND_DISTANCE_SECOND_CASCADE = 320;
+static constexpr int DEPTH_AROUND_DISTANCE = 80;
+static constexpr int DEPTH_AROUND_EXTRA_CASCADE_MUL = DEPTH_AROUND_DISTANCE_SECOND_CASCADE / DEPTH_AROUND_DISTANCE;
 
 class WorldRenderer;
 
@@ -22,7 +24,14 @@ public:
   void render(WorldRenderer &wr, const TMatrix &view_itm);
   void invalidateAO(bool force) { renderer.invalidateAO(force); }
   void invalidateAO(const BBox3 &box) { renderer.invalidateAO(box); }
+  // We only need refreshed regions of the cascade that was recently updated
+  const Tab<BBox2> &getRefreshedRegions() const
+  {
+    int lastRenderedCascade = (cascadeToUpdate + 1) % DepthAOAboveRenderer::MAX_DEPTH_ABOVE_CASCADES;
+    return renderer.getRefreshedRegionsForCascade(lastRenderedCascade);
+  }
   void waitCullJobs();
+  bool isValidAtAnyQuality() const { return renderer.isValidAtAnyQuality(); }
 
 private:
   static const int g_max_visibility_jobs = 8;
@@ -40,6 +49,7 @@ private:
 
   DepthAOAboveRenderer renderer;
   carray<AsyncVisiblityJob, g_max_visibility_jobs> cullJobs;
+  int cascadeToUpdate = 0;
 
   friend class RenderDepthAOCB;
 };

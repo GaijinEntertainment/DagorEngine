@@ -17,11 +17,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading = FALSE) override;
   const TCHAR *ClassName() override { return GetString(IDS_OBJECT_PROPERTIES_EDITOR_NAME); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
   Class_ID ClassID() override { return OBJECT_PROPERTIES_EDITOR_CID; }
   const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }

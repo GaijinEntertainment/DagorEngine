@@ -17,8 +17,8 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include "texture_impl.h"
 #include "log.h"
 
-#include <shared/math.h>
-#include <shared/texture.h>
+#include "util/math.h"
+#include "util/texture.h"
 
 #include <map>
 #include <set>
@@ -65,6 +65,7 @@ namespace Cpu
         vector<uint8_t> ommArrayData;
         vector<ommCpuOpacityMicromapUsageCount> ommArrayHistogram;
         vector<ommCpuOpacityMicromapUsageCount> ommIndexHistogram;
+        vector<float> ommTriangleArea; // used for debug info and stats
         ommCpuBakeResultDesc bakeOutputDesc = {0,};
 
         BakeResultImpl(const StdAllocator<uint8_t>& stdAllocator) :
@@ -72,7 +73,8 @@ namespace Cpu
             ommDescArray(stdAllocator),
             ommArrayData(stdAllocator),
             ommArrayHistogram(stdAllocator),
-            ommIndexHistogram(stdAllocator)
+            ommIndexHistogram(stdAllocator),
+            ommTriangleArea(stdAllocator)
         {
         }
 
@@ -117,17 +119,23 @@ namespace Cpu
             return ommResult_SUCCESS;
         }
 
+        inline ommResult GetBakeResultAreaData(const float*& area) const
+        {
+            area = m_bakeResult.ommTriangleArea.data();
+            return ommResult_SUCCESS;
+        }
+
         ommResult Bake(const ommCpuBakeInputDesc& desc);
 
     private:
         ommResult ValidateDesc(const ommCpuBakeInputDesc& desc) const;
 
-        template<ommCpuTextureFormat format, TilingMode eTextureFormat, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode>
+        template<ommCpuTextureFormat format, TilingMode eTextureFormat, ommTextureAddressMode eTextureAddressMode, ommTextureFilterMode eFilterMode, bool bTexIsPow2>
         ommResult BakeImpl(const ommCpuBakeInputDesc& desc);
 
         template<class... TArgs>
         void RegisterDispatch(TArgs... args, std::function < ommResult(const ommCpuBakeInputDesc& desc)> fn);
-        map<std::tuple<ommCpuTextureFormat, TilingMode, ommTextureAddressMode, ommTextureFilterMode>, std::function<ommResult(const ommCpuBakeInputDesc& desc)>> bakeDispatchTable;
+        map<std::tuple<ommCpuTextureFormat, TilingMode, ommTextureAddressMode, ommTextureFilterMode, bool /*texIsPow2*/>, std::function<ommResult(const ommCpuBakeInputDesc& desc)>> bakeDispatchTable;
         ommResult InvokeDispatch(const ommCpuBakeInputDesc& desc);
     private:
         StdAllocator<uint8_t> m_stdAllocator;

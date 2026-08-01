@@ -56,7 +56,10 @@ void set_multiplexing_default_mode(multiplexing::Mode mode, multiplexing::Mode h
 
 void set_multiplexing_extents(multiplexing::Extents extents) { Runtime::get().setMultiplexingExtents(extents); }
 
-bool run_nodes() { return Runtime::get().runNodes(); }
+bool run_nodes(PreExecuteAction pre_execute_action)
+{
+  return Runtime::get().runNodes(pre_execute_action == PreExecuteAction::FlushRefinedBlocks);
+}
 
 void startup() { Runtime::startup(); }
 

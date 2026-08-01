@@ -58,6 +58,7 @@ struct CompilerConfig
 
 #elif _CROSS_TARGET_DX12
   wchar_t *dx12PdbCacheDir = nullptr;
+  char *dx12PdbCacheDirUtf8 = nullptr;
 #endif
 
   String hlslDefines;
@@ -140,7 +141,9 @@ struct CompilerConfig
   bool cppStcodeUnityBuild : 1 = false;
   bool cppStcodeDeleteDebugInfo : 1 = true;
   bool cppStcodeSaveDebugInfoAndSourcesToZip : 1 = false;
+  bool cppStcodeNoJam : 1 = false;
   bool disallowHlslHardcodedRegs : 1 = false;
+  bool compileRefinedBlock : 1 = true;
   bool shaderRequiredByDefault : 1 = false;
   bool dependencyDumpMode : 1 = false;
   bool workerMode : 1 = false;

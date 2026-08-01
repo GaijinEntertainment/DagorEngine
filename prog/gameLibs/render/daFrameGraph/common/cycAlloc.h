@@ -131,14 +131,16 @@ public:
     if (!data)
       return false;
 
-    G_ASSERT(findOwnerBlock(data) != nullptr);
+    // Only the current tail-top can be resized; prove that before trusting sizeStack.back().
+    if (state.sizeStack.empty() || !isInBlock(state.tail, data))
+      return false;
 
     const size_t oldSize = state.sizeStack.back();
 
     if (!isLastInBlock(state.tail, data, oldSize))
       return false;
 
-    if (state.tail->used - state.sizeStack.back() + new_size > state.tail->size)
+    if (state.tail->used - oldSize + new_size > state.tail->size)
       return false;
 
     if (new_size == oldSize)
@@ -165,7 +167,9 @@ public:
 
     if (Block *block = findOwnerBlock(data))
     {
-      if (isLastInBlock(block, data, state.sizeStack.back()))
+      // Reclaim only the genuine tail-top; an older block after a spill must not
+      // roll back the tail. sizeStack.back() is the padding-inclusive top size.
+      if (block == state.tail && !state.sizeStack.empty() && isLastInBlock(state.tail, data, state.sizeStack.back()))
       {
         state.tail->used -= state.sizeStack.back();
         state.sizeStack.pop_back();

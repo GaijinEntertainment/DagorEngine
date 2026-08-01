@@ -24,3 +24,4 @@ const Point3 &AcesEffect::getWorldPos() const { return ZERO<Point3>(); }
 float AcesEffect::lifeTime() const { return 0; }
 void AcesEffect::pauseSound(bool) {}
 bool AcesEffect::hasSound() const { return false; }
+void AcesEffect::warmup(float, float) {}

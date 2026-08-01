@@ -15,6 +15,14 @@
 #define ENET_BUILDING_LIB 1
 #include "enet/enet.h"
 #include "enet/enet_dagor.h"
+/* inet_pton lives in <ws2tcpip.h> on Windows (not <winsock2.h>); on Unix it comes from
+   <arpa/inet.h> via enet/unix.h which the platform header chain already pulls in. */
+#if defined(_WIN32) || defined(_WIN64) || _TARGET_PC_WIN || _TARGET_XBOX
+#include <ws2tcpip.h>
+#endif
+/* The macro in enet_dagor.h routes callers' enet_address_set_host() to our wrapper; undef
+   it inside this TU so the wrapper's fallback can reach the upstream function. */
+#undef enet_address_set_host
 #if _DAGOR_ENET_EXT
 #define HOSTPORT_FMT    "%d.%d.%d.%d:%d"
 #define HOSTPORT(h, p)  (h) & 255, ((h) >> 8) & 255, ((h) >> 16) & 255, (h) >> 24, (p)
@@ -72,17 +80,19 @@ enet_dagor_peer_receive_unconnected_messages (ENetPeer * peer, ENetAddress * add
 ENetPeer *
 enet_dagor_host_connect_peer_from_the_end (ENetHost * host, const ENetAddress * address, size_t channelCount, enet_uint32 data)
 {
-    ENetPeer * currentPeer;
+    ENetPeer * currentPeer = NULL;
+    size_t i;
 
-    for (currentPeer = & host -> peers [host -> peerCount - 1];
-         currentPeer >= & host -> peers [0];
-        --currentPeer)
+    for (i = host -> peerCount; i > 0; --i)
     {
-       if (currentPeer -> state == ENET_PEER_STATE_DISCONNECTED)
-         break;
+       if (host -> peers [i - 1].state == ENET_PEER_STATE_DISCONNECTED)
+       {
+          currentPeer = & host -> peers [i - 1];
+          break;
+       }
     }
 
-    if (currentPeer < & host -> peers [0])
+    if (currentPeer == NULL)
       return NULL;
     host -> dagorConnectPeerOverride = currentPeer;
     return enet_host_connect (host, address, channelCount, data);
@@ -97,12 +107,20 @@ enet_dagor_protocol_handle_send_unconnected (ENetHost * host, ENetProtocol * com
 {
     size_t dataLength;
 
+    /* enet_peer_queue_incoming_command indexes peer->channels[channelID] unchecked; the
+       unconnected peer has one channel, so reject out-of-range channelID before queueing. */
+    if (command -> header.channelID >= ENET_DAGOR_UNCONNECTED_PEER (host) -> channelCount)
+    {
+        enet_logf ("unconnected message channelID out of range: %d", (int) command -> header.channelID);
+        return -1;
+    }
+
     dataLength = ENET_NET_TO_HOST_16 (command -> dagorSendUnconnected.dataLength);
     * currentData += dataLength;
 
     if (dataLength > host -> maximumPacketSize)
     {
-        enet_logf ("unconnected message data length is bad %d %d", dataLength, host -> receivedDataLength);
+        enet_logf ("unconnected message data length is bad %d %d", (int) dataLength, (int) host -> receivedDataLength);
         return -1;
     }
     if (* currentData < host -> receivedData)
@@ -138,8 +156,6 @@ enet_dagor_protocol_handle_send_unconnected (ENetHost * host, ENetProtocol * com
    Manual immediate send (peerless, no ENet connection state)
    ========================================================================= */
 
-static ENetBuffer immediate_send_buffers [3];
-static enet_uint32 emptyBufferPlaceholder;
 /**
  Sends a single ENet-framed datagram directly without a peer.
 
@@ -157,6 +173,8 @@ enet_dagor_manual_send_immediately (ENetHost * host, const ENetAddress * addr, c
     size_t commandSize;
     int buffersCount;
     enet_uint16 flags;
+    ENetBuffer immediate_send_buffers [3];
+    enet_uint32 emptyBufferPlaceholder = 0;
 
     flags  = ENET_PROTOCOL_MAXIMUM_PEER_ID;
     flags |= ENET_PROTOCOL_HEADER_FLAG_SENT_TIME;
@@ -227,6 +245,15 @@ int
 enet_dagor_protocol_handle_ping_target_port_for_relay (ENetHost * host, ENetPeer * peer, const ENetProtocol * command)
 {
     ENetAddress addr;
+
+    /* Peer-supplied host:port = source-spoofing reflector; reject non-connected peers.
+       Return -1 (not 0) so the generic ACK path cannot emit a packet for this command. */
+    if (peer -> state != ENET_PEER_STATE_CONNECTED)
+    {
+        enet_logf ("ping_target relay from non-connected peer (state=%d), dropping", (int) peer -> state);
+        return -1;
+    }
+
     addr.host = command -> dagorPingTargetPortForRelay.host;
     if (!addr.host)
         addr.host = peer -> address.host;
@@ -324,5 +351,26 @@ enet_dagor_print_buffer_hex (ENetDagorHexDebugDumpBuffer * buffer, const char * 
 }
 
 #endif /* ENET_DEBUG */
+
+/* =========================================================================
+   Host-name resolution wrapper
+   ========================================================================= */
+
+/**
+ IP-literal-first wrapper around enet_address_set_host. Short-circuits IP literals to avoid
+ the upstream gethostbyname / sceNetResolverStartNtoa, which can block for seconds on Windows
+ and PS even when the input is "127.0.0.1".
+
+ No recursion: enet_dagor.h's macro renames enet_address_set_host to this wrapper, but the
+ #undef above and the fact that win32.c/unix.c do NOT include enet_dagor.h keep the fallback
+ below pointed at the upstream definition. Do not include enet_dagor.h from those TUs.
+*/
+int
+enet_dagor_address_set_host (ENetAddress * address, const char * name)
+{
+    if (inet_pton (AF_INET, name, & address -> host) == 1)
+        return 0;
+    return enet_address_set_host (address, name);
+}
 
 #endif

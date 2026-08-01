@@ -347,14 +347,13 @@ static const LayoutInfo languageInfo[] = {{0x0004, "zh"}, {0x0401, "ar"}, {0x040
   {0x2C09, "en"}, {0x2C0A, "es"}, {0x3001, "ar"}, {0x3009, "en"}, {0x300A, "es"}, {0x3401, "ar"}, {0x3409, "en"}, {0x340A, "es"},
   {0x3801, "ar"}, {0x380A, "es"}, {0x3C01, "ar"}, {0x3C0A, "es"}, {0x4001, "ar"}, {0x400A, "es"}, {0x440A, "es"}, {0x480A, "es"},
   {0x4C0A, "es"}, {0x500A, "es"}, {0x7C04, "zh"}};
-static const int languageInfoSize = sizeof(languageInfo) / sizeof(*languageInfo);
+static constexpr int languageInfoSize = sizeof(languageInfo) / sizeof(*languageInfo);
 
 void WinKeyboardDevice::updateLayout(bool notify_when_not_changed)
 {
-  int layoutId = LOWORD(::GetKeyboardLayout(windows::get_thread_id()));
-
-  const LayoutInfo *layoutInfo =
-    (const LayoutInfo *)::dag_bin_search(&layoutId, languageInfo, languageInfoSize, sizeof(LayoutInfo), LayoutInfo::comporator);
+  LayoutInfo layoutKey{LOWORD(::GetKeyboardLayout(windows::get_thread_id()))};
+  auto layoutInfo =
+    (const LayoutInfo *)::dag_bin_search(&layoutKey, languageInfo, languageInfoSize, sizeof(LayoutInfo), LayoutInfo::comporator);
   if (!layoutInfo)
     return;
 

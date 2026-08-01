@@ -31,6 +31,8 @@ if [ GLOB $(Root)/prog/gameLibs/gamePhys : * ]
     gameLibs/gamePhys/collision/rendinst
     gameLibs/gamePhys/common
     gameLibs/gamePhys/phys/destrRender
+    gameLibs/daFracture/core
+    gameLibs/daFracture/renderStub
   ;
   CPPopt += -DHAS_GAME_PHYS ;
 }

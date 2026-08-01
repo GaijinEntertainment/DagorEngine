@@ -32,6 +32,7 @@ struct EventLogInitParams
   const char *version = nullptr;
   bool use_https = true;
   bool use_connect_async = false;
+  bool use_net_assert_log = true;
 };
 
 // The following 2 functions are not threadsafe

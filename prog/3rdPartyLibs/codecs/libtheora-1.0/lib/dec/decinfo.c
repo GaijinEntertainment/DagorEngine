@@ -162,7 +162,14 @@ static int oc_dec_headerin(oggpack_buffer *_opb,th_info *_info,
   packtype=(int)val;
   /*If we're at a data packet and we have received all three headers, we're
      done.*/
-  if(!(packtype&0x80)&&_info->frame_width>0&&_tc->vendor!=NULL&&*_setup!=NULL){
+  if(!(packtype&0x80)&&_info->frame_width>0){
+    /*Our documentation says we'll return TH_EFAULT if these are NULL, so let's
+       check.*/
+    if(_tc==NULL||_setup==NULL)return TH_EFAULT;
+    /*Otherwise, if we didn't get all of the headers, this was not the next
+       packet in the expected sequence.*/
+    else if(_tc->vendor==NULL||*_setup==NULL)return TH_EBADHEADER;
+    /*Otherwise, we're done.*/
     return 0;
   }
   /*Check the codec string.*/

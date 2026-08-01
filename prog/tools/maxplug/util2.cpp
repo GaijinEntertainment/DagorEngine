@@ -123,6 +123,10 @@ struct GetMeshesCB : public ENodeCB
       if (af)
         delete af;
     }
+
+    // owns af via raw pointer: forbid copies so a shallow copy can't double-free it
+    Obj(const Obj &) = delete;
+    Obj &operator=(const Obj &) = delete;
   };
   Tab<Obj *> mesh;
 
@@ -138,6 +142,10 @@ struct GetMeshesCB : public ENodeCB
       if (mesh[i])
         delete (mesh[i]);
   }
+
+  // owns the Obj* elements of mesh: forbid copies so a shallow copy can't double-free them
+  GetMeshesCB(const GetMeshesCB &) = delete;
+  GetMeshesCB &operator=(const GetMeshesCB &) = delete;
   int proc(INode *n) override
   {
     if (!n)
@@ -156,13 +164,14 @@ struct GetMeshesCB : public ENodeCB
       return ECB_CONT;
     Matrix3 wtm = n->GetObjectTM(time);
     Box3 b = tri->mesh.getBoundingBox(&wtm);
-    if (b.pmax.x < sbox.pmin.x || b.pmin.x > sbox.pmax.x || b.pmax.y < sbox.pmin.y || b.pmin.y > sbox.pmax.y)
-      return ECB_CONT;
-    Obj *o = new Obj(tri->mesh, wtm, b);
-    assert(o);
-    mesh.Append(1, &o);
+    if (b.pmax.x >= sbox.pmin.x && b.pmin.x <= sbox.pmax.x && b.pmax.y >= sbox.pmin.y && b.pmin.y <= sbox.pmax.y)
+    {
+      Obj *o = new Obj(tri->mesh, wtm, b);
+      assert(o);
+      mesh.Append(1, &o);
+    }
     if (tri != obj)
-      delete tri;
+      tri->DeleteMe();
     return ECB_CONT;
   }
   int isectray(Ray &ray, float &at, int &mi, int &fi, Point3 &bary)

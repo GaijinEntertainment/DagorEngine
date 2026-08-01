@@ -18,8 +18,9 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <math/integer/dag_IPoint2.h>
 #include <render/dynamicShadowRender.h>
-#include <render/dynamicShadowRenderExtensions.h>
-#include <render/shadowCastersFlags.h>
+#include <render/lights/dynamicShadowRenderExtensions.h>
+#include <render/lights/shadowCastersFlags.h>
+#include <render/lights/lightsResources.h>
 
 struct TraceLightInfo;
 
@@ -31,7 +32,7 @@ public:
 
   void setOverrideState(const shaders::OverrideState &baseState);
   void close();
-  ShadowSystem(const char *name_suffix = "");
+  ShadowSystem(const LightsResourcesManager *lights_res_mgr);
   ~ShadowSystem() { close(); }
   static const int MAX_PRIORITY = 15; // 15 times more important than anything else
   // priority - the higher, the better. keep in mind, that with very high value you can steal all updates from other volumes
@@ -59,7 +60,6 @@ public:
     uint8_t &shadow_size_srl, DynamicShadowRenderGPUObjects &render_gpu_objects) const;
   Point2 getShadowUvSize(uint32_t id) const;
   Point4 getShadowUvMinMax(uint32_t id) const;
-  uint32_t getShadowRectPacked(uint32_t id) const;
   bool isShadowTwoSided(uint32_t id) const { return volumes[id].isTwoSided(); }
 
   void startPrepareShadows(); // increases currentFrame
@@ -72,8 +72,10 @@ public:
 
   // will dynamically change shadow resolution, etc.
   // prepares volumesToRender list
+  // max_static_views_to_update limits full static scene renders per frame
+  // volumes are never split, so the first volume is admitted even if it exceeds the budget
   void endPrepareShadows(dynamic_shadow_render::VolumesVector &volumesToRender, int max_shadow_volumes_to_update,
-    float max_area_part_to_update, const Point3 &viewPos, float hk, mat44f_cref viewproj);
+    int max_static_views_to_update, float max_area_part_to_update, const Point3 &viewPos, float hk, mat44f_cref viewproj);
 
   const Frustum &getVolumeFrustum(uint16_t id) const { return volumesFrustum[id]; }
   const mat44f &getVolumeTexMatrix(uint16_t id) const { return volumesTexTM[id]; }
@@ -109,6 +111,8 @@ public:
   void endRenderVolumes();
 
   void pruneFreeVolumes();
+  // prune + release volume array capacity retained from the peak light count
+  void shrink();
   void validateConsistency(); // in dev build only
   void invalidateAllVolumes();
   int getAtlasWidth() const { return atlasWidth; }
@@ -204,6 +208,7 @@ protected:
     bool isDynamicOrOnlyStaticCasters() const { return isDynamic() || hasOnlyStaticCasters(); }
     bool isApproximatelyTracedStaticCasters() const { return flags & APPROXIMATE_STATIC; }
     bool isTwoSided() const { return flags & TWO_SIDED; }
+    float getCurrentAtlasArea() const { return float(shadow.width * shadow.width + dynamicShadow.width * dynamicShadow.width); };
 
     bool isDestroyed() const { return lastFrameUsed == 0; }
     bool isValidContent() const { return !shadow.isEmpty() && lastFrameChanged < lastFrameUpdated; }
@@ -258,13 +263,9 @@ protected:
   float notEnoughSpaceMul = 1.0f;
   uint32_t lastFrameQualityUpgraded = 1, lastFrameQualityDegraded = 1;
 
-  eastl::string nameSuffix;
+  const LightsResourcesManager *lightsResMgr = nullptr;
 
-  // append nameSuffix to this name to get unique d3d names
-  eastl::string getResName(const char *name) const
-  {
-    return eastl::string(eastl::string::CtorSprintf{}, "%s%s", name, nameSuffix.c_str());
-  }
+  eastl::string getResName(const char *name) const { return lightsResMgr->getResName(name); }
 
   int appendVolume();
   void resizeVolumes(int cnt);
@@ -348,7 +349,7 @@ protected:
   bool freeUnusedDynamicDataForStaticLights();
   uint32_t lastFrameStaticLightsOptimized = 0;
   bool degradeQuality();
-  bool upgradeQuality();
+  bool upgradeQuality(float predicted_upgraded_occupancy);
 
   d3d::SamplerHandle shadowSampler;
 };

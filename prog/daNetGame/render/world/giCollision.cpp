@@ -8,6 +8,8 @@
 #include "private_worldRenderer.h"
 
 
+// LRU voxelizer index space: the single static-scene resource is type 0 (addressed by
+// RIEX_HANDLE_NULL, whose raw type 0xffffffff wraps to 0 below); rendinst-extra collres follow at +1.
 const CollisionResource *lru_collision_get_collres(uint32_t i)
 {
   if (i == 0)
@@ -17,7 +19,7 @@ const CollisionResource *lru_collision_get_collres(uint32_t i)
 
 mat43f lru_collision_get_transform(rendinst::riex_handle_t h)
 {
-  if (DAGOR_UNLIKELY(h == rendinst::RIEX_HANDLE_NULL))
+  if (DAGOR_UNLIKELY(h == rendinst::RIEX_HANDLE_NULL)) // static scene: identity
   {
     mat43f f;
     f.row0 = V_C_UNIT_1000;
@@ -27,4 +29,5 @@ mat43f lru_collision_get_transform(rendinst::riex_handle_t h)
   }
   return rendinst::getRIGenExtra43(h);
 }
+
 uint32_t lru_collision_get_type(rendinst::riex_handle_t h) { return rendinst::handle_to_ri_type(h) + 1u; }

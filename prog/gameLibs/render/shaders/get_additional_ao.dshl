@@ -2,7 +2,6 @@ include "heightmap_common.dshl"
 include "depth_above.dshl"
 include "capsuledAO.dshl"
 include "dagi_quality.dshl"
-include "dynamic_resolution.dshl"
 
 texture esm_ao_target_tex; 
 
@@ -37,8 +36,6 @@ macro APPLY_ADDITIONAL_AO(code)
     }
   }
 
-  INIT_DYNAMIC_RESOLUTION(code)
-
   hlsl(code) {
     float getAdditionalAmbientOcclusion(float ao, float3 worldPos, float3 worldNormal, float2 screenTc)
     {
@@ -50,7 +47,7 @@ macro APPLY_ADDITIONAL_AO(code)
         ##if in_editor_assume == no
           ao = getCapsulesOcclusion(ao, worldPos, worldNormal);
           ##if esm_ao_target_tex != NULL
-            ao = min(ao, tex2Dlod(esm_ao_target_tex, float4(screenTc * current_dynamic_resolution_scale, 0, 0)).r);
+            ao = min(ao, tex2Dlod(esm_ao_target_tex, float4(screenTc, 0, 0)).r);
           ##endif
 
           #if USE_HERO_AO

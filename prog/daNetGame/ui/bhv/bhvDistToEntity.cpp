@@ -146,14 +146,16 @@ int BhvDistToEntity::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
     if (dist > minDistance)
     {
       int newStrMaxLen = bhvData->formatString.size() + 8;
-      char *newStr = (char *)alloca(newStrMaxLen);
-      snprintf(newStr, newStrMaxLen, bhvData->formatString.c_str(), dist);
-      if (strcmp(elem->props.text.c_str(), newStr) != 0)
+      if (newStrMaxLen < 100)
       {
-        discard_text_cache(elem->robjParams);
-        elem->props.text = newStr;
+        char *newStr = (char *)alloca(newStrMaxLen);
+        snprintf(newStr, newStrMaxLen, bhvData->formatString.c_str(), dist);
+        if (strcmp(elem->props.text.c_str(), newStr) != 0)
+        {
+          discard_text_cache(elem->robjParams);
+          elem->props.text = newStr;
+        }
       }
-
       elem->setHidden(false);
     }
     else

@@ -12,12 +12,14 @@
 #include <math/dag_hlsl_floatx.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaderResUnitedData.h>
+#include <shaders/dag_refinedBlock.h>
 #include <frustumCulling/frustumPlanes.h>
 #include <util/dag_convar.h>
 #include "../CSMShadows.h"
 #include "../../shaders/dagdp_common.hlsli"
 #include "../../shaders/dagdp_common_placer.hlsli"
 #include "../../shaders/dagdp_volume.hlsli"
+#include "../block.h"
 #include "volume.h"
 #include <rendInst/rendInstExtra.h>
 #include <util/dag_threadPool.h>
@@ -110,6 +112,7 @@ struct VolumeConstants
   uint32_t maxVolumes;
   int targetMeshLod;
   VolumeMapping mapping;
+  refined_block::PassBlockHandle passBlock;
 };
 
 // Note: not safe if FG starts using MT execution.
@@ -342,6 +345,9 @@ void create_volume_nodes(const ViewInfo &view_info,
     debug("[FRAMEMEM] - For tiles '%s': %d", bufferName.c_str(), constants.maxTiles);
   }
 
+  constants.passBlock =
+    get_dagdp_view_block(constants.viewInfo.uniqueName.c_str())
+      .refineBlock(TmpName(TmpName::CtorSprintf(), "dagdp_volume_pass@%s", constants.viewInfo.uniqueName.c_str()).c_str());
 
   const dafg::NameSpace ns = dafg::root() / "dagdp" / view_info.uniqueName.c_str() / "volume";
 
@@ -854,6 +860,8 @@ void create_volume_nodes(const ViewInfo &view_info,
           ShaderGlobal::set_int(var::prng_seed_triangle2, constants.prngSeed + 0x45F9668Eu);
           ShaderGlobal::set_int(var::prng_seed_jitter_x, constants.prngSeed + 0xDE437762u);
           ShaderGlobal::set_int(var::prng_seed_jitter_z, constants.prngSeed + 0xA2EA427Du);
+
+          constants.passBlock.setState();
 
           bool dispatchSuccess = true;
           for (uint32_t viewportIndex = 0; viewportIndex < view.viewports.size(); ++viewportIndex)

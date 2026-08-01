@@ -51,6 +51,7 @@ struct Segment
   int owner; // which cascade is already claimed it
 
   Segment *prevSeg;
+  Segment *nextSeg;
 };
 
 static float get_segment_fade_out_time(Segment *p)
@@ -175,6 +176,7 @@ struct Emitter
       G_ASSERT(lastSeg->points.size() > 1);
 
       seg->prevSeg = lastSeg;
+      lastSeg->nextSeg = seg;
 
       seg->totalLength = lastSeg->totalLength;
 
@@ -685,7 +687,12 @@ struct Context
     v_bbox3_init_empty(p->box);
     p->id = activeSegmentsPool.size();
     p->owner = 0;
+    if (p->prevSeg)
+      p->prevSeg->nextSeg = p->nextSeg;
+    if (p->nextSeg)
+      p->nextSeg->prevSeg = p->prevSeg;
     p->prevSeg = nullptr;
+    p->nextSeg = nullptr;
     activeSegmentsPool.push_back(p);
     totalActiveVertices += g_settings.maxPointsPerSegment + 4;
 
@@ -715,7 +722,12 @@ struct Context
     freeSegmentsPool.push_back(p);
     p->id = -1;
     p->points.clear();
+    if (p->prevSeg)
+      p->prevSeg->nextSeg = p->nextSeg;
+    if (p->nextSeg)
+      p->nextSeg->prevSeg = p->prevSeg;
     p->prevSeg = nullptr;
+    p->nextSeg = nullptr;
   }
 
   void finalizeSegment(Segment *p)
@@ -755,8 +767,8 @@ struct Context
 
     removeSegment(p);
 
-    auto accelerateFadeout = [](Segment *curr_seg) -> void {
-      curr_seg->forcedGenMul = 0.25f;
+    auto accelerateFadeout = [](Segment *curr_seg, float gen_speed) -> void {
+      curr_seg->forcedGenMul = max(curr_seg->forcedGenMul - gen_speed, 0.25f);
       float fadeOutTime = get_segment_fade_out_time(curr_seg);
 
       for (int i = 0; i < curr_seg->points.size(); ++i)
@@ -768,11 +780,14 @@ struct Context
 
     if (p->totalTurns * g_turns_to_points_ratio >= g_settings.maxPointsPerSegment)
     {
-      if (p->prevSeg != nullptr && p->prevSeg->id != -1 && is_equal_float(p->prevSeg->forcedGenMul, 1.0f))
+      float genSpeedUp = 0.05f;
+      float genSpeed = genSpeedUp;
+      accelerateFadeout(p, genSpeed);
+      for (Segment *i = p; i->prevSeg && i->prevSeg->id != -1; i = i->prevSeg)
       {
-        accelerateFadeout(p->prevSeg);
+        genSpeed += genSpeedUp;
+        accelerateFadeout(i->prevSeg, genSpeed);
       }
-      accelerateFadeout(p);
     }
 
     p->lastGen = currentGen;

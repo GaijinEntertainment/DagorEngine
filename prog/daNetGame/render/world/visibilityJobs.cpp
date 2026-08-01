@@ -265,12 +265,10 @@ void LodsByDistanceJob::doJob() { rendinst::requestRiExtraLodsByDistance(cameraP
 void GroundCullingJob::start(const VisibilityJobsContext *jc,
   LandMeshCullingData *culling_data,
   LandMeshManager *lmesh_mgr,
-  LandMeshRenderer *lmesh_renderer,
   Occlusion *occl,
   const Frustum &frustum_,
   const Point3 &viewPos_,
   const TMatrix4 &viewProj_,
-  const float water_level,
   const int displacement_sub_div,
   const float displacement_radius,
   threadpool::JobPriority prio)
@@ -280,40 +278,31 @@ void GroundCullingJob::start(const VisibilityJobsContext *jc,
     return;
 
   jobs = jc;
-  lmeshCullingState.copyLandmeshState(*lmesh_mgr, *lmesh_renderer);
   lmeshCullingData = culling_data;
   lmeshMgr = lmesh_mgr;
-  lmeshRenderer = lmesh_renderer;
-  occlusion = occl;
-  frustum = frustum_;
-  viewPos = viewPos_;
-  viewProj = viewProj_;
-  waterLevel = water_level;
-  displacementSubDiv = displacement_sub_div;
-  displacementRadius = displacement_radius;
+  cullDesc = LandMeshCullDesc::forView(viewPos_, frustum_);
+  cullDesc.occlusion = occl;
+  cullDesc.useExclBox = lmesh_mgr->cullingState.useExclBox; // sample now: prepare() may retarget it before doJob runs
+  HeightmapMetricsQuality mq = {proj_to_distance_scale(viewProj_)};
+  mq.maxRelativeTexelTess = displacement_sub_div;
+  mq.displacementDist = displacement_radius;
+  mq.displacementFalloff = 0.25f;
+  cullDesc.hmapMetrics = mq;
   threadpool::add(this, prio, /*wake*/ false);
 }
 
 void GroundCullingJob::doJob()
 {
   threadpool::wait(jobs->visibilityJob, 0, threadpool::NUM_PRIO);
-  HeightmapMetricsQuality mq = {proj_to_distance_scale(viewProj)};
-  mq.maxRelativeTexelTess = displacementSubDiv;
-  mq.displacementDist = displacementRadius;
-  mq.displacementFalloff = 0.25f;
-
-  lmeshCullingState.frustumCulling(*lmeshMgr, *lmeshCullingData, NULL, 0,
-    HeightmapFrustumCullingInfo{viewPos, frustum, occlusion, nullptr, true, mq});
+  landmesh::frustum_cull(*lmeshMgr, cullDesc, *lmeshCullingData);
 }
 
 void GroundReflectionCullingJob::start(const VisibilityJobsContext *jc,
   LandMeshCullingData *culling_data,
   LandMeshManager *lmesh_mgr,
-  LandMeshRenderer *lmesh_renderer,
   const Frustum &frustum_,
   const Point3 &viewPos_,
   const TMatrix4 &viewProj_,
-  const float water_level,
   threadpool::JobPriority prio)
 {
   threadpool::wait(this, 0, threadpool::NUM_PRIO);
@@ -321,23 +310,18 @@ void GroundReflectionCullingJob::start(const VisibilityJobsContext *jc,
     return;
 
   jobs = jc;
-  lmeshCullingState.copyLandmeshState(*lmesh_mgr, *lmesh_renderer);
   lmeshCullingData = culling_data;
   lmeshMgr = lmesh_mgr;
-  lmeshRenderer = lmesh_renderer;
-  frustum = frustum_;
-  viewPos = viewPos_;
-  viewProj = viewProj_;
-  waterLevel = water_level;
+  cullDesc = LandMeshCullDesc::forView(viewPos_, frustum_);
+  cullDesc.useExclBox = lmesh_mgr->cullingState.useExclBox;
+  cullDesc.hmapMetrics = {proj_to_distance_scale(viewProj_), -1, HeightmapMetricsQuality::FASTEST};
   threadpool::add(this, prio, /*wake*/ false);
 }
 
 void GroundReflectionCullingJob::doJob()
 {
   threadpool::wait(jobs->visibilityJob, 0, threadpool::NUM_PRIO);
-  lmeshCullingState.frustumCulling(*lmeshMgr, *lmeshCullingData, NULL, 0,
-    HeightmapFrustumCullingInfo{
-      viewPos, frustum, nullptr, nullptr, true, {proj_to_distance_scale(viewProj), -1, HeightmapMetricsQuality::FASTEST}});
+  landmesh::frustum_cull(*lmeshMgr, cullDesc, *lmeshCullingData);
 }
 
 void LightsCullingJob::start(Occlusion *occlusion_, const CameraParams &cur_frame_camera, threadpool::JobPriority prio)

@@ -9,16 +9,10 @@
 
 
 template <>
-SimplePhysObject::SimplePhysObjectClass() : body(NULL), nodeTree(NULL), model(NULL), extRenderTm(NULL)
-{}
-
-
-template <>
 SimplePhysObject::~SimplePhysObjectClass()
 {
   del_it(model);
   del_it(body);
-  del_it(nodeTree);
 }
 
 
@@ -109,7 +103,7 @@ void SimplePhysObject::init(const DynamicPhysObjectData *data, PhysWorld *w)
 
   // create node tree if needed
   if (data->nodeTree)
-    nodeTree = new GeomNodeTree(*data->nodeTree);
+    nodeTree.reset(GeomNodeTree::make(*data->nodeTree));
 
   model = new DynamicRenderableSceneInstance(data->models[0]);
   extRenderTm = NULL;

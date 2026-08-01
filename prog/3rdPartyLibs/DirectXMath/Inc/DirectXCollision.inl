@@ -4491,7 +4491,7 @@ namespace TriangleTests
 
         // Ensure robustness with co-planar triangles by zeroing small distances.
         uint32_t ADistIsZeroCR;
-        XMVECTOR ADistIsZero = XMVectorGreaterR(&ADistIsZeroCR, g_RayEpsilon, XMVectorAbs(BDist));
+        XMVECTOR ADistIsZero = XMVectorGreaterR(&ADistIsZeroCR, g_RayEpsilon, XMVectorAbs(ADist));
         ADist = XMVectorSelect(ADist, Zero, ADistIsZero);
 
         uint32_t ADistIsLessCR;

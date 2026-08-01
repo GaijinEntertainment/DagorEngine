@@ -271,18 +271,15 @@ sound_biome_puddle_queries{
     // puddles
     sound_biome_puddle_queries__puddleDepth:r=0
     sound_biome_puddle_queries__puddleQueryId:i=-1
-
     // input
     sound_biome_puddle_queries_vars__speedSq:r=0
-    sound_biome_puddle_queries_vars__isOnGround:b=true
-
     // setup
     sound_biome_puddle_queries__farawayThreshold:r=15
     sound_biome_puddle_queries__zeroSpeedThreshold:r=0.01
-    sound_biome_puddle_queries__heroSpeedToQueryInterval:p4=0, 4, 1, 0.2
+    sound_biome_puddle_queries__watchedSpeedToQueryInterval:p4=0, 4, 1, 0.2
     sound_biome_puddle_queries__enemySpeedToQueryInterval:p4=0, 4, 1.5, 0.5
-    sound_biome_puddle_queries__heroEnemyInAirInterval:p2=0.1,0.5
-    sound_biome_puddle_queries__lmeshDiff:r=2
+    sound_biome_puddle_queries__watchedOtherInAirInterval:p2=0.1,0.5
+    sound_biome_puddle_queries__maxDistToFloor:r=2
     sound_biome_puddle_queries__puddleQueryToDepth:p4=0.1, 0.4, 0, 0.05
   }
 }

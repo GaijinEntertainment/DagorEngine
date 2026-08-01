@@ -623,6 +623,7 @@ static const char *attrib_type_name(int type)
     case SHVT_BUFFER: return "SHVT_BUFFER";
     case SHVT_INT4: return "SHVT_INT4";
     case SHVT_FLOAT4X4: return "SHVT_FLOAT4X4";
+    case SHVT_FLOAT4x3: return "SHVT_FLOAT4x3";
     case SHVT_SAMPLER: return "SHVT_SAMPLER";
     default: return "UNKNOWN";
   }

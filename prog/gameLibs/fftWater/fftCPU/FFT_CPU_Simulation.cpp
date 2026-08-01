@@ -449,8 +449,8 @@ void FFT2DSSE(complex *c, int nx)
       shuffledata0 = v_merge_hw(v_ldu_half(f0), v_ldu_half(f1)); // f0.x,f1.x, f0.y,f1.y
       shuffledata1 = v_merge_hw(v_ldu_half(f2), v_ldu_half(f3)); // f2.x,f3.x, f2.y,f3.y
 
-      iv_data[i * 2] = v_perm_xyXY(shuffledata0, shuffledata1);     // xxxx
-      iv_data[i * 2 + 1] = v_perm_zwZW(shuffledata0, shuffledata1); // yyyy
+      iv_data[i * 2] = v_perm_xyab(shuffledata0, shuffledata1);     // xxxx
+      iv_data[i * 2 + 1] = v_perm_zwcd(shuffledata0, shuffledata1); // yyyy
       // iv_data[i*2] = v_make_vec4f(*f0,*f1,*f2,*f3);
       // iv_data[i*2+1] = v_make_vec4f(*(f0+1),*(f1+1),*(f2+1),*(f3+1));
       f0 += 2;
@@ -483,12 +483,7 @@ void FFT2DSSE(complex *c, int nx)
   {
 
     for (int ij = j, i = 0; i < nx; i++, ij += nx)
-    {
-      shuffledata0 = v_ld((float *)&(c[ij][0]));
-      shuffledata1 = v_ld((float *)&(c[ij + 2][0]));
-      iv_data[i * 2] = v_perm_xzXZ(shuffledata0, shuffledata1);
-      iv_data[i * 2 + 1] = v_perm_ywYW(shuffledata0, shuffledata1);
-    }
+      v_ld_soa2((float *)&(c[ij][0]), iv_data[i * 2], iv_data[i * 2 + 1]); // 4 complex to re/im SoA
     FFTcSSE(nn, m, iv_data);
     f0 = (float *)&(c[j][0]);
     f1 = (float *)&(c[j + nx + 0][0]);
@@ -574,12 +569,12 @@ void NVWaveWorks_FFT_CPU_Simulation::UpdateHt(int row)
     vec4f s23 = v_add(*(vec4f *)&_k[i + 2], mk);
     vec4f d23 = v_sub(*(vec4f *)&_k[i + 2], mk);
 
-    vec4f sx = v_perm_xzXZ(s01, s23);
-    vec4f sy = v_perm_ywYW(s01, s23);
+    vec4f sx = v_perm_xzac(s01, s23);
+    vec4f sy = v_perm_ywbd(s01, s23);
     vec4f hx = v_sub(v_mul(sx, cn), v_mul(sy, sn));
 
-    vec4f dx = v_perm_xzXZ(d01, d23); //_mm_shuffle_ps( d01, d23, _MM_SHUFFLE(2,0,2,0) );
-    vec4f dy = v_perm_ywYW(d01, d23); //_mm_shuffle_ps( d01, d23, _MM_SHUFFLE(3,1,3,1) );
+    vec4f dx = v_perm_xzac(d01, d23); //_mm_shuffle_ps( d01, d23, _MM_SHUFFLE(2,0,2,0) );
+    vec4f dy = v_perm_ywbd(d01, d23); //_mm_shuffle_ps( d01, d23, _MM_SHUFFLE(3,1,3,1) );
     vec4f hy = v_add(v_mul(dx, sn), v_mul(dy, cn));
 
     // height

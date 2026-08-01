@@ -88,7 +88,9 @@ private:
   }
 
 public:
+  using BaseType::getRingSize;
   using BaseType::resize;
+  using BaseType::usesMirror;
   using BaseType::waitToVisit;
   using BaseType::waitUntilEmpty;
 

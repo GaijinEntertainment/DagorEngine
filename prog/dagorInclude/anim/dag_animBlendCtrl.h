@@ -415,8 +415,9 @@ public:
     void applyWt(BlendCtx &bctx, real wt, real node_w);
   };
 
-protected:
   Tab<AnimPoint> poly;
+
+protected:
   Tab<int> rewindBitmapParamsIds;
   int paramId;
   real morphTime;
@@ -444,6 +445,7 @@ public:
 
   // creation-time routines
   void addBlendNode(IAnimBlendNode *n, real p0, AnimationGraph &graph, const char *ctrl_name);
+  void sortBlendNodes(); // buildBlendingList expects poly sorted by p0
 
   const char *class_name() const override { return "AnimBlendCtrl_LinearPoly"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_LinearPolyCID || IAnimBlendNode::isSubOf(id); }

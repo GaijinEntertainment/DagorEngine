@@ -9,10 +9,10 @@
 #include <ecs/render/shaders.h>
 #include <ecs/render/resPtr.h>
 #include <ecs/render/updateStageRender.h>
-#include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
 #include <render/world/wrDispatcher.h>
+#include <render/world/dafgCameraRegistrator.h>
 #include <scene/dag_tiledScene.h>
 #include <math/dag_mathUtils.h>
 #include <drv/3d/dag_renderTarget.h>
@@ -29,8 +29,6 @@ CAUSTICS_VARS
 
 template <typename Callable>
 static void water_quality_medium_or_high_ecs_query(ecs::EntityManager &manager, Callable c);
-template <typename Callable>
-static void water_caustics_node_exists_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
 static void water_caustics_update_settings_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
@@ -54,11 +52,7 @@ void queryCausticsSettings(CausticsSetting &settings)
 
 bool use_water_caustics()
 {
-  bool waterCausticsEntityExists = false;
-  water_caustics_node_exists_ecs_query(*g_entity_mgr, [&waterCausticsEntityExists](const dafg::NodeHandle &caustics__renderNode) {
-    G_UNUSED(caustics__renderNode);
-    waterCausticsEntityExists = true;
-  });
+  bool waterCausticsEntityExists = g_entity_mgr->getSingletonEntity(ECS_HASH("caustics")) != ecs::INVALID_ENTITY_ID;
   bool waterHighOrMedium = false;
   water_quality_medium_or_high_ecs_query(*g_entity_mgr, [&waterHighOrMedium](const ecs::string &render_settings__waterQuality) {
     waterHighOrMedium = render_settings__waterQuality == "high" || render_settings__waterQuality == "medium";
@@ -67,25 +61,21 @@ bool use_water_caustics()
          renderer_has_feature(FeatureRenderFlags::COMBINED_SHADOWS);
 }
 
-static void update_caustics_entity(dafg::NodeHandle &caustics__perCameraResNode,
-  dafg::NodeHandle &caustics__renderNode,
+static void update_caustics_entity(const ecs::string &dafg_camera_registrator__name,
+  bool &caustics__active,
   UniqueTexWithShaderVar &caustics__indoor_probe_mask,
   bool &needs_water_heightmap,
   bool &combined_shadows__use_additional_textures)
 {
-  caustics__perCameraResNode = {};
-  caustics__renderNode = {};
   caustics__indoor_probe_mask.close();
-  if (use_water_caustics())
+  caustics__active = use_water_caustics();
+  recreate_camera_registrator_nodes(dafg_camera_registrator__name);
+  if (caustics__active)
   {
     g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("caustics_settings"));
     needs_water_heightmap = true;
     combined_shadows__use_additional_textures = true;
     ShaderGlobal::set_int(combined_shadows_has_causticsVarId, 1);
-
-    auto [perCameraResNode, renderNode] = makeCausticsNode();
-    caustics__perCameraResNode = eastl::move(perCameraResNode);
-    caustics__renderNode = eastl::move(renderNode);
   }
   else
   {
@@ -105,19 +95,19 @@ ECS_REQUIRE(
   ecs::string &render_settings__waterQuality, ecs::string render_settings__antialiasing_mode, bool render_settings__rayReconstruction)
 static void caustics_water_quality_changed_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  create_caustics_node_ecs_query(manager, [](dafg::NodeHandle &caustics__perCameraResNode, dafg::NodeHandle &caustics__renderNode,
-                                            UniqueTexWithShaderVar &caustics__indoor_probe_mask, bool &needs_water_heightmap,
-                                            bool &combined_shadows__use_additional_textures) {
-    update_caustics_entity(caustics__perCameraResNode, caustics__renderNode, caustics__indoor_probe_mask, needs_water_heightmap,
-      combined_shadows__use_additional_textures);
-  });
+  create_caustics_node_ecs_query(manager,
+    [](const ecs::string &dafg_camera_registrator__name, bool &caustics__active, UniqueTexWithShaderVar &caustics__indoor_probe_mask,
+      bool &needs_water_heightmap, bool &combined_shadows__use_additional_textures) {
+      update_caustics_entity(dafg_camera_registrator__name, caustics__active, caustics__indoor_probe_mask, needs_water_heightmap,
+        combined_shadows__use_additional_textures);
+    });
 }
 
 ECS_TAG(render)
 ECS_ON_EVENT(ChangeRenderFeatures)
 static void caustics_render_features_changed_es(const ecs::Event &evt,
-  dafg::NodeHandle &caustics__perCameraResNode,
-  dafg::NodeHandle &caustics__renderNode,
+  const ecs::string &dafg_camera_registrator__name,
+  bool &caustics__active,
   UniqueTexWithShaderVar &caustics__indoor_probe_mask,
   bool &needs_water_heightmap,
   bool &combined_shadows__use_additional_textures)
@@ -125,19 +115,37 @@ static void caustics_render_features_changed_es(const ecs::Event &evt,
   if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
   {
     if (!changedFeatures->isFeatureChanged(FeatureRenderFlags::FULL_DEFERRED) &&
-        !changedFeatures->isFeatureChanged(FeatureRenderFlags::COMBINED_SHADOWS) &&
-        !changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA))
+        !changedFeatures->isFeatureChanged(FeatureRenderFlags::COMBINED_SHADOWS))
       return;
   }
-  update_caustics_entity(caustics__perCameraResNode, caustics__renderNode, caustics__indoor_probe_mask, needs_water_heightmap,
+  update_caustics_entity(dafg_camera_registrator__name, caustics__active, caustics__indoor_probe_mask, needs_water_heightmap,
     combined_shadows__use_additional_textures);
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraMainViewNodeConstruction)
+ECS_REQUIRE(ecs::Tag caustics_nodes_registrator)
+static void caustics_view_nodes_es(const OnCameraMainViewNodeConstruction &evt, bool caustics__active)
+{
+  if (!caustics__active)
+    return;
+  evt.nodes->push_back(makeCausticsPerCameraResNode());
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraPerViewNodeConstruction)
+ECS_REQUIRE(ecs::Tag caustics_nodes_registrator)
+static void caustics_view_nodes_es(const OnCameraPerViewNodeConstruction &evt, bool caustics__active)
+{
+  if (!caustics__active)
+    return;
+  evt.nodes->push_back(makeCausticsRenderNode(evt.viewNsName, evt.isMainView));
 }
 
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_render_es as early as possible
 static void caustics_before_render_es(const UpdateStageInfoBeforeRender &,
-  dafg::NodeHandle &caustics__perCameraResNode,
-  dafg::NodeHandle &caustics__renderNode,
+  bool caustics__active,
   UniqueTexWithShaderVar &caustics__indoor_probe_mask,
   const ShadersECS &caustics__indoor_probe_shader)
 {
@@ -147,7 +155,7 @@ static void caustics_before_render_es(const UpdateStageInfoBeforeRender &,
   if (!scene)
     return;
 
-  if (caustics__perCameraResNode && caustics__renderNode && !caustics__indoor_probe_mask)
+  if (caustics__active && !caustics__indoor_probe_mask)
   {
     TIME_D3D_PROFILE(CausticsIndoorProbeMask);
 

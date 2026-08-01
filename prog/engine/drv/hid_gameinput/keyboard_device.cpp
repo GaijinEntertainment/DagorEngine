@@ -5,7 +5,7 @@
 #include <supp/_platform.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiGlobals.h>
-#include <osApiWrappers/gdk/gameinput.h>
+#include "gameinput.h"
 #include <util/dag_globDef.h>
 #include <perfMon/dag_statDrv.h>
 #include <EASTL/fixed_vector.h>
@@ -145,8 +145,8 @@ void GameInputKeyboardDevice::update()
 {
   TIME_PROFILE(HID_GINP_updateKeyboard);
 
-  gdk::gameinput::DevicesList devices;
-  gdk::gameinput::get_devices(GameInputKindKeyboard, devices);
+  gameinput::DevicesList devices;
+  gameinput::get_devices(GameInputKindKeyboard, devices);
 
   KeyboardRawState newState = {};
 
@@ -155,7 +155,7 @@ void GameInputKeyboardDevice::update()
     if (!dev)
       continue;
 
-    gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindKeyboard, dev);
+    gameinput::Reading reading = gameinput::get_current_reading(GameInputKindKeyboard, dev);
     if (!reading)
       continue;
 

@@ -18,6 +18,7 @@ IGenJoystickClassDrv *createJoystickClassDriver(bool exclude_xinput = false, boo
 IGenJoystickClassDrv *createXinputJoystickClassDriver(bool should_mix_input = false);
 IGenJoystickClassDrv *createGameInputJoystickClassDriver(bool should_mix_input = false);
 IGenJoystickClassDrv *createGameInputFlightStickClassDriver();
+CompositeJoystickClassDriver *createGameInputCompositeJoystickClassDriver(bool should_mix_input = false, bool add_flight_stick = true);
 IGenKeyboardClassDrv *createGameInputKeyboardClassDriver();
 IGenJoystickClassDrv *createSteamJoystickClassDriver(const char *absolute_path_to_controller_config);
 

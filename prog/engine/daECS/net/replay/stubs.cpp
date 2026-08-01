@@ -18,7 +18,7 @@ public:
 class StubConnection final : public net::Connection
 {
 public:
-  StubConnection() : Connection(*g_entity_mgr, 0) {}
+  StubConnection(ecs::EntityManager &mgr) : Connection(mgr, 0) {}
   virtual bool isBlackHole() const override { return true; }
   virtual void sendEcho(const char *, uint32_t) override {}
   virtual bool send(int, const danet::BitStream &, PacketPriority, PacketReliability, uint8_t, int) override { return true; }
@@ -32,4 +32,4 @@ public:
 
 net::INetDriver *net::create_stub_net_driver() { return new StubNetDriver; }
 
-net::Connection *net::create_stub_connection() { return new StubConnection; }
+net::Connection *net::create_stub_connection(ecs::EntityManager &mgr) { return new StubConnection(mgr); }

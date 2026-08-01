@@ -35,6 +35,19 @@ int bvh_impostor_end_offset = 0;
 int bvh_decals = 0;
 interval bvh_decals: no < 1, yes;
 
+int bvh_has_omm_support = 0;
+interval bvh_has_omm_support: no < 1, yes;
+
+int bvh_use_group_gpu_foliage = 0;
+int bvh_use_group_water = 0;
+int bvh_use_group_camo_net = 0;
+interval bvh_use_group_gpu_foliage: no < 1, yes;
+interval bvh_use_group_water: no < 1, yes;
+interval bvh_use_group_camo_net: no < 1, yes;
+assume_if_not_assumed bvh_use_group_gpu_foliage = no;
+assume_if_not_assumed bvh_use_group_water = no;
+assume_if_not_assumed bvh_use_group_camo_net = no;
+
 hlsl
 {
   #define INF 1e6
@@ -148,7 +161,7 @@ macro INIT_MAIN_BVH(stage, coherent_rays, thirty_two_waves)
     ##else
       #define RT_GROUP_SIZE [numthreads(16, 8, 1)]
       #define AHSLambda
-      #define GenericRayQuery(flags, lambda) RayQuery<flags>
+        #define GenericRayQuery(flags, lambda) RayQuery<flags>
     ##endif
 
     #define AHSArgs float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace, uint instanceIndex
@@ -341,13 +354,27 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
     static const uint bvhMaterialTypeMask = (1 << 4) - 1;
 
     static const uint bvhGroupTerrain     = 1 << 0;
-    static const uint bvhGroupGPUFoliage  = 1 << 1;
-    static const uint bvhGroupRi          = 1 << 2;
-    static const uint bvhGroupDynrend     = 1 << 3;
-    static const uint bvhGroupGrass       = 1 << 4;
-    static const uint bvhGroupImpostor    = 1 << 5;
-    static const uint bvhGroupNoShadow    = 1 << 6;
+    static const uint bvhGroupRi          = 1 << 1;
+    static const uint bvhGroupDynrend     = 1 << 2;
+    static const uint bvhGroupGrass       = 1 << 3;
+    static const uint bvhGroupImpostor    = 1 << 4;
+    static const uint bvhGroupNoShadow    = 1 << 5;
+    ##if bvh_use_group_gpu_foliage == yes
+    static const uint bvhGroupGPUFoliage  = 1 << 6;
+    ##else
+    static const uint bvhGroupGPUFoliage  = 0;
+    ##endif
+
+    ##if bvh_use_group_water == yes
     static const uint bvhGroupWater       = 1 << 7;
+    static const uint bvhGroupCamoNet     = 0;
+    ##elif bvh_use_group_camo_net == yes
+    static const uint bvhGroupCamoNet     = 1 << 7;
+    static const uint bvhGroupWater       = 0;
+    ##else
+    static const uint bvhGroupCamoNet     = 0;
+    static const uint bvhGroupWater       = 0;
+    ##endif
 
     static const uint bvhGroupAll = 0xff;
 
@@ -356,7 +383,7 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
     static const uint bvhGroupHardShadow = bvhGroupAll & ~bvhGroupTerrain & ~bvhGroupGrass & ~bvhGroupNoShadow & ~bvhGroupWater;
     static const uint bvhGroupAO         = bvhGroupAll & ~bvhGroupWater;
     static const uint bvhGroupGI         = bvhGroupAll & ~bvhGroupGrass & ~bvhGroupWater & ~bvhGroupGPUFoliage;
-    static const uint bvhGroupProbe      = bvhGroupAll & ~bvhGroupGrass & ~bvhGroupDynrend & ~bvhGroupGPUFoliage;
+    static const uint bvhGroupProbe      = bvhGroupAll & ~bvhGroupGrass & ~bvhGroupDynrend & ~bvhGroupCamoNet & ~bvhGroupGPUFoliage;
     static const uint bvhGroupWaterRefl  = bvhGroupAll & ~bvhGroupWater;
 
     struct LayerData
@@ -367,6 +394,10 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
       float  objectScale;
     };
 
+    bool is_meta_initialized(BVHMeta meta)
+    {
+      return meta.initialized;
+    }
     uint get_material_type(uint material)
     {
       return material & bvhMaterialTypeMask;
@@ -751,7 +782,7 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
     }
 
     template<bool is_terrain>
-    HitInfo CalcHitInfo(float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, float2 barycentrics2, float3x4 to_world, float3x4 to_model, bool isFrontFace, uint instanceIndex, half3 defaultColor)
+    HitInfo CalcHitInfo(float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, float2 barycentrics2, float3x4 to_world, float3x4 to_model, bool isFrontFace, uint instanceIndex)
     {
       HitInfo hitInfo = (HitInfo)0;
 
@@ -764,8 +795,14 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
       hitInfo.centerWorldPos = to_world._14_24_34 + bvh_origin;
 
       bool isImpostor = !is_terrain && instanceIndex >= bvh_impostor_begin_end.x && instanceIndex < bvh_impostor_begin_end.y;
-      uint bhvMetaIndex = instanceId + (isImpostor ? 0 : geometryIndex);
-      BVHMeta meta = structuredBufferAt(bvh_meta, bhvMetaIndex);
+      uint bvhMetaIndex = instanceId + (isImpostor ? 0 : geometryIndex);
+
+      ##assert(bvhMetaIndex < bvh_meta_count, "CalcHitInfo accessed meta %d, but max is %d", bvhMetaIndex, bvh_meta_count);
+
+      BVHMeta meta = structuredBufferAt(bvh_meta, bvhMetaIndex);
+
+      ##assert(is_meta_initialized(meta), "Uninitialized meta found at %d.", bvhMetaIndex);
+
       hitInfo.material = meta.materialType;
       hitInfo.albedoTextureIndex = get_albedo_texture_index(meta);
       hitInfo.alphaTextureIndex = get_alpha_texture_index(meta);
@@ -788,7 +825,7 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
       hitInfo.rawLayerData = meta.layerData;
       hitInfo.rawAtlasTileSize = meta.atlasTileSize;
       hitInfo.rawAtlasFirstLastTile = meta.atlasFirstLastTile;
-      hitInfo.vertexColor = defaultColor;
+      hitInfo.vertexColor = 1;
       hitInfo.instanceColor = 1;
       hitInfo.isNonMetal = meta.forceNonMetal;
       hitInfo.hasColorMod = meta.hasColorMod;
@@ -972,7 +1009,6 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     struct IsObstructedAHSLambda AHSLambda
     {
       float primaryT;
-      half3 defaultColor;
       int callCounter;
 
       bool InlineAHSImpl(AHSArgs)
@@ -997,7 +1033,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       ##endif
     };
 
-    bool is_obstructed(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, half3 defaultColor = 1, uint extra_flags = 0)
+    bool is_obstructed(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, uint extra_flags = 0)
     {
       const uint flags = RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_CULL_BACK_FACING_TRIANGLES | RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
 
@@ -1013,7 +1049,6 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 
       IsObstructedAHSLambda lambda;
       lambda.primaryT = primaryT;
-      lambda.defaultColor = defaultColor;
       lambda.callCounter = 0;
 
       ##if hardware.scarlett
@@ -1021,9 +1056,11 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       ##else
         while (query.Proceed())
         {
-          // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
-          if (lambda.InlineAHSImpl(PassAHSParams))
-            query.CommitNonOpaqueTriangleHit();
+          ##if bvh_has_omm_support == no
+            // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
+            if (lambda.InlineAHSImpl(PassAHSParams))
+              query.CommitNonOpaqueTriangleHit();
+          ##endif
         }
       ##endif
 
@@ -1031,7 +1068,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     }
 ##else // hardware.ps5
     template<bool is_terrain>
-    HitInfo CalcHitInfoPS(float3 ray_origin, float3 ray_dir, sce::Psr::Hit hit, half3 default_color)
+    HitInfo CalcHitInfoPS(float3 ray_origin, float3 ray_dir, sce::Psr::Hit hit)
     {
       float m[12] = hit.m_instance->m_objectToWorld3x4; // row-major
       float n[12] = hit.m_instance->m_worldToObject3x4; // row-major
@@ -1058,8 +1095,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         objToWorld,
         worldToObj,
         hit.m_hitKind == sce::Psr::HitKind::kTriangleFrontFace,
-        hit.m_instanceIndex,
-        default_color);
+        hit.m_instanceIndex);
     }
 
     bool is_obstructed(RaytracingAccelerationStructure bvh,
@@ -1069,7 +1105,6 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         float ray_max,
         float primaryT,
         uint group_mask,
-        half3 default_color = 1,
         uint extra_flags = 0)
     {
       constexpr auto optimizedFlags = DEFAULT_TRAVERSAL_FLAFS;
@@ -1137,7 +1172,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     };
 
     template<typename ScreenSample, bool is_terrain>
-    bool trace_ray_with_screen_sample(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, half3 defaultColor = 1, uint extra_flags = 0)
+    bool trace_ray_with_screen_sample(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, uint extra_flags = 0)
     {
       hit_info = (HitInfo)0;
       ray_color = 1;
@@ -1170,9 +1205,11 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
       ##else
         while (query.Proceed())
         {
-          // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
-          if (lambda.InlineAHSImpl(PassAHSParams))
-            query.CommitNonOpaqueTriangleHit();
+          ##if bvh_has_omm_support == no
+            // Can only be CANDIDATE_NON_OPAQUE_TRIANGLE
+            if (lambda.InlineAHSImpl(PassAHSParams))
+              query.CommitNonOpaqueTriangleHit();
+          ##endif
         }
       ##endif
 
@@ -1203,8 +1240,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
                                              query.CommittedObjectToWorld3x4(),
                                              query.CommittedWorldToObject3x4(),
                                              query.CommittedTriangleFrontFace(),
-                                             query.CommittedInstanceIndex(),
-                                             defaultColor);
+                                             query.CommittedInstanceIndex());
         }
         ray_color = 0;
         return true;
@@ -1216,7 +1252,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
 ##else // hardware.ps5
     template<typename ScreenSample, bool is_terrain>
     bool trace_ray_with_screen_sample(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT,
-      uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, half3 default_color = 1, uint extra_flags = 0)
+      uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, uint extra_flags = 0)
     {
       hit_info = HitInfo();
 
@@ -1291,7 +1327,7 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
         }
         else
         {
-          hit_info  = CalcHitInfoPS<is_terrain>(ray_origin, ray_direction, psHit, default_color);
+          hit_info  = CalcHitInfoPS<is_terrain>(ray_origin, ray_direction, psHit);
         }
         ray_color = 0;
         return true;
@@ -1312,25 +1348,25 @@ macro USE_MAIN_BVH(stage, need_textures, need_normal, need_color, cull_back_face
     };
 
     template<bool is_terrain = false>
-    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, half3 defaultColor = 1, uint extra_flags = 0)
+    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, out half3 ray_color, out float translucent_t, uint extra_flags = 0)
     {
-      return trace_ray_with_screen_sample<NoScreenSample, is_terrain >(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, ray_color, translucent_t, defaultColor, extra_flags);
+      return trace_ray_with_screen_sample<NoScreenSample, is_terrain >(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, ray_color, translucent_t, extra_flags);
     }
 
     template<bool is_terrain = false>
-    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, half3 defaultColor = 1, uint extra_flags = 0)
+    bool trace_ray(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, uint extra_flags = 0)
     {
       half3 rayColor;
       float translucentT;
-      return trace_ray<is_terrain>(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, rayColor, translucentT, defaultColor, extra_flags);
+      return trace_ray<is_terrain>(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, rayColor, translucentT, extra_flags);
     }
 
     template<typename ScreenSample, bool is_terrain = false>
-    bool trace_ray_with_screen_sample(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, half3 defaultColor = 1, uint extra_flags = 0)
+    bool trace_ray_with_screen_sample(RaytracingAccelerationStructure bvh, float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, uint group_mask, out HitInfo hit_info, uint extra_flags = 0)
     {
       half3 rayColor = 1;
       float translucentT = 0;
-      return trace_ray_with_screen_sample<ScreenSample, is_terrain>(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, rayColor, translucentT, defaultColor, extra_flags);
+      return trace_ray_with_screen_sample<ScreenSample, is_terrain>(bvh, ray_origin, ray_direction, ray_min, ray_max, primaryT, group_mask, hit_info, rayColor, translucentT, extra_flags);
     }
   }
 endmacro
@@ -1554,7 +1590,6 @@ macro USE_BVH_FX_RENDER(stage)
       uint cursor;
 
       float4 resultColor;
-      float3 defaultColor;
       float resultAlpha;
       float smoothness;
 
@@ -1663,7 +1698,7 @@ macro USE_BVH_FX_RENDER(stage)
     };
 
   ##if !hardware.ps5
-    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float smoothness = 0.0, float3 defaultColor = 1)
+    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float smoothness = 0.0)
     {
       [branch]
       if (!bvhParticlesValid)
@@ -1689,7 +1724,6 @@ macro USE_BVH_FX_RENDER(stage)
       lambda.rayMax = ray_max;
       lambda.cursor = 0;
       lambda.resultColor = float4(0, 0, 0, 1);
-      lambda.defaultColor = defaultColor;
       lambda.resultAlpha = 0;
       lambda.smoothness = smoothness;
 
@@ -1717,7 +1751,7 @@ macro USE_BVH_FX_RENDER(stage)
       }
     }
   ##else
-    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float smoothness = 0.0, float3 defaultColor = 1)
+    void trace_ray_fx_translucent(float3 ray_origin, float3 ray_direction, float ray_min, float ray_max, float primaryT, inout float3 color_inout, inout float translucent_t, float smoothness = 0.0)
     {
       [branch]
       if (!bvhParticlesValid)
@@ -1728,7 +1762,6 @@ macro USE_BVH_FX_RENDER(stage)
       lambda.rayMax = ray_max;
       lambda.cursor = 0;
       lambda.resultColor = float4(0, 0, 0, 1);
-      lambda.defaultColor = defaultColor;
       lambda.resultAlpha = 0;
       lambda.smoothness = smoothness;
 
@@ -1790,7 +1823,7 @@ macro USE_BVH_FX_RENDER(stage)
   }
 endmacro
 
-macro USE_BVH_FOR_RENDER(stage)
+macro USE_BVH_FOR_DEBUG(stage)
   USE_BVH(stage, 1, 1, 0, 1, 1, 0, 0, 0)
 endmacro
 

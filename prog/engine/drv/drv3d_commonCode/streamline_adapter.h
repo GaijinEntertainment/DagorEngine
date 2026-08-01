@@ -112,7 +112,7 @@ public:
 
   bool evaluate(const nv::DlssGParams<void> &params, void *commandBuffer);
 
-  static int getMaximumNumberOfGeneratedFrames();
+  static nv::DLSSFrameGenerationCapabilities getFrameGenerationCapabilities();
   uint64_t getMemorySize() const;
 
 private:
@@ -127,8 +127,7 @@ private:
   mutable dag::AtomicInteger<uint32_t> presentedFramesAccum{0};
   // estimatedVRAMUsageInBytes, refreshed by the backend each frame FG runs.
   dag::AtomicInteger<uint64_t> cachedMemorySize{0};
-  // numFramesToGenerateMax is a fixed GPU capability; -1 means "not queried yet".
-  static dag::AtomicInteger<int> cachedMaxFramesToGenerate;
+  static dag::AtomicPod<nv::DLSSFrameGenerationCapabilities> cachedFrameGenerationCapabilities;
 };
 
 class Reflex
@@ -261,9 +260,10 @@ public:
   void releaseDlssGFeature(int viewport_id) { dlssGFeatures[viewport_id].reset(); }
   void releaseReflexFeature() { reflexFeature.reset(); }
 
-  int getMaximumNumberOfGeneratedFrames() const override
+  nv::DLSSFrameGenerationCapabilities getFrameGenerationCapabilities() const override
   {
-    return isDlssGSupported() == nv::SupportState::Supported ? DLSSFrameGeneration::getMaximumNumberOfGeneratedFrames() : 0;
+    return isDlssGSupported() == nv::SupportState::Supported ? DLSSFrameGeneration::getFrameGenerationCapabilities()
+                                                             : nv::DLSSFrameGenerationCapabilities{};
   }
 
   bool isDlssModeAvailableAtResolution(nv::DLSS::Mode mode, const IPoint2 &resolution) const override

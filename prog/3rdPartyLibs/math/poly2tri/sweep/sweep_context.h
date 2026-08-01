@@ -66,7 +66,7 @@ Point* tail();
 
 int point_count();
 
-Node& LocateNode(Point& point);
+Node* LocateNode(Point& point);
 
 void RemoveNode(Node* node);
 

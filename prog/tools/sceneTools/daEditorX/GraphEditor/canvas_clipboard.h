@@ -17,5 +17,7 @@ struct CanvasClipboard
   bool empty() const { return nodes.empty(); }
 
   void captureSelection(const GraphPanel &panel, const GraphData &graph);
-  void paste(GraphPanel &panel, const ImVec2 &paste_origin_canvas) const;
+
+  void paste(GraphPanel &panel, const ImVec2 &paste_origin_canvas, eastl::vector<GraphData::Node> &out_nodes,
+    eastl::vector<GraphData::Edge> &out_edges) const;
 };

@@ -12,6 +12,7 @@ class BBox3;
 struct bbox3f;
 class BaseTexture;
 class Sbuffer;
+class TMatrix4;
 namespace resptr_detail
 {
 template <typename ResType>
@@ -32,7 +33,7 @@ struct WorldSDF
 {
   static float get_voxel_size(float voxel0Size, uint32_t clip);
   virtual ~WorldSDF();
-  virtual void debugRender() = 0;
+  virtual void debugRender(const TMatrix4 &globtm) = 0;
   virtual void update(const Point3 &pos, const request_instances_cb &cb, const request_prefetch_cb &rcb,
     const render_instances_cb &render_cb, uint32_t allow_update_mask = ~0u) = 0;
   virtual void invalidateBox(const BBox3 &box) = 0;

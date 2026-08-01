@@ -2,6 +2,7 @@
 
 #include "effFromAttachment.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 #include "../animParamData.h"
 
 #include <ioSys/dag_dataBlock.h>
@@ -69,7 +70,6 @@ void eff_from_attachment_save_block_settings(PropPanel::ContainerPropertyControl
   const char *defaultWtModulate = settings->getStr("wtModulate", "");
   const bool defaultWtModulateInverse = settings->getBool("wtModulateInverse", DEFAULT_WT_MODULATE_INVERSE);
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
   if (listName.empty())
     return;
 
@@ -98,7 +98,7 @@ void eff_from_attachment_save_block_settings(PropPanel::ContainerPropertyControl
     selectedBlock->setStr("effector", effectorValue.c_str());
   if (writeMatrixValue != DEFAULT_WRITE_MATRIX)
     selectedBlock->setBool("writeMatrix", writeMatrixValue);
-  if (wtModulateValue != "")
+  if (wtModulateValue != defaultWtModulate)
     selectedBlock->setStr("wtModulate", wtModulateValue.c_str());
   if (wtModulateInverseValue != defaultWtModulateInverse)
     selectedBlock->setBool("wtModulateInverse", wtModulateInverseValue);
@@ -149,8 +149,30 @@ void eff_from_attachment_set_selected_node_list_settings(PropPanel::ContainerPro
 
 void eff_from_attachment_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (removeName == settings->getBlock(i)->getStr("node", nullptr))
-      settings->removeBlock(i);
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "node");
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
+}
+
+class EffFromAttachmentReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  EffFromAttachmentReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    dag::Vector<int> positions = collect_block_positions_by_name(settings, "node");
+    move_block_at_positions(settings, positions, from, to);
+  }
+};
+
+IListReorderHandler *eff_from_attachment_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new EffFromAttachmentReorderHandler(plugin, controllers, panel);
 }

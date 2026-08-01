@@ -37,11 +37,10 @@ struct Capsule
     vec4f width = v_perm_xyzz(v_bbox3_size(bbox));
     vec4f maxWidth = v_bbox3_max_size(bbox);
     vec3f maxWidthMask = v_cmp_eqi(width, maxWidth);
-    int signMask = v_signmask(maxWidthMask) & (1 | 2 | 4);
-    vec3f singleMaxWidthMask = v_make_vec4f_mask((1 << __bsf_unsafe(signMask)));
+    // lane w duplicates z, so the lowest set bit is always within xyz
+    vec3f singleMaxWidthMask = v_make_vec4f_mask(uint8_t(1 << __bsf_unsafe(v_truemask(maxWidthMask))));
     vec3f midWidth = v_andnot(maxWidthMask, width);
-    midWidth = v_max(midWidth, v_rot_1(midWidth));
-    midWidth = v_max(midWidth, v_rot_2(midWidth));
+    midWidth = v_hmax(midWidth);
     vec3f rad = v_mul(midWidth, V_C_HALF);
     vec3f halfDl = v_and(v_sub(v_mul(width, V_C_HALF), rad), singleMaxWidthMask);
     vec3f c = v_bbox3_center(bbox);
@@ -50,7 +49,7 @@ struct Capsule
   void transform(mat44f_cref tm)
   {
     vec4f v0 = v_ldu(&a.x);
-    vec3f v1 = v_ldu(&b.x);
+    vec3f v1 = v_ldu_p3_safe(&b.x);
     vec4f radW = v_mul(v0, v_length3(tm.col0));
     v0 = v_mat44_mul_vec3p(tm, v0);
     v1 = v_mat44_mul_vec3p(tm, v1);
@@ -66,15 +65,15 @@ struct Capsule
   float distToAxisSq(vec3f p) const
   {
     vec4f v0 = v_ldu(&a.x);
-    vec3f v1 = v_ldu(&b.x);
-    vec3f cp = closest_point_on_segment(p, v0, v1);
+    vec3f v1 = v_ldu_p3_safe(&b.x);
+    vec3f cp = v_closest_point_on_segment(p, v0, v1);
     cp = v_sel(cp, v0, v_cmp_eq(v0, v1));
     return v_extract_x(v_length3_sq_x(v_sub(p, cp)));
   }
   vec3f getCenter() const
   {
     vec4f v0 = v_ldu(&a.x);
-    vec3f v1 = v_ldu(&b.x);
+    vec3f v1 = v_ldu_p3_safe(&b.x);
     return v_mul(v_add(v0, v1), V_C_HALF);
   }
   Point3 getCenterScalar() const
@@ -86,7 +85,7 @@ struct Capsule
   bbox3f getBoundingBox() const
   {
     vec4f v0 = v_ldu(&a.x);
-    vec3f v1 = v_ldu(&b.x);
+    vec3f v1 = v_ldu_p3_safe(&b.x);
     vec4f rad = v_splat_w(v0);
     bbox3f bbox;
     v_bbox3_init(bbox, v0);
@@ -104,7 +103,7 @@ struct Capsule
   vec4f getBoundingSphere() const // xyz|r
   {
     vec4f v0 = v_ldu(&a.x);
-    vec3f v1 = v_ldu(&b.x);
+    vec3f v1 = v_ldu_p3_safe(&b.x);
     vec4f len = v_length3(v_sub(v0, v1));
     vec3f c = v_mul(v_add(v0, v1), V_C_HALF);
     vec4f rad = v_add(v0, v_mul(len, V_C_HALF)); // in .w
@@ -123,7 +122,7 @@ struct Capsule
     if (!v_bbox3_test_box_intersect(getBoundingBox(), c.getBoundingBox()))
       return false;
     vec4f v0 = v_ldu(&c.a.x);
-    vec3f v1 = v_ldu(&c.b.x);
+    vec3f v1 = v_ldu_p3_safe(&c.b.x);
     float rad = v_extract_w(v0);
     vec4f vDir = v_sub(v1, v0);
     vec4f vLen = v_length3(vDir);
@@ -134,7 +133,7 @@ struct Capsule
   bool cliptest(bbox3f bbox) const // too bad implementation
   {
     vec4f v0 = v_ldu(&a.x);
-    vec3f v1 = v_ldu(&b.x);
+    vec3f v1 = v_ldu_p3_safe(&b.x);
     vec4f rad = v_splat_w(v0);
     vec4f r2 = v_mul_x(rad, rad);
 
@@ -143,14 +142,14 @@ struct Capsule
     if (v_bbox3_test_sph_intersect(bbox, v1, r2))
       return true;
 
-    vec3f p = closest_point_on_segment(v_bbox3_center(bbox), v0, v1);
+    vec3f p = v_closest_point_on_segment(v_bbox3_center(bbox), v0, v1);
     if (v_bbox3_test_sph_intersect(bbox, p, r2))
       return true;
 
     for (int i = 0; i < 8; i++)
     {
       vec3f v = v_bbox3_point(bbox, i);
-      vec3f vp = closest_point_on_segment(v, v0, v1);
+      vec3f vp = v_closest_point_on_segment(v, v0, v1);
       if (v_bbox3_test_sph_intersect(bbox, vp, r2))
         return true;
     }
@@ -182,7 +181,7 @@ struct Capsule
   bool traceCapsule(vec3f from, vec3f dir, float &len, float rad, vec3f &norm, vec3f &pos) const
   {
     vec4f v0 = v_ldu(&a.x);
-    vec3f v1 = v_ldu(&b.x);
+    vec3f v1 = v_ldu_p3_safe(&b.x);
     vec4f vRad = v_splat_w(v0);
     vec3f vDir = v_sub(v1, v0);
     vec4f vLen = v_length3(vDir);

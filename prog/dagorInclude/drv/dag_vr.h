@@ -290,3 +290,20 @@ private:
   StateChangeListerer stateChangeListener = nullptr;
   State currentState = State::Uninitialized;
 };
+
+namespace vr
+{
+void set_stereo_index(StereoIndex index, bool update_driver = true);
+
+StereoIndex get_stereo_index();
+
+class NonLinearRenderingScope
+{
+  StereoIndex index = StereoIndex::Mono;
+
+public:
+  constexpr NonLinearRenderingScope(StereoIndex index) : index{index} {}
+  ~NonLinearRenderingScope();
+};
+[[nodiscard]] NonLinearRenderingScope suppress_non_linear_rendering();
+} // namespace vr

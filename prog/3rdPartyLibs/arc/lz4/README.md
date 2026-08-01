@@ -1,6 +1,10 @@
 LZ4 - Library Files
 ================================
 
+Upstream: LZ4, https://github.com/lz4/lz4
+Vendored version: 1.9.4 (see LZ4_VERSION_MAJOR/MINOR/RELEASE in lz4.h)
+
+
 The `/lib` directory contains many files, but depending on project's objectives,
 not all of them are required.
 Limited systems may want to reduce the nb of source files to include

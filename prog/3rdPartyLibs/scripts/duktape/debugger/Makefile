@@ -14,14 +14,14 @@ endif
 all: run
 
 .PHONY: run
-run: node_modules static/socket.io-1.2.0.js static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
+run: node_modules static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
 	"$(NODE)" duk_debug.js --source-dirs=$(SOURCEDIRS)
 
-rundebug: node_modules static/socket.io-1.2.0.js static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
+rundebug: node_modules static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
 	"$(NODE)" duk_debug.js --source-dirs=$(SOURCEDIRS) --verbose --log-messages /tmp/dukdebug-messages --dump-debug-pretty /tmp/dukdebug-pretty
 
 .PHONY: runproxynodejs
-runproxynodejs: node_modules static/socket.io-1.2.0.js static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
+runproxynodejs: node_modules static/jquery-1.11.1.min.js static/reset.css static/jquery-ui.min.js static/jquery-ui.min.css static/images
 	@echo "Running Node.js based debug proxy"
 	"$(NODE)" duk_debug.js --json-proxy
 
@@ -35,7 +35,6 @@ runproxy: runproxydukluv
 
 .PHONY: clean
 clean:
-	@rm -f static/socket.io-1.2.0.js
 	@rm -f static/jquery-1.11.1.min.js
 	@rm -f static/jquery.syntaxhighlighter.min.js
 	@rm -f static/jquery.snippet.min.js
@@ -59,9 +58,6 @@ duk_debug_meta.json:
 		--opcodes duk_opcodes.yaml \
 		--debug-commands duk_debugcommands.yaml \
 		--debug-errors duk_debugerrors.yaml
-
-static/socket.io-1.2.0.js:
-	wget -O $@ http://cdn.socket.io/socket.io-1.2.0.js
 
 static/jquery-1.11.1.min.js:
 	wget -O $@ http://code.jquery.com/jquery-1.11.1.min.js

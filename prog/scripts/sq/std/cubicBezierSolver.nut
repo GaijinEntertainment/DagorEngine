@@ -4,19 +4,19 @@ from "math" import fabs
  * Adjust at http://cubic-bezier.com/
  */
 
-function sampleCurveX(t, ax, bx, cx) {
+function sampleCurveX(t: number, ax: number, bx: number, cx: number): number {
   return ((ax * t + bx) * t + cx) * t
 }
 
-function sampleCurveY(t, ay, by, cy) {
+function sampleCurveY(t: number, ay: number, by: number, cy: number): number {
   return ((ay * t + by) * t + cy) * t
 }
 
-function sampleCurveDerivativeX(t, ax, bx, cx) {
+function sampleCurveDerivativeX(t: number, ax: number, bx: number, cx) {
   return (3.0 * ax * t + 2.0 * bx) * t + cx
 }
 
-function solveCurveX(x, epsilon, ax, bx, cx) {
+function solveCurveX(x: number, epsilon, ax, bx, cx): number {
   local t0
   local t1
   local t2 = x
@@ -63,7 +63,7 @@ function solveCurveX(x, epsilon, ax, bx, cx) {
 
 const epsilon = 0.000001 // Precision
 
-function solveCubicBezier(t, p1x, p1y, p2x, p2y) {
+function solveCubicBezier(t: number, p1x: number, p1y: number, p2x: number, p2y: number): number {
   // Pre-calculate the polynomial coefficients.
   // First and last control points are implied to be (0,0) and (1.0, 1.0).
   let cx = 3.0 * p1x

@@ -148,7 +148,11 @@ static Node* CreatePrintfString(const char* format, ...) {
   const int written = vsnprintf(ptr, gBumpAllocator.size, format, arglist);
   va_end(arglist);
   if (written < 0 || written >= (int)gBumpAllocator.size) internal_error();
-  return CreateConstantString((char*)BA_Bump(written));
+  // `vsnprintf` does not set `\0` when no characters are to be written.
+  if (written == 0) *ptr = '\0';
+  // `vsnprintf` returns the number of printed characters excluding `\0`.
+  const int null_terminated_written = written + 1;
+  return CreateConstantString((char*)BA_Bump(null_terminated_written));
 }
 
 // Adds a string node.

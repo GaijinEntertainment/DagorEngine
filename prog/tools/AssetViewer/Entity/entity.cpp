@@ -4,6 +4,7 @@
 #include "../av_appwnd.h"
 #include "../av_viewportWindow.h"
 #include <assets/asset.h>
+#include <assets/assetMgr.h>
 #include <de3_interface.h>
 #include <de3_lodController.h>
 #include <de3_animCtrl.h>
@@ -49,6 +50,7 @@
 
 #include "../physObj/phys.h"        // for ragdoll
 #include "../collision/collision.h" // for colliders
+#include "../canopyEditor.h"
 
 #include <math/dag_rayIntersectBox.h>                      // for position gizmo
 #include <libTools/util/positionReconstructionFromDepth.h> // for position gizmo (surface "raycast")
@@ -65,6 +67,7 @@
 #include <assetsGui/av_assetTreeDragHandler.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <EASTL/bonus/fixed_ring_buffer.h>
+#include <render/debug3dSolid.h>
 
 using PropPanel::DragAndDropResult;
 
@@ -83,6 +86,44 @@ namespace rendinst
 extern bool persistentRiExtraInstances;
 } // namespace rendinst
 
+static void draw_canopy_preview(const CanopyEditorWindow::ViewportCanopyParams &params, const BBox3 &local_bbox, const TMatrix &tm)
+{
+  if (!params.valid || local_bbox.isempty())
+    return;
+
+  float canopyWidth = params.widthPart * (local_bbox[1].y - local_bbox[0].y) * 0.5f;
+  float boxHeight = local_bbox[1].y - local_bbox[0].y;
+  Point3 boxCenter = local_bbox.center();
+
+  BBox3 canopyBox;
+  canopyBox[0].set(boxCenter.x - canopyWidth, local_bbox[1].y - boxHeight * (params.topPart + params.topOffset),
+    boxCenter.z - canopyWidth);
+  canopyBox[1].set(boxCenter.x + canopyWidth, local_bbox[1].y - boxHeight * params.topOffset, boxCenter.z + canopyWidth);
+
+  static const Color4 boxColor(0.5f, 1.0f, 1.0f, 0.5f);
+  static const Color4 coneColor(1.0f, 0.5f, 0.5f, 0.5f);
+  static const Color4 spheroidColor(1.0f, 1.0f, 0.0f, 0.5f);
+
+  if (params.shape == CanopyEditorWindow::ViewportCanopyParams::CONE)
+  {
+    float canopyHeight = canopyBox.boxMax().y - canopyBox.boxMin().y;
+    Point3 bottomCenter(canopyBox.center().x, canopyBox.boxMin().y, canopyBox.center().z);
+    draw_debug_solid_cone(tm * bottomCenter, normalize(tm % Point3(0, 1, 0)), canopyWidth, canopyHeight, 8, coneColor);
+  }
+  else if (params.shape == CanopyEditorWindow::ViewportCanopyParams::SPHEROID)
+  {
+    TMatrix canopyTm = TMatrix::IDENT;
+    canopyTm[0][0] = canopyTm[2][2] = canopyBox.width().x * 0.5f;
+    canopyTm[1][1] = canopyBox.width().y * 0.5f;
+    canopyTm.setcol(3, canopyBox.center());
+    draw_debug_solid_sphere(Point3::ZERO, 1.0f, tm * canopyTm, spheroidColor);
+  }
+  else
+  {
+    draw_debug_solid_cube(canopyBox, tm, boxColor);
+  }
+}
+
 class PositionGizmoWrapper
 {
   static constexpr float POSITION_GIZMO_SIZE = 0.5f;
@@ -100,11 +141,9 @@ class PositionGizmoWrapper
     int sx, sy;
     wnd->getViewportSize(sx, sy);
 
-    // TODO: these are soon to be deprecated
-    TMatrix viewRot;
-    d3d::gettm(TM_VIEW, viewRot);
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
+    const ViewportWindow *vpw = static_cast<ViewportWindow *>(wnd);
+    const TMatrix viewRot = vpw->getViewTm();
+    const TMatrix4 projTm = vpw->getProjTm();
 
     // downsampled_far_depth_tex is already downsampled and ready to use
     return position_reconstruction_from_depth::get_position_from_depth(viewRot, projTm,
@@ -297,6 +336,13 @@ public:
     PID_ANIM_ACT_SLOWMO,
     PID_ANIM_RAGDOLL_GROUP,
     PID_ANIM_RAGDOLL_START,
+    PID_ANIM_RAGDOLL_ENGINE_GRP,
+    PID_ANIM_RAGDOLL_DRIVE_GRP,
+    PID_ANIM_RAGDOLL_DRIVE,
+    PID_ANIM_RAGDOLL_MOTOR_TWIST_FREQ,
+    PID_ANIM_RAGDOLL_MOTOR_TWIST_DAMP,
+    PID_ANIM_RAGDOLL_MOTOR_SWING_FREQ,
+    PID_ANIM_RAGDOLL_MOTOR_SWING_DAMP,
     PID_ANIM_RAGDOLL_SPRING_FACTOR,
     PID_ANIM_RAGDOLL_DAMPER_FACTOR,
     PID_ANIM_RAGDOLL_BULLET_IMPULSE,
@@ -364,6 +410,9 @@ public:
       TEXTUREID textureId_asad;
     } impostor;
   } riex;
+  IObjEntity *canopyFxEntity = nullptr;
+  String canopyFxAssetName;
+  float canopyFxRestartTime = 0.0f;
   struct FpsCameraView
   {
     SimpleString name;
@@ -487,6 +536,7 @@ public:
   }
   ~EntityViewPlugin() override
   {
+    destroyCanopyFxPreview();
     destroy_it(entity);
     releaseRiExtra();
   }
@@ -520,7 +570,7 @@ public:
     showTexQualityOption = asset && (asset->getType() == dynModelEntityClassId || asset->getType() == animCharEntityClassId ||
                                       asset->getType() == rendInstEntityClassId || asset->getType() == compositEntityClassId);
 
-    phys_bullet_delete_ragdoll(ragdoll);
+    physsimulator::deleteRagdoll(ragdoll);
     lastAnimStatesSet.clear();
     animPersCoursePid = -1;
     animPersCourseDeltaPid = -1;
@@ -624,7 +674,7 @@ public:
       collisionAssetName.append("_collision");
       if (DagorAsset *collisionAsset = assetMgr.findAsset(collisionAssetName.c_str(), collisionAtype))
       {
-        InitCollisionResource(*collisionAsset, &collisionResource, &collisionResourceNodeTree);
+        InitCollisionResource(*collisionAsset, &collisionResource, collisionResourceNodeTree);
         DAEDITOR3.conNote("Found and inited collision '%s'", collisionAssetName.c_str());
       }
       else
@@ -666,7 +716,7 @@ public:
               break;
         }
         if (animCtrl->getAnimCharBase()->getPhysicsResource())
-          physsimulator::begin(NULL, physsimulator::PHYS_BULLET, 1, physsimulator::SCENE_TYPE_GROUP, 0.0f, coll_plane_ht_front,
+          physsimulator::begin(NULL, ragdollPhysType, 1, physsimulator::SCENE_TYPE_GROUP, 0.0f, coll_plane_ht_front,
             coll_plane_ht_rear);
       }
     }
@@ -730,7 +780,8 @@ public:
       if (auto *ac = animCtrl->getAnimCharBase())
         ac->unregisterIrqHandler(-1, this);
     destroy_it(entity);
-    phys_bullet_delete_ragdoll(ragdoll);
+    physsimulator::deleteRagdoll(ragdoll);
+    destroyCanopyFxPreview();
     releaseRiExtra();
     texNames.reset();
     lastForceAnimSet = 0;
@@ -744,7 +795,7 @@ public:
     positionGizmoWrapper.reset();
 
     clearAssetStats();
-    ReleaseCollisionResource(&collisionResource, &collisionResourceNodeTree);
+    ReleaseCollisionResource(&collisionResource, collisionResourceNodeTree);
 
     if (currentAnimcharEid)
       g_entity_mgr->destroyEntity(currentAnimcharEid);
@@ -981,8 +1032,117 @@ public:
     return true;
   }
 
+  bool getCanopyPreviewBoxAndTm(BBox3 &box, TMatrix &tm) const
+  {
+    if (riex.res)
+    {
+      box = riex.res->bbox;
+      tm = rotyTM(rotY * DEG_TO_RAD) * rotxTM(rotX * DEG_TO_RAD);
+      return true;
+    }
+
+    if (!entity)
+      return false;
+
+    box = entity->getBbox();
+    entity->getTm(tm);
+    return true;
+  }
+
+  bool getCanopyPreviewTm(TMatrix &tm) const
+  {
+    if (riex.res)
+    {
+      tm = rotyTM(rotY * DEG_TO_RAD) * rotxTM(rotX * DEG_TO_RAD);
+      return true;
+    }
+
+    if (!entity)
+      return false;
+
+    entity->getTm(tm);
+    return true;
+  }
+
+  void updateCanopyFxPreviewViewports()
+  {
+    IEditorCoreEngine::get()->invalidateViewportCache();
+    IEditorCoreEngine::get()->updateViewports();
+  }
+
+  bool destroyCanopyFxPreview()
+  {
+    const bool hadEntity = canopyFxEntity != nullptr;
+    destroy_it(canopyFxEntity);
+    canopyFxAssetName.clear();
+    canopyFxRestartTime = 0.0f;
+    return hadEntity;
+  }
+
+  bool recreateCanopyFxPreview(const char *fx_asset_name)
+  {
+    const bool changed = destroyCanopyFxPreview();
+
+    if (is_empty_string(fx_asset_name))
+      return changed;
+
+    DagorAsset *effectAsset = resolve_canopy_fx_asset(fx_asset_name);
+    if (!effectAsset)
+      return changed;
+
+    canopyFxEntity = DAEDITOR3.createEntity(*effectAsset);
+    if (!canopyFxEntity)
+      return changed;
+
+    canopyFxEntity->setSubtype(DAEDITOR3.registerEntitySubTypeId("rend_ent_geom"));
+    canopyFxAssetName = fx_asset_name;
+    canopyFxRestartTime = 0.0f;
+    return true;
+  }
+
+  void syncCanopyFxPreview(float dt)
+  {
+    const char *desiredFxAssetName = nullptr;
+    if (CanopyEditorWindow *canopyEditor = get_app().getCanopyEditorWindow())
+      desiredFxAssetName = canopyEditor->getViewportFxAssetName();
+
+    if (is_empty_string(desiredFxAssetName))
+    {
+      if (destroyCanopyFxPreview())
+        updateCanopyFxPreviewViewports();
+      return;
+    }
+
+    bool fxPreviewChanged = false;
+    if (!canopyFxEntity || strcmp(canopyFxAssetName, desiredFxAssetName) != 0)
+      fxPreviewChanged = recreateCanopyFxPreview(desiredFxAssetName);
+    else
+    {
+      canopyFxRestartTime += dt;
+      if (canopyFxRestartTime >= 3.0f)
+        fxPreviewChanged = recreateCanopyFxPreview(desiredFxAssetName);
+    }
+
+    if (!canopyFxEntity)
+      return;
+
+    TMatrix fxTm;
+    if (!getCanopyPreviewTm(fxTm))
+    {
+      if (destroyCanopyFxPreview())
+        updateCanopyFxPreviewViewports();
+      return;
+    }
+
+    canopyFxEntity->setTm(fxTm);
+    if (fxPreviewChanged)
+      updateCanopyFxPreviewViewports();
+  }
+
   void actObjects(float dt) override
   {
+    syncCanopyFxPreview(dt);
+
     if (getPluginPanel())
       if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
       {
@@ -1287,8 +1447,18 @@ public:
       physsimulator::renderTrans(true, false, false, false, false, false, drawFloor);
 
     if (showCollider && collisionResource)
-      RenderCollisionResource(*collisionResource, collisionResourceNodeTree, showColliderBbox, showColliderPhysCollidable,
-        showColliderTraceable);
+      if (const ViewportWindow *vpw = static_cast<ViewportWindow *>(EDITORCORE->getRenderViewport()))
+        RenderCollisionResource(*collisionResource, collisionResourceNodeTree.get(), vpw->getViewTm(), vpw->getProjTm(),
+          showColliderBbox, showColliderPhysCollidable, showColliderTraceable);
+
+    if (CanopyEditorWindow *canopyEditor = get_app().getCanopyEditorWindow())
+    {
+      CanopyEditorWindow::ViewportCanopyParams canopyParams;
+      BBox3 canopyBox;
+      TMatrix canopyTm;
+      if (canopyEditor->getViewportCanopyParams(canopyParams) && getCanopyPreviewBoxAndTm(canopyBox, canopyTm))
+        draw_canopy_preview(canopyParams, canopyBox, canopyTm);
+    }
 
     compositeEditorViewport.renderTransObjects(entity);
   }
@@ -1498,6 +1668,20 @@ public:
       {
         PropPanel::ContainerPropertyControl &rdGrp = *animPanel->createGroup(PID_ANIM_RAGDOLL_GROUP, "Ragdoll test");
         rdGrp.createButton(PID_ANIM_RAGDOLL_START, ragdoll ? "stop" : "START");
+
+        if (ragdollPhysType == physsimulator::PHYS_DEFAULT)
+          ragdollPhysType = physsimulator::getDefaultPhys();
+        PropPanel::ContainerPropertyControl &engineGrp = *rdGrp.createRadioGroup(PID_ANIM_RAGDOLL_ENGINE_GRP, "Phys Engine:");
+        engineGrp.createRadio(physsimulator::PHYS_BULLET, "bullet");
+        engineGrp.createRadio(physsimulator::PHYS_JOLT, "jolt");
+        rdGrp.setInt(PID_ANIM_RAGDOLL_ENGINE_GRP, ragdollPhysType);
+
+        PropPanel::ContainerPropertyControl &motoGrp = *rdGrp.createGroup(PID_ANIM_RAGDOLL_DRIVE_GRP, "Motorised Ragdoll");
+        motoGrp.createCheckBox(PID_ANIM_RAGDOLL_DRIVE, "drive bodies to anim pose (motorized)", ragdollDriveToAnim);
+        motoGrp.createEditFloat(PID_ANIM_RAGDOLL_MOTOR_TWIST_FREQ, "twist frequency, Hz", ragdollMotorTwistFreq);
+        motoGrp.createEditFloat(PID_ANIM_RAGDOLL_MOTOR_TWIST_DAMP, "twist damping (ratio)", ragdollMotorTwistDamp);
+        motoGrp.createEditFloat(PID_ANIM_RAGDOLL_MOTOR_SWING_FREQ, "swing frequency, Hz", ragdollMotorSwingFreq);
+        motoGrp.createEditFloat(PID_ANIM_RAGDOLL_MOTOR_SWING_DAMP, "swing damping (ratio)", ragdollMotorSwingDamp);
         rdGrp.createStatic(0, "Spring settings (activated with LMB)");
         rdGrp.createEditFloat(PID_ANIM_RAGDOLL_SPRING_FACTOR, "Spring factor, N/m", physsimulator::springFactor);
         rdGrp.createEditFloat(PID_ANIM_RAGDOLL_DAMPER_FACTOR, "Damper factor", physsimulator::damperFactor);
@@ -1922,6 +2106,41 @@ public:
       physsimulator::damperFactor = panel->getFloat(pcb_id);
     else if (pcb_id == PID_ANIM_RAGDOLL_BULLET_IMPULSE)
       ragdollBulletImpulse = panel->getFloat(pcb_id);
+    else if (pcb_id == PID_ANIM_RAGDOLL_ENGINE_GRP)
+    {
+      int newType = panel->getInt(pcb_id);
+      if (newType != PropPanel::RADIO_SELECT_NONE && newType != ragdollPhysType)
+      {
+        stopRagdoll();
+        ragdollPhysType = newType;
+        if (physsimulator::getPhysWorld())
+          physsimulator::end();
+        physsimulator::begin(NULL, ragdollPhysType, 1, physsimulator::SCENE_TYPE_GROUP, 0.0f, coll_plane_ht_front, coll_plane_ht_rear);
+        panel->setCaption(PID_ANIM_RAGDOLL_START, ragdoll ? "stop" : "START");
+      }
+    }
+    else if (pcb_id == PID_ANIM_RAGDOLL_DRIVE)
+    {
+      ragdollDriveToAnim = panel->getBool(pcb_id);
+      if (ragdoll)
+      {
+        physsimulator::setRagdollDriveToAnimchar(ragdoll, ragdollDriveToAnim);
+        if (ragdollDriveToAnim)
+          physsimulator::setJointsMotorSettings(ragdollMotorTwistFreq, ragdollMotorTwistDamp, ragdollMotorSwingFreq,
+            ragdollMotorSwingDamp);
+      }
+    }
+    else if (pcb_id == PID_ANIM_RAGDOLL_MOTOR_TWIST_FREQ || pcb_id == PID_ANIM_RAGDOLL_MOTOR_TWIST_DAMP ||
+             pcb_id == PID_ANIM_RAGDOLL_MOTOR_SWING_FREQ || pcb_id == PID_ANIM_RAGDOLL_MOTOR_SWING_DAMP)
+    {
+      ragdollMotorTwistFreq = panel->getFloat(PID_ANIM_RAGDOLL_MOTOR_TWIST_FREQ);
+      ragdollMotorTwistDamp = panel->getFloat(PID_ANIM_RAGDOLL_MOTOR_TWIST_DAMP);
+      ragdollMotorSwingFreq = panel->getFloat(PID_ANIM_RAGDOLL_MOTOR_SWING_FREQ);
+      ragdollMotorSwingDamp = panel->getFloat(PID_ANIM_RAGDOLL_MOTOR_SWING_DAMP);
+      if (ragdoll && ragdollDriveToAnim)
+        physsimulator::setJointsMotorSettings(ragdollMotorTwistFreq, ragdollMotorTwistDamp, ragdollMotorSwingFreq,
+          ragdollMotorSwingDamp);
+    }
     else if (pcb_id == PID_ANIM_CHARDEP_PY_OFS || pcb_id == PID_ANIM_CHARDEP_P_SCL || pcb_id == PID_ANIM_CHARDEP_S_SCL)
     {
       if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
@@ -1952,8 +2171,7 @@ public:
       if (!ragdoll)
       {
         physsimulator::end();
-        physsimulator::begin(NULL, physsimulator::PHYS_BULLET, 1, physsimulator::SCENE_TYPE_GROUP, 0.0f, coll_plane_ht_front,
-          coll_plane_ht_rear);
+        physsimulator::begin(NULL, ragdollPhysType, 1, physsimulator::SCENE_TYPE_GROUP, 0.0f, coll_plane_ht_front, coll_plane_ht_rear);
       }
     }
     else if (pcb_id == PID_ANIM_TRACE_ENABLED)
@@ -2041,6 +2259,9 @@ public:
         int stateIdx = pcb_id - PID_ANIM_STATE0;
         animCtrl->enqueueState(stateIdx, forceSpd);
         addAnimStateToHistory(stateIdx);
+        // Sleeping bodies would ignore the new pose, so let them follow the state just selected.
+        if (ragdoll)
+          physsimulator::wakeUpRagdoll(ragdoll);
       }
     }
 
@@ -2408,6 +2629,13 @@ public:
       tm.set33(m3);
       rendinst::moveRIGenExtra44(riex.handle, tm, false, false);
     }
+
+    if (canopyFxEntity)
+    {
+      TMatrix fxTm;
+      if (getCanopyPreviewTm(fxTm))
+        canopyFxEntity->setTm(fxTm);
+    }
     compositeEditorViewport.invalidateCache();
   }
 
@@ -2482,8 +2710,14 @@ public:
     if (!animChar || ragdoll)
       return;
 
-    ragdoll =
-      phys_bullet_start_ragdoll(animChar, const_cast<AnimV20::AnimcharFinalMat44 *>(animCtrl->getAnimCharFinalWTM()), ZERO<Point3>());
+    ragdoll = physsimulator::startRagdoll(animChar, const_cast<AnimV20::AnimcharFinalMat44 *>(animCtrl->getAnimCharFinalWTM()),
+      ZERO<Point3>());
+    if (ragdoll && ragdollDriveToAnim)
+    {
+      physsimulator::setRagdollDriveToAnimchar(ragdoll, true);
+      physsimulator::setJointsMotorSettings(ragdollMotorTwistFreq, ragdollMotorTwistDamp, ragdollMotorSwingFreq,
+        ragdollMotorSwingDamp);
+    }
     physsimulator::simulate(0.001);
   }
   void stopRagdoll()
@@ -2493,11 +2727,10 @@ public:
     if (!animChar || !ragdoll)
       return;
     animChar->setPostController(NULL);
-    phys_bullet_delete_ragdoll(ragdoll);
+    physsimulator::deleteRagdoll(ragdoll);
 
     physsimulator::end();
-    physsimulator::begin(NULL, physsimulator::PHYS_BULLET, 1, physsimulator::SCENE_TYPE_GROUP, 0.0f, coll_plane_ht_front,
-      coll_plane_ht_rear);
+    physsimulator::begin(NULL, ragdollPhysType, 1, physsimulator::SCENE_TYPE_GROUP, 0.0f, coll_plane_ht_front, coll_plane_ht_rear);
   }
 
   AnimV20::AnimcharBaseComponent *try_get_entity_animchar_base_comp()
@@ -2614,13 +2847,16 @@ private:
   void *ragdoll = NULL;
   bool springConnected = false;
   float ragdollBulletImpulse = 2;
+  int ragdollPhysType = physsimulator::PHYS_DEFAULT;
+  bool ragdollDriveToAnim = false;
+  float ragdollMotorTwistFreq = 20.f, ragdollMotorTwistDamp = 2.f, ragdollMotorSwingFreq = 20.f, ragdollMotorSwingDamp = 2.f;
 
   bool showCollider = false;
   bool showColliderBbox = false;
   bool showColliderPhysCollidable = false;
   bool showColliderTraceable = false;
   CollisionResource *collisionResource = NULL;
-  GeomNodeTree *collisionResourceNodeTree = NULL;
+  GeomNodeTreeUniquePtr collisionResourceNodeTree;
   eastl::string assetName;
   ecs::EntityId currentAnimcharEid;
   bool showImguiAnimTree = false;
@@ -2705,19 +2941,50 @@ static bool animchar_trace_static_ray_down(const Point3 &from, float max_t, floa
 }
 static bool animchar_trace_static_ray_dir(const Point3 &from, Point3 dir, float max_t, float &out_t, intptr_t ctx)
 {
-  // not implemented
-  return false;
+  if (!trace_ray_enabled)
+    return false;
+  if (fabsf(dir.y) < 1e-6f) // ray parallel to the horizontal floor planes
+    return false;
+  // Two half-planes split at z=0: front (z<0) and rear (z>=0), each at its own height.
+  // Test both, keep only hits whose intersection point lands on the matching side, take the nearest.
+  bool hit = false;
+  float best_t = max_t;
+  for (int side = 0; side < 2; side++)
+  {
+    bool front = (side == 0);
+    float plane_h = front ? coll_plane_ht_front : coll_plane_ht_rear;
+    float t = (plane_h - from.y) / dir.y;
+    if (t < 0 || t > best_t)
+      continue;
+    float hit_z = from.z + t * dir.z;
+    if ((front && hit_z < 0) || (!front && hit_z >= 0))
+    {
+      best_t = t;
+      hit = true;
+    }
+  }
+  if (hit)
+    out_t = best_t;
+  return hit;
 }
-static bool animchar_trace_static_multiray(dag::Span<AnimCharV20::LegsIkRay> traces, bool down, intptr_t ctx)
+static bool animchar_trace_static_multiray(dag::Span<AnimCharV20::TraceRayInfo> traces, bool down, intptr_t ctx)
 {
   if (!trace_ray_enabled)
     return false;
   bool hit = false;
   for (auto &ray : traces)
+  {
+    bool traceHit = false;
     if (down)
-      hit |= animchar_trace_static_ray_down(ray.pos, ray.t, ray.t, ctx);
+      traceHit = animchar_trace_static_ray_down(ray.pos, ray.t, ray.t, ctx);
     else
-      hit |= animchar_trace_static_ray_dir(ray.pos, ray.dir, ray.t, ray.t, ctx);
+      traceHit = animchar_trace_static_ray_dir(ray.pos, ray.dir, ray.t, ray.t, ctx);
+    if (traceHit)
+    {
+      hit = true;
+      ray.outNormal = Point3(0.0, 1.0, 0.0);
+    }
+  }
   return hit;
 }
 

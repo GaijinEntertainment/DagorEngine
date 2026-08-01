@@ -4,12 +4,18 @@
 //
 #pragma once
 
+#include <render/lights/lightsBase.h>
+#include <render/lights/lightsEncoding.h>
+#include <render/lights/lightsResources.h>
 #include <render/lights/omniLightsManager.h>
 #include <render/lights/spotLightsManager.h>
+#include <render/lights/lightsPartition.h>
 #include <render/lights/clusteredLightsSorter.h>
 #include <render/lights/frustumClusters.h>
 #include <render/lights/tiledLights.h>
 #include <render/lights/clusteredLightsGrid.h>
+#include <render/lights/reallocatableLightsConstBuffer.h>
+#include <render/lights/lightsRenderer.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <math/dag_TMatrix4.h>
@@ -22,8 +28,8 @@
 #include "renderLights.hlsli"
 #include <shaders/dag_overrideStates.h>
 #include <render/dynamicShadowRender.h>
-#include <render/dynamicShadowRenderExtensions.h>
-#include <render/shadowCastersFlags.h>
+#include <render/lights/dynamicShadowRenderExtensions.h>
+#include <render/lights/shadowCastersFlags.h>
 #include <3d/dag_resPtr.h>
 
 class ShaderMaterial;
@@ -46,31 +52,22 @@ enum class DynLightsOptimizationMode : int
   FEW_SPOTS_FEW_OMNI,
   FULL_CLUSTERED
 };
-constexpr static int LIGHTS_OPTIMIZATION_THRESHOLD = 32;
 
-inline DynLightsOptimizationMode get_lights_count_interval(uint32_t spotsCount, uint32_t omniCount)
-{
-  if (spotsCount == 0 && omniCount == 0)
-    return DynLightsOptimizationMode::NO_LIGHTS;
-
-  constexpr int THRESHOLD = LIGHTS_OPTIMIZATION_THRESHOLD;
-  if (spotsCount == 0 && omniCount <= THRESHOLD)
-    return DynLightsOptimizationMode::NO_SPOTS_FEW_OMNI;
-  else if (spotsCount <= THRESHOLD && omniCount == 0)
-    return DynLightsOptimizationMode::FEW_SPOTS_NO_OMNI;
-  else if (spotsCount <= THRESHOLD && omniCount <= THRESHOLD)
-    return DynLightsOptimizationMode::FEW_SPOTS_FEW_OMNI;
-  return DynLightsOptimizationMode::FULL_CLUSTERED;
-}
 struct ClusteredLights
 {
   static constexpr int DEFAULT_MAX_SHADOWS_TO_UPDATE_PER_FRAME = 4;
+  constexpr static int LIGHTS_OPTIMIZATION_THRESHOLD = 32;
 
   typedef OmniLightsManager::RawLight OmniLight;
   typedef SpotLightsManager::RawLight SpotLight;
   static const int MAX_SHADOW_PRIORITY = 15; // 15 times more important than anything else
   ClusteredLights(const char *name_suffix = "");
   ~ClusteredLights();
+
+  ClusteredLights(const ClusteredLights &) = delete;
+  ClusteredLights &operator=(const ClusteredLights &) = delete;
+  ClusteredLights(ClusteredLights &&) = delete;
+  ClusteredLights &operator=(ClusteredLights &&) = delete;
 
   // initial_frame_light_count is total visible lights for frame. In 32 (words)
   // shadows_quality is size of dynamic shadow map. 0 means no shadows
@@ -82,20 +79,23 @@ struct ClusteredLights
   void cullFrustumLights(vec3f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear, float zfar,
     Occlusion *occlusion, SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask,
     float light_cutoff_dist_sq = 0.f);
-  void prepareTiledLights(const bool clear_lights = true)
-  {
-    if (tiledLights)
-      tiledLights->computeTiledLigths(clear_lights);
-  }
+  void prepareTiledLights(const bool clear_lights = true);
   void toggleTiledLights(bool use_tiled);
-  bool hasDeferredLights() const { return renderFarOmniLights.size() + renderFarSpotLights.size() != 0; }
-  bool hasClusteredLights() const { return renderOmniLights.size() + renderSpotLights.size() != 0; }
-  int getVisibleNotClusteredSpotsCount() const { return renderFarSpotLights.size(); }
-  int getVisibleNotClusteredOmniCount() const { return renderFarOmniLights.size(); }
-  int getVisibleClusteredSpotsCount() const { return renderSpotLights.size(); } // fixme
-  int getVisibleClusteredOmniCount() const { return renderOmniLights.size(); }
-  int getVisibleSpotsCount() const { return getVisibleClusteredSpotsCount() + getVisibleNotClusteredSpotsCount(); }
-  int getVisibleOmniCount() const { return getVisibleClusteredOmniCount() + getVisibleNotClusteredOmniCount(); }
+  bool hasDeferredOmniLights() const;
+  bool hasDeferredSpotLights() const;
+  bool hasClusteredOmniLights() const;
+  bool hasClusteredSpotLights() const;
+  bool hasDeferredLights() const;
+  bool hasClusteredLights() const;
+
+  int getVisibleFarSpotsCount() const;
+  int getVisibleFarOmniCount() const;
+  int getVisibleClusteredSpotsCount() const;
+  int getVisibleClusteredOmniCount() const;
+  int getVisibleSpotsCount() const;
+  int getVisibleOmniCount() const;
+
+  DynLightsOptimizationMode getLightsCountInterval() const;
   bool cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskType spot_light_mask,
     OmniLightMaskType omni_light_mask); // cull without any grid
   void setShadowBias(float z_bias, float slope_z_bias, float shader_z_bias, float shader_slope_z_bias);
@@ -112,7 +112,6 @@ struct ClusteredLights
   void renderDebugOmniLights();
   void renderDebugLights();
   void renderDebugLightsBboxes();
-  void drawDebugClusters(int slice);
 
   void destroyLight(uint32_t id);
   uint32_t addOmniLight(const OmniLight &light, OmniLightMaskType mask = OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT);
@@ -154,13 +153,10 @@ struct ClusteredLights
 
   bool getShadowProperties(uint32_t id, ShadowCastersFlag &only_static_casters, bool &hint_dynamic, uint16_t &quality,
     uint8_t &priority, uint8_t &shadow_size_srl, DynamicShadowRenderGPUObjects &render_gpu_objects) const;
-  enum
-  {
-    SPOT_LIGHT_FLAG = (1 << 30),
-    INVALID_LIGHT = 0xFFFFFFFF & (~SPOT_LIGHT_FLAG)
-  };
+
   void invalidateAllShadows() DAG_TS_REQUIRES(lightLock); //{ lightShadows->invalidateAllVolumes(); }
   void invalidateStaticObjects(bbox3f_cref box);          // invalidate static content within box
+  void shrinkShadowVolumes();                             // release volume capacity retained from peak light count
 
   using StaticRenderCallback = void(mat44f_cref globTm, mat44f_cref projTm, const TMatrix &itm, int updateIndex, int viewIndex,
     DynamicShadowRenderGPUObjects render_gpu_objects);
@@ -188,125 +184,27 @@ struct ClusteredLights
 
   void setNeedSsss(bool need_ssss);
   void setMaxShadowsToUpdateOnFrame(int max_shadows) { maxShadowsToUpdateOnFrame = max_shadows; }
+  void setMaxShadowViewsToUpdateOnFrame(int max_views) { maxShadowViewsToUpdateOnFrame = max_views; }
 
   void resetShadows() DAG_TS_REQUIRES(lightLock);
 
   mutable OSSpinlock lightLock;
 
-  template <int elem_size_in_constants, bool store_elems_count>
-  struct ReallocatableConstantBuffer
-  {
-    bool update(void *data, int data_size)
-    {
-      G_ASSERT(data_size % ELEM_SIZE_IN_BYTES == 0);
-      int elems_count = data_size / ELEM_SIZE_IN_BYTES;
-      wasWritten = true;
-      return updateConsts(buf.getBuf(), data, data_size, store_elems_count ? elems_count : -1);
-    }
-    void close()
-    {
-      buf.close();
-      size = 0;
-      wasWritten = false;
-    }
-    ~ReallocatableConstantBuffer() { close(); }
-    bool reallocate(int target_size_in_elems, int max_size_in_elems, const char *stat_name, bool persistent = false)
-    {
-      wasWritten = false;
-      int targetSizeInElems = min(target_size_in_elems, max_size_in_elems);
-      // on both metal and vulkan OOB access is validation complain/device lost/crash
-      // so allocate max possible
-      if (d3d::get_driver_code().is(d3d::metal || d3d::vulkan))
-        targetSizeInElems = max_size_in_elems;
-      int targetSizeInConstants = targetSizeInElems * ELEM_SIZE + (store_elems_count ? 1 : 0);
-      if (!targetSizeInConstants || size >= targetSizeInConstants)
-        return true;
-      return ClusteredLights::reallocate_common(buf, size, targetSizeInConstants, stat_name, persistent);
-    }
-    D3DRESID getId() const
-    {
-      G_ASSERT(wasWritten || !store_elems_count);
-      return buf.getBufId();
-    }
-
-  protected:
-    enum
-    {
-      ELEM_SIZE = elem_size_in_constants,
-      ELEM_SIZE_IN_BYTES = ELEM_SIZE * sizeof(Point4)
-    };
-    UniqueBuf buf;
-    uint16_t size = 0; // in constants, i.e. 16 bytes*size is size in bytes
-    bool wasWritten = false;
-  };
-
 protected:
-  Tab<uint16_t> visibleSpotLightsId;
-  Tab<uint16_t> visibleOmniLightsId;
-  eastl::bitset<OmniLightsManager::MAX_LIGHTS> visibleOmniLightsIdSet;
-  eastl::bitset<SpotLightsManager::MAX_LIGHTS> visibleSpotLightsIdSet;
+  LightsResourcesManager lightsResMgr;
 
   FrustumClusters clusters; //-V730_NOINIT
   static const float MARK_SMALL_LIGHT_AS_FAR_LIMIT;
 
-  // At least on win7 we have a limit for 64k of cb buffer size
-  // But drivers requires to keep cb buffer size under 64k on all platforms.
-  // So we limit it for all platforms.
-  // Reserve one Point4 for the element count constant that ReallocatableConstantBuffer
-  // prepends when store_elems_count is true (see reallocate()).
-  static constexpr int MAX_VISIBLE_FAR_LIGHTS = (65536 - sizeof(Point4)) / max(sizeof(RenderSpotLight), sizeof(RenderOmniLight));
-
-  static bool reallocate_common(UniqueBuf &buf, uint16_t &size, int target_size_in_constants, const char *stat_name,
-    bool permanent = false);
-  static bool updateConsts(Sbuffer *buf, void *data, int data_size, int elems_count);
   void changeShadowResolutionByQuality(uint32_t shadow_quality, bool dynamic_shadow_32bit) DAG_TS_REQUIRES(lightLock);
 
-  enum class LightType
-  {
-    Spot,
-    Omni,
-    Invalid
-  };
-  struct DecodedLightId
-  {
-    LightType type;
-    uint32_t id;
-  };
-  __forceinline static DecodedLightId decode_light_id(uint32_t id)
-  {
-    if (id == INVALID_LIGHT)
-      return {LightType::Invalid, uint32_t(INVALID_LIGHT)};
-
-    if (id & SPOT_LIGHT_FLAG)
-    {
-      id &= ~SPOT_LIGHT_FLAG;
-      return {LightType::Spot, id};
-    }
-    else
-      return {LightType::Omni, id};
-  }
-  __forceinline static uint32_t encode_light_id(LightType type, uint32_t id)
-  {
-    if (type == LightType::Spot)
-      return id | SPOT_LIGHT_FLAG;
-    return id;
-  }
-
-  Tab<RenderOmniLight> renderOmniLights, renderFarOmniLights;
-  Tab<RenderSpotLight> renderSpotLights, renderFarSpotLights;
   Tab<TMatrix4> renderSpotLightsShadows;
-  Tab<SpotLightMaskType> visibleSpotLightsMasks;
-  Tab<OmniLightMaskType> visibleOmniLightsMasks;
-  ReallocatableConstantBuffer<sizeof(RenderOmniLight) / 16, true> visibleOmniLightsCB, visibleFarOmniLightsCB;
-  ReallocatableConstantBuffer<sizeof(RenderSpotLight) / 16, true> visibleSpotLightsCB, visibleFarSpotLightsCB;
-  ReallocatableConstantBuffer<1, false> commonLightShadowsBufferCB;
+  ReallocatableLightsConstBuffer<1, false> commonLightShadowsBufferCB;
   UniqueBufWithShaderVar spotLightSsssShadowDescBuffer;
-  UniqueBuf visibleSpotLightsMasksSB;
-  UniqueBuf visibleOmniLightsMasksSB;
 
-  ReallocatableConstantBuffer<sizeof(RenderOmniLight) / 16, true> outOfFrustumOmniLightsCB;
-  ReallocatableConstantBuffer<sizeof(RenderSpotLight) / 16, true> outOfFrustumVisibleSpotLightsCB;
-  ReallocatableConstantBuffer<1, false> outOfFrustumCommonLightsShadowsCB;
+  ReallocatableLightsConstBuffer<sizeof(RenderOmniLight) / 16, true> outOfFrustumOmniLightsCB;
+  ReallocatableLightsConstBuffer<sizeof(RenderSpotLight) / 16, true> outOfFrustumVisibleSpotLightsCB;
+  ReallocatableLightsConstBuffer<1, false> outOfFrustumCommonLightsShadowsCB;
   // true if we already filled empty buffer. we only should do it once since buffer is persistent
   bool commonLightsShadowsAreEmpty = false;
   Point4 omniOOFBox[2], spotOOFBox[2];
@@ -317,62 +215,28 @@ protected:
   shaders::OverrideState depthBiasOverrideState;
   float shaderShadowZBias = 0.001f, shaderShadowSlopeZBias = 0.005f;
 
-  ShaderMaterial *pointLightsMat = 0, *pointLightsDebugMat = 0;
-  ShaderElement *pointLightsElem = 0, *pointLightsDebugElem = 0;
-  ShaderMaterial *spotLightsMat = 0, *spotLightsDebugMat = 0;
-  ShaderElement *spotLightsElem = 0, *spotLightsDebugElem = 0;
-  uint32_t v_count = 0, f_count = 0;
-  UniqueBuf coneSphereVb;
-  UniqueBuf coneSphereIb;
-  static constexpr int INVALID_VOLUME = 0xFFFF;
+  LightsRenderer lightsRenderer;
 
   OmniLightsManager omniLights DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
   SpotLightsManager spotLights DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
-  ClusteredLightsSorter lightsSorter;
+
+  LightsPartition lightsPartition;
+
   float closeSliceDist = 4, maxClusteredDist = 500;                        //?
   int maxShadowsToUpdateOnFrame = DEFAULT_MAX_SHADOWS_TO_UPDATE_PER_FRAME; // quality param
+  int maxShadowViewsToUpdateOnFrame = 0;                                   // quality param, 0 = unlimited
   float maxShadowDist = 120.f;                                             // quality and scene param
   eastl::unique_ptr<ShadowSystem> lightShadows DAG_TS_PT_GUARDED_BY(lightLock);
   eastl::unique_ptr<DistanceReadbackLights> dstReadbackLights;
-  StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> dynamicSpotLightsShadows DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
-  StaticTab<uint16_t, OmniLightsManager::MAX_LIGHTS> dynamicOmniLightsShadows DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
   eastl::bitset<SpotLightsManager::MAX_LIGHTS + OmniLightsManager::MAX_LIGHTS> dynamicLightsShadowsVolumeSet DAG_TS_GUARDED_BY(
     lightLock);
   bool buffersFilled = false;
   bool lightsInitialized = false;
   void setSpotLightShadowVolume(int spot_light_id) DAG_TS_REQUIRES(lightLock);
   void setOmniLightShadowVolume(int omni_light_id) DAG_TS_REQUIRES(lightLock);
-  void setRenderSpotLightShadowAtlasRect(RenderSpotLight &sl, int spot_light_id) const DAG_TS_REQUIRES(lightLock);
 
   void initClustered(int initial_light_density);
-  void closeOmni();
-  void closeSpot();
-  void closeOmniShadows() DAG_TS_REQUIRES(lightLock);
-  void closeSpotShadows() DAG_TS_REQUIRES(lightLock);
-  void initConeSphere();
-  void closeConeSphere();
-  void initOmni();
-  void initSpot();
-  void initDebugOmni();
-  void closeDebugOmni();
-  void closeDebugSpot();
-  void initDebugSpot();
-
-  void renderPrims(ShaderElement *elem, int buffer_var_id, D3DRESID replaced_buffer, int inst_count, int vstart, int vcount,
-    int index_start, int fcount);
 
   eastl::unique_ptr<TiledLights> tiledLights;
   ClusteredLightsGrid lightsGrid;
-
-  eastl::string nameSuffix;
-  mutable eastl::string resNameTmp;
-  // append nameSuffix to this name to get unique d3d names
-  const char *getResName(const char *name) const
-  {
-    if (DAGOR_LIKELY(nameSuffix.empty()))
-      return name;
-    resNameTmp = name;
-    resNameTmp += nameSuffix;
-    return resNameTmp.c_str();
-  }
 };

@@ -324,7 +324,7 @@ buffer_clone(buffer_t *buffer, zip_uint64_t offset, zip_error_t *error) {
     clone->fragment_offsets[clone->nfragments] = offset;
     clone->size = offset;
 
-    clone->first_owned_fragment = ZIP_MIN(buffer->first_owned_fragment, clone->nfragments - 1);
+    clone->first_owned_fragment = ZIP_MIN(buffer->first_owned_fragment, clone->nfragments);
 
     buffer->shared_buffer = clone;
     clone->shared_buffer = buffer;
@@ -338,6 +338,10 @@ buffer_clone(buffer_t *buffer, zip_uint64_t offset, zip_error_t *error) {
 static zip_uint64_t
 buffer_find_fragment(const buffer_t *buffer, zip_uint64_t offset) {
     zip_uint64_t low, high, mid;
+
+    if (buffer->nfragments == 0) {
+        return 0;
+    }
 
     low = 0;
     high = buffer->nfragments - 1;

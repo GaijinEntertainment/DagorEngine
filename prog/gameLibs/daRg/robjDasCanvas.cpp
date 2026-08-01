@@ -122,6 +122,8 @@ bool RobjDasCanvasParams::load(const Element *elem)
           darg_assert_trace_var("'setup' function: invalid signature, expected arguments:"
                                 "(props: Properties&; var storage: <user's struct> &)",
             scriptDesc, elem->csk->rendObj);
+        else if (setupFunc->cmres)
+          darg_assert_trace_var("'setup' function must not return a struct by value", scriptDesc, elem->csk->rendObj);
         else
         {
           das::TypeInfo *argType = info->fields[1];
@@ -132,6 +134,7 @@ bool RobjDasCanvasParams::load(const Element *elem)
             dataArgType = argType;
             data.resize(argType->size);
             vec4f args[2] = {das::cast<const Properties &>::from(elem->props), das::cast<void *>::from(data.data())};
+            darg_das_check_eval_thread(ctx);
             ctx->tryRestartAndLock();
             bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(ctx);
 
@@ -162,6 +165,8 @@ bool RobjDasCanvasParams::load(const Element *elem)
         "Invalid signature of 'draw' function, expected aguments: "
         "(var ctx: GuiContext&; rdata: ElemRenderData& const; rstate: RenderState& const; [data: <user's struct> &])",
         scriptDesc, elem->csk->rendObj);
+    else if (draw->cmres)
+      darg_assert_trace_var("'draw' function must not return a struct by value", scriptDesc, elem->csk->rendObj);
     else
     {
       this->dasScriptObj = scriptObj;
@@ -195,6 +200,7 @@ void RobjDasCanvas::render(GuiContext &ctx, const Element *elem, const ElemRende
   vec4f args[4] = {das::cast<GuiContext &>::from(ctx), das::cast<const ElemRenderData &>::from(*rdata),
     das::cast<const RenderState &>::from(render_state), das::cast<void *>::from(params->data.data())};
 
+  darg_das_check_eval_thread(params->dasCtx);
   params->dasCtx->tryRestartAndLock();
   bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(params->dasCtx);
 

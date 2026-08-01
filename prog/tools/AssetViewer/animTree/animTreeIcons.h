@@ -38,6 +38,7 @@ static const char *STATE_ICON = "anim_states";
 static const char *STATE_LEAF_ICON = "anim_state_leaf";
 static const char *CHANNEL_LEAF_ICON = CTRL_FIFO3_ICON;
 static const char *ALIAS_LEAF_ICON = SHOW_PANEL_ICON;
+static const char *MORPH_LEAF_ICON = "blend_node";
 static const char *ENUMS_ROOT_ICON = FOLDER_ICON;
 static const char *ENUM_ICON = SHOW_PANEL_ICON;
 static const char *ENUM_ITEM_ICON = CREATE_SPHERE_ICON;

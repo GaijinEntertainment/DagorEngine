@@ -28,20 +28,58 @@ inline void disable_auto_hosted_server_ready() {}
 
 inline bool is_hosted_internal_server_active() { return ::is_hosted_internal_server_active(); }
 
-inline bool is_hosted_server_manual_ready_enabled()
+inline bool should_server_invoke_ready_manually()
 {
   return dgs_get_settings()->getBlockByNameEx("debug")->getBool("hostedServerManualReady", false);
 }
 
-inline void request_start_hosted_server(const das::TArray<char *> &cmds, das::Context *, das::LineInfoArg *)
+inline void request_start_hosted_server(const das::TArray<char *> &cmds,
+  const char *main_das_path,
+  const char *circuit,
+  bool allow_unsafe_das_code,
+  bool manual_ready,
+  das::Context *ctx,
+  das::LineInfoArg *at)
 {
+  // Compose argv in the order the child expects: main-das path first (positional), then
+  // wrapper-controlled -config:* flags, then project-supplied cmds. Project cmds are filtered
+  // so they cannot contain any `-config:*` -- engine settings overrides go through the typed
+  // parameters, and project code can't sneak in privileged flags (allowUnsafeDasCode etc.)
+  // bypassing the parent-state gate.
+  dag::Vector<eastl::string> argv;
+  argv.reserve(cmds.size + 4);
+  if (main_das_path && *main_das_path)
+    argv.emplace_back(main_das_path);
+  if (circuit && *circuit)
+  {
+    eastl::string s = "-config:circuit:t=";
+    s += circuit;
+    argv.emplace_back(eastl::move(s));
+  }
+  if (allow_unsafe_das_code)
+    argv.emplace_back("-config:debug/allowUnsafeDasCode:b=yes");
+  if (manual_ready)
+    argv.emplace_back("-config:debug/hostedServerManualReady:b=yes");
+  for (uint32_t i = 0; i < cmds.size; ++i)
+  {
+    const char *c = cmds[i] ? cmds[i] : "";
+    // Only `-config:debug/*` is the privilege-escalation vector -- everything under `debug/`
+    // is controlled by the parent (allowUnsafeDasCode, hostedServerManualReady, etc.) and
+    // must go through the typed params. Other `-config:*` (tickrate, scene, gameExecutionMode)
+    // is legitimate game-side tuning; pass through unchanged.
+    if (strncmp(c, "-config:debug/", 14) == 0)
+    {
+      ctx->throw_error_at(at,
+        "request_start_hosted_server: project-supplied -config:debug/* is not allowed ('%s'); "
+        "privileged debug flags must go through the typed parameters",
+        c);
+      return;
+    }
+    argv.emplace_back(c);
+  }
+
   if (!try_begin_hosted_server_start())
     return;
-
-  dag::Vector<eastl::string> argv;
-  argv.reserve(cmds.size);
-  for (uint32_t i = 0; i < cmds.size; ++i)
-    argv.emplace_back(cmds[i] ? cmds[i] : "");
 
   run_action_on_main_thread([argv = eastl::move(argv)]() mutable {
     if (!is_hosted_server_start_pending())

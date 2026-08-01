@@ -7,6 +7,7 @@ include "sky_shader_global.dshl"
 include "contact_shadows.dshl"
 include "clouds_vars.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
+include "film_grain_inc.dshl"
 include "film_grain_lut_inc.dshl"
 include "vignette_inc.dshl"
 include "flare_inc.dshl"
@@ -21,6 +22,8 @@ texture blood_texture;
 texture fire_on_screen_tex;
 texture flash_blind_screen_tex;
 texture smoke_blackout_tex;
+texture film_grain;
+
 float dash_ability_factor = 0;
 
 float confusion_effect_time_start = -1000;
@@ -41,6 +44,9 @@ int smoke_blackout_active = 0;
 int cinematic_mode_on = 0;
 interval cinematic_mode_on:off<1, on;
 int enable_post_bloom_effects = 1;
+
+int film_grain_mode = 0;
+interval film_grain_mode : noise_based<1, lut_based;
 
 float4 damage_indicator_color = float4(1, 0.3, 0.3, 1);
 float damage_indicator_size = 1;
@@ -160,7 +166,23 @@ shader postfx
   USE_SHADER_GAMMA()
   INIT_VIGNETTE()
   USE_VIGNETTE()
-  INIT_FILM_GRAIN_LUT()
+  if (film_grain_mode == lut_based)
+  {
+    INIT_FILM_GRAIN_LUT()
+  }
+  else
+  {
+      if (film_grain == NULL)
+      {
+        INIT_FILM_GRAIN(true)
+        USE_FILM_GRAIN()
+      }
+      else
+      {
+        INIT_BAKED_FILM_GRAIN()
+        USE_BAKED_FILM_GRAIN()
+      }
+  }
   if (cinematic_mode_on == on)
   {
     INIT_FLARE_TEXTURES(blood_texture_samplerstate)
@@ -226,7 +248,10 @@ shader postfx
   USE_POSTFX_MODIFIER()
   USE_POSTFX_POST_TONEMAP_EFFECTS_MODIFIER()
   USE_LOCAL_TONE_MAPPING(ps)
-  USE_FILM_GRAIN_LUT()
+  if (film_grain_mode == lut_based)
+  {
+    USE_FILM_GRAIN_LUT()
+  }
 
 
   hlsl(ps)
@@ -379,9 +404,21 @@ shader postfx
 
     void apply_cinematic_mode_pre_tonemap_effects(inout float3 result, float2 tc, float2 pos)
     {
-      BRANCH
-      if (film_grain_lut_params.x > 0.0)
-        result = apply_film_grain_lut(result, pos);
+      ##if film_grain_mode == lut_based
+        BRANCH
+        if (film_grain_lut_params.x > 0.0)
+          result = apply_film_grain_lut(result, pos);
+      ##else
+          BRANCH
+          if (film_grain_params.x > 0.0)
+          {
+        ##if (film_grain == NULL)
+            result = apply_film_grain(result, pos);
+        ##else
+            result = apply_film_grain_baked(result, texelFetch(film_grain, pos % 128, 0).xyz);
+        ##endif
+          }
+      ##endif
       ##if cinematic_mode_on == on
         BRANCH
         if ((flare_params.x > 0.0 || flare_params.y > 0.0) && flare_enabled())

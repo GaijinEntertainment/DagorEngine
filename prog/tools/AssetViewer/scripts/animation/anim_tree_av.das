@@ -2,6 +2,7 @@ options stack = 102400 // render_anim_graph is actaully huge and we run out of s
 options persistent_heap
 require ecs
 require DagorSystem
+require DagorDataBlock
 require imgui
 require AnimV20
 require AssetViewer
@@ -11,6 +12,18 @@ require daslib/static_let
 
 [cpp_event(broadcast)]
 struct ImGuiStage {}
+
+[init] // So that after das hot reload vars are still set
+def set_animchar_vars_view()
+  using() <| $(var appBlk : DataBlock)
+    if appBlk |> datablock_load(get_application_blk_path())
+      appBlk |> datablock_get_block("animCharView") <| $(animCharViewBlk)
+        animCharViewBlk |> datablock_get_block("vars") <| $(varsBlk)
+          set_anim_char_view_vars(varsBlk)
+
+[es(REQUIRE=animTreeViewer, on_appear)]
+def anim_tree_load_anim_char_view_settings(evt : Event)
+  set_animchar_vars_view()
 
 [es(REQUIRE=animTreeViewer)]
 def update_anim_state_history(event : AnimGraphViewerSetAnimState)

@@ -26,6 +26,10 @@ static struct ConsoleMouseKbdHandler : public ecs::IGenHidEventHandler
   virtual bool gmehWheel(const Context &ctx, int dz) { return false; }
   virtual bool gkehButtonDown(const Context &ctx, int btn_idx, bool repeat, wchar_t wc)
   {
+    // key auto-repeat must not re-toggle the console: a slightly long press
+    // would open and immediately close it (and type stray backquotes)
+    if (btn_idx == HumanInput::DKEY_GRAVE && repeat)
+      return console::is_visible();
     if (console::get_visual_driver() && console::get_visual_driver()->processKey(btn_idx, wc, true))
       return true;
     return false;
@@ -44,7 +48,11 @@ public:
     fov = 1;
     HumanInput::raw_state_pnt.resetDelta();
     register_hid_event_handler(this, 0);
-    register_hid_event_handler(&console_eh, 100);
+    // above imgui's ACTIVE-state handler (prio 200): ImGui reports
+    // WantCaptureKeyboard whenever any panel window has focus, not just
+    // during text entry, so anything below 200 loses the keyboard for good
+    // after one panel click - the debug console must stay reachable
+    register_hid_event_handler(&console_eh, 300);
     accelTime = 0;
   }
   ~MouseKbdFreeCameraDriver()

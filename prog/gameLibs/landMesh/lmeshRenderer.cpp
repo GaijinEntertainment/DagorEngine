@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <landMesh/lmeshWeightAtlas.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
@@ -27,10 +28,9 @@
 #include <landMesh/lmeshManager.h>
 #include "heightmap/heightmapHandler.h"
 #include "lmeshRendererGlue.h"
+#include "lmeshRenderingModeState.h"
 #include <memory/dag_framemem.h>
-#include <EASTL/string.h>
 #include <EASTL/bitset.h>
-#include <EASTL/hash_map.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -93,6 +93,7 @@ static const char *landclassShaderName[LC_COUNT] = {"land_mesh_landclass_simple"
   "land_mesh_landclass_trivial"};
 
 eastl::vector<ShaderInfo> landclassShader;
+eastl::vector<uint64_t> landclassShaderFailed;
 
 
 static void init_one_quad()
@@ -115,9 +116,6 @@ static void lmesh_after_reset_device(bool)
 REGISTER_D3D_AFTER_RESET_FUNC(lmesh_after_reset_device);
 
 
-eastl::hash_map<eastl::string, int> shadersNames;
-
-
 int LandMeshRenderer::lod1_switch_radius = 4096;
 enum
 {
@@ -125,7 +123,6 @@ enum
   BOTTOM_BELOW = 1,
   BOTTOM_COUNT,
 };
-static bool skip_bottom_rendering = false;
 
 
 void LandMeshRenderer::MirroredCellState::init(int borderX, int borderY, int x0, int y0, int x1, int y1, float cellSize,
@@ -186,10 +183,10 @@ void LandMeshRenderer::MirroredCellState::init(int borderX, int borderY, int x0,
   excluded = to_be_excluded ? 1 : 0;
 }
 
-void LandMeshRenderer::MirroredCellState::startRender()
+void LandMeshRenderer::MirroredCellState::startRender(RenderPassCtx &pass_ctx)
 {
   set_ps_const1_opt(lmesh_ps_const__mirror_scale, 1.f, 1.f);
-  current_mirror_mask = 0;
+  pass_ctx.mirrorMask = 0;
 }
 
 void LandMeshRenderer::MirroredCellState::setPosConsts(bool render_at_0) const
@@ -217,76 +214,39 @@ static const uint32_t mirror_mask_table = (0 << 0) | (1 << 2) | (1 << 4)      //
                                           | (2 << 12) | (3 << 14) | (3 << 16) // z = 2
   ;
 
-void LandMeshRenderer::MirroredCellState::setPsMirror() const
+void LandMeshRenderer::MirroredCellState::setPsMirror(RenderPassCtx &pass_ctx) const
 {
   uint32_t mirror_mask = 0x3 & (mirror_mask_table >> (mirrorScaleState.xz << 1));
-  if (lmesh_ps_const__mirror_scale >= 0 && mirror_mask != current_mirror_mask)
+  if (lmesh_ps_const__mirror_scale >= 0 && mirror_mask != pass_ctx.mirrorMask)
   {
     d3d::set_ps_const1(lmesh_ps_const__mirror_scale, (mirror_mask & 1) ? -1.f : 1.f, (mirror_mask & 2) ? -1.f : 1.f, 0, 0);
-    current_mirror_mask = mirror_mask;
+    pass_ctx.mirrorMask = mirror_mask;
   }
 }
 
-bool LandMeshRenderer::MirroredCellState::setFlipCull(LandMeshRenderer *renderer) const
+bool LandMeshRenderer::MirroredCellState::setFlipCull(LandMeshRenderer *renderer, RenderPassCtx &pass_ctx) const
 {
-  if (getInvCull() != currentCullFlipped)
+  if (getInvCull() != pass_ctx.cullFlipped)
   {
-    if (currentCullFlipped)
+    if (pass_ctx.cullFlipped)
     {
-      G_ASSERT(shaders::overrides::get_current() == currentCullFlippedCurStateId);
-      renderer->resetOverride(currentCullFlippedPrevStateId);
+      G_ASSERT(shaders::overrides::get_current() == pass_ctx.cullFlippedCurStateId);
+      renderer->resetOverride(pass_ctx.cullFlippedPrevStateId);
     }
     else
     {
-      G_ASSERT(!currentCullFlippedPrevStateId);
-      currentCullFlippedPrevStateId = renderer->setStateFlipCull(true);
-      currentCullFlippedCurStateId = shaders::overrides::get_current();
+      G_ASSERT(!pass_ctx.cullFlippedPrevStateId);
+      pass_ctx.cullFlippedPrevStateId = renderer->setStateFlipCull(true);
+      pass_ctx.cullFlippedCurStateId = shaders::overrides::get_current();
     }
-    currentCullFlipped = !currentCullFlipped;
+    pass_ctx.cullFlipped = !pass_ctx.cullFlipped;
     return true;
   }
   return false;
 }
 
-uint32_t LandMeshRenderer::MirroredCellState::current_mirror_mask = 0;
-bool LandMeshRenderer::MirroredCellState::currentCullFlipped = false;
-shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlippedPrevStateId;
-shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlippedCurStateId;
-
-LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes,
-  int biome_land_class_idx, TEXTUREID vert_tex_id, TEXTUREID vert_nm_tex_id, TEXTUREID vert_det_tex_id, TEXTUREID tile_tex,
-  d3d::SamplerHandle tile_smp, real tile_x, real tile_y) :
-  tileTexId(tile_tex),
-  tileTexSmp(tile_smp),
-  tileXSize(tile_x),
-  tileYSize(tile_y),
-  shouldForceLowQuality(false),
-  shouldRenderTrivially(false),
-  optScn(NULL),
-  undetailedLCMicroDetail(0.971f),
-  detailedLCMicroDetail(0.251),
-  tWidth(0)
+void landmesh::resolve_lmesh_shader_constants()
 {
-  mem_set_0(megaDetailsArray);
-  renderHeightmapType = NO_HMAP;
-  useHmapTankDetail = 0;
-  hmapSubDivLod0 = 0;
-  verLabel = VER_LABEL;
-  debugCells = false;
-
-  cellStates = NULL;
-  landClasses = land_classes;
-  biomeLandClassIdx = biome_land_class_idx;
-
-  regionCallback = NULL;
-  numBorderCellsXPos = 0;
-  numBorderCellsXNeg = 0;
-  numBorderCellsZPos = 0;
-  numBorderCellsZNeg = 0;
-  vertTexId = vert_tex_id;
-  vertNmTexId = vert_nm_tex_id;
-  vertDetTexId = vert_det_tex_id;
-
   if (d3d::get_driver_desc().info.vendor == GpuVendor::QUALCOMM)
     var::skip_detail_lod_calculation.set_int(1);
 
@@ -298,11 +258,6 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   if (lmesh_ps_const_land_detail_array_slices < 0)
     lmesh_sampler__land_detail_array1 = -1;
 
-  if (lmesh_physmats__buffer_idx > 0)
-    physmatIdsBuf = d3d::buffers::create_one_frame_sr_byte_address(DET_TEX_NUM * 4, "physmats_IDS", RESTAG_LAND);
-  else
-    physmatIdsBuf = NULL;
-
   G_ASSERT(lmesh_sampler__land_detail_map >= 0);
   G_ASSERT(lmesh_sampler__land_detail_tex1 >= 0);
 
@@ -311,35 +266,24 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
     String smpReg(64, "decals_overrideSampler_%i_const_no", i);
     decals_overrideSampler_const_no_array[i] = get_shader_int_constant(smpReg, -1);
   }
+}
+
+LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider) : optScn(NULL), tWidth(0)
+{
+  verLabel = VER_LABEL;
+  debugCells = false;
+
+  cellStates = NULL;
+
+  regionCallback = NULL;
+  numBorderCellsXPos = 0;
+  numBorderCellsXNeg = 0;
+  numBorderCellsZPos = 0;
+  numBorderCellsZNeg = 0;
 
   centerCell = IPoint2(0xDEAFBABE, 0xDEAFBABE);
 
-  float cellSize = provider.getLandCellSize();
-  landmeshCombinedDistSq = 4096;
-  landmeshCombinedDistSq *= landmeshCombinedDistSq;
   invGeomLodDist = 1.f / (sqrt(2.0f) * lod1_switch_radius);
-
-  int detMapElemSize, size;
-  provider.getDetailMapSize(detMapElemSize, size);
-
-  scaleVisRange = (int)floor(4096.0f / cellSize + 0.5f);
-
-  ShaderGlobal::set_texture(var::vertical_tex, vertTexId);
-  ShaderGlobal::set_texture(var::vertical_nm_tex, vertNmTexId);
-  ShaderGlobal::set_texture(var::vertical_det_tex, vertDetTexId);
-
-  detMapTcScale = detMapElemSize / (size * cellSize);
-  detMapTcOfs = 0.f;
-
-  has_detailed_land_classes = false;
-  for (int i = 0; i < landClasses.size(); ++i)
-  {
-    if (landClasses[i].lcType != LC_SIMPLE)
-    {
-      has_detailed_land_classes = true;
-      break;
-    }
-  }
 
   int default_objectid = ShaderGlobal::getBlockId("land_mesh_game_scene");
   for (int i = 0; i < RENDER_TYPES_COUNT; ++i)
@@ -372,6 +316,44 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
       useConditionalRendering = false;
     }
   }
+
+  vtex = provider.getVtexRenderer();
+  G_ASSERT(vtex);
+}
+
+LandVtexRenderer::LandVtexRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes,
+  int biome_land_class_idx, TEXTUREID vert_tex_id, TEXTUREID vert_nm_tex_id, TEXTUREID vert_det_tex_id, TEXTUREID tile_tex,
+  d3d::SamplerHandle tile_smp, real tile_x, real tile_y) :
+  tileTexId(tile_tex), tileTexSmp(tile_smp), tileXSize(tile_x), tileYSize(tile_y)
+{
+  mem_set_0(megaDetailsArray);
+  landClasses = land_classes;
+  biomeLandClassIdx = biome_land_class_idx;
+  vertTexId = vert_tex_id;
+  vertNmTexId = vert_nm_tex_id;
+  vertDetTexId = vert_det_tex_id;
+
+  if (lmesh_physmats__buffer_idx > 0)
+    physmatIdsBuf = d3d::buffers::create_one_frame_sr_byte_address(DET_TEX_NUM * 4, "physmats_IDS", RESTAG_LAND);
+
+  ShaderGlobal::set_texture(var::vertical_tex, vertTexId);
+  ShaderGlobal::set_texture(var::vertical_nm_tex, vertNmTexId);
+  ShaderGlobal::set_texture(var::vertical_det_tex, vertDetTexId);
+
+  int detMapElemSize, size;
+  provider.getDetailMapSize(detMapElemSize, size);
+  float cellSize = provider.getLandCellSize();
+  detMapTcScale = detMapElemSize / (size * cellSize);
+
+  for (int i = 0; i < landClasses.size(); ++i)
+  {
+    if (landClasses[i].lcType != LC_SIMPLE)
+    {
+      has_detailed_land_classes = true;
+      break;
+    }
+  }
+
   landclassShader.resize(LC_COUNT);
   for (int li = 0; li < LC_COUNT; ++li)
   {
@@ -395,20 +377,25 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
 LandMeshRenderer::~LandMeshRenderer()
 {
   delete[] optScn;
-  resetTextures();
 
-  for (const ShaderVariableInfo *v : {&var::vertical_tex, &var::vertical_nm_tex, &var::vertical_det_tex})
-    ShaderGlobal::set_texture(*v, BAD_TEXTUREID);
   if (cellStates)
     delete[] cellStates;
   cellStates = NULL;
 
   if (useConditionalRendering)
     bboxShader.close();
+}
+
+LandVtexRenderer::~LandVtexRenderer()
+{
+  resetTextures();
+
+  for (const ShaderVariableInfo *v : {&var::vertical_tex, &var::vertical_nm_tex, &var::vertical_det_tex})
+    ShaderGlobal::set_texture(*v, BAD_TEXTUREID);
   del_d3dres(one_quad);
   del_d3dres(physmatIdsBuf);
   landclassShader.clear();
-  shadersNames.erase(shadersNames.begin(), shadersNames.end());
+  landclassShaderFailed.clear();
 }
 
 // Shared override-state create/lookup logic. Each caller passes its own cache map, so
@@ -494,33 +481,36 @@ shaders::OverrideStateId LandMeshRenderer::setStateDepthBias(StateDepthBias dept
   return setOverride(state);
 }
 
-shaders::OverrideStateId LandMeshRenderer::setStateBlend()
+shaders::OverrideStateId LandVtexRenderer::setStateBlend()
 {
   shaders::OverrideState state;
   state.set(shaders::OverrideState::BLEND_SRC_DEST);
   state.sblend = BLEND_ONE;
   state.dblend = BLEND_ONE;
-  return setOverride(state);
+  return landmesh::set_override(overrideStateMap, state);
 }
 
-void LandMeshRenderer::evictSplattingData()
+void LandVtexRenderer::evictSplattingData()
 {
   resetTextures();
   for (int i = 0; i < landClassesLoaded.size(); ++i)
     landClassesLoaded[i] = LCTexturesLoaded();
+}
+
+void LandMeshRenderer::evictSplattingData()
+{
+  vtex->evictSplattingData();
 
   if (cellStates) // They keep pointers to unreferenced textures and become invalid as the cells themselves.
     delete[] cellStates;
   cellStates = NULL;
 }
 
-void LandMeshRenderer::resetTextures()
+void LandVtexRenderer::resetTextures()
 {
   d3d::GpuAutoLock gpuLock;
   if (lmesh_sampler__land_detail_map >= 0)
     d3d::settex(lmesh_sampler__land_detail_map, NULL);
-  if (lmesh_sampler__land_detail_map2 >= 0)
-    d3d::settex(lmesh_sampler__land_detail_map2, NULL);
 
   for (int i = 0; i < DET_TEX_NUM; ++i)
   {
@@ -528,15 +518,21 @@ void LandMeshRenderer::resetTextures()
   }
 }
 
-void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, float hmap_camera_height)
+void LandMeshRenderer::resetTextures() { vtex->resetTextures(); }
+
+// Forwarders to the land-class / virtual-texture renderer held in `vtex`.
+Tab<LandClassDetailTextures> &LandMeshRenderer::getLandClasses() { return vtex->getLandClasses(); }
+TEXTUREID LandMeshRenderer::getDetailTileTex() { return vtex->getDetailTileTex(); }
+d3d::SamplerHandle LandMeshRenderer::getDetailTileSmp() const { return vtex->getDetailTileSmp(); }
+void LandMeshRenderer::setCustomLcTextures() { vtex->setCustomLcTextures(); }
+void LandMeshRenderer::updateCustomSamplers(LandMeshManager &provider) { vtex->updateCustomSamplers(provider); }
+bool LandMeshRenderer::reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassMaskTexId)
 {
-  prepare(provider, pos, hmap_camera_height, HeightmapHeightCulling::NO_WATER_ON_LEVEL);
+  return vtex->reloadGrassMaskTex(land_class_id, newGrassMaskTexId);
 }
 
-void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, float hmap_camera_height, float water_level)
+void LandMeshRenderer::prepare(LandMeshManager &provider, const HmapOrigin &origin)
 {
-  G_UNUSED(hmap_camera_height); // HeightmapHandler::prepare no longer depends on camera height or water level
-  G_UNUSED(water_level);
   if (provider.isDecodedToWorldPos() && !optScn)
   {
     optScn = new landmesh::OptimizedScene[LandMeshManager::LOD_COUNT];
@@ -544,20 +540,21 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
       landmesh::buildOptSceneData(optScn[lod], provider, lod);
   }
 
-  if (provider.isInTools())
+  if (provider.isInTools() && !provider.forceHeightmapRendering)
   {
     delete[] cellStates;
     cellStates = NULL;
   }
   else if (provider.getHmapHandler())
   {
-    renderHeightmapType = (provider.mayRenderHmap && provider.getHmapHandler()->prepare(pos)) ? TESSELATED_HMAP : NO_HMAP;
-    provider.cullingState.useExclBox = renderHeightmapType != NO_HMAP;
+    // useExclBox (hide land cells where the heightmap fills) is the only persistent bit kept here; the
+    // per-pass heightmap draw decision now lives in LandMeshCullingData::hmapDrawType (set by the cull/render()).
+    provider.cullingState.useExclBox = provider.mayRenderHmap && provider.getHmapHandler()->prepare(origin.pos, origin.distanceMul);
   }
 
   if (!cellStates && !provider.getDetailMap().cells.empty())
   {
-    prepareLandClasses(provider);
+    vtex->prepareLandClasses(provider);
     cellStates = new CellState[provider.getNumCellsY() * provider.getNumCellsX()];
     G_STATIC_ASSERT(sizeof(cellStates[0].lcIds[0]) == 1);
     eastl::bitset<1 << (8 * sizeof(cellStates[0].lcIds[0]))> errorSignalled;
@@ -568,7 +565,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
         int validId = -1;
         for (int di = 0; di < cellStates[x + y * provider.getNumCellsX()].numDetailTextures; ++di)
         {
-          const LCTexturesLoaded &landLoaded = landClassesLoaded[cellStates[x + y * provider.getNumCellsX()].lcIds[di]];
+          const LCTexturesLoaded &landLoaded = vtex->getLandClassesLoaded()[cellStates[x + y * provider.getNumCellsX()].lcIds[di]];
           if (landLoaded.colorMap.tid)
           {
             validId = cellStates[x + y * provider.getNumCellsX()].lcIds[di];
@@ -576,9 +573,9 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
           }
         }
         if (validId < 0)
-          for (int di = 0; di < landClassesLoaded.size(); ++di)
+          for (int di = 0; di < vtex->getLandClassesLoaded().size(); ++di)
           {
-            const LCTexturesLoaded &landLoaded = landClassesLoaded[di];
+            const LCTexturesLoaded &landLoaded = vtex->getLandClassesLoaded()[di];
             if (landLoaded.colorMap.tid)
             {
               validId = di;
@@ -588,7 +585,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
         for (int di = 0; di < cellStates[x + y * provider.getNumCellsX()].numDetailTextures; ++di)
         {
           auto &lc = cellStates[x + y * provider.getNumCellsX()].lcIds[di];
-          const LCTexturesLoaded &landLoaded = landClassesLoaded[lc];
+          const LCTexturesLoaded &landLoaded = vtex->getLandClassesLoaded()[lc];
           if (!landLoaded.colorMap.tid)
           {
             if (!errorSignalled.test(lc))
@@ -655,7 +652,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
   IPoint2 cc;
   float cellSize = provider.getLandCellSize();
   Point3 meshOffset = provider.getOffset();
-  Point2 centerCellPos = Point2::xz(pos - meshOffset);
+  Point2 centerCellPos = Point2::xz(origin.pos - meshOffset);
   cc.x = int(floorf(centerCellPos.x / cellSize));
   cc.y = int(floorf(centerCellPos.y / cellSize));
   centerCellFract = centerCellPos - Point2(cc.x * cellSize, cc.y * cellSize);
@@ -672,8 +669,7 @@ void LandMeshRenderer::getCellState(LandMeshManager &provider, int cell_x, int c
   int mirrorX = cell_x + provider.getCellOrigin().x;
   int mirrorY = cell_y + provider.getCellOrigin().y;
   // Setup.
-  TEXTUREID tex1Id, tex2Id;
-  provider.getLandDetailTexture(mirrorX, mirrorY, tex1Id, tex2Id, curState.lcIds.data());
+  provider.getLandDetailTexIds(mirrorX, mirrorY, curState.lcIds.data());
   Point3 meshOffset = provider.getOffset();
   float cellSize = provider.getLandCellSize();
   // debug("  render land mesh %d %d", x, y);
@@ -688,30 +684,30 @@ void LandMeshRenderer::getCellState(LandMeshManager &provider, int cell_x, int c
   Color4 mul[2];
   Color4 ofs[4];
 
-  if (!landClasses.size())
+  if (!vtex->getLandClasses().size())
   {
     mul[0] = Color4(1, 1, 1, 1);
     mul[1] = Color4(1, 1, 1, 1);
   }
   else
   {
-    mul[0] = Color4(curState.lcIds[0] == 0xFF ? 1.f : landClasses[curState.lcIds[0]].tile,
-      curState.lcIds[1] == 0xFF ? 1.f : landClasses[curState.lcIds[1]].tile,
-      curState.lcIds[2] == 0xFF ? 1.f : landClasses[curState.lcIds[2]].tile,
-      curState.lcIds[3] == 0xFF ? 1.f : landClasses[curState.lcIds[3]].tile);
+    mul[0] = Color4(curState.lcIds[0] == 0xFF ? 1.f : vtex->getLandClasses()[curState.lcIds[0]].tile,
+      curState.lcIds[1] == 0xFF ? 1.f : vtex->getLandClasses()[curState.lcIds[1]].tile,
+      curState.lcIds[2] == 0xFF ? 1.f : vtex->getLandClasses()[curState.lcIds[2]].tile,
+      curState.lcIds[3] == 0xFF ? 1.f : vtex->getLandClasses()[curState.lcIds[3]].tile);
 
-    mul[1] = Color4(curState.lcIds[4] == 0xFF ? 1.f : landClasses[curState.lcIds[4]].tile,
-      curState.lcIds[5] == 0xFF ? 1.f : landClasses[curState.lcIds[5]].tile,
-      curState.lcIds[6] == 0xFF ? 1.f : landClasses[curState.lcIds[6]].tile, 1);
+    mul[1] = Color4(curState.lcIds[4] == 0xFF ? 1.f : vtex->getLandClasses()[curState.lcIds[4]].tile,
+      curState.lcIds[5] == 0xFF ? 1.f : vtex->getLandClasses()[curState.lcIds[5]].tile,
+      curState.lcIds[6] == 0xFF ? 1.f : vtex->getLandClasses()[curState.lcIds[6]].tile, 1);
 
     for (int i = 0; i < 3; ++i)
-      ofs[i] = Color4(curState.lcIds[i * 2] == 0xFF ? 0.f : landClasses[curState.lcIds[i * 2]].offset.x,
-        curState.lcIds[i * 2] == 0xFF ? 0.f : landClasses[curState.lcIds[i * 2]].offset.y,
-        curState.lcIds[i * 2 + 1] == 0xFF ? 0.f : landClasses[curState.lcIds[i * 2 + 1]].offset.x,
-        curState.lcIds[i * 2 + 1] == 0xFF ? 0.f : landClasses[curState.lcIds[i * 2 + 1]].offset.y);
+      ofs[i] = Color4(curState.lcIds[i * 2] == 0xFF ? 0.f : vtex->getLandClasses()[curState.lcIds[i * 2]].offset.x,
+        curState.lcIds[i * 2] == 0xFF ? 0.f : vtex->getLandClasses()[curState.lcIds[i * 2]].offset.y,
+        curState.lcIds[i * 2 + 1] == 0xFF ? 0.f : vtex->getLandClasses()[curState.lcIds[i * 2 + 1]].offset.x,
+        curState.lcIds[i * 2 + 1] == 0xFF ? 0.f : vtex->getLandClasses()[curState.lcIds[i * 2 + 1]].offset.y);
 
-    ofs[3] = Color4(curState.lcIds[6] == 0xFF ? 0.f : landClasses[curState.lcIds[6]].offset.x,
-      curState.lcIds[6] == 0xFF ? 0.f : landClasses[curState.lcIds[6]].offset.y, 0, 0);
+    ofs[3] = Color4(curState.lcIds[6] == 0xFF ? 0.f : vtex->getLandClasses()[curState.lcIds[6]].offset.x,
+      curState.lcIds[6] == 0xFF ? 0.f : vtex->getLandClasses()[curState.lcIds[6]].offset.y, 0, 0);
 
     for (int i = 0; i < 4; ++i)
     {
@@ -723,8 +719,11 @@ void LandMeshRenderer::getCellState(LandMeshManager &provider, int cell_x, int c
   }
 
 
-  curState.detMapTc = Color4(detMapTcScale, detMapTcScale, detMapTcOfs - mirrorX * cellSize - meshOffset.x,
-    detMapTcOfs - mirrorY * cellSize - meshOffset.z);
+  // with a weight atlas detMapCoord is the intra-cell fraction; the page
+  // lookup in GET_WEIGHTS does the rest (see land_inc.dshl)
+  float tcScale = provider.getWeightAtlas() ? 1.f / cellSize : vtex->getDetMapTcScale();
+  curState.detMapTc = Color4(tcScale, tcScale, vtex->getDetMapTcOfs() - mirrorX * cellSize - meshOffset.x,
+    vtex->getDetMapTcOfs() - mirrorY * cellSize - meshOffset.z);
   curState.detMapTc[2] *= curState.detMapTc[0];
   curState.detMapTc[3] *= curState.detMapTc[1];
   for (int i = 0; i < 4; ++i)
@@ -739,10 +738,7 @@ void LandMeshRenderer::getCellState(LandMeshManager &provider, int cell_x, int c
 
   curState.prepareMirrorMul(minX, cellSize * provider.getNumCellsX() + minX - provider.getGridCellSize(), minZ,
     cellSize * provider.getNumCellsY() + minZ - provider.getGridCellSize());
-  curState.map1 = ACQUIRE_MANAGED_TEX(tex1Id);
-  RELEASE_MANAGED_TEX(tex1Id);
-  curState.map2 = ACQUIRE_MANAGED_TEX(tex2Id);
-  RELEASE_MANAGED_TEX(tex2Id);
+  curState.map1 = provider.getWeightAtlas() ? provider.getWeightAtlas()->tex : NULL;
 
   curState.numDetailTextures = LandMeshRenderer::DET_TEX_NUM;
   curState.invTexSizes[0] = curState.invTexSizes[1] = Color4(1, 1, 1, 1) / 1024.0;
@@ -755,22 +751,20 @@ void LandMeshRenderer::getCellState(LandMeshManager &provider, int cell_x, int c
     if (!provider.isInTools())
       G_ASSERTF((i >= curState.numDetailTextures) == (lcId == 0xFF),
         "Detail textures for land mesh should be countinuous. See log for missing textures");
-    if (curState.lcIds[i] < landClassesLoaded.size())
+    if (curState.lcIds[i] < vtex->getLandClassesLoaded().size())
     {
-      curState.invTexSizes[i >> 2][i & 3] = landClassesLoaded[lcId].invColormapSize.x;
-      if (!landClassesLoaded[lcId].colorMap.tid)
+      curState.invTexSizes[i >> 2][i & 3] = vtex->getLandClassesLoaded()[lcId].invColormapSize.x;
+      if (!vtex->getLandClassesLoaded()[lcId].colorMap.tid)
       {
         if (provider.isInTools())
           curState.numDetailTextures = i;
       }
-      else if (landClasses[lcId].lcType != LC_SIMPLE)
+      else if (vtex->getLandClasses()[lcId].lcType != LC_SIMPLE)
         curState.trivial = false;
     }
   }
   if (!curState.map1)
     curState.numDetailTextures = 1;
-  else if (!curState.map2)
-    curState.numDetailTextures = min(curState.numDetailTextures, 5);
   if (curState.numDetailTextures == 0)
   {
     static int last_t = 0, happens = 0;
@@ -813,8 +807,8 @@ __forceinline ShaderMesh *LandMeshRenderer::prepareGeomCellsCM(LandMeshManager &
   return provider.getCellCombinedShaderMeshRaw(mirroredCell.cellX, mirroredCell.cellY, isCombinedBig);
 }
 
-void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSpan<uint16_t> cells, int lodNo, RenderType rtype,
-  uint8_t hide_excluded, bool force_set_states)
+void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, const RenderPassCtx &pass_ctx, dag::ConstSpan<uint16_t> cells,
+  int lodNo, RenderType rtype, uint8_t hide_excluded, bool force_set_states)
 {
   if (!cells.size() || !optScn)
     return;
@@ -838,19 +832,19 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSp
   // Single CB unifying the four prior shapes. Policy flags:
   //  - setStatesFlag      : call mat->setStates(0, true) (skipped for ONE_SHADER no-states path)
   //  - applyDepthBiasFlag : adjust depth bias per BOTTOM_ABOVE/BELOW (off for ONE_SHADER, on for FULL and DEPTH)
-  //  - honorSkipBottom    : in DEPTH path, BELOW returns false and ABOVE skips bias adjust when skip_bottom_rendering is set
+  //  - skipBottom         : in DEPTH path, BELOW returns false and ABOVE skips bias adjust (pass_ctx decision)
   struct RosdCB : landmesh::IRosdSetStatesCB
   {
     LandMeshRenderer *renderer;
     mutable shaders::OverrideStateId prevStateId;
-    bool setStatesFlag, applyDepthBiasFlag, honorSkipBottom;
+    bool setStatesFlag, applyDepthBiasFlag, skipBottom;
 
-    RosdCB(LandMeshRenderer *r, bool set_states, bool apply_depth_bias, bool honor_skip_bottom) :
+    RosdCB(LandMeshRenderer *r, bool set_states, bool apply_depth_bias, bool skip_bottom) :
       renderer(r),
       prevStateId(shaders::overrides::get_current()),
       setStatesFlag(set_states),
       applyDepthBiasFlag(apply_depth_bias),
-      honorSkipBottom(honor_skip_bottom)
+      skipBottom(skip_bottom)
     {}
 
     virtual bool applyMat(ShaderElement *mat, int bottom_type) const override
@@ -859,7 +853,7 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSp
         return false;
       if (applyDepthBiasFlag && VariableMap::isGlobVariablePresent(var::bottom))
       {
-        if (honorSkipBottom && skip_bottom_rendering)
+        if (skipBottom)
           return bottom_type != BOTTOM_BELOW; // BELOW: cull; ABOVE: keep but skip bias adjust
         renderer->resetOverride(prevStateId);
         renderer->setStateDepthBias(bottom_type == BOTTOM_BELOW ? STATE_DEPTH_BIAS_BOTTOM : STATE_DEPTH_BIAS_ZERO);
@@ -872,7 +866,8 @@ void LandMeshRenderer::renderGeomCellsLM(LandMeshManager &provider, dag::ConstSp
   if (rtype == RENDER_ONE_SHADER)
     landmesh::renderOptSceneData(optScn[lodNo], RosdCB(this, /*setStates*/ force_set_states, /*depthBias*/ false, false));
   else if (rtype == RENDER_DEPTH)
-    landmesh::renderOptSceneData(optScn[lodNo], RosdCB(this, /*setStates*/ force_set_states, /*depthBias*/ true, /*skipBottom*/ true));
+    landmesh::renderOptSceneData(optScn[lodNo],
+      RosdCB(this, /*setStates*/ force_set_states, /*depthBias*/ true, pass_ctx.skipBottomRendering));
   else
     landmesh::renderOptSceneData(optScn[lodNo], RosdCB(this, /*setStates*/ true, /*depthBias*/ true, /*skipBottom*/ false));
   resetOverride(prevStateId);
@@ -940,20 +935,20 @@ inline bool shouldRenderMeshElem(const LandMeshManager &provider, int cellId, in
          provider.getDecalElems().data()[cellId].shouldRenderElem[elemId];
 }
 
-bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell,
-  bool force_samplers_no_mipbias)
+bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const RenderPassCtx &pass_ctx,
+  const MirroredCellState &mirroredCell, bool force_samplers_no_mipbias)
 {
   ShaderMesh *decalm = provider.getCellDecalShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
-  if (!decalm || !(lmesh_render_flags & RENDER_DECALS))
+  if (!decalm || !(pass_ctx.desc.renderFlags & RENDER_DECALS))
     return false;
   int id = mirroredCell.cellX + mirroredCell.cellY * provider.getNumCellsX();
 
   bool renderedAnything = false;
-  if (!provider.isInTools() && provider.getDecalElems().size() &&
+  if ((!provider.isInTools() || provider.forceHeightmapRendering) && provider.getDecalElems().size() &&
       provider.getDecalElems()[id].elemBoxes.size() == decalm->getAllElems().size())
   {
     bool setSamplersNoMipbias =
-      (getLMeshRenderingMode() == LMeshRenderingMode::RENDERING_CLIPMAP || force_samplers_no_mipbias) &&
+      (pass_ctx.desc.mode == LMeshRenderingMode::RENDERING_CLIPMAP || force_samplers_no_mipbias) &&
       eastl::find_if(decals_overrideSampler_const_no_array.begin(), decals_overrideSampler_const_no_array.end(),
         [](int smp_reg) { return smp_reg >= 0; }) != decals_overrideSampler_const_no_array.end();
 
@@ -961,13 +956,14 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
     Point3 meshOffset = provider.getOffset();
     float cellSize = provider.getLandCellSize();
     IPoint2 cellOfs(provider.getCellOrigin().x * 65535, provider.getCellOrigin().y * 65535);
-    if (!renderInBBox.isempty())
+    const BBox3 &renderBBox = pass_ctx.desc.renderInBBox;
+    if (!renderBBox.isempty())
     {
       cellSize /= 65535.f;
-      subCellBox[0].x = (int)floorf((renderInBBox[0].x - meshOffset.x) / cellSize);
-      subCellBox[0].y = (int)floorf((renderInBBox[0].z - meshOffset.z) / cellSize);
-      subCellBox[1].x = (int)floorf((renderInBBox[1].x - meshOffset.x) / cellSize);
-      subCellBox[1].y = (int)floorf((renderInBBox[1].z - meshOffset.z) / cellSize);
+      subCellBox[0].x = (int)floorf((renderBBox[0].x - meshOffset.x) / cellSize);
+      subCellBox[0].y = (int)floorf((renderBBox[0].z - meshOffset.z) / cellSize);
+      subCellBox[1].x = (int)floorf((renderBBox[1].x - meshOffset.x) / cellSize);
+      subCellBox[1].y = (int)floorf((renderBBox[1].z - meshOffset.z) / cellSize);
       subCellBox[0] -= cellOfs;
       subCellBox[1] -= cellOfs;
     }
@@ -975,7 +971,7 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
     {
       vec4f invGridCellSzV = v_splats(65535.0f / cellSize);
       vec4f ofs = v_make_vec4f(meshOffset.x, meshOffset.z, meshOffset.x, meshOffset.z);
-      vec4f worldBboxXZ = v_perm_xzac(frustumWorldBBox.bmin, frustumWorldBBox.bmax);
+      vec4f worldBboxXZ = v_perm_xzac(pass_ctx.frustumWorldBBox.bmin, pass_ctx.frustumWorldBBox.bmax);
       vec4f regionV = v_sub(worldBboxXZ, ofs);
       regionV = v_mul(regionV, invGridCellSzV);
       vec4i regionI = v_cvt_floori(regionV);
@@ -1095,7 +1091,7 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
   {
     decalm->render();
     renderedAnything = true;
-    if (!provider.isInTools() && getLMeshRenderingMode() == LMeshRenderingMode::RENDERING_CLIPMAP)
+    if (!provider.isInTools() && pass_ctx.desc.mode == LMeshRenderingMode::RENDERING_CLIPMAP)
       LOGERR_ONCE("renderCellDecals: Fallback branch was used, samplerState might be incorrect during RENDERING_CLIPMAP.");
   }
 
@@ -1103,8 +1099,8 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
 }
 
 
-void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lodNo, RenderType rtype, RenderPurpose rpurpose,
-  bool skip_combined_not_marked_as_big = false)
+void LandMeshRenderer::renderCell(LandMeshManager &provider, RenderPassCtx &pass_ctx, int cellNo, int lodNo, RenderType rtype,
+  RenderPurpose rpurpose, bool skip_combined_not_marked_as_big = false)
 {
   // fixme:
   //  Get cell geometry.
@@ -1113,7 +1109,7 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
   // int cellX = mirrorX + provider.getCellOrigin().x, cellY = mirrorY + provider.getCellOrigin().y;
   const MirroredCellState &mirroredCell = mirroredCells[cellNo];
 
-  bool hide_land = provider.cullingState.useExclBox && mirroredCell.excluded;
+  bool hide_land = pass_ctx.useExclBox && mirroredCell.excluded;
 
   bool isDecoded = provider.isDecodedToWorldPos();
 
@@ -1123,7 +1119,7 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
     d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
   CellState &curState = cellStates[mirroredCell.cellX + mirroredCell.cellY * provider.getNumCellsX()];
 
-  mirroredCell.setFlipCull(this);
+  mirroredCell.setFlipCull(this, pass_ctx);
   if (rtype == RENDER_ONE_SHADER)
   {
     if (!hide_land)
@@ -1198,8 +1194,8 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
   if (rtype <= MAX_RENDER_SPLATTING__)
   {
     mirroredCell.setDetMapTc();
-    curState.set(rtype == RENDER_GRASS_MASK, landClassesLoaded, shouldRenderTrivially, false,
-      rtype == RENDER_GRASS_MASK ? physmatIdsBuf : NULL);
+    curState.set(rtype == RENDER_GRASS_MASK, vtex->getLandClassesLoaded(), false,
+      rtype == RENDER_GRASS_MASK ? vtex->getPhysmatIdsBuf() : NULL);
   }
 
 
@@ -1207,12 +1203,12 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
 
   if (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION)
   {
-    if (debugCells && VariableMap::isGlobVariablePresent(var::landmesh_debug_cells_scale))
+    if (pass_ctx.desc.debugCells && VariableMap::isGlobVariablePresent(var::landmesh_debug_cells_scale))
     {
       float s = ((mirroredCell.cellX + mirroredCell.cellY) & 1) ? 0.2f : 1.0f;
       ShaderGlobal::set_float4(var::landmesh_debug_cells_scale, Color4(s, s, s, s));
     }
-    mirroredCell.setPsMirror();
+    mirroredCell.setPsMirror(pass_ctx);
     // reverse order - landmesh combined first
     bool *isCombinedBig;
     ShaderMesh *combinedm = provider.getCellCombinedShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY, &isCombinedBig);
@@ -1261,11 +1257,11 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
   }
   else if (rtype == RENDER_WITH_SPLATTING)
   {
-    renderCellDecals(provider, mirroredCell);
+    renderCellDecals(provider, pass_ctx, mirroredCell);
   }
   else if (rtype == RENDER_CLIPMAP)
   {
-    if (curState.trivial || shouldRenderTrivially)
+    if (curState.trivial)
     {
       if (landclassShader[LC_TRIVIAL].elem->setStates(0, true)) // trivial case: all landclasses are simple
       {
@@ -1274,12 +1270,12 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
       }
     }
     else
-      renderLandclasses(curState);
+      vtex->renderLandclasses(curState);
 
-    renderCellDecals(provider, mirroredCell);
+    renderCellDecals(provider, pass_ctx, mirroredCell);
 
     ShaderMesh *combinedm = provider.getCellCombinedShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
-    if (combinedm && (lmesh_render_flags & RENDER_COMBINED))
+    if (combinedm && (pass_ctx.desc.renderFlags & RENDER_COMBINED))
     {
       if (isDecoded)
         d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
@@ -1303,7 +1299,7 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
     // render indexed landclasses, if any
     if (landclassShader.size() > LC_COUNT)
     {
-      renderLandclasses(curState, true, LC_CUSTOM);
+      vtex->renderLandclasses(curState, true, LC_CUSTOM);
     }
 
     ShaderMesh *decalm = provider.getCellDecalShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
@@ -1387,7 +1383,6 @@ bool LandMeshRenderer::check_cull_matrix(const TMatrix &realView, const TMatrix4
       // skip one frame after DEVICE LOST, if we cannot render it correctly
       after_lost_device = false;
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-      skip_bottom_rendering = false;
       return true;
     }
 #endif
@@ -1425,14 +1420,35 @@ bool LandMeshRenderer::check_cull_matrix(const TMatrix &realView, const TMatrix4
 }
 #endif
 
-LMeshRenderingMode LandMeshRenderer::setLMeshRenderingMode(LMeshRenderingMode mode)
+LMeshRenderingMode landmesh::set_rendering_mode_shadervar(LMeshRenderingMode mode)
 {
   G_ASSERT(mode < LMeshRenderingMode::LMESH_MAX);
-  if (lmeshRenderingMode == mode)
-    return lmeshRenderingMode;
-
+  if (lmesh_ambient_rendering_mode == mode)
+    return lmesh_ambient_rendering_mode;
   ShaderGlobal::set_int(var::lmesh_rendering_mode, static_cast<int>(mode));
-  return eastl::exchange(lmeshRenderingMode, mode);
+  return eastl::exchange(lmesh_ambient_rendering_mode, mode);
+}
+
+LMeshRenderingMode LandMeshRenderer::setLMeshRenderingMode(LMeshRenderingMode mode)
+{
+  lmeshRenderingMode = mode;
+  return landmesh::set_rendering_mode_shadervar(mode);
+}
+
+LandMeshRenderDesc LandMeshRenderer::legacyRenderDesc() const
+{
+  LandMeshRenderDesc desc;
+  // desc-less compat entries draw with the renderer's configured mode; if it diverges from the
+  // process-global ambient mode (changed renderer-free since), the legacy fill picks a stale mode
+  G_ASSERTF(lmeshRenderingMode == landmesh::get_rendering_mode_shadervar(), "legacy desc mode %d vs ambient %d",
+    (int)lmeshRenderingMode, (int)landmesh::get_rendering_mode_shadervar());
+  desc.mode = lmeshRenderingMode;
+  desc.renderFlags = lmesh_render_flags;
+  desc.renderInBBox = renderInBBox;
+  desc.invGeomLodDist = invGeomLodDist;
+  desc.regionCb = regionCallback;
+  desc.debugCells = debugCells;
+  return desc;
 }
 
 void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData,
@@ -1445,13 +1461,47 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
   const TMatrix *realView, const TMatrix4 *realProj, const Driver3dPerspective *persp, const TMatrix4 *realGlobtm,
   const Point3 &view_pos, bool check_matrices, RenderPurpose rpurpose)
 {
+  // Compat entry: the pass desc is assembled from the legacy setter members.
+  RenderPassCtx passCtx;
+  passCtx.desc = legacyRenderDesc();
+  renderCulledImpl(provider, rtype, culledData, realView, realProj, persp, realGlobtm, view_pos, check_matrices, rpurpose, passCtx);
+}
+
+void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshRenderDesc &desc,
+  const LandMeshCullingData &culledData, const Point3 &view_pos, RenderPurpose rpurpose, const Frustum *cull_frustum)
+{
+  renderCulled(provider, rtype, desc, culledData, nullptr, nullptr, nullptr, nullptr, view_pos, false, rpurpose, cull_frustum);
+}
+
+void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype, const LandMeshRenderDesc &desc,
+  const LandMeshCullingData &culledData, const TMatrix *realView, const TMatrix4 *realProj, const Driver3dPerspective *persp,
+  const TMatrix4 *realGlobtm, const Point3 &view_pos, bool check_matrices, RenderPurpose rpurpose, const Frustum *cull_frustum)
+{
+  // Keep the mode shadervar (and the legacy mode member) in sync while setter-based consumers
+  // remain: skyquake decals3d relies on the sticky lmesh_rendering_mode var between passes.
+  setLMeshRenderingMode(desc.mode);
+  RenderPassCtx passCtx;
+  passCtx.desc = desc;
+  if (passCtx.desc.invGeomLodDist < 0) // unset: inherit the renderer's lod distance (0 stays the force-LOD0 value)
+    passCtx.desc.invGeomLodDist = invGeomLodDist;
+  renderCulledImpl(provider, rtype, culledData, realView, realProj, persp, realGlobtm, view_pos, check_matrices, rpurpose, passCtx,
+    cull_frustum);
+}
+
+void LandMeshRenderer::renderCulledImpl(LandMeshManager &provider, RenderType rtype, const LandMeshCullingData &culledData,
+  const TMatrix *realView, const TMatrix4 *realProj, const Driver3dPerspective *persp, const TMatrix4 *realGlobtm,
+  const Point3 &view_pos, bool check_matrices, RenderPurpose rpurpose, RenderPassCtx &passCtx, const Frustum *cull_frustum)
+{
+  // Empty data is fine (a pass may draw before its first cull); data with cells must be a cull
+  // result, or geometry LOD would silently be measured from the default (0,0) center.
+  G_ASSERTF(culledData.fromCull || !culledData.count, "culling data with cells must come from landmesh::frustum_cull");
   if (lmesh_vs_const__pos_to_world < 0)
     return;
   if (!culledData.count)
   {
-    if (provider.isInTools())
+    if (provider.isInTools() && !provider.forceHeightmapRendering)
       return;
-    if (renderHeightmapType != NO_HMAP &&
+    if (culledData.hmapDrawType != HmapDrawType::NONE &&
         (!provider.getHmapHandler() || rtype == RENDER_GRASS_MASK || rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES))
       return;
   }
@@ -1461,12 +1511,12 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
 
   if (rtype == RENDER_GRASS_MASK) // Touch the grass mask textures that were used in the last update of the grass mask.
   {
-    for (const auto &landClass : landClassesLoaded)
+    for (const auto &landClass : vtex->getLandClassesLoaded())
       landClass.lastUsedGrassMask = false;
   }
   else if (rtype == RENDER_WITH_CLIPMAP)
   {
-    for (const auto &landClass : landClassesLoaded)
+    for (const auto &landClass : vtex->getLandClassesLoaded())
       if (landClass.lastUsedGrassMask)
       {
         mark_managed_tex_lfu(landClass.grassMask.tid);
@@ -1479,7 +1529,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
 
   int oldScene = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
   if (provider.isInTools() && rtype != RENDER_DEPTH && rtype != RENDER_ONE_SHADER)
-    prepareLandClasses(provider);
+    vtex->prepareLandClasses(provider);
   // CellState::initMirrorScaleState();
   IPoint2 lt, rb;
   lt.x = provider.getCellOrigin().x;
@@ -1487,15 +1537,12 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
   rb.x = lt.x + provider.getNumCellsX() - 1;
   rb.y = lt.y + provider.getNumCellsY() - 1;
 
-  if (rtype == RENDER_WITH_CLIPMAP && !shouldForceLowQuality)
+  if (const LandWeightAtlas *wa = provider.getWeightAtlas())
   {
-    float scaleMicroDetail = undetailedLCMicroDetail;
-    if (!shouldRenderTrivially && has_detailed_land_classes)
-      scaleMicroDetail = detailedLCMicroDetail;
+    // the whole table once per pass, since the shader resolves the cell itself
+    wa->bindCells();
+    wa->setCellMapping(provider.getLandCellSize(), provider.getGridCellSize(), provider.getOffset(), provider.getCellOrigin());
   }
-
-  // int opt_vs = (!renderInBBox.isempty() && renderInBBox.width().length() > big_clipmap_criterio);
-  // ShaderGlobal::set_int_fast(optimizeVsId, opt_vs);
 
   ShaderGlobal::set_float4(var::world_view_pos, view_pos.x, view_pos.y, view_pos.z, 1.f);
 
@@ -1507,12 +1554,16 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
     ShaderGlobal::set_texture(var::vertical_tex, BAD_TEXTUREID);
 
   ShaderGlobal::setBlock(land_mesh_object_blkid[rtype], ShaderGlobal::LAYER_SCENE);
-  if (!provider.isInTools() && (lmesh_render_flags & RENDER_HEIGHTMAP) && renderHeightmapType != NO_HMAP &&
-      provider.getHmapHandler() && rtype != RENDER_GRASS_MASK && rtype != RENDER_CLIPMAP && rtype != RENDER_PATCHES)
+  if ((!provider.isInTools() || provider.forceHeightmapRendering) && (passCtx.desc.renderFlags & RENDER_HEIGHTMAP) &&
+      culledData.hmapDrawType != HmapDrawType::NONE && provider.getHmapHandler() && rtype != RENDER_GRASS_MASK &&
+      rtype != RENDER_CLIPMAP && rtype != RENDER_PATCHES)
   {
-    if (renderHeightmapType == ONEQUAD_HMAP)
+    if (culledData.hmapDrawType == HmapDrawType::ONEQUAD)
     {
-      provider.getHmapHandler()->renderOnePatch();
+      // ONEQUAD is produced only by renderImpl, which always supplies its own frustum here.
+      G_ASSERT(cull_frustum);
+      if (cull_frustum)
+        provider.getHmapHandler()->renderOnePatch(*cull_frustum);
     }
     else
     {
@@ -1520,7 +1571,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
     }
     if (rtype == RENDER_WITH_CLIPMAP && provider.noVertTexHeightmap())
     {
-      ShaderGlobal::set_texture(var::vertical_tex, vertTexId);
+      ShaderGlobal::set_texture(var::vertical_tex, vtex->getVertTexId());
       ShaderGlobal::setBlock(land_mesh_object_blkid[rtype], ShaderGlobal::LAYER_SCENE);
     }
   }
@@ -1531,30 +1582,27 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
       ShaderGlobal::setBlock(oldScene, ShaderGlobal::LAYER_SCENE);
     return;
   }
-  LandMeshCullingState cullingState;
-
-  cullingState.copyLandmeshState(provider, *this);
-
-  LandMeshRenderer::MirroredCellState::startRender();
+  passCtx.useExclBox = culledData.useExclBox;
+  passCtx.frustumWorldBBox = culledData.frustumWorldBBox;
+  LandMeshRenderer::MirroredCellState::startRender(passCtx);
 
   // The bootom has its own bias when rendered to scene. That bias will conflict with external one resulting
   // in selfshadowing for example, so skip the bottom rendering and use the external bias for the main land.
-  skip_bottom_rendering = false;
   if (rtype == RENDER_DEPTH && VariableMap::isGlobVariablePresent(var::bottom))
   {
     shaders::OverrideState prevState = shaders::overrides::get(shaders::overrides::get_current());
     if (prevState.isOn(shaders::OverrideState::Z_BIAS) && !is_equal_float(prevState.zBias, 0.f, 1e-9f))
-      skip_bottom_rendering = true;
+      passCtx.skipBottomRendering = true;
   }
 
   shaders::OverrideStateId prevStateId = shaders::overrides::get_current();
   if (rtype == RENDER_ONE_SHADER || rtype == RENDER_DEPTH)
   {
-    ShaderMesh *landm = provider.getCellLandShaderMesh(centerCell.x, centerCell.y, 0);
+    ShaderMesh *landm = provider.getCellLandShaderMesh(culledData.centerCell.x, culledData.centerCell.y, 0);
     if (!landm)
       landm = provider.getCellLandShaderMesh(provider.getCellOrigin().x, provider.getCellOrigin().y, 0);
     landm->getAllElems()[0].e->setStates(0, true);
-    if (VariableMap::isGlobVariablePresent(var::bottom) && !skip_bottom_rendering)
+    if (VariableMap::isGlobVariablePresent(var::bottom) && !passCtx.skipBottomRendering)
       prevStateId = setStateDepthBias(STATE_DEPTH_BIAS_ZERO);
   }
 
@@ -1571,24 +1619,24 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
   const LandMeshCellDesc *cellsArr = culledData.cells;
 
   if (rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES || rtype == RENDER_GRASS_MASK ||
-      (debugCells && (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION)))
+      (passCtx.desc.debugCells && (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION)))
   {
-    if (regionCallback)
-      regionCallback->startRenderCellRegion(0);
+    if (passCtx.desc.regionCb)
+      passCtx.desc.regionCb->startRenderCellRegion(0);
 
     for (int i = 0; i < culledData.count; i++)
       for (int y = 0; y <= cellsArr[i].countY; y++)
         for (int x = 0; x <= cellsArr[i].countX; x++)
         {
           int borderX = cellsArr[i].borderX + x, borderY = cellsArr[i].borderY + y;
-          renderCell(provider,
+          renderCell(provider, passCtx,
             (borderY - provider.getCellOrigin().y + numBorderCellsZNeg) * tWidth +
               (borderX - provider.getCellOrigin().x + numBorderCellsXNeg),
             0, rtype, rpurpose, false);
         }
 
-    if (regionCallback)
-      regionCallback->endRenderCellRegion(0);
+    if (passCtx.desc.regionCb)
+      passCtx.desc.regionCb->endRenderCellRegion(0);
   }
   else
   {
@@ -1603,7 +1651,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
     };
 
     int regionsCount = culledData.regionsCount;
-    int regionCallbackCnt = regionCallback ? regionCallback->regionsCount() - 1 : 0;
+    int regionCallbackCnt = passCtx.desc.regionCb ? passCtx.desc.regionCb->regionsCount() - 1 : 0;
     int lastRegion = -1;
     {
       memset(ctx->cellCounter, 0, sizeof(ctx->cellCounter)); // reset cell indices
@@ -1616,11 +1664,16 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
               for (int x = 0; x <= cellsArr[i].countX; x++)
               {
                 int borderX = cellsArr[i].borderX + x, borderY = cellsArr[i].borderY + y;
-                IPoint2 centerDir = IPoint2(borderX, borderY) - centerCell;
+                // geometry LOD is measured from the cull batch's own center, not the prepared one
+                IPoint2 centerDir = IPoint2(borderX, borderY) - culledData.centerCell;
                 Point2 dir = Point2(centerDir.x * cellSize, centerDir.y * cellSize);
-                dir.x += centerDir.x < 0 ? cellSize - centerCellFract.x : centerDir.x > 0 ? -centerCellFract.x : 0;
-                dir.y += centerDir.y < 0 ? cellSize - centerCellFract.y : centerDir.y > 0 ? -centerCellFract.y : 0;
-                int lod = clamp((int)(length(dir) * invGeomLodDist), 0, LandMeshManager::LOD_COUNT - 1);
+                dir.x += centerDir.x < 0   ? cellSize - culledData.centerCellFract.x
+                         : centerDir.x > 0 ? -culledData.centerCellFract.x
+                                           : 0;
+                dir.y += centerDir.y < 0   ? cellSize - culledData.centerCellFract.y
+                         : centerDir.y > 0 ? -culledData.centerCellFract.y
+                                           : 0;
+                int lod = clamp((int)(length(dir) * passCtx.desc.invGeomLodDist), 0, LandMeshManager::LOD_COUNT - 1);
                 int cellNo = (borderY - provider.getCellOrigin().y + numBorderCellsZNeg) * tWidth +
                              (borderX - provider.getCellOrigin().x + numBorderCellsXNeg);
                 const MirroredCellState &mirroredCell = mirroredCells[cellNo];
@@ -1672,29 +1725,29 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
       {
         if (cellI >= ctx->endRegion[regioni][LAST_MIRROR][LandMeshManager::LOD_COUNT - 1])
           continue;
-        if (regionCallback)
-          regionCallback->startRenderCellRegion(regioni);
+        if (passCtx.desc.regionCb)
+          passCtx.desc.regionCb->startRenderCellRegion(regioni);
 
         for (int mirror = 0; mirror < MIRRORS; ++mirror)
           for (int lod = 0; lod < LandMeshManager::LOD_COUNT; ++lod)
             for (; cellI < ctx->endRegion[regioni][mirror][lod]; cellI++)
-              renderCell(provider, ctx->cellsFlattenedData[cellI], lod, rtype, rpurpose, lod > 0);
+              renderCell(provider, passCtx, ctx->cellsFlattenedData[cellI], lod, rtype, rpurpose, lod > 0);
 
-        if (regionCallback)
-          regionCallback->endRenderCellRegion(regioni);
+        if (passCtx.desc.regionCb)
+          passCtx.desc.regionCb->endRenderCellRegion(regioni);
       }
     }
     else
     {
-      uint8_t use_exclusion = provider.cullingState.useExclBox;
+      uint8_t use_exclusion = passCtx.useExclBox;
       for (int startCellI = 0, regioni = 0; regioni < regionsCount; ++regioni)
       {
         if (startCellI >= ctx->endRegion[regioni][LAST_MIRROR][LandMeshManager::LOD_COUNT - 1])
           continue;
         // debug("rtype=%d, regioni=%d, cells=%d", rtype, regioni,
         // ctx->endRegion[regioni][LAST_MIRROR][LandMeshManager::LOD_COUNT-1]-startCellI);
-        if (regionCallback)
-          regionCallback->startRenderCellRegion(regioni);
+        if (passCtx.desc.regionCb)
+          passCtx.desc.regionCb->startRenderCellRegion(regioni);
 
         auto makeCellSpan = [&ctx](int start_id, int end_id) -> eastl::span<uint16_t> {
           G_ASSERT(start_id >= 0 && end_id >= 0);
@@ -1703,7 +1756,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
           return eastl::span(ctx->cellsFlattenedData.data() + start_id, end_id - start_id);
         };
 
-        if (lmesh_render_flags & RENDER_COMBINED)
+        if (passCtx.desc.renderFlags & RENDER_COMBINED)
         {
           for (int cellI = startCellI, mirrorI = 0; mirrorI < MIRRORS; ++mirrorI)
           {
@@ -1713,8 +1766,8 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
               {
                 // set mirror
                 const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[cellI]];
-                mirroredCell.setPsMirror();
-                const bool cullFlipped = mirroredCell.setFlipCull(this);
+                mirroredCell.setPsMirror(passCtx);
+                const bool cullFlipped = mirroredCell.setFlipCull(this, passCtx);
                 d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
                 renderGeomCellsCM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), rtype, lod > 0, cullFlipped);
               }
@@ -1722,7 +1775,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
           }
         }
 
-        if (lmesh_render_flags & RENDER_LANDMESH)
+        if (passCtx.desc.renderFlags & RENDER_LANDMESH)
         {
           for (int cellI = startCellI, mirrorI = 0; mirrorI < MIRRORS; ++mirrorI)
             for (int lod = 0; lod < LandMeshManager::LOD_COUNT; cellI = ctx->endRegion[regioni][mirrorI][lod], ++lod)
@@ -1730,15 +1783,15 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
               if (ctx->endRegion[regioni][mirrorI][lod] > cellI)
               {
                 const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[cellI]];
-                mirroredCell.setPsMirror();
-                const bool cullFlipped = mirroredCell.setFlipCull(this);
+                mirroredCell.setPsMirror(passCtx);
+                const bool cullFlipped = mirroredCell.setFlipCull(this, passCtx);
                 d3d::set_vs_const(lmesh_vs_const__pos_to_world, &worldMulPos[mirroredCell.mirrorScaleState.xz][0].x, 2);
-                renderGeomCellsLM(provider, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), lod, rtype, use_exclusion,
-                  cullFlipped);
+                renderGeomCellsLM(provider, passCtx, makeCellSpan(cellI, ctx->endRegion[regioni][mirrorI][lod]), lod, rtype,
+                  use_exclusion, cullFlipped);
               }
             }
         }
-        if (rtype == RENDER_WITH_SPLATTING && (lmesh_render_flags & RENDER_DECALS))
+        if (rtype == RENDER_WITH_SPLATTING && (passCtx.desc.renderFlags & RENDER_DECALS))
         {
           for (int cellI = startCellI, mirrorI = 0; mirrorI < MIRRORS; ++mirrorI)
             for (int lod = 0; lod < LandMeshManager::LOD_COUNT; cellI = ctx->endRegion[regioni][mirrorI][lod], ++lod)
@@ -1748,60 +1801,60 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
                 for (int ci = cellI; ci < ctx->endRegion[regioni][mirrorI][lod]; ++ci)
                 {
                   const MirroredCellState &mirroredCell = mirroredCells[ctx->cellsFlattenedData[ci]];
-                  mirroredCell.setPsMirror();
-                  mirroredCell.setFlipCull(this);
+                  mirroredCell.setPsMirror(passCtx);
+                  mirroredCell.setFlipCull(this, passCtx);
                   mirroredCell.setPosConsts(false);
-                  renderCellDecals(provider, mirroredCell);
+                  renderCellDecals(provider, passCtx, mirroredCell);
                 }
               }
             }
         }
-        if (regionCallback)
-          regionCallback->endRenderCellRegion(regioni);
+        if (passCtx.desc.regionCb)
+          passCtx.desc.regionCb->endRenderCellRegion(regioni);
         startCellI = ctx->endRegion[regioni][LAST_MIRROR][LandMeshManager::LOD_COUNT - 1];
       }
     }
   }
 
-  if (MirroredCellState::currentCullFlipped)
+  if (passCtx.cullFlipped)
   {
-    MirroredCellState::currentCullFlipped = false;
-    MirroredCellState::currentCullFlippedCurStateId = shaders::OverrideStateId();
-    resetOverride(MirroredCellState::currentCullFlippedPrevStateId);
+    passCtx.cullFlipped = false;
+    passCtx.cullFlippedCurStateId = shaders::OverrideStateId();
+    resetOverride(passCtx.cullFlippedPrevStateId);
   }
 
   resetOverride(prevStateId);
-
-  skip_bottom_rendering = false;
 
   if (oldScene != ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE))
     ShaderGlobal::setBlock(oldScene, ShaderGlobal::LAYER_SCENE);
 }
 
 
-bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode,
-  bool use_samplers_no_mipbias)
+bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, HmapOrigin hmap_origin,
+  bool compatibility_mode, bool use_samplers_no_mipbias)
 {
-  LandMeshCullingState state;
-  state.copyLandmeshState(provider, *this);
+  // Compat entry: the pass desc is assembled from the legacy setter members.
+  LandMeshRenderDesc desc = legacyRenderDesc();
+  desc.decalsCompatibilityMode = compatibility_mode;
+  desc.decalsSamplersNoMipBias = use_samplers_no_mipbias;
+  return renderDecals(provider, rtype, desc, globtm, hmap_origin);
+}
 
+bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype, const LandMeshRenderDesc &desc,
+  const TMatrix4 &globtm, HmapOrigin hmap_origin)
+{
   Frustum frustum(globtm);
-  frustum.calcFrustumBBox(frustumWorldBBox);
-  state.useExclBox = false;
-  if (!state.renderInBBox.isempty())
-    state.cullMode = state.NO_CULLING; // faster culling - no bbox testing
+  LandMeshCullDesc cullDesc = LandMeshCullDesc::forView(hmap_origin.pos, hmap_origin, frustum);
+  cullDesc.renderInBBox = desc.renderInBBox;
+  cullDesc.useDetailedHmap = false;
+  cullDesc.noCulling = !desc.renderInBBox.isempty(); // faster culling - no bbox testing
 
-  Point3 hmapOriginPos(0.f, 0.f, 0.f);
-  if (provider.getHmapHandler())
-    hmapOriginPos = provider.getHmapHandler()->getPreparedOriginPos();
   LandMeshCullingData defaultCullData(framemem_ptr());
-  state.frustumCulling(provider, defaultCullData, NULL, 0, HeightmapFrustumCullingInfo{hmapOriginPos, frustum, NULL, NULL, false});
-
-  LandMeshRenderer::MirroredCellState::startRender();
+  landmesh::frustum_cull(provider, cullDesc, defaultCullData);
 
   int oldScene = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
   ShaderGlobal::setBlock(land_mesh_object_blkid[rtype], ShaderGlobal::LAYER_SCENE);
-  bool renderedAnything = renderCulledDecals(provider, defaultCullData, compatibility_mode, use_samplers_no_mipbias);
+  bool renderedAnything = renderCulledDecals(provider, desc, defaultCullData);
   if (oldScene != ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE))
     ShaderGlobal::setBlock(oldScene, ShaderGlobal::LAYER_SCENE);
 
@@ -1811,9 +1864,30 @@ bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype,
 bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandMeshCullingData &culledData, bool compatibility_mode,
   bool use_samplers_no_mipbias)
 {
+  // Compat entry: the pass desc is assembled from the legacy setter members.
+  LandMeshRenderDesc desc = legacyRenderDesc();
+  desc.decalsCompatibilityMode = compatibility_mode;
+  desc.decalsSamplersNoMipBias = use_samplers_no_mipbias;
+  return renderCulledDecals(provider, desc, culledData);
+}
+
+bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandMeshRenderDesc &desc,
+  const LandMeshCullingData &culledData)
+{
+  // Decal shaders branch on the sticky lmesh_rendering_mode shadervar (clipmap decals skip
+  // when it is not clipmap), so sync it here like the desc renderCulled entry does.
+  setLMeshRenderingMode(desc.mode);
+  G_ASSERTF(culledData.fromCull || !culledData.count, "culling data with cells must come from landmesh::frustum_cull");
   G_ASSERT(cellStates);
   if (!cellStates)
     return false;
+
+  // Own pass ctx: also called directly (not only via renderDecals), so the mirror const must be
+  // re-established here instead of trusting whatever the previous pass left behind.
+  RenderPassCtx passCtx;
+  passCtx.desc = desc;
+  passCtx.frustumWorldBBox = culledData.frustumWorldBBox;
+  MirroredCellState::startRender(passCtx);
 
   const LandMeshCellDesc *cellsArr = culledData.cells;
 
@@ -1829,33 +1903,34 @@ bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandM
         const MirroredCellState &mirroredCell = mirroredCells[cellNo];
 
         ShaderMesh *decalm = provider.getCellDecalShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
-        if (!decalm || !(lmesh_render_flags & RENDER_DECALS) || decalm->getAllElems().empty())
+        if (!decalm || !(passCtx.desc.renderFlags & RENDER_DECALS) || decalm->getAllElems().empty())
           continue;
 
-        mirroredCell.setPsMirror();
+        mirroredCell.setPsMirror(passCtx);
         mirroredCell.setPosConsts(false);
         CellState &curState = cellStates[mirroredCell.cellX + mirroredCell.cellY * provider.getNumCellsX()];
         mirroredCell.setDetMapTc();
-        curState.set(false, landClassesLoaded, shouldRenderTrivially, true);
+        curState.set(false, vtex->getLandClassesLoaded(), true);
 
-        if (!compatibility_mode)
+        if (!desc.decalsCompatibilityMode)
         {
           for (int detailI = 0; detailI < curState.numDetailTextures; ++detailI)
           {
             set_ps_const1_opt(lmesh_ps_const__invtexturesizes, curState.invTexSizes[detailI >> 2][detailI & 3]);
-            const LCTexturesLoaded &landLoaded = landClassesLoaded[curState.lcIds[detailI]];
+            const LCTexturesLoaded &landLoaded = vtex->getLandClassesLoaded()[curState.lcIds[detailI]];
             set_ps_const_opt(lmesh_ps_const__bumpscales, landLoaded.bumpScales);
             set_ps_const_opt(lmesh_ps_const__water_decal_bump_scale, landLoaded.waterDecalBumpScale);
           }
         }
 
-        renderedAnything |= renderCellDecals(provider, mirroredCell, use_samplers_no_mipbias);
+        renderedAnything |= renderCellDecals(provider, passCtx, mirroredCell, desc.decalsSamplersNoMipBias);
       }
 
   return renderedAnything;
 }
 
-void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const Point3 &view_pos, RenderPurpose rpurpose)
+void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const Point3 &view_pos, HmapOrigin hmap_origin,
+  RenderPurpose rpurpose)
 {
   if (lmesh_vs_const__pos_to_world < 0)
     return;
@@ -1864,83 +1939,111 @@ void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const
   Frustum frustum(globtm);
   TMatrix4 proj;
   d3d::gettm(TM_PROJ, &proj);
-  return render(globtm, proj, frustum, provider, rtype, view_pos, rpurpose);
+  return render(globtm, proj, frustum, provider, rtype, view_pos, hmap_origin, rpurpose);
 }
 
 void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, LandMeshManager &provider,
-  RenderType rtype, const Point3 &view_pos, RenderPurpose rpurpose)
+  RenderType rtype, const Point3 &view_pos, HmapOrigin hmap_origin, RenderPurpose rpurpose)
 {
+  // Compat entry: the pass desc is assembled from the legacy setter members.
+  renderImpl(globtm, proj, frustum, provider, rtype, legacyRenderDesc(), view_pos, hmap_origin, rpurpose);
+}
+
+void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, LandMeshManager &provider,
+  RenderType rtype, const LandMeshRenderDesc &desc, const Point3 &view_pos, HmapOrigin hmap_origin, RenderPurpose rpurpose)
+{
+  renderImpl(globtm, proj, frustum, provider, rtype, desc, view_pos, hmap_origin, rpurpose);
+}
+
+void LandMeshRenderer::render(LandMeshManager &provider, RenderType rtype, const LandMeshRenderDesc &desc, const Point3 &view_pos,
+  HmapOrigin hmap_origin, RenderPurpose rpurpose)
+{
+  mat44f globtm;
+  d3d::getglobtm(globtm);
+  Frustum frustum(globtm);
+  TMatrix4 proj;
+  d3d::gettm(TM_PROJ, &proj);
+  renderImpl(globtm, proj, frustum, provider, rtype, desc, view_pos, hmap_origin, rpurpose);
+}
+
+void LandMeshRenderer::renderImpl(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, LandMeshManager &provider,
+  RenderType rtype, const LandMeshRenderDesc &desc, const Point3 &view_pos, HmapOrigin hmap_origin, RenderPurpose rpurpose)
+{
+  // The sticky mode sync happens even when the missing shader consts make the draw
+  // a no-op, matching the desc renderCulled entry (its own sync then no-ops).
+  setLMeshRenderingMode(desc.mode);
   if (lmesh_vs_const__pos_to_world < 0)
     return;
 
-  HmapRenderType prevRenderHeightmapType = renderHeightmapType;
+  // Clipmap / grass-mask / patches passes render the land mesh into a texture and never draw the terrain
+  // heightmap over it, so they keep the exclusion box off and leave hmapDrawType = NONE.
+  const bool clipmapLikePass = rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES || rtype == RENDER_GRASS_MASK ||
+                               (desc.debugCells && (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION));
 
-  LandMeshCullingState state;
-  state.copyLandmeshState(provider, *this);
+  // Decide how the heightmap is drawn for THIS pass (was the persistent renderHeightmapType member).
+  // A desc with RENDER_HEIGHTMAP off keeps NONE, or the exclusion below would hide land cells
+  // that no heightmap draw then fills.
+  HmapDrawType drawType = HmapDrawType::NONE;
+  if (!clipmapLikePass && (desc.renderFlags & RENDER_HEIGHTMAP) && (!provider.isInTools() || provider.forceHeightmapRendering) &&
+      provider.getHmapHandler())
+  {
+    // ortho matrix is probably 0,0,0,1, however, we just test .w to be 1. Enough in 100% of our test cases.
+    if (fabsf(v_extract_w(globtm.col3) - 1.0f) < 0.001f)
+    {
+      // ortho bakes (lastClip, depth/masks above) always include the heightmap, even when mayRenderHmap
+      // hides it in regular views (it only gates the perspective branch below) - otherwise terrain beyond
+      // the landmesh cells would go missing from the baked textures while the heightmap is hidden
+      if (rtype == RENDER_ONE_SHADER)
+      {
+        vec4f vert = v_abs(v_and(globtm.col1, v_cast_vec4f(V_CI_MASK1100)));
+        vert = v_add(vert, v_rot_1(vert));
+        // a top-down ortho projection (degenerate projected Y) draws a single quad instead of the grid
+        drawType = v_test_vec_x_gt(V_C_EPS_VAL, vert) ? HmapDrawType::ONEQUAD : HmapDrawType::TESSELATED;
+      }
+      else
+        drawType = HmapDrawType::TESSELATED;
+    }
+    // perspective views also honor prepare()'s distance gate (shouldRenderTessellatedHmap); without it a
+    // far / outside-hmap view would build and draw a tessellated heightmap and hide land cells anyway
+    else if (
+      provider.mayRenderHmap && provider.getHmapHandler()->shouldRenderTessellatedHmap(hmap_origin.pos, hmap_origin.distanceMul))
+      drawType = HmapDrawType::TESSELATED;
+  }
 
-  if ((rtype == RENDER_WITH_SPLATTING || rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES || rtype == RENDER_GRASS_MASK ||
-        (debugCells && (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION))) &&
-      (lmesh_render_flags & RENDER_DECALS))
-    frustum.calcFrustumBBox(frustumWorldBBox);
-
-  Point3 hmapOriginPos(0.f, 0.f, 0.f);
-  if (provider.getHmapHandler())
-    hmapOriginPos = provider.getHmapHandler()->getPreparedOriginPos();
+  LandMeshCullDesc cullDesc = LandMeshCullDesc::forView(hmap_origin.pos, hmap_origin, frustum);
+  cullDesc.renderInBBox = desc.renderInBBox;
+  cullDesc.useDetailedHmap = drawType == HmapDrawType::TESSELATED;
+  cullDesc.hmapMetrics = {proj_to_distance_scale(proj), int8_t(desc.mode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? -100 : 0),
+    desc.mode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? HeightmapMetricsQuality::FASTEST : HeightmapMetricsQuality::BEST};
 
   LandMeshCullingData defaultCullData(framemem_ptr());
-  if (rtype == RENDER_DEPTH)
-    defaultCullData.heightmapData.useHWTesselation = false;
-  defaultCullData.heightmapData.frustum = frustum;
-  HeightmapFrustumCullingInfo fi{hmapOriginPos, frustum, NULL, NULL, false,
-    {proj_to_distance_scale(proj), int8_t(lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? -100 : 0),
-      lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? HeightmapMetricsQuality::FASTEST
-                                                                    : HeightmapMetricsQuality::BEST}};
 
-  if (rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES || rtype == RENDER_GRASS_MASK ||
-      (debugCells && (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION)))
+  if (clipmapLikePass)
   {
-    state.useExclBox = false;
-    if (!state.renderInBBox.isempty())
-      state.cullMode = state.NO_CULLING; // faster culling - no bbox testing
-    state.frustumCulling(provider, defaultCullData, NULL, 0, fi);
+    cullDesc.noCulling = !desc.renderInBBox.isempty(); // faster culling - no bbox testing
+    landmesh::frustum_cull(provider, cullDesc, defaultCullData);
+    // clipmap-like passes cull without exclusion but still hide land cells under the heightmap
+    // exactly like other passes: the render-side decision stays prepare()'s persistent bit.
+    defaultCullData.useExclBox = provider.cullingState.useExclBox;
   }
   else
   {
-    if (!provider.isInTools() && provider.getHmapHandler())
+    // Per-pass exclusion decision follows the draw decision instead of mutating the shared
+    // provider culling state other passes read (tools keep their editor-config bit).
+    cullDesc.useExclBox =
+      (!provider.isInTools() || provider.forceHeightmapRendering) ? drawType != HmapDrawType::NONE : provider.cullingState.useExclBox;
+    if (desc.regionCb)
     {
-      // mat44f m2;
-      // v_mat44_transpose(m2, globtm);
-      // vec4f is_ortho = v_cmp_gt(V_C_EPS_VAL, v_abs(v_sub(m2.col3, V_C_UNIT_0001)));
-      // if (v_test_vec_x_eqi_0(v_splat_w(is_ortho)))//ortho matrix is probably 0,0,0,1, however, we just test .w to be 1. Enough in
-      // 100% of our test cases
-      if (fabsf(v_extract_w(globtm.col3) - 1.0f) < 0.001f)
-      {
-        if (rtype == RENDER_ONE_SHADER)
-        {
-          vec4f vert = v_abs(v_and(globtm.col1, v_cast_vec4f(V_CI_MASK1100)));
-          vert = v_add(vert, v_rot_1(vert));
-          renderHeightmapType = v_test_vec_x_gt(V_C_EPS_VAL, vert) ? ONEQUAD_HMAP : TESSELATED_HMAP; // todo: use only when rendering
-                                                                                                     // heightmap
-        }
-        else
-          renderHeightmapType = TESSELATED_HMAP;
-        provider.cullingState.useExclBox = true;
-      }
+      cullDesc.regions = desc.regionCb->regions();
+      cullDesc.regionsCount = desc.regionCb->regionsCount();
     }
-    fi.useDetailedHmap = renderHeightmapType == TESSELATED_HMAP;
-    if (regionCallback)
-      state.frustumCulling(provider, defaultCullData, regionCallback->regions(), regionCallback->regionsCount(), fi);
-    else
-      state.frustumCulling(provider, defaultCullData, NULL, 0, fi);
+    landmesh::frustum_cull(provider, cullDesc, defaultCullData);
   }
-  renderCulled(provider, rtype, defaultCullData, view_pos, rpurpose);
+  defaultCullData.hmapDrawType = drawType; // authoritative draw decision for renderCulled() (also carries ONEQUAD)
+  // the ONEQUAD heightmap path culls its single patch against this pass's frustum
+  renderCulled(provider, rtype, desc, defaultCullData, view_pos, rpurpose, &frustum);
 
-  if (!provider.isInTools())
-  {
-    renderHeightmapType = prevRenderHeightmapType;
-    provider.cullingState.useExclBox = renderHeightmapType != NO_HMAP;
-  }
-  else
+  if (provider.isInTools() && !provider.forceHeightmapRendering)
   {
     Point4 posToWorld[2] = {Point4(1.f, 1.f, 1., 0), Point4(0, 0, 0, 1)};
     d3d::set_vs_const(lmesh_vs_const__pos_to_world, (float *)&posToWorld[0].x, 2);
@@ -1952,36 +2055,13 @@ void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Fr
 void LandMeshRenderer::setMirroring(LandMeshManager &provider, int num_border_cells_x_pos, int num_border_cells_x_neg,
   int num_border_cells_z_pos, int num_border_cells_z_neg)
 {
-  numBorderCellsXPos = num_border_cells_x_pos * scaleVisRange;
-  numBorderCellsXNeg = num_border_cells_x_neg * scaleVisRange;
-  numBorderCellsZPos = num_border_cells_z_pos * scaleVisRange;
-  numBorderCellsZNeg = num_border_cells_z_neg * scaleVisRange;
-
-  int visRange = provider.getVisibilityRangeCells();
-  if (visRange < 0)
-  {
-    int x0, x1, y0, y1;
-
-    x0 = provider.getCellOrigin().x;
-    x1 = x0 + provider.getNumCellsX() - 1;
-
-    y0 = provider.getCellOrigin().y;
-    y1 = y0 + provider.getNumCellsY() - 1;
-
-    if (numBorderCellsXPos > x1 - x0 + 1)
-      numBorderCellsXPos = x1 - x0 + 1;
-
-    if (numBorderCellsXNeg > x1 - x0 + 1)
-      numBorderCellsXNeg = x1 - x0 + 1;
-
-    if (numBorderCellsZPos > y1 - y0 + 1)
-      numBorderCellsZPos = y1 - y0 + 1;
-
-    if (numBorderCellsZNeg > y1 - y0 + 1)
-      numBorderCellsZNeg = y1 - y0 + 1;
-  }
+  provider.setMirroring(num_border_cells_x_pos, num_border_cells_x_neg, num_border_cells_z_pos, num_border_cells_z_neg);
+  if (provider.getVisibilityRangeCells() < 0)
+    provider.getScaledBorderCells(numBorderCellsXPos, numBorderCellsXNeg, numBorderCellsZPos, numBorderCellsZNeg);
   else
-  {
     numBorderCellsXPos = numBorderCellsXNeg = numBorderCellsZPos = numBorderCellsZNeg = 0;
-  }
+
+  // Config change invalidates the derived per-cell mirror tables; before this they silently stayed
+  // stale when setMirroring was called after the first prepare().
+  clear_and_shrink(mirroredCells);
 }

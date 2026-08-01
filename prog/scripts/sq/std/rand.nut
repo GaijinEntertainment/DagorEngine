@@ -17,7 +17,7 @@ const maxrndfloat = 16777216.0 // float can only hold 23-bits integers without d
 const maxrndfloatmask = 16777215 // (1<24)-1
 const maxnoiseint = 0xffffffff // 32 bits
 
-function randint_uniform(lo, hi, rand) { // returns random int in range [lo,hi], closed interval
+function randint_uniform(lo: number, hi: number, rand: function): number { // returns random int in range [lo,hi], closed interval
   let n = hi - lo + 1
   assert(n != 0)
   let maxx = maxnoiseint - (maxnoiseint % n)
@@ -45,7 +45,7 @@ class Rand{
     this._count = 0
   }
 
-  function rfloat(start=0.0, end=1.0){ // return float in range [start,end)
+  function rfloat(start: number = 0.0, end: number = 1.0): float { // return float in range [start,end)
     this._count += 1
     let start_ = math.min(end,start)
     let end_ = math.max(end,start)

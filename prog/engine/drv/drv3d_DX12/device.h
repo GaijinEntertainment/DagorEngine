@@ -38,7 +38,7 @@ struct TextureSubresourceInfo
   // basically footprint.RowPitch not aligned to D3D12_TEXTURE_DATA_PITCH_ALIGNMENT
   uint32_t rowByteSize{};
   // RowPitch * rowCount * Depth * Arrays aligned to D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT
-  uint32_t totalByteSize{};
+  uint64_t totalByteSize{};
 };
 
 TextureSubresourceInfo calculate_texture_region_info(Extent3D ext, FormatStore fmt, FormatPlaneIndex plane_index = {});
@@ -302,7 +302,7 @@ public:
   constexpr bool isRecovering() const { return false; }
   constexpr bool isDead() const { return false; }
   constexpr bool isInErrorState() const { return false; }
-  constexpr bool checkResourceCreateState(const char *, const char *) const { return true; }
+  constexpr bool checkResourceCreateState(const char *, const char * = "<unknown>") const { return true; }
   constexpr bool checkResourceDeleteState(const char *, const char *) const { return true; }
 };
 template <typename D>
@@ -480,6 +480,9 @@ class Device : public DeviceErrorState, public DeviceErrorObserver<Device>, prot
   friend class TempBufferManager;
   friend class ResourceMemoryHeap;
   friend class AsyncPipelineCompiler;
+#if _TARGET_PC_WIN
+  friend class PipelineSetCompileWorker;
+#endif
 
 public:
   struct Config
@@ -517,6 +520,9 @@ private:
       /// - Opacity Micro Maps
       /// - Shader Execution Reordering
       RAY_TRACING_T1_2,
+      /// Opacity Micro Maps by the core API. Tracked apart from \ref RAY_TRACING_T1_2 as it can be turned off on its own, for
+      /// hardware that only emulates them, without also losing Shader Execution Reordering.
+      RAY_TRACING_OMM_CORE,
       /// Nvidia extension to support Opacity Micro Maps without the need for T1.2 support
       RAY_TRACING_OMM_NV,
       /// Nvidia extension to support Shader Execution Reorder without the need for T1.2 support
@@ -557,6 +563,7 @@ private:
 #endif
   WIN_MEMBER bool allowRaytracePipelinePreload = true;
   WIN_MEMBER bool allowPipelineSetCompilation = true;
+  WIN_MEMBER bool embedRtLibraryMonolithically = false;
   frontend::BindlessManager bindlessManager;
   BufferState nullBuffer;
   Sbuffer *dummyUavBuffer = nullptr;
@@ -618,6 +625,22 @@ private:
   template <typename F>
   bool processDefragmentation(const F &defragmentation_call, const char *defragmentation_method_name);
 
+  struct ShadingModelClampInfo
+  {
+    // AMD can't handle OMM flags in inline ray queries and crashes the driver
+    bool hasBrokenOmmFlagSupport : 1 = false;
+  };
+
+  static d3d::shadermodel::Version clamp_shader_model(d3d::shadermodel::Version shader_model, const ShadingModelClampInfo &info)
+  {
+    if (shader_model >= 6.9_sm && info.hasBrokenOmmFlagSupport)
+    {
+      logwarn("DX12: Because of broken ray query OMM flags, clamping shading model to 6.8");
+      shader_model = 6.8_sm;
+    }
+    return shader_model;
+  }
+
 public:
   eastl::unique_ptr<DriverNetManager> netManager;
   int psoSlowThresholdUsec = 1000 * 1000;
@@ -642,7 +665,7 @@ public:
   {
     bool forceOffRayTracing : 1 = false;
   };
-  void adjustCaps(const DeviceCapsOverrides &overrides);
+  void adjustCaps(const DeviceCapsOverrides &overrides, d3d::shadermodel::Version shader_model);
   const DriverDesc &getDriverDesc() const { return driverDesc; }
   void initializeBindlessManager(bool enable_types_validation);
 #if D3D_HAS_RAY_TRACING
@@ -653,6 +676,7 @@ public:
   int getGpuClockCalibration(uint64_t *gpu, uint64_t *cpu, int *cpu_freq_type);
   bool isRaytracePipelinePreloadAllowed() const { return allowRaytracePipelinePreload; }
   bool isPipelineSetCompilationAllowed() const { return allowPipelineSetCompilation; }
+  bool shouldEmbedRtLibraryMonolithically() const { return embedRtLibraryMonolithically; }
   Image *createImage(const ImageInfo &ii, Image *base_image, const char *name);
 #if _TARGET_PC_WIN
   Image *createVirtualBackbuffer(Image *base, const char *name);
@@ -670,6 +694,8 @@ public:
   d3d::SamplerHandle createSampler(SamplerState state) { return resources.createSampler(device.get(), state); }
   D3D12_CPU_DESCRIPTOR_HANDLE getSampler(d3d::SamplerHandle handle) { return resources.getSampler(handle); }
   D3D12_CPU_DESCRIPTOR_HANDLE getSampler(SamplerState state) { return resources.getSampler(device.get(), state); }
+  void recordCommittedResourceAllocated(uint32_t size, bool is_gpu) { resources.recordCommittedResourceAllocated(size, is_gpu); }
+  void recordCommittedResourceFreed(uint32_t size, bool is_gpu) { resources.recordCommittedResourceFreed(size, is_gpu); }
   int createPredicate();
   void deletePredicate(int name);
   void setTexName(Image *img, const char *name);
@@ -770,6 +796,12 @@ public:
       return;
     }
 
+    // Enter error state first: this is the flag the worker thread checks before
+    // recording into the driver. Everything below can take a while (debug log
+    // readout, front lock), and recording into a removed device may crash inside
+    // the driver.
+    enterErrorState();
+
     auto removedReason = device->GetDeviceRemovedReason();
 
     logwarn("DX12: Detected device lost...");
@@ -785,8 +817,6 @@ public:
     D3D_ERROR("DX12: GetDeviceRemovedReason returned %s", dxgi_error_code_to_string(removedReason));
 
     context.onDeviceError(removedReason);
-
-    enterErrorState();
   }
 
   bool signalDeviceErrorNoDebugInfo()
@@ -991,6 +1021,11 @@ public:
     return config.features.test(DeviceFeaturesConfig::FORCE_SHARED_HEAPS_USER_ALIAS_RESOURCES);
   }
 
+  bool isUseCommittedResourcesForTexturesEnabled() const
+  {
+    return config.features.test(DeviceFeaturesConfig::USE_COMMITTED_RESOURCES_FOR_TEXTURES);
+  }
+
   template <typename... Args>
   TextureInterfaceBase *newTextureObject(Args &&...args)
   {
@@ -1029,6 +1064,8 @@ public:
 
   size_t getActiveBufferObjectCount() { return resources.getActiveBufferObjectCount(); }
 
+  bool isDummyUavBuffer(Sbuffer *buffer) const { return buffer == (Sbuffer *)dummyUavBuffer; }
+
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   bool rootSignaturesUsesCBVDescriptorRanges() const
   {
@@ -1058,7 +1095,7 @@ public:
     {
       return {};
     }
-    return resources.allocatePersistentUploadMemory(getDXGIAdapter(), *this, size, alignment);
+    return resources.allocatePersistentUploadMemory(getDXGIAdapter(), *this, size, alignment).value_or({});
   }
   HostDeviceSharedMemoryRegion allocatePersistentReadBackMemory(size_t size, size_t alignment)
   {
@@ -1066,7 +1103,7 @@ public:
     {
       return {};
     }
-    return resources.allocatePersistentReadBack(getDXGIAdapter(), *this, size, alignment);
+    return resources.allocatePersistentReadBack(getDXGIAdapter(), *this, size, alignment).value_or({});
   }
   HostDeviceSharedMemoryRegion allocatePersistentBidirectionalMemory(size_t size, size_t alignment)
   {
@@ -1074,7 +1111,7 @@ public:
     {
       return {};
     }
-    return resources.allocatePersistentBidirectional(getDXGIAdapter(), *this, size, alignment);
+    return resources.allocatePersistentBidirectional(getDXGIAdapter(), *this, size, alignment).value_or({});
   }
   HostDeviceSharedMemoryRegion allocateTemporaryUploadMemory(size_t size, size_t alignment)
   {
@@ -1083,7 +1120,7 @@ public:
       return {};
     }
     bool shouldFlush = false;
-    auto result = resources.allocateTempUpload(getDXGIAdapter(), *this, size, alignment, shouldFlush);
+    auto result = resources.allocateTempUpload(getDXGIAdapter(), *this, size, alignment, shouldFlush).value_or({});
     if (shouldFlush)
     {
       context.flushDraws();
@@ -1096,7 +1133,7 @@ public:
     {
       return {};
     }
-    return resources.allocateTempUploadForUploadBuffer(getDXGIAdapter(), *this, size, alignment);
+    return resources.allocateTempUploadForUploadBuffer(getDXGIAdapter(), *this, size, alignment).value_or({});
   }
 
   void generateResourceAndMemoryReport(uint32_t *num_textures, uint64_t *total_mem, String *out_text)
@@ -1138,7 +1175,7 @@ public:
 #if _TARGET_PC_WIN
   FeatureImplementation getOpacityMicroMapAvailability() const
   {
-    if (caps.test(Caps::RAY_TRACING_T1_2))
+    if (caps.test(Caps::RAY_TRACING_OMM_CORE))
     {
       return FeatureImplementation::Core;
     }
@@ -1239,11 +1276,11 @@ inline void PipelineStageStateBase::enumerateUAVResources(uint32_t uav_mask, T c
   {
     if (uRegisters[i].image)
     {
-      clb(uRegisters[i].image->getHandle());
+      clb(uRegisters[i].image);
     }
     else if (uRegisters[i].buffer)
     {
-      clb(uRegisters[i].buffer.buffer);
+      clb(uRegisters[i].buffer);
     }
   }
 }
@@ -1460,39 +1497,15 @@ inline Extent2D FramebufferInfo::makeDrawArea(Extent2D def /*= {}*/) const
   return def;
 }
 
-inline bool FrontendQueryManager::postRecovery(Device &device, ID3D12Device *dx_device)
+inline bool FrontendQueryManager::createPredicateHeapResources(HeapPredicate &heap, Device &device, ID3D12Device *dx_device)
 {
-  for (auto &&heap : predicateHeaps)
+  D3D12_QUERY_HEAP_DESC desc{
+    .Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION,
+    .Count = heap_size,
+  };
+  if (!DX12_CHECK_OK(dx_device->CreateQueryHeap(&desc, COM_ARGS(&heap.heap))))
   {
-    D3D12_QUERY_HEAP_DESC desc;
-    desc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
-    desc.Count = heap_size;
-    desc.NodeMask = 0;
-    if (!DX12_CHECK_OK(dx_device->CreateQueryHeap(&desc, COM_ARGS(&heap.heap))))
-    {
-      return false;
-    }
-
-    heap.buffer = device.createBuffer(sizeof(uint64_t) * heap_size, sizeof(uint64_t), 1, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER,
-      D3D12_RESOURCE_FLAG_NONE, 0, "<query resolve buffer>");
-    if (!heap.buffer)
-    {
-      return false;
-    }
-  }
-  return true;
-}
-
-inline FrontendQueryManager::HeapPredicate *FrontendQueryManager::newPredicateHeap(Device &device, ID3D12Device *dx_device)
-{
-  FrontendQueryManager::HeapPredicate newHeap;
-  D3D12_QUERY_HEAP_DESC desc;
-  desc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
-  desc.Count = heap_size;
-  desc.NodeMask = 0;
-  if (!DX12_CHECK_OK(dx_device->CreateQueryHeap(&desc, COM_ARGS(&newHeap.heap))))
-  {
-    return nullptr;
+    return false;
   }
 
 #if _TARGET_XBOX
@@ -1502,25 +1515,49 @@ inline FrontendQueryManager::HeapPredicate *FrontendQueryManager::newPredicateHe
   D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 #endif
 
-  newHeap.buffer = device.createBuffer(sizeof(uint64_t) * heap_size, sizeof(uint64_t), 1, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER,
+  heap.buffer = device.createBuffer(sizeof(uint64_t) * heap_size, sizeof(uint64_t), 1, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER,
     flags, 0, "<query resolve buffer>");
-  if (!newHeap.buffer)
+  return static_cast<bool>(heap.buffer);
+}
+
+inline FrontendQueryManager::PredicateHeapId FrontendQueryManager::newPredicateHeap(Device &device, ID3D12Device *dx_device)
+{
+  FrontendQueryManager::HeapPredicate newHeap;
+  if (!createPredicateHeapResources(newHeap, device, dx_device))
   {
-    return nullptr;
+    return PredicateHeapId::Invalid;
   }
-  return &predicateHeaps.emplace_back(eastl::move(newHeap));
+  // Publish resources into the slot only after they are fully created, so a lock-free reader
+  // never observes a half-initialized heap.
+  PredicateHeapId id = predicateHeaps.allocate();
+  predicateHeaps[id] = eastl::move(newHeap);
+  return id;
 }
 
 inline void FrontendQueryManager::shutdownPredicate(DeviceContext &ctx)
 {
   WinAutoLock lock(predicateGuard);
-  for (auto &&heap : predicateHeaps)
+  for (auto &heap : predicateHeaps)
   {
     removeDeletedQueries({heap.querySlots, heap_size});
     ctx.destroyBuffer(eastl::move(heap.buffer));
   }
   predicateHeaps.clear();
 }
+
+#if _TARGET_PC_WIN
+inline bool FrontendQueryManager::postRecovery(Device &device, ID3D12Device *dx_device)
+{
+  for (auto &heap : predicateHeaps)
+  {
+    if (!createPredicateHeapResources(heap, device, dx_device))
+    {
+      return false;
+    }
+  }
+  return true;
+}
+#endif
 
 #define CHECK_IMAGE_TYPE(type)                                \
   if (!image)                                                 \
@@ -1769,23 +1806,22 @@ inline BufferInterfaceConfigCommon::BufferType PlatformBufferInterfaceConfig::cr
   return device.createBuffer(size, structure_size, discard_count, memory_class, getResourceFlags(buf_flags), buf_flags, name);
 }
 
-inline BufferInterfaceConfigCommon::BufferType PlatformBufferInterfaceConfig::discardBuffer(GenericBufferInterface *self,
-  BufferReferenceType current_buffer, uint32_t size, uint32_t structure_size, MemoryClass memory_class, FormatStore view_format,
-  uint32_t buf_flags, const char *name)
+inline void PlatformBufferInterfaceConfig::discardBuffer(GenericBufferInterface *self, BufferReferenceType current_buffer_ref,
+  uint32_t size, uint32_t structure_size, MemoryClass memory_class, FormatStore view_format, uint32_t buf_flags, const char *name)
 {
   G_UNUSED(size);
   auto &device = get_device();
-  if (!current_buffer.buffer)
+  if (!current_buffer_ref.buffer)
   {
     G_ASSERT_LOG(!device.isHealthy(), "DX12: Buffer is null but device is not lost");
-    return {};
+    current_buffer_ref = {};
+    return;
   }
-  auto nextBuffer = device.getContext().discardBuffer(eastl::move(current_buffer), memory_class, view_format, structure_size,
-    self->usesRawView(), self->usesStructuredView(), getResourceFlags(buf_flags), buf_flags, name);
+  device.getContext().discardBuffer(current_buffer_ref, memory_class, view_format, structure_size, self->usesRawView(),
+    self->usesStructuredView(), getResourceFlags(buf_flags), buf_flags, name);
   // notify state system, that it has to mark all uses as dirty
-  notify_discard(self, self->usableAsVertexBuffer(), self->usableAsConstantBuffer(), self->usableAsShaderResource(),
+  notify_discard(self, self->usableAsVertexBuffer(), self->usableAsConstantBuffer(), self->hasShaderResourceView(),
     self->usableAsUnorderedResource());
-  return nextBuffer;
 }
 
 inline void BufferInterfaceConfigCommon::setBufferApiName(BufferConstReferenceType buffer, const char *name)
@@ -1958,7 +1994,7 @@ inline BufferInterfaceConfigCommon::TemporaryMemoryType BufferInterfaceConfigCom
   G_UNUSED(struct_size);
   G_UNUSED(prev_memory);
   G_UNUSED(name);
-  notify_discard(self, SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags, SBCF_BIND_SHADER_RES & flags,
+  notify_discard(self, SBCF_BIND_VERTEX & flags, SBCF_BIND_CONSTANT & flags, self->hasShaderResourceView(),
     SBCF_BIND_UNORDERED & flags);
   uint32_t alignment = (SBCF_BIND_CONSTANT & flags) ? D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT : sizeof(uint32_t);
   // Const buffers size must be aligned

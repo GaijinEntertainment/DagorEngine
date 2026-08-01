@@ -219,18 +219,14 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       return get_wind_motion_damp_base() * pow(get_wind_motion_damp_level_mul(), idx);
     }
 
+    #include "quaternion.hlsl"
+
     float4 makeQuat(float3 axis, float angle)
     {
       return float4(axis.x*sin(angle/2),
                     axis.y*sin(angle/2),
                     axis.z*sin(angle/2),
                     cos(angle/2));
-    }
-
-    float3 quatRotate(float4 q, float3 v)
-    {
-      float3 t = 2 * cross(q.xyz, v);
-      return v + q.w * t + cross(q.xyz, t);
     }
 
     float3 evaluate_wind_animation(
@@ -259,7 +255,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
       rotationAxis = isfinite(rotationAxis) ? rotationAxis : 0;
 
       rotQuat = makeQuat(rotationAxis, rotationAngle * PI / 180);
-      float3 newPos = quatRotate(rotQuat, oldPos-branchPivotPos) + branchPivotPos;
+      float3 newPos = quat_rotate(rotQuat, oldPos-branchPivotPos) + branchPivotPos;
 
       return newPos - oldPos; //offset
     }
@@ -297,7 +293,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
           offset += evaluate_wind_animation(windDirectionScaleNormalized, windSpeed, idx, branchPivotPos,
                                             branchDir, branchExtent, oldPos, parentAngleAnimation,
                                             rotationAngleAnimation, rotQuat);
-          normal = quatRotate(rotQuat, normal);
+          normal = quat_rotate(rotQuat, normal);
           parentAngleAnimation += rotationAngleAnimation;
         }
       }
@@ -339,7 +335,7 @@ macro USE_PIVOT_PAINTER_BASE(stage)
                                                 branchDir, branchExtent, pos, currParentAngleAnimation,
                                                 rotationAngleAnimation, rotQuat);
 
-          normal = quatRotate(rotQuat, normal);
+          normal = quat_rotate(rotQuat, normal);
           currParentAngleAnimation += rotationAngleAnimation;
         }
         { // evaluate previous wind animation

@@ -21,7 +21,6 @@
 
 class BaseTexture;
 typedef BaseTexture Texture;
-struct DynRes;
 
 class ISSAORenderer
 {
@@ -40,22 +39,19 @@ public:
   virtual TEXTUREID getSSAOTexId() = 0;
 
   virtual void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *tex, BaseTexture *ssaoTex,
-    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 &world_pos, SubFrameSample sub_sample = SubFrameSample::Single,
-    const DynRes *dynamic_resolution = nullptr)
+    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 &world_pos, SubFrameSample sub_sample = SubFrameSample::Single)
   {
-    render(view_tm, proj_tm, tex, ssaoTex, prevSsaoTex, tmpTex, &world_pos, sub_sample, dynamic_resolution);
+    render(view_tm, proj_tm, tex, ssaoTex, prevSsaoTex, tmpTex, &world_pos, sub_sample);
   }
-  virtual void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *tex = nullptr,
-    const DynRes *dynamic_resolution = nullptr)
+  virtual void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *tex = nullptr)
   {
-    render(view_tm, proj_tm, tex, nullptr, nullptr, nullptr, nullptr, SubFrameSample::Single, dynamic_resolution);
+    render(view_tm, proj_tm, tex, nullptr, nullptr, nullptr, nullptr, SubFrameSample::Single);
   }
   virtual void setCurrentView(int view) = 0;
 
 protected:
   virtual void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, BaseTexture *ssaoTex,
-    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 *world_pos, SubFrameSample sub_sample = SubFrameSample::Single,
-    const DynRes *dynamic_resolution = nullptr) = 0;
+    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 *world_pos, SubFrameSample sub_sample = SubFrameSample::Single) = 0;
 
   int aoWidth, aoHeight;
   eastl::unique_ptr<PostFxRenderer> aoRenderer;

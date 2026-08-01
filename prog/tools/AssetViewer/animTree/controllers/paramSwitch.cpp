@@ -2,10 +2,14 @@
 
 #include "paramSwitch.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 #include "../animTree.h"
 #include "../animTreePanelPids.h"
 #include "../animStates/animStatesType.h"
 #include "../animMorphType.h"
+#include "animCtrlData.h"
+#include <ioSys/dag_dataBlock.h>
+#include <propPanel/control/container.h>
 #include <util/dag_lookup.h>
 
 static const bool DEFAULT_SPLIT_CHANS = true;
@@ -19,12 +23,13 @@ static void check_param_switch_child(BlendNodeType child_type, CtrlType param_sw
 }
 
 static void param_switch_add_child_by_name(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data,
-  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name, const char *param_switch_name)
+  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name, const char *param_switch_name,
+  bool is_optional = false)
 {
   CtrlChildSearchResult result = find_child_idx_and_icon_by_name(panel, data.handle, controllers, blend_nodes, name);
   data.childs.emplace_back(result.id);
   check_param_switch_child(result.blendNodeType, data.type, param_switch_name, name);
-  check_ctrl_child_idx(result.id, param_switch_name, name);
+  check_ctrl_child_idx(result.id, param_switch_name, name, is_optional);
 }
 
 void param_switch_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx)
@@ -40,6 +45,7 @@ void param_switch_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Cont
 
 void param_switch_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
 {
+  remove_param_if_default_str(params, panel, "varname", get_default_varname_from_name(params, panel));
   remove_param_if_default_float(params, panel, "morphTime", DEFAULT_MORPH_TIME);
   remove_param_if_default_str(params, panel, "morphType", DEFAULT_MORPH_TYPE);
   remove_param_if_default_bool(params, panel, "splitChans", DEFAULT_SPLIT_CHANS);
@@ -154,6 +160,13 @@ void AnimTreePlugin::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *
       const DataBlock *enumRootProps = props.getBlockByNameEx("initAnimState")->getBlockByNameEx("enum");
       const char *enumGen = nodes->getStr("enum_gen");
       const DataBlock *enumProps = enumRootProps->getBlockByName(enumGen);
+      if (!enumProps)
+      {
+        logerr("Can't find enum <%s> from enum_gen declared in paramSwitch controller <%s>", enumGen, settings.getStr("name", ""));
+        // Place not found child for trigger error when validate dependent nodes
+        data.childs.emplace_back(AnimCtrlData::NOT_FOUND_CHILD);
+        return;
+      }
       if (find_enum_gen_parent)
       {
         AnimStatesData *enumData = eastl::find_if(statesData.begin(), statesData.end(), [tree, enumGen](const AnimStatesData &data) {
@@ -187,7 +200,8 @@ void AnimTreePlugin::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *
       const DataBlock *childBlock = nodes->getBlock(i);
       const char *childName = childBlock->getStr("name", nullptr);
       if (childName)
-        param_switch_add_child_by_name(panel, data, controllersData, blendNodesData, childName, settings.getStr("name"));
+        param_switch_add_child_by_name(panel, data, controllersData, blendNodesData, childName, settings.getStr("name"),
+          childBlock->getBool("optional", false));
     }
   }
 }
@@ -219,7 +233,11 @@ String param_switch_get_child_prefix_name(const DataBlock &settings, int idx, co
 {
   const DataBlock *nodes = settings.getBlockByNameEx("nodes");
   if (nodes->paramExists("enum_gen"))
+  {
     nodes = enum_root_props.getBlockByName(nodes->getStr("enum_gen"));
+    if (!nodes || idx >= nodes->blockCount())
+      return String("");
+  }
 
   return String(0, "[%s] ", nodes->getBlock(idx)->getBlockName());
 }
@@ -279,7 +297,6 @@ void AnimTreePlugin::fillParamSwitchEnumGen(PropPanel::ContainerPropertyControl 
     logerr("Enums root leaf not found. Please add enums to the anim states tree first");
     return;
   }
-  PropPanel::ContainerPropertyControl *tree = getPluginPanel()->getById(PID_ANIM_STATES_TREE)->getContainer();
   AnimStatesData *initAnimStateData = eastl::find_if(statesData.begin(), statesData.end(),
     [](const AnimStatesData &data) { return data.type == AnimStatesType::INIT_ANIM_STATE; });
   String fullPath;
@@ -325,6 +342,10 @@ void AnimTreePlugin::changeParamSwitchType(PropPanel::ContainerPropertyControl *
       }
     }
   group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
+  AnimCtrlData *ctrlData = find_data_by_handle(controllersData, leaf);
+  if (ctrlData == controllersData.end())
+    ctrlData = nullptr;
+  setCtrlsDragAndDropHandlers(getPluginPanel(), ctrlData ? ctrlData->type : ctrl_type_paramSwitch, ctrlData);
   group->loadState(ctrlsSettingsPanelState);
 }
 
@@ -388,7 +409,6 @@ void AnimTreePlugin::paramSwitchSaveBlockSettings(PropPanel::ContainerPropertyCo
     int selectedBlock = get_child_block_idx_by_list_idx(nodes, selectedIdx);
     const SimpleString enumNameList = panel->getText(PID_CTRLS_NODES_LIST);
     const SimpleString enumItemName = panel->getText(PID_CTRLS_PARAM_SWITCH_NODE_ENUM_ITEM);
-    PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
     AnimStatesData *initAnimStateData = find_data_by_type(statesData, AnimStatesType::INIT_ANIM_STATE);
     DataBlock props;
     if (initAnimStateData && !initAnimStateData->fileName.empty())
@@ -613,12 +633,11 @@ void AnimTreePlugin::paramSwitchSetSelectedMorphTimeSettings(PropPanel::Containe
   const AnimCtrlData *data = find_data_by_handle(controllersData, leaf);
   if (data == controllersData.end())
     return;
-  bool isProcChild = false;
   DataBlock props;
   String fullPath;
-  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, isProcChild);
+  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath);
   if (!settings)
-    settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, isProcChild, /*only_includes*/ true);
+    settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, /*parent_data*/ nullptr, /*only_includes*/ true);
   if (!settings)
     return;
 
@@ -648,10 +667,9 @@ void AnimTreePlugin::paramSwitchAddMorphTime(PropPanel::ContainerPropertyControl
   const AnimCtrlData *data = find_data_by_handle(controllersData, leaf);
   if (data == controllersData.end())
     return;
-  bool isProcChild = false;
   DataBlock props;
   String fullPath;
-  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, isProcChild);
+  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath);
   if (!settings)
     return;
 
@@ -690,10 +708,9 @@ void AnimTreePlugin::paramSwitchRefreshMorphTimesCombo(PropPanel::ContainerPrope
       return;
     if (data->type != ctrl_type_paramSwitch && data->type != ctrl_type_paramSwitchS)
       return;
-    bool isProcChild = false;
     DataBlock props;
     String fullPath;
-    settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, isProcChild);
+    settings = findCtrlSettings(tree, leaf, data->type, props, fullPath);
     if (!settings)
       return;
   }
@@ -727,10 +744,9 @@ void AnimTreePlugin::paramSwitchRemoveMorphTime(PropPanel::ContainerPropertyCont
   if (data == controllersData.end())
     return;
 
-  bool isProcChild = false;
   DataBlock props;
   String fullPath;
-  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, isProcChild);
+  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath);
   if (!settings)
     return;
 
@@ -745,4 +761,45 @@ void AnimTreePlugin::paramSwitchRemoveMorphTime(PropPanel::ContainerPropertyCont
   panel->removeString(PID_CTRLS_PARAM_SWITCH_MORPH_TIMES_LIST, removeIdx);
   paramSwitchSetSelectedMorphTimeSettings(panel);
   saveProps(props, fullPath);
+}
+
+class ParamSwitchReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  ParamSwitchReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data) :
+    BaseCtrlReorderHandler(plugin, controllers, panel), ctrlData(ctrl_data)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    DataBlock *nodes = settings.getBlockByName("nodes");
+    if (!nodes || nodes->paramExists("enum_gen"))
+      return;
+
+    dag::Vector<int> positions;
+    for (int i = 0; i < nodes->blockCount(); ++i)
+      if (nodes->getBlock(i)->paramExists("name"))
+        positions.push_back(i);
+
+    move_block_at_positions(*nodes, positions, from, to);
+    if (ctrlData && positions.size() == ctrlData->childs.size())
+      move_childs(ctrlData->childs, from, to);
+  }
+
+  bool canReorder() override
+  {
+    if (panel->getInt(PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT) != PARAM_SWITCH_TYPE_ENUM_LIST)
+      return false;
+    return BaseCtrlReorderHandler::canReorder();
+  }
+
+  AnimCtrlData *ctrlData;
+};
+
+IListReorderHandler *param_switch_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data)
+{
+  return new ParamSwitchReorderHandler(plugin, controllers, panel, ctrl_data);
 }

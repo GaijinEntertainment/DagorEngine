@@ -244,6 +244,9 @@ bool SpinEditControlStandalone::spinButtons(float &step_multiplier, const String
 
 void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_handler, const String *tooltip, const void *tooltip_owner)
 {
+  if (tooltip_owner == nullptr)
+    tooltip_owner = this;
+
   ImGui::PushID(this);
 
   const float spaceBeforeSpinButtons = getSpaceBeforeSpinButtons();

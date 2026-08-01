@@ -147,7 +147,6 @@ static void gather_snapshot_data(ecs::EntityManager &manager, double at_time, tm
 
 static void send_snapshots(ecs::EntityManager &manager, const tmp_snap_entity_data_t &snap_data, double at_time)
 {
-  danet::BitStream tmpBs(framemem_ptr());
   const size_t num = snap_data.size();
   constexpr size_t batchSize = 32;
   G_STATIC_ASSERT(batchSize < eastl::numeric_limits<uint8_t>::max());
@@ -157,7 +156,8 @@ static void send_snapshots(ecs::EntityManager &manager, const tmp_snap_entity_da
     size_t j = i * batchSize;
     const size_t to = eastl::min<size_t>((i + 1) * batchSize, num);
 
-    tmpBs.ResetWritePointer();
+    danet::BitStream tmpBs;
+    tmpBs.reserveBits(BYTES_TO_BITS(1024));
     write_cur_time(tmpBs, at_time);
     tmpBs.Write(uint8_t(to - j));
     for (; j < to; ++j)
@@ -170,7 +170,7 @@ static void send_snapshots(ecs::EntityManager &manager, const tmp_snap_entity_da
       tmpBs.Write(entityData.blink);
       // Note: the interval is not written. Because this loc snapshot implementation does not use it.
     }
-    manager.broadcastEvent(TransformSnapshots(tmpBs));
+    manager.broadcastEvent(TransformSnapshots(eastl::move(tmpBs)));
   }
 }
 

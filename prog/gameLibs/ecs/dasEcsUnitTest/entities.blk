@@ -75,6 +75,24 @@ testReCreateInit2
   some_int_var3:i = 0
 }
 
+testTrackedPodCompare
+{
+  "nan_dp3:dp3"{ value:p3=0,0,0 }
+  "negzero_dp3:dp3"{ value:p3=0,0,0 }
+  "big_pod:TMatrix4"{}
+  _tracked:t="nan_dp3"
+  _tracked:t="negzero_dp3"
+  _tracked:t="big_pod"
+}
+
+testTrackedEidPath
+{
+  eidtrack_val:i=0
+  eidtrack_mixed:i=0
+  _tracked:t="eidtrack_val"
+  _tracked:t="eidtrack_mixed"
+}
+
 testTrackable
 {
   trackable:b=false

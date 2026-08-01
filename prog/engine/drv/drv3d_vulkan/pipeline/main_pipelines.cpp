@@ -214,16 +214,53 @@ static VkSampleCountFlagBits checkSampleCount(unsigned int count, uint8_t colorM
   return ret;
 }
 
-static VkDynamicState grPipeDynamicStateList[] = //
-  {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_DEPTH_BOUNDS,
-    VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK, VK_DYNAMIC_STATE_STENCIL_REFERENCE,
-    VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-#if VK_KHR_fragment_shading_rate
-    VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR
+// The set of dynamic states a graphics pipeline enables changes only with a small number of
+// discrete conditions (fragment shading rate usage, extended-dynamic-state availability), so bake
+// one static array per case at compile time and select the matching one at runtime - no per-compile
+// array filling. Shared groups are pulled in through macros to keep the arrays in sync.
+#define GR_PIPE_BASE_DYNAMIC_STATES                                                                                 \
+  VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_DEPTH_BOUNDS,  \
+    VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK, VK_DYNAMIC_STATE_STENCIL_WRITE_MASK, VK_DYNAMIC_STATE_STENCIL_REFERENCE, \
+    VK_DYNAMIC_STATE_BLEND_CONSTANTS
+
+// states moved to the command buffer by VK_EXT_extended_dynamic_state (must stay in sync with
+// BackExtDynamicGraphicsState); leading comma so the group can be appended after other states
+#if VK_EXT_extended_dynamic_state
+#define GR_PIPE_EXT_DYNAMIC_STATES                                                                                 \
+  , VK_DYNAMIC_STATE_CULL_MODE_EXT, VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT, VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT, \
+    VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT, VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT, VK_DYNAMIC_STATE_STENCIL_OP_EXT
 #else
-    0
+#define GR_PIPE_EXT_DYNAMIC_STATES
 #endif
-};
+
+static const VkDynamicState grPipeDynamicStatesBase[] = {GR_PIPE_BASE_DYNAMIC_STATES};
+static const VkDynamicState grPipeDynamicStatesExt[] = {GR_PIPE_BASE_DYNAMIC_STATES GR_PIPE_EXT_DYNAMIC_STATES};
+#if VK_KHR_fragment_shading_rate
+static const VkDynamicState grPipeDynamicStatesShadingRate[] = {
+  GR_PIPE_BASE_DYNAMIC_STATES, VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR};
+static const VkDynamicState grPipeDynamicStatesShadingRateExt[] = {
+  GR_PIPE_BASE_DYNAMIC_STATES, VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR GR_PIPE_EXT_DYNAMIC_STATES};
+#endif
+
+#undef GR_PIPE_BASE_DYNAMIC_STATES
+#undef GR_PIPE_EXT_DYNAMIC_STATES
+
+// picks the compile-time-baked dynamic state array matching the given pipeline variant; the ext
+// variants are chosen only when the device advertises VK_EXT_extended_dynamic_state, matching the
+// gate on BackExtDynamicGraphicsState so pipeline dynamic states and the set commands stay consistent
+static dag::ConstSpan<VkDynamicState> selectGraphicsDynamicStates(bool uses_shading_rate)
+{
+  const bool ext = Globals::VK::phy.hasExtendedDynamicState;
+#if VK_KHR_fragment_shading_rate
+  if (uses_shading_rate)
+    return ext ? make_span_const(grPipeDynamicStatesShadingRateExt, eastl::size(grPipeDynamicStatesShadingRateExt))
+               : make_span_const(grPipeDynamicStatesShadingRate, eastl::size(grPipeDynamicStatesShadingRate));
+#else
+  G_UNUSED(uses_shading_rate);
+#endif
+  return ext ? make_span_const(grPipeDynamicStatesExt, eastl::size(grPipeDynamicStatesExt))
+             : make_span_const(grPipeDynamicStatesBase, eastl::size(grPipeDynamicStatesBase));
+}
 
 static const VkRect2D grPipeStaticRect = {{0, 0}, {1, 1}};
 static const VkViewport grPipeStaticViewport = {0.f, 0.f, 1.f, 1.f, 0.f, 1.f};
@@ -273,8 +310,7 @@ void GraphicsPipeline::checkAndFixMissingInputs(GraphicsPipelineCompileScratchDa
   }
 }
 
-GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) :
-  BasePipeline(l), dynStateMask(info.dynStateMask)
+GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *l, const CreationInfo &info) : BasePipeline(l)
 {
   GraphicsPipelineCompileScratchData &csd = *info.scratch;
   compileScratch = info.scratch;
@@ -323,6 +359,9 @@ GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *
   uint32_t lss = 0;
 
   auto &staticState = info.rsBackend.getStatic(info.varDsc.state.renderState.staticIdx);
+
+  if (staticState.dualSourceBlendEnabled && (rpColorTargetMask & (rpColorTargetMask - 1)))
+    D3D_CONTRACT_ERROR("Can't use dual source blending with MRT, please set only one render target");
 
   InputLayout inputLayout = Globals::shaderProgramDatabase.getInputLayoutFromId(info.varDsc.state.inputLayout);
 
@@ -553,8 +592,9 @@ GraphicsPipeline::GraphicsPipeline(VulkanPipelineCacheHandle cache, LayoutType *
   csd.dynamicStates.pNext = NULL;
   csd.dynamicStates.flags = 0;
   bool hasShadingRateAndUsesShadingRate = info.varDsc.nonDefaultShadingRate && Globals::VK::phy.hasPipelineFragmentShadingRate;
-  csd.dynamicStates.dynamicStateCount = eastl::size(grPipeDynamicStateList) - (hasShadingRateAndUsesShadingRate ? 0 : 1);
-  csd.dynamicStates.pDynamicStates = grPipeDynamicStateList;
+  dag::ConstSpan<VkDynamicState> dynamicStateList = selectGraphicsDynamicStates(hasShadingRateAndUsesShadingRate);
+  csd.dynamicStates.dynamicStateCount = dynamicStateList.size();
+  csd.dynamicStates.pDynamicStates = dynamicStateList.data();
 
   if (!layout->hasTC() && info.varDsc.topology == VK_PRIMITIVE_TOPOLOGY_PATCH_LIST)
   {
@@ -723,49 +763,6 @@ VulkanPipelineHandle GraphicsPipeline::createPipelineObject(CreationFeedback &cr
   if (VULKAN_FAIL(compileScratch->compileResult))
     ret = VulkanNullHandle();
   return ret;
-}
-
-void GraphicsPipelineDynamicStateMask::from(RenderStateSystemBackend &rs_backend, const GraphicsPipelineVariantDescription &desc,
-  RenderPassResource *native_rp)
-{
-  auto rsSt = rs_backend.getStatic(desc.state.renderState.staticIdx);
-
-  if ((desc.rpClass.depthState == RenderPassClass::Identifier::NO_DEPTH) ||
-      (native_rp ? !native_rp->hasDepthAtSubpass(desc.subpass) : false))
-  {
-    hasDepthBias = 0;
-    hasDepthBoundsTest = 0;
-    hasStencilTest = 0;
-  }
-  else
-  {
-    // TODO: check this again.
-    // if (rsSt.depthBiasEnable)
-    hasDepthBias = 1;
-    if (rsSt.depthBoundsEnable)
-      hasDepthBoundsTest = 1;
-    if (rsSt.stencilTestEnable)
-      hasStencilTest = 1;
-  }
-
-  hasBlendConstants = 0;
-
-  uint32_t blendStateToCheck = rsSt.indenpendentBlendEnabled ? shaders::RenderState::NumIndependentBlendParameters : 1;
-  for (uint32_t i = 0; i < blendStateToCheck; i++)
-  {
-    if (rsSt.blendStates[i].blendEnable)
-    {
-      VkBlendFactor srcBF = (VkBlendFactor)(uint32_t)rsSt.blendStates[i].blendSrcFactor;
-      VkBlendFactor dstBF = (VkBlendFactor)(uint32_t)rsSt.blendStates[i].blendDstFactor;
-
-      if (((srcBF >= VK_BLEND_FACTOR_CONSTANT_COLOR) && (srcBF <= VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA)) ||
-          ((dstBF >= VK_BLEND_FACTOR_CONSTANT_COLOR) && (dstBF <= VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA)))
-      {
-        hasBlendConstants = 1;
-        break;
-      }
-    }
-  }
 }
 
 void innerSetDebugName(VulkanPipelineHandle handle, const char *name);

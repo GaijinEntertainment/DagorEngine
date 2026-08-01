@@ -32,6 +32,7 @@
 #include "hmlTypedVars.h"
 #include <de3_grassSrv.h>
 #include <de3_gpuGrassService.h>
+#include <de3_hmapDebugShadingService.h>
 #include <de3_waterSrv.h>
 #include <de3_waterProjFxSrv.h>
 #include <de3_cableSrv.h>
@@ -297,6 +298,10 @@ public:
   // ILandmesh
   BBox3 getBBoxWithHMapWBBox() const override;
   bool isLandmeshRenderingMode() const override;
+  LandMeshManager *getLandMeshManager() const override;
+  LandMeshRenderer *getLandMeshRenderer() const override;
+  bool getEditorHeightmapInfo(EditorHeightmapInfo *out) const override;
+  bool buildEditorHeightmap(DynamicMemGeneralSaveCB *cb) override;
 
   void updateLandDetailTexture(unsigned i);
 
@@ -1098,7 +1103,7 @@ private:
   void exportSplines(mkbindump::BinDumpSaveCB &cwr);
   void exportLoftMasks(const char *out_folder, int main_hmap_sz, int det_hmap_sz, float hmin, float hmax, int prefab_dest_idx);
 
-  bool exportLandMesh(mkbindump::BinDumpSaveCB &cwr, IWriterToLandmesh *land_modifier, LandRayTracer *raytracer,
+  bool exportLandMesh(mkbindump::BinDumpSaveCB &cwr, IWriterToLandmesh *land_modifier, EditorLandRayTracer *raytracer,
     bool tools_internal = false);
 
   void generateLandColors(const IBBox2 *in_rect = NULL, bool finished = true, bool may_rebuild_lmesh_if_needed = true);
@@ -1131,8 +1136,8 @@ private:
 
   void createWaterHmapFile(CoolConsole &con, bool det);
 
-  bool generateLandMeshMap(LandMeshMap &map, CoolConsole &con, bool import_sgeom, LandRayTracer **out_tracer,
-    bool strip_det_hmap_from_tracer = true);
+  bool generateLandMeshMap(LandMeshMap &map, CoolConsole &con, bool import_sgeom, EditorLandRayTracer **out_tracer,
+    bool strip_det_hmap_from_tracer = true, bool early_pass = false);
 
   void rebuildWaterSurface(Tab<Point3> *loft_pt_cloud = NULL, Tab<Point3> *water_border_polys = NULL,
     Tab<Point2> *hmap_sweep_polys = NULL);

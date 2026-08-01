@@ -25,6 +25,7 @@ static ShaderVariableInfo global_time_phaseVarId("global_time_phase", true);
 
 static ShaderVariableInfo fog_shader_typeVarId("fog_shader_type", true);
 static ShaderVariableInfo envi_cover_shader_typeVarId("envi_cover_shader_type", true);
+static ShaderVariableInfo clouds_shader_typeVarId("clouds_shader_type", true);
 static ShaderVariableInfo nbs_qualityVarId("nbs_quality", true);
 static eastl::array<ShaderVariableInfo, 2> nbs_perm_id_gVarIds = {
   ShaderVariableInfo("nbsPermIdG0", true), ShaderVariableInfo("nbsPermIdG1", true)};
@@ -89,6 +90,7 @@ void NodeBasedShaderManager::setShadervars(int variant_id)
   {
     case NodeBasedShaderType::Fog: fog_shader_typeVarId.set_int(variant_id); break;
     case NodeBasedShaderType::EnviCover: envi_cover_shader_typeVarId.set_int(variant_id); break;
+    case NodeBasedShaderType::Clouds: clouds_shader_typeVarId.set_int(variant_id); break;
   }
 
   if (permGroupActiveIdx.empty())

@@ -335,7 +335,7 @@ Named bindings declaration ( let )
 Named bindings like Local variables can be declared at any point in the program;
 they exist between their
 declaration to the end of the block where they have been declared.
-Named bindings MUST be initialized.
+Named bindings MUST be defined exactly once.
 Named bindings works *exactly* as `const` in JavaScript ES6 (Note - big there is siginificant difference with `const` in Squirrel).
 The main difference between local variables and named bindings is that named bindings can't be reassigned.
 So if you see somewhere in function scope let foo =  you can be sure that foo will always reference object on initialization
@@ -352,7 +352,20 @@ So if you see somewhere in function scope let foo =  you can be sure that foo wi
 .. note::
   While named bindings looks like constants they do not provide immutability. Named bindings can reference mutable objects (like array or instance or table)
 
-  
+A binding declared without an initializer is a forward declaration: it reserves a null
+slot that a later statement of the same block must define. Use it for values that can
+only be built after something that already refers to them:
+
+::
+
+  let isOdd
+  let isEven = @(n) n == 0 ? true : isOdd(n - 1)
+  isOdd = @(n) n == 0 ? false : isEven(n - 1)
+
+The definition must appear in the declaring block itself, not in an inner block, a loop
+body or a nested function, and a second assignment is rejected like any other write to a
+`let`. Reading the binding before its definition is an error as well; only a nested
+function may capture it earlier, and it observes null until the definition runs.
 
 --------------------
 Function declaration

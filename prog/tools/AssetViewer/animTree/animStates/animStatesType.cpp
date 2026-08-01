@@ -3,9 +3,10 @@
 #include "animStatesType.h"
 #include "../animTreeIcons.h"
 
-static const Tab<AnimStatesType> state_desc_types = {AnimStatesType::STATE, AnimStatesType::CHAN, AnimStatesType::STATE_ALIAS};
-static const Tab<String> state_desc_block_names = {String("state"), String("chan"), String("state_alias")};
-static const Tab<const char *> state_desc_icons = {STATE_LEAF_ICON, CHANNEL_LEAF_ICON, ALIAS_LEAF_ICON};
+static const Tab<AnimStatesType> state_desc_types = {
+  AnimStatesType::STATE, AnimStatesType::CHAN, AnimStatesType::STATE_ALIAS, AnimStatesType::MORPH};
+static const Tab<String> state_desc_block_names = {String("state"), String("chan"), String("state_alias"), String("morph")};
+static const Tab<const char *> state_desc_icons = {STATE_LEAF_ICON, CHANNEL_LEAF_ICON, ALIAS_LEAF_ICON, MORPH_LEAF_ICON};
 
 AnimStatesType get_state_desc_cbox_enum_value(int idx)
 {

@@ -1,0 +1,6 @@
+dng_camera_nodes {
+  _singleton:b=yes
+  _tags:t="render"
+  dafg_camera_registrator__name:t="dng_camera_nodes"
+  "dng_camera_nodes_registrator:tag"{}
+}

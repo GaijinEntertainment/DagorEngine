@@ -8,6 +8,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 
 #include "frameGraphNodes.h"
 #include <render/renderEvent.h>
@@ -21,9 +22,10 @@ static ShaderVariableInfo source_depth_for_copy_const_no("source_depth_for_copy_
 
 static bool use_explicit_depth_write(const bool has_stencil)
 {
-  // format conversion via copy results in invalid htile texture on xbox (even after resummarize)
-  // no depth format conversion via blit/copy on vulkan
-  return has_stencil || d3d::get_driver_code().is(d3d::xboxOne || d3d::scarlett || d3d::vulkan || d3d::metal);
+  // drivers without depth format conversion via blit/copy must use an explicit shader-based depth write:
+  // on xbox a transfer conversion results in an invalid htile texture (even after resummarize), and vulkan/metal
+  // do not implement depth format conversion via blit/copy at all
+  return has_stencil || !d3d::get_driver_desc().caps.hasDepthConversionByTransfer;
 }
 
 eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeParams &params)

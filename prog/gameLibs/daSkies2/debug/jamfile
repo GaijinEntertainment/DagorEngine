@@ -1,0 +1,22 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/daSkies2/debug ;
+
+TargetType  = lib ;
+Target      = gameLibs/daSkies2/debug.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  cloudsFieldDebug.cpp
+;
+
+UseProgLibs +=
+  gameLibs/render/daFrameGraph
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

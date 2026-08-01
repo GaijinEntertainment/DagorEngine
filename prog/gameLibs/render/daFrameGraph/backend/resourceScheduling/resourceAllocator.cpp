@@ -57,11 +57,8 @@ DestroyedHeapSet ResourceAllocator::allocateCpuHeaps(int prev_frame, const HeapR
       // deactivation is a simple memory barrier, which we don't in fact
       // need or want.
       for (const auto resIdx : heapToResourceList[heapIdx][prev_frame])
-        if (potential_deactivation_set[resIdx].index() == 3)
-        {
-          auto [f, x] = eastl::get<3>(potential_deactivation_set[resIdx]);
-          f(x);
-        }
+        if (auto *blob = eastl::get_if<BlobDeactivationRequest>(&potential_deactivation_set[resIdx]))
+          blob->destructor(blob->blob);
 
       result.push_back(heapIdx);
 
@@ -212,8 +209,22 @@ void ResourceAllocator::gatherPotentialDeactivationSet(int prev_frame, Potential
     if (res.isScheduled() && res.asScheduled().history != History::No)
       switch (res.asScheduled().resourceType)
       {
-        case ResourceType::Texture: result[idx] = getTexture(prev_frame, idx); break;
-        case ResourceType::Buffer: result[idx] = getBuffer(prev_frame, idx); break;
+        case ResourceType::Texture:
+        {
+          eastl::optional<d3d::TextureBarrier> release;
+          if (auto *bar = eastl::get_if<d3d::TextureBarrier>(&res.asScheduled().untrackedReleaseBarrier))
+            release = *bar;
+          result[idx] = TextureDeactivation{getTexture(prev_frame, idx), release};
+          break;
+        }
+        case ResourceType::Buffer:
+        {
+          eastl::optional<d3d::BufferBarrier> release;
+          if (auto *bar = eastl::get_if<d3d::BufferBarrier>(&res.asScheduled().untrackedReleaseBarrier))
+            release = *bar;
+          result[idx] = BufferDeactivation{getBuffer(prev_frame, idx), release};
+          break;
+        }
         case ResourceType::Blob:
           result[idx] = BlobDeactivationRequest{res.asScheduled().getCpuDescription().dtor, getBlob(prev_frame, idx).data};
           break;
@@ -259,7 +270,7 @@ void ResourceAllocator::applySchedule(int prev_frame, const ResourceSchedule &sc
   // Start tracking newly requested heap groups
   if (allocatedHeaps.size() < heapRequests.size())
     for (auto it = heapRequests.begin() + allocatedHeaps.size(); it != heapRequests.end(); ++it)
-      allocatedHeaps.appendNew(HeapRequest{it->group, 0u});
+      allocatedHeaps.appendNew(HeapRequest{it->group, 0u, it->untracked});
 
   {
     // allocateHeaps might destroy some physical resources due to

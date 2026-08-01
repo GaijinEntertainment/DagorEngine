@@ -25,6 +25,7 @@ class SmokeTracerManager;
 class TMatrix;
 struct RaytraceGeometryDescription;
 struct RaytraceBottomAccelerationStructure;
+struct RaytraceOpacityMicroMapTriangleArray;
 struct RiGenVisibility;
 struct BVHConnection;
 struct BVHBufferReference;
@@ -121,6 +122,25 @@ struct UniqueAS
   }
 
   template <typename T = ASType>
+  static eastl::enable_if_t<eastl::is_same_v<T, RaytraceOpacityMicroMapTriangleArray>, UniqueAS> create_omm(uint32_t size)
+  {
+    G_UNUSED(size);
+
+    UniqueAS as;
+#if D3D_HAS_RAY_TRACING
+    as.as = d3d::raytrace::create_acceleration_structure(raytrace::InvalidAccelerationStructurePool,
+      raytrace::OpacityMicroMapTriangleArrayPlacementInfo{0, size})
+              .omm;
+    if (as.as)
+    {
+      as.gpuAddress = d3d::get_raytrace_acceleration_structure_gpu_handle(as.as).handle;
+      as.asSize = size;
+    }
+#endif
+    return as;
+  }
+
+  template <typename T = ASType>
   static eastl::enable_if_t<eastl::is_same_v<T, RaytraceTopAccelerationStructure>, UniqueAS> create(uint32_t instance_count,
     RaytraceBuildFlags flags, const char *name)
   {
@@ -193,6 +213,9 @@ struct UniqueAS
         d3d::delete_raytrace_bottom_acceleration_structure(as);
       else if constexpr (eastl::is_same_v<ASType, RaytraceTopAccelerationStructure>)
         d3d::delete_raytrace_top_acceleration_structure(as);
+      else if constexpr (eastl::is_same_v<ASType, RaytraceOpacityMicroMapTriangleArray>)
+        d3d::raytrace::destroy_acceleration_structure(raytrace::InvalidAccelerationStructurePool,
+          raytrace::AnyAccelerationStructure(as));
     }
 #endif
     as = nullptr;
@@ -230,6 +253,7 @@ private:
 
 using UniqueBLAS = UniqueAS<RaytraceBottomAccelerationStructure>;
 using UniqueTLAS = UniqueAS<RaytraceTopAccelerationStructure>;
+using UniqueOMM = UniqueAS<RaytraceOpacityMicroMapTriangleArray>;
 
 struct UniqueBVHBufferWithOffset
 {
@@ -492,6 +516,7 @@ struct MeshInfo
   bool forceNonMetal = false;
   bool hasColorMod = false;
   bool hasAnimcharDecals = false;
+  bool isCamoNet = false;
 
   float maskGammaStart = 0.5;
   float maskGammaEnd = 2;
@@ -521,13 +546,14 @@ struct ObjectInfo
 };
 
 static constexpr uint32_t bvhGroupTerrain = 1 << 0;
-static constexpr uint32_t bvhGroupGPUFoliage = 1 << 1;
-static constexpr uint32_t bvhGroupRi = 1 << 2;
-static constexpr uint32_t bvhGroupDynrend = 1 << 3;
-static constexpr uint32_t bvhGroupGrass = 1 << 4;
-static constexpr uint32_t bvhGroupImpostor = 1 << 5;
-static constexpr uint32_t bvhGroupNoShadow = 1 << 6;
+static constexpr uint32_t bvhGroupRi = 1 << 1;
+static constexpr uint32_t bvhGroupDynrend = 1 << 2;
+static constexpr uint32_t bvhGroupGrass = 1 << 3;
+static constexpr uint32_t bvhGroupImpostor = 1 << 4;
+static constexpr uint32_t bvhGroupNoShadow = 1 << 5;
+static constexpr uint32_t bvhGroupGPUFoliage = 1 << 6;
 static constexpr uint32_t bvhGroupWater = 1 << 7;
+static constexpr uint32_t bvhGroupCamoNet = 1 << 7; // The same as water by intent. Water is DNG only, CamoNet is WT only.
 
 enum Features
 {
@@ -615,16 +641,22 @@ struct AdditionalSettings
   float singleLodFilterMaxRange = 0; // 0 means no filtering
   bool useFastTlasBuild = false;
   bool enableCaching = true;
+  bool enableOmm = false;
+  int ommDataArrayBudget = 0;        // bytes per mesh OMM array, <= 0 means unlimited
+  bool retainOmmBakeResults = false; // keep baked buffers alive for the OMM debug viewer
 };
 
 void init(elem_rules_fn elem_rules = nullptr, screenshot_fn screenshot = nullptr, AdditionalSettings settings = {});
 
 void teardown(bool device_reset, bool zero_bvh_ids);
 
-ContextId create_context(const char *name, Features features = Features::ForRendering);
+ContextId create_context(const char *name, Features features, Features designated_dyn_features);
 bool has_features(ContextId context_id, uint32_t features);
 
 void teardown(ContextId &context_id);
+
+void enable_dyn_models(ContextId context_id);
+void disable_dyn_models(ContextId context_id);
 
 void start_frame();
 
@@ -648,9 +680,9 @@ void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc);
 
 bool is_global_object_tessellation_enabled();
 
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
-  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
-  dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
+  const Point3 &light_direction, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
+  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
   dag::Vector<DynamicRenderableSceneInstance *> &&og_instances, threadpool::JobPriority prio);
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
   const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
@@ -742,4 +774,6 @@ void ensure_particle_buffer_capacity(int fx_max, int smoke_tracer_max);
 
 using on_parallel_jobs_finished_callback = void (*)();
 void set_on_parallel_jobs_finished_cb(on_parallel_jobs_finished_callback callback);
+
+void render_rt_mem_overlay(ContextId context_id);
 } // namespace bvh

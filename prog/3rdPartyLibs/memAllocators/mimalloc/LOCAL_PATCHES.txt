@@ -1,0 +1,7 @@
+Base: mimalloc 2.1.2 (MI_MALLOC_VERSION 212 in include/mimalloc.h)
+Upstream: https://github.com/microsoft/mimalloc
+
+Not a pristine upstream snapshot: dagor-local modifications and
+backported upstream bugfixes are applied on top of the base version.
+See the git history of this directory for the exact changes and
+their upstream commit references.

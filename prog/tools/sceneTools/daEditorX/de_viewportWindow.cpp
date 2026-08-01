@@ -14,6 +14,8 @@
 #include <util/dag_delayedAction.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
+DagorEdViewportWindow::DagorEdViewportWindow() { setGizmoPixelOffset(IPoint2(15, 30)); }
+
 int DagorEdViewportWindow::onMenuItemClick(unsigned id)
 {
   switch (id)

@@ -1,1 +1,4 @@
 include "land_block_common_inc.dshl"
+
+bool clipmap_use_cache_output1 = true;
+bool clipmap_use_cache_output2 = true;

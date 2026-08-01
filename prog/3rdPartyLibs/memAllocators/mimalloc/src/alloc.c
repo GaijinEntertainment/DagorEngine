@@ -88,7 +88,7 @@ extern inline void* _mi_page_malloc(mi_heap_t* heap, mi_page_t* page, size_t siz
   mi_assert_internal(delta >= 0 && mi_page_usable_block_size(page) >= (size - MI_PADDING_SIZE + delta));
   #endif
   mi_track_mem_defined(padding,sizeof(mi_padding_t));  // note: re-enable since mi_page_usable_block_size may set noaccess
-  padding->canary = (uint32_t)(mi_ptr_encode(page,block,page->keys));
+  padding->canary = mi_ptr_encode_canary(page,block,page->keys);
   padding->delta  = (uint32_t)(delta);
   #if MI_PADDING_CHECK
   if (!mi_page_is_huge(page)) {
@@ -254,7 +254,7 @@ static bool mi_page_decode_padding(const mi_page_t* page, const mi_block_t* bloc
   uintptr_t keys[2];
   keys[0] = page->keys[0];
   keys[1] = page->keys[1];
-  bool ok = ((uint32_t)mi_ptr_encode(page,block,keys) == canary && *delta <= *bsize);
+  bool ok = (mi_ptr_encode_canary(page,block,keys) == canary && *delta <= *bsize);
   mi_track_mem_noaccess(padding,sizeof(mi_padding_t));
   return ok;
 }

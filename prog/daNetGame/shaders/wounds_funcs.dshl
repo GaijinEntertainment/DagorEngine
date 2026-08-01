@@ -1,0 +1,95 @@
+macro USE_ANIMATED_HOLE_RADIUS(code)
+hlsl(code) {
+  #include "woundsConst.hlsli"
+
+  // returns the threshold in the peak-extent ellipsoid's normalized space (1 == peak radius)
+  float animated_hole_radius(float spawnTime, float holdDuration,
+    float closeDuration, float openDuration, float pulseAmp, float curTime)
+  {
+    float t = curTime - spawnTime;
+    float openS = openDuration > 0 ? smoothstep(0, max(openDuration, 1e-6), t) : 1;
+    // clamp: producers do not validate pulseAmp, > 1 must not flip the threshold negative
+    float pulse = max(0, 1 + pulseAmp * sin(6.2831853 * t));
+    float closeT = closeDuration > 0 ? saturate((t - openDuration - holdDuration) / max(closeDuration, 1e-6)) : 0;
+    float closeS = 1 - closeT * closeT * (3 - 2 * closeT);
+    return openS * pulse * closeS;
+  }
+
+  // distance to hole center in the peak-extent ellipsoid's normalized space (<1 == inside at peak)
+  float wound_hole_peak_dist(uint2 offset_count, int j, float3 pos)
+  {
+    float4 r2c = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_ROW2));
+    float4 r1c = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_ROW1));
+    float4 r0c = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_ROW0));
+    float3 lp = pos - float3(r0c.w, r1c.w, r2c.w);
+    float3 e = float3(dot(r0c.xyz, lp), dot(r1c.xyz, lp), dot(r2c.xyz, lp));
+    return length(e);
+  }
+
+  bool is_inside_wound_hole(uint2 offset_count, int j, float3 pos, float cur_time)
+  {
+    float4 holeEase = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_EASE));
+    float4 holeTime = get_additional_data(offset_count, j + WOUND_REV(HOLE_WOUND_SIZE, WOUND_HOLE_TIME));
+    float s = animated_hole_radius(holeTime.x, holeTime.y, holeTime.z, holeEase.x, holeEase.y, cur_time);
+    return wound_hole_peak_dist(offset_count, j, pos) < s;
+  }
+}
+endmacro
+
+macro USE_TORN_WOUND_LOADER(code)
+hlsl(code) {
+  #include "woundsConst.hlsli"
+
+  struct TornWound
+  {
+    float4 params;              // x start fade, y trim vertices to, z discard pixel to, w tex uv scale
+    float3x3 worldToUnitSphere; // rows r0,r1,r2; e = mul(worldToUnitSphere, pos - center)
+    float3 center;
+  };
+
+  TornWound load_torn_wound(uint2 offset_count, int j)
+  {
+    float4 r2c = get_additional_data(offset_count, j + WOUND_REV(TORN_WOUND_SIZE, WOUND_CUT_ROW2));
+    float4 r1c = get_additional_data(offset_count, j + WOUND_REV(TORN_WOUND_SIZE, WOUND_CUT_ROW1));
+    float4 r0c = get_additional_data(offset_count, j + WOUND_REV(TORN_WOUND_SIZE, WOUND_CUT_ROW0));
+    TornWound w;
+    w.params = get_additional_data(offset_count, j + WOUND_REV(TORN_WOUND_SIZE, WOUND_CUT_PARAMS));
+    w.worldToUnitSphere = float3x3(r0c.xyz, r1c.xyz, r2c.xyz);
+    w.center = float3(r0c.w, r1c.w, r2c.w);
+    return w;
+  }
+}
+endmacro
+
+macro USE_BLOOD_DECAL_LOADER(code)
+hlsl(code) {
+  #include "woundsConst.hlsli"
+
+  struct BloodDecalWound
+  {
+    float3 center;
+    float scale;
+    float startTime;
+    float3 axisX; // also the hit normal
+    float3 axisY;
+    float3 axisZ;
+  };
+
+  BloodDecalWound load_blood_decal_wound(uint2 offset_count, int j)
+  {
+    float4 pos_scale = get_additional_data(offset_count, j + WOUND_REV(DECAL_WOUND_SIZE, WOUND_DECAL_POS_SCALE));
+    float4 dir_depth_time = get_additional_data(offset_count, j + WOUND_REV(DECAL_WOUND_SIZE, WOUND_DECAL_DIR_TIME));
+    float4 axisZ = get_additional_data(offset_count, j + WOUND_REV(DECAL_WOUND_SIZE, WOUND_DECAL_AXIS_Z));
+    float4 axisY = get_additional_data(offset_count, j + WOUND_REV(DECAL_WOUND_SIZE, WOUND_DECAL_AXIS_Y));
+    float4 axisX = get_additional_data(offset_count, j + WOUND_REV(DECAL_WOUND_SIZE, WOUND_DECAL_AXIS_X));
+    BloodDecalWound w;
+    w.center = pos_scale.xyz;
+    w.scale = pos_scale.w;
+    w.startTime = dir_depth_time.w;
+    w.axisX = axisX.xyz;
+    w.axisY = axisY.xyz;
+    w.axisZ = axisZ.xyz;
+    return w;
+  }
+}
+endmacro

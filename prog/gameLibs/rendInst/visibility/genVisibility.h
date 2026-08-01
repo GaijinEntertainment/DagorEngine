@@ -116,6 +116,25 @@ struct RiGenVisibility
     for (int i = 0; i < cellsLod.size(); ++i)
       dag::set_allocator(cellsLod[i], allocator);
   }
+  // release buffer capacity retained from the last prepare; must not run while
+  // a culling job uses this visibility, next prepare regrows everything
+  void shrink()
+  {
+    clear_and_shrink(subCells);
+    clear_and_shrink(renderRanges);
+    for (auto &c : cellsLod)
+      clear_and_shrink(c);
+    for (auto &c : perInstanceVisibilityCells)
+      clear_and_shrink(c);
+    for (auto &d : instanceData)
+      clear_and_shrink(d);
+    for (auto &d : instanceIds)
+      clear_and_shrink(d);
+    clear_and_shrink(crossDissolveRange);
+    vismask = 0; // empty ranges must not be rendered
+    riex.shrink();
+  }
+
   void resizeRanges(int cnt)
   {
     if (renderRanges.size() != cnt)
@@ -172,10 +191,11 @@ struct RiGenVisibility
   };
   carray<Tab<IPoint2>, PER_INSTANCE_LODS> perInstanceVisibilityCells; // todo: replace with list of cells for each ri_idx
   carray<Tab<vec4f>, PER_INSTANCE_LODS> instanceData;                 // plus cross dissolve between 0 and 1 lod
+  carray<Tab<uint64_t>, PER_INSTANCE_LODS> instanceIds;               // unique riGen instance ids, always parallel to instanceData
   Tab<float> crossDissolveRange;
   int max_per_instance_instances = 0;
 
-  void addTreeInstance(int ri_idx, int &internal_cell, vec4f instance_data, int lod)
+  void addTreeInstance(int ri_idx, int &internal_cell, vec4f instance_data, uint64_t unique_id, int lod)
   {
     if (internal_cell < 0)
     {
@@ -183,6 +203,7 @@ struct RiGenVisibility
       perInstanceVisibilityCells[lod].push_back(IPoint2(ri_idx, instanceData[lod].size()));
     }
     instanceData[lod].push_back(instance_data);
+    instanceIds[lod].push_back(unique_id);
   }
 
   int addTreeInstances(int ri_idx, int &internal_cell, const vec4f *instance_data, int cnt, int lod)
@@ -192,6 +213,7 @@ struct RiGenVisibility
       internal_cell = perInstanceVisibilityCells[lod].size();
       perInstanceVisibilityCells[lod].push_back(IPoint2(ri_idx, instanceData[lod].size()));
     }
+    append_items(instanceIds[lod], cnt);
     return append_items(instanceData[lod], cnt, instance_data);
   }
   void startTreeInstances()
@@ -200,6 +222,7 @@ struct RiGenVisibility
     {
       perInstanceVisibilityCells[i].clear();
       instanceData[i].clear();
+      instanceIds[i].clear();
     }
   }
   void closeTreeInstances()

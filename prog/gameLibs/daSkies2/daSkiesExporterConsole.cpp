@@ -29,7 +29,7 @@ void get_rand_value(Point2 &v, const DataBlock &blk, const char *name, float def
     v = Point2(def, def);
 }
 
-bool is_layer(const char *name) { return strstr(name, "layer"); }
+bool is_layer(const char *name) { return strstr(name, "layers["); }
 int get_layer_index(const char *name)
 {
   if (strstr(name, "layers[0]."))

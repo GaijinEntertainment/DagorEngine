@@ -31,7 +31,7 @@ void setTargetObj(void *phys_body, const char *res);
 void end();
 void *getPhysWorld();
 
-void beforeRender();
+void beforeRender(const Point3 &cam_pos);
 void renderTrans(bool render_collision, bool render_geom, bool draw_cmass);
 void render();
 

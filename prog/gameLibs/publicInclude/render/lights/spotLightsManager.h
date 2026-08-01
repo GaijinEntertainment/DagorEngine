@@ -14,7 +14,7 @@
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_half.h>
 #include "renderLights.hlsli"
-
+#include <render/lights/lightsManager.h>
 #include <render/iesTextureManager.h>
 
 #include "light_mask_inc.hlsli"
@@ -30,14 +30,19 @@ inline SpotLightMaskType &operator|=(SpotLightMaskType &lhs, SpotLightMaskType r
 struct Frustum;
 class OmniShadowMap;
 class Occlusion;
+class LightsPartition;
 
-class SpotLightsManager
+class SpotLightsManager : public LightsManager<SpotLight>
 {
+  friend class LightsPartition;
+
 public:
   typedef SpotLight Light;
   typedef Light RawLight;
+  using MaskType = SpotLightMaskType;
+  using RenderLight = RenderSpotLight;
 
-  static constexpr int MAX_LIGHTS = 2048;
+  static constexpr int MAX_LIGHTS = MAX_SCENE_SPOT_LIGHTS;
 
   SpotLightsManager();
   ~SpotLightsManager();
@@ -45,33 +50,11 @@ public:
   void init();
   void close();
 
-  template <bool use_small>
-  void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
-    eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-    const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
-    SpotLightMaskType require_any_mask, float cutoff_dist_sq = 0.f) const;
-
-  void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
-    eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occ, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-    const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
-    SpotLightMaskType require_any_mask, float cutoff_dist_sq = 0.f) const
-  {
-    prepare<true>(frustum, lights_inside_plane, lights_outside_plane, visibleIdBitset, occ, inside_box, outside_box, znear_plane,
-      shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask, cutoff_dist_sq);
-  }
-
-  void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
-    eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occ, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-    const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, SpotLightMaskType require_any_mask, float cutoff_dist_sq = 0.f)
-  {
-    prepare<false>(frustum, lights_inside_plane, lights_outside_plane, visibleIdBitset, occ, inside_box, outside_box, znear_plane,
-      shadow, 0, v_zero(), require_any_mask, cutoff_dist_sq);
-  }
   void renderDebugBboxes();
   int addLight(const Light &light); // return -1 if fails
   void destroyLight(unsigned int id);
 
-  const Light &getLight(unsigned int id) const { return rawLights[id]; }
+  const Light &getLight(unsigned int id) const override { return rawLights[id]; }
   void setLight(unsigned int id, const Light &l)
   {
     if (check_nan(l.pos_radius.x + l.pos_radius.y + l.pos_radius.z + l.pos_radius.w))
@@ -121,6 +104,7 @@ public:
     G_ASSERT((shadowFlags & SPOT_LIGHT_CONTACT_SHADOW_MASK) == shadowFlags);
     G_ASSERT((packedRollAngle & SPOT_LIGHT_ROLL_MASK) == packedRollAngle);
     ret.texId_scale_illuminatingplane_packedDataBits.w = eastl::bit_cast<float, uint32_t>(packedRollAngle | shadowFlags);
+
     return ret;
   }
 
@@ -133,7 +117,7 @@ public:
   }
   void updateBoundingBox(unsigned id);
   bbox3f getBoundingBox(unsigned id) const { return boundingBoxes[id]; }
-  vec4f getBoundingSphere(unsigned id) const { return boundingSpheres[id]; }
+  vec4f getBoundingSphere(unsigned id) const override { return boundingSpheres[id]; }
 
   void destroyAllLights();
 
@@ -221,6 +205,8 @@ public:
   }
 
   IesTextureCollection::PhotometryData getPhotometryData(int texId) const;
+
+  void updateShadowVolume(uint32_t light_id) override;
 
 private:
   carray<Light, MAX_LIGHTS> rawLights;                 //-V730_NOINIT

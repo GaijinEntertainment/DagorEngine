@@ -3,6 +3,18 @@ include "sq_clouds_shadow.dshl"
 include "csm.dshl"
 include "use_tiled_lights.dshl"
 
+float eye_caustics_strength_mul = 1;
+float eye_caustics_light_lerp_mul = 1;
+float eye_caustics_focal_offset_mul = 1;
+float eye_caustics_iris_radius_mul = 1;
+float eye_caustics_falloff_mul = 1;
+float eye_caustics_concavity_mul = 1;
+float eye_caustics_sun_mul = 1;
+float eye_caustics_omni_mul = 1;
+float eye_caustics_spot_mul = 1;
+float eye_caustics_shadow_offset_mul = 1;
+float eye_caustics_use_shadows = 1;
+
 
 macro DECLARE_EYE_CAUSTICS()
   static float eye_caustics_strength = 1.3;
@@ -11,6 +23,8 @@ macro DECLARE_EYE_CAUSTICS()
   static float eye_caustics_iris_radius = 0.18;
   static float eye_caustics_falloff_strength = 0.6;
   static float eye_caustics_concavity_scale = 6.0;
+  static float eye_caustics_shadow_offset = 0.03;
+  static float eye_caustics_sun_shadow_offset = 0.7;
 endmacro
 
 
@@ -19,8 +33,25 @@ macro INIT_EYE_CAUSTICS(need_init_shadows)
   {
     (ps)
     {
-      eye_caustics_params_0@f4 = (eye_caustics_strength,eye_caustics_light_lerp_factor,eye_caustics_focal_point_offset,eye_caustics_iris_radius);
-      eye_caustics_params_1@f2 = (eye_caustics_falloff_strength,eye_caustics_concavity_scale,0,0);
+      eye_caustics_strength@f1 = eye_caustics_strength;
+      eye_caustics_light_lerp_factor@f1 = eye_caustics_light_lerp_factor;
+      eye_caustics_focal_point_offset@f1 = eye_caustics_focal_point_offset;
+      eye_caustics_iris_radius@f1 = eye_caustics_iris_radius;
+      eye_caustics_falloff_strength@f1 = eye_caustics_falloff_strength;
+      eye_caustics_concavity_scale@f1 = eye_caustics_concavity_scale;
+      eye_caustics_shadow_offset@f1 = eye_caustics_shadow_offset;
+      eye_caustics_sun_shadow_offset@f1 = eye_caustics_sun_shadow_offset;
+      eye_caustics_strength_mul@f1 = eye_caustics_strength_mul;
+      eye_caustics_light_lerp_mul@f1 = eye_caustics_light_lerp_mul;
+      eye_caustics_focal_offset_mul@f1 = eye_caustics_focal_offset_mul;
+      eye_caustics_iris_radius_mul@f1 = eye_caustics_iris_radius_mul;
+      eye_caustics_falloff_mul@f1 = eye_caustics_falloff_mul;
+      eye_caustics_concavity_mul@f1 = eye_caustics_concavity_mul;
+      eye_caustics_sun_mul@f1 = eye_caustics_sun_mul;
+      eye_caustics_omni_mul@f1 = eye_caustics_omni_mul;
+      eye_caustics_spot_mul@f1 = eye_caustics_spot_mul;
+      eye_caustics_shadow_offset_mul@f1 = eye_caustics_shadow_offset_mul;
+      eye_caustics_use_shadows@f1 = eye_caustics_use_shadows;
     }
     if (need_init_shadows)
     {
@@ -47,12 +78,11 @@ macro USE_EYE_CAUSTICS()
     struct CausticsInput
     {
       float3x3 eyeRotationTm;
-      float3 eyeForward;
       float3 vertexNormal;
+      float viewDepth;
       float3 pointToEye;
       float2 diffuseTexcoord;
       float2 screenpos;
-      float shadowOffset;
 
       // cached:
       float irisPlaneDistance;
@@ -60,13 +90,19 @@ macro USE_EYE_CAUSTICS()
     };
 
 
-    #define eye_caustics_strength           get_eye_caustics_params_0().x
-    #define eye_caustics_light_lerp_factor  get_eye_caustics_params_0().y
-    #define eye_caustics_focal_point_offset get_eye_caustics_params_0().z
-    #define eye_caustics_iris_radius        get_eye_caustics_params_0().w
+    #define eye_caustics_strength           (get_eye_caustics_strength() * get_eye_caustics_strength_mul())
+    #define eye_caustics_light_lerp_factor  (get_eye_caustics_light_lerp_factor() * get_eye_caustics_light_lerp_mul())
+    #define eye_caustics_focal_point_offset (get_eye_caustics_focal_point_offset() * get_eye_caustics_focal_offset_mul())
+    #define eye_caustics_iris_radius        (get_eye_caustics_iris_radius() * get_eye_caustics_iris_radius_mul())
 
-    #define eye_caustics_falloff_strength   get_eye_caustics_params_1().x
-    #define eye_caustics_concavity_scale    get_eye_caustics_params_1().y
+    #define eye_caustics_falloff_strength   (get_eye_caustics_falloff_strength() * get_eye_caustics_falloff_mul())
+    #define eye_caustics_concavity_scale    (get_eye_caustics_concavity_scale() * get_eye_caustics_concavity_mul())
+    #define eye_caustics_shadow_offset      (get_eye_caustics_shadow_offset() * get_eye_caustics_shadow_offset_mul())
+    #define eye_caustics_sun_shadow_offset  (get_eye_caustics_sun_shadow_offset() * get_eye_caustics_shadow_offset_mul())
+    #define eye_caustics_sun_mul            get_eye_caustics_sun_mul()
+    #define eye_caustics_omni_mul           get_eye_caustics_omni_mul()
+    #define eye_caustics_spot_mul           get_eye_caustics_spot_mul()
+    #define eye_caustics_use_shadows        get_eye_caustics_use_shadows()
   }
 
   if (in_editor_assume == no)
@@ -100,7 +136,6 @@ macro USE_EYE_CAUSTICS()
 
     }
 
-    // TODO: refactor everything below!!
     if (dynamic_lights_count != lights_off)
     {
       USE_PHOTOMETRY_TEXTURES(ps)
@@ -117,29 +152,88 @@ macro USE_EYE_CAUSTICS()
       #define WAVE_OR(v) (v)
       #define WAVE_MIN(v) (v)
       #define WAVE_MAX(v) (v)
+    }
+    USE_TILED_LIGHTS_HELPERS(ps)
 
-      #include <tiled_light_consts.hlsli>
-
-      uint2 screen_uv_to_tile_idx(float2 screenpos)
+    hlsl(ps)
+    {
+      #include <clustered/punctualLightsMath.hlsl>
+##if (dynamic_lights_count != lights_off)
+      void shade_caustics_omni_light(uint omni_light_index, CausticsInput input, float3 worldPos, inout float caustics, inout float3 caustics_color)
       {
-        return uint2(screenpos) / TILE_EDGE;
+        RenderOmniLight ol = omni_lights_cb[omni_light_index];
+        float4 pos_and_radius = ol.posRadius;
+        float4 color_and_specular = getFinalColor(ol, worldPos);
+        float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
+        float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
+
+        float3 point2light = pos_and_radius.xyz-worldPos.xyz;
+        float distSqFromLight = dot(point2light,point2light);
+        float radius2 = pow2(pos_and_radius.w);
+        bool shouldExit = distSqFromLight >= radius2;
+        BRANCH
+        if (shouldExit)
+          return;
+        float invSqrRad = rcp(radius2);
+        float attenuation = getDistanceAtt( distSqFromLight, invSqrRad );
+        float3 lightDir = point2light*rsqrt(0.0000001+distSqFromLight);
+        float NoL = 1;
+        half shadowTerm = attenuation;//no shadows
+        float3 shadowPos = worldPos + lightDir * eye_caustics_shadow_offset;
+        shadowTerm *= eye_caustics_use_shadows ? getOmniShadow(shadowTcToAtlas, pos_and_radius, shadowPos, NoL, input.screenpos, shadowZnZfar) : 1;
+
+        float omniCaustics = calculate_eye_caustics(input, lightDir);
+        omniCaustics = max(0, omniCaustics * shadowTerm) * eye_caustics_omni_mul;
+        caustics += omniCaustics;
+        caustics_color += omniCaustics * color_and_specular.rgb;
       }
 
-      ##if (dynamic_lights_count != lights_off)
-        uint depth_to_z_bin(float depth)
-        {
-          return clamp(ceil((depth * inv_lights_distance) * Z_BINS_COUNT), 0, Z_BINS_COUNT - 1);
-        }
-      ##endif
+      void shade_caustics_spot_light(uint spot_light_index, CausticsInput input, float3 worldPos, inout float caustics, inout float3 caustics_color)
+      {
+        RenderSpotLight sl = spot_lights_cb[spot_light_index];
+        float4 lightPosRadius = decode_spot_light_pos_radius(sl);
+        float4 lightColor = sl.lightColorAngleScale;
+        float4 lightDirection = sl.lightDirectionAngleOffset;
+        float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
+        float3 toLightDir = normalize(lightPosRadius.xyz - worldPos);
+        float3 shadowPos = worldPos + toLightDir * eye_caustics_shadow_offset;
+        float lightRollAngle = decode_light_roll_angle(sl);
 
-      ##if !(hardware.ps4 || hardware.ps5)
-        uint BitFieldMask(uint ones_width, uint offset)
+        float lightAngleScale = lightColor.a;
+        float lightAngleOffset = lightDirection.a;
+        half geomAttenuation; half3 dirFromLight, point2light;//point2light - not normalized
+        spot_light_params(worldPos.xyz, lightPosRadius, lightDirection.xyz, lightAngleScale, lightAngleOffset, geomAttenuation, dirFromLight, point2light);
+        float NoL = 1;
+        half attenuation = geomAttenuation;
+        bool shouldExit = attenuation <= 0;
+        BRANCH
+        if (shouldExit)
+          return;
+        half spotShadow = 1;
+        uint shadowDataBits = get_spot_light_shadow_data_bits(sl);
+        BRANCH
+        if (eye_caustics_use_shadows && spot_light_has_shadow(shadowDataBits))
         {
-          return ((1U << ones_width) - 1) << offset;
+          float zbias = shadowZBias + shadowSlopeZBias / (abs(NoL)+0.1);
+          float4 lightShadowTC = mul(getSpotLightTm(spot_light_index), float4(shadowPos.xyz+(point2light+dirFromLight)*zbias, 1));
+          const float EPS = 1e-6;
+          lightShadowTC.xyz /= max(lightShadowTC.w, EPS);
+          float4 spotShadowUvBounds = getSpotLightShadowUvBounds(spot_light_index);
+          bool shadowTcValid = all(lightShadowTC.xy == clamp(lightShadowTC.xy, spotShadowUvBounds.xy, spotShadowUvBounds.zw));
+          FLATTEN
+          if (shadowTcValid)
+            spotShadow = 1-dynamic_shadow_sample(lightShadowTC.xy, lightShadowTC.z);
         }
-      ##endif
+        attenuation *= spotShadow;
+        attenuation = applySpotLightPhotometry(-dirFromLight, lightDirection.xyz, lightRollAngle, texId_scale.x, texId_scale.y, attenuation);
 
-      #include <clustered/punctualLightsMath.hlsl>
+        float spotCaustics = calculate_eye_caustics(input, toLightDir);
+        spotCaustics = max(0, spotCaustics * attenuation) * eye_caustics_spot_mul;
+        caustics += spotCaustics;
+        caustics_color += spotCaustics * lightColor.rgb;
+      }
+##endif
+
       void get_dynamic_lighting(CausticsInput input, inout float caustics, inout float3 caustics_color)
       {
         ##if (dynamic_lights_count != lights_off)
@@ -150,138 +244,26 @@ macro USE_EYE_CAUSTICS()
           uint2 tileIdx = screen_uv_to_tile_idx(input.screenpos);
           uint tileOffset = (tileIdx.x * tiledGridSize.y + tileIdx.y) * DWORDS_PER_TILE;
 
-          float depth = length(worldPos - world_view_pos.xyz);
           ##if (dynamic_lights_count != lights_spot_1)
-            uint zbinsOmni = z_binning_lookup[depth_to_z_bin(depth)];
-            uint omniBinsBegin = zbinsOmni >> 16;
-            uint omniBinsEnd = zbinsOmni & 0xFFFF;
-            uint mergedOmniBinsBegin = WAVE_MIN(omniBinsBegin);
-            uint mergedOmniBinsEnd = WAVE_MAX(omniBinsEnd);
-            uint omniLightsBegin = mergedOmniBinsBegin >> 5;
-            uint omniLightsEnd = mergedOmniBinsEnd >> 5;
-            uint omniMaskWidth = clamp((int)omniBinsEnd - (int)omniBinsBegin + 1, 0, 32);
-            uint omniWord = 0;
-
-            ##if (dynamic_lights_count != lights_omni_1 && dynamic_lights_count != lights_omnispot_1)
-            for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
-            ##else
-            if (omniLightsBegin <= omniLightsEnd)
+            #define TILED_LIGHTS_WALK_SPOT 0
+            #define TILED_LIGHTS_WALK_DEPTH input.viewDepth
+            #define TILED_LIGHTS_WALK_TILE_OFFSET tileOffset
+            ##if (dynamic_lights_count == lights_omni_1 || dynamic_lights_count == lights_omnispot_1)
+              #define TILED_LIGHTS_WALK_SINGLE_WORD 1
             ##endif
-            {
-              uint mask = lights_list[tileOffset + omniWord];
-              // Mask by ZBin mask
-              uint localMin = clamp((int)omniBinsBegin - (int)(omniWord << 5), 0, 31);
-              // BitFieldMask op needs manual 32 size wrap support
-              uint zbinMask = omniMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(omniMaskWidth, localMin);
-              mask &= zbinMask;
-              uint mergedMask = WAVE_OR(mask);
-              {
-                LOOP
-                while (mergedMask)
-                {
-                  uint bitIdx = firstbitlow(mergedMask);
-                  uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
-                  mergedMask ^= (1U << bitIdx);
-
-                  RenderOmniLight ol = omni_lights_cb[omni_light_index];
-                  float4 pos_and_radius = ol.posRadius;
-                  float4 color_and_specular = getFinalColor(ol, worldPos);
-                  float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
-                  float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
-
-                  float3 point2light = pos_and_radius.xyz-worldPos.xyz;
-                  float distSqFromLight = dot(point2light,point2light);
-                  float radius2 = pow2(pos_and_radius.w);
-                  bool shouldExit = distSqFromLight >= radius2;
-                  BRANCH
-                  if (shouldExit)
-                    continue;
-                  float invSqrRad = rcp(radius2);
-                  float attenuation = getDistanceAtt( distSqFromLight, invSqrRad );
-                  float3 lightDir = point2light*rsqrt(0.0000001+distSqFromLight);
-                  float NoL = 1;
-                  half shadowTerm = attenuation;//no shadows
-                  float3 shadowPos = worldPos + point2light * input.shadowOffset;
-                  shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, shadowPos, NoL, input.screenpos, shadowZnZfar);
-
-                  float omniCaustics = calculate_eye_caustics(input, lightDir);
-                  omniCaustics = max(0, omniCaustics * shadowTerm);
-                  caustics += omniCaustics;
-                  caustics_color += omniCaustics * color_and_specular.rgb;
-                }
-              }
-            }
+            #define TILED_LIGHTS_WALK_LIGHT_BODY(omni_light_index) shade_caustics_omni_light(omni_light_index, input, worldPos, caustics, caustics_color);
+            #include <tiled_lights_walk.hlsli>
           ##endif
 
           ##if (dynamic_lights_count != lights_omni_1)
-            uint zbinsSpot = z_binning_lookup[depth_to_z_bin(depth) + Z_BINS_COUNT];
-            uint spotBinsBegin = zbinsSpot >> 16;
-            uint spotBinsEnd = zbinsSpot & 0xFFFF;
-            uint mergedSpotBinsBegin = WAVE_MIN(spotBinsBegin);
-            uint mergedSpotBinsEnd = WAVE_MAX(spotBinsEnd);
-            uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
-            uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
-            uint spotMaskWidth = clamp((int)spotBinsEnd - (int)spotBinsBegin + 1, 0, 32);
-            uint spotWord = DWORDS_PER_TILE / 2;
-
-            ##if (dynamic_lights_count != lights_spot_1 && dynamic_lights_count != lights_omnispot_1)
-            for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
-            ##else
-            if (spotLightsBegin <= spotLightsEnd)
+            #define TILED_LIGHTS_WALK_SPOT 1
+            #define TILED_LIGHTS_WALK_DEPTH input.viewDepth
+            #define TILED_LIGHTS_WALK_TILE_OFFSET tileOffset
+            ##if (dynamic_lights_count == lights_spot_1 || dynamic_lights_count == lights_omnispot_1)
+              #define TILED_LIGHTS_WALK_SINGLE_WORD 1
             ##endif
-            {
-              uint mask = lights_list[tileOffset + spotWord];
-              // Mask by ZBin mask
-              uint localMin = clamp((int)spotBinsBegin - (int)((spotWord - DWORDS_PER_TILE / 2) << 5), 0, 31);
-              // BitFieldMask op needs manual 32 size wrap support
-              uint zbinMask = spotMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(spotMaskWidth, localMin);
-              mask &= zbinMask;
-              uint mergedMask = WAVE_OR(mask);
-              {
-                LOOP
-                while (mergedMask)
-                {
-                  uint bitIdx = firstbitlow(mergedMask);
-                  uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
-                  mergedMask ^= (1U << bitIdx);
-
-                  RenderSpotLight sl = spot_lights_cb[spot_light_index];
-                  float4 lightPosRadius = decode_spot_light_pos_radius(sl);
-                  float4 lightColor = sl.lightColorAngleScale;
-                  float4 lightDirection = sl.lightDirectionAngleOffset;
-                  float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
-                  float3 toLightDir = normalize(lightPosRadius.xyz - worldPos);
-                  float3 shadowPos = worldPos + toLightDir * input.shadowOffset;
-                  float lightRollAngle = decode_light_roll_angle(sl);
-
-                  float lightAngleScale = lightColor.a;
-                  float lightAngleOffset = lightDirection.a;
-                  half geomAttenuation; half3 dirFromLight, point2light;//point2light - not normalized
-                  spot_light_params(shadowPos.xyz, lightPosRadius, lightDirection.xyz, lightAngleScale, lightAngleOffset, geomAttenuation, dirFromLight, point2light);
-                  float NoL = 1;
-                  half attenuation = geomAttenuation;
-                  bool shouldExit = attenuation <= 0;
-                  BRANCH
-                  if (shouldExit)
-                    continue;
-                  half spotShadow = 1;
-                  float zbias = shadowZBias + shadowSlopeZBias / (abs(NoL)+0.1);
-                  float4 lightShadowTC = mul(getSpotLightTm(spot_light_index), float4(shadowPos.xyz+(point2light+dirFromLight)*zbias, 1));
-                  if (lightShadowTC.w > 1e-6)
-                  {
-                    lightShadowTC.xyz /= lightShadowTC.w;
-                    spotShadow = 1-dynamic_shadow_sample(lightShadowTC.xy, lightShadowTC.z);
-                  }
-                  attenuation *= spotShadow;
-                  attenuation = applySpotLightPhotometry(-dirFromLight, lightDirection.xyz, lightRollAngle, texId_scale.x, texId_scale.y, attenuation);
-
-                  float spotCaustics = calculate_eye_caustics(input, toLightDir);
-                  spotCaustics = max(0, spotCaustics * attenuation);
-                  caustics += spotCaustics;
-                  caustics_color += spotCaustics * lightColor.rgb;
-                }
-              }
-            }
+            #define TILED_LIGHTS_WALK_LIGHT_BODY(spot_light_index) shade_caustics_spot_light(spot_light_index, input, worldPos, caustics, caustics_color);
+            #include <tiled_lights_walk.hlsli>
           ##endif
         ##endif
       }
@@ -291,17 +273,17 @@ macro USE_EYE_CAUSTICS()
     {
       float get_sun_shadow(CausticsInput input)
       {
-        float3 shadowPos = world_view_pos - input.pointToEye - from_sun_direction * input.shadowOffset;
+        float3 shadowPos = world_view_pos - input.pointToEye - from_sun_direction * eye_caustics_sun_shadow_offset;
         float csm = get_csm_shadow(world_view_pos - shadowPos).x;
         float staticShadow = getStaticShadow(shadowPos);
         float cloudsShadow = clouds_shadow(shadowPos);
-        return min(csm, staticShadow) * cloudsShadow;
+        return eye_caustics_use_shadows ? min(csm, staticShadow) * cloudsShadow : 1;
       }
 
       void get_sun_caustics(CausticsInput input, inout float caustics, inout float3 caustics_color)
       {
         float sunCaustics = calculate_eye_caustics(input, -from_sun_direction);
-        sunCaustics = max(0, sunCaustics * get_sun_shadow(input));
+        sunCaustics = max(0, sunCaustics * get_sun_shadow(input)) * eye_caustics_sun_mul;
         caustics += sunCaustics;
         caustics_color += sunCaustics * sun_color_0;
       }
@@ -312,8 +294,9 @@ macro USE_EYE_CAUSTICS()
         caustics_color = float3(0,0,0);
 
         const float MAX_DIST = 30.0;
+        const float3 eyeForward = input.eyeRotationTm._31_32_33; // the VS zeroes the frame when the instance has no eye orientation data
         BRANCH
-        if (dot(input.pointToEye, input.pointToEye) > MAX_DIST*MAX_DIST)
+        if (dot(input.pointToEye, input.pointToEye) > MAX_DIST*MAX_DIST || dot(eyeForward, eyeForward) == 0)
           return;
 
         // cached data:

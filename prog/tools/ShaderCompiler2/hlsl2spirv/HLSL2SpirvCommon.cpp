@@ -58,11 +58,14 @@ bool fix_vertex_id_for_DXC(std::string &src, CompileResult &output)
     return true;
 
   // move to line start
-  while (*firstLine != '\n')
+  if (firstLine > src.c_str())
   {
-    --firstLine;
-    if (firstLine == src.c_str())
-      break;
+    while (*firstLine != '\n')
+    {
+      --firstLine;
+      if (firstLine == src.c_str())
+        break;
+    }
   }
   int sIdx = (int)(firstLine - src.c_str());
 

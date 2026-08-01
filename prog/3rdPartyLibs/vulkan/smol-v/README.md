@@ -109,3 +109,7 @@ As of 2016 September 1, results on 323 shaders (under `tests/spirv-dumps`) are:
 * zlib, LZ4HC and Zstd are general compression algorithms at default settings (Zstd20 is Zstd compression with almost max setting of 20).
 * "re+" is "remapper + compression", "sm+" is "SMOL-V + compression".
 * Compression is done on the whole blob of all the test programs (not individually for each program).
+
+## Upstream
+
+Vendored from https://github.com/aras-p/smol-v

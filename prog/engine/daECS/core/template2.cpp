@@ -52,31 +52,63 @@ bool filter_needed(const char *filter_tags, const TagsSet &valid_tags)
 };
 
 
-bool Template::needCopy(component_t comp, const TemplatesData &db) const
+// The template hierarchy is a DAG (multiple parents, diamonds), so plain
+// per-path recursion costs O(root-to-node paths), up to exponential in depth.
+// The *DFS helpers skip already-visited ancestors: O(unique ancestors), same
+// first-found resolution order.
+
+bool Template::needCopyDFS(component_t comp, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const
 {
   if (!totalComponentFlags())
     return false;
   if (templComponentFlags() && (trackedSet().count(comp) || replicatedSet().count(comp)))
     return true;
   for (const int parentId : parents)
-    if (db.getTemplateRefById(parentId).needCopy(comp, db))
+  {
+    if (visited.test(parentId, false))
+      continue;
+    visited.set(parentId, true);
+    if (db.getTemplateRefById(parentId).needCopyDFS(comp, db, visited))
       return true;
+  }
   return false;
 }
 
-bool Template::isReplicated(component_t comp, const TemplatesData &db) const
+bool Template::needCopy(component_t comp, const TemplatesData &db) const
+{
+  if (parents.empty())
+    return totalComponentFlags() && templComponentFlags() && (trackedSet().count(comp) || replicatedSet().count(comp));
+  eastl::bitvector<framemem_allocator> visited(db.size());
+  return needCopyDFS(comp, db, visited);
+}
+
+bool Template::isReplicatedDFS(component_t comp, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const
 {
   if (!(totalComponentFlags() & FLAG_REPLICATED))
     return false;
   if ((templComponentFlags() & FLAG_REPLICATED) && replicatedSet().count(comp))
     return true;
   for (const int parentId : parents)
-    if (db.getTemplateRefById(parentId).isReplicated(comp, db))
+  {
+    if (visited.test(parentId, false))
+      continue;
+    visited.set(parentId, true);
+    if (db.getTemplateRefById(parentId).isReplicatedDFS(comp, db, visited))
       return true;
+  }
   return false;
 }
 
-uint32_t Template::getRegExpInheritedFlags(component_t aname, const TemplatesData &db) const
+bool Template::isReplicated(component_t comp, const TemplatesData &db) const
+{
+  if (parents.empty())
+    return (totalComponentFlags() & FLAG_REPLICATED) && (templComponentFlags() & FLAG_REPLICATED) && replicatedSet().count(comp);
+  eastl::bitvector<framemem_allocator> visited(db.size());
+  return isReplicatedDFS(comp, db, visited);
+}
+
+uint32_t Template::getRegExpInheritedFlagsDFS(component_t aname, const TemplatesData &db,
+  eastl::bitvector<framemem_allocator> &visited) const
 {
   if (!totalComponentFlags())
     return 0;
@@ -87,12 +119,26 @@ uint32_t Template::getRegExpInheritedFlags(component_t aname, const TemplatesDat
     return flags;
   for (const int parentId : parents)
   {
-    const Template &parent = db.getTemplateRefById(parentId);
-    flags |= parent.getRegExpInheritedFlags(aname, db);
+    if (visited.test(parentId, false))
+      continue;
+    visited.set(parentId, true);
+    flags |= db.getTemplateRefById(parentId).getRegExpInheritedFlagsDFS(aname, db, visited);
     if (flags == FLAG_REPLICATED_OR_TRACKED) // there is no sense in iterating over parents
       return flags;
   }
   return flags;
+}
+
+uint32_t Template::getRegExpInheritedFlags(component_t aname, const TemplatesData &db) const
+{
+  if (parents.empty())
+  {
+    if (!totalComponentFlags())
+      return 0;
+    return (trackedSet().count(aname) ? FLAG_CHANGE_EVENT : 0) | (replicatedSet().count(aname) ? FLAG_REPLICATED : 0);
+  }
+  eastl::bitvector<framemem_allocator> visited(db.size());
+  return getRegExpInheritedFlagsDFS(aname, db, visited);
 }
 
 inline bool fast_isalnum_or_(char c_)
@@ -197,6 +243,43 @@ Template::Template(const Template &t)
   inheritedFlags = t.inheritedFlags;
   tag = t.tag;
   components = t.components;
+  dependencies = t.dependencies; // localFlags may carry FLAG_DEPENDENCIES_RESOLVED; flag and cache must not diverge
+}
+
+// a null-valued hit in an ancestor prunes that ancestor's own parents but the
+// sibling subtrees are still searched, exactly as the per-path recursion did
+const ChildComponent *Template::getComponentDFS(const HashedConstString &hashed_name, const TemplatesData &db,
+  eastl::bitvector<framemem_allocator> &visited) const
+{
+  auto it = components.find(hashed_name);
+  if (it)
+    return &*it;
+  for (const int pid : parents)
+  {
+    if (visited.test(pid, false))
+      continue;
+    visited.set(pid, true);
+    const ChildComponent *comp = db.getTemplateRefById(pid).getComponentDFS(hashed_name, db, visited);
+    if (comp && !comp->isNull())
+      return comp;
+  }
+  return nullptr;
+}
+
+bool Template::hasComponentDFS(const HashedConstString &hashed_name, const TemplatesData &db,
+  eastl::bitvector<framemem_allocator> &visited) const
+{
+  if (components.find(hashed_name))
+    return true;
+  for (const int pid : parents)
+  {
+    if (visited.test(pid, false))
+      continue;
+    visited.set(pid, true);
+    if (db.getTemplateRefById(pid).hasComponentDFS(hashed_name, db, visited))
+      return true;
+  }
+  return false;
 }
 
 bool Template::hasComponent(const HashedConstString &hashed_name, const TemplatesData &db) const
@@ -205,10 +288,10 @@ bool Template::hasComponent(const HashedConstString &hashed_name, const Template
   // CHECK_IT_HASH(it, components, hashed_name.str, hashed_name.hash);
   if (it)
     return true;
-  for (const int pid : parents)
-    if (db.getTemplateRefById(pid).hasComponent(hashed_name, db))
-      return true;
-  return false;
+  if (parents.empty())
+    return false;
+  eastl::bitvector<framemem_allocator> visited(db.size());
+  return hasComponentDFS(hashed_name, db, visited);
 }
 
 const ChildComponent &Template::getComponent(const HashedConstString &hashed_name, const TemplatesData &db) const
@@ -217,13 +300,11 @@ const ChildComponent &Template::getComponent(const HashedConstString &hashed_nam
   // CHECK_IT_HASH(it, components, hashed_name.str, hashed_name.hash);
   if (it)
     return *it;
-  for (const int pid : parents)
-  {
-    const ChildComponent &comp = db.getTemplateRefById(pid).getComponent(hashed_name, db);
-    if (!comp.isNull())
-      return comp;
-  }
-  return ChildComponent::get_null();
+  if (parents.empty())
+    return ChildComponent::get_null();
+  eastl::bitvector<framemem_allocator> visited(db.size());
+  const ChildComponent *comp = getComponentDFS(hashed_name, db, visited);
+  return comp ? *comp : ChildComponent::get_null();
 }
 
 void Template::setParentsInternal(const uint32_t *pb, const uint32_t *pe)
@@ -247,6 +328,11 @@ template_t TemplateDB::getInstantiatedTemplateByName(const char *name) const
 
 int TemplateDB::buildTemplateIdByName(const char *name_)
 {
+  if (!name_ || name_[0] == 0)
+  {
+    logerr("Invalid template name: '%s' ", name_ ? name_ : "(nullptr)");
+    return -1;
+  }
   HashedLenConstString name = ECS_HASHLEN_SLOW(name_);
   int id = getTemplateIdByName(name);
   if (DAGOR_LIKELY(id != -1)) // likely
@@ -378,9 +464,14 @@ bool Template::calcValidDependencies(const TemplatesData &db) const
   };
 
   size_t id = this - db.begin();
-  G_ASSERT_RETURN(id < db.size() || this->getParents().empty(), false);
-
   bool ret = true;
+  if (id >= db.size()) // standalone template (e.g. updateTemplate argument): no valid self id for iterate_parents
+  {
+    G_ASSERT_RETURN(this->getParents().empty(), false);
+    if (!canInstantiate())
+      checkTemplate(db.mgr->getDataComponents(), db, ret, *this, *this);
+    return ret;
+  }
   db.iterate_parents(
     id, [&](uint32_t t) { return ret && !db.getTemplateRefById(t).canInstantiate(); }, // no sense to iterate over templates that can
                                                                                        // instantatiate, or if we already know that we
@@ -419,7 +510,13 @@ bool Template::reportInvalidDependencies(const TemplatesData &db) const
   };
 
   size_t id = this - db.begin();
-  G_ASSERT_RETURN(id < db.size() || this->getParents().empty(), false);
+  if (id >= db.size()) // standalone template: no valid self id for iterate_parents
+  {
+    G_ASSERT_RETURN(this->getParents().empty(), false);
+    if (!canInstantiate())
+      logMissing(db.mgr->getDataComponents(), db, *this);
+    return ret;
+  }
   db.iterate_parents(
     id, [&](uint32_t t) { return ret && !db.getTemplateRefById(t).canInstantiate(); }, // no sense to iterate over templates that can
                                                                                        // instantatiate, or if we already know that we

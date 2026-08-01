@@ -73,7 +73,8 @@ T stcode_get_from_block(const PassBlockHandle &block, int id)
 class ScopedRefinedBlock
 {
 public:
-  explicit ScopedRefinedBlock(const PassBlockHandle &block);
+  explicit ScopedRefinedBlock() = default;
+  explicit ScopedRefinedBlock(PassBlockHandle block);
   ~ScopedRefinedBlock();
 
   template <typename T>
@@ -85,7 +86,7 @@ public:
   uint32_t getOrAllocateBindlessTex(BaseTexture *tex) const { return get_or_allocate_bindless_tex(tex); }
 
 private:
-  const PassBlockHandle &block;
+  PassBlockHandle block;
 };
 
 class ScopedFlushedVarsCollector
@@ -100,6 +101,7 @@ stcode::cpp::int4 rb_get_ivec(int32_t gid);
 float rb_get_real(int32_t gid);
 int32_t rb_get_int(int32_t gid);
 void rb_get_mat44(int32_t gid, stcode::cpp::float4x4 *out);
+void rb_get_mat43(int32_t gid, stcode::cpp::float4x3 *out);
 void *rb_get_tex(int32_t gid);
 void *rb_get_buf(int32_t gid);
 uint64_t rb_get_sampler(int32_t gid);

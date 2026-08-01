@@ -7,7 +7,7 @@
 
 namespace bind_dascript
 {
-template <class T, int ID = 0>
+template <class T>
 struct LoadingContainer
 {
   eastl::vector<eastl::unique_ptr<T>> cache;

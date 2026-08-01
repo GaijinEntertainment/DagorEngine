@@ -44,7 +44,7 @@ static void animchar_render_trans_ecs_query(ecs::EntityManager &manager, Callabl
 ECS_UNICAST_EVENT_TYPE(OnRTTRChanged);
 ECS_REGISTER_EVENT(OnRTTRChanged);
 
-extern ShaderBlockIdHolder dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder dynamicTransSceneBlockId;
 
 extern ConVarT<bool, false> sort_transparent_riex_instances;
 
@@ -140,7 +140,7 @@ static void glass_gbuffer_renderer_es(
 
         TMatrix vtm = camera.viewTm;
         vtm.setcol(3, 0, 0, 0);
-        render_dynrend_ctx(ctx, vtm, dynamicSceneTransBlockId);
+        render_dynrend_ctx(ctx, vtm, dynamicTransSceneBlockId);
         d3d::settm(TM_VIEW, camera.viewTm);
 
         render_mainhero_trans(cameraHndl.ref().viewTm);

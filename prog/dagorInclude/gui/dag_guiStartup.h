@@ -6,6 +6,8 @@
 
 // base gui startup: font loading + StdRenderer setup
 void startup_gui_base(const char *fonts_blk_filename);
+// base gui startup management: remove from restart proc list (if closed by hand)
+void unregister_gui_base_rproc();
 
 // special callbacks to control glyph rasterization (called from StdGuiRender::update_internals_per_act);
 // missing callbacks implicitly allow rasterization;

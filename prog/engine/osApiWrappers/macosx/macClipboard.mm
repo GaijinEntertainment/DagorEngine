@@ -68,6 +68,8 @@ bool clipboard::get_clipboard_ansi_text(char *buf, int buf_sz)
 }
 bool clipboard::get_clipboard_utf8_text(char *buf, int buf_sz)
 {
+  if (!buf || buf_sz < 1)
+    return false;
 #if _TARGET_PC
   #if __MAC_OS_X_VERSION_MAX_ALLOWED > 101200
   NSString *str = [[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
@@ -81,7 +83,11 @@ bool clipboard::get_clipboard_utf8_text(char *buf, int buf_sz)
 #endif
   if (!str)
     return false;
-  strncpy(buf, [str UTF8String], buf_sz-1); buf[buf_sz-1] = 0;
+  // getBytes never emits a partial multibyte sequence, unlike strncpy on [str UTF8String].
+  NSUInteger used = 0;
+  [str getBytes:buf maxLength:buf_sz - 1 usedLength:&used encoding:NSUTF8StringEncoding
+    options:0 range:NSMakeRange(0, [str length]) remainingRange:NULL];
+  buf[used] = 0;
   return true;
 }
 bool clipboard::set_clipboard_bmp_image(struct TexPixel32* , int , int , int )

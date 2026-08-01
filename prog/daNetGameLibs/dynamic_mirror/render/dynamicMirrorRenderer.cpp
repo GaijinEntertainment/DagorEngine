@@ -221,6 +221,8 @@ void render_dynamic_mirrors(const DPoint3 &main_camera_pos,
 {
   view_itm.setcol(3, view_itm.getcol(3) - main_camera_pos);
   TMatrix viewTm = inverse(view_itm);
+  SCOPE_VIEW_PROJ_MATRIX;
+  d3d::settm(TM_VIEW, viewTm);
 
   int sceneBlockId = render_depth ? dynamicDepthSceneBlockId : dynamicSceneBlockId;
 
@@ -242,8 +244,6 @@ void render_dynamic_mirrors(const DPoint3 &main_camera_pos,
 
   if (dynrend::prepare_render_current(ctx))
   {
-    SCOPE_VIEW_PROJ_MATRIX;
-    d3d::settm(TM_VIEW, viewTm);
     SCENE_LAYER_GUARD(sceneBlockId);
     dynrend::render_all_stages(ctx);
   }

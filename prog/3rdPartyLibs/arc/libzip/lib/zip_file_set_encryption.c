@@ -99,17 +99,17 @@ zip_file_set_encryption(zip_t *za, zip_uint64_t idx, zip_uint16_t method, const 
 
         e->changes->encryption_method = method;
         e->changes->changed |= ZIP_DIRENT_ENCRYPTION_METHOD;
+	if (e->changes->changed & ZIP_DIRENT_PASSWORD) {
+	    _zip_crypto_clear(e->changes->password, strlen(e->changes->password));
+	    free(e->changes->password);
+	}
 	if (password) {
 	    e->changes->password = our_password;
 	    e->changes->changed |= ZIP_DIRENT_PASSWORD;
 	}
 	else {
-	    if (e->changes->changed & ZIP_DIRENT_PASSWORD) {
-		_zip_crypto_clear(e->changes->password, strlen(e->changes->password));
-		free(e->changes->password);
-		e->changes->password = e->orig ? e->orig->password : NULL;
-		e->changes->changed &= ~ZIP_DIRENT_PASSWORD;
-	    }
+	    e->changes->password = e->orig ? e->orig->password : NULL;
+	    e->changes->changed &= ~ZIP_DIRENT_PASSWORD;
 	}
     }
     

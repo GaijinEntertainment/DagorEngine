@@ -337,8 +337,11 @@ static int compare_command_ids(const String *s1, const String *s2) { return dd_s
 class BaseEditorCoreConsoleCmdHandler : public console::ICommandProcessor
 {
 public:
-  GenericEditorAppWindow *appWnd;
-  BaseEditorCoreConsoleCmdHandler() : appWnd(NULL) {}
+  GenericEditorAppWindow *appWnd = nullptr;
+
+  // Use a higher than default priority to be able to handle app.exit before app_console_handler() in
+  // prog/daNetGame/main/appConsole.cpp does.
+  BaseEditorCoreConsoleCmdHandler() : ICommandProcessor(1000) {}
 
   void destroy() override {}
 
@@ -351,6 +354,9 @@ public:
     int found = 0;
 
     CoolConsole *console = appWnd->console;
+
+    CONSOLE_CHECK_NAME("app", "exit", 1, 1) { requestExit(); }
+    CONSOLE_CHECK_NAME("app", "quit", 1, 1) { requestExit(); }
     CONSOLE_CHECK_NAME_EX("time", "speed", 1, 2, "[scale]", "")
     {
       if (params.size() == 1)
@@ -469,6 +475,13 @@ public:
   {
     appWnd = a;
     add_con_proc(this);
+  }
+
+private:
+  void requestExit()
+  {
+    if (IWndManager *wndManager = IEditorCoreEngine::get()->getWndManager())
+      wndManager->close();
   }
 };
 static BaseEditorCoreConsoleCmdHandler ec_concmd;

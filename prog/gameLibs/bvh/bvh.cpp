@@ -8,6 +8,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <3d/dag_lockSbuffer.h>
+#include <3d/dag_texMgr.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaderVariableInfo.h>
 #include <shaders/dag_shStateBlockBindless.h>
@@ -41,6 +42,7 @@
 #include "bvh_context.h"
 #include "bvh_debug.h"
 #include "bvh_add_instance.h"
+#include "bvh_omm.h"
 #include "shaders/dag_shaderVar.h"
 #include "bvh_tools.h"
 #include "bvh_particles.h"
@@ -50,6 +52,8 @@ CONSOLE_BOOL_VAL("render", bvh_disable_parallel_instance_processing_finish, fals
 
 CONSOLE_BOOL_VAL("render", bvh_disable_rigen_meta_prebuild, false);
 CONSOLE_BOOL_VAL("render", bvh_disable_dynrend_meta_prebuild, false);
+
+CONSOLE_BOOL_VAL("raytracing", bvh_mem_log, false);
 
 static eastl::array<int, 3> per_frame_blas_model_budget = {10, 15, 30};
 static eastl::array<int, 3> per_frame_compaction_budget = {20, 30, 60};
@@ -72,6 +76,7 @@ extern bool bvh_tracers_enable;
 #else
 #define BVH_PROFILE(...)
 #endif
+
 namespace bvh
 {
 
@@ -97,8 +102,8 @@ void prepare_ri_extra_instances();
 // instances in view_frustum in ri_gen_visibilities[1] will be discarded!
 void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
   const Point3 &view_position, const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio);
-void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, const Point3 &light_direction, threadpool::JobPriority prio);
+void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
+  const Frustum &bvh_frustum, const Frustum &view_frustum, const Point3 &light_direction, threadpool::JobPriority prio);
 void wait_ri_gen_instances_update(ContextId context_id);
 void wait_ri_extra_instances_update(ContextId context_id);
 void tidy_up_trees(ContextId context_id);
@@ -147,6 +152,7 @@ void init(ContextId context_id);
 void teardown(ContextId context_id);
 void on_unload_scene(ContextId context_id);
 void reload_grass(ContextId context_id, RandomGrass *grass);
+void process_omm(ContextId context_id);
 void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count);
 UniqueBLAS *get_blas(int layer_ix, int lod_ix);
 } // namespace grass
@@ -186,7 +192,7 @@ namespace fftwater
 {
 void init();
 void teardown();
-void create_patches(ContextId context_id, FFTWater &fft_water);
+void create_patches(ContextId context_id, FFTWater &water);
 void on_unload_scene(ContextId context_id);
 } // namespace fftwater
 
@@ -244,6 +250,7 @@ namespace particles
 void init();
 void teardown();
 void ensure_capacity(int fx_max, int smoke_tracer_max);
+int get_fx_capacity();
 } // namespace particles
 
 bool use_batched_skinned_vertex_processor = false;
@@ -905,7 +912,7 @@ static struct BVHUploadMetaJob : public cpujobs::IJob
   void doJob() override
   {
     OSSpinlockScopedLock metaGuard(contextId->meshMetaAllocatorLock); // for safety, it should never block
-    if (auto upload = lock_sbuffer<MeshMeta>(contextId->meshMeta.getBuf(), 0, 0, VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE))
+    if (auto upload = lock_sbuffer<MeshMeta>(contextId->meshMeta.getBuf(), 0, 0, VBLOCK_WRITEONLY | VBLOCK_DISCARD))
     {
       auto dst = upload.get();
       int poolIndex = 0;
@@ -1088,6 +1095,7 @@ void init(elem_rules_fn elem_rules_init, screenshot_fn screenshot, AdditionalSet
   delay_sync = d3d::get_driver_code().is(d3d::vulkan) || d3d::get_driver_code().is(d3d::ps5) || d3d::get_driver_code().is(d3d::dx12);
   bvh_prioritize_compactions = settings.prioritizeCompactions;
   bvh_use_fast_tlas_build = settings.useFastTlasBuild;
+  set_omm_settings(settings.enableOmm, settings.ommDataArrayBudget, settings.retainOmmBakeResults);
 
   elem_rules = elem_rules_init;
   screenshot_function = screenshot;
@@ -1137,13 +1145,23 @@ void teardown(bool device_reset, bool zero_bvh_ids)
 
 void enable_dynamic_planar_decals(bool enable) { dyn::enable_dynamic_planar_decals(enable); }
 
-ContextId create_context(const char *name, Features features)
+ContextId create_context(const char *name, Features features, Features designated_dyn_features)
 {
   G_ASSERT(name && *name);
+  G_ASSERTF((designated_dyn_features & ~Features::AnyDynrend) == 0,
+    "BVH: create_context: designated_dyn_features (0x%x) must be a subset of Features::AnyDynrend", unsigned(designated_dyn_features));
 
   auto context_id = new Context();
   context_id->name = name;
   context_id->features = features;
+  context_id->designatedDynFeatures = designated_dyn_features;
+  context_id->ommEnabled = init_omm_context(context_id);
+
+  logdbg("[BVH] ommEnabled is %s", context_id->ommEnabled ? "true" : "false");
+
+  static int bvh_has_omm_supportVarId = get_shader_variable_id("bvh_has_omm_support", true);
+  ShaderGlobal::set_int(bvh_has_omm_supportVarId, context_id->ommEnabled ? 1 : 0);
+
   terrain::init(context_id);
   ri::init(context_id);
   dyn::init(context_id);
@@ -1151,7 +1169,7 @@ ContextId create_context(const char *name, Features features)
   fx::init(context_id);
   smoke_tracers::init(context_id);
   gpugrass::init(context_id);
-  if (context_id->has(Features::Cable))
+  if (context_id->hasAny(Features::Cable))
     cables::init(context_id);
   dagdp::init(context_id);
   debug::init(context_id);
@@ -1162,7 +1180,7 @@ bool has_features(ContextId context_id, uint32_t features)
 {
   if (!context_id)
     return false;
-  return context_id->has(features);
+  return context_id->hasAny(features);
 }
 
 void teardown(ContextId &context_id)
@@ -1179,7 +1197,7 @@ void teardown(ContextId &context_id)
   fx::teardown(context_id);
   smoke_tracers::teardown(context_id);
   gpugrass::teardown(context_id);
-  if (context_id->has(Features::Cable))
+  if (context_id->hasAny(Features::Cable))
     cables::teardown(context_id);
   dagdp::teardown(context_id);
   splinegen::teardown(context_id);
@@ -1201,6 +1219,108 @@ void teardown(ContextId &context_id)
   context_id = InvalidContextId;
 }
 
+static void destroy_object(ContextId context_id, uint64_t object_id) DAG_TS_REQUIRES(context_id->objectsLock)
+{
+  TIME_PROFILE(bvh::do_remove_object);
+
+  context_id->cancelCompaction(object_id);
+
+  auto iter = context_id->objects.find(object_id);
+  if (iter != context_id->objects.end())
+  {
+    DA_PROFILE_TAG(bvh::do_remove_object, "object");
+    iter->second.teardown(context_id, object_id);
+    context_id->objects.erase(iter);
+  }
+  else
+  {
+    iter = context_id->impostors.find(object_id);
+    if (iter != context_id->impostors.end())
+    {
+      DA_PROFILE_TAG(bvh::do_remove_object, "impostor");
+      iter->second.teardown(context_id, object_id);
+      context_id->impostors.erase(iter);
+    }
+  }
+
+  context_id->halfBakedObjects.erase(object_id);
+}
+
+static void release_camo_textures(ContextId context_id)
+{
+  for (auto &texture : context_id->camoTextures)
+    context_id->releaseTexture(TEXTUREID(texture.first));
+  context_id->camoTextures.clear();
+}
+
+// Dropping a queued add must also drop the object's OMM texture-wait refs, or the wait bookkeeping
+// (and the managed-texture references it holds) leaks. Returns the next iterator so loop callers keep
+// the erase-in-place idiom. The release is a no-op when the object has no waits registered.
+static eastl::unordered_map<uint64_t, eastl::pair<uint32_t, ObjectInfo>>::iterator erase_pending_object_add(ContextId context_id,
+  eastl::unordered_map<uint64_t, eastl::pair<uint32_t, ObjectInfo>>::iterator iter)
+  DAG_TS_REQUIRES(context_id->pendingObjectActionsLock)
+{
+  release_omm_texture_waits_for_object(context_id, iter->first);
+  return context_id->pendingObjectAddActions.erase(iter);
+}
+
+static void remove_all_dyn_objects(ContextId context_id)
+{
+  Context::BvhObjectWriteLock objectsGuard(context_id->objectsLock);
+  OSSpinlockScopedLock pendingLock(context_id->pendingObjectActionsLock);
+
+  for (auto iter = context_id->pendingObjectAddActions.begin(); iter != context_id->pendingObjectAddActions.end();)
+  {
+    if (iter->second.second.type == BvhType::Dyn)
+      iter = erase_pending_object_add(context_id, iter);
+    else
+      ++iter;
+  }
+
+  FRAMEMEM_REGION;
+
+  dag::Vector<uint64_t, framemem_allocator> dynObjectIds;
+  for (const auto &[object_id, object] : context_id->objects)
+    if (object.type == BvhType::Dyn)
+      dynObjectIds.push_back(object_id);
+
+  for (uint64_t object_id : dynObjectIds)
+    destroy_object(context_id, object_id);
+}
+
+void enable_dyn_models(ContextId context_id)
+{
+  if (context_id == InvalidContextId)
+    return;
+
+  const bool alreadyEnabled = context_id->hasAll(context_id->designatedDynFeatures);
+  if (alreadyEnabled)
+    return;
+
+  wait_all_jobs();
+
+  context_id->features = Features(context_id->features | context_id->designatedDynFeatures);
+  dyn::init(context_id);
+}
+
+void disable_dyn_models(ContextId context_id)
+{
+  if (context_id == InvalidContextId)
+    return;
+
+  const bool alreadyDisabled = !context_id->hasAny(context_id->designatedDynFeatures);
+  if (alreadyDisabled)
+    return;
+
+  wait_all_jobs();
+
+  dyn::teardown(context_id);
+  remove_all_dyn_objects(context_id);
+  context_id->freeUniqueSkinBLASes.clear();
+  release_camo_textures(context_id);
+  context_id->features = Features(context_id->features & ~context_id->designatedDynFeatures);
+}
+
 void start_frame()
 {
   ri::debug_update();
@@ -1216,11 +1336,11 @@ void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transfor
     MeshMetaAllocator::INVALID_ALLOC_ID, false);
 }
 
-void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
-  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
-  dynrend::ContextId *dynrend_no_shadow_context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
-  dynrend::BVHIterateCallback dynrend_iterate, dag::Vector<DynamicRenderableSceneInstance *> &&og_instances,
-  threadpool::JobPriority prio)
+void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
+  const Point3 &light_direction, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
+  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
+  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
+  dag::Vector<DynamicRenderableSceneInstance *> &&og_instances, threadpool::JobPriority prio)
 {
   bvh_context_id->genericInstances.clear();
   for (auto &instances : bvh_context_id->dynrendInstances)
@@ -1246,7 +1366,7 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
   binscene::update_instances(bvh_context_id);
   splinegen::update_instances(bvh_context_id, view_position);
 
-  if (bvh_context_id->has(Features::AnyDynrend))
+  if (bvh_context_id->hasAny(Features::AnyDynrend))
   {
     dyn::wait_tidy_up_skins();
     if (dynrend_iterate)
@@ -1257,24 +1377,25 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
         eastl::move(og_instances));
   }
 
-  if (bvh_context_id->has(Features::AnyRI))
+  if (bvh_context_id->hasAny(Features::AnyRI))
   {
     ri::wait_tidy_up_trees();
     parallel_instance_processing::prebuild_meta_job.prepare(bvh_context_id, view_position, light_direction, itm, projTm);
     parallel_instance_processing::start_frame(bvh_context_id);
     ri::update_ri_gen_instances(bvh_context_id, ri_gen_visibilities, view_position, light_direction, view_frustum, prio);
-    ri::update_ri_extra_instances(bvh_context_id, view_position, bvh_frustum, view_frustum, light_direction, prio);
+    ri::update_ri_extra_instances(bvh_context_id, view_position, lod_anchor_position, bvh_frustum, view_frustum, light_direction,
+      prio);
     parallel_instance_processing::finish_adding_jobs(bvh_context_id);
   }
 }
 
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
-  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
-  dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
+  const Point3 &light_direction, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
+  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
   dag::Vector<DynamicRenderableSceneInstance *> &&og_instances, threadpool::JobPriority prio)
 {
-  update_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum, dynrend_context_id,
-    dynrend_no_shadow_context_id, {ri_gen_visibility}, nullptr, eastl::move(og_instances), prio);
+  update_instances_impl(bvh_context_id, view_position, lod_anchor_position, light_direction, itm, projTm, bvh_frustum, view_frustum,
+    dynrend_context_id, dynrend_no_shadow_context_id, {ri_gen_visibility}, nullptr, eastl::move(og_instances), prio);
 }
 
 // daNetGame doesn't use dynrend, but these can be used to identify contexts in BVH
@@ -1284,8 +1405,8 @@ void update_instances(ContextId bvh_context_id, const Point3 &view_position, con
   const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
   const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
 {
-  update_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum, &bvh_dynrend_context,
-    &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, {}, prio);
+  update_instances_impl(bvh_context_id, view_position, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum,
+    &bvh_dynrend_context, &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, {}, prio);
 }
 
 void wait_dynamic_instances_jobs()
@@ -1388,14 +1509,30 @@ static void process_ahs_vertices(ContextId context_id, Mesh &mesh, MeshMeta &met
   }
 }
 
-static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &object_info)
+enum class DoAddObjectResult
+{
+  Failed,
+  NoActionNeeded,
+  Succeeded,
+  WaitingForTexture,
+};
+
+static DoAddObjectResult do_add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &object_info)
   DAG_TS_REQUIRES(context_id->objectsLock)
 {
+  OmmTextureWait ommTextureWait = OmmTextureWait::Ready;
+  if (context_id->ommEnabled)
+  {
+    ommTextureWait = should_wait_for_omm_texture(context_id, object_id, object_info);
+    if (ommTextureWait == OmmTextureWait::Wait)
+      return DoAddObjectResult::WaitingForTexture;
+  }
+
   auto &objectMap = (object_info.meshes.size() && object_info.meshes[0].isImpostor) ? context_id->impostors : context_id->objects;
 
 #if DAGOR_DBGLEVEL > 0
   for (const auto &mesh : object_info.meshes)
-    G_ASSERTF_RETURN(mesh.indices, 0,
+    G_ASSERTF_RETURN(mesh.indices, DoAddObjectResult::Failed,
       "Not having indices is commented out from the shader code for performance. If this is really needed, lets discuss it.");
 #endif
 
@@ -1405,7 +1542,7 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
   if (iter != objectMap.end())
   {
     if (iter->second.blas)
-      return 0;
+      return DoAddObjectResult::NoActionNeeded;
 
     iter->second.teardown(context_id, object_id);
     context_id->cancelCompaction(object_id);
@@ -1448,6 +1585,10 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
       mesh.indicesOffset = info.indicesOffset;
       mesh.weightsOffset = info.weightsOffset;
       mesh.vertexProcessor = info.vertexProcessor;
+      mesh.hasSecondaryGeometry = info.vertexProcessor && info.vertexProcessor->isGeneratingSecondaryVertices();
+      if (ommTextureWait == OmmTextureWait::GaveUp)
+        for (Mesh::OmmSlot &slot : mesh.ommSlots)
+          slot.state = Mesh::OmmState::Failed;
       mesh.startIndex = info.startIndex;
       mesh.baseVertex = info.baseVertex;
       mesh.startVertex = info.startVertex;
@@ -1461,6 +1602,7 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
       mesh.impostorSliceClippingLines1 = info.impostorSliceClippingLines1;
       mesh.impostorSliceClippingLines2 = info.impostorSliceClippingLines2;
       mesh.isHeliRotor = info.isHeliRotor;
+      mesh.isCamoNet = info.isCamoNet;
       mesh.hasColorMod = info.hasColorMod;
       memcpy(mesh.impostorOffsets, info.impostorOffsets, sizeof(mesh.impostorOffsets));
       if (info.isInterior)
@@ -1636,7 +1778,7 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
         G_ASSERT(mesh.geometry.ibOffset % 4 == 0);
         G_ASSERT(mesh.geometry.vbOffset % 4 == 0);
 
-        HANDLE_LOST_DEVICE_STATE(mesh.geometry, 1);
+        HANDLE_LOST_DEVICE_STATE(mesh.geometry, DoAddObjectResult::Failed);
       }
 
       {
@@ -1686,7 +1828,7 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
   if (!object_info.isAnimated)
     context_id->halfBakedObjects.insert(object_id);
 
-  return 1;
+  return DoAddObjectResult::Succeeded;
 }
 
 void add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &info)
@@ -1759,7 +1901,7 @@ static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget
       // discard the add action, as it is not valid anymore and there is a new one coming
       if (auto iter = context_id->pendingObjectAddActions.find(object_id); iter != context_id->pendingObjectAddActions.end())
         if (iter->second.first < order)
-          context_id->pendingObjectAddActions.erase(iter);
+          erase_pending_object_add(context_id, iter);
 
       context_id->cancelCompaction(object_id);
       context_id->halfBakedObjects.erase(object_id);
@@ -1773,34 +1915,12 @@ static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget
 
     for (auto [object_id, order] : context_id->pendingObjectRemoveActions)
     {
-      TIME_PROFILE(bvh::do_remove_object);
-
-      context_id->cancelCompaction(object_id);
-
-      auto iter = context_id->objects.find(object_id);
-      if (iter != context_id->objects.end())
-      {
-        DA_PROFILE_TAG(bvh::do_remove_object, "object");
-        iter->second.teardown(context_id, object_id);
-        context_id->objects.erase(iter);
-      }
-      else
-      {
-        iter = context_id->impostors.find(object_id);
-        if (iter != context_id->impostors.end())
-        {
-          DA_PROFILE_TAG(bvh::do_remove_object, "impostor");
-          iter->second.teardown(context_id, object_id);
-          context_id->impostors.erase(iter);
-        }
-      }
-
-      context_id->halfBakedObjects.erase(object_id);
+      destroy_object(context_id, object_id);
 
       // Only remove the add action itself if it is older than the remove action.
       if (auto iter = context_id->pendingObjectAddActions.find(object_id); iter != context_id->pendingObjectAddActions.end())
         if (iter->second.first < order)
-          context_id->pendingObjectAddActions.erase(iter);
+          erase_pending_object_add(context_id, iter);
     }
 
     context_id->pendingObjectRemoveActions.clear();
@@ -1810,94 +1930,260 @@ static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget
 
   int meshBudget = calc_mesh_add_budget(context_id, budget);
 
+  // Texture-wait rechecks scan every candidate mesh, so they are budgeted separately from real
+  // adds. Once spent, known waiters are skipped for the frame instead of ending the loop, so ready
+  // entries behind them are not starved.
+  const int waitBudget = meshBudget;
+
   int counter = 0;
+  int waitCounter = 0;
   for (auto iter = context_id->pendingObjectAddActions.begin();
        iter != context_id->pendingObjectAddActions.end() && counter < meshBudget && !is_in_lost_device_state;)
   {
     TIME_PROFILE(handle_pending_mesh_action);
 
+    if (waitCounter >= waitBudget && context_id->ommTextureWaitsByObject.count(iter->first))
+    {
+      ++iter;
+      continue;
+    }
+
     // When the mesh is already added, but not yet built, we need to remove it as the build data is not valid anymore.
 
     context_id->halfBakedObjects.erase(iter->first);
-    counter += do_add_object(context_id, iter->first, iter->second.second);
-    iter = context_id->pendingObjectAddActions.erase(iter);
+    switch (do_add_object(context_id, iter->first, iter->second.second))
+    {
+      case DoAddObjectResult::Succeeded:
+        ++counter;
+        iter = erase_pending_object_add(context_id, iter);
+        break;
+      case DoAddObjectResult::Failed:
+      case DoAddObjectResult::NoActionNeeded: iter = erase_pending_object_add(context_id, iter); break;
+      case DoAddObjectResult::WaitingForTexture:
+        ++waitCounter;
+        ++iter;
+        break;
+    }
   }
 
   context_id->hasPendingObjectAddActions.store(!context_id->pendingObjectAddActions.empty(), dag::memory_order_relaxed);
 }
 
-void process_meshes(ContextId context_id, BuildBudget budget)
+static constexpr uint32_t MAX_GEOMETRIES_PER_BLAS = 32;
+
+Object *find_half_baked_object(ContextId context_id, uint64_t object_id)
 {
-  if (!per_frame_processing_enabled)
+  auto it = context_id->objects.find(object_id);
+  if (it != context_id->objects.end())
+    return &it->second;
+  it = context_id->impostors.find(object_id);
+  if (it != context_id->impostors.end())
+    return &it->second;
+  return nullptr;
+}
+
+// Drop objects that can never fit in a single BLAS before any baking stage runs. descCount is fixed
+// for an object's mesh set, so such an object would only be rejected at the build pass -- but by then
+// it may have wasted an OMM bake whose slot then hangs unconsumed. Rejecting up front avoids that.
+static void drop_oversized_half_baked_objects(ContextId context_id) DAG_TS_REQUIRES(context_id->objectsLock)
+{
+  for (auto iter = context_id->halfBakedObjects.begin(); iter != context_id->halfBakedObjects.end();)
   {
-    logdbg("[BVH] Device is in reset mode.");
-    return;
+    const uint64_t objectId = *iter;
+    Object *objectPtr = find_half_baked_object(context_id, objectId);
+    if (!objectPtr)
+    {
+      ++iter;
+      continue;
+    }
+    Object &object = *objectPtr;
+
+    size_t descCount = eastl::accumulate(object.meshes.begin(), object.meshes.end(), size_t(0),
+      [](size_t count, const auto &mesh) { return count + (mesh.hasSecondaryGeometry ? 2 : 1); });
+    if (descCount > MAX_GEOMETRIES_PER_BLAS)
+    {
+      logerr("BVH object <%s> (id %llX, %u meshes) has too many geometries for BLAS build: %u, max: %u; "
+             "reduce the geometry/material count of this asset to fix it",
+        object.tag ? object.tag : "?", objectId, uint32_t(object.meshes.size()), uint32_t(descCount), MAX_GEOMETRIES_PER_BLAS);
+      // The mesh set can never fit, so this object will never get a BLAS. Remove it entirely instead of
+      // only dropping the queue entry: leaving the Object in `objects` would let add_instances pick it
+      // up (it skips only ids still in halfBakedObjects) and emit a TLAS instance with a null BLAS
+      // address. Advance the iterator first; destroy_object erases the now-absent key itself (a no-op).
+      iter = context_id->halfBakedObjects.erase(iter);
+      destroy_object(context_id, objectId);
+      continue;
+    }
+    ++iter;
   }
-  TIME_D3D_PROFILE(bvh_process_meshes);
+}
 
-  CHECK_LOST_DEVICE_STATE();
+struct OmmBuildBatch
+{
+  OmmBuildInfos infos;
+  OmmBuildResults results;
+};
 
-  FRAMEMEM_REGION;
-
-  parallel_instance_processing::prebuild_meta_job.wait();
-
-  Context::BvhObjectWriteLock objectsGuard(context_id->objectsLock); // for safety, it should never block
-
-  handle_pending_mesh_actions(context_id, budget);
-
-  const bool isCompactionCheap = is_blas_compaction_cheap();
-
-  int blasModelBudget = per_frame_blas_model_budget[int(budget)];
-  int triangleCount = 0;
-  int blasCount = 0;
-
+struct BlasBuildBatch
+{
   dag::Vector<RaytraceGeometryDescription, framemem_allocator> geomDescriptors;
   dag::Vector<raytrace::BatchedBottomAccelerationStructureBuildInfo, framemem_allocator> blasBuildInfos;
-
-  const uint32_t MAX_GEOMETRIES_PER_BLAS = 32;
-  geomDescriptors.resize(MAX_GEOMETRIES_PER_BLAS * blasModelBudget);
-  blasBuildInfos.reserve(blasModelBudget);
-
-  auto getBlas = [&](Context::BLASCompaction &c) DAG_TS_REQUIRES(context_id->objectsLock) -> UniqueBLAS * {
-    auto mesh = context_id->objects.find(c.objectId);
-    if (mesh == context_id->objects.end())
-    {
-      mesh = context_id->impostors.find(c.objectId);
-      if (mesh == context_id->impostors.end())
-        return nullptr;
-    }
-
-    return &mesh->second.blas;
-  };
-
   dag::Vector<Context::BLASCompaction *, framemem_allocator> pendingCompactions;
+  int blasCount = 0;
+  int triangleCount = 0;
+};
 
-  for (auto iter = context_id->halfBakedObjects.begin(); iter != context_id->halfBakedObjects.end() && blasModelBudget > 0 &&
+static void process_half_baked_meshes(ContextId context_id, int &budget) DAG_TS_REQUIRES(context_id->objectsLock)
+{
+  for (uint64_t objectId : context_id->halfBakedObjects)
+  {
+    if (budget <= 0 || is_in_lost_device_state)
+      break;
+
+    Object *objectPtr = find_half_baked_object(context_id, objectId);
+    G_ASSERT(objectPtr);
+    if (!objectPtr)
+      continue;
+    Object &object = *objectPtr;
+
+    bool anyNeedsProcessing = false;
+    for (const Mesh &mesh : object.meshes)
+      if (mesh.buildStage == Mesh::BuildStage::NeedsProcessing)
+      {
+        anyNeedsProcessing = true;
+        break;
+      }
+    if (!anyNeedsProcessing)
+      continue;
+
+    TIME_PROFILE(half_baked_process);
+    OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock); // for safety, it should never block
+    auto metaRegion = context_id->meshMetaAllocator.get(object.metaAllocId);
+    for (int i = 0; auto &mesh : object.meshes)
+    {
+      auto &meta = metaRegion[i];
+      i += mesh.hasSecondaryGeometry ? 2 : 1;
+
+      if (mesh.buildStage != Mesh::BuildStage::NeedsProcessing)
+        continue;
+
+      bool needBlasBuild = false;
+      UniqueBVHBuffer transformedVertices;
+      UniqueOrReferencedBVHBuffer pb(transformedVertices);
+      process_mesh_vertices(context_id, objectId, mesh, pb, needBlasBuild, meta);
+
+      CHECK_LOST_DEVICE_STATE();
+
+      G_ASSERT(!mesh.vertexProcessor || mesh.vertexProcessor->isOneTimeOnly());
+      mesh.vertexProcessor = nullptr;
+
+      if (transformedVertices)
+      {
+        mesh.geometry.processedVertexBuffer.swap(transformedVertices);
+        mesh.geometry.vbOffset = 0;
+        meta.vertexOffset = 0;
+        transformedVertices.reset();
+      }
+
+      if (meta.materialType & MeshMeta::bvhMaterialImpostor)
+        process_ahs_vertices(context_id, mesh, meta);
+
+      mesh.buildStage = mesh_wants_omm(context_id, mesh) ? Mesh::BuildStage::ResolvingOmm : Mesh::BuildStage::NeedsBlasBuild;
+    }
+    --budget;
+  }
+}
+
+static void resolve_half_baked_omms(ContextId context_id, int &budget) DAG_TS_REQUIRES(context_id->objectsLock)
+{
+  if (context_id->ommEnabled)
+    for (uint64_t objectId : context_id->halfBakedObjects)
+    {
+      if (budget <= 0 || is_in_lost_device_state)
+        break;
+
+      Object *objectPtr = find_half_baked_object(context_id, objectId);
+      G_ASSERT(objectPtr);
+      if (!objectPtr)
+        continue;
+      Object &object = *objectPtr;
+
+      bool anyResolving = false;
+      for (const Mesh &mesh : object.meshes)
+        if (mesh.buildStage == Mesh::BuildStage::ResolvingOmm)
+        {
+          anyResolving = true;
+          break;
+        }
+      if (!anyResolving)
+        continue;
+
+      TIME_PROFILE(half_baked_omm);
+      OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock);
+      auto metaRegion = context_id->meshMetaAllocator.get(object.metaAllocId);
+      for (int i = 0; auto &mesh : object.meshes)
+      {
+        auto &meta = metaRegion[i];
+        i += mesh.hasSecondaryGeometry ? 2 : 1;
+
+        if (mesh.buildStage != Mesh::BuildStage::ResolvingOmm)
+          continue;
+
+        OmmBakeSource ommSource = make_omm_bake_source(context_id, mesh, meta);
+        // resolve_half_baked_omms runs outside any delayed-sync window
+        if (start_new_omm_bakes(context_id, objectId, mesh, ommSource, false))
+          mesh.buildStage = Mesh::BuildStage::NeedsBlasBuild;
+      }
+
+      --budget;
+    }
+}
+
+static BlasBuildBatch build_half_baked_blases(ContextId context_id, int &budget) DAG_TS_REQUIRES(context_id->objectsLock)
+{
+  BlasBuildBatch batch;
+  batch.geomDescriptors.resize(MAX_GEOMETRIES_PER_BLAS * budget);
+  // Each built object appends exactly one build and the loop is bounded by budget, so reserve up front
+  // to avoid per-frame growth reallocations.
+  batch.blasBuildInfos.reserve(budget);
+  for (auto iter = context_id->halfBakedObjects.begin(); iter != context_id->halfBakedObjects.end() && budget > 0 &&
                                                          !is_in_lost_device_state &&
                                                          context_id->compactedSizeWritesInQueue < context_id->compactedSizeBufferSize;)
   {
-    TIME_PROFILE(half_baked_mesh);
-
     uint64_t objectId = *iter;
-    bool hasObject = false;
-    auto objectIter = context_id->objects.find(objectId);
-    if (objectIter != context_id->objects.end())
-      hasObject = true;
-    else
+    Object *objectPtr = find_half_baked_object(context_id, objectId);
+    if (!objectPtr)
     {
-      objectIter = context_id->impostors.find(objectId);
-      if (objectIter != context_id->impostors.end())
-        hasObject = true;
+      // Should never happen: the id is queued but the object is gone. logerr (not just G_ASSERT, which
+      // compiles out) so the dropped build is recorded in release builds too, where the object id is
+      // the only lead for diagnosing the lost object.
+      logerr("BVH: half-baked object id %llX is queued for BLAS build but no longer exists; dropping it", objectId);
+      iter = context_id->halfBakedObjects.erase(iter);
+      continue;
+    }
+    Object &object = *objectPtr;
+
+    bool allReady = true;
+    for (const Mesh &mesh : object.meshes)
+      if (mesh.buildStage != Mesh::BuildStage::NeedsBlasBuild)
+      {
+        allReady = false;
+        break;
+      }
+    if (!allReady)
+    {
+      ++iter;
+      continue;
     }
 
-    G_ASSERT(hasObject);
+    TIME_PROFILE(half_baked_build);
 
-    Object &object = objectIter->second;
-    size_t descCount = eastl::accumulate(object.meshes.begin(), object.meshes.end(), 0, [](size_t count, const auto &mesh) {
-      return count + (mesh.vertexProcessor && mesh.vertexProcessor->isGeneratingSecondaryVertices() ? 2 : 1);
-    });
+    size_t descCount = eastl::accumulate(object.meshes.begin(), object.meshes.end(), size_t(0),
+      [](size_t count, const auto &mesh) { return count + (mesh.hasSecondaryGeometry ? 2 : 1); });
+    // Oversized objects are dropped up front by drop_oversized_half_baked_objects, before any baking
+    // stage, so by the time an object reaches here the fit is guaranteed.
+    G_ASSERT(descCount <= MAX_GEOMETRIES_PER_BLAS);
 
-    RaytraceGeometryDescription *desc = &geomDescriptors[MAX_GEOMETRIES_PER_BLAS * blasCount];
+    RaytraceGeometryDescription *desc = &batch.geomDescriptors[MAX_GEOMETRIES_PER_BLAS * batch.blasCount];
     memset(desc, 0, sizeof(RaytraceGeometryDescription) * descCount);
 
     {
@@ -1906,28 +2192,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
       for (int i = 0; auto &mesh : object.meshes)
       {
         auto &meta = metaRegion[i];
-
-        bool needBlasBuild = false;
-        UniqueBVHBuffer transformedVertices;
-        UniqueOrReferencedBVHBuffer pb(transformedVertices);
-        process_mesh_vertices(context_id, objectId, mesh, pb, needBlasBuild, meta);
-
-        CHECK_LOST_DEVICE_STATE();
-
-        G_ASSERT(!mesh.vertexProcessor || mesh.vertexProcessor->isOneTimeOnly());
-        const bool hasSecondaryGeometry = mesh.vertexProcessor && mesh.vertexProcessor->isGeneratingSecondaryVertices();
-        mesh.vertexProcessor = nullptr;
-
-        if (transformedVertices)
-        {
-          mesh.geometry.processedVertexBuffer.swap(transformedVertices);
-          mesh.geometry.vbOffset = 0;
-          meta.vertexOffset = 0;
-          transformedVertices.reset();
-        }
-
-        if (meta.materialType & MeshMeta::bvhMaterialImpostor)
-          process_ahs_vertices(context_id, mesh, meta);
+        const bool hasSecondaryGeometry = mesh.hasSecondaryGeometry;
 
         bool hasAlphaTest = mesh.materialType & MeshMeta::bvhMaterialAlphaTest;
 
@@ -1943,6 +2208,8 @@ void process_meshes(ContextId context_id, BuildBudget budget)
         desc[i].data.triangles.indexOffset = meta.startIndex;
         desc[i].data.triangles.flags =
           (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
+        if (context_id->ommEnabled)
+          set_omm_linkage(desc[i], mesh);
 
         if (mesh.posMul != Point4::ONE || mesh.posAdd != Point4::ZERO)
         {
@@ -1980,7 +2247,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 #endif
 
           desc[i].data.triangles.transformBuffer = transform_buffer_manager.alloc(1, desc[i].data.triangles.transformOffset); //-V522
-          HANDLE_LOST_DEVICE_STATE(desc[i].data.triangles.transformBuffer, );                                                 //-V522
+          HANDLE_LOST_DEVICE_STATE(desc[i].data.triangles.transformBuffer, batch);                                            //-V522
           desc[i].data.triangles.transformBuffer->updateDataWithLock(sizeof(m) * desc[i].data.triangles.transformOffset,      //-V522
             sizeof(m),                                                                                                        //-V522
             m, 0);
@@ -2002,9 +2269,14 @@ void process_meshes(ContextId context_id, BuildBudget budget)
           desc[i + 1].data.triangles.indexOffset = meta.startIndex;
           desc[i + 1].data.triangles.flags =
             (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
+          if (context_id->ommEnabled)
+          {
+            desc[i + 1].extraDataAvailableMask.hasOpacityMicroMapLinkage = false;
+            set_omm_linkage(desc[i + 1], mesh, OMM_SECONDARY_SLOT);
+          }
         }
 
-        triangleCount += mesh.indexCount / 3;
+        batch.triangleCount += mesh.indexCount / 3;
 
         i += hasSecondaryGeometry ? 2 : 1;
       }
@@ -2019,12 +2291,12 @@ void process_meshes(ContextId context_id, BuildBudget budget)
       buildInfo.flags |= RaytraceBuildFlags::ALLOW_COMPACTION;
       buildInfo.compactedSizeOutputBuffer = context_id->compactedSizeBuffer.get();
       buildInfo.compactedSizeOutputBufferOffsetInBytes = compaction->compactedSizeOffset * sizeof(uint64_t);
-      pendingCompactions.push_back(compaction);
+      batch.pendingCompactions.push_back(compaction);
       ++context_id->compactedSizeWritesInQueue;
     }
 
     object.blas = UniqueBLAS::create(desc, descCount, buildInfo.flags);
-    HANDLE_LOST_DEVICE_STATE(object.blas, );
+    HANDLE_LOST_DEVICE_STATE(object.blas, batch);
     if (object.type == BvhType::RI && object.blas)
       unitedvdata::riUnitedVdata.adjustBlasSize(object.blas.getASSize());
     else if (object.type == BvhType::Dyn && object.blas)
@@ -2038,24 +2310,102 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     raytrace::BatchedBottomAccelerationStructureBuildInfo batchedBuild;
     batchedBuild.as = object.blas.get();
     batchedBuild.basbi = buildInfo;
-    blasBuildInfos.push_back(batchedBuild);
+    batch.blasBuildInfos.push_back(batchedBuild);
 
-    blasModelBudget--;
-    blasCount++;
+    budget--;
+    batch.blasCount++;
 
     iter = context_id->halfBakedObjects.erase(iter);
   }
+  return batch;
+}
+
+void process_meshes(ContextId context_id, BuildBudget budget)
+{
+  if (!per_frame_processing_enabled)
+  {
+    logdbg("[BVH] Device is in reset mode.");
+    return;
+  }
+  TIME_D3D_PROFILE(bvh_process_meshes);
+
+  CHECK_LOST_DEVICE_STATE();
+
+  FRAMEMEM_REGION;
+
+  parallel_instance_processing::prebuild_meta_job.wait();
+
+  Context::BvhObjectWriteLock objectsGuard(context_id->objectsLock); // for safety, it should never block
+
+  handle_pending_mesh_actions(context_id, budget);
+
+  const bool isCompactionCheap = is_blas_compaction_cheap();
+
+  // Each baking step gets its own per-frame model budget so an early step (mesh preprocessing) can not
+  // consume the whole budget and starve later steps (BLAS build) -- otherwise a frame could preprocess
+  // a pile of meshes and build no BLASes at all. Budget per step is the pre-fine-tune value.
+  int blasModelBudget = per_frame_blas_model_budget[int(budget)];
+
+  auto getBlas = [&](Context::BLASCompaction &c) DAG_TS_REQUIRES(context_id->objectsLock) -> UniqueBLAS * {
+    auto mesh = context_id->objects.find(c.objectId);
+    if (mesh == context_id->objects.end())
+    {
+      mesh = context_id->impostors.find(c.objectId);
+      if (mesh == context_id->impostors.end())
+        return nullptr;
+    }
+
+    return &mesh->second.blas;
+  };
+
+  // Drop objects that can never fit a BLAS before any baking stage, so they never waste an OMM bake.
+  drop_oversized_half_baked_objects(context_id);
+
+  int processModelBudget = per_frame_blas_model_budget[int(budget)];
+  process_half_baked_meshes(context_id, processModelBudget);
+  // OMM baking MUST happen before BLAS building but AFTER mesh processing,
+  // and furthermore, OMM baking can take multiple frames due to a readback,
+  // so we are forced to use a state machine here, potentially leaving some meshes
+  // in a "half-baked" state for a few frames until the OMM baking is complete.
+  OmmBuildBatch ommBatch;
+  consume_ready_omm_bakes(context_id, ommBatch.infos, ommBatch.results);
+  int ommModelBudget = per_frame_blas_model_budget[int(budget)];
+  resolve_half_baked_omms(context_id, ommModelBudget);
+  BlasBuildBatch blasBatch = build_half_baked_blases(context_id, blasModelBudget);
+
+  // Limit heavy compactions by the minimum of all other steps' remaining budget
+  // to avoid frames where one step consumed its entire budget being swarmed with
+  // compactions.
+  int compactionsBudget = eastl::min({blasModelBudget, processModelBudget, ommModelBudget});
 
   if (!is_in_lost_device_state)
   {
     TIME_PROFILE(compaction_update);
 
-    d3d::raytrace::build_acceleration_structure({
-      .bottomBuilds = blasBuildInfos,
-      .flushAfterBottomBuild = true,
-    });
+    if (!ommBatch.infos.empty())
+    {
+      TIME_D3D_PROFILE(bvh_build_blas_with_omm);
+      d3d::raytrace::build_acceleration_structure({
+        .opacityMicroMapTriangleArrayBuilds = ommBatch.infos,
+        .bottomBuilds = blasBatch.blasBuildInfos,
+        .flushAfterOpacityMicroMapTriangleArrayBuilds = true,
+        .flushAfterBottomBuild = true,
+      });
+    }
+    else
+    {
+      d3d::raytrace::build_acceleration_structure({
+        .bottomBuilds = blasBatch.blasBuildInfos,
+        .flushAfterBottomBuild = true,
+      });
+    }
+    release_omm_bake_build_inputs(ommBatch.results);
 
-    for (auto compaction : pendingCompactions)
+    // Grass drives its own async OMM bakes and BLAS rebuilds here, in the same GPU-dispatch context as
+    // the mesh OMM/BLAS builds above. Grass LODs are static, so this is a one-time background upgrade.
+    grass::process_omm(context_id);
+
+    for (auto compaction : blasBatch.pendingCompactions)
       if (compaction->stage == Context::BLASCompaction::Stage::Created)
         compaction->stage = Context::BLASCompaction::Stage::SizeQueried;
 
@@ -2072,26 +2422,41 @@ void process_meshes(ContextId context_id, BuildBudget budget)
         void *values = nullptr;
         // on PS5 compactedSizeBuffer is not used and readback is not issued. Compacted size fetching happens in handling
         // BLASCompaction::Stage::SizeReceived case
+        bool sizesValid = !bufferReadback;
         if (context_id->compactedSizeBufferReadback && context_id->compactedSizeBufferReadback->lock(0, 0, &values, VBLOCK_READONLY))
         {
           G_ASSERT(
             context_id->compactedSizeBufferReadback->getSize() == context_id->compactedSizeBufferValues.size() * sizeof(uint64_t));
           memcpy(context_id->compactedSizeBufferValues.data(), values, context_id->compactedSizeBuffer->getSize());
           context_id->compactedSizeBufferReadback->unlock();
+          sizesValid = true;
         }
 
         uint32_t count = 0;
+        uint32_t cancelledCount = 0;
         for (auto &compaction : context_id->blasCompactions)
           if (compaction.has_value())
           {
             if (compaction->stage == Context::BLASCompaction::Stage::SizeBeingRead)
             {
+              // If for whatever reason, acquiring the size fails, drop the compaction. The
+              // model will be used uncompacted.
+              if (!sizesValid)
+              {
+                ++cancelledCount;
+                context_id->blasCompactionsAccel.erase(compaction->objectId);
+                compaction.reset();
+                continue;
+              }
               ++count;
               compaction->stage = Context::BLASCompaction::Stage::SizeReceived;
               if constexpr (bufferReadback)
                 compaction->compactedSizeValue = context_id->compactedSizeBufferValues[compaction->compactedSizeOffset];
             }
           }
+
+        if (cancelledCount > 0)
+          logerr("[BVH] Compacted size readback failed, %u compactions cancelled", cancelledCount);
 
         if constexpr (bufferReadback)
         {
@@ -2101,7 +2466,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
       }
     }
 
-    if (!pendingCompactions.empty() || context_id->compactedSizeWritesInQueue)
+    if (!blasBatch.pendingCompactions.empty() || context_id->compactedSizeWritesInQueue)
     {
       if (!context_id->compactedSizeQueryRunning)
       {
@@ -2126,8 +2491,10 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     }
   }
 
-  blasBuildInfos.clear();
-  geomDescriptors.clear();
+  blasBatch.blasBuildInfos.clear();
+  ommBatch.infos.clear();
+  ommBatch.results.clear();
+  blasBatch.geomDescriptors.clear();
 
   {
     TIME_PROFILE(blas_compactions);
@@ -2179,8 +2546,17 @@ void process_meshes(ContextId context_id, BuildBudget budget)
             compaction.compactedSizeValue = d3d::get_raytrace_acceleration_structure_size(getBlas(compaction)->get()) / 4;
           }
 #endif
+          // If the compaction size can't be right, drop the compaction of the object.
+          if (UniqueBLAS *blas = getBlas(compaction);
+              !blas || !compaction.compactedSizeValue || compaction.compactedSizeValue > blas->getASSize())
+          {
+            logerr("[BVH] Compacted size %u of BLAS %llx is invalid (original size: %u), cancelling compaction",
+              compaction.compactedSizeValue, compaction.objectId, blas ? blas->getASSize() : 0u);
+            cancelCompaction(context_id, iter);
+            continue;
+          }
 #endif
-          if (!compaction.compactedSizeValue)
+          if (!compaction.compactedSizeValue) //-V547
           {
             cancelCompaction(context_id, iter);
             continue;
@@ -2202,7 +2578,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
           if (activeCompactions >= maxActiveCompactions)
             break;
 
-          if (isCompactionCheap || blasModelBudget > 0)
+          if (isCompactionCheap || compactionsBudget > 0)
           {
             auto blas = getBlas(compaction);
             if (!blas)
@@ -2223,7 +2599,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
             // Compacting is a heavy operation.
             if (!isCompactionCheap)
-              blasModelBudget -= 1;
+              compactionsBudget -= 1;
           }
           break;
         }
@@ -2322,8 +2698,8 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
   static bool showBVHBuildEvents = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("showBVHBuildEvents", false);
 
-  if (showBVHBuildEvents && triangleCount > 0)
-    visuallog::logmsg(String(0, "The BVH build %d triangles for %d BLASes.", triangleCount, blasCount));
+  if (showBVHBuildEvents && blasBatch.triangleCount > 0)
+    visuallog::logmsg(String(0, "The BVH build %d triangles for %d BLASes.", blasBatch.triangleCount, blasBatch.blasCount));
 }
 
 static void copyHwInstances(Sbuffer *instanceCount, Sbuffer *instances, Sbuffer *uploadBuffer, int bufferSize, int startInstance)
@@ -2359,6 +2735,8 @@ private:
   ContextId contextId;
   bool uploadMainData;
   bool uploadPerInstanceData;
+  bool mainUploadDone = true;
+  bool perInstanceDataUploadDone = true;
 
 public:
   void start(ContextId context_id, bool upload_main_data, bool upload_per_instance_data)
@@ -2367,26 +2745,22 @@ public:
     contextId = context_id;
     uploadMainData = upload_main_data;
     uploadPerInstanceData = upload_per_instance_data;
+    mainUploadDone = true;
+    perInstanceDataUploadDone = true;
     threadpool::add(this, threadpool::JobPriority::PRIO_HIGH, true);
   }
   void doJob() override
   {
     if (uploadMainData)
-    {
-      bool mainUploadDone =
-        parallel_instance_processing::upload_main_data(contextId, parallel_instance_processing::TargetFrame::Current);
-      G_ASSERT(mainUploadDone);
-      G_UNUSED(mainUploadDone);
-    }
+      mainUploadDone = parallel_instance_processing::upload_main_data(contextId, parallel_instance_processing::TargetFrame::Current);
     if (uploadPerInstanceData)
-    {
-      bool perInstanceDataUploadDone =
+      perInstanceDataUploadDone =
         parallel_instance_processing::upload_per_instance_data(contextId, parallel_instance_processing::TargetFrame::Current);
-      G_ASSERT(perInstanceDataUploadDone);
-      G_UNUSED(perInstanceDataUploadDone);
-    }
   }
   const char *getJobName(bool &) const override { return "BVHFallbackUploadHeavyDataJob"; }
+  // Results are valid after wait()
+  bool isMainUploadDone() const { return mainUploadDone; }
+  bool isPerInstanceDataUploadDone() const { return perInstanceDataUploadDone; }
   void wait()
   {
     TIME_PROFILE(wait_bvh_fallback_upload_heavy_data_job)
@@ -2403,8 +2777,9 @@ static bool is_tree_instance(const Context::Instance &instance)
 static void add_instances(ContextId context_id, const Context::InstanceMap &instances, dag::Vector<NativeInstance> &outInstances,
   uint32_t group_mask, bool is_camera_relative, const char *name, const Point3 &light_direction, const Point3 &camera_pos,
   eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> &allBlasUpdatesAs,
-  const Frustum &frustumAbsolute, const Frustum &frustumRelative, const BufferProcessor *assumed_buffer_processor)
-  DAG_TS_REQUIRES(context_id->meshMetaAllocatorLock) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
+  const Frustum &frustumAbsolute, const Frustum &frustumRelative, const BufferProcessor *assumed_buffer_processor,
+  OmmBuildInfos &ommBuildInfos, OmmBuildResults &ommBuildResults) DAG_TS_REQUIRES(context_id->meshMetaAllocatorLock)
+  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   CHECK_LOST_DEVICE_STATE();
 
@@ -2441,6 +2816,43 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
     {
       const bool stationary = instance.uniqueIsStationary;
       bool needBlasBuild = instance.needsBlasBuild;
+
+      if (context_id->ommEnabled)
+      {
+        bool waitingForOmm = false;
+        // The OMM slot is shared per mesh across this object's instances, so this re-polls once per
+        // instance. That is cheap: after the bake completes each poll is just a state check, and while
+        // baking it is a light readback-readiness probe, so a per-frame dedup is not worth the state.
+        for (uint32_t meshIndex = 0; meshIndex < object.meshes.size(); ++meshIndex)
+        {
+          Mesh &mesh = object.meshes[meshIndex];
+          auto &meta = metaRegion[meshIndex];
+          if (!mesh.vertexProcessor || !mesh_wants_omm(context_id, mesh))
+            continue;
+          // Instances that override alpha/albedo per-instance can't use the mesh-shared OMM: it is
+          // baked from mesh.alphaTextureId, while the hit shader alpha-tests against the instance's
+          // meta texture. Skip OMM for them and fall back to plain alpha-tested traversal. An
+          // uninitialized meta will inherit baseMeta (no such flag) in process_meta below, so it is
+          // safe to let it bake.
+          // TODO: support OMM here by baking per (mesh, override-texture) into a small cache instead
+          // of the single shared per-mesh slot; the per-instance BLAS already links OMM at its first
+          // build, so the remaining work is the cache and its eviction.
+          if (meta.isInitialized() && (meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures))
+            continue;
+
+          OmmBakeSource ommSource = make_omm_bake_source(context_id, mesh);
+          consume_mesh_omm_bakes(context_id, instance.objectId, mesh, meshIndex, ommBuildInfos, ommBuildResults);
+          // add_instances runs inside build's delayed-sync window when delay_sync is set
+          if (!start_new_omm_bakes(context_id, instance.objectId, mesh, ommSource, delay_sync))
+          {
+            waitingForOmm = true;
+            break;
+          }
+        }
+
+        if (waitingForOmm)
+          continue;
+      }
 
       auto &geoms = updateGeoms.emplace_back();
 
@@ -2505,6 +2917,10 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
         geom.data.triangles.flags =
           (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
         geom.extraDataAvailableMask.hasOpacityMicroMapLinkage = false;
+        // Match the bake loop above: instance-texture meshes get no OMM, and the shared slot may hold
+        // another instance's bake, so never link it here.
+        if (context_id->ommEnabled && !(meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures))
+          set_omm_linkage(geom, mesh);
       }
 
       // If the BLAS is not unique, then only build it when it has not been built at all.
@@ -2569,6 +2985,9 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
           if (delay_sync)
             d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
 
+          if (context_id->ommEnabled)
+            build_pending_omm_arrays(ommBuildInfos, ommBuildResults);
+
 #if _TARGET_C2
 
 #else
@@ -2619,7 +3038,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
     HWInstance desc;
     desc.transform = instance.transform;
     desc.instanceID = MeshMetaAllocator::decode(metaAllocId);
-    desc.instanceMask = instance.noShadow ? bvhGroupNoShadow : group_mask;
+    desc.instanceMask = instance.noShadow ? bvhGroupNoShadow : object.meshes[0].isCamoNet ? bvhGroupCamoNet : group_mask;
     desc.instanceContributionToHitGroupIndex = 0;
     desc.flags = instance.forceEnableBackfaceCulling ? (flipWinding ? RaytraceGeometryInstanceDescription::TRIANGLE_CULL_FLIP_WINDING
                                                                     : RaytraceGeometryInstanceDescription::NONE)
@@ -2647,12 +3066,12 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   TIME_D3D_PROFILE(bvh_build);
 
-  if (context_id->has(Features::AnyDynrend))
+  if (context_id->hasAny(Features::AnyDynrend))
   {
     dyn::wait_dynrend_instances();
     dyn::wait_animchar_instances();
   }
-  if (context_id->has(Features::AnyRI))
+  if (context_id->hasAny(Features::AnyRI))
   {
     ri::wait_ri_gen_instances_update(context_id);
     ri::wait_ri_extra_instances_update(context_id);
@@ -2779,6 +3198,14 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   context_id->tlasTerrainValid = false;
   context_id->tlasParticlesValid = false;
 
+  // Discard OMM bakes whose objects went inactive. Must run before the no-instance early return below:
+  // a dynamic bake started in add_instances lives only in objectsWithBakingOmm, so if its last instance
+  // disappears and build() keeps returning early, the bake and its buffers would never be freed.
+  {
+    Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
+    discard_inactive_omm_bakes(context_id);
+  }
+
   if (!instanceCount && !grassBufferSize && !gobjBufferSize && !fxBufferSize && !smokeTracerBufferSize && !dagdpBufferSize &&
       !gpuGrassInstances)
     return;
@@ -2799,6 +3226,9 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   auto round_up = [](uint32_t value, uint32_t alignment) { return (value + alignment - 1) & ~(alignment - 1); };
 
   const int particleBufferSize = fxBufferSize + smokeTracerBufferSize;
+
+  const int fxParticleRegion = min(fxBufferSize, particles::get_fx_capacity());
+  const int builtParticleCount = fxParticleRegion + smokeTracerBufferSize;
 
   auto uploadSizeMain = max(round_up(allInstancesCount, 1024 << 3), 1U << 17);
   auto uploadSizeTerrain = round_up(terrainBlases.size() + 1, 64);
@@ -2875,6 +3305,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   auto frustumAbsolute = Frustum(TMatrix4(orthonormalized_inverse(itm)) * projTm);
 
   eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> allBlasUpdatesAs;
+  OmmBuildInfos ommBuildInfos;
+  OmmBuildResults ommBuildResults;
 
   parallel_instance_processing::prebuild_meta_job.wait();
 
@@ -2910,7 +3342,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     if (!context_id->genericInstances.empty())
     {
       add_instances(context_id, context_id->genericInstances, instanceDescs, bvhGroupRi, false, "generic", light_direction, camera_pos,
-        allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr);
+        allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr, ommBuildInfos, ommBuildResults);
       CHECK_LOST_DEVICE_STATE();
     }
 
@@ -2923,7 +3355,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
       for (auto &instances : context_id->riGenInstances)
       {
         add_instances(context_id, instances, instanceDescs, bvhGroupRi, false, "riGen", light_direction, camera_pos, allBlasUpdatesAs,
-          frustumAbsolute, frustumRelative, &ProcessorInstances::getTreeVertexProcessor());
+          frustumAbsolute, frustumRelative, &ProcessorInstances::getTreeVertexProcessor(), ommBuildInfos, ommBuildResults);
         CHECK_LOST_DEVICE_STATE();
       }
       auto riGenTimeUs = profile_time_usec(startRef);
@@ -2938,7 +3370,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
       for (auto &instances : context_id->riExtraTreeInstances)
       {
         add_instances(context_id, instances, instanceDescs, bvhGroupRi, false, "riExtraTree", light_direction, camera_pos,
-          allBlasUpdatesAs, frustumAbsolute, frustumRelative, &ProcessorInstances::getTreeVertexProcessor());
+          allBlasUpdatesAs, frustumAbsolute, frustumRelative, &ProcessorInstances::getTreeVertexProcessor(), ommBuildInfos,
+          ommBuildResults);
         CHECK_LOST_DEVICE_STATE();
       }
       ProcessorInstances::getTreeVertexProcessor().end(false);
@@ -2947,7 +3380,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     for (auto &instances : context_id->riExtraFlagInstances)
     {
       add_instances(context_id, instances, instanceDescs, bvhGroupRi, false, "riExtraFlag", light_direction, camera_pos,
-        allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr);
+        allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr, ommBuildInfos, ommBuildResults);
       CHECK_LOST_DEVICE_STATE();
     }
 
@@ -2959,7 +3392,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
         dyn::set_up_dynrend_context_for_processing(instances.first);
       add_instances(context_id, instances.second, instanceDescs, bvhGroupDynrend, true, "dynrend", light_direction, camera_pos,
         allBlasUpdatesAs, frustumAbsolute, frustumRelative,
-        use_batched_skinned_vertex_processor ? &ProcessorInstances::getSkinnedVertexProcessorBatched() : nullptr);
+        use_batched_skinned_vertex_processor ? &ProcessorInstances::getSkinnedVertexProcessorBatched() : nullptr, ommBuildInfos,
+        ommBuildResults);
       CHECK_LOST_DEVICE_STATE();
     }
     if (use_batched_skinned_vertex_processor)
@@ -2968,7 +3402,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     if (!context_id->splineGenInstances.empty())
     {
       add_instances(context_id, context_id->splineGenInstances, instanceDescs, bvhGroupDynrend, true, "splinegen", light_direction,
-        camera_pos, allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr);
+        camera_pos, allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr, ommBuildInfos, ommBuildResults);
       CHECK_LOST_DEVICE_STATE();
     }
 
@@ -2999,7 +3433,22 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
       update.basbi.geometryDescCount = geoms.size();
     }
 
-    d3d::build_bottom_acceleration_structures(context_id->blasUpdates.data(), context_id->blasUpdates.size());
+    if (!ommBuildInfos.empty())
+    {
+      TIME_D3D_PROFILE(bvh_build_procedural_blas_with_omm);
+      d3d::raytrace::build_acceleration_structure({
+        .opacityMicroMapTriangleArrayBuilds = ommBuildInfos,
+        .bottomBuilds = context_id->blasUpdates,
+        .flushAfterOpacityMicroMapTriangleArrayBuilds = true,
+        .flushAfterBottomBuild = true,
+      });
+      ommBuildInfos.clear();
+      release_omm_bake_build_inputs(ommBuildResults);
+    }
+    else
+    {
+      d3d::build_bottom_acceleration_structures(context_id->blasUpdates.data(), context_id->blasUpdates.size());
+    }
   }
 
   if (terrainCount > 0) //-v1051
@@ -3069,6 +3518,26 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   }
 
   bvh_fallback_upload_heavy_data_job.wait();
+
+  // A failed fallback upload leaves the precalced region of the instance or per instance
+  // data buffer stale or uninitialized while the TLAS build still counts those instances.
+  // Retry synchronously, and if that fails too, do not mark the main TLAS valid this frame.
+  bool mainInstanceDataValid = true;
+  if (needFallbackMain && !bvh_fallback_upload_heavy_data_job.isMainUploadDone())
+  {
+    mainInstanceDataValid =
+      parallel_instance_processing::upload_main_data(context_id, parallel_instance_processing::TargetFrame::Current);
+    if (!mainInstanceDataValid)
+      logerr("[BVH] Fallback instance upload failed, skipping the main TLAS for this frame");
+  }
+  if (needFallbackPerInstance && !bvh_fallback_upload_heavy_data_job.isPerInstanceDataUploadDone())
+  {
+    if (!parallel_instance_processing::upload_per_instance_data(context_id, parallel_instance_processing::TargetFrame::Current))
+    {
+      mainInstanceDataValid = false;
+      logerr("[BVH] Fallback per instance data upload failed, skipping the main TLAS for this frame");
+    }
+  }
 
   int cpuInstanceCount = 0;
 
@@ -3150,9 +3619,9 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   {
     TIME_D3D_PROFILE(copy_to_tlas_particles_upload);
-    copyHwInstances(fxInstanceCount, fxInstances, context_id->tlasUploadParticles.getBuf(), fxBufferSize, 0);
+    copyHwInstances(fxInstanceCount, fxInstances, context_id->tlasUploadParticles.getBuf(), fxParticleRegion, 0);
     copyHwInstances(smokeTracerInstanceCount, smokeTracerInstances, context_id->tlasUploadParticles.getBuf(), smokeTracerBufferSize,
-      fxBufferSize);
+      fxParticleRegion);
   }
 
   G_ASSERT(cpuInstanceCount <= uploadSizeMain);
@@ -3204,7 +3673,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   {
     TIME_D3D_PROFILE(build_tlas);
 
-    context_id->tlasMainValid = context_id->tlasMain && cpuInstanceCount;
+    context_id->tlasMainValid = context_id->tlasMain && cpuInstanceCount && mainInstanceDataValid;
     context_id->tlasTerrainValid = context_id->tlasTerrain && terrainBlases.size();
     context_id->tlasParticlesValid = context_id->tlasParticles && particleBufferSize;
 
@@ -3246,8 +3715,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
     if (context_id->tlasParticlesValid)
     {
-      DA_PROFILE_TAG(build_tlas, "particles: %d instances", fxBufferSize);
-      fillTlas(context_id->tlasParticles, context_id->tlasUploadParticles.getBuf(), particleBufferSize);
+      DA_PROFILE_TAG(build_tlas, "particles: %d instances", builtParticleCount);
+      fillTlas(context_id->tlasParticles, context_id->tlasUploadParticles.getBuf(), builtParticleCount);
       CHECK_LOST_DEVICE_STATE();
     }
 
@@ -3280,52 +3749,24 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   context_id->processDeathrow();
 
-  static bool dumpStats = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhDumpMemoryStats", false);
-  if (dumpStats)
+  static bool dumpRtStatsSetting = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("bvhDumpMemoryStats", false);
+  if (dumpRtStatsSetting || bvh_mem_log)
   {
-    auto mb = [](auto v) { return int(v == 0 ? 0 : eastl::max((v + 1024 * 1024 - 1) / (1024 * 1024), decltype(v)(1))); };
-
-    auto stats = bvh::get_memory_statistics(context_id);
-
-    logdbg("BVH memory statistics");
-    logdbg("TLAS: %d MB - Upload: %d MB", mb(stats.tlasSize), mb(stats.tlasUploadSize));
-    logdbg("Scratch space: %d MB", mb(stats.scratchBuffersSize));
-    logdbg("Transform buffers: %d MB", mb(stats.transformBuffersSize));
-    for (auto &[tag, bucket] : stats.meshStats)
-      logdbg("* %s - Mesh count %d, Mesh VB: %d MB, Mesh BLAS: %d MB", tag ? tag : "untagged", bucket.meshCount, mb(bucket.meshVBSize),
-        mb(bucket.meshBlasSize));
-    logdbg("Mesh meta: %d MB", mb(stats.meshMetaSize));
-    logdbg("Skin BLAS: %d MB, Skin VB: %d MB, Skin count: %d", mb(stats.skinBLASSize), mb(stats.skinVBSize), stats.skinCount);
-    logdbg("Skin cache BLAS: %d MB, Skin cache count: %d", mb(stats.skinCacheBLASSize), stats.skinCacheCount);
-    logdbg("RiGen Tree BLAS: %d MB, VB: %d MB, count: %d", mb(stats.treeBLASSize), mb(stats.treeVBSize), stats.treeCount);
-    logdbg("Stat tree BLAS: %d MB, Stat tree VB: %d MB, Stat tree count: %d", mb(stats.stationaryTreeBLASSize),
-      mb(stats.stationaryTreeVBSize), stats.stationaryTreeCount);
-    logdbg("RiGen Tree cache BLAS: %d MB, count: %d", mb(stats.treeCacheBLASSize), stats.treeCacheCount);
-    logdbg("RiEx Tree BLAS: %d MB,  VB: %d MB, count: %d", mb(stats.treeRiExBLASSize), mb(stats.treeRiExVBSize), stats.treeRiExCount);
-    logdbg("RiEx Tree cache BLAS: %d MB, cache count: %d", mb(stats.treeRiExCacheBLASSize), stats.treeRiExCacheCount);
-    logdbg("Flag BLAS: %d MB, VB: %d MB, count: %d", mb(stats.flagBLASSize), mb(stats.flagVBSize), stats.flagCount);
-    logdbg("Dynamic VB allocator: %d MB, free %d MB", mb(stats.dynamicVBAllocatorSize), mb(stats.dynamicVBAllocatorFreeSize));
-    logdbg("Terrain BLAS: %d MB, Terrain VB: %d MB", mb(stats.terrainBlasSize), mb(stats.terrainVBSize));
-    logdbg("Grass BLAS: %d MB, Grass VB: %d MB, Grass IB: %d MB, Grass meta: %d MB, Grass query: %d MB", mb(stats.grassBlasSize),
-      mb(stats.grassVBSize), mb(stats.grassIBSize), mb(stats.grassMetaSize), mb(stats.grassQuerySize));
-    logdbg("Cable BLAS: %d MB, Cable VB: %d MB, Cable IB: %d MB", mb(stats.cableBLASSize), mb(stats.cableVBSize),
-      mb(stats.cableIBSize));
-    logdbg("bin scene instances: %d", stats.binSceneCount);
-    logdbg("Water instances: %d Water BLAS: %d MB, Water VB: %d MB, Water IB: %d MB", stats.waterCount, mb(stats.waterBLASSize),
-      mb(stats.waterVBSize), mb(stats.waterIBSize));
-    logdbg("GPUGrass instances: %d GPUGrass Memory: %d MB GPUGrass Textures Memory: %d MB", stats.gpuGrassCount,
-      mb(stats.gpuGrassMemory), mb(stats.gpuGrassTexturesMemory));
-    logdbg("GPU object meta: %d MB, GPU object query: %d MB", mb(stats.gobjMetaSize), mb(stats.gobjQuerySize));
-    logdbg("Per instance data: %d MB", mb(stats.perInstanceDataSize));
-    logdbg("Compaction data: %d MB - Peak: %d MB - Count: %d - SizeBufferSize: %d", mb(stats.compactionSize),
-      mb(stats.peakCompactionSize), stats.compactionCount, stats.compactionSizeBufferSize);
-    logdbg("Atmosphere texture: %d MB", mb(stats.atmosphereTextureSize));
-    logdbg("BLAS count: %d", stats.blasCount);
-    logdbg("Death row buffer count: %d, buffers size: %d MB", stats.deathRowBufferCount, mb(stats.deathRowBufferSize));
-    logdbg("IndexProcessor buffer count: %d, buffers size: %d MB", stats.indexProcessorBufferCount,
-      mb(stats.indexProcessorBufferSize));
+    auto mb = [](int64_t v) { return int(v == 0 ? 0 : eastl::max((v + 1024 * 1024 - 1) / (1024 * 1024), (int64_t)1)); };
+    auto overhead = bvh::get_rt_memory_overhead(context_id);
+    logdbg("BVH RT memory overhead (real, RT-only)");
+    overhead.forEachCategory([](const eastl::string &) {},
+      [&](const RtMemoryOverhead::Item &it) {
+        if (it.note.empty())
+          logdbg("    %s / %s: %d MB", it.category.c_str(), it.sub.c_str(), mb(it.bytes));
+        else
+          logdbg("    %s / %s: %d MB  [%s]", it.category.c_str(), it.sub.c_str(), mb(it.bytes), it.note.c_str());
+      },
+      [&](const eastl::string &cat, int64_t sum) { logdbg("  = %s: %d MB", cat.c_str(), mb(sum)); });
     logdbg("-------------------------");
-    logdbg("Total: %d MB", mb(stats.totalMemory));
+    logdbg("RT overhead total: %d MB", mb(overhead.total));
+    logdbg("BLAS total: %d MB  (x%d)", mb(overhead.blasTotalBytes), overhead.blasCount);
+    logdbg("Last-LOD BLAS (streaming floor): %d MB  (x%d)", mb(overhead.lastLodBlasBytes), overhead.lastLodBlasCount);
     logdbg("-------------------------");
   }
 }
@@ -3627,9 +4068,7 @@ void on_unload_scene(ContextId context_id)
     data.clear();
     data.shrink_to_fit();
   }
-  for (auto &texture : context_id->camoTextures)
-    context_id->releaseTexture(TEXTUREID(texture.first));
-  context_id->camoTextures.clear();
+  release_camo_textures(context_id);
 
   for (auto &[alloc, _] : context_id->processBufferAllocator)
     context_id->releaseBuffer(alloc.getHeap().getBuf());
@@ -3695,7 +4134,7 @@ void ChannelParser::enum_shader_channel(int usage, int usage_index, int type, in
 
 void connect_fx(ContextId context_id, fx_connect_callback callback)
 {
-  if (context_id->has(Features::Fx))
+  if (context_id->hasAny(Features::Fx))
     fx::connect(callback);
 }
 
@@ -3704,7 +4143,11 @@ void on_cables_changed(Cables *cables, ContextId context_id) { cables::on_cables
 bool is_building(ContextId context_id)
 {
   Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
-  return !context_id->halfBakedObjects.empty() || context_id->hasPendingObjectAddActions.load(dag::memory_order_relaxed);
+  // objectsWithBakingOmm covers instances whose TLAS entry add_instances withholds while their OMM
+  // bakes -- they are not in halfBakedObjects, so without this a consumer could treat the BVH as ready
+  // with those instances missing.
+  return !context_id->halfBakedObjects.empty() || context_id->hasPendingObjectAddActions.load(dag::memory_order_relaxed) ||
+         !context_id->objectsWithBakingOmm.empty();
 }
 
 void set_grass_range(ContextId context_id, float range) { context_id->grassRange = range; }
@@ -3782,7 +4225,7 @@ void remove_spline_gen_instances(ContextId context_id) { splinegen::teardown(con
 
 void connect_smoke_tracers(ContextId context_id, smoke_tracers_connect_callback callback)
 {
-  if (context_id->has(Features::SmokeTracers))
+  if (context_id->hasAny(Features::SmokeTracers))
     smoke_tracers::connect(callback);
 }
 

@@ -18,6 +18,8 @@
 #include "internal/occlusion_internal.h"
 #include "internal/occlusionGPU_internal.h"
 #include "internal/debug_internal.h"
+#include "internal/steamAudio/steamAudio_internal.h"
+#include "internal/steamAudio/steamAudioSpatializer_internal.h"
 #include <osApiWrappers/dag_atomic_types.h>
 
 static WinCritSec g_listener_cs;
@@ -98,6 +100,7 @@ void update_listener(float delta_time, const TMatrix &listener_tm)
   }
   const Attributes3D listener3dAttributes(listener_tm, g_listener_vel);
   SOUND_VERIFY(get_studio_system()->setListenerAttributes(0, &listener3dAttributes));
+  steam_audio::update_listener(listener_tm);
 }
 
 void set_time_speed(float time_speed)
@@ -149,6 +152,7 @@ void end_update(float dt)
 
   occlusion::update(g_cur_time, get_3d_listener_pos());
   occlusion_gpu::update(g_cur_time, get_3d_listener_pos());
+  steam_audio::update();
 
   SOUND_VERIFY(get_studio_system()->update());
 

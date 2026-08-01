@@ -12,7 +12,7 @@ For example: rendering a preview of a Markdown comment, recalculating a layout a
 */
 
 
-function debounce(func, delay_s, delay_s_max = null){
+function debounce(func, delay_s: number, delay_s_max: number|null = null): function {
   let storage = { func = @() null }
   let action = @() storage.func()
   function debounced(...) {
@@ -30,7 +30,7 @@ function debounce(func, delay_s, delay_s_max = null){
 Same as debounce but trigger the function on the leading instead of the trailing edge of the wait interval.
 Useful in circumstances like preventing accidental double-clicks on a "submit" button from firing a second time.
 */
-function debounceImmediate(func, delay_s){
+function debounceImmediate(func, delay_s: number): function {
   local isActionAllowed = true
   function allowAction() { isActionAllowed = true }
   function debounced(...) {
@@ -51,7 +51,7 @@ function debounceImmediate(func, delay_s){
   If you'd like to disable the leading-edge call, pass {leading: false}, and if you'd like the last call made during the wait period to be executed when that period is over, pass {trailing: true}.
 */
 let defThrottleOptions = {leading = true, trailing=false}
-function throttle(func, delay_s, options=defThrottleOptions){
+function throttle(func, delay_s: number, options=defThrottleOptions): function {
   let leading = options?.leading ?? defThrottleOptions.leading
   let trailing = options?.trailing ?? defThrottleOptions.trailing
   assert(leading || trailing, "throttle should be called with at least one front call leading or trailing")

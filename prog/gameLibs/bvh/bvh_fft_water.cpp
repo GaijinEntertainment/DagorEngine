@@ -15,10 +15,25 @@ Sbuffer *alloc_scratch_buffer(uint32_t size, uint32_t &offset);
 namespace bvh::fftwater
 {
 static const auto blas_flags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
-static constexpr int water_cell_size = 32;
-static constexpr int water_cell_vertex_count = (water_cell_size + 1) * (water_cell_size + 1);
-static constexpr int water_cell_index_count = water_cell_size * water_cell_size * 6;
-static constexpr int water_cell_triangle_count = water_cell_size * water_cell_size * 2;
+
+struct WaterCell
+{
+  int size;
+  int vertex_count;
+  int index_count;
+  int triangle_count;
+
+  constexpr WaterCell(int N)
+  {
+    size = N;
+    vertex_count = (size + 1) * (size + 1);
+    index_count = size * size * 6;
+    triangle_count = size * size * 2;
+  }
+};
+constexpr WaterCell high_detail_water_cell(16);
+constexpr WaterCell low_detail_water_cell(8);
+
 static constexpr int WATER_AREA = 8192;
 
 struct WaterVertexData
@@ -232,32 +247,32 @@ static void make_flat_patches(ContextId context_id, const fft_water::WaterHeight
   }
 }
 
-static bool generate_heightmap_indices(ContextId context_id)
+static bool generate_heightmap_indices(UniqueBuf &out_buf, WaterCell water_cell, const char *name)
 {
-  context_id->waterHeightIb = dag::buffers::create_persistent_sr_byte_address(divide_up(water_cell_index_count, 2),
-    "bvh_water_heightmap_ib", d3d::buffers::Init::No, RESTAG_BVH);
-  HANDLE_LOST_DEVICE_STATE(context_id->waterHeightIb, false);
+  out_buf =
+    dag::buffers::create_persistent_sr_byte_address(divide_up(water_cell.index_count, 2), name, d3d::buffers::Init::No, RESTAG_BVH);
+  HANDLE_LOST_DEVICE_STATE(out_buf, false);
 
-  auto upload = lock_sbuffer<uint16_t>(context_id->waterHeightIb.getBuf(), 0, 0, VBLOCK_WRITEONLY);
+  auto upload = lock_sbuffer<uint16_t>(out_buf.getBuf(), 0, 0, VBLOCK_WRITEONLY);
   HANDLE_LOST_DEVICE_STATE(upload, false);
 
-  for (int z = 0; z < water_cell_size; ++z)
-    for (int x = 0; x < water_cell_size; ++x)
+  for (int z = 0; z < water_cell.size; ++z)
+    for (int x = 0; x < water_cell.size; ++x)
     {
-      int ix = (z * water_cell_size + x) * 6;
-      int base = z * (water_cell_size + 1) + x;
+      int ix = (z * water_cell.size + x) * 6;
+      int base = z * (water_cell.size + 1) + x;
 
       upload[ix++] = base;
-      upload[ix++] = base + water_cell_size + 1;
+      upload[ix++] = base + water_cell.size + 1;
       upload[ix++] = base + 1;
 
       upload[ix++] = base + 1;
-      upload[ix++] = base + water_cell_size + 1;
-      upload[ix++] = base + water_cell_size + 1 + 1;
+      upload[ix++] = base + water_cell.size + 1;
+      upload[ix++] = base + water_cell.size + 1 + 1;
     }
   upload.close();
 
-  d3d::resource_barrier(ResourceBarrierDesc(context_id->waterHeightIb.getBuf(), bindlessSRVBarrier));
+  d3d::resource_barrier(ResourceBarrierDesc(out_buf.getBuf(), bindlessSRVBarrier));
 
   return true;
 }
@@ -265,7 +280,8 @@ static bool generate_heightmap_indices(ContextId context_id)
 static void make_heightmap_patches(ContextId context_id, const fft_water::WaterHeightmap *heightmap, float water_level,
   const IBBox2 &box, int tile_size, int grid_size)
 {
-  if (!generate_heightmap_indices(context_id))
+  if (!generate_heightmap_indices(context_id->waterHeightHighDetailIb, high_detail_water_cell, "bvh_water_heightmap_high_detail_ib") ||
+      !generate_heightmap_indices(context_id->waterHeightLowDetailIb, low_detail_water_cell, "bvh_water_heightmap_low_detail_ib"))
     return;
 
   for (int j = 0; j < grid_size; j++)
@@ -275,24 +291,27 @@ static void make_heightmap_patches(ContextId context_id, const fft_water::WaterH
       if (heightmap->isFlat(i, j))
         continue;
 
+      bool isHighDetal = heightmap->isDetailed(i, j);
+      const WaterCell water_cell = isHighDetal ? high_detail_water_cell : low_detail_water_cell;
+
       auto &patch = context_id->water_patches.push_back();
 
-      patch.triangleCount = water_cell_triangle_count;
-      patch.indexBuffer = context_id->waterHeightIb;
-      patch.vertexCount = water_cell_vertex_count;
+      patch.triangleCount = water_cell.triangle_count;
+      patch.indexBuffer = isHighDetal ? context_id->waterHeightHighDetailIb : context_id->waterHeightLowDetailIb;
+      patch.vertexCount = water_cell.vertex_count;
       static int counter = 0;
       patch.vertexBuffer = dag::buffers::create_persistent_sr_byte_address(divide_up(sizeof(WaterVertexData) * patch.vertexCount, 4),
         String(32, "bvh_flat_water_vb_%d", counter++), d3d::buffers::Init::No, RESTAG_BVH);
       HANDLE_LOST_DEVICE_STATE(patch.vertexBuffer, );
 
-      auto scratch = lock_sbuffer<WaterVertexData>(patch.vertexBuffer.getBuf(), 0, water_cell_vertex_count, VBLOCK_WRITEONLY);
+      auto scratch = lock_sbuffer<WaterVertexData>(patch.vertexBuffer.getBuf(), 0, water_cell.vertex_count, VBLOCK_WRITEONLY);
       HANDLE_LOST_DEVICE_STATE(scratch, );
       IPoint2 tileStart = {box.left() + tile_size * i, box.top() + tile_size * j};
-      G_ASSERT(tile_size % water_cell_size == 0);
-      int step = tile_size / water_cell_size;
-      for (int z = 0; z <= water_cell_size; ++z)
+      G_ASSERT(tile_size % water_cell.size == 0);
+      int step = tile_size / water_cell.size;
+      for (int z = 0; z <= water_cell.size; ++z)
       {
-        for (int x = 0; x <= water_cell_size; ++x)
+        for (int x = 0; x <= water_cell.size; ++x)
         {
           Point3 location = Point3(tileStart.x + x * step, water_level, tileStart.y + z * step);
           heightmap->getHeightmapDataBilinear(location.x, location.z, location.y);
@@ -305,7 +324,7 @@ static void make_heightmap_patches(ContextId context_id, const fft_water::WaterH
           Point3 down = normalize(locationDown - location);
           Point3 normal = normalize(cross(down, right));
 
-          WaterVertexData &v = scratch[z * (water_cell_size + 1) + x];
+          WaterVertexData &v = scratch[z * (water_cell.size + 1) + x];
           v.postition = location;
           v.normal = pack_normal(normal);
         }
@@ -334,14 +353,14 @@ static bool validate_water_area(ContextId context_id, int tile_size)
   return areaSum == targetArea;
 }
 
-void create_patches(ContextId context_id, FFTWater &fft_water)
+void create_patches(ContextId context_id, FFTWater &water)
 {
-  if (!context_id->has(Features::FftWater))
+  if (!context_id->hasAny(Features::FftWater))
     return;
 
-  float waterLevel = fft_water::get_level(&fft_water);
+  float waterLevel = fft_water::get_level(&water);
 
-  if (auto heightmap = fft_water::get_heightmap(&fft_water))
+  if (auto heightmap = fft_water::get_heightmap(&water))
   {
     Point2 size = round(Point2(1.0 / heightmap->tcOffsetScale.z, 1.0 / heightmap->tcOffsetScale.w));
     Point2 topleft = round(mul(Point2(-heightmap->tcOffsetScale.x, -heightmap->tcOffsetScale.y), size));
@@ -365,7 +384,7 @@ void create_patches(ContextId context_id, FFTWater &fft_water)
 
 void on_unload_scene(ContextId context_id)
 {
-  if (!context_id->has(Features::FftWater))
+  if (!context_id->hasAny(Features::FftWater))
     return;
 
   for (auto &patch : context_id->water_patches)
@@ -375,7 +394,8 @@ void on_unload_scene(ContextId context_id)
     context_id->freeMetaRegion(patch.metaAllocId);
   }
   context_id->waterFlatIb.close();
-  context_id->waterHeightIb.close();
+  context_id->waterHeightHighDetailIb.close();
+  context_id->waterHeightLowDetailIb.close();
   context_id->water_patches.clear();
   context_id->water_patches.shrink_to_fit();
 }

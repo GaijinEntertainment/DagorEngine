@@ -14,6 +14,7 @@
 #include <DetourTileCache.h>
 #include <DetourTileCacheBuilder.h>
 #include <EditorCore/ec_IEditorCore.h>
+#include <de3_dynRenderService.h>
 #include <de3_genObjUtil.h>
 #include <de3_splineClassData.h>
 #include <landMesh/lmeshManager.h>
@@ -201,16 +202,46 @@ class BuildContext : public rcContext
   int64_t m_startTime[RC_MAX_TIMERS];
   int m_accTime[RC_MAX_TIMERS];
 
+  // Optional per-tile tagging. When set, errors get tile coords prepended, so
+  // 3rd-party Recast diagnostics (which carry no coordinates) can be located
+  // in the world.
+  bool m_hasTileInfo = false;
+  int m_tileX = 0;
+  int m_tileY = 0;
+  BBox3 m_tileBox;
+
 public:
   BuildContext() {} //-V730
   ~BuildContext() override {}
+
+  void setTileInfo(int tx, int ty, const BBox3 &box)
+  {
+    m_tileX = tx;
+    m_tileY = ty;
+    m_tileBox = box;
+    m_hasTileInfo = true;
+  }
 
 protected:
   void doResetLog() override {}
   void doLog(const rcLogCategory category, const char *msg, const int /*len*/) override
   {
     if (category >= RC_LOG_ERROR)
-      DAEDITOR3.conError("%s", msg);
+    {
+      if (m_hasTileInfo)
+      {
+        const Point3 &bmin = m_tileBox.lim[0];
+        const Point3 &bmax = m_tileBox.lim[1];
+        if (strstr(msg, "overlapping regions."))
+          DAEDITOR3.conWarning("tile (%d,%d) box (%.1f,%.1f,%.1f)-(%.1f,%.1f,%.1f): %s", //
+            m_tileX, m_tileY, bmin.x, bmin.y, bmin.z, bmax.x, bmax.y, bmax.z, msg);
+        else
+          DAEDITOR3.conError("tile (%d,%d) box (%.1f,%.1f,%.1f)-(%.1f,%.1f,%.1f): %s", //
+            m_tileX, m_tileY, bmin.x, bmin.y, bmin.z, bmax.x, bmax.y, bmax.z, msg);
+      }
+      else
+        DAEDITOR3.conError("%s", msg);
+    }
     else if (category >= RC_LOG_PROGRESS)
       debug(msg);
   }
@@ -1013,10 +1044,13 @@ static bool prepare_tile_context(const NavMeshParams &nav_mesh_params, BuildCont
   rcVcopy(cfg.bmin, &expandedBox.lim[0].x);
   rcVcopy(cfg.bmax, &expandedBox.lim[1].x);
 
-  ctx.log(RC_LOG_PROGRESS, "Building navigation: %d x %d cells, %.1fK verts, %.1fK tris", cfg.width, cfg.height,
-    vertices.size() / 1000.0f, indices.size() / 3 / 1000.0f);
-
-  return recastnavmesh::prepare_tile_context(ctx, cfg, tile_ctx, vertices, indices, transparent, build_cset);
+  if (!recastnavmesh::prepare_tile_context(ctx, cfg, tile_ctx, vertices, indices, transparent, build_cset))
+  {
+    ctx.log(RC_LOG_ERROR, "prepare_tile_context failed: %d x %d cells, %.1fK verts, %.1fK tris", cfg.width, cfg.height,
+      vertices.size() / 1000.0f, indices.size() / 3 / 1000.0f);
+    return false;
+  }
+  return true;
 }
 
 static bool prepare_tile(const NavMeshParams &nav_mesh_params, BuildContext &ctx, rcConfig &cfg,
@@ -1217,6 +1251,27 @@ static dtNavMesh *generate_jumplinks_navmesh_tile(const NavMeshParams &nav_mesh_
 
 static void rcMarkRotatedBoxArea(const TMatrix &boxTm, unsigned char areaId, rcCompactHeightfield &chf);
 
+static bool apply_hole_cutters_to_chf(BuildContext &ctx, const rcConfig &cfg, rcCompactHeightfield &chf,
+  dag::ConstSpan<const TMatrix *> cutters)
+{
+  for (int i = 0; i < chf.spanCount; ++i)
+    chf.spans[i].reg = 0;
+  chf.maxRegions = 0;
+
+  for (const TMatrix *cutter : cutters)
+    rcMarkRotatedBoxArea(*cutter, RC_NULL_AREA, chf);
+
+  ctx.log(RC_LOG_PROGRESS, "   - Marked unwalkable areas for %d cutters.", (int)cutters.size());
+
+  if (!rcErodeWalkableArea(&ctx, cfg.walkableRadius, chf))
+    return false;
+  if (!rcBuildDistanceField(&ctx, chf))
+    return false;
+  if (!rcBuildRegions(&ctx, chf, cfg.borderSize, cfg.minRegionArea, cfg.mergeRegionArea))
+    return false;
+  return true;
+}
+
 static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_params, recastnavmesh::RecastTileContext &tile_ctx,
   dag::ConstSpan<Point3> vertices, dag::ConstSpan<int> indices, dag::ConstSpan<IPoint2> transparent,
   dag::ConstSpan<NavMeshObstacle> obstacles, const ska::flat_hash_map<uint32_t, uint32_t> &obstacle_flags_by_res_name_hash,
@@ -1233,6 +1288,7 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
   auto threadAlloc = get_thread_alloc();
   rcConfig cfg;
   BuildContext ctx;
+  ctx.setTileInfo(tx, ty, box);
   bool preparedOKForNavMesh = false;
   dag::ConstSpan<IPoint2> noTransparent;
 
@@ -1315,6 +1371,23 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
     }
   }
 
+  Tab<const TMatrix *> intersectingHoleCutters(threadAlloc);
+  for (const TMatrix &cutter : navmeshHoleCutters)
+  {
+    BBox3 obb_aabb;
+    obb_aabb += cutter * Point3(-1.f, -1.f, -1.f);
+    obb_aabb += cutter * Point3(1.f, -1.f, -1.f);
+    obb_aabb += cutter * Point3(1.f, -1.f, 1.f);
+    obb_aabb += cutter * Point3(-1.f, -1.f, 1.f);
+    obb_aabb += cutter * Point3(-1.f, 1.f, -1.f);
+    obb_aabb += cutter * Point3(1.f, 1.f, -1.f);
+    obb_aabb += cutter * Point3(1.f, 1.f, 1.f);
+    obb_aabb += cutter * Point3(-1.f, 1.f, 1.f);
+
+    if (box & obb_aabb)
+      intersectingHoleCutters.push_back(&cutter);
+  }
+
   if (nav_mesh_params.navMeshType == pathfinder::NMT_TILECACHED)
   {
     Tab<int> cutIndices(get_thread_alloc());
@@ -1342,6 +1415,12 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
           nav_mesh_params.tileSize, false))
       return false;
 
+    if (!intersectingHoleCutters.empty() && tile_ctx.chf)
+    {
+      if (!apply_hole_cutters_to_chf(ctx, cfg, *tile_ctx.chf, intersectingHoleCutters))
+        return false;
+    }
+
     return finalize_navmesh_tilecached_tile(nav_mesh_params, ctx, cfg, connStorage, tile_ctx, obstacles, tx, ty, tileData);
   }
 
@@ -1356,23 +1435,6 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
     tile_ctx.solid = NULL;
   }
 
-  Tab<const TMatrix *> intersectingHoleCutters(threadAlloc);
-  for (const TMatrix &cutter : navmeshHoleCutters)
-  {
-    BBox3 obb_aabb;
-    obb_aabb += cutter * Point3(-1.f, -1.f, -1.f);
-    obb_aabb += cutter * Point3(1.f, -1.f, -1.f);
-    obb_aabb += cutter * Point3(1.f, -1.f, 1.f);
-    obb_aabb += cutter * Point3(-1.f, -1.f, 1.f);
-    obb_aabb += cutter * Point3(-1.f, 1.f, -1.f);
-    obb_aabb += cutter * Point3(1.f, 1.f, -1.f);
-    obb_aabb += cutter * Point3(1.f, 1.f, 1.f);
-    obb_aabb += cutter * Point3(-1.f, 1.f, 1.f);
-
-    if (box & obb_aabb)
-      intersectingHoleCutters.push_back(&cutter);
-  }
-
   if (!intersectingHoleCutters.empty())
   {
     // We need to undo the later stages of prepare_tile_context and then redo them manually
@@ -1382,23 +1444,8 @@ static bool rasterize_and_build_navmesh_tile(const NavMeshParams &nav_mesh_param
 
       rcFreeContourSet(tile_ctx.cset);
       tile_ctx.cset = NULL;
-      for (int i = 0; i < tile_ctx.chf->spanCount; ++i)
-        tile_ctx.chf->spans[i].reg = 0;
-      tile_ctx.chf->maxRegions = 0;
 
-      // Mark unwalkable areas before the rest of the calculations
-      for (const TMatrix *blocker : intersectingHoleCutters)
-      {
-        rcMarkRotatedBoxArea(*blocker, RC_NULL_AREA, *tile_ctx.chf);
-      }
-      ctx.log(RC_LOG_PROGRESS, "   - Marked unwalkable areas for %d cutters.", (int)intersectingHoleCutters.size());
-
-      // Redo the later stages
-      if (!rcErodeWalkableArea(&ctx, cfg.walkableRadius, *tile_ctx.chf))
-        return false;
-      if (!rcBuildDistanceField(&ctx, *tile_ctx.chf))
-        return false;
-      if (!rcBuildRegions(&ctx, *tile_ctx.chf, cfg.borderSize, cfg.minRegionArea, cfg.mergeRegionArea))
+      if (!apply_hole_cutters_to_chf(ctx, cfg, *tile_ctx.chf, intersectingHoleCutters))
         return false;
 
       tile_ctx.cset = rcAllocContourSet();
@@ -2783,6 +2830,7 @@ bool HmapLandPlugin::buildAndWriteSingleNavMesh(BinDumpSaveCB &cwr, int nav_mesh
     }
     else
     {
+      DAEDITOR3.conError("Navmesh #%d is empty!", nav_mesh_idx + 1);
       clearNavMesh();
       return false;
     }
@@ -3014,13 +3062,24 @@ static void endDebugPrimitivesVbufferCache(DebugPrimitivesVbuffer *vbuf)
 }
 
 
+static constexpr float NAVMESH_DEBUG_ZBIAS = 0.00005f;
+static constexpr float NAVMESH_DEBUG_SLOPE_ZBIAS = 2.f;
+
+static bool is_dng_based_render()
+{
+  const IDynRenderService *renderSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
+  return renderSrv && renderSrv->getRenderType() == IDynRenderService::RTYPE_DNG_BASED;
+}
+
 void HmapLandPlugin::renderNavMeshDebug()
 {
   const bool showCovers = shownExportedNavMeshIdx == 0 && showExportedCovers;
   const bool showContours = shownExportedNavMeshIdx == 0 && showExportedNavMeshContours;
 
   setupRecastDetourAllocators();
-  auto renderDebugPrimitives = [disableZtest = disableZtestForDebugNavMesh](DebugPrimitivesVbuffer *vbuf) {
+  auto renderDebugPrimitives = [disableZtest = disableZtestForDebugNavMesh, needZBias = is_dng_based_render()](
+                                 DebugPrimitivesVbuffer *vbuf) {
+    dagRender->setVbufferZBias(*vbuf, needZBias ? NAVMESH_DEBUG_ZBIAS : 0.f, needZBias ? NAVMESH_DEBUG_SLOPE_ZBIAS : 0.f);
     // We anyway perform ztest, but with CMPF_LESS function to draw hidden geometry with different color
     if (disableZtest)
       dagRender->renderLinesFromVbuffer(*vbuf, /*z_test*/ true, /*z_write*/ false,

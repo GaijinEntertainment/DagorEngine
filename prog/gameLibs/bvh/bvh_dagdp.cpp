@@ -63,7 +63,7 @@ eastl::unordered_map<ContextId, BVHInstanceMapper> mappers;
 
 ::BVHInstanceMapper *get_mapper(ContextId context_id)
 {
-  if (!context_id->has(Features::Dagdp))
+  if (!context_id->hasAny(Features::Dagdp))
     return nullptr;
   G_ASSERT(mappers.count(context_id) == 1);
   return &mappers.at(context_id);
@@ -71,7 +71,7 @@ eastl::unordered_map<ContextId, BVHInstanceMapper> mappers;
 
 void init(ContextId context_id)
 {
-  if (!context_id->has(Features::Dagdp))
+  if (!context_id->hasAny(Features::Dagdp))
     return;
   G_ASSERT(mappers.count(context_id) == 0);
   mappers[context_id] = BVHInstanceMapper(context_id);
@@ -79,7 +79,7 @@ void init(ContextId context_id)
 
 void teardown(ContextId context_id)
 {
-  if (!context_id->has(Features::Dagdp))
+  if (!context_id->hasAny(Features::Dagdp))
     return;
   G_ASSERT(mappers.count(context_id) == 1);
   mappers.erase(context_id);

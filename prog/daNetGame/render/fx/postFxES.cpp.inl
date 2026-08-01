@@ -176,6 +176,11 @@ static __forceinline void hero_dof_es(const UpdateStageInfoBeforeRender &info,
     target = trans->getcol(3);
 
   focusDistance = length(target - info.camPos);
+  // setPostFx re-applies shader globals; skip when the sent values are unchanged (there is one hero)
+  static Point3 prevSent(MAX_REAL, MAX_REAL, MAX_REAL);
+  const Point3 sent(focusDistance, fStop, sensorHeight_mm);
+  if (sent == prevSent)
+    return;
   ecs::Object postfx;
   postfx.addMember(ECS_HASH("dof__focusDistance"), focusDistance);
   postfx.addMember(ECS_HASH("dof__fStop"), fStop);
@@ -183,7 +188,10 @@ static __forceinline void hero_dof_es(const UpdateStageInfoBeforeRender &info,
   postfx.addMember(ECS_HASH("dof__focalLength_mm"), -1);
   postfx.addMember(ECS_HASH("dof__on"), true);
   if (WorldRenderer *renderer = (WorldRenderer *)get_world_renderer())
+  {
     renderer->setPostFx(postfx);
+    prevSent = sent;
+  }
 }
 
 static int get_damage_indicator_stage(float hp, const Point3 &damage_indicator__thresholds)
@@ -263,8 +271,11 @@ static void post_fx_es(const ecs::UpdateStageInfoAct &info,
   const bool damage_indicator__enabled = true)
 {
   ecs::EntityId hero = game::get_controlled_hero();
-  const float maxHp = manager.getOr(hero, ECS_HASH("hitpoints__maxHp"), 1.0f);
-  const float hp = manager.getOr(hero, ECS_HASH("hitpoints__hp"), 1.0f);
+  float maxHp = 1.0f, hp = 1.0f;
+  get_hero_ecs_query(manager, hero, [&](float hitpoints__maxHp = 1.f, float hitpoints__hp = 1.f) {
+    maxHp = hitpoints__maxHp;
+    hp = hitpoints__hp;
+  });
   float health = safediv(hp, maxHp); // relative health
   if (health > 0 && damage_indicator__enabled)
   {

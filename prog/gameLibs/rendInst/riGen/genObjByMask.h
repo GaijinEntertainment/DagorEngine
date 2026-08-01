@@ -11,88 +11,88 @@
 namespace rendinst::gen
 {
 template <class BitMask>
-inline void generateTiledEntitiesInMaskedRect(const rendinst::gen::land::TiledEntities &lcd,
+inline void generateTiledEntitiesInMaskedRect(rendinst::gen::RiGenCellCtx &ctx, const rendinst::gen::land::TiledEntities &lcd,
   dag::Span<rendinst::gen::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x, float world0_y,
   float box, float mask_ofs_x, float mask_ofs_z, int16_t *ent_remap, float entity_ofs_x, float entity_ofs_z)
 {
-#define ADD_ENTITY_BYMASK                                                                    \
-  pos.x += mx + entity_ofs_x;                                                                \
-  pos.z += my + entity_ofs_z;                                                                \
-  align_place_xz(pos);                                                                       \
-  int mtx = int(floorf(pos.x * world2sampler) - floorf(world2sampler * mask_ofs_x));         \
-  int mtz = int(floorf(pos.z * world2sampler) - floorf(world2sampler * mask_ofs_z));         \
-  if (!mask.getClamped(mtx, mtz) || !is_place_allowed(pos.x, pos.z))                         \
-  {                                                                                          \
-    rnd(seed);                                                                               \
-    continue;                                                                                \
-  }                                                                                          \
-  int paletteId = 0;                                                                         \
-  if (pool.tryAdd(pos.x, pos.z))                                                             \
-  {                                                                                          \
-    TMatrix tm = sep.tm[tmi];                                                                \
-                                                                                             \
-    MpPlacementRec mppRec;                                                                   \
-    bool is_multi_place = sep.mpRec.mpOrientType != MpPlacementRec::MP_ORIENT_NONE;          \
-    TMatrix rot_tm = tm;                                                                     \
-    rot_tm.setcol(3, Point3(0, 0, 0));                                                       \
-                                                                                             \
-    if (orientType == sep.ORIENT_WORLD)                                                      \
-    {                                                                                        \
-      custom_get_height(pos, nullptr);                                                       \
-      if (is_multi_place)                                                                    \
-      {                                                                                      \
-        mppRec = sep.mpRec;                                                                  \
-        place_multipoint(mppRec, pos, rot_tm, lcd.aboveHt);                                  \
-      }                                                                                      \
-      else                                                                                   \
-        place_on_ground(pos, lcd.aboveHt);                                                   \
-    }                                                                                        \
-    else                                                                                     \
-    {                                                                                        \
-      TMatrix rot;                                                                           \
-      Point3 norm(0, 1, 0);                                                                  \
-      custom_get_height(pos, &norm);                                                         \
-      if (is_multi_place)                                                                    \
-      {                                                                                      \
-        mppRec = sep.mpRec;                                                                  \
-        place_multipoint(mppRec, pos, rot_tm, lcd.aboveHt);                                  \
-      }                                                                                      \
-      else                                                                                   \
-        place_on_ground(pos, norm, lcd.aboveHt);                                             \
-      if (orientType == sep.ORIENT_NORMAL_XZ)                                                \
-        rot.setcol(0, norm % Point3(-norm.z, 0, norm.x));                                    \
-      else if (orientType == sep.ORIENT_WORLD_XZ)                                            \
-      {                                                                                      \
-        if (fabsf(norm.x) + fabsf(norm.z) > 1e-5f)                                           \
-          rot.setcol(0, tm.getcol(1) % Point3(-norm.z, 0, norm.x));                          \
-        else                                                                                 \
-          rot.setcol(0, tm.getcol(1) % Point3(0, 0, 1));                                     \
-        norm = tm.getcol(1);                                                                 \
-      }                                                                                      \
-      else                                                                                   \
-        rot.setcol(0, norm % Point3(0, 0, 1));                                               \
-      float xAxisLength = length(rot.getcol(0));                                             \
-      if (xAxisLength <= 1.192092896e-06F)                                                   \
-        rot.setcol(0, normalize(norm % Point3(1, 0, 0)));                                    \
-      else                                                                                   \
-        rot.setcol(0, rot.getcol(0) / xAxisLength);                                          \
-      rot.setcol(1, norm);                                                                   \
-      rot.setcol(2, normalize(rot.getcol(0) % norm));                                        \
-      tm = rot % tm;                                                                         \
-    }                                                                                        \
-    if (is_multi_place)                                                                      \
-      rotate_multipoint(tm, mppRec);                                                         \
-    pos.y += getRandom(seed, yOffset);                                                       \
-    tm.setcol(3, pos);                                                                       \
-    if (destrExcl.isMarked(pos.x, pos.z))                                                    \
-    {                                                                                        \
-      tm.setcol(0, Point3(0, 0, 0));                                                         \
-      tm.setcol(1, Point3(0, 0, 0));                                                         \
-      tm.setcol(2, Point3(0, 0, 0));                                                         \
-    }                                                                                        \
-    pool.addEntity(tm, posInst, ent_remap[sep.entityIdx], paletteRotation ? paletteId : -1); \
-  }                                                                                          \
-  else                                                                                       \
+#define ADD_ENTITY_BYMASK                                                                         \
+  pos.x += mx + entity_ofs_x;                                                                     \
+  pos.z += my + entity_ofs_z;                                                                     \
+  align_place_xz(pos);                                                                            \
+  int mtx = int(floorf(pos.x * world2sampler) - floorf(world2sampler * mask_ofs_x));              \
+  int mtz = int(floorf(pos.z * world2sampler) - floorf(world2sampler * mask_ofs_z));              \
+  if (!mask.getClamped(mtx, mtz) || !is_place_allowed(pos.x, pos.z))                              \
+  {                                                                                               \
+    rnd(seed);                                                                                    \
+    continue;                                                                                     \
+  }                                                                                               \
+  int paletteId = 0;                                                                              \
+  if (pool.tryAdd(ctx, pos.x, pos.z))                                                             \
+  {                                                                                               \
+    TMatrix tm = sep.tm[tmi];                                                                     \
+                                                                                                  \
+    MpPlacementRec mppRec;                                                                        \
+    bool is_multi_place = sep.mpRec.mpOrientType != MpPlacementRec::MP_ORIENT_NONE;               \
+    TMatrix rot_tm = tm;                                                                          \
+    rot_tm.setcol(3, Point3(0, 0, 0));                                                            \
+                                                                                                  \
+    if (orientType == sep.ORIENT_WORLD)                                                           \
+    {                                                                                             \
+      custom_get_height(pos, nullptr);                                                            \
+      if (is_multi_place)                                                                         \
+      {                                                                                           \
+        mppRec = sep.mpRec;                                                                       \
+        place_multipoint(mppRec, pos, rot_tm, lcd.aboveHt);                                       \
+      }                                                                                           \
+      else                                                                                        \
+        place_on_ground(pos, lcd.aboveHt);                                                        \
+    }                                                                                             \
+    else                                                                                          \
+    {                                                                                             \
+      TMatrix rot;                                                                                \
+      Point3 norm(0, 1, 0);                                                                       \
+      custom_get_height(pos, &norm);                                                              \
+      if (is_multi_place)                                                                         \
+      {                                                                                           \
+        mppRec = sep.mpRec;                                                                       \
+        place_multipoint(mppRec, pos, rot_tm, lcd.aboveHt);                                       \
+      }                                                                                           \
+      else                                                                                        \
+        place_on_ground(pos, norm, lcd.aboveHt);                                                  \
+      if (orientType == sep.ORIENT_NORMAL_XZ)                                                     \
+        rot.setcol(0, norm % Point3(-norm.z, 0, norm.x));                                         \
+      else if (orientType == sep.ORIENT_WORLD_XZ)                                                 \
+      {                                                                                           \
+        if (fabsf(norm.x) + fabsf(norm.z) > 1e-5f)                                                \
+          rot.setcol(0, tm.getcol(1) % Point3(-norm.z, 0, norm.x));                               \
+        else                                                                                      \
+          rot.setcol(0, tm.getcol(1) % Point3(0, 0, 1));                                          \
+        norm = tm.getcol(1);                                                                      \
+      }                                                                                           \
+      else                                                                                        \
+        rot.setcol(0, norm % Point3(0, 0, 1));                                                    \
+      float xAxisLength = length(rot.getcol(0));                                                  \
+      if (xAxisLength <= 1.192092896e-06F)                                                        \
+        rot.setcol(0, normalize(norm % Point3(1, 0, 0)));                                         \
+      else                                                                                        \
+        rot.setcol(0, rot.getcol(0) / xAxisLength);                                               \
+      rot.setcol(1, norm);                                                                        \
+      rot.setcol(2, normalize(rot.getcol(0) % norm));                                             \
+      tm = rot % tm;                                                                              \
+    }                                                                                             \
+    if (is_multi_place)                                                                           \
+      rotate_multipoint(tm, mppRec);                                                              \
+    pos.y += getRandom(seed, yOffset);                                                            \
+    tm.setcol(3, pos);                                                                            \
+    if (destrExcl.isMarked(pos.x, pos.z))                                                         \
+    {                                                                                             \
+      tm.setcol(0, Point3(0, 0, 0));                                                              \
+      tm.setcol(1, Point3(0, 0, 0));                                                              \
+      tm.setcol(2, Point3(0, 0, 0));                                                              \
+    }                                                                                             \
+    pool.addEntity(ctx, tm, posInst, ent_remap[sep.entityIdx], paletteRotation ? paletteId : -1); \
+  }                                                                                               \
+  else                                                                                            \
     rnd(seed);
 
   BBox2 rect(Point2(world0_x, world0_y), Point2(world0_x + box, world0_y + box));

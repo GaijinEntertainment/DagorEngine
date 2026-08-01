@@ -18,7 +18,9 @@ public:
     clampToBorder,
     fov,
     fadeOutZone,
-    radiusOffset);
+    radiusOffset,
+    relativeAngle,
+    doNotRotate);
 
   BhvPlaceRoundCompassOnCompassStrip();
   virtual int update(UpdateStage stage, darg::Element *elem, float dt) override final;

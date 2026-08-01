@@ -113,7 +113,7 @@ def print_data(var tab : ContextData)
     for idx, tree in count(), tab.tree
         var totalHeap = 0ul
         var totalStringHeap = 0ul
-        for fnId, it in keys(tree), values(tree)
+        for _fnId, it in keys(tree), values(tree)
             totalHeap += it.totalUsedHeap
             totalStringHeap += it.totalUsedStringHeap
         let nameWidth = max(25, name_max_width(tab, tree) + 1)

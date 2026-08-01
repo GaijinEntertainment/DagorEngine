@@ -3,6 +3,7 @@
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animBlendCtrl.h>
 #include <anim/dag_animDecl.h>
+#include <ioSys/dag_dataBlock.h>
 #include <animChar/dag_animate2ndPass.h>
 namespace AnimV20
 {
@@ -69,9 +70,16 @@ int AnimationGraph::addParamId(const char *, int) { G_ASSERT_RETURN(0, 0); }
 int AnimationGraph::addInlinePtrParamId(const char *, size_t, int) { G_ASSERT_RETURN(0, 0); }
 void AnimationGraph::setStateSpeed(AnimGraphStateHolder &, dag::ConstSpan<StateRec>, float) { G_ASSERT(0); }
 int AnimationGraph::getParamId(const char *, int) const { G_ASSERT_RETURN(false, 0); }
+const DataBlock &AnimationGraph::getEnumList(const char *) const { G_ASSERT_RETURN(false, DataBlock::emptyBlock); }
 int AnimationGraph::registerBlendNode(AnimV20::IAnimBlendNode *, char const *, char const *) { G_ASSERT_RETURN(0, 0); }
 
 void AnimBlendCtrl_Hub::addBlendNode(IAnimBlendNode *, bool, real) { G_ASSERT(0); }
+void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *, real, AnimationGraph &, const char *) { G_ASSERT(0); }
+void AnimBlendCtrl_LinearPoly::sortBlendNodes() { G_ASSERT(0); }
+void AnimBlendCtrl_ParametricSwitcher::addBlendNode(IAnimBlendNode *, real, real, real, AnimationGraph &, const char *)
+{
+  G_ASSERT(0);
+}
 
 void register_blend_node_creator(blend_node_creator_t) {}
 bool create_blend_node_from_creators(AnimationGraph &, const DataBlock &) { G_ASSERT_RETURN(0, false); }

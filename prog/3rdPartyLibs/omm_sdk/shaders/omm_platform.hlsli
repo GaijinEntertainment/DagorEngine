@@ -33,25 +33,29 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 #if( COMPILER_FXC || COMPILER_DXC )
 
+#define OMM_REGISTER(regName, bindingIndex) register(regName ## bindingIndex)
+
 #define OMM_CONSTANTS_START(name) \
         struct name {
 #define OMM_CONSTANT( constantType, constantName ) constantType constantName;
 #define OMM_CONSTANTS_END(name, registerIndex)                               \
             };                                                              \
-            ConstantBuffer<name>	g_ ## name		: register(b ## registerIndex);
+            ConstantBuffer<name>	g_ ## name		: OMM_REGISTER(b, registerIndex);
 
 #define OMM_PUSH_CONSTANTS_START(name) struct name {
 #define OMM_PUSH_CONSTANT( constantType, constantName ) constantType constantName;
 #define OMM_PUSH_CONSTANTS_END(name, registerIndex)                               \
             };                                                              \
-            VK_PUSH_CONSTANT ConstantBuffer<name>	g_ ## name		: register(b ## registerIndex);
+            VK_PUSH_CONSTANT ConstantBuffer<name>	g_ ## name		: OMM_REGISTER(b, registerIndex);
 
     #define OMM_INPUT_RESOURCE( resourceType, resourceName, regName, bindingIndex ) \
-        resourceType resourceName : register( regName ## bindingIndex );
+        resourceType resourceName : OMM_REGISTER(regName, bindingIndex);
     #define OMM_OUTPUT_RESOURCE( resourceType, resourceName, regName, bindingIndex ) \
-        resourceType resourceName : register( regName ## bindingIndex );
+        resourceType resourceName : OMM_REGISTER(regName, bindingIndex);
     #define OMM_SAMPLER( resourceType, resourceName, regName, bindingIndex ) \
-        resourceType resourceName : register( regName ## bindingIndex );
+        resourceType resourceName : OMM_REGISTER(regName, bindingIndex);
+    #define OMM_DECLARE_GLOBAL_SAMPLERS SamplerState s_samplers[] : OMM_REGISTER(s, 0);
+    #define OMM_GLOBAL_SAMPLER(samplerIndex) s_samplers[samplerIndex]
 
 #define OMM_SUBRESOURCE( resourceType, alias, name ) \
         static resourceType alias = name;
@@ -61,6 +65,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define OMM_SUBRESOURCE_LOAD(subResource, offset) subResource.Load(g_GlobalConstants.subResource##Offset + offset)
 #define OMM_SUBRESOURCE_LOAD2(subResource, offset) subResource.Load2(g_GlobalConstants.subResource##Offset + offset)
 #define OMM_SUBRESOURCE_LOAD3(subResource, offset) subResource.Load3(g_GlobalConstants.subResource##Offset + offset)
+#define OMM_SUBRESOURCE_LOAD4(subResource, offset) subResource.Load4(g_GlobalConstants.subResource##Offset + offset)
 #define OMM_SUBRESOURCE_STORE(subResource, offset, value) subResource.Store(g_GlobalConstants.subResource##Offset + offset, value)
 #define OMM_SUBRESOURCE_STORE2(subResource, offset, value) subResource.Store2(g_GlobalConstants.subResource##Offset + offset, value)
 #define OMM_SUBRESOURCE_STORE3(subResource, offset, value) subResource.Store3(g_GlobalConstants.subResource##Offset + offset, value)
@@ -68,17 +73,19 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define OMM_SUBRESOURCE_INTERLOCKEDADD(subResource, offset, value, original_value) subResource.InterlockedAdd(g_GlobalConstants.subResource##Offset + offset, value, original_value)
 #define OMM_SUBRESOURCE_INTERLOCKEDMAX(subResource, offset, value, original_value) subResource.InterlockedMax(g_GlobalConstants.subResource##Offset + offset, value, original_value)
 
-#elif( \
-defined( OMM_INPUT_RESOURCE ) && \
-defined( OMM_OUTPUT_RESOURCE ) && \
-defined( OMM_SUBRESOURCE ) &&\
-defined( OMM_CONSTANTS_START ) && \
-defined( OMM_CONSTANT ) && \
-defined( OMM_CONSTANTS_END ) && \
-defined( OMM_PUSH_CONSTANTS_START ) && \
-defined( OMM_PUSH_CONSTANT ) && \
-defined( OMM_PUSH_CONSTANTS_END)
-)
+#elif defined( OMM_INPUT_RESOURCE ) && \
+      defined( OMM_OUTPUT_RESOURCE ) && \
+      defined( OMM_SAMPLER ) && \
+      defined( OMM_DECLARE_GLOBAL_SAMPLERS ) && \
+      defined( OMM_GLOBAL_SAMPLER ) && \
+      defined( OMM_SUBRESOURCE ) && \
+      defined( OMM_INPUT_SUBRESOURCE ) && \
+      defined( OMM_CONSTANTS_START ) && \
+      defined( OMM_CONSTANT ) && \
+      defined( OMM_CONSTANTS_END ) && \
+      defined( OMM_PUSH_CONSTANTS_START ) && \
+      defined( OMM_PUSH_CONSTANT ) && \
+      defined( OMM_PUSH_CONSTANTS_END )
     // Custom engine that has already defined all the macros
 
 #else

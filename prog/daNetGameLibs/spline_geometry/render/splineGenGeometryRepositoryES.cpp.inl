@@ -1,10 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <render/world/dafgCameraRegistrator.h>
 #include "render/world/frameGraphHelpers.h"
 #include "render/world/frameGraphNodes/prevFrameTexRequests.h"
 #include "splineGenGeometryRepository.h"
 #include "splineGenGeometryShaderVar.h"
 #include <shaders/dag_shaders.h>
+#include <render/renderEvent.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
@@ -41,10 +43,11 @@ SplineGenGeometryAssetPtr SplineGenGeometryRepository::getOrMakeAsset(const east
   return assets.emplace(asset_name, eastl::make_shared<SplineGenGeometryAsset>(asset_name)).first->second;
 }
 
-dafg::NodeHandle createTransparentSplineGenNodeImpl(bool is_triangle_debug)
+dafg::NodeHandle createTransparentSplineGenNodeImpl(bool is_triangle_debug, const char *view_ns, bool is_main_view)
 {
-  auto nodeNs = is_triangle_debug ? dafg::root() / "tringle_size_debug" / "transparent" : dafg::root() / "transparent" / "close";
-  return nodeNs.registerNode("spline_gen", DAFG_PP_NODE_SRC, [is_triangle_debug](dafg::Registry registry) {
+  auto nodeNs =
+    is_triangle_debug ? dafg::root() / "tringle_size_debug" / "transparent" : dafg::root() / "transparent" / "close" / view_ns;
+  return nodeNs.registerNode("spline_gen", DAFG_PP_NODE_SRC, [is_triangle_debug, is_main_view, view_ns](dafg::Registry registry) {
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
     read_prev_frame_tex(registry);
 
@@ -53,13 +56,13 @@ dafg::NodeHandle createTransparentSplineGenNodeImpl(bool is_triangle_debug)
       auto ns = registry.root() / "transparent" / "close";
       registry.requestRenderPass().color({"triangle_size_tex"}).depthReadTestOnly(ns.readTexture("depth_for_transparency"));
       registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
-      use_camera_in_camera(registry);
+      use_camera_view(registry, view_ns);
     }
     else
-      request_common_published_transparent_state(registry, true);
+      request_common_published_transparent_state_per_view(registry, view_ns, true);
 
-    return [is_triangle_debug](const dafg::multiplexing::Index &multiplexing_index) {
-      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+    return [is_triangle_debug, is_main_view]() {
+      const camera_in_camera::ApplyMasterState camcam{is_main_view};
 
       STATE_GUARD_0(ShaderGlobal::set_int(var::rendinst_transparent_triangle_size_debug, VALUE), is_triangle_debug);
       for (auto &managerPair : get_spline_gen_repository().getManagers())
@@ -68,13 +71,17 @@ dafg::NodeHandle createTransparentSplineGenNodeImpl(bool is_triangle_debug)
   });
 }
 
+template <typename Callable>
+static void spline_gen_request_render_node_ecs_query(ecs::EntityManager &, ecs::EntityId, Callable);
 
-void SplineGenGeometryRepository::createTransparentSplineGenNode()
+void SplineGenGeometryRepository::requestTransparentSplineGenNode()
 {
-  if (transparentSplineGenNode)
+  if (transparentNodeRequested)
     return;
-
-  transparentSplineGenNode = createTransparentSplineGenNodeImpl(false);
+  transparentNodeRequested = true;
+  ecs::EntityId eid = g_entity_mgr->getSingletonEntity(ECS_HASH("spline_gen_repository"));
+  spline_gen_request_render_node_ecs_query(*g_entity_mgr, eid,
+    [](const ecs::string &dafg_camera_registrator__name) { recreate_camera_registrator_nodes(dafg_camera_registrator__name); });
 }
 
 template <typename Callable>
@@ -189,5 +196,15 @@ static void create_transparent_spline_triangle_debug_es(const CreateTriangleDebu
   if (!evt.systems.isTransparent)
     return;
 
-  evt.nodes->push_back(createTransparentSplineGenNodeImpl(true));
+  evt.nodes->push_back(createTransparentSplineGenNodeImpl(true, "view0", true));
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraPerViewNodeConstruction)
+static void spline_gen_view_nodes_es(const OnCameraPerViewNodeConstruction &evt,
+  const SplineGenGeometryRepository &spline_gen_repository)
+{
+  if (!spline_gen_repository.needsTransparentNode())
+    return;
+  evt.nodes->push_back(createTransparentSplineGenNodeImpl(false, evt.viewNsName, evt.isMainView));
 }

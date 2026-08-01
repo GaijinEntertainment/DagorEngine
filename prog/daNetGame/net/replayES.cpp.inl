@@ -214,12 +214,12 @@ void server_create_replay_record()
     path = record;
   trim_filename(path);
   path += REPLAY_TMP_PREFIX MKSTEMP_SUFFIX;
-  net::Connection *conn = net::create_replay_connection(REPLAY_CONN_ID, (char *)path.c_str(), NET_PROTO_VERSION, &gen_replay_meta_data,
-    net::scope_query_cb_t(), &save_replay_key_frame);
+  net::CNetwork *netw = GET_NET();
+  G_ASSERT(netw && netw->isServer());
+  net::Connection *conn = net::create_replay_connection(netw->getEntityManager(), REPLAY_CONN_ID, (char *)path.c_str(),
+    NET_PROTO_VERSION, &gen_replay_meta_data, net::scope_query_cb_t(), &save_replay_key_frame);
   if (conn)
   {
-    auto netw = GET_NET();
-    G_ASSERT(netw && netw->isServer());
     netw->addConnection(conn, REPLAY_CONN_ID);
     BasePhysActor::resizeSyncStates(REPLAY_CONN_ID);
     g_replay_record_filename = path.c_str();
@@ -301,7 +301,7 @@ bool try_create_replay_playback(ecs::EntityManager &mgr)
   load_replay_footer_info(replayFooterData, replay_meta_info);
 
   auto &cnet = net_ctx_init_client(mgr, drv);
-  cnet.addConnection(net::create_stub_connection(), 0);
+  cnet.addConnection(net::create_stub_connection(mgr), 0);
 
   if (profile.replay.startTime > 0)
     set_timespeed(0);

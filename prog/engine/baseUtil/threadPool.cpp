@@ -567,6 +567,13 @@ void barrier_active_wait_for_job_ool(cpujobs::IJob *j, JobPriority prio, uint32_
   tp_instance->activeWaitBarrier(j->done, prio, queue_pos, profile_wait_token);
 }
 
+bool perform_pending_job(JobPriority prio)
+{
+  if (!tp_instance)
+    return false;
+  return perform_queue_elem(tp_instance->taskQueue[prio].pop(), *jenv_direct, tp_instance->jobDoneEvent);
+}
+
 void wait_ool(cpujobs::IJob *j, uint32_t profile_token, int lowest_prio_to_perform)
 {
   tp_instance->waitFlag(j->done, lowest_prio_to_perform, profile_token);

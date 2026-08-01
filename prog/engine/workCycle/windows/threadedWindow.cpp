@@ -57,6 +57,8 @@ public:
   DWORD threadId = 0;
   int status = -1;
 
+  volatile int windowDestroyed = 0;
+
   RenderWindowSettings settings{};
   RenderWindowParams params{};
 
@@ -128,6 +130,8 @@ void WindowThread::execute()
 
   if (interlocked_acquire_load(status) != CLOSE)
     DestroyWindow((HWND)window_thread->params.hwnd);
+
+  interlocked_release_store(window_thread->windowDestroyed, 1);
 }
 
 LRESULT WindowThread::WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -253,7 +257,9 @@ void shutdown_threaded_window()
     }
 
     window_thread->terminate(true, 3000);
-    window_thread.demandDestroy();
+
+    if (interlocked_acquire_load(window_thread->windowDestroyed))
+      window_thread.demandDestroy();
   }
 }
 

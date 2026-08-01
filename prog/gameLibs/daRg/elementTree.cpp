@@ -1045,6 +1045,7 @@ int ElementTree::deactivateAllInput()
 
 Element *ElementTree::allocateElement(HSQUIRRELVM vm, Element *parent, const StringKeys *csk)
 {
+  guiScene->getPerfStats().elemsCreated++;
   Element *elem = (Element *)elemAllocator.allocateOneBlock();
   new (elem, _NEW_INPLACE) Element(vm, this, parent, csk);
   return elem;
@@ -1054,6 +1055,7 @@ void ElementTree::freeElement(Element *elem)
 {
   if (elem)
   {
+    guiScene->getPerfStats().elemsFreed++;
     elem->~Element();
     elemAllocator.freeOneBlock(elem);
   }

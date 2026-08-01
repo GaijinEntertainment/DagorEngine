@@ -96,7 +96,6 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(BOOL_LAMBDA_REQUIRED, WARNING, SEMA, 308, "bool-lambda-required", "Function '%s' requires lambda which returns boolean."), \
   DEF_DIAGNOSTIC(MISSING_DESTRUCTURED_VALUE, WARNING, SEMA, 309, "missing-destructured-value", "No value for '%s' in destructured declaration."), \
   DEF_DIAGNOSTIC(DESTRUCTURED_TYPE_MISMATCH, WARNING, SEMA, 310, "destructured-type", "Destructured type mismatch, right side is %s."), \
-  DEF_DIAGNOSTIC(WRONG_TYPE, WARNING, SEMA, 311, "wrong-type", "Wrong type: expected %s, got %s."), \
   DEF_DIAGNOSTIC(MISSING_FIELD, WARNING, SEMA, 312, "missing-field", "No field '%s' in %s."), \
   DEF_DIAGNOSTIC(MISSING_MODULE, HINT, SEMA, 313, "missing-module", "Module '%s' not found, or it returns null."), \
   DEF_DIAGNOSTIC(SEE_OTHER, HINT, SEMA, 314, "see-other", "You can find %s here."), \
@@ -121,7 +120,12 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(WILDCARD_AND_NAMED_IMPORT, WARNING, SEMA, 333, "wildcard-and-named-import", "Module '%s' is imported both with '*' and by explicit names."), \
   DEF_DIAGNOSTIC(SUBST_ARGUMENT_INDEX, WARNING, SEMA, 334, "subst-argument-index", "Substitution references positional placeholder '{%d}' but only %d argument(s) passed; it will be left as literal text."), \
   DEF_DIAGNOSTIC(MUTATING_SHARED_DEFAULT, WARNING, SEMA, 335, "mutating-shared-default", "Parameter '%s' has a mutable default value and is modified."), \
-  DEF_DIAGNOSTIC(ASYNC_RETURN_FUTURE, WARNING, SEMA, 336, "async-return-future", "Returning an async call without 'await' settles with the Future, not its value; use 'return await'.") \
+  DEF_DIAGNOSTIC(ASYNC_RETURN_FUTURE, WARNING, SEMA, 336, "async-return-future", "Returning an async call without 'await' settles with the Future, not its value; use 'return await'."), \
+  DEF_DIAGNOSTIC(CONDITIONAL_ARITY_MISMATCH, WARNING, SEMA, 337, "conditional-arity-mismatch", "Call with %d arguments, but '%s' may hold a function taking %s parameters."), \
+  DEF_DIAGNOSTIC(SAME_ARGS_IN_CALL, WARNING, SEMA, 338, "same-args-in-call", "Both arguments of '%s' are the same expression."), \
+  DEF_DIAGNOSTIC(ACCESS_POT_EMPTY, WARNING, SEMA, 339, "access-potentially-empty", "'%s' can be an empty %s here, the accessed element would not exist."), \
+  DEF_DIAGNOSTIC(LET_FUNCTION_STYLE, WARNING, SEMA, 344, "let-function-style", "'let %s' is legacy style; the plain form already declares a non-reassignable binding."), \
+  DEF_DIAGNOSTIC(BINDING_NAME_MISMATCH, WARNING, SEMA, 346, "binding-and-function-name", "Binding and function name are not the same ('%s' and '%s').") \
 
 
 namespace SQCompilation {
@@ -218,12 +222,12 @@ public:
 
   Arena *arena() const { return _arena; }
 
+  const char *findLine(int lineNo);
+
 private:
 
 
   void buildLineMap();
-
-  const char *findLine(int lineNo);
   bool isBlankLine(const char *l);
   void buildSourceWindow(int32_t line, int32_t pos, int32_t width, std::string &extraInfo);
   // Common emit path shared by warnings/hints (vreportDiagnostic) and errors (vthrowError):

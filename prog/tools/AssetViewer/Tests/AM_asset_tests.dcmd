@@ -1,0 +1,178 @@
+wait.progress
+wait.time 500
+
+//animchar
+app.select_asset "modern_gunner_char"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "pzkpfw_iii_b_gunner_new_01_char"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "am_player_trooper_female_heavy_a_char"
+wait.time 2000
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//collision
+app.select_asset "vw_beetle_destroyed_bumper_front_collision"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "gd_test_islands_d_001_collision"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//composit
+app.select_asset "gunwall_as_val_cmp"
+wait.time 1000
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//dynmodel
+app.select_asset "vw_beetle_destroyed_wheel_rear_destr"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+app.select_asset "am_player_trooper_male_light_boots_c_dynmodel"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.1
+wait.time 500
+screenshot.window
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.2
+wait.time 500
+screenshot.window
+
+app.select_asset "modern_gunner_dynmodel"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "sovmod_serial_house_a_balcony_b_paint_window_800_l_a_destr"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//ecs_template
+app.select_asset "am_mimic_boss"
+wait.time 1500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//fastPhys
+app.select_asset "am_player_trooper_female_heavy_a_fastphys"
+wait.time 1500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//fx
+app.select_asset "anomaly_fire_geyser_fire_3_fx"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//gameobj
+app.select_asset "am_alter_tube_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//prefab
+app.select_asset "am_geode_big_a_ground"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//physobj
+app.select_asset "sovmod_serial_house_a_balcony_b_paint_window_800_l_a_destr_phobj"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//rendInst
+app.select_asset "am_player_trooper_male_light_d_char"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "vw_beetle_destroyed_roof_noscar"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "vw_beetle_destroyed"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "wall_tree_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.1
+wait.time 500
+screenshot.window
+wait.time 500
+editor.command_viewport Plugin.Entity.ChangeLod.3
+wait.time 500
+screenshot.window
+
+//skeleton
+app.select_asset "modern_gunner_skeleton"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//tex
+app.select_asset "bush_flowers_dry_branches_a_tex_d"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+app.terminate 0

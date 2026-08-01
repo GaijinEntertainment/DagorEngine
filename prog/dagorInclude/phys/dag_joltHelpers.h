@@ -7,7 +7,8 @@
 #include <vecmath/dag_vecMath.h>
 #include <Jolt/Math/Vec4.h>
 
-inline JPH::Vec3 to_jVec3(const Point3 &p) { return JPH::Vec3(v_ldu_p3(&p.x)); }
+inline JPH::Vec3 to_jVec3(const Point3 &p) { return JPH::Vec3(p.x, p.y, p.z); } // Note: v_ldu_p3 is technically UB
+
 inline Point3 to_point3(const JPH::Vec3 &v)
 {
   Point3 p;

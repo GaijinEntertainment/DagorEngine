@@ -51,16 +51,23 @@ namespace rendinst
 {
 inline constexpr int RIEXTRA_VECS_COUNT = 4;
 
-class RiExtraPoolsVec : public dag::Vector<RiExtraPool> // To consider: move this methods to dag::Vector?
+struct RiExtraPoolsVec : private dag::Vector<RiExtraPool>
 {
-public:
-  using dag::Vector<RiExtraPool>::Vector;
+  RiExtraPool *data() { return mpBegin(); }
+  RiExtraPool &operator[](int id) { return dag::Vector<RiExtraPool>::operator[](id); }
+  void clear();
   uint32_t size_interlocked() const { return interlocked_acquire_load(*(const volatile int *)&mCount); }
-  uint32_t interlocked_increment_size();
+  uint32_t size() const { return dag::Vector<RiExtraPool>::size(); }
+  bool empty() const { return dag::Vector<RiExtraPool>::empty(); }
+  bool isValid(int id) const { return unsigned(id) < size(); }
+
+  // custom atomic insert() in order to avoid to read partially constructed pool data
+  void interlocked_insert(int id);
+
+  eastl::bitvector<> poolWasNotSavedToElems;
 };
 extern RiExtraPoolsVec riExtra;
 extern FastNameMap riExtraMap;
-extern eastl::bitvector<> riExtraPoolWasNotSavedToElems; // Parallel to `riExtra`
 
 extern int maxExtraRiCount;
 extern float extendTreeRiExtraTreeBbox;
@@ -90,18 +97,19 @@ template <typename Func>
 inline bool iterateRIExtra(const Func &callback)
 {
   using RetType = eastl::invoke_result_t<Func, int, RiExtraPool &>;
-  int id = 0;
+  RiExtraPool *pool = riExtra.data();
+  int size = riExtra.size_interlocked();
   if constexpr (eastl::is_same_v<RetType, bool>)
   {
-    for (auto &pool : riExtra)
-      if (!callback(id++, pool))
+    for (int id = 0; id < size; ++id, ++pool)
+      if (!callback(id, *pool))
         return false;
   }
   else
   {
     static_assert(eastl::is_void_v<RetType>);
-    for (auto &pool : riExtra)
-      callback(id++, pool);
+    for (int id = 0; id < size; ++id, ++pool)
+      callback(id, *pool);
   }
   return true;
 }

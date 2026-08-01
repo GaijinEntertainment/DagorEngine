@@ -14,10 +14,13 @@ void init(elem_rules_fn, screenshot_fn, AdditionalSettings) {}
 
 void teardown(bool, bool) {}
 
-ContextId create_context(const char *, Features) { return InvalidContextId; }
+ContextId create_context(const char *, Features, Features) { return InvalidContextId; }
 bool has_features(ContextId, uint32_t) { return false; }
 
 void teardown(ContextId &) {}
+
+void enable_dyn_models(ContextId) {}
+void disable_dyn_models(ContextId) {}
 
 void start_frame() {}
 
@@ -39,8 +42,8 @@ void set_ri_dist_mul(float) {}
 
 void override_out_of_camera_ri_dist_mul(float) {}
 
-void update_instances(ContextId, const Point3 &, const Point3 &, const TMatrix &, const TMatrix4 &, const Frustum &, const Frustum &,
-  dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *, dag::Vector<DynamicRenderableSceneInstance *> &&,
+void update_instances(ContextId, const Point3 &, const Point3 &, const Point3 &, const TMatrix &, const TMatrix4 &, const Frustum &,
+  const Frustum &, dynrend::ContextId *, dynrend::ContextId *, RiGenVisibility *, dag::Vector<DynamicRenderableSceneInstance *> &&,
   threadpool::JobPriority)
 {}
 
@@ -107,6 +110,8 @@ void ChannelParser::enum_shader_channel(int, int, int, int, int, ChannelModifier
 void enable_per_frame_processing(bool) {}
 
 void set_on_parallel_jobs_finished_cb(on_parallel_jobs_finished_callback) {}
+
+void render_rt_mem_overlay(ContextId) {}
 
 void connect_dagdp(ContextId, dagdp_connect_callback callback) { callback(nullptr); }
 

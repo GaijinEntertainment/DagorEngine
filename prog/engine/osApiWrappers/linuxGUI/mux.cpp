@@ -61,10 +61,10 @@ namespace linux_GUI
 void init_wayland()
 {
 #if USE_WAYLAND
-  const char *xdg_dir = getenv("XDG_RUNTIME_DIR");
-  if (xdg_dir)
+  const char *xdg_session_type = getenv("XDG_SESSION_TYPE");
+  if (strstr(xdg_session_type, "wayland"))
   {
-    debug("wayland: present because XDG_RUNTIME_DIR found (value: %s)", xdg_dir);
+    debug("wayland: present because XDG_SESSION_TYPE value = %s", xdg_session_type);
     bool useWayland = false;
 #if USE_X11
     useWayland = ::dgs_get_settings()->getBlockByNameEx("linux")->getBool("wayland", false) || ::dgs_get_argv("wayland");
@@ -116,8 +116,13 @@ void get_video_mode_list(Tab<String> &list) { ROUTE(getVideoModeList(list)); }
 void *get_main_window_ptr_handle() { ROUTE(getMainWindowPtrHandle()); }
 bool is_main_window(void *wnd) { ROUTE(isMainWindow(wnd)); }
 void destroy_main_window() { ROUTE(destroyMainWindow()); }
-bool init_window(const char *title, int winWidth, int winHeight) { ROUTE(initWindow(title, winWidth, winHeight)); }
+bool init_window(const char *title, int winWidth, int winHeight, const WindowCreationOptions &options)
+{
+  ROUTE(initWindow(title, winWidth, winHeight, options));
+}
 void get_window_position(void *w, int &cx, int &cy) { ROUTE(getWindowPosition(w, cx, cy)); }
+void get_window_frame_position(void *w, int &x, int &y) { ROUTE(getWindowFramePosition(w, x, y)); }
+bool is_window_maximized(void *w) { ROUTE(isWindowMaximized(w)); }
 void set_title(const char *title, const char *tooltip) { ROUTE(setTitle(title, tooltip)); }
 void set_title_utf8(const char *title, const char *tooltip) { ROUTE(setTitleUTF8(title, tooltip)); }
 int get_screen_refresh_rate() { ROUTE(getScreenRefreshRate()); }

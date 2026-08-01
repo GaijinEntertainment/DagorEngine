@@ -103,6 +103,12 @@ void set_str_param_by_name_if_default(dag::Vector<AnimParamData> &params, PropPa
 void set_float_param_by_name_if_default(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel,
   const char *name, float set_value, float default_value = 0.f);
 
+// Helper for controllers that have "name" and "varname" fields where varname defaults to "var" + name
+String get_default_varname_from_name(const dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
+void set_varname_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
+void update_varname_dependent_fields(AnimParamData &param, dag::Vector<AnimParamData> &params,
+  PropPanel::ContainerPropertyControl *panel);
+
 void remove_param_if_default_float(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
   float default_value = 0.f);
 void remove_param_if_default_int(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
@@ -134,6 +140,7 @@ void update_dependent_param_state(PropPanel::ContainerPropertyControl *panel, da
   DependentParamData &param, const char *parent_name);
 
 DataBlock *find_block_by_name(DataBlock *props, const String &name, bool should_exist = true);
+DataBlock *find_morph_block_by_name(DataBlock *parent, const String &caption);
 DataBlock *find_animate_and_proc_block(DataBlock *props, const String &name);
 DataBlock *find_block_by_block_name(DataBlock *props, const String &name, bool should_exist = true);
 DataBlock *find_blend_node_settings(DataBlock &props, const char *name);
@@ -205,6 +212,11 @@ SimpleString get_text_from_combo(PropPanel::ContainerPropertyControl *panel, int
 
 void move_param_blk(DataBlock &blk, int from, int to);
 void move_block_blk(DataBlock &blk, int from, int to);
+dag::Vector<int> collect_block_positions_by_name(const DataBlock &target, const char *name);
+// Collects positions of blocks whose name matches any of `names`, in block order.
+dag::Vector<int> collect_block_positions_by_names(const DataBlock &target, dag::ConstSpan<const char *> names);
+void move_block_at_positions(DataBlock &target, dag::ConstSpan<int> positions, int from, int to);
+void move_childs(dag::Vector<int> &childs, int from, int to);
 
 bool is_comp_op_needs_p1(const char *op);
 

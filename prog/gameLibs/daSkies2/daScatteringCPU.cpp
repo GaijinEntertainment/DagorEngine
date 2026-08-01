@@ -133,8 +133,8 @@ TransmittanceTexture::Data TransmittanceTexture::calc(int x, int y) const
   Length r;
   Number mu;
   GetRMuFromTransmittanceTextureUv(atmosphere, float2((x + 0.5f) / Width, (y + 0.5f) / Height), r, mu);
-  Data val =
-    ComputeTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu, 2. * atmosphere.top_radius, 196, float3(0, 0, 0), float3(0, 0, 0));
+  Data val = ComputeTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu, 2. * atmosphere.top_radius, SKIES_TRANSMITTANCE_STEPS,
+    float3(0, 0, 0), float3(0, 0, 0));
   data[x + y * Width] = val;
   return val;
 }
@@ -153,7 +153,13 @@ void DaScattering::invalidateCPUData()
 {
   debug("invalidate CPU data");
   lazy_transmittance_texture.invalidate();
+  invalidateCPUIrradiance();
+}
+
+void DaScattering::invalidateCPUIrradiance()
+{
   lazy_irradiance_texture.invalidate();
+  cpuIrradianceGen++;
 }
 
 float DaScattering::getEarthRadius() { return atmosphere.bottom_radius; }
@@ -163,8 +169,10 @@ Color3 DaScattering::getCpuFogLossIntegrate(const Point3 &camera, const Point3 &
   d *= 0.001f;
   float distAbove = max(0.01, (camera.y - current.min_ground_offset) * 0.001f);
   float mu = viewdir.y, r = atmosphere.bottom_radius + distAbove;
+  // cloud aerosol lobes get dedicated in-band steps inside the integrator
+  int samples = min(128, int(3 + d * 0.25));
   DimensionlessSpectrum loss =
-    ComputeTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu, d, min(128, int(3 + d * 0.25)), float3(0, 0, 0), float3(0, 0, 0));
+    ComputeTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu, d, samples, float3(0, 0, 0), float3(0, 0, 0));
   loss = min(loss, float3(1.0f, 1.0f, 1.0f));
   return Color3(loss.x, loss.y, loss.z);
 }
@@ -330,8 +338,11 @@ void DaScattering::setCPUConsts()
     float2(1. / (25 - 10), -10. / (25 - 10)), float2(1. / (25 - 40), -40. / (25 - 40)),
     float3(0.5764705882352941f, 0.6274509803921569f, 1.f) * 0.25f, // 5500 kelvin + Kruithof effect results in
                                                                    // (0.5764705882352941f,0.6274509803921569f, 1f) *0.25
-    12.5f};
+    12.5f,
+    // cloud droplet aerosol (mie3): off by default, derived at runtime from clouds
+    float4(0, 0, 1, 1), float4(0, 0, 1, 1), float4(0, 1, 0, 0)};
   atmosphere = earthAtmosphere;
+  applyCloudAerosol(); // setCPUConsts rebuilds the struct: re-apply the derived fields
   atmosphere.solar_irradiance =
     earthAtmosphere.solar_irradiance * max(point3(current.solar_irradiance_scale), Point3(0.001, 0.001, 0.001));
   atmosphere.bottom_radius = earthAtmosphere.bottom_radius * current.planet_scale;
@@ -342,15 +353,20 @@ void DaScattering::setCPUConsts()
   // ozone
   const float earthMaxOzoneAlt = 25.f, earthOzoneFalloffAlt = 15.f;
   const float ozone_max_alt = min(current.ozone_max_alt * totalAtmosphereScale * earthMaxOzoneAlt, atmosphereAlt - 0.1f);
-  const float alt_dist = current.ozone_alt_dist * earthOzoneFalloffAlt * totalAtmosphereScale;
+  const float alt_dist = max(current.ozone_alt_dist * earthOzoneFalloffAlt * totalAtmosphereScale, 0.01f);
   const float ozone_start_alt = max(ozone_max_alt - alt_dist, 0.1f);
   const float ozone_end_alt = min(ozone_max_alt + alt_dist, atmosphereAlt);
   atmosphere.absorption_extinction = earthAtmosphere.absorption_extinction * current.ozone_scale;
   // atmosphere.mu_s_min = -0.99;
 
   atmosphere.absorption_density_max_alt = ozone_max_alt;
-  atmosphere.absorption_density_linear_term0 = float2(1, -ozone_start_alt) / (ozone_max_alt - ozone_start_alt);
-  atmosphere.absorption_density_linear_term1 = float2(1, -ozone_end_alt) / (ozone_max_alt - ozone_end_alt);
+  // guard the denominators against zero, keeping their sign: small-atmosphere presets can
+  // clamp ozone_start_alt above the peak, where the negative lower ramp saturates to a
+  // continuous all-one profile below the peak - forcing it positive would cut a 0/1 step
+  const float ozoneLowerDenom = ozone_max_alt - ozone_start_alt;
+  atmosphere.absorption_density_linear_term0 =
+    float2(1, -ozone_start_alt) / (fabsf(ozoneLowerDenom) < 1e-3f ? (ozoneLowerDenom <= 0.f ? -1e-3f : 1e-3f) : ozoneLowerDenom);
+  atmosphere.absorption_density_linear_term1 = float2(1, -ozone_end_alt) / min(ozone_max_alt - ozone_end_alt, -1e-3f);
   // rayleigh
   atmosphere.rayleigh_scattering = current.rayleigh_scale * mul(point3(current.rayleigh_color), earthAtmosphere.rayleigh_scattering);
   atmosphere.rayleigh_density_altitude_exp_term =
@@ -390,12 +406,45 @@ void DaScattering::setCPUConsts()
   float2 backward = GetMiePhaseConsts(atmosphere.mie_phase_function_backward_g, (1 - atmosphere.mie_forward_scattering_weight));
   atmosphere.mie_phase_consts = float4(forward.x, forward.y, backward.x, backward.y);
   atmosphere.mie_extrapolation_coef = GetExtrapolatedSingleMieScatteringCoefConst(atmosphere);
+
+  invalidateCPUData();
 }
 
 inline bool equal(const float2 &a, const float2 &b) { return is_relative_equal_float(a.x, b.x) && is_relative_equal_float(a.y, b.y); }
 inline bool equal(const float3 &a, const float3 &b)
 {
   return is_relative_equal_float(a.x, b.x) && is_relative_equal_float(a.y, b.y) && is_relative_equal_float(a.z, b.z);
+}
+inline bool equal(const float4 &a, const float4 &b)
+{
+  return is_relative_equal_float(a.x, b.x) && is_relative_equal_float(a.y, b.y) && is_relative_equal_float(a.z, b.z) &&
+         is_relative_equal_float(a.w, b.w);
+}
+
+void DaScattering::applyCloudAerosol()
+{
+  // the shared mie coefficients already contain the preset mie_scale: divide it out
+  // so the aerosol amount does not depend on how hazy the preset is. normalize against
+  // the same clamped coefficient setCPUConsts uses - zeroing at mie_scale<=1e-5 (as mie2
+  // does) would silently kill the derived aerosol on clear zero-mie presets
+  const float invMie = 1.f / max(current.mie_scale, 0.00001f);
+  atmosphere.cloud_aerosol0 = float4(cloudAerosolLayer0.x * invMie, cloudAerosolLayer0.y, cloudAerosolLayer0.z, cloudAerosolLayer0.w);
+  atmosphere.cloud_aerosol1 = float4(cloudAerosolLayer1.x * invMie, cloudAerosolLayer1.y, cloudAerosolLayer1.z, cloudAerosolLayer1.w);
+  atmosphere.cloud_aerosol_rain = float4(cloudAerosolRain.x * invMie, cloudAerosolRain.y, 0, 0);
+}
+
+bool DaScattering::setCloudAerosolInfo(const Point4 &layer0, const Point4 &layer1, const Point2 &rain)
+{
+  // re-derived every frame from weather that may animate: eps compare, so the LUTs
+  // re-bake only on meaningful change
+  if (equal(layer0, cloudAerosolLayer0) && equal(layer1, cloudAerosolLayer1) && equal(rain, cloudAerosolRain))
+    return false;
+  cloudAerosolLayer0 = layer0;
+  cloudAerosolLayer1 = layer1;
+  cloudAerosolRain = rain;
+  applyCloudAerosol();
+  invalidateCPUData(); // the aerosol participates in transmittance, not only irradiance
+  return true;
 }
 
 bool DaScattering::setStatisticalCloudsInfo(float clouds_ms_contribution, float clouds_ms_attenuation, float clouds_start_altitude2,
@@ -410,14 +459,20 @@ bool DaScattering::setStatisticalCloudsInfo(float clouds_ms_contribution, float 
   const float3 new_stat_shadows_sigma = ms_sigma * clouds_shadow_coverage * 1000 * 0.5;
   const float2 new_stat_shadows_params =
     float2(sqr(getEarthRadius() + clouds_start_altitude2), sqr(getEarthRadius() + clouds_end_altitude2));
-  bool ret = false;
+  bool changed = false;
   if (!equal(new_stat_shadows_sigma, clouds_stat_shadows_sigma) || !equal(new_shadow_contrib, clouds_stat_shadows_contribution) ||
       !equal(new_stat_shadows_params, clouds_stat_shadows_params))
-    ret = (new_stat_shadows_sigma.x < 0);
+  {
+    // Check that there're clouds (this sigma is derived from cloudsForm.extinction and coverage parameters).
+    // If we have no clouds and didn't have them, then nothing is changed.
+    changed = new_stat_shadows_sigma.x < 0 && clouds_stat_shadows_sigma.x < 0;
+  }
+  if (changed)
+    invalidateCPUIrradiance();
   clouds_stat_shadows_contribution = new_shadow_contrib;
   clouds_stat_shadows_sigma = new_stat_shadows_sigma;
   clouds_stat_shadows_params = new_stat_shadows_params;
-  return ret;
+  return changed;
 }
 float DaScattering::getPreparedDistSq() { return SKIES_PREPARED_SHORT_PART_SQ; }
 float DaScattering::getAtmosphereAltitudeKm() const { return atmosphere.top_radius - atmosphere.bottom_radius; }

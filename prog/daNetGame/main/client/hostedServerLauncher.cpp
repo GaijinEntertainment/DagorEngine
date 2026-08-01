@@ -23,6 +23,7 @@
 #include <sqmodules/sqmodules.h>
 #include <debug/dag_debug.h>
 #include <mutex>
+#include <osApiWrappers/dag_atomic.h>
 #include <perfMon/dag_cpuFreq.h>
 #if _TARGET_C2
 
@@ -63,6 +64,9 @@ static int get_manual_ready_timeout_ms()
 
 std::recursive_mutex server_state_lock;
 
+// lock-free gate so per-frame watchdog polling can skip the state lock; mirrors manualReadyDeadlineMs != 0
+static volatile int manual_ready_watchdog_armed = 0;
+
 class ServerLockGuard
 {
 public:
@@ -92,7 +96,6 @@ struct InternalDedicatedServerMainThread;
 static eastl::unique_ptr<InternalDedicatedServerMainThread> current_running_internal_server;
 static bool dedicated_server_dll_pdb_loaded = false;
 
-void hosted_internal_server_init_shared_memory();
 void hosted_internal_server_pass_shared_memory(DataBlock &startParams);
 void hosted_internal_server_term_shared_memory();
 
@@ -161,7 +164,7 @@ static void create_start_params(DataBlock &start_params, int argc, char **argv)
   for (int i = 0; i < argc; i++)
   {
     start_params.addStr("arg", argv[i]);
-    debug(argv[i]);
+    debug("%s", argv[i]);
   }
 }
 
@@ -186,6 +189,13 @@ private:
   InternalServerState state = CREATED;
   int manualReadyDeadlineMs = 0;
 
+  // every write of manualReadyDeadlineMs must go through this to keep the atomic gate in sync
+  void setManualReadyDeadline(int deadline_ms)
+  {
+    manualReadyDeadlineMs = deadline_ms;
+    interlocked_relaxed_store(manual_ready_watchdog_armed, deadline_ms != 0 ? 1 : 0);
+  }
+
   void send_exit_signal_to_server()
   {
     SCOPED_STATE_LOCK();
@@ -199,14 +209,14 @@ private:
     }
     state = TERMINATING;
     shutdownRequested = true;
-    manualReadyDeadlineMs = 0;
+    setManualReadyDeadline(0);
   }
 
 public:
   void disarm_manual_ready_watchdog()
   {
     SCOPED_STATE_LOCK();
-    manualReadyDeadlineMs = 0;
+    setManualReadyDeadline(0);
   }
 
   bool consume_manual_ready_watchdog_expiry(int now_ms)
@@ -214,7 +224,7 @@ public:
     SCOPED_STATE_LOCK();
     if (manualReadyDeadlineMs == 0 || now_ms < manualReadyDeadlineMs)
       return false;
-    manualReadyDeadlineMs = 0;
+    setManualReadyDeadline(0);
     return true;
   }
 
@@ -304,11 +314,11 @@ public:
         if (dgs_get_settings()->getBlockByNameEx("debug")->getBool("hostedServerManualReady", false))
         {
           const int timeoutMs = get_manual_ready_timeout_ms();
-          manualReadyDeadlineMs = get_time_msec() + timeoutMs;
+          setManualReadyDeadline(get_time_msec() + timeoutMs);
           debug("%s: manual-ready watchdog armed, deadline in %d ms", func_label, timeoutMs);
         }
         else
-          manualReadyDeadlineMs = 0;
+          setManualReadyDeadline(0);
       }
       state = RUNNING;
       if (shutdownRequested)
@@ -329,7 +339,7 @@ public:
       SCOPED_STATE_LOCK_IF_NOT(isWaitingShutdown);
       state = TERMINATED;
       internal_server_did_start = false;
-      manualReadyDeadlineMs = 0;
+      setManualReadyDeadline(0);
       exit_internal_server = nullptr;
       invoke_try_start_relay_and_subscribe = nullptr;
       is_internal_server_terminating = nullptr;
@@ -403,6 +413,16 @@ void kill_internal_server(bool wait)
     current_running_internal_server->kill_server(wait);
 }
 
+void cancel_scheduled_internal_server_start()
+{
+  SCOPED_STATE_LOCK();
+  if (is_new_server_scheduled())
+  {
+    debug("[LIFECYCLE] cancel pending relaunch");
+    remove_current_new_server_request();
+  }
+}
+
 bool is_hosted_internal_server_active()
 {
   SCOPED_STATE_LOCK();
@@ -444,7 +464,6 @@ static void launch_internal_server_with_args_block(DataBlock args)
   SCOPED_STATE_LOCK();
   make_sure_no_current_server_running();
   export_memalloc_for_hosted_server();
-  hosted_internal_server_init_shared_memory();
   remove_current_new_server_request();
   if (!get_valid_dll_fn().empty())
   {
@@ -587,7 +606,7 @@ static bool debug_host_mode_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("host_mode", "launch_internal_server", 0, 40)
   {
     for (int i = 0; i < argc; i++)
-      debug(argv[i]);
+      debug("%s", argv[i]);
     schedule_new_internal_server_with_args(argc - 1, (char **)(&argv[1]));
   }
 
@@ -617,6 +636,8 @@ void prelaunch_internal_server_if_needed()
 
 bool poll_manual_ready_watchdog()
 {
+  if (!interlocked_relaxed_load(manual_ready_watchdog_armed))
+    return false;
   SCOPED_STATE_LOCK();
   if (!current_running_internal_server)
     return false;

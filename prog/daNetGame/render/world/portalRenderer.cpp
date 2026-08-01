@@ -225,7 +225,6 @@ PortalRenderer::PortalRenderer()
 
   envCubeTexArr = dag::create_cube_array_tex(cube_res, MAX_RENDERED_CUBES, renderTargetFmt | TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE, 1,
     "portal_env_cube_arr");
-  ShaderGlobal::set_sampler(get_shader_variable_id("portal_env_cube_arr_samplerstate", true), d3d::request_sampler({}));
 
   const char *shatteredGlassMaskTexName = "shattered_glass_mask_tex_n";
   shatteredGlassMaskTex = dag::get_tex_gameres(shatteredGlassMaskTexName, "portal_screen_mask");

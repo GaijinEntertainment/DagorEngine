@@ -26,9 +26,15 @@ void CombinedNodesProcessing::calcCombinedNode(const SelectedNodesSettings &sett
     case ExportCollisionNodeType::CONVEX_COMPUTER:
     case ExportCollisionNodeType::CONVEX_VHACD:
       for (const auto &refNode : settings.refNodes)
-      {
-        add_verts_and_indices_from_node(*collisionRes, collisionNodes, refNode, selectedNode.vertices, selectedNode.indices);
-      }
+        if (!add_verts_and_indices_from_node(*collisionRes, collisionNodes, refNode, selectedNode.vertices, selectedNode.indices))
+        {
+          // Ref empty/overflowed the 16-bit merged buffer (callee logerr'd) or missing (no log there):
+          // the partial merge is incomplete, so drop it instead of previewing a combined node with
+          // geometry silently omitted.
+          logerr("Combined node ref <%s> not found or not merged", refNode);
+          clearSelectedNode();
+          break;
+        }
       break;
 
     case ExportCollisionNodeType::BOX:
@@ -56,7 +62,12 @@ void CombinedNodesProcessing::calcCombinedNode(const SelectedNodesSettings &sett
         {
           if (refNode == collisionRes->getNodeName(node.nodeIndex))
           {
-            selectedNode.boundingSphere += collisionRes->getNodeTm(node.nodeIndex) * collisionRes->getNodeBSphere(node.nodeIndex);
+            // a SPHERE node's bounding sphere already carries the placement; other types stay stored-frame
+            BSphere3 nodeBSphere = collisionRes->getNodeBSphere(node.nodeIndex);
+            if (node.type == COLLISION_NODE_TYPE_SPHERE)
+              selectedNode.boundingSphere += nodeBSphere;
+            else
+              selectedNode.boundingSphere += collisionRes->getNodeTm(node.nodeIndex) * nodeBSphere;
           }
         }
       }

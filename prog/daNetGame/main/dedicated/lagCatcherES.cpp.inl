@@ -11,6 +11,7 @@
 #include <EASTL/fixed_string.h>
 #include <stdlib.h>
 #include <daGame/timers.h>
+#include <util/dag_compilerDefs.h>
 #include <util/dag_watchdog.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_finally.h>
@@ -26,7 +27,7 @@ static void lagcatcher_level_loaded_es_event_handler(const EventLevelLoaded &, e
   const char *lcchstr = dgs_get_argv("lagcatcher");
   if (!lcchstr)
     return;
-#ifdef __SANITIZE_ADDRESS__ // backtrace() that used by lagcatcher is know to be unreliable in ASAN
+#if DAGOR_ADDRESS_SANITIZER // its SIGPROF handler calls backtrace(), which re-enters asan internal alloc lock and deadlocks
   if (!*lcchstr || *lcchstr != '2')
   {
     logwarn(

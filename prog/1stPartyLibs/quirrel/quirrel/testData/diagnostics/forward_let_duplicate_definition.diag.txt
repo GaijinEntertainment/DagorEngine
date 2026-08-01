@@ -1,0 +1,8 @@
+ERROR: binding 'value' is already defined; a 'let' binding accepts a single assignment (declare it with 'local' to allow more)
+testData/diagnostics/forward_let_duplicate_definition.nut:3:0
+
+value = 1
+value = 2
+^----
+
+

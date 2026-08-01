@@ -11,6 +11,7 @@
 #include <math/dag_mathAng.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_delayedAction.h>
+#include <generic/dag_span.h>
 #include <EASTL/sort.h>
 
 namespace pathfinder
@@ -192,8 +193,9 @@ void tilecache_ri_stop()
     rendinst::setRiExtraAddedFromGenDataCb(pcb);
 
   G_VERIFY(rendinst::unregisterRIGenExtraInvalidateHandleCb(on_ri_invalidate_cb));
-  riHandle2obstacle.clear();
-  riResourceIds.clear();
+  // free the bucket arrays; plain clear() keeps them parked in menu
+  clear_and_shrink(riHandle2obstacle);
+  clear_and_shrink(riResourceIds);
 
   timeSinceStarted = 0.f;
   startAddedExtraCount = 0;

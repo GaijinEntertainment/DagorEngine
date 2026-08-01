@@ -19,13 +19,16 @@
 #include <rendInst/gpuObjects.h>
 #include <rendInst/visibility.h>
 
-#include <landMesh/landRayTracer.h>
+#include <heightmap/heightmapCulling.h>
+#include <landMesh/landRayTracerSoA4.h>
+#include <math/dag_mathUtils.h>
 #include <landMesh/clipMap.h>
 #include <landMesh/lastClip.h>
 #include <landMesh/biomeQuery.h>
 #include <landMesh/heightmapQuery.h>
 #include <landMesh/lmeshMirroring.h>
 #include <landMesh/lmeshRenderer.h>
+#include <landMesh/vtexRenderMode.h>
 #include <render/world/landMeshToHeightmapRenderer.h>
 
 #include <daECS/core/entityManager.h>
@@ -59,6 +62,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shaderVarsUtils.h>
 #include <shaders/dag_shAssert.h>
+#include <shaders/dag_refinedBlock.h>
 
 #include <visualConsole/dag_visualConsole.h>
 
@@ -90,6 +94,7 @@
 #include <render/screenSpaceReflections.h>
 #include <render/rendererFeatures.h>
 #include "render/rendinstTessellation.h"
+#include "render/world/dynModelRenderer.h"
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <render/volumetricLights/volumetricLights.h>
 #include <render/weather/fluidWind.h>
@@ -207,6 +212,7 @@ extern void init_fx();
 extern void term_fx();
 extern void add_volfog_optional_graphs();
 extern void add_envi_cover_optional_graphs();
+extern void add_clouds_optional_graphs();
 extern void set_nightly_spot_lights();
 extern void volfog_load_from_resources(
   const char *root_graph, const float low_range, const float high_range, const float low_height, const float high_height);
@@ -246,6 +252,9 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_render_events, "renderEvents", sq::VM_UI_ALL)
 extern eastl::unique_ptr<DebugBoxRenderer> debugBoxRenderer;
 extern bool grs_draw_wire;
 extern uint32_t global_frame_id;
+
+static void (*clipmap_decals_cb)(const BBox3 &landPart) = nullptr;
+
 enum
 {
   NUM_ROUGHNESS = 10,
@@ -273,7 +282,8 @@ static AntiAliasingMode convertAntialiasingMethod(render::antialiasing::Antialia
     case AntialiasingMethod::SGSR:
     case AntialiasingMethod::SGSR2:
     case AntialiasingMethod::ARM_ASR:
-    case AntialiasingMethod::METALFX: return AntiAliasingMode::TSR;
+    case AntialiasingMethod::METALFX:
+    case AntialiasingMethod::METALFX_TEMPORAL: return AntiAliasingMode::TSR;
 #if _TARGET_C2
 
 #endif
@@ -297,7 +307,7 @@ ShaderBlockIdHolder rendinstTransSceneBlockId{"rendinst_trans_scene"};
 ShaderBlockIdHolder rendinstVoxelizeSceneBlockId{"rendinst_voxelize_scene"};
 ShaderBlockIdHolder dynamicSceneBlockId{"dynamic_scene"};
 ShaderBlockIdHolder dynamicDepthSceneBlockId{"dynamic_depth_scene"};
-ShaderBlockIdHolder dynamicSceneTransBlockId{"dynamic_trans_scene"};
+ShaderBlockIdHolder dynamicTransSceneBlockId{"dynamic_trans_scene"};
 ShaderBlockIdHolder landMeshPrepareClipmapBlockId{"land_mesh_prepare_clipmap"};
 ShaderBlockIdHolder water3dBlockId{"water3d_block"};
 
@@ -386,6 +396,7 @@ CONSOLE_BOOL_VAL("render", process_reactive_gbuffer_data, false);
 inline bool is_gbuffer_cascade(int cascade) { return cascade == RENDER_MAIN || cascade == RENDER_CUBE; }
 static String root_fog_graph;
 static String root_envi_cover_graph;
+static String root_clouds_graph;
 #if DA_PROFILER_ENABLED
 static carray<da_profiler::desc_id_t, CascadeShadows::MAX_CASCADES> animchar_csm_desc;
 #endif
@@ -403,7 +414,19 @@ static ShaderVariableInfo layered_material_detail_quality("layered_material_deta
 static ShaderVariableInfo packed_gbuf_normals("packed_gbuf_normals");
 static ShaderVariableInfo packed_gbuf_1_tex("packed_gbuf_1_tex");
 static ShaderVariableInfo hmap_object_tess_factor("hmap_object_tess_factor", true);
+static ShaderVariableInfo force_in_editor("force_in_editor", true);
 } // namespace var
+
+WRDispatcher::ScopedForceInEditor::ScopedForceInEditor(bool a) : active(a)
+{
+  if (var::force_in_editor && active)
+    var::force_in_editor.set_int(1);
+}
+WRDispatcher::ScopedForceInEditor::~ScopedForceInEditor()
+{
+  if (var::force_in_editor && active)
+    var::force_in_editor.set_int(0);
+}
 
 uint32_t get_water_quality()
 {
@@ -452,6 +475,7 @@ public:
   shaders::UniqueOverrideStateId flipCullStateId;
   ViewProjMatrixContainer oviewproj;
   TMatrix viewTm;
+  Point3 hmapOrigin = Point3(0.f, 0.f, 0.f); // heightmap LOD origin prepared for this tile batch
 
   LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p) :
     renderer(r), provider(p), minZ(-5), maxZ(100), omode(LMeshRenderingMode::RENDERING_LANDMESH)
@@ -468,20 +492,21 @@ public:
   virtual void startRenderTiles(const Point2 &center)
   {
     Point3 pos(center.x, ::grs_cur_view.pos.y, center.y);
+    hmapOrigin = pos;
     ((WorldRenderer *)get_world_renderer())->getMinMaxZ(minZ, maxZ);
     BBox3 landBox = provider.getBBox();
     maxZ = max(maxZ, landBox[1].y + 1);
 
-    omode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
-    renderer.prepare(provider, pos, 2.f);
+    omode = renderer.getLMeshRenderingMode();
+    renderer.prepare(provider, HmapOrigin(pos));
     d3d_get_view_proj(oviewproj);
     d3d::settm(TM_VIEW, viewTm);
     shaders::overrides::set(flipCullStateId);
   }
   virtual void endRenderTiles()
   {
-    renderer.setRenderInBBox(BBox3());
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+    // restore the ambient mode shadervar for passes that still rely on inheriting it
     renderer.setLMeshRenderingMode(omode);
     d3d_set_view_proj(oviewproj);
     shaders::overrides::reset();
@@ -495,10 +520,13 @@ public:
     BBox3 region3(Point3(region[0].x, minZ, region[0].y), Point3(region[1].x, maxZ + 500, region[1].y));
     ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(landMeshPrepareClipmapBlockId, ShaderGlobal::LAYER_SCENE);
-    renderer.setRenderInBBox(region3);
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_CLIPMAP;
+    desc.renderInBBox = region3;
+    desc.invGeomLodDist = renderer.getInvGeomLodDist();
     TMatrix4_vec4 globTm = TMatrix4_vec4(viewTm) * proj;
-    renderer.render(reinterpret_cast<mat44f_cref>(globTm), proj, Frustum{globTm}, provider, renderer.RENDER_CLIPMAP,
-      ::grs_cur_view.pos);
+    renderer.render(reinterpret_cast<mat44f_cref>(globTm), proj, Frustum{globTm}, provider, renderer.RENDER_CLIPMAP, desc,
+      ::grs_cur_view.pos, HmapOrigin(hmapOrigin));
     clipmap_decals_mgr::render(false);
 
     ViewProjMatrixContainer viewProj;
@@ -538,9 +566,13 @@ void WorldRenderer::closeNBSShaders()
   if (enviCover)
   {
     enviCover->setValidNBS(false);
+    setEnviCover(false);
     envi_cover_use_NBS.set(false);
     enviCover->closeShaders();
   }
+
+  if (auto *skies = get_daskies())
+    skies->closeCloudsNBS();
 }
 void WorldRenderer::beforeResetNBS()
 {
@@ -567,6 +599,11 @@ void WorldRenderer::unloadLevel()
 
   staticSceneCollisionResource.reset();
   shadowsManager.resetShadowsVisibilityTesting();
+  // free mission-sized cull buffers; visibilities are lazily recreated on next render
+  shadowsManager.closeAllStaticShadowsVisibility();
+  shrinkRendinstVisibilities();
+  dynmodel_renderer::shrink_states();
+  lights.shrinkShadowVolumes();
   clearLegacyGPUObjectsVisibility();
 
   if (auto *skies = get_daskies())
@@ -580,6 +617,7 @@ void WorldRenderer::unloadLevel()
 
   lowresWaterHeightmap.close();
   clipmap_decals_mgr::clear();
+  clipmap_decals_cb = nullptr;
   binSceneBbox.setempty();
   closeGround();
   closeClipmap();
@@ -615,9 +653,9 @@ void WorldRenderer::unloadLevel()
 
   requestFgRecreation("unloadLevel");
 }
-void WorldRenderer::setWater(FFTWater *fftWater)
+void WorldRenderer::setWater(FFTWater *in_water)
 {
-  water = fftWater;
+  water = in_water;
   waterLevel = 0;
   if (water)
   {
@@ -758,6 +796,8 @@ void WorldRenderer::setSkies(DaSkies *skies)
   G_ASSERT(!main_pov_data && !cube_pov_data);
 
   resetMainSkies(skies);
+  if (DngSkies *dngSkies = get_daskies())
+    dngSkies->applyCloudsTraceCheckerboardSetting();
 
   PreparedSkiesParams cubicSkiesParams;
   cubicSkiesParams.panoramic = PreparedSkiesParams::Panoramic::ON;
@@ -869,7 +909,7 @@ void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
   d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
   if (DngSkies *daskies = get_daskies())
   {
-    daskies->prepare(get_daskies()->getSunDir(), false, 0);
+    daskies->prepare(get_daskies()->getSunDir(), 0);
     dir_to_sun.realTime = daskies->getPrimarySunDir();
   }
   dirToSunFlush();
@@ -922,6 +962,10 @@ void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
   initPortalRendererCallbacks();
   camera_in_camera::setup(hasFeature(CAMERA_IN_CAMERA));
 
+  G_ASSERT_LOG_ONCE(g_entity_mgr->getTemplateDB().getTemplateByName("dng_camera_nodes"),
+    "dng_camera_nodes template missing (renderer danetlib not linked or vromfs out of date)");
+  g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("dng_camera_nodes"));
+
   renderedFrames = 0;
 }
 
@@ -940,9 +984,12 @@ void WorldRenderer::initPortalRendererCallbacks()
     cb.renderLandmesh = [this](mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, const Point3 &view_pos) -> void {
       if (lmeshRenderer && clipmap)
       {
-        lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
+        LandMeshRenderDesc desc;
+        desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
         clipmap->startSecondaryFeedback();
-        lmeshRenderer->render(globtm, proj, frustum, *lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, view_pos);
+        // terrain LOD follows the portal view (view-local), so terrain near the portal focus is detailed
+        lmeshRenderer->render(globtm, proj, frustum, *lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, view_pos,
+          HmapOrigin(view_pos));
         clipmap->endSecondaryFeedback();
       }
     };
@@ -1158,6 +1205,27 @@ void WorldRenderer::onLandmeshLoaded(const DataBlock &level_blk, const char *fn,
   }));
 
   debug("lmesh loaded");
+}
+
+void WorldRenderer::setLandmesh(LandMeshManager *lmesh_mgr, LandMeshRenderer *lmesh_renderer, void (*decals_cb)(const BBox3 &landPart))
+{
+  lmeshMgr = lmesh_mgr;
+  lmeshRenderer = lmesh_renderer;
+  clipmap_decals_cb = decals_cb;
+  editorHeightmapActive = true;
+  initDeformHeightmap();
+  if (!clipmap)
+    initClipmap();
+
+  prepareLastClip();
+
+  if (lmeshMgr)
+  {
+    const DataBlock *clipBlk = ::dgs_get_settings()->getBlockByNameEx("clipmap");
+    float texelSize = clipBlk->getReal("texelSize", 4.0 / 1024);
+    debug("clipmap texelSize = %f", texelSize);
+    clipmap->setStartTexelSize(texelSize);
+  }
 }
 
 void WorldRenderer::initDeformHeightmap()
@@ -1404,6 +1472,10 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
   if (changed_fields.getNameId("graphics/cloudsQuality") >= 0)
     setupSkyPanoramaAndReflectionFromSetting();
 
+  if (changed_fields.getNameId("graphics/cloudsTraceCheckerboard") >= 0 || changed_fields.getNameId("graphics/cloudsQuality") >= 0)
+    if (DngSkies *dngSkies = get_daskies())
+      dngSkies->applyCloudsTraceCheckerboardSetting();
+
   if (changed_fields.getNameId("graphics/waterQuality") >= 0)
   {
     set_water_quality_from_settings();
@@ -1478,6 +1550,10 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
       changed_fields.getNameId("cinematicEffects/chromaticAberration") >= 0 || changed_fields.getNameId("graphics/preset") >= 0 ||
       changed_fields.getNameId("graphics/consolePreset") >= 0)
     setChromaticAberrationFromSettings();
+
+  if (changed_fields.getNameId("graphics/filmGrain") >= 0 || changed_fields.getNameId("cinematicEffects/filmGrainNoise") >= 0 ||
+      changed_fields.getNameId("graphics/preset") >= 0 || changed_fields.getNameId("graphics/consolePreset") >= 0)
+    setFilmGrainFromSettings();
 }
 
 void WorldRenderer::beforeDeviceReset(bool full_reset)
@@ -1500,7 +1576,7 @@ void WorldRenderer::beforeDeviceReset(bool full_reset)
   }
 
   acesfx::before_reset();
-  HeightmapRenderer::beforeResetDevice();
+  lod_grid_vdata_before_reset_device();
   clearLegacyGPUObjectsVisibility();
 
   if (full_reset)
@@ -1526,7 +1602,7 @@ void WorldRenderer::afterDeviceReset(bool full_reset)
 
   {
     d3d::GpuAutoLock gpuLock;
-    HeightmapRenderer::afterResetDevice();
+    lod_grid_vdata_after_reset_device();
     rendinst::gpuobjects::after_device_reset();
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     acesfx::after_reset();
@@ -1679,15 +1755,19 @@ void WorldRenderer::resetSSAOImpl()
     aoQuality = AoQuality::LOW;
   else if (strcmp(aoQualityStr, "high") == 0)
     aoQuality = AoQuality::HIGH;
+  else if (strcmp(aoQualityStr, "ultra") == 0)
+    aoQuality = AoQuality::ULTRA;
   else
     aoQuality = AoQuality::MEDIUM;
+
+  ShaderGlobal::set_int(parallax_ao_enabledVarId, aoQuality == AoQuality::ULTRA ? 1 : 0);
 
   if (!hasFeature(DOWNSAMPLED_NORMALS))
     aoQuality = AoQuality::LOW;
   if (is_rtao_enabled() || is_ptgi_enabled())
     aoQuality = AoQuality::LOW;
 
-  if (aoQuality == AoQuality::HIGH)
+  if (aoQuality >= AoQuality::HIGH)
   {
     g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("capsules_ao")); // create capsules AO
   }
@@ -1696,7 +1776,7 @@ void WorldRenderer::resetSSAOImpl()
     g_entity_mgr->destroyEntity(g_entity_mgr->getSingletonEntity(ECS_HASH("capsules_ao"))); // destroy capsules AO
   }
   g_entity_mgr->broadcastEventImmediate(
-    ResetAoEvent(IPoint2(aoW, aoH), aoQuality == AoQuality::HIGH ? ResetAoEvent::INIT : ResetAoEvent::CLOSE));
+    ResetAoEvent(IPoint2(aoW, aoH), aoQuality >= AoQuality::HIGH ? ResetAoEvent::INIT : ResetAoEvent::CLOSE));
 
   uint32_t creationFlags = SSAO_NONE;
   if (hasFeature(CONTACT_SHADOWS))
@@ -1708,11 +1788,11 @@ void WorldRenderer::resetSSAOImpl()
   if (isThinGBuffer())
     creationFlags |= SSAO_IMMEDIATE;
 
-  bool hq = aoQuality != AoQuality::LOW;
-  aoFGNodes = makeAmbientOcclusionNodes(hq ? AoAlgo::GTAO : AoAlgo::SSAO, aoW, aoH, creationFlags);
-  ShaderGlobal::set_int(ssao_is_gtaoVarId, hq ? 1 : 0);
+  bool useGTAO = aoQuality != AoQuality::LOW;
+  aoFGNodes = makeAmbientOcclusionNodes(useGTAO ? AoAlgo::GTAO : AoAlgo::SSAO, aoW, aoH, creationFlags);
+  ShaderGlobal::set_int(ssao_is_gtaoVarId, useGTAO ? 1 : 0);
 
-  if (!hq)
+  if (!useGTAO)
   {
     int quality = hasFeature(DOWNSAMPLED_NORMALS) ? 1 : (getGiQuality().algorithm == GiAlgorithm::LOW ? -1 : 0);
     ShaderGlobal::set_int(ssao_qualityVarId, quality);
@@ -2563,9 +2643,12 @@ void WorldRenderer::ctorCommon()
                                    const Point3 &view_pos) -> void {
       if (lmeshRenderer && clipmap)
       {
-        lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
+        LandMeshRenderDesc desc;
+        desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
         clipmap->startUAVFeedback();
-        lmeshRenderer->render(globtm, proj, frustum, *lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, view_pos);
+        // terrain LOD follows the satellite view (view-local), so the mapped area is detailed
+        lmeshRenderer->render(globtm, proj, frustum, *lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, view_pos,
+          HmapOrigin(view_pos));
         clipmap->endUAVFeedback();
       }
     };
@@ -2703,9 +2786,7 @@ void WorldRenderer::ctorDeferred()
       init_daskies();
     if (get_daskies())
     {
-      setSkies(get_daskies());
-      if (hasFeature(FeatureRenderFlags::VOLUME_LIGHTS))
-        get_daskies()->projectUses2DShadows(true); // volfog can only use 2d cloud shadows
+      setSkies(get_daskies()); // volfog cloud shadows come from the Beer shadow map
     }
     else
     {
@@ -2738,6 +2819,7 @@ void WorldRenderer::ctorDeferred()
 
   setSharpeningFromSettings();
   setChromaticAberrationFromSettings();
+  setFilmGrainFromSettings();
   setEnvironmentDetailsQuality();
 
   camera_in_camera::setup(hasFeature(CAMERA_IN_CAMERA));
@@ -2760,6 +2842,19 @@ void WorldRenderer::setChromaticAberrationFromSettings()
     PriorityShadervar::set_float4(chromatic_aberration_paramsVarId.get_var_id(), CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(value));
   else
     PriorityShadervar::clear(chromatic_aberration_paramsVarId.get_var_id(), CHROMATIC_ABERRATION_PRIORITY);
+}
+
+void WorldRenderer::setFilmGrainFromSettings()
+{
+  if (get_film_grain_mode() != FilmGrainMode::NOISE_BASED)
+    return;
+  static constexpr int FILM_GRAIN_PRIORITY = 0;
+  bool filmGrain = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("filmGrain", false) && !bareMinimumPreset;
+  Point3 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint3("filmGrainNoise", Point3(0.2, 1.0, 0.75));
+  if (filmGrain)
+    PriorityShadervar::set_float4(film_grain_paramsVarId.get_var_id(), FILM_GRAIN_PRIORITY, Point4::xyz0(value));
+  else
+    PriorityShadervar::clear(film_grain_paramsVarId.get_var_id(), FILM_GRAIN_PRIORITY);
 }
 
 template <typename T>
@@ -2823,8 +2918,113 @@ void WorldRenderer::createNodes()
   const bool aaNeedsHistory = antiAliasing && antiAliasing->needDepthHistory();
   const bool giNeedsHistory = giNeedsReprojection();
   const bool needDepthHistory = aaNeedsHistory || giNeedsHistory;
-  g_entity_mgr->broadcastEventImmediate(OnCameraNodeConstruction{
-    &fgNodeHandles, &resSlotHandles, prepass.get(), giNeedsReprojection(), needDepthHistory, bareMinimumPreset, hasMotionVectors});
+
+  OnCameraNodeConstruction perCameraConstructionEvent{
+    &fgNodeHandles, prepass.get(), giNeedsReprojection(), needDepthHistory, bareMinimumPreset, hasMotionVectors};
+  g_entity_mgr->broadcastEventImmediate(perCameraConstructionEvent);
+  g_entity_mgr->broadcastEventImmediate(OnCameraNodeWithSlotsConstruction{&resSlotHandles});
+
+  toggleCameraInCamera(false);
+  mainViewCameraProviderNode = makeViewCameraProviderNode("view0", "current_camera");
+  mainViewNodes.clear();
+  for (auto &[name, slot] : nodesRegistrators)
+  {
+    slot.mainOffset = slot.mainCount = 0;
+    dispatchCameraViewNodes(slot, true);
+  }
+  toggleCameraInCamera(camera_in_camera::is_lens_render_active());
+}
+
+void WorldRenderer::toggleCameraInCamera(bool active)
+{
+  if (active == lensViewNodesActive)
+    return;
+  lensViewNodesActive = active;
+  if (active)
+  {
+    lensViewCameraProviderNode = makeViewCameraProviderNode("view1", "lens_area_camera");
+    for (auto &[name, slot] : nodesRegistrators)
+      dispatchCameraViewNodes(slot, false);
+  }
+  else
+  {
+    lensViewNodes.clear();
+    for (auto &[name, slot] : nodesRegistrators)
+      slot.lensOffset = slot.lensCount = 0;
+    lensViewCameraProviderNode = {};
+  }
+}
+
+void WorldRenderer::dispatchCameraViewNodes(NodesRegistratorSlot &slot, bool is_main_view)
+{
+  auto &nodes = is_main_view ? mainViewNodes : lensViewNodes;
+  uint32_t &offset = is_main_view ? slot.mainOffset : slot.lensOffset;
+  uint32_t &count = is_main_view ? slot.mainCount : slot.lensCount;
+  CameraNodesRegistratorStorage storage(nodes, offset, count);
+
+  if (is_main_view)
+    g_entity_mgr->sendEventImmediate(slot.eid, OnCameraMainViewNodeConstruction{"", &storage, prepass.get()});
+
+  g_entity_mgr->sendEventImmediate(slot.eid,
+    OnCameraPerViewNodeConstruction{is_main_view, is_main_view ? "view0" : "view1", &storage, prepass.get()});
+  storage.clearUnused();
+  if (count == 0 || storage.isOverflowed())
+  {
+    offset = storage.getOffset();
+    count = storage.getWritten();
+  }
+}
+
+void WorldRenderer::registerCameraViewNodes(const char *name, ecs::EntityId eid)
+{
+  auto it = nodesRegistrators.find_as(name, eastl::less<>());
+
+  if (it != nodesRegistrators.end())
+  {
+    logerr("camera view nodes registrator '%s' already registered", name);
+    return;
+  }
+
+  NodesRegistratorSlot &slot = nodesRegistrators[name];
+  slot.eid = eid;
+  if (!mainViewCameraProviderNode)
+    return;
+
+  dispatchCameraViewNodes(slot, true);
+  if (lensViewNodesActive)
+    dispatchCameraViewNodes(slot, false);
+}
+
+void WorldRenderer::clearCameraSlot(const NodesRegistratorSlot &slot)
+{
+  for (uint32_t i = slot.mainOffset; i < slot.mainOffset + slot.mainCount; ++i)
+    mainViewNodes[i] = {};
+  for (uint32_t i = slot.lensOffset; i < slot.lensOffset + slot.lensCount; ++i)
+    lensViewNodes[i] = {};
+}
+
+void WorldRenderer::unregisterCameraViewNodes(const char *name, ecs::EntityId eid)
+{
+  auto it = nodesRegistrators.find_as(name, eastl::less<>());
+  if (it == nodesRegistrators.end() || it->second.eid != eid)
+    return;
+
+  const NodesRegistratorSlot &slot = it->second;
+  clearCameraSlot(slot);
+
+  nodesRegistrators.erase(it);
+}
+
+void WorldRenderer::reCreateCameraViewNodes(const char *name)
+{
+  auto it = nodesRegistrators.find_as(name, eastl::less<>());
+  if (it == nodesRegistrators.end())
+    return;
+
+  NodesRegistratorSlot &slot = it->second;
+  dispatchCameraViewNodes(slot, true);
+  if (lensViewNodesActive)
+    dispatchCameraViewNodes(slot, false);
 }
 
 void WorldRenderer::debugRecreateNodes()
@@ -2959,6 +3159,7 @@ void WorldRenderer::close()
 
 
   ShaderGlobal::reset_textures();
+  refined_block::clear();
 
   del_it(debug_tex_overlay);
   target.reset();
@@ -3238,7 +3439,8 @@ void WorldRenderer::setUpView(
   d3d::settm(TM_VIEW, currentFrameCamera.viewTm);
   d3d::settm(TM_PROJ, &currentFrameCamera.noJitterProjTm);
 
-  dynrend::set_prev_view_proj(TMatrix4(prevFrameCamera.viewTm), get_prev_proj_tm_with_cur_jitter(prevFrameCamera, currentFrameCamera));
+  dynrend::set_prev_view_proj(TMatrix4(prevFrameCamera.viewRotTm),
+    get_prev_proj_tm_with_cur_jitter(prevFrameCamera, currentFrameCamera));
 
   ShaderGlobal::set_float4(world_view_posVarId, view_pos.x, view_pos.y, view_pos.z, 1);
 
@@ -3414,7 +3616,6 @@ void WorldRenderer::beforeRender(float scaled_dt,
       htb = max(waterLevel, htb);
       cameraHeight = max(cameraHeight, viewPos.y - 0.5f * (ht + htb));
     }
-    lmeshRenderer->setUseHmapTankSubDiv(displacementSubDiv);
   }
   cameraActualHeight = cameraHeight;
 
@@ -3432,9 +3633,12 @@ void WorldRenderer::beforeRender(float scaled_dt,
   else
     cameraSpeed = lerp(cameraSpeed, speed, 1.0f - expf(-real_dt)); // exponential average
 
-  // 10.f here is g-force.
-  bool highEnergy = (cameraHeight * 10.f + cameraSpeed * cameraSpeed * 0.5f) > switch_ri_gen_mode_threshold.get();
+  // the RI mode switch counts the fast-move height offset in, the clouds gate
+  // wants the physical height
+  bool highEnergy = camera_specific_energy(cameraHeight, cameraSpeed) > switch_ri_gen_mode_threshold.get();
   rendinst::render::setRIGenRenderMode(!canChangeAltitudeUnexpectedly || !highEnergy ? -1 : 0);
+  if (DngSkies *dngSkies = get_daskies())
+    dngSkies->updateCloudsFullresProximity(cameraActualHeight, cameraSpeed);
 
   {
     Occlusion *occlusion = getMainCameraOcclusion();
@@ -3454,12 +3658,6 @@ void WorldRenderer::beforeRender(float scaled_dt,
     bool cablesChanged = get_cables_mgr()->beforeRender();
     if (cablesChanged)
       bvh_cables_changed();
-  }
-
-  // dispatch performed in this function, so it should be done in beforeRender
-  {
-    TIME_D3D_PROFILE(heightmap_query_update)
-    heightmap_query::update();
   }
 
   if (ecs::EntityId zoneEid = g_entity_mgr->getSingletonEntity(ECS_HASH("transparent_partition")))
@@ -3613,6 +3811,8 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
 
   calcWaterPlanarReflectionMatrix();
 
+  ShaderGlobal::set_int(render_with_normalmapVarId, VTEX_RENDER_DISPLACEMENT); // set default rendering state
+
   // initialize visibility for legacy gpu objects on demand
   if (DAGOR_UNLIKELY(rendinst::gpuobjects::has_manager() && !legacyGPUObjectsVisibilityInitialized))
   {
@@ -3655,7 +3855,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
     bool renderHmap = true;
     if (hide_heightmap_on_planes.get() && canChangeAltitudeUnexpectedly)
       renderHmap = false; // low poly landmesh will be rendered instead
-    if (lmeshMgr->mayRenderHmap != renderHmap)
+    if (!editorHeightmapActive && lmeshMgr->mayRenderHmap != renderHmap)
     {
       lmeshMgr->mayRenderHmap = renderHmap;
       shadowsManager.shadowsInvalidate(false);
@@ -3685,13 +3885,14 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   if (preIntegratedGF)
     preIntegratedGF->update();
 
-  // Update heightmap.
+  // Update heightmap once per frame (textures, pending terrain edits, dev tessellation upkeep) before any
+  // terrain rendering / clipmap update. prepare() no longer does this implicitly.
   if (lmeshMgr)
   {
     HeightmapHandler *hmapHandler = lmeshMgr->getHmapHandler();
     if (hmapHandler)
     {
-      hmapHandler->prepareHmapModificaton();
+      hmapHandler->makeBookKeeping();
     }
   }
 
@@ -3757,9 +3958,6 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   const float cameraHeightLimit = giMaxUpdateHeightAboveFloor; // default: 32 meters above ground.
   const bool requiresGroundDetails = (cameraSpeedDependHeight < cameraHeightLimit);
 
-  // must be called before prepareClipmap
-  renderDisplacementRiLandclasses(viewPos);
-
   if (requiresGroundDetails)
   {
     Point3 displacementCenter = itm.getcol(3);
@@ -3787,12 +3985,11 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   const float clipmapWk = camera_in_camera::is_lens_render_active()
                             ? max(currentFrameCamera.noJitterPersp.wk, camcamParams->noJitterPersp.wk)
                             : currentFrameCamera.noJitterPersp.wk;
-  prepareClipmap(itm.getcol(3), itm, currentFrameCamera.noJitterGlobtm, clipmapWk, minimumClipmapZoom);
+  prepareClipmapState(itm.getcol(3), itm, currentFrameCamera.noJitterGlobtm, clipmapWk, minimumClipmapZoom);
 
-  {
-    TIME_D3D_PROFILE(biome_query_update)
-    biome_query::update(); // depends on prepareClipmap because sample it.
-  }
+  // During prepareClipmapState, prepareFeedback has updated latest RI landclasses list. List can be used (GPU data are later uploaded
+  // at Clipmap::prepareRender).
+  renderDisplacementRiLandclasses(viewPos);
 
   Point3 giPos = itm.getcol(3);
   float hmin = -100000., hmax = 100000.;
@@ -3834,9 +4031,10 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
 
   satelliteRenderer.renderScripted(currentFrameCamera);
 
+  // TODO: move portal rendering to a node scheduled after vtex_clipmap_prepare_render.
   if (clipmap)
     clipmap->resetSecondaryFeedbackCenter();
-  if (auto portalRenderer = portal_renderer_mgr::query_portal_renderer()) // TODO: maybe not the best place
+  if (auto portalRenderer = portal_renderer_mgr::query_portal_renderer())
     portalRenderer->render(currentFrameCamera);
 
   if (get_daskies())
@@ -3848,7 +4046,12 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
       TIME_D3D_PROFILE(changeData)
       if (main_pov_data)
       {
-        get_daskies()->changeSkiesData(1, 1, 1, renderingWidth, renderingHeight, main_pov_data,
+        // size the clouds from the stable maximum, not the per-frame dynamic resolution:
+        // any size change here recreates the clouds targets and drops the clouds TAA
+        // history, which the checkerboard trace relies on every frame
+        int cloudsW = renderingWidth, cloudsH = renderingHeight;
+        getMaxPossibleRenderingResolution(cloudsW, cloudsH);
+        get_daskies()->changeSkiesData(1, 1, 1, cloudsW, cloudsH, main_pov_data,
           useFullresClouds ? CloudsResolution::ForceFullresClouds : CloudsResolution::Default);
       }
     }
@@ -3944,6 +4147,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
           TIME_PROFILE_DEV(finalize_render_csm);
           for (int j = 1; j < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; j++)
             dynrend::merge_context(ctxIds[0][cascade], ctxIds[j][cascade]);
+          dynrend::prepare_render_finalize(ctxIds[0][cascade]);
         }
       };
       using JobType = AnimcharRenderShadowsJob<decltype(render_shadow_cb)>;
@@ -4168,9 +4372,14 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
     vrsNodeHandles = makeCreateVrsTextureNode(!state.vrsMaskEnabled);
   }
 
+  toggleCameraInCamera(camera_in_camera::is_lens_render_active());
   const uint32_t cameraMultiplexCount = camera_in_camera::is_lens_render_active() ? 2 : 1;
-  dafg::set_multiplexing_extents(dafg::multiplexing::Extents{
-    static_cast<uint32_t>(superPixels * superPixels), static_cast<uint32_t>(subPixels * subPixels), 1, cameraMultiplexCount});
+  dafg::multiplexing::Extents multiplexingExtents{
+    static_cast<uint32_t>(superPixels * superPixels), static_cast<uint32_t>(subPixels * subPixels), 1, cameraMultiplexCount};
+  // A feature (e.g. the AA benchmark) may raise a dimension left at 1 to
+  // multiplex extra passes over it.
+  g_entity_mgr->broadcastEventImmediate(QueryMultiplexingExtents(&multiplexingExtents));
+  dafg::set_multiplexing_extents(multiplexingExtents);
 
   // todo: FG should clear block itself, or at least logerr that blocks should be cleared before run_nodes
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
@@ -4192,7 +4401,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   ShaderGlobal::set_float4(zn_zfarVarId, persp.zn, persp.zf, 0, 0);
 
   resource_slot::resolve_access();
-  [[maybe_unused]] bool fgWasRun = dafg::run_nodes();
+  [[maybe_unused]] bool fgWasRun = dafg::run_nodes(dafg::PreExecuteAction::FlushRefinedBlocks);
 
   if (allsamples > 1)
     set_mip_bias(last_mip_scale);
@@ -4337,6 +4546,26 @@ void WorldRenderer::loadFogNodes(const String &graph_name, float low_range, floa
   add_volfog_optional_graphs();
 }
 
+void WorldRenderer::loadCloudsNodes(const String &graph_name)
+{
+  G_ASSERT(is_main_thread());
+
+  root_clouds_graph = graph_name;
+  if (graph_name.empty())
+    return;
+
+  if (DaSkies *skies = get_daskies())
+    skies->initCloudsNBS(graph_name.str());
+
+  add_clouds_optional_graphs();
+}
+
+void WorldRenderer::enableCloudsOptionalShader(const String &shader_name, bool enable)
+{
+  if (DaSkies *skies = get_daskies())
+    skies->enableCloudsNBSOptionalGraph(shader_name.str(), enable);
+}
+
 void WorldRenderer::loadEnviCoverNodes(const String &graph_name)
 {
   G_ASSERT(is_main_thread());
@@ -4367,13 +4596,47 @@ void WorldRenderer::loadEnviCoverNodes(const String &graph_name)
 void WorldRenderer::closeGround()
 {
   closeLandMicroDetails();
-  del_it(lmeshRenderer);
+  if (editorHeightmapActive)
+    lmeshRenderer = nullptr; // not owned, belongs to the editor's heightmap plugin
+  else
+    del_it(lmeshRenderer);
+  lmeshMgr = nullptr;
   ShaderGlobal::reset_from_vars(lightmapTexId);
   release_managed_tex(lightmapTexId);
   lightmapTexId = BAD_TEXTUREID;
 }
 
 bool WorldRenderer::useClipmapFeedbackOversampling() { return Clipmap::is_uav_supported(); }
+
+void clipmap_prepare_render_callback(dag::ConstSpan<Texture *> bufferTex, dag::ConstSpan<Texture *> compressorTex)
+{
+  WorldRenderer *wr = (WorldRenderer *)get_world_renderer();
+  if (wr && wr->clipmap && wr->lmeshMgr)
+  {
+    wr->getClipmap()->finalizeFeedback();
+
+    int w, h;
+    wr->getRenderingResolution(w, h);
+    wr->clipmap->setTargetSize(w, h, wr->getMipmapBias());
+
+    {
+      STATE_GUARD(ShaderGlobal::set_int(render_with_normalmapVarId, VALUE), VTEX_RENDER_NORMAL, VTEX_RENDER_DISPLACEMENT);
+      LandmeshCMRenderer landmeshCMRenderer(*wr->lmeshRenderer, *wr->lmeshMgr);
+      wr->getClipmap()->prepareRender(landmeshCMRenderer, bufferTex, compressorTex);
+      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+    }
+  }
+
+  // Finish GPU queries depending on clipmap state (set by updateRendinstLandclassRenderState).
+  {
+    TIME_D3D_PROFILE(heightmap_query_update)
+    heightmap_query::update();
+  }
+  {
+    TIME_D3D_PROFILE(biome_query_update)
+    biome_query::update();
+  }
+}
 
 void WorldRenderer::closeClipmap() { del_it(clipmap); }
 void WorldRenderer::initClipmap()
@@ -4443,7 +4706,7 @@ void WorldRenderer::initClipmap()
 
   // There is no a special pass for non uav hardware feedback so switch to the cpu one instead
   clipmap->init(texelSize, Clipmap::is_uav_supported() ? Clipmap::CPU_HW_FEEDBACK : Clipmap::SOFTWARE_FEEDBACK, feedbackProperties,
-    lastTexMips);
+    lastTexMips, false);
 
   struct CacheFormats
   {
@@ -4472,14 +4735,16 @@ void WorldRenderer::initClipmap()
 
   // use ARGB16F, as hw race workaround
   bool useCompatBufFormats = d3d::get_driver_desc().issues.hasRenderPassClearDataRace;
-  if (useCompatBufFormats)
-    ShaderGlobal::set_int(get_shader_variable_id("uncompressed_clipmap_buffer_srgb_mode"), 1);
+  ShaderGlobal::set_int(get_shader_variable_id("cache_buffer_tex0_srgb_mode", true), (int)useCompatBufFormats);
 
   const float maxEffectiveTargetResolution = 2 * 1920 * 1080;
   clipmap->initVirtualTexture(cw, ch, 256, 1, clipmapAnisotropic, maxEffectiveTargetResolution);
 
   clipmap->createCaches(cacheFormats, cacheFormatsFallback, cachesCount, useCompatBufFormats ? buf_formats_compat : buf_formats, 3);
   clipmap->setMaxTileUpdateCount(clipBlk->getInt("updateTileCount", defaultUpdateCount));
+
+  clipmapPrepareRenderNode = {};
+  clipmapPrepareRenderNode = clipmap->createPrepareRenderNode(clipmap_prepare_render_callback);
 }
 
 void WorldRenderer::updateSky(float realDt)
@@ -4505,7 +4770,7 @@ void WorldRenderer::updateSky(float realDt)
   }
 
   get_daskies()->updateSkyLightParams();
-  get_daskies()->prepare(get_daskies()->getSunDir(), false, realDt);
+  get_daskies()->prepare(get_daskies()->getSunDir(), realDt);
   setDirToSun();
 
   Color3 amb, moon, moonamb;
@@ -4610,6 +4875,7 @@ struct HmapPatchesCallback
   RiGenVisibility *visibility;
   LMeshRenderingMode prevLandmeshRenderingMode;
   TMatrix4 viewTm;
+  Point3 hmapOrigin = Point3(0.f, 0.f, 0.f); // heightmap LOD origin prepared in start()
 
   HmapPatchesCallback(float texel,
     LandMeshRenderer &lm_renderer,
@@ -4646,8 +4912,9 @@ struct HmapPatchesCallback
     maxZ = max(maxZ, landBox[1].y + 1);
     ShaderGlobal::set_float4(hmap_patches_min_max_zVarId, minZ, maxZ, 0.0, 1.0);
 
-    prevLandmeshRenderingMode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
-    renderer.prepare(provider, Point3(texelOrigin.x * texelSize, viewPosY, texelOrigin.y * texelSize), 2.f);
+    prevLandmeshRenderingMode = renderer.getLMeshRenderingMode();
+    hmapOrigin = Point3(texelOrigin.x * texelSize, viewPosY, texelOrigin.y * texelSize);
+    renderer.prepare(provider, HmapOrigin(hmapOrigin));
     IPoint2 texelsFrom = IPoint2(newOrigin.x - texSize / 2, newOrigin.y - texSize / 2);
     IPoint2 wd = IPoint2(texSize, texSize);
     BBox2 box(point2(texelsFrom) * texelSize, point2(texelsFrom + wd) * texelSize);
@@ -4670,16 +4937,20 @@ struct HmapPatchesCallback
     BBox3 region(Point3(box[0].x, minZ, box[0].y), Point3(box[1].x, maxZ + 500, box[1].y));
     ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(landMeshPrepareClipmapBlockId, ShaderGlobal::LAYER_SCENE);
-    renderer.setRenderInBBox(region);
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_CLIPMAP;
+    desc.renderInBBox = region;
+    desc.invGeomLodDist = renderer.getInvGeomLodDist();
     TMatrix4_vec4 globTm = viewTm * proj;
-    renderer.render(reinterpret_cast<mat44f_cref>(globTm), proj, Frustum{globTm}, provider, renderer.RENDER_PATCHES, ivtm.getcol(3));
+    renderer.render(reinterpret_cast<mat44f_cref>(globTm), proj, Frustum{globTm}, provider, renderer.RENDER_PATCHES, desc,
+      ivtm.getcol(3), HmapOrigin(hmapOrigin));
   }
   void end()
   {
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+    // restore the ambient mode shadervar for passes that still rely on inheriting it
     renderer.setLMeshRenderingMode(prevLandmeshRenderingMode);
     d3d_set_view_proj(oviewproj);
-    renderer.setRenderInBBox(BBox3());
   }
 };
 
@@ -4778,12 +5049,11 @@ void WorldRenderer::renderDisplacementRiLandclasses(const Point3 &camera_pos)
                                 int fullUpdateThresholdTexels) {
       TIME_D3D_PROFILE(updateDisplacement);
       SCOPE_RENDER_TARGET;
-      ShaderGlobal::set_int(clipmap_writes_height_onlyVarId, 1);
+
       d3d::set_render_target({}, DepthAccess::RW, {{riLandclassDepthTextureArr.getArrayTex(), 0, static_cast<uint32_t>(ri_index)}});
       DisplacementCallback cb(texelSize, *lmeshRenderer, *lmeshMgr);
       toroidal_update(newTexelsOrigin, displacementData, fullUpdateThresholdTexels, cb);
       d3d::resource_barrier({riLandclassDepthTextureArr.getArrayTex(), RB_RO_SRV | RB_STAGE_VERTEX, (unsigned)ri_index, 1});
-      ShaderGlobal::set_int(clipmap_writes_height_onlyVarId, 0);
       targetTexelSize = texelSize;
     };
     const bool forceInvalidate = false;
@@ -4799,8 +5069,6 @@ void WorldRenderer::renderDisplacementRiLandclasses(const Point3 &camera_pos)
         Point4(ofs.x, ofs.y, 0, 0));
     }
   }
-
-  clipmap->updateLandclassData();
 
   if (::grs_draw_wire)
     d3d::setwire(1);
@@ -4818,8 +5086,6 @@ void WorldRenderer::renderDisplacementAndHmapPatches(const Point3 &origin, float
     if (::grs_draw_wire)
       d3d::setwire(0);
     SCOPE_RENDER_TARGET;
-
-    ShaderGlobal::set_int(clipmap_writes_height_onlyVarId, 1);
 
     d3d::set_render_target({}, DepthAccess::RW, {{heightmapAround.getTex2D(), 0, 0}});
     DisplacementCallback cb(texelSize, *lmeshRenderer, *lmeshMgr);
@@ -4845,8 +5111,6 @@ void WorldRenderer::renderDisplacementAndHmapPatches(const Point3 &origin, float
       -aligned.y / fullDistance + 0.5);
     if (::grs_draw_wire)
       d3d::setwire(1);
-
-    ShaderGlobal::set_int(clipmap_writes_height_onlyVarId, 0);
   };
   bool invalidateDisplacement = displacementInvalidationBoxes.size() > 0;
   // when heightmapAround is not initialized, there should be no invalidations
@@ -4882,7 +5146,8 @@ void WorldRenderer::renderDisplacementAndHmapPatches(const Point3 &origin, float
   render_toroidal_update_helper(alignedOrigin, fullDistance, hmapPatchesData, renderPatches);
 }
 
-void WorldRenderer::prepareClipmap(const Point3 &origin, const TMatrix &view_itm, const TMatrix4 &globtm, float wk, int minimum_zoom)
+void WorldRenderer::prepareClipmapState(
+  const Point3 &origin, const TMatrix &view_itm, const TMatrix4 &globtm, float wk, int minimum_zoom)
 {
   if (!lmeshMgr)
     return;
@@ -4891,8 +5156,9 @@ void WorldRenderer::prepareClipmap(const Point3 &origin, const TMatrix &view_itm
   if (::grs_draw_wire)
     d3d::setwire(0);
 
-  const float water_level = water ? fft_water::get_level(water) : HeightmapHeightCulling::NO_WATER_ON_LEVEL;
-  lmeshRenderer->prepare(*lmeshMgr, origin, cameraHeight, water_level);
+  WRDispatcher::ScopedForceInEditor forceEditorHmap(editorHeightmapActive);
+
+  lmeshRenderer->prepare(*lmeshMgr, HmapOrigin(origin));
 
   if (lmeshMgr->getHmapHandler())
   {
@@ -4905,7 +5171,6 @@ void WorldRenderer::prepareClipmap(const Point3 &origin, const TMatrix &view_itm
     hmapTerrainStateVersion = newTerrainState;
   }
 
-  clipmap->finalizeFeedback();
   static int land_load_generation = 0;
   if (land_load_generation != interlocked_relaxed_load(textag_get_info(TEXTAG_LAND).loadGeneration))
   {
@@ -4929,16 +5194,9 @@ void WorldRenderer::prepareClipmap(const Point3 &origin, const TMatrix &view_itm
     clipmap->invalidate(true);
 #endif
 
-  int w, h;
-  getRenderingResolution(w, h);
-  clipmap->setTargetSize(w, h, getMipmapBias());
-
-  LandmeshCMRenderer landmeshCMRenderer(*lmeshRenderer, *lmeshMgr);
-  clipmap->prepareRender(landmeshCMRenderer);
-
   ZoomFeeedbackParams zoomParams = {cameraActualHeight, wk, minimum_zoom, {clipmapCutoffZoom, clipmapCutoffMipsCnt}};
   SoftwareFeedbackParams swFbParams = {view_itm, 0.0, 0.0f, cameraHeight /* should be < maxDist for planes! */};
-  clipmap->prepareFeedback(origin, globtm, nullptr, zoomParams, swFbParams);
+  clipmap->prepareFeedback(origin, globtm, nullptr, zoomParams, swFbParams, false, UpdateFeedbackThreadPolicy::PRIO_NORMAL);
 
   const float fallBackTexelSize =
     /* 8 times bigger than last aligned clip */ (1 << (clipmap->getMaxTexMips() - 1)) * clipmap->getPixelRatio() * 8.f;
@@ -4967,7 +5225,7 @@ void WorldRenderer::prepareDeformHmap()
     d3d::driver_command(Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_BEGIN);
     g_entity_mgr->broadcastEventImmediate(
       RenderHmapDeform(deformHmap->getDeformRect(), currentFrameCamera.negRoundedCamPos, currentFrameCamera.negRemainderCamPos,
-        currentFrameCamera.viewTm, deformHmap->getInverseViewTm(), currentFrameCamera.viewItm.getcol(3)));
+        deformHmap->getViewTm(), deformHmap->getInverseViewTm(), currentFrameCamera.viewItm.getcol(3)));
 
     d3d::driver_command(Drv3dCommand::ASYNC_PIPELINE_COMPILE_RANGE_END);
 
@@ -4985,20 +5243,37 @@ void WorldRenderer::renderGround(const LandMeshCullingData &lmesh_culling_data, 
   if (!lmeshMgr)
     return;
 
-  if (!clipmap)
-    initClipmap();
+  if (editorHeightmapActive && !lmeshMgr->forceHeightmapRendering)
+    return;
 
   TIME_D3D_PROFILE(render_ground);
+
+  WRDispatcher::ScopedForceInEditor forceEditorHmap(editorHeightmapActive);
 
   ShaderGlobal::set_int(autodetect_land_selfillum_enabledVarId,
     autodetect_land_selfillum_colorVarId >= 0 ? ShaderGlobal::get_float4(autodetect_land_selfillum_colorVarId).a > 0.0f : 0);
 
   if (clipmap && is_first_iter)
     clipmap->startUAVFeedback();
-  lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
 
-  lmeshRenderer->setUseHmapTankSubDiv(displacementSubDiv);
-  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, lmesh_culling_data, currentFrameCamera.cameraWorldPos);
+  if (editorHeightmapActive)
+  {
+    d3d::settm(TM_VIEW, ::grs_cur_view.tm);
+    ShaderGlobal::set_float4(camera_base_offsetVarId, Point4::ZERO);
+  }
+
+  LandMeshRenderDesc groundDesc;
+  groundDesc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, groundDesc, lmesh_culling_data,
+    editorHeightmapActive ? ::grs_cur_view.pos : currentFrameCamera.cameraWorldPos);
+
+  if (editorHeightmapActive)
+  {
+    TMatrix offsetedView = ::grs_cur_view.tm;
+    offsetedView.setcol(3, Point3::ZERO);
+    d3d::settm(TM_VIEW, offsetedView);
+    ShaderGlobal::set_float4(camera_base_offsetVarId, -Point4::xyz0(currentFrameCamera.cameraWorldPos));
+  }
 
   if (clipmap && is_first_iter)
     clipmap->endUAVFeedback();
@@ -5285,7 +5560,7 @@ bool WorldRenderer::prepareDelayedRender(const TMatrix &itm)
   {
     float minZ, maxZ;
     getMinMaxZ(minZ, maxZ);
-    tpJobsAdded = depthAOAboveCtx->prepare(currentFrameCamera.viewItm.getcol(3), minZ, maxZ);
+    tpJobsAdded |= depthAOAboveCtx->prepare(currentFrameCamera.viewItm.getcol(3), minZ, maxZ);
     delayedRenderCtx.depthAOAboveData.itm = itm;
     delayedRenderCtx.depthAOAboveData.render = true;
   }
@@ -5511,9 +5786,11 @@ void WorldRenderer::renderLightProbeOpaque(const Point3 &view_pos, const TMatrix
   //
   if (lmeshMgr)
   {
-    lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_REFLECTION);
-    lmeshRenderer->setUseHmapTankSubDiv(0);
-    lmeshRenderer->render(*lmeshMgr, LandMeshRenderer::RENDER_REFLECTION, view_pos); // no async culling
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_REFLECTION;
+    desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+    // reflection probe renders from the probe view; terrain LOD follows that view (view-local)
+    lmeshRenderer->render(*lmeshMgr, LandMeshRenderer::RENDER_REFLECTION, desc, view_pos, HmapOrigin(view_pos)); // no async culling
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
   }
   ShaderGlobal::set_texture(ssao_texVarId, BAD_TEXTUREID);
@@ -5530,9 +5807,11 @@ void WorldRenderer::renderLightProbeEnvi(const TMatrix &view, const TMatrix4 &pr
   itm = orthonormalized_inverse(view);
   if (DAGOR_LIKELY(!try_render_custom_sky(view, proj, persp)))
   {
+    // cube faces are disjoint views sharing cube_pov_data: restart clouds TAA per face
     get_daskies()->renderEnvi(sky_is_unreachable, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{},
       nullptr, // fixme: it should be with cube depth buffer
-      cube_pov_data, view, proj, persp, UpdateSky::Off, true, probes_sky_prepare_altitude_tolerance.get());
+      cube_pov_data, view, proj, persp, UpdateSky::Off, true, probes_sky_prepare_altitude_tolerance.get(),
+      CloudsRenderFlags::Default | CloudsRenderFlags::RestartTAA);
   }
 }
 
@@ -5543,11 +5822,10 @@ void WorldRenderer::renderLmeshReflection(const LandMeshCullingData &lmesh_refl_
     return;
 
   ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
-  lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_REFLECTION);
-  lmeshRenderer->setUseHmapTankSubDiv(0);
-  lmeshRenderer->forceLowQuality(true);
-  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_REFLECTION, lmesh_refl_culling_data, ::grs_cur_view.pos);
-  lmeshRenderer->forceLowQuality(false);
+  LandMeshRenderDesc desc;
+  desc.mode = LMeshRenderingMode::RENDERING_REFLECTION;
+  desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_REFLECTION, desc, lmesh_refl_culling_data, ::grs_cur_view.pos);
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 }
 
@@ -5571,12 +5849,12 @@ Occlusion *get_main_occlusion_safe()
   return wr ? wr->getMainCameraOcclusion() : nullptr;
 }
 
-void WorldRenderer::renderWaterSSR(const TMatrix &itm, const Driver3dPerspective &persp)
+void WorldRenderer::renderWaterNormals(const TMatrix &itm, const Driver3dPerspective &persp)
 {
   if (!water)
     return;
 
-  TIME_D3D_PROFILE(reflection)
+  TIME_D3D_PROFILE(water_normals)
   fft_water::render(water, itm.getcol(3), shoreRenderer.getDistanceFieldTexId(), currentFrameCamera.noJitterFrustum, nullptr, persp,
     fft_water::GEOM_LOD_NORMAL, water_ssr_id, nullptr, fft_water::RenderMode::WATER_SSR_SHADER);
 }
@@ -5848,6 +6126,7 @@ void WorldRenderer::prepareLastClip()
   data.lmeshRenderer = lmeshRenderer;
   data.texture_size = ::dgs_get_settings()->getBlockByNameEx("clipmap")->getInt("lastClipTexSize", 2048);
   data.use_dxt = true;
+  data.decals_cb = clipmap_decals_cb;
   data.global_frame_id = globalFrameBlockId;
   data.flipCullStateId = flipCullStateId.get();
   data.land_mesh_prepare_clipmap_blockid = landMeshPrepareClipmapBlockId;
@@ -5904,9 +6183,9 @@ void WorldRenderer::updateDistantHeightmap()
   BBox2 targetBox = BBox2(origin - extent, origin + extent);
 
   Point4 world_to_heightmap;
-  const float water_level = water ? fft_water::get_level(water) : HeightmapHeightCulling::NO_WATER_ON_LEVEL;
-  render_landmesh_to_heightmap(distantHeightmapTex.getTex2D(), distantHeightmapRange, origin, &targetBox, water_level,
-    world_to_heightmap);
+  // flush pending hmap texture uploads/edits so the bake includes them; stateless prepare() no longer does this
+  lmeshMgr->getHmapHandler()->makeBookKeeping();
+  render_landmesh_to_heightmap(distantHeightmapTex.getTex2D(), distantHeightmapRange, origin, &targetBox, world_to_heightmap);
   d3d::resource_barrier({distantHeightmapTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   Point2 worldPosOfs = targetBox.getMin();
@@ -5929,7 +6208,6 @@ void WorldRenderer::renderWaterHeightmapLowres()
   {
     lowresWaterHeightmap = dag::create_tex(nullptr, lowresWaterHeightmapSize, lowresWaterHeightmapSize, TEXCF_RTARGET | TEXFMT_R16F, 1,
       "water_heightmap_lowres");
-    ShaderGlobal::set_sampler(get_shader_variable_id("water_heightmap_lowres_samplerstate", true), d3d::request_sampler({}));
     lowresWaterHeightmapRenderer.init("water_heightmap_lowres");
     SCOPE_RENDER_TARGET;
     d3d::set_render_target({}, DepthAccess::RW, {{lowresWaterHeightmap.getTex2D(), 0, 0}});
@@ -5973,15 +6251,8 @@ void WorldRenderer::getMinMaxZ(float &minHt, float &maxHt) const
 int WorldRenderer::getTemporalShadowFramesCount() const
 {
   if (!screencap::is_screenshot_scheduled())
-  {
-    if (antiAliasing)
-    {
-      int taaFrameCount = antiAliasing->getTemporalFrameCount();
-      if (taaFrameCount > 0)
-        return taaFrameCount;
-    }
-    return 1;
-  }
+    return render::antialiasing::get_jitter_sequence_length();
+
   // Count how many samples will be taken to avoid repeating dithering pattern
   return subPixels * subPixels;
 }
@@ -5989,15 +6260,8 @@ int WorldRenderer::getTemporalShadowFramesCount() const
 int WorldRenderer::getShadowFramesCount() const
 {
   if (!screencap::is_screenshot_scheduled())
-  {
-    if (antiAliasing)
-    {
-      int taaFrameCount = antiAliasing->getTemporalFrameCount();
-      if (taaFrameCount > 0)
-        return taaFrameCount;
-    }
-    return 8;
-  }
+    return max(8, render::antialiasing::get_jitter_sequence_length());
+
   // Count how many samples will be taken to avoid repeating dithering pattern
   return subPixels * subPixels;
 }
@@ -6414,33 +6678,36 @@ webui::HttpPlugin *get_renderer_http_plugins()
 {
   http_renderer_plugins[0] = get_fog_shader_graph_editor_http_plugin();
   http_renderer_plugins[1] = get_envi_cover_shader_graph_editor_http_plugin();
+  http_renderer_plugins[2] = get_clouds_shader_graph_editor_http_plugin();
   return http_renderer_plugins;
 }
 
-
-bool fog_shader_compiler(uint32_t variant_id, const String &name, const String &code, const DataBlock &shader_blk, String &out_errors)
+static String getShaderNameWithPath(const String &name)
 {
-  G_UNUSED(variant_id);
-  G_UNUSED(code);
-  G_UNUSED(out_errors);
-
-  char buf[300];
-  const char *shaderBinaryDir = dd_get_fname_location(buf, root_fog_graph.str());
-
-  return world_renderer->volumeLight->updateShaders(String(0, "%s/%s", shaderBinaryDir, name), shader_blk, out_errors);
-}
-
-bool envi_cover_shader_compiler(
-  uint32_t variant_id, const String &name, const String &code, const DataBlock &shader_blk, String &out_errors)
-{
-  G_UNUSED(variant_id);
-  G_UNUSED(code);
-  G_UNUSED(out_errors);
-
   char buf[300];
   const char *shaderBinaryDir = dd_get_fname_location(buf, root_envi_cover_graph.str());
+  return String(0, "%s/%s", shaderBinaryDir, name);
+}
 
-  return world_renderer->enviCover->updateShaders(String(0, "%s/%s", shaderBinaryDir, name), shader_blk, out_errors);
+bool fog_shader_compiler(const String &name, const DataBlock &shader_blk, String &out_errors)
+{
+  return world_renderer->volumeLight->updateShaders(getShaderNameWithPath(name), shader_blk, out_errors);
+}
+
+bool envi_cover_shader_compiler(const String &name, const DataBlock &shader_blk, String &out_errors)
+{
+  return world_renderer->enviCover->updateShaders(getShaderNameWithPath(name), shader_blk, out_errors);
+}
+
+bool clouds_shader_compiler(const String &name, const DataBlock &shader_blk, String &out_errors)
+{
+  DaSkies *skies = get_daskies();
+  if (!skies)
+  {
+    out_errors = "no skies";
+    return false;
+  }
+  return skies->updateCloudsNBSShaders(getShaderNameWithPath(name), shader_blk, out_errors);
 }
 #endif // HAS_SHADER_GRAPH_COMPILE_SUPPORT
 
@@ -6503,7 +6770,36 @@ void init_envi_cover_graph_plugin()
 #endif
 }
 
-IRenderWorld *create_world_renderer() { return world_renderer.demandInit(); }
+void init_clouds_shader_graph_plugin()
+{
+#if HAS_SHADER_GRAPH_COMPILE_SUPPORT
+  if (!has_renderer_http_plugins_requirements())
+    return;
+
+  if (root_clouds_graph.empty())
+  {
+    debug("init_clouds_shader_graph_plugin: root_clouds_graph is empty");
+    return;
+  }
+
+  char name_buf[260];
+  const char *shadersFolderName = ::dgs_get_game_params()->getStr("nodeBasedShadersFolder", "common");
+  String rootGraphFileName(0, "../develop/assets/loc_shaders/%s/%s.json", shadersFolderName,
+    dd_get_fname_without_path_and_ext(name_buf, sizeof(name_buf), root_clouds_graph));
+
+  NodeBasedShaderManager::initCompilation();
+  ShaderGraphRecompiler::initialize(NodeBasedShaderType::Clouds, clouds_shader_compiler, rootGraphFileName);
+#endif
+}
+
+IRenderWorld *create_world_renderer()
+{
+  const bool isFirstInit = !world_renderer;
+  WorldRenderer *wr = world_renderer.demandInit();
+  if (wr && isFirstInit)
+    g_entity_mgr->broadcastEventImmediate(OnWorldRendererCreated{});
+  return wr;
+}
 
 void destroy_world_renderer() { world_renderer.demandDestroy(); }
 
@@ -6612,6 +6908,42 @@ static void verify_driver_caps()
 #endif
 }
 
+static void recommend_gpu_driver_switch()
+{
+#if _TARGET_PC_WIN
+  if (dgs_execute_quiet)
+    return;
+
+  const DriverCode recommended = d3d_get_gpu_driver_switch_hint();
+  const DataBlock *videoBlk = dgs_get_settings()->getBlockByNameEx("video");
+  const int runCounter = videoBlk->getInt("gpuDriverHintCounter", 0);
+
+  if (recommended == d3d::undefined)
+  {
+    if (runCounter != 0)
+    {
+      get_settings_override_blk()->addBlock("video")->setInt("gpuDriverHintCounter", 0);
+      save_settings(nullptr, false);
+    }
+    return;
+  }
+
+  if (runCounter % 30 == 0)
+  {
+    const char *hintText =
+      recommended.is(d3d::dx12)
+        ? get_localized_text("video/recommend_dx12",
+            "Your GPU performs best with the DirectX 12 graphics API. You can change it in the graphics options.")
+        : get_localized_text("video/recommend_dx11",
+            "Your GPU performs best with the DirectX 11 graphics API. You can change it in the graphics options.");
+    os_message_box(hintText, get_localized_text("video/header512", "Video"), GUI_MB_OK | GUI_MB_ICON_INFORMATION);
+  }
+
+  get_settings_override_blk()->addBlock("video")->setInt("gpuDriverHintCounter", runCounter + 1);
+  save_settings(nullptr, false);
+#endif
+}
+
 shadercache::WarmupParams get_shader_warmup_params()
 {
   const bool supportsRT = d3d::get_driver_desc().caps.hasRayQuery;
@@ -6667,6 +6999,7 @@ void init_world_renderer()
 #endif
 
   verify_driver_caps();
+  recommend_gpu_driver_switch();
 
 #if _TARGET_PC
   // only PC integrated videocards tend to have low VRAM amounts
@@ -7154,6 +7487,8 @@ void WRDispatcher::recreateRayTracingDependentNodes(uint32_t features_to_reset)
 }
 
 ECS_REGISTER_EVENT(GatherSplinegenBVHDataEvent);
+ECS_REGISTER_EVENT(OnCameraMainViewNodeConstruction);
+ECS_REGISTER_EVENT(OnCameraPerViewNodeConstruction);
 ECS_REGISTER_EVENT(GatherSmokeTracersBVHDataEvent);
 ECS_REGISTER_EVENT(RemoveSplinegenBVHEvent);
 ECS_REGISTER_EVENT(AfterRenderWorld)

@@ -451,7 +451,9 @@ IdIndexedFlags<intermediate::NodeIndex> DeltaCalculator::computeDirtyDeltas(cons
       return true;
     for (int frame = 0; frame < BarrierScheduler::SCHEDULE_FRAME_WINDOW; ++frame)
       for (const auto &ev : events[frame][node_idx])
-        if (eastl::holds_alternative<BarrierScheduler::Event::Barrier>(ev.data))
+        if (eastl::holds_alternative<BarrierScheduler::Event::Barrier>(ev.data) ||
+            eastl::holds_alternative<BarrierScheduler::Event::EnhancedBufferBarrier>(ev.data) ||
+            eastl::holds_alternative<BarrierScheduler::Event::EnhancedTextureBarrier>(ev.data))
           return true;
     return false;
   };

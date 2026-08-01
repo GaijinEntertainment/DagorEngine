@@ -9,6 +9,7 @@
 #include <render/renderer.h>
 #include <render/renderEvent.h>
 #include <render/rendererFeatures.h>
+#include <landMesh/vtexRenderMode.h>
 #include <main/water.h>
 #include <main/level.h>
 
@@ -251,7 +252,7 @@ static void update_water_ripples_es(
 
   TIME_D3D_PROFILE(water_ripples);
   static int render_with_normalmapVarId = get_shader_variable_id("render_with_normalmap", true);
-  ShaderGlobal::set_int(render_with_normalmapVarId, 0);
+  STATE_GUARD(ShaderGlobal::set_int(render_with_normalmapVarId, VALUE), VTEX_RENDER_NORMAL, VTEX_RENDER_DISPLACEMENT);
 
   water_ripples__origin_bbox = get_origin_box(evt.camPos, water_ripples);
   Point3 origin = water_ripples__origin_bbox.center();

@@ -1021,6 +1021,17 @@ find_reg_state (struct dwarf_cursor *c, dwarf_state_record_t *sr)
     }
   else
     {
+      /* Release the cache lock before looking up the saved locations.
+       * If we do not release the lock we risk deadlock if the lookup
+       * causes libunwind to be reentered.  */
+      if (cache)
+	{
+	  put_rs_cache (c->as, cache, &saved_mask);
+	  cache = NULL;
+	}
+
+      assert (!cache);
+
       ret = fetch_proc_info (c, c->ip);
       int next_use_prev_instr = c->use_prev_instr;
       if (ret >= 0)
@@ -1034,11 +1045,25 @@ find_reg_state (struct dwarf_cursor *c, dwarf_state_record_t *sr)
       put_unwind_info (c, &c->pi);
       c->use_prev_instr = next_use_prev_instr;
 
-      if (cache && ret >= 0)
+      /* Reacquire the cache lock.  We repeat the lookup in case the
+       * cache was updated by another thread while we did not hold the
+       * lock.  */
+      if (ret >= 0)
+	cache = get_rs_cache (c->as, &saved_mask);
+
+      if (cache)
 	{
-	  rs = rs_new (cache, c);
-	  cache->links[rs - cache->buckets].hint = 0;
-	  memcpy(rs, &sr->rs_current, sizeof(*rs));
+	  rs = rs_lookup (cache, c);
+	  if (rs)
+	    {
+	      memcpy (&sr->rs_current, rs, sizeof(*rs));
+	    }
+	  else
+	    {
+	      rs = rs_new (cache, c);
+	      cache->links[rs - cache->buckets].hint = 0;
+	      memcpy (rs, &sr->rs_current, sizeof(*rs));
+	    }
 	}
     }
 
@@ -1053,7 +1078,10 @@ find_reg_state (struct dwarf_cursor *c, dwarf_state_record_t *sr)
 	  c->prev_rs = index;
 	}
       if (ret >= 0)
-        tdep_reuse_frame (c, cache->links[index].signal_frame);
+	{
+	  assert (rs);
+	  tdep_reuse_frame (c, cache->links[index].signal_frame);
+	}
       put_rs_cache (c->as, cache, &saved_mask);
     }
   return ret;

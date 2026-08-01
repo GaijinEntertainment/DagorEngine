@@ -7,6 +7,7 @@ Target      = gameLibs/render/lights.lib ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/$(Location)
+  $(Root)/prog/gameLibs/render/shaders
   $(Root)/prog/3rdPartyLibs/binPack2D/include
 ;
 
@@ -14,12 +15,17 @@ Sources =
   clusteredLights.cpp
   clusteredLightsGrid.cpp
   clusteredLightsSorter.cpp
+  lightsPartition.cpp
+  lightsManager.cpp
   omniLightsManager.cpp
   spotLightsManager.cpp
-  tileDeferredLighting.cpp
   tiledLights.cpp
   frustumClusters.cpp
   shadowSystem.cpp
+  reallocatableLightsConstBuffer.cpp
+  lightsResources.cpp
+  dstReadbackLights.cpp
+  lightsRenderer.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

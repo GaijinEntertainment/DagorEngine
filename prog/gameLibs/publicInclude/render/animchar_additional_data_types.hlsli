@@ -10,6 +10,12 @@
 #define AAD_VEHICLE_CAMO      2
 #define AAD_DECALS_TYPE       3
 #define AAD_MATERIAL_PARAMS   4
+#define AAD_EYE_DIR           5
+// Per-character head customization slot (package_soldier). Aliases slot 4:
+// all 8 ids are taken, and head animchars never use the dynmat system - the
+// packer ES enforces that with ECS_REQUIRE_NOT on dynamic_material_channels_arr.
+// Layout offsets live in package_soldier/shaders/head_customization.hlsli.
+#define AAD_HEAD_CUSTOMIZATION 4
 
 // raw data, passed directly to rendering, can overlap with each other (unless there is a design error in shaders)
 #define AAD_RAW_XRAY_INDEX          6

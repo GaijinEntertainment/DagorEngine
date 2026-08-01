@@ -9,6 +9,7 @@ AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/daNetGame
 ;
 
 

@@ -315,7 +315,7 @@ void BcCompressor::updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip
 
     float cs_data[4] = {1.f / (bufferWidth >> src_mip), 1.f / (bufferHeight >> src_mip), (float)src_mip, 0.0f};
     d3d::set_cs_const(51, cs_data, 1);
-    compressElemCompute->dispatchThreads(tiledWidth >> 2, bufferHeight >> 2, 1);
+    compressElemCompute->dispatchThreads((tiledWidth >> dst_mip) >> 2, (bufferHeight >> dst_mip) >> 2, 1);
 
     d3d::set_rwtex(STAGE_CS, 2, NULL, 0, 0);
   }

@@ -115,6 +115,9 @@ inline bool add(cpujobs::IJob *j, JobPriority prio = PRIO_DEFAULT, bool wake_up 
 KRNLIMP bool add_node(threadpool::IJobNode *j, uint32_t start_index, uint32_t num_jobs, JobPriority prio = PRIO_DEFAULT,
   bool wake_up = true);
 
+// Pop and perform one pending job of exactly `prio` (no wait). Returns true if a job was performed.
+KRNLIMP bool perform_pending_job(JobPriority prio);
+
 // If lowest_prio_to_perform is in [PRIO_HIGH..NUM_PRIO] - waiting will be busy doing other jobs of higher priorities (NUM_PRIO mean
 // all) The reasons to do that depends on caller estimations of waiting times
 KRNLIMP void wait_ool(cpujobs::IJob *j, uint32_t profile_token, int lowest_prio_to_perform);

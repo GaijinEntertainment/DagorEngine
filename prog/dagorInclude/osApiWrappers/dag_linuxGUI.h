@@ -9,9 +9,12 @@
 #endif
 
 #include <generic/dag_tab.h>
+#include <math/integer/dag_IPoint2.h>
 #include <util/dag_string.h>
 
 #include <supp/dag_define_KRNLIMP.h>
+
+#include <EASTL/optional.h>
 
 namespace linux_GUI
 {
@@ -19,6 +22,12 @@ namespace linux_GUI
 struct RECT
 {
   int left, top, right, bottom;
+};
+
+struct WindowCreationOptions
+{
+  eastl::optional<IPoint2> position;
+  bool maximized = true; // Only when windowMode is WindowMode::WINDOWED_RESIZABLE.
 };
 
 // Init linux GUI system, X11 or Wayland, depending on underlying conditions
@@ -35,8 +44,14 @@ KRNLIMP void *get_main_window_ptr_handle();
 KRNLIMP bool is_main_window(void *wnd);
 KRNLIMP void destroy_main_window();
 
-KRNLIMP bool init_window(const char *title, int winWidth, int winHeight);
+KRNLIMP bool init_window(const char *title, int winWidth, int winHeight, const WindowCreationOptions &options);
 KRNLIMP void get_window_position(void *w, int &cx, int &cy);
+
+// Get the left top position of the visible frame in absolute, screen coordinates.
+// So this function returns 0, 0 when the window is at the left top corner of the desktop.
+KRNLIMP void get_window_frame_position(void *w, int &x, int &y);
+
+KRNLIMP bool is_window_maximized(void *w);
 KRNLIMP void set_title(const char *title, const char *tooltip = NULL);
 KRNLIMP void set_title_utf8(const char *title, const char *tooltip = NULL);
 

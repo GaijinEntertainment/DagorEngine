@@ -52,7 +52,8 @@ Aarch64Info GetAarch64Info(void) {
   info.revision = GetDarwinSysCtlByNameValue("hw.cpusubfamily");
 
   info.features.fp = GetDarwinSysCtlByName("hw.optional.floatingpoint");
-  info.features.asimd = GetDarwinSysCtlByName("hw.optional.AdvSIMD");
+  info.features.asimd = GetDarwinSysCtlByName("hw.optional.AdvSIMD") ||
+                        GetDarwinSysCtlByName("hw.optional.arm.AdvSIMD");
   info.features.aes = GetDarwinSysCtlByName("hw.optional.arm.FEAT_AES");
   info.features.pmull = GetDarwinSysCtlByName("hw.optional.arm.FEAT_PMULL");
   info.features.sha1 = GetDarwinSysCtlByName("hw.optional.arm.FEAT_SHA1");

@@ -25,8 +25,20 @@ void TypeDb::registerInteropType(const char *foreign_name, ResourceSubtypeTag na
   foreignNameToId.addNameId(foreign_name);
   idToTag.push_back(native_tag);
   isForeignType.push_back(false);
-  G_ASSERT(rttis.find(native_tag) == rttis.end());
-  rttis[native_tag] = eastl::make_unique<RTTI>(eastl::move(rtti));
+
+  if (const auto it = rttis.find(native_tag); it == rttis.end())
+  {
+    rttis[native_tag] = eastl::make_unique<RTTI>(eastl::move(rtti));
+  }
+#if DAFG_DEBUG_RTTI
+  else
+  {
+    // if we registered some type as native,
+    // but then das tries to register it as interop,
+    // we simply update its dasName
+    it->second->dasName = eastl::move(rtti.dasName);
+  }
+#endif
 }
 
 ResourceSubtypeTag TypeDb::registerForeignType(const char *foreign_name, RTTI &&rtti)

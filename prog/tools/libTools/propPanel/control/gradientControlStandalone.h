@@ -67,8 +67,13 @@ public:
   void setValue(PGradient source);
   void setCurValue(float value);
   void setCycled(bool cycled) { mCycled = cycled; }
-  void setMinMax(int min, int max);
+  void setMinMax(float min, float max);
+  float getMinValue() const { return minValue; }
+  float getMaxValue() const { return maxValue; }
+  void setMinMaxPointCount(int min, int max);
   void getValue(PGradient destGradient) const;
+  float getNormalizedFromValue(float value) const;
+  float getValueFromNormalized(float normalized_value) const;
   void reset();
   void updateCycled(TrackGradientButton *button);
   void processContextMenu(unsigned id);
@@ -96,6 +101,8 @@ private:
   float mCurValue;
   bool mCycled, mSelected;
   int mMinPtCount, mMaxPtCount;
+  float minValue = 0.0f;
+  float maxValue = 1.0f;
 
   WindowControlEventHandler *mEventHandler;
   WindowBase *windowBaseForEventHandler = nullptr;

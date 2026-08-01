@@ -19,24 +19,34 @@
 #include <landMesh/lmeshHoles.h>
 #include <generic/dag_carray.h>
 #include <EASTL/optional.h>
+#include <EASTL/unique_ptr.h>
 #include <physMap/physMap.h>
 
 
 class IBaseLoad;
-class LandRayTracer;
+class LandRayTracerSoA4;
+typedef LandRayTracerSoA4 land_tracer_t;
+class LandVtexRenderer;
 class DataBlock;
 class HeightmapHandler;
 struct Trace;
+struct LandWeightAtlas;
+
+// How data lost with the device in a reset comes back: restored by the driver
+// from system copies, or re-read from the level file by afterDeviceReset() -
+// which costs no resident memory but is only whole if the owner calls it.
+enum class LandMeshReset
+{
+  SysCopy,
+  ReloadFromSource
+};
+class LandWeightAtlasBuilder;
 
 struct LoadElement
 {
-  static constexpr int DET_TEX_NUM = 7;
+  static constexpr int DET_TEX_NUM = ::DET_TEX_NUM; // single definition in landMesh/lmeshTools.h
   carray<uint8_t, DET_TEX_NUM> detTexIds;
-  TEXTUREID tex1Id, tex2Id;
-  BaseTexture *tex1, *tex2;
-  LoadElement();
-  LoadElement(const LoadElement &) = delete;
-  ~LoadElement();
+  LoadElement() { memset(detTexIds.data(), 0xFF, DET_TEX_NUM); }
 };
 DAG_DECLARE_RELOCATABLE(LoadElement);
 
@@ -73,8 +83,9 @@ public:
     ~DetailMap() { clear(); }
     void clear();
 
-    void load(IGenLoad &cb, int base_ofs, bool tools_internal);
-    void getLandDetailTexture(int index, TEXTUREID &tex1, TEXTUREID &tex2, uint8_t detail_tex_ids[DET_TEX_NUM]);
+    // converts the per-cell weight textures into one atlas (see lmeshWeightAtlas.h);
+    // out_atlas is null when there is no device to hold it
+    void load(IGenLoad &cb, int base_ofs, bool tools_internal, LandWeightAtlas **out_atlas, unsigned weight_tex_cflg);
   };
   DetailMap &getDetailMap() { return detailMap; } // for tools
   TEXTUREID getMegaDetailsArrayId(int detail) const { return megaDetailsArrayId[detail]; }
@@ -128,7 +139,8 @@ protected:
   TEXTUREID vertTexId;
   TEXTUREID vertNmTexId;
   TEXTUREID vertDetTexId;
-  LandRayTracer *landTracer;
+  land_tracer_t *landTracer;
+  eastl::unique_ptr<LandVtexRenderer> vtex;
   bool useVertTexforHMAP;
   bool toolsInternal;
 
@@ -142,10 +154,13 @@ protected:
   real tileXSize, tileYSize;
 
   DetailMap detailMap;
+  LandWeightAtlas *weightAtlas = nullptr;
   int visRange;
 
   unsigned srcFileMeshMapOfs = 0;
+  unsigned srcFileDetailMapOfs = 0;
   const char *srcFileName = nullptr;
+  LandMeshReset dataReset = LandMeshReset::SysCopy;
 
   void close();
   bool loadMeshData(IGenLoad &loadCb);
@@ -188,6 +203,8 @@ public:
   int getLCCount() const { return landClasses.size(); }
   bool isInTools() const { return toolsInternal; }
 
+  bool forceHeightmapRendering = false;
+
   void evictSplattingData(); // remove all data for splatting. If splatting data is removed, you can not render last clip around or
                              // vtex
   void setRenderDataNeeded(uint32_t data_needed)
@@ -200,8 +217,10 @@ public:
     if (!landClasses.size())
       renderDataNeeded &= ~data_not_needed;
   }
-  bool loadDump(const char *filename, int start_offset = 0, bool load_render_data = true); ///< async load from file
-  bool loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator = midmem, bool load_render_data = true);
+  bool loadDump(const char *filename, int start_offset = 0, bool load_render_data = true,
+    LandMeshReset reset = LandMeshReset::SysCopy); ///< async load from file
+  bool loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator = midmem, bool load_render_data = true,
+    LandMeshReset reset = LandMeshReset::SysCopy);
 
   //! Tests ray hit to closest object and returns parameters of hit (if happen)
   bool traceray(const Point3 &p, const Point3 &dir, real &t, Point3 *normal, bool cull = true);
@@ -224,11 +243,11 @@ public:
 
   const Tab<ElemsData> &getDecalElems() const { return decalElems; }
   LandMeshRenderer *createRenderer();
+  LandVtexRenderer *getVtexRenderer() const { return vtex.get(); }
 
   //! loads some of required items in small time quantum (async streaming)
   int getBaseOffset() const { return baseDataOffset; }
-
-  void getLandDetailTexture(int x0, int y0, TEXTUREID &tex1, TEXTUREID &tex2, uint8_t detail_tex_ids[DET_TEX_NUM + 1]);
+  void getLandDetailTexIds(int x0, int y0, uint8_t detail_tex_ids[DET_TEX_NUM]);
   ShaderMesh *getCellLandShaderMesh(int x, int y, int lod = 0)
   {
     return getCellLandShaderMeshOffseted(x - origin.x, y - origin.y, lod);
@@ -295,6 +314,8 @@ public:
 
   void setVisibilityRangeCells(int vr) { visRange = vr; }
   int getVisibilityRangeCells() { return visRange; }
+  const LandWeightAtlas *getWeightAtlas() const { return weightAtlas; }
+  LandWeightAtlas *getWeightAtlasForEdit() { return weightAtlas; } // daEditor paints into it
   void getDetailMapSize(int &elem_size, int &tex_size)
   {
     tex_size = detailMap.texSize;
@@ -318,9 +339,33 @@ public:
 
   void setGrassMaskBlk(const DataBlock &blk);
 
+  // Terrain mirroring config: border cells mirrored on each side of the map. Level data, set once at
+  // load (like exclBox); the renderer derives its scaled/clamped per-cell tables from this. Kept on
+  // the manager so culling can consume it without a renderer reference.
+  struct MirroringCfg
+  {
+    int numBorderCellsXPos = 0, numBorderCellsXNeg = 0, numBorderCellsZPos = 0, numBorderCellsZNeg = 0;
+  };
+  void setMirroring(int x_pos, int x_neg, int z_pos, int z_neg) { mirrorCfg = {x_pos, x_neg, z_pos, z_neg}; }
+  const MirroringCfg &getMirroringCfg() const { return mirrorCfg; }
+  // Cell count of one 4096m visibility/mirroring unit, and the mirroring cfg scaled/clamped by it.
+  // The renderer's mirror tables and the desc-based cull share these so their cell indexing agrees.
+  int getScaleVisRange() const { return (int)floorf(4096.0f / landCellSize + 0.5f); }
+  void getScaledBorderCells(int &x_pos, int &x_neg, int &z_pos, int &z_neg) const
+  {
+    const int scale = getScaleVisRange();
+    x_pos = min(mirrorCfg.numBorderCellsXPos * scale, mapSizeX);
+    x_neg = min(mirrorCfg.numBorderCellsXNeg * scale, mapSizeX);
+    z_pos = min(mirrorCfg.numBorderCellsZPos * scale, mapSizeY);
+    z_neg = min(mirrorCfg.numBorderCellsZNeg * scale, mapSizeY);
+  }
+  MirroringCfg mirrorCfg;
+
   LandMeshCullingState cullingState;
 
-  LandRayTracer *getLandTracer() { return landTracer; }
+  // a null tracer is a legitimate state (pure-heightmap levels carry none)
+  land_tracer_t *getLandTracer() { return landTracer; }
+  const land_tracer_t *getLandTracer() const { return landTracer; }
 
   inline bool noVertTexHeightmap() { return !useVertTexforHMAP; }
 

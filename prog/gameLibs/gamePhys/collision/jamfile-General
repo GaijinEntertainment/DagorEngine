@@ -43,6 +43,7 @@ if $(PlatformSpec) in gcc clang {
   CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)fno-trapping-math $(xclang)ffp-contract=off ;
   if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
 }
+CPPopt += -DVECMATH_NO_FMA ; # v_madd on NEON is explicit vfmaq that ignores ffp-contract=off
 
 include $(Root)/prog/3rdPartyLibs/phys/setup-phys.jam ;
 include $(Root)/prog/_jBuild/build.jam ;

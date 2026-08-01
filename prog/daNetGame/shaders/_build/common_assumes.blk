@@ -9,7 +9,6 @@ ssr_target:i = 1//can be optional
 upscale_sampling_tex:i = 1
 hack_globtm_from_register:i = 0//not supported
 supports_uav:i = 1
-render_with_normalmap:i=3
 in_editor_assume:i=0
 in_editor:i=0
 //shore_waves_on:i=1
@@ -79,6 +78,7 @@ water_rt_enabled:i=0
 glass_rt_reflection:i=0
 allow_rt_glass_reflection:i=0
 bvh_usable:i=0
+bvh_has_omm_support:i=0
 water_distant
 {
   water_tess_factor:i=0
@@ -107,10 +107,14 @@ water_depth_nv2_heightmap
   water_tess_factor:i=3 // WaterNVRender::waterHeightmapTessFactor
   water_heightmap_pages:i=1
 }
-water_ssr_nv2_heightmap
+water_normal_nv2_heightmap
 {
   water_tess_factor:i=3 // WaterNVRender::waterHeightmapTessFactor
   water_heightmap_pages:i=1
+}
+rendinst_landclass {
+  water_heightmap_pages:i=0
+  shore_distance_field_tex:i=0
 }
 water_heightmap_tex_enabled:i=0
 foam_occlusion_test:i=1
@@ -120,7 +124,6 @@ rtsm_has_nuke:i=0
 cloud_volume:i=0
 palette_rotation_mode:i=1
 dynamic_texture_hdr_pass:i=0 // Only needed if dynamic mirrors are rendered
-xray_camera_relative_skinning:i=0
 use_satellite_rendering:i=0
 use_portal_rendering:i=0
 allow_satellite_rendering:i=0
@@ -153,6 +156,7 @@ caustics_render_cs {
   shore_distance_field_tex:i = 0
 }
 film_grain:i=1
+film_grain_mode:i=1
 gpu_objects_is_grass:i=0
 gi_enable_lights_at_radiance_trace:i=0 // Handled by voxels lit scene.
 dynamic_lighting_texture:i=1

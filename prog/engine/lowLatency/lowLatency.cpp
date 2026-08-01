@@ -62,7 +62,7 @@ lowlatency::LatencyMode lowlatency::get_from_blk()
   {
     const bool frameGenerationEnabled =
       video->getInt("dlssFrameGenerationCount", 0) > 0 ||
-      (stricmp(video->getStr("antialiasing_mode", "off"), "dlss") == 0 && video->getInt("antialiasing_fgc", 0) > 0);
+      (stricmp(video->getStr("antialiasing_mode", "off"), "dlss") == 0 && video->getInt("antialiasing_fgc", 0) != 0);
     if (frameGenerationEnabled)
       return lowlatency::LatencyMode::LATENCY_MODE_NV_BOOST; // forced by frame generation
   }

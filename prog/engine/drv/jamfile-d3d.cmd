@@ -1,5 +1,4 @@
 jam -sRoot=../../.. -sPlatformArch=x86 -f drv3d_DX11/jamfile
-jam -sRoot=../../.. -sPlatformArch=x86 -f drv3d_DX12/jamfile
 jam -sRoot=../../.. -sPlatformArch=x86 -f drv3d_vulkan/jamfile
 jam -sRoot=../../.. -sPlatformArch=x86 -f drv3d_null/jamfile
 jam -sRoot=../../.. -sPlatformArch=x86 -f drv3d_stub/jamfile
@@ -20,6 +19,7 @@ jam -sRoot=../../.. -sPlatform=xboxOne -f drv3d_stub/jamfile
 jam -sRoot=../../.. -sPlatform=xboxOne -f drv3d_null/jamfile
 
 jam -sRoot=../../.. -sPlatformArch=x86_64 -f drv3d_DX11/jamfile
+jam -sRoot=../../.. -sPlatformArch=x86_64 -f drv3d_DX12/jamfile
 jam -sRoot=../../.. -sPlatformArch=x86_64 -f drv3d_vulkan/jamfile
 jam -sRoot=../../.. -sPlatformArch=x86_64 -f drv3d_null/jamfile
 jam -sRoot=../../.. -sPlatformArch=x86_64 -f drv3d_stub/jamfile

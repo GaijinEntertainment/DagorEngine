@@ -95,7 +95,8 @@ extern ConVarT<bool, false> volfog_enabled;
   VAR(shadow_frame)               \
   VAR(temporal_shadow_frame)      \
   VAR_OPT(dafx_use_voxel_shadows) \
-  VAR_OPT(offset_foliage_shadows)
+  VAR_OPT(offset_foliage_shadows) \
+  VAR_OPT(parallax_shadow_enabled)
 
 #define VAR(a)     static ShaderVariableInfo a##VarId(#a);
 #define VAR_OPT(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -123,23 +124,14 @@ struct ShadowOcclUsrData
 static struct StaticShadowsLandmeshCullingJob final : public cpujobs::IJob
 {
   LandMeshManager *lmeshMgr;
-  Frustum frustum;
-  TMatrix4 projTm;
-  Point3 hmapOrigin;
-  LandMeshCullingState lmeshState;
+  LandMeshCullDesc cullDesc; // fully captured in start() before the job is queued
   LandMeshCullingData cullingData;
-  void start(const Frustum &frustum_,
-    const TMatrix4 &proj,
-    LandMeshManager *lmesh_mgr,
-    LandMeshRenderer *lmesh_renderer,
-    const Point3 &hmap_origin)
+  void start(const Frustum &frustum_, const TMatrix4 &proj, LandMeshManager *lmesh_mgr, const Point3 &hmap_origin)
   {
     lmeshMgr = lmesh_mgr;
-    projTm = proj;
-    frustum = frustum_;
-    hmapOrigin = hmap_origin;
-    lmeshState = {};
-    lmeshState.copyLandmeshState(*lmeshMgr, *lmesh_renderer);
+    cullDesc = LandMeshCullDesc::forView(hmap_origin, frustum_);
+    cullDesc.useExclBox = lmesh_mgr->cullingState.useExclBox;
+    cullDesc.hmapMetrics = {proj_to_distance_scale(proj), 0, HeightmapMetricsQuality::FASTEST};
     threadpool::add(this, threadpool::PRIO_HIGH);
   }
 
@@ -147,12 +139,7 @@ static struct StaticShadowsLandmeshCullingJob final : public cpujobs::IJob
 
   const char *getJobName(bool &) const override { return "static_shadow_lmesh_cull"; }
 
-  virtual void doJob() override
-  {
-    lmeshState.frustumCulling(*lmeshMgr, cullingData, nullptr, 0,
-      HeightmapFrustumCullingInfo{
-        hmapOrigin, frustum, NULL, NULL, true, {proj_to_distance_scale(projTm), 0, HeightmapMetricsQuality::FASTEST}});
-  }
+  virtual void doJob() override { landmesh::frustum_cull(*lmeshMgr, cullDesc, cullingData); }
 } static_shadows_lmesh_cull_job;
 
 static void safe_znzf(Point2 &znzf)
@@ -1238,7 +1225,7 @@ void ShadowsManager::initVoxelShadows()
   voxelShadowSettings.heightOffsetRatio = lvl_override::getReal(lvlSettings, "voxelShadowsHeightOffsetRatio", 0.4f);
   voxelShadowSettings.moveThreshold = lvl_override::getInt(lvlSettings, "voxelShadowsMoveThreshold", 4);
 
-  switch (shadowsQuality)
+  switch (settingsShadowQuality)
   {
     case ShadowsQuality::SHADOWS_ULTRA_HIGH:
     case ShadowsQuality::SHADOWS_HIGH:
@@ -1260,7 +1247,7 @@ void ShadowsManager::initVoxelShadows()
       return;
   }
 
-  int fxVoxelShadowUse = shadowsQuality == ShadowsQuality::SHADOWS_ULTRA_HIGH ? 2 : 1;
+  int fxVoxelShadowUse = settingsShadowQuality == ShadowsQuality::SHADOWS_ULTRA_HIGH ? 2 : 1;
   dafx_use_voxel_shadowsVarId.set_int(fxVoxelShadowUse);
 
   voxelShadows.reset(new VoxelShadows(voxelShadowSettings));
@@ -1301,6 +1288,11 @@ bool ShadowsManager::anyCsmCascadeRendersStatic() const
   return false;
 }
 
+void ShadowsManager::initParallaxShadows()
+{
+  ShaderGlobal::set_int(parallax_shadow_enabledVarId, settingsShadowQuality == ShadowsQuality::SHADOWS_ULTRA_HIGH ? 1 : 0);
+}
+
 void ShadowsManager::initShadows()
 {
   shadowsDownsample.init("downsample_shadows_depth_4x");
@@ -1310,6 +1302,7 @@ void ShadowsManager::initShadows()
   initVoxelShadows();
   if (shadowInfoProvider.hasRenderFeature(FeatureRenderFlags::STATIC_SHADOWS))
     initStaticShadow();
+  initParallaxShadows();
 
   // As CSM state might have changed
   initShadowsDownsampleNode();
@@ -1401,26 +1394,20 @@ void ShadowsManager::renderGroundShadows(
   G_ASSERT(lmeshRenderer != nullptr);
 
   TIME_D3D_PROFILE(render_ground);
-  LandMeshCullingState lmeshState;
   LandMeshCullingData cullingData(framemem_ptr());
-  lmeshState.copyLandmeshState(*lmeshMgr, *lmeshRenderer);
 
-  HeightmapMetricsQuality mq = {proj_to_distance_scale(viewProjTm)};
-  mq.maxRelativeTexelTess = 1;
+  LandMeshCullDesc cullDesc = LandMeshCullDesc::forView(origin, culling_frustum);
+  cullDesc.useExclBox = lmeshMgr->cullingState.useExclBox;
+  cullDesc.hmapMetrics = {proj_to_distance_scale(viewProjTm)};
+  cullDesc.hmapMetrics.maxRelativeTexelTess = 1;
 
   // fixme: culling should be done in thread!!!
-  lmeshState.frustumCulling(*lmeshMgr, cullingData, NULL, 0,
-    HeightmapFrustumCullingInfo{
-      origin,
-      culling_frustum,
-      NULL,
-      NULL,
-      true,
-      mq,
-    });
+  landmesh::frustum_cull(*lmeshMgr, cullDesc, cullingData);
 
-  lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_DEPTH);
-  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, cullingData, origin);
+  LandMeshRenderDesc desc;
+  desc.mode = LMeshRenderingMode::RENDERING_DEPTH;
+  desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+  lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, desc, cullingData, origin);
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
 }
 
@@ -1454,15 +1441,11 @@ void ShadowsManager::renderStaticShadowsRegion(
 
   LandMeshManager *lmeshMgr = WRDispatcher::getLandMeshManager();
   LandMeshRenderer *lmeshRenderer = WRDispatcher::getLandMeshRenderer();
-  float oldInvGeomDist = 0;
   if (lmeshMgr)
   {
-    oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
-    lmeshRenderer->setInvGeomLodDist(1. / 30000);
-
     // For ortho shadows cull with culling matrix, because it may not render the whole depth range.
     Frustum lmeshCullingFrustum = staticShadows->isOrthoShadow() ? cullingFrustum : Frustum(shadow_glob_tm);
-    static_shadows_lmesh_cull_job.start(lmeshCullingFrustum, shadow_glob_tm, lmeshMgr, lmeshRenderer, camera_pos);
+    static_shadows_lmesh_cull_job.start(lmeshCullingFrustum, shadow_glob_tm, lmeshMgr, camera_pos);
   }
 
   shaders::overrides::set(staticShadowsOverride.get());
@@ -1491,10 +1474,9 @@ void ShadowsManager::renderStaticShadowsRegion(
   if (lmeshMgr)
   {
     TIME_D3D_PROFILE(render_ground);
-    if (staticShadows->isOrthoShadow())
-      lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_DEPTH);
-    else
-      lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
+    LandMeshRenderDesc desc;
+    desc.mode = staticShadows->isOrthoShadow() ? LMeshRenderingMode::RENDERING_DEPTH : LMeshRenderingMode::RENDERING_VSM;
+    desc.invGeomLodDist = 1. / 30000;
 
     TMatrix4 globtmTr = shadow_glob_tm.transpose();
     ShaderGlobal::set_float4(globtm_psf_0VarId, Color4(globtmTr[0]));
@@ -1503,9 +1485,8 @@ void ShadowsManager::renderStaticShadowsRegion(
     ShaderGlobal::set_float4(globtm_psf_3VarId, Color4(globtmTr[3]));
 
     threadpool::wait(&static_shadows_lmesh_cull_job, 0, threadpool::PRIO_HIGH);
-    lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, static_shadows_lmesh_cull_job.cullingData, camera_pos);
-
-    lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
+    lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, desc, static_shadows_lmesh_cull_job.cullingData,
+      camera_pos);
   }
 
   shaders::overrides::reset();
@@ -1589,22 +1570,18 @@ void ShadowsManager::prepareVSM(const Point3 &camera_pos)
   {
     TIME_D3D_PROFILE(render_ground_vsm);
 
-    float oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
-    lmeshRenderer->setInvGeomLodDist(1. / 30000);
-
     TMatrix4 shadow_glob_tm = vsmCullingInfo.viewProj;
     Frustum frustum = shadow_glob_tm;
 
-    LandMeshCullingState lmeshState;
     LandMeshCullingData cullingData;
     {
       TIME_PROFILE(vsm_lmesh_cull)
-      lmeshState.copyLandmeshState(*lmeshMgr, *lmeshRenderer);
-      lmeshState.frustumCulling(*lmeshMgr, cullingData, nullptr, 0,
-        HeightmapFrustumCullingInfo{camera_pos, frustum, NULL, NULL, true, {0, -1, HeightmapMetricsQuality::FASTEST}});
+      LandMeshCullDesc cullDesc = LandMeshCullDesc::forView(camera_pos, frustum);
+      cullDesc.useExclBox = lmeshMgr->cullingState.useExclBox;
+      cullDesc.hmapMetrics = {0, -1, HeightmapMetricsQuality::FASTEST};
+      landmesh::frustum_cull(*lmeshMgr, cullDesc, cullingData);
     }
 
-    lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
     TMatrix4 globtmTr = shadow_glob_tm.transpose();
     ShaderGlobal::set_float4(globtm_psf_0VarId, Color4(globtmTr[0]));
     ShaderGlobal::set_float4(globtm_psf_1VarId, Color4(globtmTr[1]));
@@ -1614,10 +1591,11 @@ void ShadowsManager::prepareVSM(const Point3 &camera_pos)
     {
       FRAME_LAYER_GUARD(globalFrameBlockId);
 
-      lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, cullingData, camera_pos);
+      LandMeshRenderDesc desc;
+      desc.mode = LMeshRenderingMode::RENDERING_VSM;
+      desc.invGeomLodDist = 1. / 30000;
+      lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, desc, cullingData, camera_pos);
     }
-
-    lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
 
     vsm.endShadowMap();
   }

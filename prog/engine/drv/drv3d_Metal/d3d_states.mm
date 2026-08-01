@@ -193,9 +193,9 @@ static id<MTLDevice> getSelectedDevce()
     if (dev.lowPower == get_lowpower_mode())
       device = [dev retain];
   }
-#else
-  device = MTLCreateSystemDefaultDevice();
 #endif
+  if (device == nil)
+    device = MTLCreateSystemDefaultDevice();
   G_ASSERT(device);
   return device;
 }
@@ -351,7 +351,13 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
           const Dx12HWInstance &inst = *src++;
           MTLAccelerationStructureUserIDInstanceDescriptor &ret = *dst++;
 
-          G_ASSERTF(inst.blasGpuAddress < render.nativeBlases.count, "Blas index is out of bounds, %llu is bigger than %d", inst.blasGpuAddress, int(render.nativeBlases.count));
+#if DAGOR_DBGLEVEL > 0
+          {
+            render.blases.lock();
+            G_ASSERTF(inst.blasGpuAddress < render.nativeBlases.size(), "Blas index is out of bounds, %llu is bigger than %d", inst.blasGpuAddress, int(render.nativeBlases.size()));
+            render.blases.unlock();
+          }
+#endif
           ret.accelerationStructureIndex = inst.blasGpuAddress;
           ret.options = 0;
           ret.intersectionFunctionTableOffset = 0; // instance.instanceContributionToHitGroupIndex;
@@ -414,7 +420,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
 
       if (!q[0])
       {
-        q[0] = render.createQuery();
+        q[0] = render.createQuery(Render::Query::Type::Visibility);
       }
 
       render.startQuery(q[0]);
@@ -451,7 +457,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
         return 0;
       }
 
-      return (int)render.getQueryResult(q, par2 ? 0 : 1);
+      return (int)render.getQueryResult(q, par2 ? 1 : 0);
     }
     case Drv3dCommand::RELEASE_QUERY:
     {
@@ -487,9 +493,16 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
     case Drv3dCommand::TIMESTAMPISSUE:
     {
       G_ASSERTF(par1, "metal: par1 for Drv3dCommand::TIMESTAMPISSUE must be not null");
-      uint64_t &query = *(reinterpret_cast<uint64_t *>(par1));
+
+      Render::Query** q = (Render::Query**)par1;
+      if (!q[0])
+      {
+        q[0] = new Render::Query {};
+        q[0]->type = Render::Query::Type::Timestamp;
+      }
+
       // we're using floor, so render.nextSample effectively means last scheduled sample + 1
-      query = render.nextSample;
+      q[0]->value = render.nextSample;
       break;
     }
     case Drv3dCommand::TIMESTAMPGET:
@@ -504,7 +517,11 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
         if (!par1)
           return 0;
 
-        uint64_t gpuTimeStamp = render.getTimestampResult(reinterpret_cast<uint64_t>(par1));
+        Render::Query* q = (Render::Query*)par1;
+        if (!q)
+          return 0;
+
+        uint64_t gpuTimeStamp = render.getTimestampResult(q->value);
         if (!gpuTimeStamp)
           return 0;
 
@@ -611,12 +628,6 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
     {
       return [render.mainview isHDRAvailable];
     }
-    case Drv3dCommand::SET_HDR:
-    {
-      bool enable = *static_cast<bool*>(par1);
-      [render.mainview setHDR: enable];
-      break;
-    }
     case Drv3dCommand::HDR_HEADROOM:
     {
       *reinterpret_cast<float *>(par1) = [render.mainview getRelativeHeadroom];
@@ -625,7 +636,8 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
     case Drv3dCommand::GET_METALFX_UPSCALE_STATE:
     {
 #if USE_METALFX_UPSCALE
-      return render.upscale.supported ? (int)MtlfxUpscaleState::READY : (int)MtlfxUpscaleState::UNSUPPORTED;
+      return (render.upscale.supported ? (int)MtlfxUpscaleState::SPATIAL : (int)MtlfxUpscaleState::UNSUPPORTED) |
+        (render.upscale.temporalSupported ? (int)MtlfxUpscaleState::TEMPORAL : (int)MtlfxUpscaleState::UNSUPPORTED);
 #else
       return (int)MtlfxUpscaleState::UNSUPPORTED;
 #endif
@@ -638,7 +650,13 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
     case Drv3dCommand::EXECUTE_METALFX_UPSCALE:
     {
       MtlFxUpscaleParams *params = static_cast<MtlFxUpscaleParams*>(par1);
-      render.executeUpscale((drv3d_metal::Texture*)params->color, (drv3d_metal::Texture*)params->output, (uint32_t)params->colorMode);
+      if (params->temporal)
+        render.executeTemporalUpscale((drv3d_metal::Texture*)params->color, (drv3d_metal::Texture*)params->motion,
+          (drv3d_metal::Texture*)params->depth, (drv3d_metal::Texture*)params->output, params->jitterX, params->jitterY,
+          params->motionScaleX, params->motionScaleY);
+      else
+        render.executeSpatialUpscale((drv3d_metal::Texture*)params->color, (drv3d_metal::Texture*)params->output,
+          (uint32_t)params->colorMode);
       break;
     }
     default:
@@ -725,7 +743,7 @@ PROGRAM d3d::get_debug_program()
 
 d3d::EventQuery* d3d::create_event_query()
 {
-  return (d3d::EventQuery*)render.createQuery();
+  return (d3d::EventQuery*)render.createQuery(Render::Query::Type::Event);
 }
 
 void d3d::release_event_query(d3d::EventQuery *q)
@@ -735,7 +753,9 @@ void d3d::release_event_query(d3d::EventQuery *q)
     return;
   }
 
-  render.releaseQuery((Render::Query*)q);
+  Render::Query *query = (Render::Query *)q;
+  G_ASSERT(query->type == Render::Query::Type::Event);
+  render.releaseQuery(query);
 }
 
 bool d3d::issue_event_query(d3d::EventQuery *q)
@@ -843,7 +863,13 @@ static bool canAliasToUint(uint32_t fmt)
 static MTLTextureDescriptor *createTextureDescriptor(const ResourceDescription &desc, bool& is_rt, bool& is_depth_stencil)
 {
   MTLTextureDescriptor *pTexDesc = [[MTLTextureDescriptor alloc] init];
-  switch (desc.type)
+  D3DResourceType type = desc.type;
+#if _TARGET_IOS
+  // some ios devices don't support cube array textures
+  if (![drv3d_metal::render.device supportsFamily:MTLGPUFamilyApple4] && type == D3DResourceType::CUBEARRTEX)
+    type = D3DResourceType::CUBETEX;
+#endif
+  switch (type)
   {
     case D3DResourceType::TEX:
       pTexDesc.textureType = MTLTextureType2D;
@@ -863,8 +889,8 @@ static MTLTextureDescriptor *createTextureDescriptor(const ResourceDescription &
       break;
     case D3DResourceType::VOLTEX:
       pTexDesc.textureType = MTLTextureType3D;
-      pTexDesc.width = desc.asVolTexRes.depth;
-      pTexDesc.height = desc.asVolTexRes.depth;
+      pTexDesc.width = desc.asVolTexRes.width;
+      pTexDesc.height = desc.asVolTexRes.height;
       pTexDesc.depth = desc.asVolTexRes.depth;
       pTexDesc.mipmapLevelCount = desc.asVolTexRes.mipLevels;
       pTexDesc.arrayLength = 1;

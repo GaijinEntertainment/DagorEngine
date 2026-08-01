@@ -63,8 +63,8 @@ int dtMergeCorridorStartMoved(dtPolyRef* path, const int npath, const int maxPat
 		memmove(path+req, path+orig, size*sizeof(dtPolyRef));
 	
 	// Store visited
-	for (int i = 0; i < req; ++i)
-		path[i] = visited[(nvisited-1)-i];				
+	for (int i = 0, n = dtMin(req, maxPath); i < n; ++i)
+		path[i] = visited[(nvisited-1)-i];
 	
 	return req+size;
 }

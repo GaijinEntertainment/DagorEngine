@@ -224,7 +224,7 @@ void teardown()
 
 void init(ContextId context_id)
 {
-  if (!context_id->has(Features::Fx))
+  if (!context_id->hasAny(Features::Fx))
     return;
 
   G_ASSERT(bvhConnection.contexts.empty());
@@ -240,7 +240,7 @@ void init(ContextId context_id)
 
 void teardown(ContextId context_id)
 {
-  if (!context_id->has(Features::Fx))
+  if (!context_id->hasAny(Features::Fx))
     return;
 
   bvhConnection.contexts.erase(context_id);
@@ -256,7 +256,7 @@ void connect(fx_connect_callback callback) { callback(&bvhConnection); }
 
 void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count)
 {
-  if (context_id->has(Features::Fx))
+  if (context_id->hasAny(Features::Fx))
   {
     instances = bvhConnection.instances.getBuf();
     instance_count = bvhConnection.counter.getBuf();

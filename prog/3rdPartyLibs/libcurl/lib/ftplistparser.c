@@ -508,7 +508,7 @@ size_t Curl_ftp_parselist(char *buffer, size_t size, size_t nmemb,
         switch(parser->state.UNIX.sub.hlinks) {
         case PL_UNIX_HLINKS_PRESPACE:
           if(c != ' ') {
-            if(c >= '0' && c <= '9') {
+            if(c >= '0' && c <= '9' && finfo->b_used) {
               parser->item_offset = finfo->b_used - 1;
               parser->item_length = 1;
               parser->state.UNIX.sub.hlinks = PL_UNIX_HLINKS_NUMBER;
@@ -916,7 +916,7 @@ size_t Curl_ftp_parselist(char *buffer, size_t size, size_t nmemb,
       case PL_WINNT_DIRORSIZE:
         switch(parser->state.NT.sub.dirorsize) {
         case PL_WINNT_DIRORSIZE_PRESPACE:
-          if(c != ' ') {
+          if(c != ' ' && finfo->b_used) {
             parser->item_offset = finfo->b_used - 1;
             parser->item_length = 1;
             parser->state.NT.sub.dirorsize = PL_WINNT_DIRORSIZE_CONTENT;

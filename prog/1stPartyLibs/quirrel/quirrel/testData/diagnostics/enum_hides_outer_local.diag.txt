@@ -1,0 +1,9 @@
+ERROR: Enum name 'e' conflicts with outer local variable
+testData/diagnostics/enum_hides_outer_local.nut:4:4
+
+  function inner() {
+    enum e { A = 1 }
+    ^---------------
+    return e.A
+
+

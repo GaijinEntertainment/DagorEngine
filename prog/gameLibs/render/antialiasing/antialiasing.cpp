@@ -102,6 +102,7 @@ static const char *convert(AntialiasingMethod method)
     case AntialiasingMethod::FSR: return "fsr";
     case AntialiasingMethod::SGSR: return "sgsr";
     case AntialiasingMethod::METALFX: return "metalfx";
+    case AntialiasingMethod::METALFX_TEMPORAL: return "metalfx_temporal";
     case AntialiasingMethod::MOBILE_MSAA: return "mobile_msaa";
     case AntialiasingMethod::SGSR2: return "sgsr2";
     case AntialiasingMethod::ARM_ASR: return "arm_asr";
@@ -244,6 +245,8 @@ static AntialiasingMethod convert_method(const char *name, bool &is_valid)
     return AntialiasingMethod::METALFX;
   if (stricmp(name, "metalfx_fxaa") == 0)
     return AntialiasingMethod::METALFX;
+  if (stricmp(name, "metalfx_temporal") == 0)
+    return AntialiasingMethod::METALFX_TEMPORAL;
   if (stricmp(name, "mobile_msaa") == 0)
     return AntialiasingMethod::MOBILE_MSAA;
   if (stricmp(name, "sgsr2") == 0)
@@ -593,6 +596,7 @@ struct Context
       subsamples);
   }
 
+  // 0 -> frame gen off, 1-N -> generate N frames for every frame, -1 -> dynamic multi-frame generation
   static int getCfgFrameGenCount() { return dgs_get_settings()->getBlockByNameEx("video")->getInt("antialiasing_fgc", 0); }
   static int getRRConfig() { return dgs_get_settings()->getBlockByNameEx("video")->getBool("rayReconstruction", false); }
   static bool getdlssLegacyModeConfig()
@@ -1182,6 +1186,59 @@ struct Context
     rtMetalfxUpscale.reset();
   }
 
+  bool tryInitMetalFxTemporal(const IPoint2 &outputResolution, const IPoint2 &inputResolution)
+  {
+    if (method != AntialiasingMethod::METALFX_TEMPORAL)
+      return false;
+
+    if (!is_metalfx_temporal_upscale_supported())
+      return false;
+
+    mipBias = log2((float)inputResolution.y / (float)outputResolution.y);
+    const int jitterSequenceBaseLength = app_glue()->isVrHmdEnabled() ? 16 : 8;
+    float exponent = ceil(log2(jitterSequenceBaseLength * sqr(float(outputResolution.y) / float(inputResolution.y))));
+    subsamples = int(exp2(exponent));
+    return true;
+  }
+
+  void applyMetalFxTemporal(Texture *source_tex, Texture *dest_tex, const ApplyContext &ctx)
+  {
+    TIME_D3D_PROFILE(applyMetalFxTemporal);
+
+    G_ASSERT(source_tex);
+    G_ASSERT_RETURN(dest_tex, );
+
+    const Point2 &displayResolution = app_glue()->getDisplayResolution();
+    TextureInfo ti;
+    source_tex->getinfo(ti);
+    // temporal scaler writes the output via a compute pass, so it must be UAV-capable
+    textureFlg = (hdrrender::is_hdr_enabled() ? TEXFMT_R11G11B10F : TEXFMT_A8R8G8B8) | TEXCF_RTARGET | TEXCF_UNORDERED;
+    if (ti.cflg & (TEXCF_SRGBWRITE | TEXCF_SRGBREAD))
+      textureFlg |= TEXCF_SRGBWRITE | TEXCF_SRGBREAD;
+    if (!rTargetMetalfxUpscale)
+      rTargetMetalfxUpscale = RTargetPool::get(displayResolution.x, displayResolution.y, textureFlg, 1);
+
+    auto rtMetalfxUpscale = rTargetMetalfxUpscale->acquire();
+
+    const IPoint2 inputResolution = app_glue()->getInputResolution();
+    MtlFxUpscaleParams params;
+    params.temporal = true;
+    params.colorMode = MtlfxColorMode::PERCEPTUAL;
+    params.color = source_tex;
+    params.output = rtMetalfxUpscale.get()->getBaseTex();
+    params.motion = ctx.motionTexture;
+    params.depth = ctx.depthTexture;
+    params.jitterX = ctx.jitterPixelOffset.x;
+    params.jitterY = ctx.jitterPixelOffset.y;
+    params.motionScaleX = inputResolution.x;
+    params.motionScaleY = inputResolution.y;
+    d3d::driver_command(Drv3dCommand::EXECUTE_METALFX_UPSCALE, &params);
+    d3d::stretch_rect(rtMetalfxUpscale.get()->getBaseTex(), dest_tex, nullptr, nullptr);
+    d3d::set_render_target();
+
+    rtMetalfxUpscale.reset();
+  }
+
 #if HAS_SGSR
   bool tryInitSgsr(const IPoint2 &inputResolution)
   {
@@ -1264,14 +1321,16 @@ struct Context
     args.reactiveTexture = nullptr;
     args.transparencyAndCompositionTexture = nullptr;
     args.jitter = ctx.jitterPixelOffset;
-    args.motionVectorScale.x = app_glue()->getInputResolution().x;
-    args.motionVectorScale.y = app_glue()->getInputResolution().y;
+    TextureInfo ti;
+    source_tex->getinfo(ti);
+    args.motionVectorScale.x = ti.w;
+    args.motionVectorScale.y = ti.h;
     args.reset = ctx.resetHistory;
     args.debugView = amdfsr_debug_view;
     args.sharpness = 0;
     args.timeElapsed = ctx.timeElapsed;
     args.preExposure = 1;
-    args.inputResolution = app_glue()->getInputResolution();
+    args.inputResolution = IPoint2(ti.w, ti.h);
     args.outputResolution = app_glue()->getDisplayResolution();
     args.fovY = ctx.persp.hk;
     args.nearPlane = ctx.persp.zf; // near and far are swapped as for inverted depth,
@@ -1292,6 +1351,18 @@ struct Context
   void applySmaa(Texture *source_tex, Texture *dest_tex) { smaa->apply(source_tex, dest_tex); }
 
 #if _TARGET_C2
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1511,7 +1582,6 @@ struct Context
       nv::DLSSFrameGeneration *dlssg = streamline ? streamline->getDlssGFeature(0) : nullptr;
       if (dlssg)
       {
-        // Routed through the backend thread so slDLSSGSetOptions is not called from the calling thread.
         int framesToGenerate = enable ? getCfgFrameGenCount() : 0;
         int viewIndex = 0;
         d3d::driver_command(Drv3dCommand::SET_DLSS_G_ENABLED, &framesToGenerate, &viewIndex);
@@ -1556,38 +1626,37 @@ struct Context
     return 1;
   }
 
-  int getSupportedGeneratedFrames(AntialiasingMethod for_method, bool exclusive_fullscreen)
+  struct FrameGenerationCapabilities
   {
-    if (for_method == AntialiasingMethod::DLSS)
+    int maxGeneratedFrames = 0;
+    bool dynamicMFGsupported = false;
+  };
+
+  FrameGenerationCapabilities getFrameGenerationCapabilities(AntialiasingMethod for_method, bool exclusive_fullscreen)
+  {
+    if (for_method == AntialiasingMethod::DLSS && !dlss_without_streamline())
     {
-      if (dlss_without_streamline())
-        return 0;
-      else
+      nv::Streamline *streamline = nullptr;
+      d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
+      if (streamline)
       {
-        nv::Streamline *streamline = nullptr;
-        d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
-        if (streamline)
-          return streamline->getMaximumNumberOfGeneratedFrames();
+        auto dlssCapabilities = streamline->getFrameGenerationCapabilities();
+        return FrameGenerationCapabilities{
+          int(dlssCapabilities.maximumNumberOfGeneratedFrames), bool(dlssCapabilities.isDynamicMFGSupported)};
       }
     }
-    else if (for_method == AntialiasingMethod::FSR)
+    else if (for_method == AntialiasingMethod::FSR && !exclusive_fullscreen)
     {
-      if (exclusive_fullscreen)
-        return 0;
-
-      return getFsrMaximumGeneratedFrames();
+      return FrameGenerationCapabilities{getFsrMaximumGeneratedFrames(), false};
     }
-    else if (for_method == AntialiasingMethod::XeSS)
+    else if (for_method == AntialiasingMethod::XeSS && !exclusive_fullscreen)
     {
-      if (exclusive_fullscreen)
-        return 0;
-
       int genFrames = 0;
       d3d::driver_command(Drv3dCommand::GET_XESS_SUPPORTED_GEN_FRAMES, &genFrames);
-      return genFrames;
+      return FrameGenerationCapabilities{genFrames, false};
     }
 
-    return 0;
+    return FrameGenerationCapabilities{};
   }
 
   const char *getFrameGenerationUnsupportedReason(const char *method_name, bool exclusive_fullscreen) const
@@ -1630,7 +1699,8 @@ struct Context
           case nv::SupportState::Supported: break;
         }
 
-        if (streamline->getMaximumNumberOfGeneratedFrames() <= 0)
+        if (auto capabs = streamline->getFrameGenerationCapabilities();
+            capabs.maximumNumberOfGeneratedFrames <= 0 && !capabs.isDynamicMFGSupported)
           return kNotSupported;
 
         break;
@@ -1678,7 +1748,9 @@ struct Context
 
   bool isFrameGenerationEnabled(AntialiasingMethod config_method, bool exclusive_fullscreen)
   {
-    return getCfgFrameGenCount() > 0 && getSupportedGeneratedFrames(config_method, exclusive_fullscreen) > 0;
+    auto cfgFrameGenCount = getCfgFrameGenCount();
+    auto capabilities = getFrameGenerationCapabilities(config_method, exclusive_fullscreen);
+    return (cfgFrameGenCount > 0 && capabilities.maxGeneratedFrames > 0) || (cfgFrameGenCount < 0 && capabilities.dynamicMFGsupported);
   }
 
   bool isFrameGenerationEnabled(bool exclusive_fullscreen) { return isFrameGenerationEnabled(method, exclusive_fullscreen); }
@@ -1910,6 +1982,7 @@ void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolutio
 
 
 
+
 #endif
     case AntialiasingMethod::DLSS:
       if (!g_ctx->tryInitDlss(postfx_resolution, dynamic_resolution_enabled, rendering_resolution, min_dynamic_resolution,
@@ -1952,6 +2025,11 @@ void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolutio
     case AntialiasingMethod::METALFX:
       rendering_resolution = postfx_resolution;
       if (!g_ctx->tryInitMetalFx())
+        fallbackToNone();
+      break;
+    case AntialiasingMethod::METALFX_TEMPORAL:
+      rendering_resolution = postfx_resolution;
+      if (!g_ctx->tryInitMetalFxTemporal(display_resolution, rendering_resolution))
         fallbackToNone();
       break;
 #if HAS_SGSR
@@ -2045,7 +2123,7 @@ bool is_temporal()
          g_ctx->method == AntialiasingMethod::DLSS || g_ctx->method == AntialiasingMethod::XeSS ||
          g_ctx->method == AntialiasingMethod::FSR || g_ctx->method == AntialiasingMethod::MobileTAA ||
          g_ctx->method == AntialiasingMethod::SGSR2 || g_ctx->method == AntialiasingMethod::ARM_ASR ||
-         g_ctx->method == AntialiasingMethod::MobileTAALow
+         g_ctx->method == AntialiasingMethod::MobileTAALow || g_ctx->method == AntialiasingMethod::METALFX_TEMPORAL
 #if _TARGET_C2
 
 #endif
@@ -2063,7 +2141,11 @@ bool support_dynamic_resolution()
     return false;
 
   return g_ctx->method == AntialiasingMethod::TSR || g_ctx->method == AntialiasingMethod::DLSS ||
-         g_ctx->method == AntialiasingMethod::FSR || g_ctx->method == AntialiasingMethod::XeSS;
+         g_ctx->method == AntialiasingMethod::FSR || g_ctx->method == AntialiasingMethod::XeSS
+#if _TARGET_C2
+
+#endif
+    ;
 }
 
 bool need_prev_depth()
@@ -2123,10 +2205,12 @@ void adjust_mip_bias(const IPoint2 &dynamic_resolution, const IPoint2 &output_re
 
 bool is_metalfx_upscale_supported()
 {
-  static bool metalfxSupported =
-    (MtlfxUpscaleState(d3d::driver_command(Drv3dCommand::GET_METALFX_UPSCALE_STATE)) == MtlfxUpscaleState::READY);
+  return flagMetalfxUpscale.get() && (d3d::driver_command(Drv3dCommand::GET_METALFX_UPSCALE_STATE) & (int)MtlfxUpscaleState::SPATIAL);
+}
 
-  return flagMetalfxUpscale.get() && metalfxSupported;
+bool is_metalfx_temporal_upscale_supported()
+{
+  return flagMetalfxUpscale.get() && (d3d::driver_command(Drv3dCommand::GET_METALFX_UPSCALE_STATE) & (int)MtlfxUpscaleState::TEMPORAL);
 }
 
 bool is_arm_asr_supported()
@@ -2168,7 +2252,26 @@ void before_render_view(int view_index)
   }
 }
 
-Point2 get_jitter_offset(const RenderView &view, bool vr_mode)
+bool before_render_view(const RenderView &view)
+{
+  if (!g_ctx)
+    return false;
+
+  switch (g_ctx->method)
+  {
+    case AntialiasingMethod::TAA:
+    case AntialiasingMethod::MobileTAA:
+    case AntialiasingMethod::MobileTAALow: return g_ctx->taa->beforeRenderView(app_glue()->getUvReprojectionToPrevFrameTmNoJitter());
+#if HAS_SGSR
+    case AntialiasingMethod::SGSR2: g_ctx->sgsr2->beforeRenderView(view);
+#endif
+    default: break;
+  }
+
+  return true;
+}
+
+Point2 get_jitter_offset(uint32_t frame_index)
 {
   if (!g_ctx)
     return Point2::ZERO;
@@ -2179,38 +2282,50 @@ Point2 get_jitter_offset(const RenderView &view, bool vr_mode)
     case AntialiasingMethod::DLSS:
     case AntialiasingMethod::XeSS:
     case AntialiasingMethod::TSR:
+    case AntialiasingMethod::METALFX_TEMPORAL:
 #if _TARGET_C2
 
 #endif
+    case AntialiasingMethod::ARM_ASR:
     {
-      int phase = dagor_get_global_frame_id() % uint32_t(g_ctx->subsamples) + 1;
+      int phase = frame_index % uint32_t(g_ctx->subsamples) + 1;
       return Point2(halton_sequence(phase, 2) - 0.5f, halton_sequence(phase, 3) - 0.5f);
     }
+#if HAS_SGSR
+    case AntialiasingMethod::SGSR2: return g_ctx->sgsr2 ? g_ctx->sgsr2->getJitterOffset() : Point2::ZERO;
+#endif
     case AntialiasingMethod::TAA:
     case AntialiasingMethod::MobileTAA:
-    case AntialiasingMethod::MobileTAALow:
-    {
-      if (g_ctx->taa->beforeRenderView(app_glue()->getUvReprojectionToPrevFrameTmNoJitter()))
-        return g_ctx->taa->getJitterOffset();
-      break;
-    }
+    case AntialiasingMethod::MobileTAALow: return g_ctx->taa ? g_ctx->taa->getJitterOffset() : Point2::ZERO;
+    default: break;
+  }
+
+  return Point2::ZERO;
+}
+
+int get_jitter_sequence_length()
+{
+  if (!g_ctx)
+    return 1;
+
+  switch (g_ctx->method)
+  {
+    case AntialiasingMethod::FSR:
+    case AntialiasingMethod::DLSS:
+    case AntialiasingMethod::XeSS:
+    case AntialiasingMethod::TSR: return g_ctx->subsamples;
+    case AntialiasingMethod::TAA: return g_ctx->taa ? g_ctx->taa->params.subsamples : 1;
 #if HAS_SGSR
     case AntialiasingMethod::SGSR2:
     {
-      g_ctx->sgsr2->beforeRenderView(view);
-      return g_ctx->sgsr2->getJitterOffset();
-      break;
-    }
-    case AntialiasingMethod::ARM_ASR:
-    {
-      int phase = dagor_get_global_frame_id() % uint32_t(g_ctx->subsamples) + 1;
-      return Point2(halton_sequence(phase, 2) - 0.5f, halton_sequence(phase, 3) - 0.5f);
+      G_ASSERTF(false, "Getting the sequence length for SGSR2 is not supported yet.");
+      return 1;
     }
 #endif
     default: break;
   }
 
-  return Point2::ZERO;
+  return 1;
 }
 
 
@@ -2228,6 +2343,7 @@ void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, const ApplyContext 
   switch (g_ctx->method)
   {
     case AntialiasingMethod::METALFX: g_ctx->applyMetalFx(source_tex, dest_tex); break;
+    case AntialiasingMethod::METALFX_TEMPORAL: g_ctx->applyMetalFxTemporal(source_tex, dest_tex, ctx); break;
     case AntialiasingMethod::MobileTAA:
     case AntialiasingMethod::MobileTAALow: g_ctx->applyMobileTaa(source_tex, dest_tex); break;
 #if HAS_SGSR
@@ -2595,7 +2711,14 @@ int get_supported_generated_frames(const char *method, bool exclusive_fullscreen
 {
   if (!g_ctx)
     return 0;
-  return g_ctx->getSupportedGeneratedFrames(convert_method(method), exclusive_fullscreen);
+  return g_ctx->getFrameGenerationCapabilities(convert_method(method), exclusive_fullscreen).maxGeneratedFrames;
+}
+
+bool is_dynamic_mfg_supported(const char *method, bool exclusive_fullscreen)
+{
+  if (!g_ctx)
+    return 0;
+  return g_ctx->getFrameGenerationCapabilities(convert_method(method), exclusive_fullscreen).dynamicMFGsupported;
 }
 
 const char *get_frame_generation_unsupported_reason(const char *method, bool exclusive_fullscreen)
@@ -2712,6 +2835,8 @@ void apply_xess(Texture *in_color, const ApplyContext &apply_context, Texture *t
 }
 
 #if _TARGET_C2
+
+
 
 
 

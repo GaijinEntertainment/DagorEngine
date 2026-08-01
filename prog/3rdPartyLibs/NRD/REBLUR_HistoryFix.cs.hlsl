@@ -61,7 +61,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     frameNum = !IsInDenoisingRange( viewZ ) ? REBLUR_MAX_ACCUM_FRAME_NUM : frameNum; // less blur on "SKY" edges
 
     float2 stride = float2( frameNum < gHistoryFixFrameNum );
-    #ifdef NRD_COMPILER_DXC
+    #if( NRD_SUPPORTS_WAVE_INTRINSICS == 1 )
     {
         // IMPORTANT: the spec says: "these routines assume that flow control execution is uniform at least across the quad"
         // Adapt to neighbors if they are more stable

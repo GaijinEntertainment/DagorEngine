@@ -142,6 +142,10 @@ public:
   }
 
   void debugDumpScene(const char *file_name);
+  // Writes this scene's full reconstructable state (tileSize, poolBox[] + vertical centers, and every
+  // alive node mat44f) to cb, in the per-scene block layout documented in rendInst/riSceneDump.h. Used
+  // by rendinst::dumpAllScenes for the offline scene-representation benchmark.
+  void dumpForBenchmark(IGenSave &cb) const;
   void shrinkDistance() { distance.resize(getNodesCount(), LIGHTDIST_INVALID); }
 
   void setNodeUserDataDeferred(scene::node_index node, unsigned user_cmd, int dw_cnt, const int32_t *dw_data)

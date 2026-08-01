@@ -43,6 +43,9 @@ public:
     lim[1] = Point3(MIN_REAL / 4, MIN_REAL / 4, MIN_REAL / 4);
   }
   INLINE bool isempty() const { return lim[0].x > lim[1].x || lim[0].y > lim[1].y || lim[0].z > lim[1].z; }
+  // isempty() is only true if the bbox is invalid (maybe should be renamed to isvalid()).
+  // On completely flat test levels we have zero sized boxes, which we need to detect
+  INLINE bool isempty_or_zerosize() const { return lim[0].x >= lim[1].x || lim[0].y >= lim[1].y || lim[0].z >= lim[1].z; }
   INLINE void makecube(const Point3 &p, real s)
   {
     Point3 d(s / 2, s / 2, s / 2);

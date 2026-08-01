@@ -55,7 +55,7 @@ startelt(void * d, const char * name, int l)
 	pdata->curelt = PortMappingEltNone;
 	for(i = 0; elements[i].str; i++)
 	{
-		if(memcmp(name, elements[i].str, l) == 0)
+		if(strlen(elements[i].str) == (size_t)l && memcmp(name, elements[i].str, l) == 0)
 		{
 			pdata->curelt = elements[i].code;
 			break;

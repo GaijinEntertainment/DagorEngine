@@ -3,6 +3,7 @@
 #include "uiRender.h"
 #include "userUi.h"
 #include "ui/overlay.h"
+#include "net/net.h" // NetSnapshotScope
 #include "render/world/dargPanelAnchorResolve.h"
 #include <gui/dag_stdGuiRender.h>
 
@@ -65,6 +66,7 @@ static struct UIRenderJob final : public cpujobs::IJob
 
   void doJob() override
   {
+    net::NetSnapshotScope snapshotScope(/*assumeSingleUpdate*/ true, "UIRenderJob"); // daRg transitively reads get_sync_time()
     WinAutoLock lock(critSec);
 
     // Note: daRg "owns" `StdGuiRender` until this job's completion so no much sense to do this reset in main thread
@@ -121,6 +123,7 @@ static struct UIBeforeRenderJob final : public cpujobs::IJob
   const char *getJobName(bool &) const override { return "gui_before_render_update"; }
   void doJob() override
   {
+    net::NetSnapshotScope snapshotScope(/*assumeSingleUpdate*/ true, "UIBeforeRenderJob"); // daRg update reads get_sync_time()
     WinAutoLock lock(ui_render_job.critSec);
 
     for (darg::IGuiScene *scn : get_all_scenes())

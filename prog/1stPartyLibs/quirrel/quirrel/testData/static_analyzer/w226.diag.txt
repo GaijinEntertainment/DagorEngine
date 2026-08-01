@@ -1,8 +1,8 @@
 WARNING: w226 (return-different-types) Function can return different types.
-testData/static_analyzer/w226.nut:6:4
+testData/static_analyzer/w226.nut:6:0
 
-let function x(y) {
-    ^
+function x(y) {
+^
   if (y == 1)
 
 

@@ -17,7 +17,19 @@
 #include "phys/physEvents.h"
 #include "game/player.h"
 #include <gamePhys/phys/walker/humanPhys.h>
+#include <ecs/phys/collRes.h>
 #include <gamePhys/collision/collisionLib.h>
+#include <gamePhys/collision/collisionResponse.h>
+#include <gamePhys/collision/contactData.h>
+#include <gamePhys/phys/physToSolverBody.h>
+#include <gamePhys/phys/rendinstDestr.h>
+#include "game/gameEvents.h"
+#include "navMeshPhysProxy.h"
+#include <memory/dag_framemem.h>
+#include <vecmath/dag_vecMath.h>
+#include <math/dag_mathUtils.h>
+#include <ecs/phys/physBody.h>
+#include <phys/dag_physics.h>
 #include <statsd/statsd.h>
 #include <daECS/delayedAct/actInThread.h>
 
@@ -108,6 +120,11 @@ void PhysUpdateCtx::update()
       interpDelayTicks[i] = get_interp_delay_ticks((PhysTickRateType)i);
 }
 
+float phys_get_interp_delay_sec(PhysTickRateType tr_type, float time_step)
+{
+  return PhysUpdateCtx::ctx.getInterpDelay(tr_type, time_step);
+}
+
 int BasePhysActor::calcControlsTickDelta()
 {
   if (getRole() != IPhysActor::ROLE_REMOTELY_CONTROLLED_AUTHORITY)
@@ -178,6 +195,10 @@ void pair_collision_init_grid_holders_es_event_handler(
   for (const ecs::string &gridName : pair_collision__gridNames)
   {
     const GridHolder *gridHolder = find_grid_holder(ECS_HASH_SLOW(gridName.c_str()));
+    if (!gridHolder)
+    {
+      continue;
+    }
     G_ASSERT(eastl::find(pair_collision__gridHolders.begin(), pair_collision__gridHolders.end(), gridHolder) ==
              pair_collision__gridHolders.end());
     pair_collision__gridHolders.push_back(gridHolder);
@@ -185,16 +206,17 @@ void pair_collision_init_grid_holders_es_event_handler(
 }
 
 template <typename Callable>
-static void collision_obj_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
+static bool collision_obj_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 void query_pair_collision_data(ecs::EntityId eid, PairCollisionData &data)
 {
-  collision_obj_eid_ecs_query(*g_entity_mgr, eid,
+  // everything should be optional
+  G_VERIFY(collision_obj_eid_ecs_query(*g_entity_mgr, eid,
     [&](const ecs::string *pair_collision__tag, const ecs::Tag *human, const ecs::Tag *airplane, const ecs::Tag *phys__kinematicBody,
       const ecs::Tag *phys__hasCustomMoveLogic, const ecs::Tag *humanAdditionalCollisionChecks, const ecs::Tag *nphysPairCollision,
-      bool havePairCollision = true, float phys__maxMassRatioForPushOnCollision = -1.f,
-      bool pair_collision__ignoreWorldContacts = false, int net_phys__collisionMaterialId = (int)PHYSMAT_INVALID,
-      int net_phys__ignoreMaterialId = (int)PHYSMAT_INVALID) {
+      const CollisionResource *collres, const ecs::Tag *phys__inverseOmega, PhysBody *phys_body, bool havePairCollision = true,
+      float phys__maxMassRatioForPushOnCollision = -1.f, bool pair_collision__ignoreWorldContacts = false,
+      int net_phys__collisionMaterialId = (int)PHYSMAT_INVALID, int net_phys__ignoreMaterialId = (int)PHYSMAT_INVALID) {
       data.havePairCollision = havePairCollision;
       data.pairCollisionTag = pair_collision__tag;
       data.isHuman = human != nullptr;
@@ -207,7 +229,301 @@ void query_pair_collision_data(ecs::EntityId eid, PairCollisionData &data)
       data.collisionMaterialId = net_phys__collisionMaterialId;
       data.ignoreMaterialId = net_phys__ignoreMaterialId;
       data.ignoreWorldContacts = pair_collision__ignoreWorldContacts;
-    });
+      data.collres = collres;
+      data.inverseOmega = phys__inverseOmega != nullptr;
+      data.staticPhysBody = phys_body;
+    }));
+}
+
+void move_collision_objects(IPhysBase &phys, const TMatrix &tm)
+{
+  for (const auto &co : phys.getCollisionObjects())
+    if (dacoll::is_obj_active(co))
+      dacoll::set_collision_object_tm(co, tm);
+}
+
+void net_phys_collision_es_impl(const UpdatePhysEvent &info,
+  BasePhysActor &actor,
+  const CollisionResource &collres,
+  const GridHolders &grids_to_search,
+  const ecs::HashedConstString &tag_to_check)
+{
+  if (!(actor.getRole() & (IPhysActor::URF_AUTHORITY | IPhysActor::URF_LOCAL_CONTROL)))
+    return;
+
+  IPhysBase &phys = actor.getPhys();
+  dag::ConstSpan<CollisionObject> curColl = phys.getCollisionObjects();
+  uint64_t curCollActive = phys.getActiveCollisionObjectsBitMask();
+  const TMatrix &curPhysTm = phys.getCollisionObjectsMatrix();
+  const TraceMeshFaces *curTraceCache = phys.getTraceHandle();
+  bool worldContactsProcessed = false;
+  PairCollisionData curBody;
+  query_pair_collision_data(actor.eid, curBody);
+  bool pairCollisionIgnoreWorldContacts = curBody.ignoreWorldContacts;
+  const bool curIsAsleep = actor.isAsleep() && !curBody.hasCustomMoveLogic;
+  mat44f vCurPhysTm;
+  v_mat44_make_from_43cu_unsafe(vCurPhysTm, curPhysTm.array);
+  vec4f vBounding = collres.getBoundingSphereXYZR();
+  v_bsph_init(vBounding, vCurPhysTm, vBounding, v_splat_w(vBounding));
+  BSphere3 bounding;
+  v_stu_bsphere3(bounding, vBounding);
+  // World-contact queries are centered at the collision objects poses (~ the phys pivot), so they
+  // must cover the reach around the pivot: pivot-to-bounding-center distance plus the radius
+  const float curWorldContactsRad = v_extract_x(v_add_x(v_distance_xyz_x(vBounding, vCurPhysTm.col3), v_splat_w(vBounding)));
+  alignas(NavMeshPhysProxy) char nmeshProxyStorage[sizeof(NavMeshPhysProxy)];
+
+  for_each_entity_in_grids(grids_to_search, bounding, GridEntCheck::BOUNDING, [&](ecs::EntityId eid, vec4f wbsph) {
+    if (eid == actor.eid)
+      return;
+    if (!g_entity_mgr->has(eid, tag_to_check)) // they don't have pair collision
+      return;
+
+    BasePhysActor *testActor = get_phys_actor(eid);
+    if (curIsAsleep && testActor && testActor->isAsleep() && !g_entity_mgr->has(eid, ECS_HASH("phys__hasCustomMoveLogic")))
+      return;
+
+    PairCollisionData testBody;
+    query_pair_collision_data(eid, testBody);
+
+    // don't check same collision pair twice
+    if (ecs::entity_id_t(actor.eid) > ecs::entity_id_t(eid) && testBody.havePairCollision && testActor &&
+        testActor->getRole() & (IPhysActor::URF_AUTHORITY | IPhysActor::URF_LOCAL_CONTROL))
+    {
+      if (testBody.pairCollisionTag && g_entity_mgr->has(actor.eid, ECS_HASH_SLOW(testBody.pairCollisionTag->c_str())))
+        return;
+    }
+
+    // A test body is either dynamic (a phys actor or a navmesh proxy, via testPhys) or an immovable
+    // static phys_body prop with no phys actor (e.g. an animchar scene object, via testBody.staticPhysBody).
+    IPhysBase *testPhys = nullptr;
+    if (testActor)
+      testPhys = &testActor->getPhys();
+    else if (testBody.nphysPairCollision)
+      testPhys = new (&nmeshProxyStorage, _NEW_INPLACE) NavMeshPhysProxy(eid, info.dt);
+    else if (!testBody.staticPhysBody)
+      return; // not collidable: no phys actor, navmesh proxy or static phys body
+    else if (curIsAsleep)
+      return; // a static phys body can not wake us up
+
+    QueryPhysActorsNotCollidable qcoll(actor.eid);
+    g_entity_mgr->sendEventImmediate(eid, qcoll);
+    if (!qcoll.shouldCollide)
+      return;
+    qcoll.otherEid = eid;
+    g_entity_mgr->sendEventImmediate(actor.eid, qcoll);
+    if (!qcoll.shouldCollide)
+      return;
+
+    CollisionObject staticCollObj(testBody.staticPhysBody, nullptr);
+    dag::ConstSpan<CollisionObject> testColl = testPhys ? testPhys->getCollisionObjects() : make_span_const(&staticCollObj, 1);
+    uint64_t testCollActive = testPhys ? testPhys->getActiveCollisionObjectsBitMask() : ~0ull;
+    TMatrix testTm, staticBodyItm;
+    if (testPhys)
+      testTm = testPhys->getCollisionObjectsMatrix();
+    else
+    {
+      testBody.staticPhysBody->getTm(testTm);
+      mat44f vtm, vitm;
+      v_mat44_make_from_43cu_unsafe(vtm, testTm.array);
+      v_mat44_orthonormal_inverse43(vitm, vtm);
+      v_mat_43cu_from_mat44(staticBodyItm.array, vitm);
+    }
+    Tab<gamephys::CollisionContactData> contacts(framemem_ptr());
+    if (!dacoll::test_pair_collision(curColl, curCollActive, testColl, testCollActive, contacts,
+          dacoll::TestPairFlags::Default & ~dacoll::TestPairFlags::CheckInWorld))
+      return;
+
+    int contactsNum = contacts.size();
+
+    if (!worldContactsProcessed && !pairCollisionIgnoreWorldContacts)
+    {
+      dacoll::test_collision_world(curColl, curWorldContactsRad, contacts, curTraceCache);
+      worldContactsProcessed = true;
+    }
+    const int contactsNum1 = contacts.size() - contactsNum;
+
+    if (!pairCollisionIgnoreWorldContacts)
+    {
+      float worldContactsRad = v_extract_w(wbsph); // grid bounding radius fallback when no collres
+      if (testBody.collres)
+      {
+        vec4f wbs = v_ldu_bsphere3(testTm, testBody.collres->getBoundingSphereS());
+        vec3f tmPos = v_ldu_p3(&testTm.getcol(3).x);
+        worldContactsRad = v_extract_x(v_distance_xyz_x(wbs, tmPos)) + v_extract_w(wbs);
+      }
+      dacoll::test_collision_world(testColl, worldContactsRad, contacts, testPhys ? testPhys->getTraceHandle() : nullptr);
+    }
+    const int contactsNum2 = contacts.size() - contactsNum1 - contactsNum;
+
+    daphys::SolverBodyInfo curBodyInfo = gamephys::phys_to_solver_body(&phys);
+    daphys::SolverBodyInfo testBodyInfo = testPhys ? gamephys::phys_to_solver_body(testPhys)
+                                                   : daphys::SolverBodyInfo(testTm, staticBodyItm, ZERO<DPoint3>(), ZERO<DPoint3>(),
+                                                       ZERO<DPoint3>(), ZERO<DPoint3>(), /*inv_mass*/ 0.0);
+    if (curBody.inverseOmega)
+      curBodyInfo.omega = -curBodyInfo.omega;
+    if (testBody.inverseOmega)
+      testBodyInfo.omega = -testBodyInfo.omega;
+
+    if (testPhys && !curBody.isKinematicBody && !testBody.isKinematicBody)
+    {
+      const float maxMassRatio = max(curBody.maxMassRatioForPushOnCollision, testBody.maxMassRatioForPushOnCollision);
+      if (maxMassRatio > 0.f)
+      {
+        // If one of the bodies is way heavier than the other don't push it
+        // The code fixes cases like a human pushes a tank
+        const float massRatio = safediv(phys.getMass(), testPhys->getMass());
+        if (massRatio >= maxMassRatio)
+        {
+          curBodyInfo.invMass = 0.f;
+          curBodyInfo.invMoi.zero();
+        }
+        if (safeinv(massRatio) >= maxMassRatio)
+        {
+          testBodyInfo.invMass = 0.f;
+          testBodyInfo.invMoi.zero();
+        }
+      }
+    }
+
+    if (curBody.isKinematicBody)
+    {
+      curBodyInfo.invMass = 0.f;
+      curBodyInfo.invMoi.zero();
+    }
+
+    if (testBody.isKinematicBody)
+    {
+      testBodyInfo.invMass = 0.f;
+      testBodyInfo.invMoi.zero();
+    }
+
+    // Onesided collision ignoring:
+    // Bot cannot affect players but playres can affect bots
+    // So, this code should skip contacts with bots when it's called for player
+    // but solve contacts when it's called for bot
+    QueryPhysActorsOneSideCollidable curBodyOneSide(eid);
+    QueryPhysActorsOneSideCollidable testBodyOneSide(actor.eid);
+    g_entity_mgr->sendEventImmediate(eid, testBodyOneSide);
+    g_entity_mgr->sendEventImmediate(actor.eid, curBodyOneSide);
+
+    if (testBodyOneSide.oneSideCollidable)
+    {
+      testBodyInfo.invMass = 0.f;
+      testBodyInfo.invMoi.zero();
+    }
+    if (curBodyOneSide.oneSideCollidable)
+    {
+      curBodyInfo.invMass = 0.f;
+      curBodyInfo.invMoi.zero();
+    }
+
+    if (curBody.isAirplane)
+    {
+      curBodyInfo.commonImpulseLimit = DummyCustomPhys::aircraftCollisionImpulseSpeedMax * phys.getMass();
+      move_collision_objects(phys, curPhysTm);
+    }
+    if (testPhys && testBody.isAirplane)
+    {
+      testBodyInfo.commonImpulseLimit = DummyCustomPhys::aircraftCollisionImpulseSpeedMax * testPhys->getMass();
+      move_collision_objects(*testPhys, testTm);
+    }
+
+    carray<double, BasePhysActor::MAX_COLLISION_SUBOBJECTS> impulseLimits1;
+    eastl::fill(impulseLimits1.data(), impulseLimits1.data() + impulseLimits1.size(), VERY_BIG_NUMBER);
+    curBodyInfo.impulseLimits.set(make_span(impulseLimits1));
+    carray<double, BasePhysActor::MAX_COLLISION_SUBOBJECTS> impulseLimits2;
+    eastl::fill(impulseLimits2.data(), impulseLimits2.data() + impulseLimits2.size(), VERY_BIG_NUMBER);
+    testBodyInfo.impulseLimits.set(make_span(impulseLimits2));
+
+    // Contacts are laid out as [pair contacts | cur body's world contacts | test body's world
+    // contacts]; contacts_to_solver_data indexes each span from 0, so re-base contactIndex to the
+    // position of that span within the full contacts array.
+    Tab<gamephys::SeqImpulseInfo> collisions(framemem_ptr());
+    collisions.reserve(contactsNum * 3 + contactsNum1 + contactsNum2);
+    auto appendCollisions = [&](const daphys::SolverBodyInfo *lhs, const daphys::SolverBodyInfo *rhs, int ofs, int cnt) {
+      int prevSize = collisions.size();
+      contacts_to_solver_data(lhs, rhs, make_span(contacts).subspan(ofs, cnt), collisions);
+      for (int i = prevSize; i < collisions.size(); ++i)
+        collisions[i].contactIndex += ofs;
+    };
+    appendCollisions(&curBodyInfo, &testBodyInfo, 0, contactsNum);
+    appendCollisions(&curBodyInfo, nullptr, contactsNum, contactsNum1);
+    appendCollisions(nullptr, &testBodyInfo, contactsNum + contactsNum1, contactsNum2);
+
+    phys.prepareCollisions(curBodyInfo, testBodyInfo, true, 0.7f, make_span(contacts), make_span(collisions));
+    if (testPhys)
+      testPhys->prepareCollisions(curBodyInfo, testBodyInfo, false, 0.7f, make_span(contacts), make_span(collisions));
+
+    Point3 lastCollisionPos = curPhysTm.getcol(3);
+    float maxImpulse = 0.f;
+    if (daphys::resolve_pair_velocity(curBodyInfo, testBodyInfo, make_span(collisions)))
+    {
+      phys.wakeUp();
+      phys.rescheduleAuthorityApprovedSend();
+      if (testPhys)
+      {
+        testPhys->wakeUp();
+        testPhys->rescheduleAuthorityApprovedSend();
+      }
+
+      for (const gamephys::SeqImpulseInfo &collision : collisions)
+      {
+        if (collision.appliedImpulse <= maxImpulse)
+          continue;
+        maxImpulse = collision.appliedImpulse;
+        lastCollisionPos = Point3::xyz(collision.pos);
+      }
+
+      Point3 bodyTestVel = Point3::xyz(testBodyInfo.vel);
+      Point3 bodyCurVel = Point3::xyz(curBodyInfo.vel);
+      g_entity_mgr->sendEvent(actor.eid,
+        EventOnCollision(Point3::xyz(curBodyInfo.addVel), bodyCurVel, lastCollisionPos, eid, bodyTestVel, info.dt, -1.f));
+      g_entity_mgr->sendEvent(eid,
+        EventOnCollision(Point3::xyz(testBodyInfo.addVel), bodyTestVel, lastCollisionPos, actor.eid, bodyCurVel, info.dt, -1.f));
+    }
+
+    if (curBody.isHuman || testBody.isHuman)
+    {
+      // In case of human collision checks we must skip entities that have humanAdditionalCollisionChecks
+      // Human already done all collision checks inside his physics
+      if (curBody.humanAdditionalCollisionChecks || testBody.humanAdditionalCollisionChecks)
+        return;
+    }
+
+    if (curBody.inverseOmega)
+      curBodyInfo.addOmega = -curBodyInfo.addOmega;
+    if (testBody.inverseOmega)
+      testBodyInfo.addOmega = -testBodyInfo.addOmega;
+    phys.applyVelOmegaDelta(curBodyInfo.addVel, curBodyInfo.addOmega);
+    if (testPhys)
+      testPhys->applyVelOmegaDelta(testBodyInfo.addVel, testBodyInfo.addOmega);
+
+    daphys::resolve_pair_penetration(curBodyInfo, testBodyInfo, collisions, 2.0, 5);
+    phys.applyPseudoVelOmegaDelta(curBodyInfo.pseudoVel * phys.getTimeStep(), curBodyInfo.pseudoOmega * phys.getTimeStep());
+    if (testPhys)
+      testPhys->applyPseudoVelOmegaDelta(testBodyInfo.pseudoVel * testPhys->getTimeStep(),
+        testBodyInfo.pseudoOmega * testPhys->getTimeStep());
+
+    phys.wakeUp();
+    if (testPhys)
+    {
+      testPhys->wakeUp();
+      if (!testActor) // testPhys can only be a NavMeshPhysProxy when there is no phys actor for eid
+        static_cast<const NavMeshPhysProxy *>(testPhys)->applyChangesTo(eid);
+    }
+
+    if (is_server())
+    {
+      actor.onCollisionDamage(make_span(collisions), make_span(contacts), eid.index(), 1.0, info.curTime);
+      if (testActor != nullptr)
+        testActor->onCollisionDamage(make_span(collisions), make_span(contacts), actor.eid.index(), 1.0, info.curTime);
+    }
+  });
+
+  if (!curIsAsleep)
+    for (const CollisionObject &collObj : curColl)
+      if (collObj.isValid())
+        rendinstdestr::test_dynobj_to_ri_phys_collision(collObj, curWorldContactsRad);
 }
 
 ECS_NO_ORDER

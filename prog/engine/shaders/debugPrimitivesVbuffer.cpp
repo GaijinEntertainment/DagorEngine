@@ -280,3 +280,5 @@ void DebugPrimitivesVbuffer::renderOverrideColor(Color4 color_mult) { renderEx(t
 void DebugPrimitivesVbuffer::render() { renderEx(true, false, false, Color4(1.0, 1.0, 1.0, 1.0)); }
 
 void DebugPrimitivesVbuffer::setTm(const TMatrix &tm) { this->tm = tm; }
+
+void DebugPrimitivesVbuffer::setZBias(float z_bias, float slope_z_bias) { renderStates.setZBias(z_bias, slope_z_bias); }

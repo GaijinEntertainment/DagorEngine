@@ -455,6 +455,184 @@ ResourceBarrier barrier_for_transition(intermediate::ResourceUsage usage_before,
   return resource_barrier;
 }
 
+static d3d::PipelineStageFlags enhanced_shading_stages_for_usage(intermediate::ResourceUsage usage)
+{
+  d3d::PipelineStageFlags result{};
+
+  if ((usage.stage & Stage::PRE_RASTER) != Stage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::AllVertexShading;
+  if ((usage.stage & Stage::POST_RASTER) != Stage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::PixelShading;
+  if ((usage.stage & Stage::COMPUTE) != Stage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::ComputeShading;
+  if ((usage.stage & Stage::RAYTRACE) != Stage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::All;
+
+  return result;
+}
+
+static d3d::PipelineStageFlags enhanced_stages_for_usage(intermediate::ResourceUsage usage)
+{
+  d3d::PipelineStageFlags result = enhanced_shading_stages_for_usage(usage);
+
+  if ((usage.stage & Stage::TRANSFER) != Stage::UNKNOWN)
+  {
+    if ((usage.type & Usage::COPY) != Usage::UNKNOWN)
+      result |= d3d::PipelineStageFlag::Copy;
+    if ((usage.type & Usage::BLIT) != Usage::UNKNOWN)
+      result |= d3d::PipelineStageFlag::Blit;
+  }
+
+  if ((usage.type & Usage::VERTEX_BUFFER) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::VertexAttributeInput;
+  if ((usage.type & Usage::INDEX_BUFFER) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::IndexInput;
+  if ((usage.type & Usage::INDIRECTION_BUFFER) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::ExecuteIndirect;
+  if ((usage.type & Usage::VRS_RATE_TEXTURE) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::Rasterization;
+
+  return result;
+}
+
+static d3d::AccessFlags enhanced_accesses_for_usage(intermediate::ResourceUsage usage)
+{
+  d3d::AccessFlags result{};
+
+  if ((usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN)
+    result |= usage.access == Access::READ_WRITE ? d3d::AccessFlag::UnorderedAccess : d3d::AccessFlag::ShaderResource;
+  if ((usage.type & Usage::CONSTANT_BUFFER) != Usage::UNKNOWN)
+    result |= d3d::AccessFlag::ConstantBuffer;
+  if ((usage.type & Usage::VERTEX_BUFFER) != Usage::UNKNOWN)
+    result |= d3d::AccessFlag::VertexBuffer;
+  if ((usage.type & Usage::INDEX_BUFFER) != Usage::UNKNOWN)
+    result |= d3d::AccessFlag::IndexBuffer;
+  if ((usage.type & Usage::INDIRECTION_BUFFER) != Usage::UNKNOWN)
+    result |= d3d::AccessFlag::IndirectArgument;
+  if ((usage.type & Usage::COPY) != Usage::UNKNOWN)
+    result |= usage.access == Access::READ_ONLY ? d3d::AccessFlag::CopyRead : d3d::AccessFlag::CopyWrite;
+  if ((usage.type & Usage::BLIT) != Usage::UNKNOWN)
+    result |= usage.access == Access::READ_ONLY ? d3d::AccessFlag::BlitRead : d3d::AccessFlag::BlitWrite;
+
+  return result;
+}
+
+d3d::BufferBarrier enhanced_buffer_barrier_for_transition(intermediate::ResourceUsage usage_before,
+  intermediate::ResourceUsage usage_after)
+{
+  return {{enhanced_stages_for_usage(usage_before), enhanced_stages_for_usage(usage_after)},
+    {enhanced_accesses_for_usage(usage_before), enhanced_accesses_for_usage(usage_after)}};
+}
+
+// TODO: release over-syncs (SyncAfter=All) because the aliasing successor is
+// unknown here. Once lifetimes are decoupled (see barrierScheduler.cpp), fold
+// release + activation into one aliasing barrier on the incoming buffer.
+d3d::BufferBarrier enhanced_buffer_barrier_for_release(intermediate::ResourceUsage last_usage)
+{
+  return {{enhanced_stages_for_usage(last_usage), d3d::PipelineStageFlag::All}, {enhanced_accesses_for_usage(last_usage), {}}};
+}
+
+d3d::BufferBarrier enhanced_buffer_barrier_for_activation(intermediate::ResourceUsage first_usage)
+{
+  const auto stages = enhanced_stages_for_usage(first_usage);
+  return {{stages, stages}, {{}, enhanced_accesses_for_usage(first_usage)}};
+}
+
+static d3d::AccessFlags enhanced_texture_accesses_for_usage(intermediate::ResourceUsage usage)
+{
+  d3d::AccessFlags result{};
+  const bool rw = usage.access == Access::READ_WRITE;
+
+  if ((usage.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN)
+    result |= rw ? d3d::AccessFlag::RenderTargetWrite : d3d::AccessFlag::RenderTargetRead;
+  if ((usage.type & Usage::DEPTH_ATTACHMENT) != Usage::UNKNOWN)
+    result |= rw ? d3d::AccessFlag::DepthStencilWrite : d3d::AccessFlag::DepthStencilRead;
+  if ((usage.type & Usage::RESOLVE_ATTACHMENT) != Usage::UNKNOWN)
+    result |= rw ? d3d::AccessFlag::ResolveWrite : d3d::AccessFlag::ResolveRead;
+  if ((usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN)
+    result |= rw ? d3d::AccessFlag::UnorderedAccess : d3d::AccessFlag::ShaderResource;
+  if ((usage.type & Usage::COPY) != Usage::UNKNOWN)
+    result |= rw ? d3d::AccessFlag::CopyWrite : d3d::AccessFlag::CopyRead;
+  if ((usage.type & Usage::BLIT) != Usage::UNKNOWN)
+    result |= rw ? d3d::AccessFlag::BlitWrite : d3d::AccessFlag::BlitRead;
+  if ((usage.type & Usage::VRS_RATE_TEXTURE) != Usage::UNKNOWN)
+    result |= d3d::AccessFlag::ShadingRate;
+
+  return result;
+}
+
+static d3d::TextureLayout enhanced_texture_layout_for_usage(intermediate::ResourceUsage usage)
+{
+  const bool rw = usage.access == Access::READ_WRITE;
+
+  if ((usage.type & Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE) == Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE)
+    return d3d::TextureLayout::DepthRo;
+  if ((usage.type & Usage::INPUT_ATTACHMENT) == Usage::INPUT_ATTACHMENT)
+    return d3d::TextureLayout::ShaderResource;
+
+  if ((usage.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN)
+    return d3d::TextureLayout::RenderTarget;
+  if ((usage.type & Usage::DEPTH_ATTACHMENT) != Usage::UNKNOWN)
+    return rw ? d3d::TextureLayout::DepthRw : d3d::TextureLayout::DepthRo;
+  if ((usage.type & Usage::RESOLVE_ATTACHMENT) != Usage::UNKNOWN)
+    return rw ? d3d::TextureLayout::ResolveDest : d3d::TextureLayout::ResolveSource;
+  if ((usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN)
+    return rw ? d3d::TextureLayout::UnorderedAccess : d3d::TextureLayout::ShaderResource;
+  if ((usage.type & Usage::BLIT) != Usage::UNKNOWN)
+    return rw ? d3d::TextureLayout::BlitDest : d3d::TextureLayout::BlitSource;
+  if ((usage.type & Usage::COPY) != Usage::UNKNOWN)
+    return rw ? d3d::TextureLayout::CopyDest : d3d::TextureLayout::CopySource;
+  if ((usage.type & Usage::VRS_RATE_TEXTURE) != Usage::UNKNOWN)
+    return d3d::TextureLayout::ShadingRateSource;
+
+  return d3d::TextureLayout::GenericRead;
+}
+
+static d3d::PipelineStageFlags enhanced_texture_stages_for_usage(intermediate::ResourceUsage usage)
+{
+  d3d::PipelineStageFlags result{};
+
+  if ((usage.type & Usage::COLOR_ATTACHMENT) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::OutputMerging;
+  if ((usage.type & Usage::DEPTH_ATTACHMENT) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::EarlyFragmentTests | d3d::PipelineStageFlag::LateFragmentTests;
+  if ((usage.type & Usage::RESOLVE_ATTACHMENT) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::Resolve;
+  if ((usage.type & Usage::SHADER_RESOURCE) != Usage::UNKNOWN)
+    result |= enhanced_shading_stages_for_usage(usage);
+  if ((usage.type & Usage::COPY) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::Copy;
+  if ((usage.type & Usage::BLIT) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::Blit;
+  if ((usage.type & Usage::VRS_RATE_TEXTURE) != Usage::UNKNOWN)
+    result |= d3d::PipelineStageFlag::Rasterization;
+
+  return result;
+}
+
+d3d::TextureBarrier enhanced_texture_barrier_for_transition(intermediate::ResourceUsage usage_before,
+  intermediate::ResourceUsage usage_after)
+{
+  return {{enhanced_texture_stages_for_usage(usage_before), enhanced_texture_stages_for_usage(usage_after)},
+    {enhanced_texture_accesses_for_usage(usage_before), enhanced_texture_accesses_for_usage(usage_after)},
+    {enhanced_texture_layout_for_usage(usage_before), enhanced_texture_layout_for_usage(usage_after)},
+    ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
+}
+
+d3d::TextureBarrier enhanced_texture_barrier_for_release(intermediate::ResourceUsage last_usage)
+{
+  return {{enhanced_texture_stages_for_usage(last_usage), d3d::PipelineStageFlag::All},
+    {enhanced_texture_accesses_for_usage(last_usage), {}},
+    {enhanced_texture_layout_for_usage(last_usage), d3d::TextureLayout::Undefined}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
+}
+
+d3d::TextureBarrier enhanced_texture_barrier_for_activation(intermediate::ResourceUsage first_usage)
+{
+  const auto stages = enhanced_texture_stages_for_usage(first_usage);
+  return {{stages, stages}, {{}, enhanced_texture_accesses_for_usage(first_usage)},
+    {d3d::TextureLayout::Undefined, enhanced_texture_layout_for_usage(first_usage)}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE};
+}
+
 eastl::optional<ResourceActivationAction> get_activation_from_usage(DesiredActivationBehaviour behavior,
   intermediate::ResourceUsage usage, ResourceType res_type, bool is_int)
 {

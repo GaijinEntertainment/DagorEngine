@@ -3,6 +3,7 @@ return {
   stop_updater = @(...) null
   is_updater_running = @(...) false
   is_updater_enabled = @(...) false
+  is_fonts_available = @(...) true
   get_free_disk_space = @() -1
 
   UPDATER_CHECKING_FAST = 0

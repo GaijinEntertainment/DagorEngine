@@ -20,8 +20,11 @@ void toggle_render() { render_enabled = !render_enabled; }
 //
 void render()
 {
+  if (!render_enabled)
+    return;
+
   auto ns = get_aggregations();
-  if (ns.empty() || !render_enabled)
+  if (ns.empty())
     return;
 
   float physSnapPloss = phys_get_snapshots_ploss_calc().calcPacketLoss() * 100.f;

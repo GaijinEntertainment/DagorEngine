@@ -204,8 +204,22 @@ static DataBlock console_config_blk_from_bin_folder()
 }
 
 static DataBlock dgs_prepare_pc_cmd_blk(const OverrideFilter *cmd_lines_override_filter);
+static void load_settings_and_apply_config(const char *stg_fn, const SettingsHashMap *changed_settings = nullptr);
 
-static void load_settings_and_apply_config(const char *stg_fn, const SettingsHashMap *changed_settings = nullptr)
+// Per-project overrides set by the host (eden), re-applied to settings on every reload below.
+static DataBlock project_override_blk;
+
+void dgs_set_project_override_blk(const DataBlock &blk)
+{
+  project_override_blk = blk;
+  // Re-run the full load+merge so live settings observe the new override on this very call.
+  // Setting requires this (so a hosted-server bring-up that runs before the next reload sees
+  // the flag); clearing requires this (so override values get wiped, not stuck in live state).
+  if (settings_override_blk)
+    load_settings_and_apply_config(nullptr);
+}
+
+static void load_settings_and_apply_config(const char *stg_fn, const SettingsHashMap *changed_settings)
 {
   // [Re]load settings
   dgs_load_settings_blk_ex(DataBlock::emptyBlock, stg_fn, console_config_blk_from_bin_folder(), /*force_apply_all*/ false,
@@ -225,6 +239,7 @@ static void load_settings_and_apply_config(const char *stg_fn, const SettingsHas
 
   dgs_apply_config_blk(configBlk, false, true);
   dgs_apply_config_blk(cmdBlk, false, false);
+  dgs_apply_config_blk(project_override_blk, false, false);
   apply_global_config();
   apply_ime_to_video_mode();
 }

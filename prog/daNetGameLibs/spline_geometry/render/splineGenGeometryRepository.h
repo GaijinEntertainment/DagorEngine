@@ -8,7 +8,6 @@
 #include "splineGenGeometryShapeManager.h"
 #include <daECS/core/entityComponent.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
-#include <render/daFrameGraph/daFG.h>
 
 // Repository that stores and creates shared resources among spline_gen_geometry entities.
 // New objects are created on demand, whenever the requested key doesn't exist yet.
@@ -27,7 +26,8 @@ public:
   SplineGenGeometryAssetPtr getOrMakeAsset(const eastl::string &asset_name);
   SplineGenGeometryManagerPtr getOrMakeManager(const eastl::string &template_name);
   SplineGenGeometryShapeManagerPtr getOrMakeShapeManager();
-  void createTransparentSplineGenNode();
+  void requestTransparentSplineGenNode();
+  bool needsTransparentNode() const { return transparentNodeRequested; }
   void reset();
   ska::flat_hash_map<uint32_t, eastl::shared_ptr<SplineGenGeometryIb>> &getIbs();
   ska::flat_hash_map<eastl::string, eastl::shared_ptr<SplineGenGeometryAsset>> &getAssets();
@@ -38,7 +38,7 @@ private:
   ska::flat_hash_map<eastl::string, eastl::shared_ptr<SplineGenGeometryAsset>> assets;
   ska::flat_hash_map<eastl::string, eastl::shared_ptr<SplineGenGeometryManager>> managers;
   eastl::shared_ptr<SplineGenGeometryShapeManager> shapeManager = nullptr;
-  dafg::NodeHandle transparentSplineGenNode;
+  bool transparentNodeRequested = false;
 };
 
 ECS_DECLARE_BOXED_TYPE(SplineGenGeometryRepository);

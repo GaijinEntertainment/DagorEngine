@@ -72,6 +72,12 @@ struct FrustumClusters
     ItemRect3D(const FrustumScreenRect &r, uint8_t zmn, uint8_t zmx, uint16_t l) : rect(r), zmin(zmn), zmax(zmx), itemId(l) {}
   };
 
+  struct SpotsCullingData
+  {
+    alignas(16) Point4 pos_radius;
+    alignas(16) Point4 dir_tanHalfAngle; // .xyz: normalized dir, w: tan(angle/2)
+  };
+
   void updateFrustumVariables(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist);
   void prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist, Occlusion *occlusion);
 
@@ -110,8 +116,7 @@ struct FrustumClusters
   uint32_t cullSpot(ClusterGridItemMasks &items, int i, vec4f pos_radius, vec4f dir_angle, uint32_t *result_mask, uint32_t word_count);
 
 
-  uint32_t cullSpots(const vec4f *pos_radius, int pos_aligned_stride, const vec4f *dir_angle, int dir_aligned_stride,
-    ClusterGridItemMasks &items, uint32_t *result_mask, uint32_t word_count);
+  uint32_t cullSpots(const SpotsCullingData *culling_data, ClusterGridItemMasks &items, uint32_t *result_mask, uint32_t word_count);
 
 
   float depthSliceScale = 1, depthSliceBias = 0, minSliceDist = 0, maxSliceDist = 1, znear = 0.01;

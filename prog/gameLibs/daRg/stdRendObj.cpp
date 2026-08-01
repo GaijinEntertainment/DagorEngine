@@ -177,7 +177,7 @@ bool RobjParamsText::load(const Element *elem)
   if (password.GetType() == OT_BOOL)
     passChar = L'*';
   else if (password.GetType() == OT_INTEGER)
-    passChar = char(password.Cast<SQInteger>());
+    passChar = wchar_t(password.Cast<SQInteger>());
   else if (password.GetType() == OT_STRING)
   {
     const char *str = password.GetVar<const char *>().value;
@@ -1616,7 +1616,6 @@ void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *
   float ellipsisHeight = useEllipsis ? ellipsisBox.width().y : 0;
   float ellipsisWidth = ellipsisBox.width().x;
 
-  bool ellipsisOnSeparateLine = useEllipsis;
   ElemAlign halign = elem->layout.hAlign;
   if (fmtText->lines.size() <= params->lowLineCount && params->lowLineCountAlign != PLACE_DEFAULT)
     halign = params->lowLineCountAlign;
@@ -1648,27 +1647,10 @@ void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *
       continue;
 
     float xLineOffs = 0;
-    float lineWidth = (shouldBreakWithEllipsis && ellipsisOnSeparateLine) ? ellipsisWidth : line.contentWidth;
+    float lineWidth = shouldBreakWithEllipsis ? ellipsisWidth : line.contentWidth;
     int numBlocks = line.blocks.size();
 
-    int lastBlockIndexToRender = numBlocks - 1;
-
-    if (shouldBreakWithEllipsis && !ellipsisOnSeparateLine)
-    {
-      float tailBlocksWidth = 0;
-
-      while (lastBlockIndexToRender >= 0 && tailBlocksWidth < ellipsisWidth)
-      {
-        tailBlocksWidth += line.blocks[lastBlockIndexToRender]->size.x;
-        --lastBlockIndexToRender;
-      }
-    }
-
-    int numBlocksToRender = numBlocks;
-    if (shouldBreakWithEllipsis && !ellipsisOnSeparateLine)
-      numBlocksToRender = lastBlockIndexToRender + 1;
-    else if (shouldBreakWithEllipsis && ellipsisOnSeparateLine)
-      numBlocksToRender = 0;
+    int numBlocksToRender = shouldBreakWithEllipsis ? 0 : numBlocks;
 
     bool hadAllSymbols = true;
     bool nowHaveAllSymbols = true;
@@ -1724,7 +1706,7 @@ void RenderObjectTextArea::render(StdGuiRender::GuiContext &ctx, const Element *
 
         ctx.goto_xy(sc.screenPos.x - sc.scrollOffs.x + x, sc.screenPos.y - sc.scrollOffs.y + y);
 
-        if (shouldBreakWithEllipsis && (ellipsisOnSeparateLine || i > lastBlockIndexToRender))
+        if (shouldBreakWithEllipsis)
         {
           ctx.draw_str_u(ellipsisUtf16, 1);
           break;

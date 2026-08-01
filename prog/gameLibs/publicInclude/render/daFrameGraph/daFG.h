@@ -46,9 +46,17 @@ void set_multiplexing_default_mode(multiplexing::Mode mode, multiplexing::Mode h
  */
 void set_multiplexing_extents(multiplexing::Extents extents);
 
+/// Actions to perform after the frame graph is compiled, passed to run_nodes().
+enum class PreExecuteAction
+{
+  None,
+  FlushRefinedBlocks
+};
+
 /// \brief Executes the frame graph, possibly recompiling it.
+/// \param pre_execute_action If FlushRefinedBlocks, refined_block::flush() will be called after the graph is compiled
 /// \details Return false if run is not possible (d3d device was lost for example)
-bool run_nodes();
+bool run_nodes(PreExecuteAction pre_execute_action = PreExecuteAction::None);
 
 /// \brief Initializes the daFG backend.
 void startup();

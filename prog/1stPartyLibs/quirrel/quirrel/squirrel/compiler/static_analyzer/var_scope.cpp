@@ -66,7 +66,7 @@ void VarScope::intersectScopes(const VarScope *other) {
 }
 
 
-void VarScope::mergeUnbalanced(const VarScope *other) {
+void VarScope::mergeUnbalanced(const VarScope *other, bool joinFlags) {
   VarScope *lhs = this;
   const VarScope *rhs = other;
 
@@ -78,10 +78,10 @@ void VarScope::mergeUnbalanced(const VarScope *other) {
     rhs = rhs->parent;
   }
 
-  lhs->merge(rhs);
+  lhs->merge(rhs, joinFlags);
 }
 
-void VarScope::merge(const VarScope *other) {
+void VarScope::merge(const VarScope *other, bool joinFlags) {
   VarScope *l = this;
   const VarScope *r = other;
 
@@ -97,7 +97,7 @@ void VarScope::merge(const VarScope *other) {
       if (it != originSymbols.end()) {
         // Lambdas declared on the same line could have same names
         if (it->second->info == kv.second->info) {
-          it->second->merge(kv.second);
+          it->second->merge(kv.second, joinFlags);
         }
       }
       // Otherwise (would be under `else`) the symbol only exists in branch
@@ -166,7 +166,9 @@ static SourceLoc getSymbolLocation(const ValueRef *v) {
     return {v->externalValue->line, v->externalValue->column};
   }
   const Node *node = info->extractPointedNode();
-  return {node->lineStart(), node->columnStart()}; //-V522
+  if (!node)
+    return SourceLoc::invalid();
+  return {node->lineStart(), node->columnStart()};
 }
 
 void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
@@ -189,6 +191,9 @@ void VarScope::checkUnusedSymbols(CheckerVisitor *checker) {
     SymbolInfo *info = v->info;
 
     if (info->kind == SK_ENUM_CONST)
+      continue;
+
+    if (info->kind != SK_IMPORT && !info->extractPointedNode())
       continue;
 
     if (!info->used && n[0] != '_') {

@@ -84,6 +84,7 @@ void RenderPassResource::shutdown()
   for (FbWithCreationInfo iter : compiledFBs)
     VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), iter.handle, VKALLOC(framebuffer)));
   compiledFBs.clear();
+  compiledFBHashes.clear();
 }
 
 bool RenderPassResource::nonResidentCreation() { return false; }

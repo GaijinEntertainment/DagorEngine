@@ -670,8 +670,34 @@ eastl::optional<PreshaderCompilationOutput> compile_variant_preshader(const Pres
       auto psOrCsResult = outNcTable.pixelOrComputeRegAllocators[space].reserveAllFrom<true>(rbAlloc.psOrCsAllocator(space));
       if (!vsResult || !psOrCsResult)
       {
-        sh_debug(SHLOG_ERROR, "refined_block: %d-space conflict -- refined block slots overlap with other register allocations",
-          eastl::to_underlying(space));
+        auto reportConflicts = [&](const char *stage_name, const Tab<HlslRegAllocator::ReserveFailure> &failures,
+                                 const HlslRegAllocator &alloc,
+                                 const NamedConstBlock::RegisterProperties NamedConstBlock::*propsField) {
+          auto infoProvider = outNcTable.makeInfoProvider(propsField, space, parser.get_lexer());
+          for (auto &f : failures)
+          {
+            if (f.outOfRange)
+            {
+              auto [minAllowed, capAllowed] = alloc.maxAllowedRange();
+              sh_debug(SHLOG_ERROR, "refined_block: %s-space %s conflict -- refined block slot is out of range [%d, %d]",
+                HLSL_RSPACE_ALL_NAMES[space], stage_name, minAllowed, capAllowed - 1);
+            }
+            else
+            {
+              auto [name, _] = infoProvider(f.conflictReg);
+              const eastl::string nameRef = name.empty() ? eastl::string{} : string_f(" ('%s')", name.c_str());
+              sh_debug(SHLOG_ERROR, "refined_block: %s-space %s conflict at %c%d -- refined block slot overlaps with %s%s. %s",
+                HLSL_RSPACE_ALL_NAMES[space], stage_name, HLSL_RSPACE_ALL_SYMBOLS[space], f.conflictReg,
+                HlslRegAllocator::SLOT_SEMANTIC_DESCS[size_t(f.conflictSemantic)], nameRef.c_str(),
+                get_reg_alloc_dump(alloc, space, infoProvider).c_str());
+            }
+          }
+        };
+        if (!vsResult)
+          reportConflicts("VS", vsResult.error(), outNcTable.vertexRegAllocators[space], &NamedConstBlock::vertexProps);
+        if (!psOrCsResult)
+          reportConflicts(input.isCompute ? "CS" : "PS", psOrCsResult.error(), outNcTable.pixelOrComputeRegAllocators[space],
+            &NamedConstBlock::pixelProps);
         return eastl::nullopt;
       }
     }

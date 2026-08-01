@@ -23,7 +23,8 @@ AddIncludes =
 ;
 
 Sources =
-  renderLandNormals.cpp 
+  landRayTracer.cpp
+  renderLandNormals.cpp
   hmlExportHmap.cpp
   hmlCollision.cpp
   hmlExport.cpp

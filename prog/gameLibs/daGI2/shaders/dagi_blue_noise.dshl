@@ -1,0 +1,20 @@
+// 128x128 rg8 blue noise (render/noiseTex.cpp, init_and_get_blue_noise), advanced over
+// frames by an R2 Cranley-Patterson rotation in 16-bit fixed point: spatially blue within a
+// frame, low-discrepancy over time, and cadence-resistant: the odd strides give a consumer
+// refreshed every B-th frame 65536/gcd(B,65536) rotation states, 8192 for any pow-2 cadence.
+texture blue_noise_tex;
+
+macro DAGI_BLUE_NOISE(code)
+  (code) {
+    blue_noise_tex@tex2d = blue_noise_tex;
+  }
+  hlsl(code) {
+    float2 dagi_blue_noise2(uint2 pixel, uint frame)
+    {
+      float2 b = texture2DAt(blue_noise_tex, pixel & 127).xy;
+      // R2 in 16-bit fixed point: exact math, odd multipliers give the full 65536-frame period
+      uint2 rot = uint2(frame*49473u, frame*37345u) & 65535u;
+      return frac(b + float2(rot)*(1.f/65536.f));
+    }
+  }
+endmacro

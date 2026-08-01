@@ -26,10 +26,10 @@ struct DefaultMemorySourceMaskType
 };
 // Tries to find the best place to allocate the needed amount of memory.
 template <typename T, typename U>
-ResourceMemory try_allocate_from_heap_group(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, T &group, uint32_t group_index,
-  U source_mask)
+eastl::optional<ResourceMemory> try_allocate_from_heap_group(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, T &group,
+  uint32_t group_index, U source_mask)
 {
-  ResourceMemory result;
+  eastl::optional<ResourceMemory> result;
   decltype(group[0].selectRange({}, AlwaysConvertToTrueType{})) selectedRange{};
   uint32_t heapIndex = 0;
   uint32_t lockedHeapIndex = group.size();
@@ -122,7 +122,7 @@ ResourceMemory try_allocate_from_heap_group(const D3D12_RESOURCE_ALLOCATION_INFO
 
 // Optimized first allocation of a fresh heap.
 template <typename T>
-ResourceMemory first_allocate_from_heap(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, T &heap, HeapID heap_id)
+eastl::optional<ResourceMemory> first_allocate_from_heap(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, T &heap, HeapID heap_id)
 {
   G_ASSERT_RETURN(!heap.freeRanges.empty(), {});
   G_ASSERT_RETURN(0 == heap.freeRanges.front().start, {});
@@ -366,6 +366,16 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
 
     processVirtualAddressUse = systemMemoryStatus.ullTotalVirtual - systemMemoryStatus.ullAvailVirtual;
     behaviorStatus.disableVirtualAddressSpaceStatusQuery = true;
+
+    constexpr uint64_t host_commit_panic_threshold = uint64_t(512) << 20;
+    const bool hostCommitAtPanic = systemMemoryStatus.ullAvailPageFile < host_commit_panic_threshold;
+    if (hostCommitAtPanic && !hostCommitPanicTrimScheduled)
+    {
+      logwarn("DX12: System commit charge reached PANIC level (avail page file %u MB), scheduling texture memory trim",
+        uint32_t(systemMemoryStatus.ullAvailPageFile >> 20));
+      tql::schedule_trim_discardable_tex_mem();
+    }
+    hostCommitPanicTrimScheduled = hostCommitAtPanic;
 
     if (behaviorStatus.printMemoryReports)
     {
@@ -895,7 +905,7 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
   ID3D12Device *device, ResourceHeapProperties heap_properties, AllocationFlags flags,
   const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info)
 {
-  ResourceMemory result;
+  eastl::optional<ResourceMemory> result;
   auto hasSpace = getHeapGroupFreeMemorySize(heap_properties.raw) >= alloc_info.SizeInBytes;
 
   auto &group = groups[heap_properties.raw];
@@ -983,13 +993,13 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
 
   if (result)
   {
-    subtractHeapGroupFreeSpace(heap_properties.raw, result.size());
+    subtractHeapGroupFreeSpace(heap_properties.raw, result->size());
 
-    recordMemoryAllocated(result.size(), heap_properties.isOnDevice(getFeatureSet()));
+    recordMemoryAllocated(result->size(), heap_properties.isOnDevice(getFeatureSet()));
 
     updateHeapGroupGeneration(heap_properties.raw);
 
-    return result;
+    return *result;
   }
 
   return dag::Unexpected{makeMemoryAllocationError(errorCode, attemptedAllocationSize, heap_properties)};
@@ -1005,7 +1015,7 @@ ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapPro
 
   if (flags.defragmentationOperation && !checkDefragmentationGeneration(properties.raw))
   {
-    return dag::Unexpected<MemoryAllocationError>{{.errorCode = E_ABORT}};
+    return unexpected_memory_allocation_error(E_ABORT);
   }
 
   return tryAllocateFromMemoryWithProperties(device, properties, flags, alloc_info)
@@ -1067,20 +1077,32 @@ void ResourceMemoryHeapProvider::freeNoLock(ResourceMemory allocation, bool is_h
 
 #endif
 
-ResourceMemory ResourceMemoryHeapProvider::allocateMemoryInPlace(HeapID heap_id, uint32_t free_range_index,
-  const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo)
+ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapProvider::allocateMemoryInPlace(HeapID heap_id,
+  uint32_t free_range_index, const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo)
 {
   auto &newGroup = groups[heap_id.group];
+  if (heap_id.index >= newGroup.size())
+  {
+    return unexpected_memory_allocation_error(E_INVALIDARG);
+  }
   auto &newHeap = newGroup[heap_id.index];
+  if (free_range_index >= newHeap.freeRanges.size())
+  {
+    return unexpected_memory_allocation_error(E_INVALIDARG);
+  }
   const auto selectedRangeIt = newHeap.freeRanges.begin() + free_range_index;
   auto memory = newHeap.allocate(allocInfo, heap_id, selectedRangeIt);
-  subtractHeapGroupFreeSpace(heap_id.group, memory.size());
+  if (!memory)
+  {
+    return unexpected_memory_allocation_error(E_INVALIDARG);
+  }
+  subtractHeapGroupFreeSpace(heap_id.group, memory->size());
 #if _TARGET_XBOX
   const bool isGpu = XMEM_GPU_OPTIMAL_BANDWIDTH_REQUIRED & ResourceHeapProperties{.raw = heap_id.group}.getXMemoryFlags();
 #else
   const bool isGpu = ResourceHeapProperties{.raw = heap_id.group}.isOnDevice(getFeatureSet());
 #endif
-  recordMemoryAllocated(memory.size(), isGpu);
+  recordMemoryAllocated(memory->size(), isGpu);
   updateHeapGroupGeneration(heap_id.group);
-  return memory;
+  return *memory;
 }

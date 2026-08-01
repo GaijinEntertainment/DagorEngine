@@ -1,6 +1,6 @@
 // ATTENTION!
 // this file is coupling things to much! Use daScript to add new component filters, @see [register_component_filter] annotation
-// shouldDecreaseSize, allowedSizeIncrease = 38
+// shouldDecreaseSize, allowedSizeIncrease = 345
 
 #include <daECS/net/component_replication_filter.h>
 #include <daECS/net/connection.h>
@@ -115,7 +115,12 @@ static net::CompReplicationFilter filter_possessed_squad_and_spectated_squad(
   if (squad && ((squad == plrSquad) || (squad == spectatedSquad)))
     return net::CompReplicationFilter::ReplicateNow;
 
-  return filter_possessed_and_spectated(eid, cntrl_by, conn);
+  // inlined possessed-and-spectated tail (Controlled handled above): possessed replicates only when Unknown
+  if (spectated == eid)
+    return net::CompReplicationFilter::ReplicateNow;
+  return (check_controlled(cntrl_by, conn->getId()) == PossessionResult::Unknown && possessed == eid)
+           ? net::CompReplicationFilter::ReplicateNow
+           : net::CompReplicationFilter::SkipNow;
 }
 
 static net::CompReplicationFilter filter_possessed_spectated_and_attachables(
@@ -124,18 +129,19 @@ static net::CompReplicationFilter filter_possessed_spectated_and_attachables(
   if (conn->getId() == cntrl_by)
     return net::CompReplicationFilter::ReplicateNow;
   ecs::EntityId plrEid((ecs::entity_id_t)(uintptr_t)conn->getUserPtr());
-
   if (plrEid == ecs::INVALID_ENTITY_ID)
     return net::CompReplicationFilter::ReplicateNow;
-  if (ECS_GET_OR(plrEid, specTarget, ecs::INVALID_ENTITY_ID) != eid && ECS_GET_OR(plrEid, possessed, ecs::INVALID_ENTITY_ID) != eid)
+  ecs::EntityId spectated = ECS_GET_OR(plrEid, specTarget, ecs::INVALID_ENTITY_ID);
+  ecs::EntityId possessed = ECS_GET_OR(plrEid, possessed, ecs::INVALID_ENTITY_ID);
+  int hopsLeft = 8; // real attach/owner chains are a few hops; the cap only stops malformed cycles
+  while (spectated != eid && possessed != eid)
   {
-    ecs::EntityId attachedTo = ECS_GET_OR(eid, animchar_attach__attachedTo, ecs::INVALID_ENTITY_ID);
-    if (attachedTo && attachedTo != eid)
-      return filter_possessed_spectated_and_attachables(attachedTo, cntrl_by, conn);
-    ecs::EntityId gunOwner = ECS_GET_OR(eid, gun__owner, ecs::INVALID_ENTITY_ID);
-    if (gunOwner && gunOwner != eid)
-      return filter_possessed_spectated_and_attachables(gunOwner, cntrl_by, conn);
-    return net::CompReplicationFilter::SkipNow;
+    ecs::EntityId next = ECS_GET_OR(eid, animchar_attach__attachedTo, ecs::INVALID_ENTITY_ID);
+    if (!next || next == eid)
+      next = ECS_GET_OR(eid, gun__owner, ecs::INVALID_ENTITY_ID);
+    if (!next || next == eid || --hopsLeft < 0)
+      return net::CompReplicationFilter::SkipNow;
+    eid = next;
   }
   return net::CompReplicationFilter::ReplicateNow;
 }

@@ -171,10 +171,8 @@ public:
       htF = v_make_vec4f(compressed.decodePixelUnsafe(cell.x, cell.y), compressed.decodePixelUnsafe(xinside, cell.y),
         compressed.decodePixelUnsafe(cell.x, yinside), compressed.decodePixelUnsafe(xinside, yinside));
     }
-    vec4f mn = v_min(htF, v_rot_2(htF));
-    mn = v_min(mn, v_splat_y(mn));
-    vec4f mx = v_max(htF, v_rot_2(htF));
-    mx = v_max(mx, v_splat_y(mx));
+    vec4f mn = v_hmin(htF);
+    vec4f mx = v_hmax(htF);
     if (mxY < v_extract_x(mn) || mnY > v_extract_x(mx))
       return false;
     htF = v_madd(htF, v_splats(hScaleRaw), v_splats(hMin));

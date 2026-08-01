@@ -9,6 +9,7 @@
 #include <drv/3d/dag_info.h>
 #include <3d/dag_texPackMgr2.h>
 #include <shaders/dag_shaders.h>
+#include <image/dag_loadImage.h>
 #include <image/dag_texPixel.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_fileIo.h>
@@ -530,9 +531,11 @@ static bool readAtlasDesc(const char *file_name, DataBlock &out_blk, String &out
     out_blk.clearData();
     if (!sz_y_start)
     {
-      logerr("PM: bad name for realtime dynamic atlas: %s (scheme is NAME::X:Y[:{MPLR}*] )", file_name);
+      logerr("PM: bad name for realtime dynamic atlas: '%s' (scheme is NAME::X:Y[:{MPLR}*] )", file_name);
       return false;
     }
+    if (!check_pic_dimension(name_end + 2) || !check_pic_dimension(sz_y_start + 1))
+      logerr("PM: invalid or non-integer X:Y in name for realtime dynamic atlas: '%s'", file_name);
     int sz_x = atoi(name_end + 2), sz_y = atoi(sz_y_start + 1);
     DataBlock &texBlk = *out_blk.addNewBlock("tex");
     texBlk.setBool("dynAtlas", true);
@@ -1448,6 +1451,22 @@ TEXTUREID PictureManager::get_picture_data(PICTUREID pid, Point2 &out_lt, Point2
   out_lt.set(0, 0);
   out_rb.set(1, 1);
   return texRec[tex_idx]->texId;
+}
+bool PictureManager::is_picture_content_ready(PICTUREID pid)
+{
+  if ((pid & 0xC0000000) != 0x40000000) // only dynamic atlas pics can have deferred content
+    return true;
+  WinAutoLock lock(critSec);
+  int tex_idx = -1;
+  const DynamicPicAtlas::ItemData *d = decodePicId(pid, tex_idx);
+  if (!d)
+    return true;   // gone for good, nothing more will arrive
+  if (!d->valid()) // discarded, restore scheduled or awaiting first factory render
+    return false;
+  for (PictureRenderFactory *f : picRenderFactory)
+    if (f->isPicRenderPending(pid))
+      return false;
+  return true;
 }
 bool PictureManager::get_picture_size(PICTUREID pid, Point2 &out_total_texsz, Point2 &out_picsz)
 {

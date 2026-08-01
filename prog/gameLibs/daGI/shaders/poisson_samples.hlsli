@@ -1,2 +1,0 @@
-//#define SAMPLE_NUM 2048
-#define SAMPLE_NUM 1024

@@ -16,6 +16,7 @@ AddIncludes =
 
 Sources =
   dumpCollisions.cpp
+  dumpScenes.cpp
   rendInstAccess.cpp
   rendInstExtraAccess.cpp
   rendInstCommon.cpp
@@ -99,8 +100,10 @@ if $(PlatformSpec) in gcc clang {
   local xclang = - ;
   if $(Platform) in windows xboxOne scarlett { xclang = /clang:- ; }
   if $(PlatformSpec) = clang { CPPopt += -Wno-overriding-option ; } # for `-ffp-contract=off` after `-ffast-math`
-  CPPopt += $(xclang)ffp-contract=off ;
+  if $(Platform) in macOS iOS ps4 ps5 nswitch linux { CPPopt += -Wno-overriding-t-option ; } # ditto for older clang ver
+  CPPopt += $(xclang)fno-unsafe-math-optimizations $(xclang)ffp-contract=off ; # contract=off alone does not stop backend fusion under fast-math
   if $(PlatformArch) in x86 x86_64 { CPPopt += $(xclang)mno-fma ; }
 }
+CPPopt += -DVECMATH_NO_FMA ; # v_madd on NEON is explicit vfmaq that ignores ffp-contract=off
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -65,7 +65,7 @@ glob_tools_text.append("#include <fx/effectClassTools.h>\n\n")
 
 
 
-let class BaseParam {
+class BaseParam {
   paramName = null
 
   function createDecl(_name, _decl) {
@@ -86,7 +86,7 @@ let class BaseParam {
 
 
 
-let class InvalidParam (BaseParam) {
+class InvalidParam (BaseParam) {
   typeName=null
 
   constructor(name, typ) {
@@ -107,7 +107,7 @@ let class InvalidParam (BaseParam) {
 
 
 
-let class RefSlotParam (BaseParam) {
+class RefSlotParam (BaseParam) {
   slotType="Unknown"
 
   constructor(name, decl) {
@@ -144,7 +144,7 @@ glob_types.ref_slot <- RefSlotParam(null, { slotType="Unknown" });
 
 
 
-let class CubicCurveParam (BaseParam) {
+class CubicCurveParam (BaseParam) {
   color = Color3(255, 255, 0)
 
   constructor(name, decl) {
@@ -174,7 +174,7 @@ let class CubicCurveParam (BaseParam) {
 
 glob_types.cubic_curve <- CubicCurveParam(null, {})
 
-let class GradientBoxParam (BaseParam) {
+class GradientBoxParam (BaseParam) {
   constructor(name, _decl) {
     this.paramName=name;
   }
@@ -201,7 +201,7 @@ glob_types.gradient_box <- GradientBoxParam(null, {})
 
 
 
-let class SimpleTypeParam (BaseParam) {
+class SimpleTypeParam (BaseParam) {
   typeName = null
 
   function generateDeclText(text) {
@@ -223,7 +223,7 @@ let class SimpleTypeParam (BaseParam) {
 
 
 
-let class E3dcolorParam (SimpleTypeParam) {
+class E3dcolorParam (SimpleTypeParam) {
   defVal = Color3(255, 255, 255)
 
   constructor(name, decl) {
@@ -245,7 +245,7 @@ let class E3dcolorParam (SimpleTypeParam) {
 
 glob_types.E3DCOLOR <- E3dcolorParam(null, {})
 
-let class IntParam (SimpleTypeParam) {
+class IntParam (SimpleTypeParam) {
   defVal = 0
 
   constructor(name, decl) {
@@ -268,7 +268,7 @@ glob_types.int <- IntParam(null, {})
 
 
 
-let class RealParam (SimpleTypeParam) {
+class RealParam (SimpleTypeParam) {
   defVal = 0.0
 
   constructor(name, decl) {
@@ -291,7 +291,7 @@ glob_types.real <- RealParam(null, {})
 
 
 
-let class BoolParam (SimpleTypeParam) {
+class BoolParam (SimpleTypeParam) {
   defVal = false;
 
   constructor(name, decl) {
@@ -316,7 +316,7 @@ let class BoolParam (SimpleTypeParam) {
 
 glob_types.bool <- BoolParam(null, {})
 
-let class Point2Param (SimpleTypeParam) {
+class Point2Param (SimpleTypeParam) {
   defVal = Point2(0, 0)
 
   constructor(name, decl) {
@@ -339,7 +339,7 @@ let class Point2Param (SimpleTypeParam) {
 glob_types.Point2 <- Point2Param(null, {})
 
 
-let class Point3Param (SimpleTypeParam) {
+class Point3Param (SimpleTypeParam) {
   defVal = Point3(0, 0, 0)
 
   constructor(name, decl) {
@@ -362,7 +362,7 @@ let class Point3Param (SimpleTypeParam) {
 glob_types.Point3 <- Point3Param(null, {})
 
 
-let class TypeRefParam (BaseParam) {
+class TypeRefParam (BaseParam) {
   typeRef = null
 
   constructor(name, typ) {
@@ -385,7 +385,7 @@ let class TypeRefParam (BaseParam) {
 }
 
 
-let class DynArrayParam (BaseParam) {
+class DynArrayParam (BaseParam) {
   typeRef = null
   memberToShowInCaption = null
 
@@ -436,7 +436,7 @@ glob_types.dyn_array <- DynArrayParam(null, {elemType=null})
 
 
 
-let class EnumParam (BaseParam) {
+class EnumParam (BaseParam) {
   entries=null
 
   constructor(name, decl) {
@@ -490,7 +490,7 @@ glob_types.list <- EnumParam(null, {list=[]})
 
 
 
-let class ExternStruct (BaseParam) {
+class ExternStruct (BaseParam) {
   constructor(name) {
     this.paramName=name
   }
@@ -502,7 +502,7 @@ let class ExternStruct (BaseParam) {
 
 
 
-let class ParamStruct (BaseParam) {
+class ParamStruct (BaseParam) {
   members = null
   version = 0
 

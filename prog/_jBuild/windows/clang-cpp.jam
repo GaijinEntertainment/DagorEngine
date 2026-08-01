@@ -8,7 +8,7 @@ rule ProcessCompileTarget
   local pre_opt = ;
   local post_opt = ;
 
-  local O3 = -Xclang -O3 /Gy /Gw ;
+  local O3 = /clang:-O3 /Gy /Gw ;
   if $(PlatformArch) = x86 { O3 += /Oy- ; }
   if $(CheckOnly) = yes { O3 = /Od ; }
   switch $(Config) {
@@ -49,12 +49,12 @@ rule ProcessCompileTarget
 
   if $(KernelLinkage) = static { _CONFIG_OPT += -D_TARGET_STATIC_LIB ; }
   if $(UseWholeOpt) != no {
+    if $(UseWholeOptDevirt) = yes { _CONFIG_OPT += -fwhole-program-vtables ; }
     if $(UseWholeOpt) = yes {
       _CONFIG_OPT += -flto=thin ;
     } else {
       _CONFIG_OPT += -flto=$(UseWholeOpt) ;
     }
-    _CONFIG_OPT += -DDAS_STRICT_ALIASING ;
   }
 
   _CONFIG_OPT += /FS ;         # Force Synchronous PDB Writes.
@@ -75,7 +75,10 @@ rule ProcessCompileTarget
 }
 
 
-rule DepRule
+# newer jam.exe provides this rule as the DepRuleDotDot C builtin (see
+# $(JAM_BUILTINS)); keep the interpreted fallback for older jam.exe
+if ! DepRuleDotDot in $(JAM_BUILTINS) {
+rule DepRuleDotDot
 {
   local changed_dep = ;
 
@@ -96,6 +99,7 @@ rule DepRule
   Includes $(<) : $(changed_dep) ;
   null_action $(changed_dep) ;
 }
+}
 
 
 rule CheckHeaders
@@ -107,7 +111,7 @@ rule CheckHeaders
   # scan line for header, skipping any ../ at the beginning [will be prefixed with $(Root)]
   HDRSCAN   on $(>) = "^[^ ]*: *([^\
 ]*).*$" ;
-  HDRRULE   on $(>) = DepRule ;
+  HDRRULE   on $(>) = DepRuleDotDot ;
 }
 
 

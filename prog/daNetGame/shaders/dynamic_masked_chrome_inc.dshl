@@ -186,7 +186,7 @@ macro COMMON_MASKED_CHROME_PS()
         #endif
 
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
           init_motion_vector(result, motion);
         #endif
         if (special_vision > 0) //thermal vision

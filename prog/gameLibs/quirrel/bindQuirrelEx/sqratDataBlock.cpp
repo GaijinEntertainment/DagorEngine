@@ -238,6 +238,108 @@ static SQInteger blk_len(HSQUIRRELVM v)
   return self->blockCount() + self->paramCount();
 }
 
+// Order-sensitive structural compare: params and sub-blocks must match by
+// position, name, type and value (matches legacy script u.isEqual semantics).
+static bool blk_equal(const DataBlock &a, const DataBlock &b)
+{
+  if (a.paramCount() != b.paramCount() || a.blockCount() != b.blockCount())
+    return false;
+
+  for (int i = 0, n = a.paramCount(); i < n; i++)
+  {
+    if (a.getParamType(i) != b.getParamType(i) || strcmp(a.getParamName(i), b.getParamName(i)) != 0)
+      return false;
+    switch (a.getParamType(i))
+    {
+      case DataBlock::TYPE_STRING:
+        if (strcmp(a.getStr(i), b.getStr(i)) != 0)
+          return false;
+        break;
+      case DataBlock::TYPE_INT:
+        if (a.getInt(i) != b.getInt(i))
+          return false;
+        break;
+      case DataBlock::TYPE_INT64:
+        if (a.getInt64(i) != b.getInt64(i))
+          return false;
+        break;
+      case DataBlock::TYPE_REAL:
+        if (a.getReal(i) != b.getReal(i))
+          return false;
+        break;
+      case DataBlock::TYPE_BOOL:
+        if (a.getBool(i) != b.getBool(i))
+          return false;
+        break;
+      case DataBlock::TYPE_POINT2:
+        if (!(a.getPoint2(i) == b.getPoint2(i)))
+          return false;
+        break;
+      case DataBlock::TYPE_POINT3:
+        if (!(a.getPoint3(i) == b.getPoint3(i)))
+          return false;
+        break;
+      case DataBlock::TYPE_POINT4:
+        if (!(a.getPoint4(i) == b.getPoint4(i)))
+          return false;
+        break;
+      case DataBlock::TYPE_IPOINT2:
+        if (!(a.getIPoint2(i) == b.getIPoint2(i)))
+          return false;
+        break;
+      case DataBlock::TYPE_IPOINT3:
+        if (!(a.getIPoint3(i) == b.getIPoint3(i)))
+          return false;
+        break;
+      case DataBlock::TYPE_IPOINT4:
+        if (!(a.getIPoint4(i) == b.getIPoint4(i)))
+          return false;
+        break;
+      case DataBlock::TYPE_MATRIX:
+        if (!(a.getTm(i) == b.getTm(i)))
+          return false;
+        break;
+      case DataBlock::TYPE_E3DCOLOR:
+        if (a.getE3dcolor(i).u != b.getE3dcolor(i).u)
+          return false;
+        break;
+      default: return false;
+    }
+  }
+
+  for (int i = 0, n = a.blockCount(); i < n; i++)
+  {
+    const DataBlock *ba = a.getBlock(i), *bb = b.getBlock(i);
+    if (strcmp(ba->getBlockName(), bb->getBlockName()) != 0 || !blk_equal(*ba, *bb))
+      return false;
+  }
+  return true;
+}
+
+static SQInteger blk_is_equal(HSQUIRRELVM v)
+{
+  if (!Sqrat::check_signature<DataBlock *>(v))
+    return SQ_ERROR;
+  Sqrat::Var<DataBlock *> self(v, 1);
+
+  HSQOBJECT ho;
+  G_VERIFY(SQ_SUCCEEDED(sq_getstackobj(v, 2, &ho)));
+  bool equal = false;
+  if (sq_type(ho) == OT_INSTANCE && Sqrat::ClassType<DataBlock>::IsObjectOfClass(&ho))
+    equal = blk_equal(*self.value, *Sqrat::Var<const DataBlock *>(v, 2).value);
+  sq_pushbool(v, equal);
+  return 1;
+}
+
+static SQInteger blk_is_empty(HSQUIRRELVM v)
+{
+  if (!Sqrat::check_signature<DataBlock *>(v))
+    return SQ_ERROR;
+  Sqrat::Var<DataBlock *> self(v, 1);
+  sq_pushbool(v, self.value->paramCount() == 0 && self.value->blockCount() == 0);
+  return 1;
+}
+
 static SQInteger blk_modulo(HSQUIRRELVM v)
 {
   if (!Sqrat::check_signature<DataBlock *>(v))
@@ -852,6 +954,8 @@ void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access)
     .FUNC(getParamName)
 
     .SquirrelFuncDeclString(blk_len, "instance.len(): int")
+    .SquirrelFuncDeclString(blk_is_equal, "instance.isEqual(other: any): bool")
+    .SquirrelFuncDeclString(blk_is_empty, "instance.isEmpty(): bool")
     .SquirrelFuncDeclString(blk_get_param_type_annotation, "instance.getParamTypeAnnotation(idx: int): string|null")
     .SquirrelFuncDeclString(blk_get_param_value, "instance.getParamValue(idx: int): any")
 

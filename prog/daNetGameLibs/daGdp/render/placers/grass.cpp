@@ -7,6 +7,7 @@
 #include <3d/dag_lockSbuffer.h>
 #include <drv/3d/dag_rwResource.h>
 #include <shaders/dag_computeShaders.h>
+#include <shaders/dag_refinedBlock.h>
 #include <render/daFrameGraph/daFG.h>
 #include <math/dag_hlsl_floatx.h>
 #include <frustumCulling/frustumPlanes.h>
@@ -14,6 +15,7 @@
 #include "../../shaders/dagdp_common.hlsli"
 #include "../../shaders/dagdp_common_placer.hlsli"
 #include "../../shaders/dagdp_heightmap.hlsli"
+#include "../block.h"
 #include "grass.h"
 
 namespace var
@@ -79,6 +81,7 @@ struct GrassConstants
   float maxPlaceableBoundingRadius;
   float grassMaxRange;
   uint32_t prngSeed;
+  refined_block::PassBlockHandle passBlock;
 };
 
 struct GrassPersistentData
@@ -181,6 +184,11 @@ static void create_grid_nodes(const ViewInfo &view_info,
       return;
     }
   }
+
+  constants.passBlock =
+    get_dagdp_view_block(constants.viewInfo.uniqueName.c_str())
+      .refineBlock(
+        TmpName(TmpName::CtorSprintf(), "dagdp_grass_pass@%s_%zu", constants.viewInfo.uniqueName.c_str(), grid_index).c_str());
 
   node_inserter(create_indirect_args_node(ns, persistentData));
   node_inserter(create_cull_tiles_node(ns, persistentData));

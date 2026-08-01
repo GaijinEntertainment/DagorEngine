@@ -98,3 +98,8 @@ $ ./example
 # License
 
 The library is licensed under [zlib license](LICENSE.txt)
+
+## Upstream
+
+Vendored from https://github.com/memononen/nanosvg (upstream master, no release
+tags are published).

@@ -58,6 +58,7 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
         if (game_objects) // client doesn't have this component
         {
           scene::TiledScene *indoor_walls = nullptr;
+          scene::TiledScene *indoor_envbox1 = nullptr;
           for (auto &obj : objMap->objs)
           {
             const RoDataBlock &blk = *obj.addData.getBlockByNameEx("__asset");
@@ -86,6 +87,8 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
                 game_objects->indoors = scn;
               else if (strcmp(scn_name, "indoor_walls") == 0)
                 indoor_walls = scn;
+              else if (strcmp(scn_name, "envi_probe_box") == 0)
+                indoor_envbox1 = scn;
             }
             else
               scn = insertPair.first->second.get();
@@ -147,9 +150,9 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
               }
             }
           }
-          if (!game_objects->indoors && indoor_walls) // if no native "indoors" inherit from "indoor_walls"
+          if (!game_objects->indoors && (indoor_walls || indoor_envbox1))
           {
-            // NOTE: We have to clone "indoor_walls" scene instead of just pointing to it, because it will
+            // NOTE: We have to clone source scenes nodes instead of just using them, because they will
             //       be stolen by render on client with local server, but we need "indoors" scene for game
             //       on any server, including local server (generally low memory footprint 1Kb..64Kb)
             //
@@ -159,9 +162,18 @@ void create_game_objects(Tab<ObjectsToPlace *> &&objectsToPlace)
               GameObjectsTiledScene *indoors = new GameObjectsTiledScene();
               insertPair.first->second.reset(indoors);
               indoors->setPoolBBox(0, bbox3f{v_neg(V_C_HALF), V_C_HALF});
-              indoors->reserve(indoor_walls->getNodesCount());
-              for (scene::node_index ni : *indoor_walls)
-                indoors->allocate(indoor_walls->getNode(ni), /*pool*/ 0, /*flags*/ 0);
+              uint32_t nodesCount = 0;
+              if (indoor_walls)
+                nodesCount += indoor_walls->getNodesCount();
+              if (indoor_envbox1)
+                nodesCount += indoor_envbox1->getNodesCount();
+              indoors->reserve(nodesCount);
+              if (indoor_walls)
+                for (scene::node_index ni : *indoor_walls)
+                  indoors->allocate(indoor_walls->getNode(ni), /*pool*/ 0, /*flags*/ 0);
+              if (indoor_envbox1)
+                for (scene::node_index ni : *indoor_envbox1)
+                  indoors->allocate(indoor_envbox1->getNode(ni), /*pool*/ 0, /*flags*/ 0);
               game_objects->indoors = indoors;
             }
           }

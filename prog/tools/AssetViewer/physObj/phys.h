@@ -41,6 +41,15 @@ void end();
 void *getPhysWorld();
 
 void beforeRender();
+
+void setJointsMotorSettings(float twist_freq, float twist_damp, float swing_freq, float swing_damp);
+// Lock/unlock a simulated body in place (make_static -> zero inverse mass/inertia; restore uses mass/momj).
+void setBodyStatic(int body_idx, bool make_static, float mass, const Point3 &momj);
+void *startRagdoll(AnimV20::AnimcharBaseComponent *ac, AnimV20::AnimcharFinalMat44 *fw, const Point3 &v0);
+void deleteRagdoll(void *&ragdoll);
+void setRagdollDriveToAnimchar(void *ragdoll, bool drive);
+void wakeUpRagdoll(void *ragdoll);
+
 void renderTrans(bool render_collision, bool render_geom, bool bodies, bool body_center, bool constraints, bool constraints_refsys,
   bool render_boxes);
 void render();
@@ -69,6 +78,10 @@ bool shootAtObject(const Point3 &pt, const Point3 &dir, float bullet_impulse = 0
   extern void phys_##PHYS##_delete_ragdoll(void *&ragdoll);                                                                        \
   extern void phys_##PHYS##_clear_phys_world();                                                                                    \
   extern void phys_##PHYS##_before_render();                                                                                       \
+  extern void phys_##PHYS##_set_joints_motor_settings(float twist_freq, float twist_damp, float swing_freq, float swing_damp);     \
+  extern void phys_##PHYS##_set_ragdoll_drive(void *ragdoll, bool drive);                                                          \
+  extern void phys_##PHYS##_wake_up_ragdoll(void *ragdoll);                                                                        \
+  extern void phys_##PHYS##_set_body_static(int body_idx, bool make_static, float mass, const Point3 &momj);                       \
   extern void phys_##PHYS##_render_trans();                                                                                        \
   extern void phys_##PHYS##_render();                                                                                              \
   extern void phys_##PHYS##_render_decals();                                                                                       \

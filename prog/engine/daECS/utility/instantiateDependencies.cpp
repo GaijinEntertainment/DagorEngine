@@ -31,8 +31,8 @@ struct TemplatesListToInstantiate
       return;
     }
     for (const auto &t : *templatesList)
-      g_entity_mgr->templateByName(t.c_str(), EntityId(), false);
-    g_entity_mgr->updateAllQueries();
+      res_cb.manager().templateByName(t.c_str(), EntityId(), false);
+    res_cb.manager().updateAllQueries();
   }
 };
 

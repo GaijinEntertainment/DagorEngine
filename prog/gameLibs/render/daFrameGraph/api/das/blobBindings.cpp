@@ -73,6 +73,10 @@ void setBlobDescription(dafg::ResourceData &res, const char *mangled_name, int s
     G_ASSERTF(false, "Impossible situation!");
   }
 
+#if DAFG_DEBUG_RTTI
+  rtti.dasName = String{mangled_name};
+#endif
+
   const auto tag = dafg::Runtime::get().getTypeDb().registerForeignType(mangled_name, eastl::move(rtti));
   res.createdResData->creationInfo = dafg::BlobDescription{tag};
 }

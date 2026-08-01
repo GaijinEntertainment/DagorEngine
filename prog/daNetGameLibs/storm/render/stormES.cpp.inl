@@ -27,8 +27,8 @@ static void storm_es_event_handler(const ecs::Event &,
   float storm__maxDensity = 10)
 {
   float spawnRate = storm__density / storm__maxDensity;
-  float windPower;
-  Point3 windDir;
+  float windPower = 0.0f;
+  Point3 windDir = Point3(0, 0, 0);
   get_wind_strength_ecs_query(manager, [&](float wind__strength, float wind__dir) {
     windPower = wind__strength;
     windDir = Point3(cosf(DegToRad(wind__dir)), 0.0f, sinf(DegToRad(wind__dir)));

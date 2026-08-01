@@ -8,5 +8,5 @@
 void destructables::DestrRendDataDeleter::operator()(destructables::DestrRendData *) {}
 destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *, bool) { return nullptr; }
 void destructables::clear_rend_data(destructables::DestrRendData *) {}
-void destructables::before_render(const Point3 &, bool) {}
+void destructables::before_render(const Point3 &, const Frustum &, Occlusion *, bool) {}
 void destructables::render(dynrend::ContextId, const Frustum &, float) {}

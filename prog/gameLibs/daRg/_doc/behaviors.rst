@@ -157,13 +157,28 @@ and IME integration. Extends TextArea with editing capabilities.
 
 - ``editableText`` – EditableText object. Text editing state and content.
 - ``onChange(editableText)`` – function. Called when content changes.
+- ``onReturn()`` – function. When set, it is called on Enter/NumpadEnter instead of inserting a line break.
 - ``onImeFinish(applied)`` – function. Called when IME editing completes.
 - ``title`` – string. IME dialog title.
 - ``hint`` – string. IME dialog hint text.
 - ``inputType`` – string. IME input type.
 - ``maxChars`` – int. Maximum character limit.
+- ``allowTags`` – bool. When true, parse markup/embed tags so links render as atomic inline
+  component chips (like read-only TextArea); the vocabulary comes from the element's
+  ``colorTable`` / ``tagsTable`` / ``embed`` tables. When false (default), tags are literal text.
+  The tag vocabulary is fixed per ``EditableText`` instance: it is reparsed only when the
+  ``EditableText`` object itself is replaced, so changing ``allowTags`` / ``embed`` / ``tagsTable``
+  / ``colorTable`` while reusing the same ``EditableText`` across a rebuild is not supported.
 - ``imeNoAutoCap`` – bool. Disables auto-capitalization.
 - ``imeNoCopy`` – bool. Disables copy functionality.
+
+**EditableText object**
+
+- ``text`` – string property. Get all content, or set it (replaces everything, like a fresh value).
+- ``insertText(text, [pos])`` – insert ``text`` at character position ``pos``, defaulting to the
+  current caret. The caret ends up right after the inserted text. Honors ``maxChars`` (overflow is
+  trimmed) and the element's tag vocabulary. Inserting an empty string is a no-op. Throws if the
+  object is not attached to a TextAreaEdit element.
 
 PieMenu
 -------
@@ -279,6 +294,52 @@ merges returned properties into the component, re-runs setup, and optionally rec
 - ``rtAlwaysUpdate`` – bool. Writes all returned keys regardless of whether they changed.
 - ``rtRecalcLayout`` – bool. Forces layout recalculation after property update.
 
+BoundProps
+----------
+Push-based property binding: each entry of ``bindProps`` ties a component
+property to a Watched/Computed observable. On change the values are written
+into the component description and the element is re-applied in place --
+no builder call, no children diff, and zero cost while nothing changes.
+Layout-affecting keys (text, size, pos, margins, ...) recalculate layout
+automatically; paint-only keys (color, opacity, ...) skip it.
+The behavior attaches automatically to any component with a non-null
+``bindProps`` key; writing ``behavior = Behaviors.BoundProps`` is not needed.
+
+Structural properties (``children``, ``behavior``, ``watch``, ``rendObj``,
+``key``) cannot be bound. Keys consumed only by full (non-realtime) element
+setup are written to the description but have no effect, silently:
+``animations``, ``transitions``, ``eventHandlers``, ``hotkeys``, ``xmbNode``,
+``scrollHandler``, ``group``. The same holds for properties other behaviors
+read in their own setup, e.g. TextArea text or Slider min/max/knob props.
+Use classic ``watch`` for all of those.
+
+**Properties**
+
+- ``bindProps`` – table. Property name to observable, e.g. ``{ color = myColorObs }``.
+- ``rtRecalcLayout`` – bool. Forces layout recalculation even for paint-only keys.
+
+ImageLoadState
+--------------
+Reports whether the element's ``image`` is still loading, so that script can show a
+placeholder component of its own (a spinner with animations, for example) while it does.
+``fallbackImage`` covers the complementary case, a failed load replaced by another picture.
+
+For a picture in a dynamic atlas the flag stays true until its content actually reaches
+the atlas, not merely until the atlas slot is known: a factory-rendered picture (a 3d
+icon) counts as loading until its render is done, and a picture evicted from a full
+atlas counts as loading again while it is being restored.
+
+The behavior only observes, it never starts a load, and it writes the flag from the act
+stage, so it lags load completion by one act tick. Seed the observable with
+``Picture.prefetch()``, which starts the load and returns whether it is really in flight --
+otherwise a picture that resolves synchronously shows the placeholder for one tick. Use the
+``mkAsyncImage`` helper in ``darg_library.nut``, which does all of this.
+
+**Properties**
+
+- ``image`` – Picture. The picture to observe.
+- ``imageLoading`` – Watched. Set to true while the load is in flight.
+
 ScrollEvent
 -----------
 Detects changes to scroll offset, content size, and element size;
@@ -297,15 +358,6 @@ Handles mouse wheel events to scroll the element content, with configurable step
 - ``wheelStep`` – float. Scroll amount per wheel notch (default: 0.2).
 - ``orientation`` – enum (horizontal/vertical). Scroll direction (default: vertical).
 - ``onWheelScroll(delta)`` – function. Called on wheel scroll with delta amount.
-
-SwipeScroll
------------
-Implements swipe-to-scroll behavior for touch interfaces, snapping to child element boundaries.
-
-**Properties**
-
-- ``panMouseButton`` – int. Mouse button for panning (-1 for any).
-- ``onChange(index, swipeIsActive)`` – function. Called with current child index and swipe state.
 
 Movie
 -----

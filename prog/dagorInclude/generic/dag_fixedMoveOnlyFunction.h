@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <string.h> // memcpy
 #include <EASTL/type_traits.h>
 #include <EASTL/internal/function_detail.h>
 #include <debug/dag_assert.h>
@@ -43,7 +44,7 @@ namespace detail
 template <typename F>
 static void GCC_USED relocateImpl(void *from, void *to)
 {
-  if (to != nullptr)
+  if (to)
     new (to, _NEW_INPLACE) F{(F &&)*static_cast<F *>(from)};
 
   static_cast<F *>(from)->~F();
@@ -54,32 +55,38 @@ struct FixedMoveOnlyFunctionBase
 {
   using ManagerSignature = void(void *, void *);
 
-  static constexpr size_t align = 16;
+  static constexpr size_t align = alignof(uint64_t);
 
-  // Note that we intentionally leave fields uninitialized.
-  FixedMoveOnlyFunctionBase() : call{nullptr} {}; //-V730
+  FixedMoveOnlyFunctionBase() : call{nullptr} {} //-V730
 
   template <typename F>
-  FixedMoveOnlyFunctionBase(F &&func_object) : call{nullptr}
+  FixedMoveOnlyFunctionBase(F &&func_object, CallSignature *cl) : call(cl)
   {
     using UnqualF = eastl::remove_cvref_t<F>;
 
     static_assert(sizeof(UnqualF) <= size, "Function object is too big!");
     static_assert(alignof(UnqualF) <= align, "Function object over-aligned!");
 
-    relocate = &relocateImpl<UnqualF>;
+    if constexpr (!eastl::is_trivially_copyable_v<UnqualF>)
+      relocate = &relocateImpl<UnqualF>;
+    else
+      relocate = nullptr;
     new (storage) UnqualF{(F &&)func_object};
   }
 
   FixedMoveOnlyFunctionBase(const FixedMoveOnlyFunctionBase &) = delete;
   FixedMoveOnlyFunctionBase &operator=(const FixedMoveOnlyFunctionBase &) = delete;
 
-  FixedMoveOnlyFunctionBase(FixedMoveOnlyFunctionBase &&other) : call{other.call}, relocate{other.relocate} //-V1077
+  FixedMoveOnlyFunctionBase(FixedMoveOnlyFunctionBase &&other) : call{other.call} //-V1077
   {
-    if (other.call == nullptr)
+    if (call == nullptr)
       return;
 
-    relocate(&other.storage, storage);
+    if ((relocate = other.relocate))
+      relocate(&other.storage, storage);
+    else
+      memcpy(storage, other.storage, size);
+
     other.call = nullptr;
   }
 
@@ -88,33 +95,34 @@ struct FixedMoveOnlyFunctionBase
     if (this == &other)
       return *this;
 
-    if (call != nullptr)
-      relocate(&storage, nullptr);
-
+    destroy();
     call = other.call;
 
     if (other.call == nullptr)
       return *this;
 
     relocate = other.relocate;
-    relocate(&other.storage, storage);
+    if (relocate)
+      relocate(&other.storage, storage);
+    else
+      memcpy(storage, other.storage, size);
 
     other.call = nullptr;
 
     return *this;
   }
 
-  ~FixedMoveOnlyFunctionBase()
+  ~FixedMoveOnlyFunctionBase() { destroy(); }
+
+  void destroy()
   {
-    if (call != nullptr)
+    if (call && relocate)
       relocate(&storage, nullptr);
   }
 
   void reset()
   {
-    if (call != nullptr)
-      relocate(&storage, nullptr);
-
+    destroy();
     call = nullptr;
   }
 
@@ -122,8 +130,7 @@ struct FixedMoveOnlyFunctionBase
 
   // call should be hot
   CallSignature *call;
-  ManagerSignature *relocate;
-  // On win32, we still want this to be aligned to 16 bytes
+  ManagerSignature *relocate; // nullptr for trivially copyable types
   alignas(align) char storage[size];
 };
 
@@ -157,14 +164,12 @@ class FixedMoveOnlyFunction<size, Ret(Args...)> : private detail::FixedMoveOnlyF
   using Base::storage;
 
 public:
-  FixedMoveOnlyFunction() = default;
+  FixedMoveOnlyFunction() {} // not "= default": value-init ({}) must not zero-fill the storage
 
   template <typename F, typename = EASTL_INTERNAL_FUNCTION_VALID_FUNCTION_ARGS(F, Ret, Args..., Base, FixedMoveOnlyFunction),
     typename = eastl::disable_if_t<detail::is_fixed_move_only_function_v<eastl::decay_t<F>>>>
-  FixedMoveOnlyFunction(F &&func_object) : Base((F &&)func_object)
-  {
-    call = &callImpl<eastl::decay_t<F>>;
-  }
+  FixedMoveOnlyFunction(F &&func_object) : Base((F &&)func_object, &callImpl<eastl::decay_t<F>>)
+  {}
 
   FixedMoveOnlyFunction &operator=(std::nullptr_t)
   {
@@ -198,14 +203,12 @@ class FixedMoveOnlyFunction<size, Ret(Args...) const> : private detail::FixedMov
   using Base::storage;
 
 public:
-  FixedMoveOnlyFunction() : Base() {}
+  FixedMoveOnlyFunction() {} // not "= default": value-init ({}) must not zero-fill the storage
 
   template <typename F, typename = EASTL_INTERNAL_FUNCTION_VALID_FUNCTION_ARGS(F, Ret, Args..., Base, FixedMoveOnlyFunction),
     typename = eastl::disable_if_t<detail::is_fixed_move_only_function_v<eastl::decay_t<F>>>>
-  FixedMoveOnlyFunction(F &&func_object) : Base((F &&)func_object)
-  {
-    call = &callImpl<eastl::decay_t<F>>;
-  }
+  FixedMoveOnlyFunction(F &&func_object) : Base((F &&)func_object, &callImpl<eastl::decay_t<F>>)
+  {}
 
   FixedMoveOnlyFunction &operator=(std::nullptr_t)
   {

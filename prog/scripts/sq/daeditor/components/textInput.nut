@@ -10,20 +10,20 @@ let { colors } = require("style.nut")
     - replace editor in enlisted with this component (it should be already suitable)
 */
 let rexInt = regexp(@"[\+\-]?[0-9]+")
-function isStringInt(str){
+function isStringInt(str): bool {
   return rexInt.match(str) //better use one from string.nut
 }
 
 let rexFloat = regexp(@"(\+|-)?([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?")
-function isStringFloat(str){
+function isStringFloat(str): bool {
   return rexFloat.match(str) //better use one from string.nut
 }
 
 let rexEng = regexp(@"[a-z,A-Z]*")
-function isStringEng(str){
+function isStringEng(str): bool {
   return rexEng.match(str)
 }
-function isStringLikelyEmail(str, _verbose=true) {
+function isStringLikelyEmail(str, _verbose=true): bool {
 // this check is not rfc fully compatible. We check that @ exist and correctly used, and that let and domain parts exist and they are correct length.
 // Domain part also have at least one period and main domain at least 2 symbols
 // also come correct emails on google are against RFC, for example a.a.a@gmail.com.
@@ -61,7 +61,7 @@ function defaultFrame(inputObj, group, sf) {
   }
 }
 
-function isValidStrByType(str, inputType) {
+function isValidStrByType(str, inputType): bool {
   if (str=="")
     return true
   if (inputType=="mail")

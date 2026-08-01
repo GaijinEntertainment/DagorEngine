@@ -15,7 +15,7 @@ static constexpr ecs::ComponentDesc lightning_update_es_comps[] =
   {ECS_HASH("lightning"), ecs::ComponentTypeInfo<LightningFX>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("lightning__animchars_eids"), ecs::ComponentTypeInfo<ecs::EidList>()},
-//start of 38 ro components at [3]
+//start of 39 ro components at [3]
   {ECS_HASH("lightning__is_volumetric"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("lightning__base_strike_time_interval"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("lightning__base_sleep_time_interval"), ecs::ComponentTypeInfo<Point2>()},
@@ -53,7 +53,8 @@ static constexpr ecs::ComponentDesc lightning_update_es_comps[] =
   {ECS_HASH("lightning__point_light_color"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("lightning__scene_illumination_multiplier"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("lightning__scene_illumination_enable_for_flash"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("lightning__scene_illumination_near_sun_threshold"), ecs::ComponentTypeInfo<float>()}
+  {ECS_HASH("lightning__scene_illumination_near_sun_threshold"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("lightning__cloud_density_check"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
 static void lightning_update_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
@@ -102,6 +103,7 @@ static void lightning_update_es_all(const ecs::UpdateStageInfo &__restrict info,
     , ECS_RO_COMP(lightning_update_es_comps, "lightning__scene_illumination_enable_for_flash", bool)
     , ECS_RO_COMP(lightning_update_es_comps, "lightning__scene_illumination_near_sun_threshold", float)
     , ECS_RW_COMP(lightning_update_es_comps, "lightning__animchars_eids", ecs::EidList)
+    , ECS_RO_COMP_OR(lightning_update_es_comps, "lightning__cloud_density_check", bool(false))
     );
   while (++comp != compE);
 }
@@ -111,7 +113,7 @@ static ecs::EntitySystemDesc lightning_update_es_es_desc
   "prog/gameLibs/ecs/render/weather_effects/lightningES.cpp.inl",
   ecs::EntitySystemOps(lightning_update_es_all),
   make_span(lightning_update_es_comps+0, 3)/*rw*/,
-  make_span(lightning_update_es_comps+3, 38)/*ro*/,
+  make_span(lightning_update_es_comps+3, 39)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),

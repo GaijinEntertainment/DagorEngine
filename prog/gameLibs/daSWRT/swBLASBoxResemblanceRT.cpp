@@ -16,7 +16,7 @@ namespace daSWRT
 //   - 3b) fixed light direction (sun-specific resemblance)
 //
 // Build-time / offline only. BLASTraverse<>::rayBLAS reads packed-21-bit vertices at the
-// start of the BLAS buffer (testMocBLAS-style layout, produced by build_bvh::writeQuadBVH2
+// start of the BLAS buffer (testMocBLAS-style layout, produced by build_bvh::writeDoubleQuadBVH2
 // with `useHalves=false`). It does NOT support the FP16 BLAS layout that
 // RenderSWRT::buildBLAS emits at runtime, and intentionally so -- the MC functions are
 // meant for offline analysis (e.g. dim_as_box_dist autodetection), not runtime use.

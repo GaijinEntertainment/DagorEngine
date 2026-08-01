@@ -6,7 +6,8 @@
 #include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 #include <ecs/anim/anim.h>
 #include <shaders/dag_dynSceneRes.h>
-#include <shaders/dynamic_material_params.hlsli>
+#include <shaders/dag_shaderVar.h>
+#include <render/dynamic_material_params.hlsli>
 #include "shaders/metatex_const.hlsli"
 #include <generic/dag_carray.h>
 #include <render/world/animCharRenderUtil.h>
@@ -84,15 +85,6 @@ struct DynMatInfo
   DynMatType type;
   uint32_t param_cnt;
 };
-// TODO: maybe use ECS enum instead
-static ska::flat_hash_map<ecs::hash_str_t, DynMatInfo> dynmat_info_map;
-
-static void init_dynmat_info_map()
-{
-  G_FAST_ASSERT(dynmat_info_map.empty());
-  dynmat_info_map.insert(eastl::make_pair(ECS_HASH("emissive").hash, DynMatInfo{DynMatType::DMT_EMISSIVE, DynMatEmissive::DMEM_CNT}));
-  dynmat_info_map.insert(eastl::make_pair(ECS_HASH("metatex").hash, DynMatInfo{DynMatType::DMT_METATEX, METATEX_PARAMS_COUNT}));
-}
 
 static void fill_dynmat_params_emissive(const ecs::Object &params_channel, int offset, ecs::Point4List &additional_data)
 {
@@ -150,13 +142,14 @@ static void fill_dynmat_params_metatex(const ecs::Object &params_channel, int of
 }
 
 
+// called per channel per frame, so plain string compares instead of a hash map
 static DynMatInfo get_dynmat_info_from_string(const char *str)
 {
-  if (DAGOR_UNLIKELY(dynmat_info_map.empty()))
-    init_dynmat_info_map(); // lazy init
-
-  auto it = dynmat_info_map.find(ECS_HASH_SLOW(str).hash);
-  return it != dynmat_info_map.end() ? it->second : DynMatInfo{DynMatType::DMT_INVALID, 0U};
+  if (strcmp(str, "emissive") == 0)
+    return DynMatInfo{DynMatType::DMT_EMISSIVE, DynMatEmissive::DMEM_CNT};
+  if (strcmp(str, "metatex") == 0)
+    return DynMatInfo{DynMatType::DMT_METATEX, METATEX_PARAMS_COUNT};
+  return DynMatInfo{DynMatType::DMT_INVALID, 0U};
 }
 
 static float pack_4_ubyte_to_float(const uint32_t data[4])
@@ -235,6 +228,7 @@ static void additional_data_for_dynamic_material_params_es(
   carray<uint32_t, DYNMAT_MAX_CHANNEL_CNT> paramOffsetPerChannel;
   carray<uint32_t, DYNMAT_MAX_CHANNEL_CNT> materialTypePerChannel;
   carray<uint32_t, DYNMAT_MAX_CHANNEL_CNT> materialParamCountPerChannel;
+  carray<const ecs::Object *, DYNMAT_MAX_CHANNEL_CNT> paramsPerChannel;
   const ecs::Object defObj;
   for (int i = 0; i < channelCnt; ++i)
   {
@@ -245,6 +239,7 @@ static void additional_data_for_dynamic_material_params_es(
     materialTypePerChannel[i] = dynMatInfo.type;
     materialParamCountPerChannel[i] = dynMatInfo.param_cnt;
     paramOffsetPerChannel[i] = paramCountSum;
+    paramsPerChannel[i] = &paramsChannel;
     paramCountSum += dynMatInfo.param_cnt;
   }
   for (int i = channelCnt; i < DYNMAT_MAX_CHANNEL_CNT; ++i)
@@ -264,7 +259,7 @@ static void additional_data_for_dynamic_material_params_es(
 
   for (size_t i = 0; i < channelCnt; ++i)
   {
-    const ecs::Object &paramsChannel = dynamic_material_channels_arr[i].getOr<ecs::Object>(defObj);
+    const ecs::Object &paramsChannel = *paramsPerChannel[i];
     DynMatType dynMatType = static_cast<DynMatType>(materialTypePerChannel[i]);
     switch (dynMatType)
     {
@@ -280,22 +275,8 @@ static void additional_data_for_dynamic_material_params_es(
 
 static int get_character_micro_details_count()
 {
-  static int cachedCount = 0;
-  if (cachedCount > 0) // currently, the microdetail tex doesn't change, so it is safe to cache the count
-    return cachedCount;
-
-  static const ShaderVariableInfo microDetailsTexVarId("character_micro_details", true);
-  const TEXTUREID texId = microDetailsTexVarId.get_var_id() >= 0 ? microDetailsTexVarId.get_texture() : BAD_TEXTUREID;
-  if (texId == BAD_TEXTUREID)
-    return 0;
-  if (BaseTexture *tex = acquire_managed_tex(texId))
-  {
-    TextureInfo ti;
-    tex->getinfo(ti);
-    cachedCount = ti.a;
-  }
-  release_managed_tex(texId);
-  return cachedCount;
+  static const ShaderVariableInfo microDetailsCountVarId("character_micro_details_count", true);
+  return VariableMap::isGlobVariablePresent(microDetailsCountVarId) ? microDetailsCountVarId.get_int() : 0;
 }
 
 static void validate_material_micro_detail_layer(const ShaderMaterial *mat, int micro_detail_count, const char *res_name)
@@ -311,7 +292,7 @@ static void validate_material_micro_detail_layer(const ShaderMaterial *mat, int 
   for (const ShaderVariableInfo *layerVar : layerVars)
   {
     int layer = -1;
-    if (layerVar->get_var_id() >= 0 && mat->getIntVariable(layerVar->get_var_id(), layer) && layer >= micro_detail_count)
+    if (mat->getIntVariable(layerVar->get_var_id(), layer) && layer >= micro_detail_count)
       logerr("micro_detail_layer %d is out of range [0..%d) in shader '%s' of asset '%s'; "
              "fix the asset material or add the missing entry to character_micro_details.blk",
         layer, micro_detail_count, mat->getShaderClassName(), res_name);
@@ -327,8 +308,7 @@ static bool material_uses_cloth_wind(const ShaderMaterial *mat)
   {
     static const ShaderVariableInfo clothWindEnabledVarId("cloth_wind_enabled", true);
     int clothWindEnabled = 0;
-    if (clothWindEnabledVarId.get_var_id() >= 0 && mat->getIntVariable(clothWindEnabledVarId.get_var_id(), clothWindEnabled) &&
-        clothWindEnabled != 0)
+    if (mat->getIntVariable(clothWindEnabledVarId.get_var_id(), clothWindEnabled) && clothWindEnabled != 0)
       return true;
   }
   return false;
@@ -377,7 +357,7 @@ static void validate_rendinst_material(ShaderMaterial *mat, const char *res_name
   static const ShaderVariableInfo paletteIndexVarId("palette_index", true);
   int paletteIndex = 0;
   // palette_index selects one of two merged paint palettes, so only 0 and 1 are valid (the shader asserts palette_index <= 1)
-  if (paletteIndexVarId.get_var_id() >= 0 && mat->getIntVariable(paletteIndexVarId.get_var_id(), paletteIndex) && paletteIndex > 1)
+  if (mat->getIntVariable(paletteIndexVarId.get_var_id(), paletteIndex) && paletteIndex > 1)
     logerr("palette_index %d is out of range [0..1] in shader '%s' of rendinst '%s'; fix the asset paint material", paletteIndex,
       mat->getShaderClassName(), res_name);
 

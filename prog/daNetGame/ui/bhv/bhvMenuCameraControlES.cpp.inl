@@ -144,25 +144,29 @@ struct MenuCameraControlData
 };
 
 
-const char *bhv_data_slot_key = "bhv:MenuCameraControlData";
-
-
 BhvMenuCameraControl::BhvMenuCameraControl(int flags) : Behavior(STAGE_ACT, flags) {}
 
 
 void BhvMenuCameraControl::onAttach(Element *elem)
 {
+  auto strings = cstr.resolveVm(elem->getVM());
+  G_ASSERT_RETURN(strings, );
+
   MenuCameraControlData *bhvData = new MenuCameraControlData();
-  elem->props.storage.SetValue(bhv_data_slot_key, bhvData);
+  elem->props.storage.SetValue(strings->menuCameraControlData, bhvData);
 }
 
 
 void BhvMenuCameraControl::onDetach(Element *elem, DetachMode)
 {
-  MenuCameraControlData *bhvData = elem->props.storage.RawGetSlotValue<MenuCameraControlData *>(bhv_data_slot_key, nullptr);
+  auto strings = cstr.resolveVm(elem->getVM());
+  G_ASSERT_RETURN(strings, );
+
+  MenuCameraControlData *bhvData =
+    elem->props.storage.RawGetSlotValue<MenuCameraControlData *>(strings->menuCameraControlData, nullptr);
   if (bhvData)
   {
-    elem->props.storage.DeleteSlot(bhv_data_slot_key);
+    elem->props.storage.DeleteSlot(strings->menuCameraControlData);
     delete bhvData;
   }
 }
@@ -181,7 +185,11 @@ static int get_mouse_pan_button(const darg::Element *elem, const BhvMenuCameraCo
 int BhvMenuCameraControl::pointingEvent(
   ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, Point2 pos, int accum_res)
 {
-  MenuCameraControlData *bhvData = elem->props.storage.RawGetSlotValue<MenuCameraControlData *>(bhv_data_slot_key, nullptr);
+  auto strings = cstr.resolveVm(elem->getVM());
+  G_ASSERT_RETURN(strings, 0);
+
+  MenuCameraControlData *bhvData =
+    elem->props.storage.RawGetSlotValue<MenuCameraControlData *>(strings->menuCameraControlData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (event == INP_EV_PRESS)
@@ -232,7 +240,11 @@ int BhvMenuCameraControl::pointingEvent(
 
 int BhvMenuCameraControl::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
 {
-  MenuCameraControlData *bhvData = elem->props.storage.RawGetSlotValue<MenuCameraControlData *>(bhv_data_slot_key, nullptr);
+  auto strings = cstr.resolveVm(elem->getVM());
+  G_ASSERT_RETURN(strings, 0);
+
+  MenuCameraControlData *bhvData =
+    elem->props.storage.RawGetSlotValue<MenuCameraControlData *>(strings->menuCameraControlData, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   using namespace HumanInput;

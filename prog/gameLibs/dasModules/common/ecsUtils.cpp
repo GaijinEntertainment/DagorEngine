@@ -175,9 +175,9 @@ static bool ecs_dynamic_query(das::TArray<char *> const &comps_name_rq, das::TAr
 
 bool set_is_in_aot(bool value)
 {
-  if (*das::daScriptEnvironment::bound)
+  if (das::daScriptEnvironment::getBound())
   {
-    (*das::daScriptEnvironment::bound)->g_isInAot = value;
+    das::daScriptEnvironment::getBound()->g_isInAot = value;
     return true;
   }
   return false;

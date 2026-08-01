@@ -3,6 +3,7 @@
 #include <frontend/internalRegistry.h>
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaderBlock.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
@@ -13,22 +14,26 @@
 namespace dafg
 {
 
-constexpr auto shaderVarValidationMessage =
+constexpr auto SHADER_VAR_VALIDATION_MESSAGE =
   "Frame graph node %s expected the shader variable %s to be bound to the %s (name: %s, ptr: %s), "
   "but it was spuriously changed to (name: %s, ptr: %s) while executing the node! Please remove the spurious "
   "set, or reset it back to the expected value at the end of the function execution!";
 
-constexpr auto shaderBlockValidationMessage =
+constexpr auto SHADER_BLOCK_VALIDATION_MESSAGE =
   "Frame graph node %s expected the %s layer to contain the shader block %s, "
   "but it was spuriously changed to %s while executing the node! Please remove the spurious set, "
   "or reset it back to the expected value at the end of the function execution!";
 
-constexpr auto shaderVarBlobValidationMessage =
+constexpr auto SHADER_VAR_BLOB_VALIDATION_MESSAGE =
   "Frame graph node %s spuriously changed a bound shader variable's value %s while executing the node. "
   "Please remove the spurious set, or reset it back to the expected value at the end of the function execution!";
 
+constexpr auto SPECIAL_BLOB_VALIDATION_MESSAGE =
+  "Frame graph node %s spuriously changed the bound %s matrix while executing the node. "
+  "Please remove the spurious set, or reset it back to the expected value at the end of the function execution!";
+
 template <typename ProjectedType, auto bindGetter>
-static void validateBlob(const InternalRegistry &registry, NodeNameId node_id, int var_id, const BlobView &blob,
+static void validate_blob(const InternalRegistry &registry, NodeNameId node_id, int var_id, const BlobView &blob,
   const detail::TypeErasedProjector &projector)
 {
   auto expectedValue = *static_cast<const eastl::remove_reference_t<ProjectedType> *>((projector)(blob.data));
@@ -38,8 +43,40 @@ static void validateBlob(const InternalRegistry &registry, NodeNameId node_id, i
   {
     const char *nodeName = registry.knownNames.getName(node_id);
     const char *shaderVarName = VariableMap::getVariableName(var_id);
-    logerr(shaderVarBlobValidationMessage, nodeName, shaderVarName);
+    logerr(SHADER_VAR_BLOB_VALIDATION_MESSAGE, nodeName, shaderVarName);
   }
+}
+
+static bool get_view_matrix(TMatrix4 &data) { return d3d::gettm(TM_VIEW, &data); }
+static bool get_view_matrix(TMatrix &data) { return d3d::gettm(TM_VIEW, data); }
+static bool get_proj_matrix(TMatrix4 &data) { return d3d::gettm(TM_PROJ, &data); }
+
+template <typename ProjectedType, auto bindGetter>
+static void validate_blob_special(const InternalRegistry &registry, NodeNameId node_id, const BlobView &blob,
+  const detail::TypeErasedProjector &projector, const char *binding_name)
+{
+  auto expectedValue = *static_cast<const eastl::remove_reference_t<ProjectedType> *>((projector)(blob.data));
+  eastl::remove_cv_t<decltype(expectedValue)> actualValue;
+  if (!bindGetter(actualValue))
+    return;
+
+  if (!ShaderVarBindingValidationHelper<typename eastl::remove_cv<decltype(expectedValue)>::type,
+        typename eastl::remove_cv<decltype(actualValue)>::type>::validate(expectedValue, actualValue))
+    logerr(SPECIAL_BLOB_VALIDATION_MESSAGE, registry.knownNames.getName(node_id), binding_name);
+}
+
+static const BlobView *get_provided_blob_for_binding(const InternalRegistry &registry, const Binding &binding)
+{
+  const auto &provided = binding.history ? registry.resourceProviderReference.providedHistoryResources
+                                         : registry.resourceProviderReference.providedResources;
+  const auto it = provided.find(binding.resource);
+
+  if (it == provided.end())
+    return nullptr;
+  if (eastl::holds_alternative<MissingOptionalResource>(it->second) && binding.optional)
+    return nullptr;
+
+  return eastl::get_if<BlobView>(&it->second);
 }
 
 void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
@@ -81,11 +118,11 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
           {
 #define SHV_CASE(shVarType)     case shVarType:
 #define SHV_CASE_END(shVarType) break;
-#define TAG_CASE(projType, shVarSetter, shVarGetter)                                        \
-  if (res.projectedTag == tag_for<projType>())                                              \
-  {                                                                                         \
-    validateBlob<projType, shVarGetter>(registry, nodeId, shVar, *blobView, res.projector); \
-    break;                                                                                  \
+#define TAG_CASE(projType, shVarSetter, shVarGetter)                                         \
+  if (res.projectedTag == tag_for<projType>())                                               \
+  {                                                                                          \
+    validate_blob<projType, shVarGetter>(registry, nodeId, shVar, *blobView, res.projector); \
+    break;                                                                                   \
   }
             SHV_BIND_BLOB_LIST
 #undef SHV_BIND_BLOB_LIST
@@ -122,8 +159,37 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     }
 
     if (expectedPtr != observedPtr)
-      logerr(shaderVarValidationMessage, registry.knownNames.getName(nodeId), VariableMap::getVariableName(shVar), resTypeStr,
+      logerr(SHADER_VAR_VALIDATION_MESSAGE, registry.knownNames.getName(nodeId), VariableMap::getVariableName(shVar), resTypeStr,
         expectedPtr ? expectedPtr->getName() : "null", expectedPtr, observedPtr ? observedPtr->getName() : "null", observedPtr);
+  }
+
+  for (const auto &[_, res] : nodeData.bindings)
+  {
+    const BlobView *blobView = get_provided_blob_for_binding(registry, res);
+    if (!blobView)
+      continue;
+
+    switch (res.type)
+    {
+      case BindingType::ViewMatrix:
+        G_ASSERTF_BREAK(res.projectedTag == tag_for<TMatrix4>() || res.projectedTag == tag_for<TMatrix>(),
+          "Binding a blob as VIEW whose projected type is not a matrix.");
+        if (res.projectedTag == tag_for<TMatrix4>())
+          validate_blob_special<TMatrix4, static_cast<bool (*)(TMatrix4 &)>(&get_view_matrix)>(registry, nodeId, *blobView,
+            res.projector, "view");
+        else if (res.projectedTag == tag_for<TMatrix>())
+          validate_blob_special<TMatrix, static_cast<bool (*)(TMatrix &)>(&get_view_matrix)>(registry, nodeId, *blobView,
+            res.projector, "view");
+        break;
+
+      case BindingType::ProjMatrix:
+        G_ASSERTF_BREAK(res.projectedTag == tag_for<TMatrix4>() || res.projectedTag == tag_for<TMatrix4_vec4>(),
+          "Binding a blob as PROJ whose projected type is not a matrix.");
+        validate_blob_special<TMatrix4, &get_proj_matrix>(registry, nodeId, *blobView, res.projector, "projection");
+        break;
+
+      default: break;
+    }
   }
 
   auto validateBlock = [&registry, nodeId](int node_block, int global_block, const char *layer) {
@@ -131,7 +197,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     {
       const char *nodeBlockName = ShaderGlobal::getBlockName(node_block);
       const char *globalBlockName = ShaderGlobal::getBlockName(global_block);
-      logerr(shaderBlockValidationMessage, registry.knownNames.getName(nodeId), layer, nodeBlockName, globalBlockName);
+      logerr(SHADER_BLOCK_VALIDATION_MESSAGE, registry.knownNames.getName(nodeId), layer, nodeBlockName, globalBlockName);
     }
   };
 
@@ -149,7 +215,7 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
     d3d::get_render_target(observedRts);
 
     const auto validateRt = [&registry, nodeId](const VirtualSubresourceRef &expected,
-                              const eastl::optional<Driver3dRenderTarget::RTState> &maybeObserved, const char *slot_name) {
+                              const eastl::optional<Driver3dRenderTarget::RTState> &maybe_observed, const char *slot_name) {
       const auto &provided = registry.resourceProviderReference.providedResources;
       const auto it = provided.find(expected.nameId);
 
@@ -159,13 +225,13 @@ void validate_global_state(const InternalRegistry &registry, NodeNameId nodeId)
           expectedTex = *view;
 
       const auto expectedName = expectedTex ? expectedTex->getTexName() : "NULL";
-      const auto observedName = maybeObserved.has_value() && maybeObserved->tex ? maybeObserved->tex->getTexName() : "NULL";
+      const auto observedName = maybe_observed.has_value() && maybe_observed->tex ? maybe_observed->tex->getTexName() : "NULL";
 
       // avoid the checks below for backbuffer
-      if (maybeObserved.has_value() && maybeObserved->tex == nullptr)
+      if (maybe_observed.has_value() && maybe_observed->tex == nullptr)
         return;
 
-      auto observed = maybeObserved.value_or(Driver3dRenderTarget::RTState{});
+      auto observed = maybe_observed.value_or(Driver3dRenderTarget::RTState{});
 
       if (expectedTex != observed.tex)
       {

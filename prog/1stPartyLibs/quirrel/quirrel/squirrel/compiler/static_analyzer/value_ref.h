@@ -83,7 +83,10 @@ struct ValueRef {
 
   void intersectValue(const ValueRef *other);
 
-  void merge(const ValueRef *other);
+  // joinFlags=false skips the flagsPositive/flagsNegative join: used for loop
+  // back-edge merges (continue), where per-iteration facts must not leak into
+  // the current iteration's fall-through path.
+  void merge(const ValueRef *other, bool joinFlags = true);
 };
 
 }

@@ -82,14 +82,27 @@ void gameres_patch_desc(DataBlock &desc, const char *patch_desc_fn, const char *
     }
   }
 }
-void gameres_final_optimize_desc(DataBlock &desc, const char *label)
+void gameres_final_optimize_desc(DataBlock &desc, const char *label, dag::ConstSpan<const char *> strip_sub_blocks)
 {
   if (desc.getBool("optimized", true) || desc.blockCount() + desc.paramCount() == 0)
     return;
 
+  if (!strip_sub_blocks.empty())
+  {
+    int removed = 0;
+    for (int i = 0, e = desc.blockCount(); i < e; i++)
+    {
+      bool any = false;
+      for (const char *nm : strip_sub_blocks)
+        any |= desc.getBlock(i)->removeBlock(nm);
+      removed += any ? 1 : 0;
+    }
+    debug("%s: stripped sub-blocks from %d of %d blocks", label, removed, desc.blockCount());
+  }
+
   MemorySaveCB cwr(64 << 10);
   desc.removeParam("optimized");
-  if (!desc.saveToStream(cwr))
+  if (!desc.saveToStreamDedup(cwr))
   {
     logerr("%s: failed to save %s=%p to memory stream", __FUNCTION__, label, &desc);
     return;

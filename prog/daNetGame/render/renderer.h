@@ -7,7 +7,7 @@
 #include <drv/3d/dag_resId.h>
 #include <3d/dag_resPtr.h>
 #include <util/dag_oaHashNameMap.h>
-#include <render/dynamicShadowRenderExtensions.h>
+#include <render/lights/dynamicShadowRenderExtensions.h>
 #include <render/world/dynamicShadowRenderExtender.h>
 #include <render/world/shoreRenderer.h>
 
@@ -15,6 +15,7 @@ class BaseStreamingSceneHolder;
 class Occlusion;
 class RenderScene;
 class LandMeshManager;
+class LandMeshRenderer;
 struct WorldSDF;
 class FFTWater;
 class DataBlock;
@@ -83,6 +84,8 @@ public:
   virtual void onLightmapSet(TEXTUREID lmap_tid) = 0;
   // to be called from loading thread.
   virtual void onLandmeshLoaded(const DataBlock &level_blk, const char *bin, LandMeshManager *lmesh) = 0;
+  virtual void setLandmesh(LandMeshManager *lmesh_mgr, LandMeshRenderer *lmesh_renderer, void (*decals_cb)(const BBox3 &landPart)) = 0;
+  virtual void invalidateClipmap(bool force) = 0;
 
   virtual void unloadLevel() = 0;
   virtual void closeNBSShaders() = 0;

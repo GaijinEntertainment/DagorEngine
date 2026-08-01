@@ -2,11 +2,13 @@
 
 #include "randomSwitch.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 #include "../animTreePanelPids.h"
 #include "../animTree.h"
 #include "animCtrlData.h"
 
 #include <ioSys/dag_dataBlock.h>
+#include <ioSys/dag_dataBlockCommentsDef.h>
 #include <propPanel/control/container.h>
 
 static const bool DEFAULT_SPLIT_CHANS = true;
@@ -24,16 +26,40 @@ void random_switch_init_panel(dag::Vector<AnimParamData> &params, PropPanel::Con
 
 void random_switch_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
 {
-  remove_param_if_default_str(params, panel, "varname");
+  remove_param_if_default_str(params, panel, "varname", get_default_varname_from_name(params, panel));
   remove_param_if_default_int(params, panel, "maxrepeat", DEFAULT_MAXREPEAT);
   remove_param_if_default_bool(params, panel, "splitChans", DEFAULT_SPLIT_CHANS);
   remove_param_if_default_str(params, panel, "accept_name_mask_re");
   remove_param_if_default_str(params, panel, "decline_name_mask_re");
 }
 
+bool random_switch_has_duplicated_childs(const DataBlock &settings)
+{
+  const DataBlock *weights = settings.getBlockByName("weight");
+  if (!weights)
+    return false;
+
+  bool hasDuplicates = false;
+  for (int i = 0; i < weights->paramCount(); ++i)
+  {
+    if (CHECK_COMMENT_PREFIX(weights->getParamName(i)))
+      continue;
+    for (int j = 0; j < i; ++j)
+      if (weights->getParamNameId(j) == weights->getParamNameId(i))
+      {
+        logerr("randomSwitch <%s>: duplicated child <%s> in weight block, fix it manually to allow editing",
+          settings.getStr("name", ""), weights->getParamName(i));
+        hasDuplicates = true;
+        break;
+      }
+  }
+  return hasDuplicates;
+}
+
 void random_switch_init_block_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings,
   dag::Vector<DependentParamData> &params)
 {
+  random_switch_has_duplicated_childs(*settings);
   const DataBlock *weights = settings->getBlockByName("weight");
   const DataBlock *maxrepeats = settings->getBlockByName("maxrepeat");
   const char *defaultName = weights ? weights->getParamName(0) : "";
@@ -62,9 +88,19 @@ void AnimTreePlugin::randomSwitchSaveBlockSettings(PropPanel::ContainerPropertyC
   if (listName.empty())
     return;
 
+  if (random_switch_has_duplicated_childs(*settings))
+    return;
+
   const SimpleString fieldName = panel->getText(PID_CTRLS_RANDOM_SWITCH_NODE_NAME);
   DataBlock *weights = settings->getBlockByName("weight");
   DataBlock *maxrepeats = settings->getBlockByName("maxrepeat");
+
+  if (weights && listName != fieldName && weights->paramExists(fieldName.c_str()))
+  {
+    logerr("randomSwitch <%s>: child <%s> already exists in weight block, rename rejected", settings->getStr("name", ""),
+      fieldName.c_str());
+    return;
+  }
 
   if (weights && listName != fieldName)
   {
@@ -174,7 +210,7 @@ String random_switch_get_child_prefix_name(const DataBlock &settings, int idx)
 
   const float value = safediv(weights->getReal(idx), sum) * 100.f;
 
-  return String(0, "[%d%%] ", value);
+  return String(0, "[%.0f%%] ", value);
 }
 
 void random_switch_update_child_name(DataBlock &settings, const char *name, const String &old_name)
@@ -197,4 +233,40 @@ void random_switch_update_child_name(DataBlock &settings, const char *name, cons
         maxrepeats->changeParamName(i, writeName.c_str());
         break;
       }
+}
+
+class RandomSwitchReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  RandomSwitchReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data) :
+    BaseCtrlReorderHandler(plugin, controllers, panel), ctrlData(ctrl_data)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    DataBlock *weights = settings.getBlockByName("weight");
+    if (!weights)
+      return;
+
+    dag::Vector<int> positions;
+    for (int i = 0; i < weights->paramCount(); ++i)
+      if (!CHECK_COMMENT_PREFIX(weights->getParamName(i)))
+        positions.push_back(i);
+    if (from < 0 || from >= positions.size() || to < 0 || to >= positions.size())
+      return;
+
+    move_param_blk(*weights, positions[from], positions[to]);
+    if (ctrlData && positions.size() == ctrlData->childs.size())
+      move_childs(ctrlData->childs, from, to);
+  }
+
+  AnimCtrlData *ctrlData;
+};
+
+IListReorderHandler *random_switch_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data)
+{
+  return new RandomSwitchReorderHandler(plugin, controllers, panel, ctrl_data);
 }

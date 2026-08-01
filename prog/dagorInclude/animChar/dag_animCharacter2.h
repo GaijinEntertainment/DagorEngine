@@ -10,6 +10,7 @@
 #include <anim/dag_animPureInterface.h>
 #include <anim/dag_animStateHolder.h>
 #include <anim/dag_animBlend.h>
+#include <util/dag_compilerDefs.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_string.h>
 #include <math/dag_bounds3.h>
@@ -18,6 +19,7 @@
 #include <EASTL/bitvector.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_geomTreeMap.h>
+#include <animChar/dag_animCharPostCtrl.h>
 
 // forward declarations for external classes and structures
 class DynamicRenderableSceneLodsResource;
@@ -60,15 +62,6 @@ struct AnimMap
 };
 typedef unsigned attachment_uid_t;
 static constexpr int INVALID_ATTACHMENT_UID = 0;
-
-class IAnimCharPostController
-{
-public:
-  virtual void onPostAnimBlend(GeomNodeTree & /*tree*/, vec3f /*world_translate*/) {}
-  virtual bool overridesBlender() const { return false; }
-
-  virtual void update(real dt, GeomNodeTree &tree, AnimcharBaseComponent *ac) = 0;
-};
 
 struct IAnimCharacter2Info
 {
@@ -137,20 +130,26 @@ public:
 
   void setTmRel(const mat44f &tm)
   {
-    nodeTree.setRootTm(tm, nodeTree.getWtmOfs());
-    nodeTree.invalidateWtm();
+    if (nodeTree->empty())
+      return;
+    nodeTree->setRootTm(tm, nodeTree->getWtmOfs());
+    nodeTree->invalidateWtm();
   } //< don't change wofs
   void setTmWithOfs(const mat44f &tm, vec3f wofs)
   {
-    nodeTree.setRootTm(tm, wofs);
-    nodeTree.invalidateWtm();
+    if (nodeTree->empty())
+      return;
+    nodeTree->setRootTm(tm, wofs);
+    nodeTree->invalidateWtm();
   } //< set explicit wofs
-  vec3f getWtmOfs() const { return nodeTree.getWtmOfs(); }
+  vec3f getWtmOfs() const { return nodeTree->getWtmOfs(); }
 
   void setTm(const mat44f &tm, bool setup_wofs = false)
   {
-    nodeTree.setRootTm(tm, setup_wofs);
-    nodeTree.invalidateWtm();
+    if (nodeTree->empty())
+      return;
+    nodeTree->setRootTm(tm, setup_wofs);
+    nodeTree->invalidateWtm();
   }
   void setTm(const TMatrix &tm, bool setup_wofs = false);
   void setTm(const Point3 &pos, const Point3 &dir, const Point3 &up);
@@ -162,12 +161,17 @@ public:
   void getTm(TMatrix &tm) const;
   Point3 getPos(bool recalc_anim_if_needed = false);
 
-  dag::Index16 findINodeIndex(const char *name) const { return nodeTree.findINodeIndex(name); }
+  dag::Index16 findINodeIndex(const char *name) const { return nodeTree->findINodeIndex(name); }
 
-  const GeomNodeTree &getNodeTree() const { return nodeTree; }
-  GeomNodeTree &getNodeTree() { return nodeTree; }
-  const GeomNodeTree *getNodeTreePtr() const { return &nodeTree; }
-  GeomNodeTree *getNodeTreePtr() { return &nodeTree; }
+  const GeomNodeTree &getNodeTree() const { return *nodeTree; }
+  GeomNodeTree &getNodeTree() { return *nodeTree; }
+  const GeomNodeTree *getNodeTreePtr() const { return const_cast<AnimcharBaseComponent *>(this)->getNodeTreePtr(); }
+  GeomNodeTree *getNodeTreePtr()
+  {
+    if (!nodeTree) // never null, see make(), lets caller null checks fold away
+      DAGOR_UNREACHABLE;
+    return nodeTree;
+  }
   const GeomNodeTree *getOriginalNodeTree() const { return originalNodeTree; }
 
   const AnimationGraph *getAnimGraph() const { return animGraph; }
@@ -269,25 +273,27 @@ public:
     return updateCharDepScales(charDepBasePYofs * scale, scale, scale, scale, scale);
   }
 
-  bool load(const AnimCharCreationProps &props, GeomNodeTree *skeleton, const AnimGraphResData *agRes,
+  bool load(const AnimCharCreationProps &props, const GeomNodeTree *skeleton, const AnimGraphResData *agRes,
     const DynamicPhysObjectData *physRes);
   void cloneTo(AnimcharBaseComponent *as, bool reset_anim) const;
 
   vec4f copyNodesTo(AnimcharFinalMat44 &finalWtm) const // returns base bounding sphere
   {
-    G_ASSERTF_RETURN(nodeTree.nodeCount() == finalWtm.nwtm.size(), v_zero(), "tree.nodeCount=%d finalWtm.nwtm.count=%d",
-      nodeTree.nodeCount(), finalWtm.nwtm.size());
+    G_ASSERTF_RETURN(nodeTree->nodeCount() == finalWtm.nwtm.size(), v_zero(), "tree.nodeCount=%d finalWtm.nwtm.count=%d",
+      nodeTree->nodeCount(), finalWtm.nwtm.size());
 
-    finalWtm.wofs = nodeTree.getWtmOfs();
-    memcpy(finalWtm.nwtm.data(), &nodeTree.getRootWtmRel(), data_size(finalWtm.nwtm));
+    finalWtm.wofs = nodeTree->getWtmOfs();
+    memcpy(finalWtm.nwtm.data(), &nodeTree->getRootWtmRel(), data_size(finalWtm.nwtm));
 
-    const mat44f &wtm = nodeTree.getNodeWtmRel(centerNodeIdx);
+    const mat44f &wtm = nodeTree->getNodeWtmRel(centerNodeIdx);
     vec4f max_scl_sq = v_max(v_max(v_length3_sq(wtm.col0), v_length3_sq(wtm.col1)), v_length3_sq(wtm.col2));
     return finalWtm.bsph = v_perm_xyzd(v_add(wtm.col3, finalWtm.wofs), v_mul(v_splats(centerNodeBsphRad), v_sqrt(max_scl_sq)));
   }
 
 protected:
-  GeomNodeTree nodeTree, *originalNodeTree;
+  static GeomNodeTree emptyNodeTree; //< shared by all skeleton-less animchars
+  GeomNodeTree *nodeTree = &emptyNodeTree;
+  const GeomNodeTree *originalNodeTree = nullptr; // skeleton gameres, shared (refcounted) by all instances/clones
 
   Ptr<AnimationGraph> animGraph;
   eastl::unique_ptr<AnimGraphStateHolder> animState;
@@ -343,8 +349,9 @@ protected:
 
   void setupAnim();
   void resetAnim();
-  void setOriginalNodeTreeRes(GeomNodeTree *n);
-  void loadData(const AnimCharCreationProps &props, GeomNodeTree *skeleton, AnimationGraph *ag);
+  void setOriginalNodeTreeRes(const GeomNodeTree *n);
+  void setNodeTreeFrom(const GeomNodeTree &from);
+  void loadData(const AnimCharCreationProps &props, const GeomNodeTree *skeleton, AnimationGraph *ag);
 
   friend class ::CharacterGameResFactory;
 };
@@ -470,7 +477,7 @@ public:
   void destroy() { delete this; }
   const IAnimCharacter2Info *getCreateInfo() const { return base.getCreateInfo(); }
 
-  bool load(const AnimCharCreationProps &props, DynamicRenderableSceneLodsResource *model, GeomNodeTree *skel,
+  bool load(const AnimCharCreationProps &props, DynamicRenderableSceneLodsResource *model, const GeomNodeTree *skel,
     const AnimGraphResData *ag, const DynamicPhysObjectData *phys)
   {
     if (!base.load(props, skel, ag, phys))
@@ -653,16 +660,14 @@ int getSlotId(const char *slot_name);
 int addSlotId(const char *slot_name);
 const char *getSlotName(const int slot_id);
 
-struct alignas(16) LegsIkRay
+struct alignas(16) TraceRayInfo
 {
   Point3 pos;
-  float t;
+  float t; // Specifically ordered after pos as we write both values using single v_st
   Point3 dir;
-  float legsDiff;
-  Point3 footP1;
-  bool moveFoot;
+  Point3 outNormal; // Unaligned! Add padding if needed
 };
 
-extern bool (*trace_static_multiray)(dag::Span<LegsIkRay> traces, bool down, intptr_t ctx);
+extern bool (*trace_static_multiray)(dag::Span<TraceRayInfo> traces, bool down, intptr_t ctx);
 
 } // end of namespace AnimCharV20

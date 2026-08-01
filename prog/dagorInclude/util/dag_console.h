@@ -207,9 +207,10 @@ const char *get_prev_command();
 const char *get_next_command();
 const Tab<SimpleString> &get_command_history();
 
-//! returns 1 on match, 0 on no-match-continue, -1 on arg count mismatch
+//! returns >0 on match, 0 on no-match-continue, <0 on arg count mismatch
+//! cmdOptions, when given, is moved from
 int collector_cmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description = "",
-  const char *argsDescription = "", const char *varValue = "", eastl::vector<CommandOptions> &&cmdOptions = {});
+  const char *argsDescription = "", const char *varValue = "", eastl::vector<CommandOptions> *cmdOptions = nullptr);
 
 namespace util
 {
@@ -239,19 +240,22 @@ protected:
   if (found > 0)                                                                                           \
     return true;                                                                                           \
   found = console::collector_cmp(argv[0], argc, domain[0] ? (domain "." name) : name, min_args, max_args); \
-  if (found == -1)                                                                                         \
+  if (found < 0)                                                                                           \
     return false;                                                                                          \
-  if (found == 1)
+  if (found)
 
 
-#define CONSOLE_CHECK_NAME_WITH_OPTIONS(domain, name, min_args, max_args, options)                                    \
-  if (found > 0)                                                                                                      \
-    return true;                                                                                                      \
-  found = console::collector_cmp(argv[0], argc, domain[0] ? (domain "." name) : name, min_args, max_args, "", "", "", \
-    eastl::move(options));                                                                                            \
-  if (found == -1)                                                                                                    \
-    return false;                                                                                                     \
-  if (found == 1)
+#define CONSOLE_CHECK_NAME_WITH_OPTIONS(domain, name, min_args, max_args, options)                                               \
+  if (found > 0)                                                                                                                 \
+    return true;                                                                                                                 \
+  {                                                                                                                              \
+    auto &&cmdOptions_ = (options);                                                                                              \
+    found =                                                                                                                      \
+      console::collector_cmp(argv[0], argc, domain[0] ? (domain "." name) : name, min_args, max_args, "", "", "", &cmdOptions_); \
+  }                                                                                                                              \
+  if (found < 0)                                                                                                                 \
+    return false;                                                                                                                \
+  if (found)
 
 
 #define CONSOLE_CHECK_NAME_EX(domain, name, min_args, max_args, description, argsDescription)                                      \
@@ -259,9 +263,9 @@ protected:
     return true;                                                                                                                   \
   found =                                                                                                                          \
     console::collector_cmp(argv[0], argc, domain[0] ? (domain "." name) : name, min_args, max_args, description, argsDescription); \
-  if (found == -1)                                                                                                                 \
+  if (found < 0)                                                                                                                   \
     return false;                                                                                                                  \
-  if (found == 1)
+  if (found)
 
 //************************************************************************
 //* console processors

@@ -234,26 +234,13 @@ void ConstantBuffers::destroy()
   psCurrentBuffer = vsCurrentBuffer = csCurrentBuffer = 0;
   mem_set_0(csConstBuffer);
   g_render_state.modified = true;
-  mem_set_ff(constantsModified);
+  eastl::fill(constantsModified.begin(), constantsModified.end(), true);
   mem_set_0(constantsBufferChanged);
   mem_set_0(customBuffers);
   vsConstsUsed = psConstsUsed = csConstsUsed = 0;
 }
 
-static ID3D11Buffer *nullCbuf = 0;
-#define SET_CONST_BUFFERS(_ST, _START, _NUMS, _BUFFERS, _OFFSETS, _SIZES)                         \
-  if (g_device_desc.caps.hasConstBufferOffset && needOffsets)                                     \
-  {                                                                                               \
-    if (command_list_wa)                                                                          \
-    {                                                                                             \
-      dx_context->##_ST##SetConstantBuffers((_START), 1, &nullCbuf);                              \
-      if ((_NUMS) > 1)                                                                            \
-        dx_context->##_ST##SetConstantBuffers((_START) + (_NUMS) - 1, 1, &nullCbuf);              \
-    }                                                                                             \
-    dx_context1->##_ST##SetConstantBuffers1((_START), (_NUMS), (_BUFFERS), (_OFFSETS), (_SIZES)); \
-  }                                                                                               \
-  else                                                                                            \
-    dx_context->##_ST##SetConstantBuffers((_START), (_NUMS), (_BUFFERS));
+#define SET_CONST_BUFFERS(_ST, _START, _NUMS, _BUFFERS) dx_context->##_ST##SetConstantBuffers((_START), (_NUMS), (_BUFFERS))
 
 void ConstantBuffers::flush(uint32_t vsc, uint32_t psc, uint32_t hdg_bits)
 {
@@ -333,22 +320,20 @@ void ConstantBuffers::flush(uint32_t vsc, uint32_t psc, uint32_t hdg_bits)
 
   for (int stage = STAGE_CS + 1; stage < STAGE_MAX; ++stage)
   {
-    if (!constantsBufferChanged[stage])
+    // Re-mirror custom VS slots (1..N) to HS/DS/GS when an HDG stage appears, even
+    // if no buffer changed since the last bind: the new stage would otherwise read
+    // stale/zero slots. lastHDGBitsApplied only covers the slot-0 driver buffer.
+    bool vsCustomHdgChanged = stage == STAGE_VS && lastHDGBitsCustomApplied != hdg_bits && customBuffersMaxSlotUsed[STAGE_VS] > 0;
+    if (!constantsBufferChanged[stage] && !vsCustomHdgChanged)
       continue;
     carray<ID3D11Buffer *, MAX_CONST_BUFFERS> constBuffers;
-    carray<uint32_t, MAX_CONST_BUFFERS> cbOffsets;
-    carray<uint32_t, MAX_CONST_BUFFERS> cbSizes;
     mem_copy_from(constBuffers, customBuffers[stage].data());
-    mem_copy_from(cbOffsets, buffersFirstConstants[stage].data());
-    mem_copy_from(cbSizes, buffersNumConstants[stage].data());
 
     int slotsToSet = customBuffersMaxSlotUsed[stage] + 1, nextMaxUsedSlot = 0;
-    bool needOffsets = false;
     for (int slotI = 1; slotI < slotsToSet; ++slotI) //&& customBuffers[stage][maxUsedSlot]
     {
       if (constBuffers[slotI])
         nextMaxUsedSlot = slotI;
-      needOffsets |= cbOffsets[slotI] != 0;
     }
 
     ContextAutoLock contextLock;
@@ -356,34 +341,27 @@ void ConstantBuffers::flush(uint32_t vsc, uint32_t psc, uint32_t hdg_bits)
     {
       case STAGE_VS:
         if (!constBuffers[0] && vsCurrentBuffer >= 0)
-        {
           constBuffers[0] = vsConstBuffer[vsCurrentBuffer];
-          cbOffsets[0] = 0;
-          cbSizes[0] = 4096;
-        }
-        SET_CONST_BUFFERS(VS, 0, slotsToSet, constBuffers.data(), cbOffsets.data(), cbSizes.data())
+        SET_CONST_BUFFERS(VS, 0, slotsToSet, constBuffers.data());
         if (hdg_bits & HAS_HS)
         {
-          SET_CONST_BUFFERS(HS, 0, slotsToSet, constBuffers.data(), cbOffsets.data(), cbSizes.data())
+          SET_CONST_BUFFERS(HS, 0, slotsToSet, constBuffers.data());
         }
         if (hdg_bits & HAS_DS)
         {
-          SET_CONST_BUFFERS(DS, 0, slotsToSet, constBuffers.data(), cbOffsets.data(), cbSizes.data())
+          SET_CONST_BUFFERS(DS, 0, slotsToSet, constBuffers.data());
         }
         if (hdg_bits & HAS_GS)
         {
-          SET_CONST_BUFFERS(GS, 0, slotsToSet, constBuffers.data(), cbOffsets.data(), cbSizes.data())
+          SET_CONST_BUFFERS(GS, 0, slotsToSet, constBuffers.data());
         }
+        lastHDGBitsCustomApplied = hdg_bits;
         break;
       case STAGE_PS:
         if (!constBuffers[0])
-        {
           constBuffers[0] = psConstBuffer[psCurrentBuffer];
-          cbOffsets[0] = 0;
-          cbSizes[0] = 4096;
-        }
 
-        SET_CONST_BUFFERS(PS, 0, slotsToSet, constBuffers.data(), cbOffsets.data(), cbSizes.data())
+        SET_CONST_BUFFERS(PS, 0, slotsToSet, constBuffers.data());
         break;
       default: G_ASSERT(0);
     }
@@ -452,29 +430,19 @@ void ConstantBuffers::flush_cs(uint32_t csc, bool async)
     return;
 
   carray<ID3D11Buffer *, MAX_CONST_BUFFERS> constBuffers;
-  carray<uint32_t, MAX_CONST_BUFFERS> cbOffsets;
-  carray<uint32_t, MAX_CONST_BUFFERS> cbSizes;
   mem_copy_from(constBuffers, customBuffers[STAGE_CS].data());
-  mem_copy_from(cbOffsets, buffersFirstConstants[STAGE_CS].data());
-  mem_copy_from(cbSizes, buffersNumConstants[STAGE_CS].data());
   int slotsToSet = customBuffersMaxSlotUsed[stage] + 1, nextMaxUsedSlot = 0;
-  bool needOffsets = false;
   for (int slotI = 0; slotI < slotsToSet; ++slotI) //&& customBuffers[stage][maxUsedSlot]
   {
     if (constBuffers[slotI])
       nextMaxUsedSlot = slotI;
-    needOffsets |= cbOffsets[slotI] != 0;
   }
   if (!constBuffers[0])
-  {
     constBuffers[0] = csConstBuffer[csCurrentBuffer];
-    cbOffsets[0] = 0;
-    cbSizes[0] = 4096;
-  }
 
   {
     ContextAutoLock contextLock;
-    SET_CONST_BUFFERS(CS, 0, slotsToSet, constBuffers.data(), cbOffsets.data(), cbSizes.data())
+    SET_CONST_BUFFERS(CS, 0, slotsToSet, constBuffers.data());
   }
 
   customBuffersMaxSlotUsed[stage] = nextMaxUsedSlot;
@@ -1004,12 +972,15 @@ void close_shaders()
       SAFE_RELEASE(g_vertex_shaders[i].gs);
       if (g_vertex_shaders[i].ilCache)
         g_vertex_shaders[i].ilCache->clear();
+      watchdog_kick();
     ITERATE_OVER_OBJECT_POOL_RESTORE(g_vertex_shaders);
     ITERATE_OVER_OBJECT_POOL(g_pixel_shaders, i)
-      SAFE_RELEASE(g_pixel_shaders[i].obj->shader)
+      SAFE_RELEASE(g_pixel_shaders[i].obj->shader);
+      watchdog_kick();
     ITERATE_OVER_OBJECT_POOL_RESTORE(g_pixel_shaders);
     ITERATE_OVER_OBJECT_POOL(g_compute_shaders, i)
-      SAFE_RELEASE(g_compute_shaders[i].obj->shader)
+      SAFE_RELEASE(g_compute_shaders[i].obj->shader);
+      watchdog_kick();
     ITERATE_OVER_OBJECT_POOL_RESTORE(g_compute_shaders);
   }
 }
@@ -1735,8 +1706,11 @@ void d3d::delete_program(PROGRAM sh)
   if (!g_programs.isIndexValid(sh))
     return;
   g_programs.lock();
-  D3D_CONTRACT_ASSERTF(!g_programs.isIndexInFreeListUnsafe(sh),
-    "Double delete of program %d. Refcount was equal to 0 on a previous delete.", sh);
+  if (!g_programs.isEntryUsed(sh))
+  {
+    D3D_CONTRACT_ASSERTF(false, "Double delete of program %d. g_programs.isEntryUsed(sh) is false.", sh);
+    return g_programs.unlock();
+  }
   g_programs[sh].refCntX2 -= 2;
   if (g_programs[sh].refCntX2 > 0)
     return g_programs.unlock();

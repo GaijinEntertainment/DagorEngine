@@ -344,7 +344,7 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
           if (isVolumetric)
           {
             totalKnownMass += knownMass;
-            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
+            const TMatrix nodeTm = collision->getNodeTm(node.nodeIndex);
             BBox3 localBox;
             localBox.setempty();
             if (node.type == COLLISION_NODE_TYPE_MESH)
@@ -365,7 +365,7 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
           }
           else if (node.type == COLLISION_NODE_TYPE_MESH)
           {
-            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
+            const TMatrix nodeTm = collision->getNodeTm(node.nodeIndex);
             Point3 centerOfMass(0.f, 0.f, 0.f);
             Tab<MassData> centers(framemem_ptr());
             centers.reserve(collision->getNodeFaceCount(node.nodeIndex));
@@ -821,7 +821,7 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
           if (isVolumetric)
           {
             totalKnownMass += knownMass;
-            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
+            const TMatrix nodeTm = collision->getNodeTm(node.nodeIndex);
             BBox3 localBox;
             localBox.setempty();
             if (node.type == COLLISION_NODE_TYPE_MESH)
@@ -842,7 +842,7 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
           }
           else if (node.type == COLLISION_NODE_TYPE_MESH)
           {
-            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
+            const TMatrix nodeTm = collision->getNodeTm(node.nodeIndex);
             Point3 centerOfMass(0.f, 0.f, 0.f);
             Tab<MassData> centers(framemem_ptr());
             centers.reserve(collision->getNodeFaceCount(node.nodeIndex));

@@ -37,7 +37,7 @@ struct InitOnDemand;
 namespace dafg
 {
 
-inline CONSOLE_BOOL_VAL("dafg", verbose, true);
+inline CONSOLE_BOOL_VAL("dafg", verbose, false);
 
 class Runtime
 {
@@ -72,8 +72,9 @@ public:
   visualization::IVisualizationManager *getVisualizerPtr() { return fgVisManager.get(); }
   DependencyData &getDependencyData() { return dependencyDataCalculator.depData; }
   void updateExternalState(ExternalState state) { nodeExec->externalState = state; }
+  multiplexing::Extents getMultiplexingExtents() const { return currentMultiplexingExtents; }
   void setMultiplexingExtents(multiplexing::Extents extents);
-  bool runNodes();
+  bool runNodes(bool flush_blocks = false);
 
   void markStageDirty(CompilationStage stage, const char *reason_msg = nullptr)
   {
@@ -181,6 +182,7 @@ private:
   using ResourcesChanged = IdIndexedFlags<ResNameId, framemem_allocator>;
   using IrNodesChanged = IdIndexedFlags<intermediate::NodeIndex, framemem_allocator>;
   using IrResourcesChanged = IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator>;
+  using BlockProviderMap = dag::VectorMap<RefinedBlockNameId, const RefinedBlockProvider *>;
 
   auto updateNodeDeclarations();
   auto resolveNames(const NodesChanged &nodes_changed);
@@ -191,10 +193,12 @@ private:
   void colorPasses(const IrNodesChanged &irNodesChanged);
   IrNodesChanged scheduleNodes(const IrNodesChanged &irNodesChanged, const IrResourcesChanged &irResourcesChanged);
   IrResourcesChanged scheduleBarriers(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged);
+  void cacheUntrackedReleaseBarriers();
   void recalculateStateDeltas(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged);
   void updateAutoResolutions();
   void scheduleResources(const IrResourcesChanged &lifetimeChangedResources);
   void updateHistory();
   void updateVisualization(const NodesChanged &nodes_changed);
+  BlockProviderMap applyRefinedBlockBindings(int curr_frame, int prev_frame);
 };
 } // namespace dafg

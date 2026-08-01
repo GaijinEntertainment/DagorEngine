@@ -48,7 +48,7 @@ int ares_parse_ptr_reply(const unsigned char *abuf, int alen, const void *addr,
   long len;
   const unsigned char *aptr;
   char *ptrname, *hostname, *rr_name, *rr_data;
-  struct hostent *hostent;
+  struct hostent *hostent = NULL;
   int aliascnt = 0;
   int alias_alloc = 8;
   char ** aliases;
@@ -172,41 +172,53 @@ int ares_parse_ptr_reply(const unsigned char *abuf, int alen, const void *addr,
     status = ARES_ENODATA;
   if (status == ARES_SUCCESS)
     {
-      /* We got our answer.  Allocate memory to build the host entry. */
-      hostent = malloc(sizeof(struct hostent));
-      if (hostent)
-        {
-          hostent->h_addr_list = malloc(2 * sizeof(char *));
-          if (hostent->h_addr_list)
-            {
-              hostent->h_addr_list[0] = malloc(addrlen);
-              if (hostent->h_addr_list[0])
-                {
-                  hostent->h_aliases = malloc((aliascnt+1) * sizeof (char *));
-                  if (hostent->h_aliases)
-                    {
-                      /* Fill in the hostent and return successfully. */
-                      hostent->h_name = hostname;
-                      for (i=0 ; i<aliascnt ; i++)
-                        hostent->h_aliases[i] = aliases[i];
-                      hostent->h_aliases[aliascnt] = NULL;
-                      hostent->h_addrtype = aresx_sitoss(family);
-                      hostent->h_length = aresx_sitoss(addrlen);
-                      memcpy(hostent->h_addr_list[0], addr, addrlen);
-                      hostent->h_addr_list[1] = NULL;
-                      *host = hostent;
-                      free(aliases);
-                      free(ptrname);
-                      return ARES_SUCCESS;
-                    }
-                  free(hostent->h_addr_list[0]);
-                }
-              free(hostent->h_addr_list);
-            }
-          free(hostent);
-        }
+      /* If we don't reach the end, we must have failed due to out of memory */
       status = ARES_ENOMEM;
+
+      /* We got our answer.  Allocate memory to build the host entry. */
+      hostent = malloc(sizeof(*hostent));
+      if (!hostent)
+        goto fail;
+
+      /* If we don't memset here, cleanups may fail */
+      memset(hostent, 0, sizeof(*hostent));
+
+      hostent->h_addr_list = malloc(2 * sizeof(char *));
+      if (!hostent->h_addr_list)
+        goto fail;
+
+      if (addr && addrlen) {
+        hostent->h_addr_list[0] = malloc(addrlen);
+        if (!hostent->h_addr_list[0])
+          goto fail;
+      } else {
+        hostent->h_addr_list[0] = NULL;
+      }
+
+      hostent->h_aliases = malloc((aliascnt+1) * sizeof (char *));
+      if (!hostent->h_aliases)
+        goto fail;
+
+      /* Fill in the hostent and return successfully. */
+      hostent->h_name = hostname;
+      for (i=0 ; i<aliascnt ; i++)
+        hostent->h_aliases[i] = aliases[i];
+      hostent->h_aliases[aliascnt] = NULL;
+      hostent->h_addrtype = aresx_sitoss(family);
+      hostent->h_length = aresx_sitoss(addrlen);
+      if (addr && addrlen)
+        memcpy(hostent->h_addr_list[0], addr, addrlen);
+      hostent->h_addr_list[1] = NULL;
+      *host = hostent;
+      free(aliases);
+      free(ptrname);
+
+      return ARES_SUCCESS;
     }
+
+fail:
+  ares_free_hostent(hostent);
+
   for (i=0 ; i<aliascnt ; i++)
     if (aliases[i])
       free(aliases[i]);

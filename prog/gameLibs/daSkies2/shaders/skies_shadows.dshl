@@ -14,6 +14,16 @@ macro SKY_CLOUDS_SHADOWS(code, use_origin, sun_dir_x, sun_dir_y, sun_dir_z)
   INIT_CLOUDS_SHADOW_BASE_REF(sun_dir_x, sun_dir_y, sun_dir_z, code)
   (code) {shadow_origin@f3 = use_origin;}
   USE_CLOUDS_SHADOW_BASE_REF(code)
+  //the godray path keeps the wrap shadow volume alongside the map: pre-baked
+  //lighting for the in-layer/near samples and per-gap structure at grazing sun.
+  //Exact over the whole ms_attenuation range (0.02 -> exponent 2500): the decode
+  //rescales optical depth, not transmittance. The max() only guards a zero var.
+  //Geometric lerp of the exponent: transmittance responds exponentially to it,
+  //so this keeps the physicality knob perceptually uniform over 0..1
+  (code) {clouds_bsm_phys_exp@f1 = pow(1./max(clouds_bsm_ms_attn_sq, 0.0001), clouds_bsm_scattering_physicality);}
+  INIT_CLOUDS_SHADOWS_VOLUME(code)
+  USE_CLOUDS_SHADOWS_VOLUME(code)
+  CLOUDS_VOL_TRANSMITTANCE(code)
   GET_STATISTICAL_SHADOW_FUNC(code)
   PROJECT_SKIES_SHADOWS(code)
   hlsl(code) {
@@ -24,10 +34,45 @@ macro SKY_CLOUDS_SHADOWS(code, use_origin, sun_dir_x, sun_dir_y, sun_dir_z)
     float getShadow(float3 worldPos, float d, float r, float mu)
     {
       float shadow = get_project_skies_shadows(worldPos, d, r, mu);
-      if (d > 100)
-        return shadow * getCloudsStatisticalShadow(r, mu);//it is very noise and cache thrashy far
-      //return base_clouds_transmittance(worldPos);
-      return shadow * base_clouds_transmittance(worldPos);
+      //fully statistical by 100km (gap-AVERAGED coverage estimate, the right regime
+      //for long-range scattering; per-gap structure is below the sun-disk penumbra
+      //there anyway) - also skips the map fetch for the far samples
+      float statW = saturate(d*(1./50.) - 1.);
+      BRANCH
+      if (statW >= 1)
+        return shadow * getCloudsStatisticalShadow(r, mu);
+      //Beer shadow map: actual weather occlusion at any distance, one fetch - light
+      //shafts follow real cloud gaps instead of the statistical coverage estimate.
+      //The map stores last-octave (ms-brightened) extinction for receiver consistency;
+      //shafts need PHYSICAL transmittance or they wash out (recovered by rescaling
+      //the od before the exp), and the s-curve accentuates the gap contrast on top.
+      //Samples INSIDE the cloud layer keep the 3D shadow volume: it carries true
+      //in-layer structure, while the filtered per-column Beer map is deliberately
+      //soft (right for receivers below, where the full column applies anyway).
+      //The volume wraps with the weather tile, so beyond the cascade near radius
+      //its content no longer matches the rendered (aperiodic) clouds - the Beer
+      //map takes over there even in-layer
+      float alt = world_pos_to_clouds_alt.x*worldPos.y + world_pos_to_clouds_alt.y;
+      BRANCH
+      if (alt > 0. && alt < 1. && d * INV_WEATHER_SIZE < 0.4 / 1000.)
+        return shadow * base_clouds_transmittance_vol(worldPos);
+      half bsmFade;
+      float physT = exp(-clouds_bsm_optical_depth_fade(worldPos, bsmFade)*clouds_bsm_phys_exp);
+      float bsmShadow = smoothstep(0., 1., physT);
+      //structure fallback: outside the window, and at grazing sun where every ~100km
+      //slant path saturates the per-texel curve to a structureless on/off slab, hand
+      //back to the wrap volume - its slant-displaced lookup keeps per-gap shadow
+      //structure in the haze, which is what reads as god rays at sunset.
+      //max(,1) also decodes never-published consts (no map baked yet) as high sun
+      float sunY = 1./max(clouds_bsm_consts.w, 1.);
+      float volW = max(float(bsmFade), 1. - saturate((sunY - 0.05)*8.33))*(1. - statW);
+      BRANCH
+      if (volW > 0)
+        bsmShadow = lerp(bsmShadow, float(base_clouds_transmittance_vol(worldPos)), volW);
+      BRANCH
+      if (statW > 0)
+        bsmShadow = lerp(bsmShadow, getCloudsStatisticalShadow(r, mu), statW);
+      return shadow * bsmShadow;
     }
   }
 endmacro

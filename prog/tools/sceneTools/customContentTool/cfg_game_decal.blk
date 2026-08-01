@@ -2,7 +2,7 @@
 outDir:t=".storage"
 indexFile:t="downloadable_decals.blk"
 type:t="decal"
-texRoot:t="D:\dagor2\skyquake\develop\assets"
+texRoot:t="D:\dagor\skyquake\develop\assets"
 cacheDir:t=".cache-d"
 
 lod0 {

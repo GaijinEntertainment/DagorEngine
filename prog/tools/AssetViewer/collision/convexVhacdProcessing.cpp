@@ -53,8 +53,13 @@ void ConvexVhacdProcessing::calcInterface(const ConvexVhacdSettings &settings)
   dag::ConstSpan<CollisionNode> nodes = collisionRes->getAllNodes();
   for (const auto &refNode : settings.selectedNodes.refNodes)
   {
-    G_ASSERT_LOG(add_verts_and_indices_from_node(*collisionRes, nodes, refNode, verts, indices), "Collision node not found: %s",
-      refNode);
+    if (!add_verts_and_indices_from_node(*collisionRes, nodes, refNode, verts, indices))
+    {
+      // Missing/empty ref (callee logerr'd): the merge is incomplete, so don't feed a partial
+      // soup to Compute() -- it would silently produce a hull with geometry omitted.
+      logerr("Collision node not found: %s", refNode);
+      return;
+    }
   }
   p.m_maxRecursionDepth = settings.depth;
   p.m_maxConvexHulls = settings.maxHulls;

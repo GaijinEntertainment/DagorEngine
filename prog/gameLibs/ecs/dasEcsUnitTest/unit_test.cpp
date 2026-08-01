@@ -5,6 +5,7 @@
 #include <math/random/dag_random.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_Point3.h>
+#include <math/dag_TMatrix4.h>
 #include <debug/dag_logSys.h>
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_direct.h>
@@ -48,6 +49,8 @@ struct SomeComponent
 };
 ECS_DECLARE_RELOCATABLE_TYPE(SomeComponent);
 ECS_REGISTER_RELOCATABLE_TYPE(SomeComponent, nullptr);
+
+ECS_REGISTER_TYPE(TMatrix4, nullptr); // declared in unitModule.h
 
 
 ECS_BROADCAST_EVENT_TYPE(EventCPPSimpleTestEvent, float, int)

@@ -17,6 +17,8 @@
 #include <memory/dag_linearHeapAllocator.h>
 
 class Sbuffer;
+class CollisionResource;
+struct CollisionNode;
 
 class LRURendinstCollision
 {
@@ -24,6 +26,11 @@ public:
   LRURendinstCollision();
   LRURendinstCollision(const LRURendinstCollision &) = delete;
   ~LRURendinstCollision();
+
+  // The compute voxelizer packs a resource's tri count into the low 20 bits of its dispatch word
+  // (instance count takes the high 12) and skips anything bigger, so this is the largest face count
+  // one voxelizable collision resource may carry. Callers building such geometry must cap to it.
+  static constexpr uint32_t MAX_VOXELIZATION_TRIS = (1u << 20) - 1;
 
   bool updateLRU(dag::ConstSpan<rendinst::riex_handle_t> ri);
   void reset();
@@ -69,6 +76,10 @@ protected:
 
   carray<uint16_t, COLLISION_BOX_INDICES_NUM> boxIndices;
 
+  // Per-node voxelization ib/vb byte sizes, or false if the node contributes nothing.
+  static bool voxelization_node_size(const CollisionResource *coll_res, int ni, const CollisionNode *node, uint32_t &ib_size,
+    uint32_t &vb_size);
+
   void drawInstances(uint32_t st_inst, const uint32_t *types_counts, uint32_t batches, VolTexture *color, VolTexture *alpha,
     uint32_t inst_mul, bool prims);
   void dispatchInstances(uint32_t st_inst, const uint32_t *types_counts, uint32_t batches, VolTexture *color, VolTexture *alpha,
@@ -97,6 +108,7 @@ public:
     int vertexCount;
     int indexCount;
     int vertexStride;
+    int indexStride; // bytes per index; the shared ib heap is uniformly 32-bit
     int positionOffset;
     int positionFormat;
   };

@@ -111,6 +111,11 @@
 // some bugs, improve performance, and to make the codebase easier to maintain
 // going forward.
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <stdint.h>
 #include <functional>
 
@@ -8367,5 +8372,9 @@ IVHACD* CreateVHACD_ASYNC()
 #endif // __GNUC__
 
 #endif // ENABLE_VHACD_IMPLEMENTATION
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 #endif // VHACD_H

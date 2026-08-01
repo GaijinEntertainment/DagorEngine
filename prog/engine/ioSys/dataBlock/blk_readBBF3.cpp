@@ -239,7 +239,7 @@ bool DataBlock::loadFromStreamBBF3(IGenLoad &crd, const int *cnv, const int *cnv
   for (int i = 0; i < blocksNum; ++i)
   {
     int oldNameId = readInt32(crd, load_le);
-    if (oldNameId >= cnvEnd - cnv)
+    if (oldNameId < 0 || oldNameId >= cnvEnd - cnv)
       return false;
     int newNameId = cnv[oldNameId];
     if (!addNewBlock(newNameId < 0 ? "" : shared->getName(newNameId))->loadFromStreamBBF3(crd, cnv, cnvEnd, strings))

@@ -17,5 +17,5 @@ public:
   virtual int removeUnusedFaces(Mesh &mesh, void *poly_in, int node_id) = 0; // return number of removed faces
 };
 
-extern BaseCSGRemoval *make_new_csg();
+extern BaseCSGRemoval *make_new_csg_removal();
 extern void delete_csg(BaseCSGRemoval *csg);

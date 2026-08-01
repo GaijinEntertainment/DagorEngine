@@ -1,2 +1,6 @@
 outer after reserve: 12345
+negative reserve: caught
+reserve 65536: ok
+larger reserve: ok
+stack limit: caught
 PASSED

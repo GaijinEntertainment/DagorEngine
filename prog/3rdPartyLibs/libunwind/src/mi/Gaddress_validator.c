@@ -33,13 +33,22 @@ unw_address_is_valid(UNUSED unw_word_t addr, UNUSED size_t len)
   return false;
 }
 
+bool
+unw_mem_read_safe(UNUSED unw_word_t addr, UNUSED void *dst, UNUSED size_t len)
+{
+  Debug(1, "remote-only invoked\n");
+  return false;
+}
+
 #else /* !UNW_REMOTE_ONLY */
 
 #include <stdatomic.h>
+#include <sys/uio.h>
 
 
-static atomic_flag _unw_address_validator_initialized = ATOMIC_FLAG_INIT;
-static int _mem_validate_pipe[2] = {-1, -1};
+/* Each thread manages its own pipe so concurrent callers (including signal
+ * handlers) never race on closing or reopening another thread's fds. */
+static _Thread_local int _mem_validate_pipe[2] = {-1, -1};
 
 #ifdef HAVE_PIPE2
 static int
@@ -104,7 +113,7 @@ _write_validate (unw_word_t addr)
   int ret = -1;
   ssize_t bytes = 0;
 
-  if (unlikely (!atomic_flag_test_and_set(&_unw_address_validator_initialized)))
+  if (unlikely (_mem_validate_pipe[0] == -1))
     {
       if (_open_pipe () != 0)
         {
@@ -242,7 +251,8 @@ _cache_valid_mem(unw_word_t page_addr)
  * Validates the memory range from @p addr to (@p addr + @p len - 1) is
  * readable.  Since the granularity of memory readability is the page, only one
  * byte needs to be validated per page for each page starting at @p addr and
- * encompassing @p len bytes. Only the first address of each page is checked.
+ * encompassing @p len bytes. Only the starting address of the memory range and
+ * the first address of each additional page is checked.
  *
  * @returns true if the memory is readable, false otherwise.
  */
@@ -288,7 +298,8 @@ unw_address_is_valid(unw_word_t addr, size_t len)
     {
       if (!_is_cached_valid_mem(page_addr))
         {
-          if (!_write_validate (page_addr))
+          /* Check 'addr' in first page to avoid uninitialized memory access. */
+          if (!_write_validate ((page_addr == start_page_addr) ? addr : page_addr))
             {
               Debug(1, "returning false\n");
               return false;
@@ -298,6 +309,133 @@ unw_address_is_valid(unw_word_t addr, size_t len)
     }
 
   return true;
+}
+
+
+/**
+ * Read memory through the pipe: write(2) copies the bytes out of the source
+ * address via the kernel (returning EFAULT instead of faulting when the
+ * memory is unmapped), then they are read back from the pipe.
+ */
+static bool
+_pipe_read_safe (unw_word_t addr, void *dst, size_t len)
+{
+  char drain[16];
+  ssize_t ret;
+
+  if (unlikely (_mem_validate_pipe[0] == -1))
+    {
+      if (_open_pipe () != 0)
+        return false;
+    }
+
+  /* Drain bytes left over from _write_validate probes or a failed reader. */
+  while (read (_mem_validate_pipe[0], drain, sizeof (drain)) > 0)
+    ;
+
+  do
+    {
+#ifdef HAVE_SYS_SYSCALL_H
+      /* use syscall insteadof write() so that ASAN does not complain */
+      ret = syscall (SYS_write, _mem_validate_pipe[1], addr, len);
+#else
+      ret = write (_mem_validate_pipe[1], (void *) addr, len);
+#endif
+    }
+  while (ret < 0 && errno == EINTR);
+
+  if (ret != (ssize_t) len)
+    {
+      if (ret > 0)
+        {
+          /* Partial write (source range faulted mid-copy): drain the pipe so
+             later probes are not confused by stale bytes. */
+          while (read (_mem_validate_pipe[0], drain, sizeof (drain)) > 0)
+            ;
+        }
+      else if (errno != EFAULT)
+        {
+          /* Unexpected pipe failure: recreate it for the next caller. */
+          _open_pipe ();
+        }
+      return false;
+    }
+
+  size_t got = 0;
+  while (got < len)
+    {
+      do
+        ret = read (_mem_validate_pipe[0], (char *) dst + got, len - got);
+      while (ret < 0 && errno == EINTR);
+      if (ret <= 0)
+        {
+          _open_pipe ();
+          return false;
+        }
+      got += (size_t) ret;
+    }
+  return true;
+}
+
+
+#ifdef SYS_process_vm_readv
+/**
+ * Read memory via process_vm_readv(2) on the own process: a single syscall
+ * that validates and copies atomically. Sets *unsupported when the syscall
+ * is not available (old kernel or seccomp policy) so the caller can fall
+ * back to the pipe-based path.
+ */
+static bool
+_process_vm_read_safe (unw_word_t addr, void *dst, size_t len, bool *unsupported)
+{
+  struct iovec local = { .iov_base = dst, .iov_len = len };
+  struct iovec remote = { .iov_base = (void *) addr, .iov_len = len };
+  ssize_t ret;
+
+  do
+    ret = syscall (SYS_process_vm_readv, getpid (), &local, 1UL, &remote, 1UL, 0UL);
+  while (ret < 0 && errno == EINTR);
+
+  if (ret == (ssize_t) len)
+    return true;
+
+  /* EFAULT/partial read means the address range is (partially) unmapped:
+     the mechanism itself works, the address is just invalid. */
+  if (ret < 0 && errno != EFAULT)
+    *unsupported = true;
+  return false;
+}
+#endif
+
+
+/**
+ * Validate-and-read in one atomic step.
+ * @param[in]  addr The starting address of the memory range to read
+ * @param[out] dst  Receives @p len bytes on success
+ * @param[in]  len  The size of the memory range to read in bytes
+ *
+ * Unlike unw_address_is_valid() followed by a direct load, the read goes
+ * through the kernel, so memory that is concurrently unmapped (or a stale
+ * validation cache entry) results in an error instead of a SIGSEGV.
+ *
+ * @returns true if the whole range was read, false otherwise.
+ */
+bool
+unw_mem_read_safe (unw_word_t addr, void *dst, size_t len)
+{
+#ifdef SYS_process_vm_readv
+  static atomic_bool _pvr_unsupported = false;
+
+  if (likely (!atomic_load_explicit (&_pvr_unsupported, memory_order_relaxed)))
+    {
+      bool unsupported = false;
+      bool ok = _process_vm_read_safe (addr, dst, len, &unsupported);
+      if (likely (!unsupported))
+        return ok;
+      atomic_store_explicit (&_pvr_unsupported, true, memory_order_relaxed);
+    }
+#endif
+  return _pipe_read_safe (addr, dst, len);
 }
 
 #endif /* !UNW_REMOTE_ONLY */

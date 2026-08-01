@@ -2,6 +2,7 @@
 #pragma once
 
 #include <debug/dag_debug.h>
+#include <image/dag_loadImage.h>
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
@@ -45,11 +46,23 @@ Sample usage (in daRg for example)::
 static bool decode_fname_suffix(const char *fn_ext, int &out_w, int &out_h, bool &out_keep_ar, bool &out_premul,
   const char *fn_ext_orig)
 {
+  if (isdigit(*fn_ext) && !check_pic_dimension(fn_ext))
+  {
+    logerr("invalid image width in '%s'", fn_ext_orig);
+    return false;
+  }
+
   out_w = atoi(fn_ext);
   out_h = 0;
   fn_ext = strchr(fn_ext, ':');
   if (fn_ext)
   {
+    if (isdigit(fn_ext[1]) && !check_pic_dimension(fn_ext + 1))
+    {
+      logerr("invalid image height in '%s'", fn_ext_orig);
+      return false;
+    }
+
     out_h = atoi(fn_ext + 1);
     const char *fn_ext_last = fn_ext;
     fn_ext = strchr(fn_ext + 1, ':');

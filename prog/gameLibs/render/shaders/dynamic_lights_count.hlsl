@@ -25,6 +25,29 @@ half getOmniRestrictionBox(RenderOmniLight ol, float3 worldPos)
   #endif
 }
 
+// counts.y - lights in the tile, counts.x - lights actually reaching the surface
+void count_omni_light(uint omni_light_index, float3 worldPos, inout int2 omniCount)
+{
+  RenderOmniLight ol = omni_lights_cb[omni_light_index];
+  float4 pos_and_radius = ol.posRadius;
+  omniCount.y++;
+  if (length(worldPos - pos_and_radius.xyz) < pos_and_radius.w && getOmniRestrictionBox(ol, worldPos) > 0)
+    omniCount.x++;
+}
+
+void count_spot_light(uint spot_light_index, float3 worldPos, inout int2 spotCount)
+{
+  spotCount.y++;
+  RenderSpotLight sl = spot_lights_cb[spot_light_index];
+  float4 lightPosRadius = decode_spot_light_pos_radius(sl);
+  float4 lightColorScale = sl.lightColorAngleScale;
+  float4 lightDirection = sl.lightDirectionAngleOffset;
+  float geomAttenuation = getAngleClip(normalize(worldPos - lightPosRadius.xyz),
+                                       lightDirection.xyz, lightColorScale.w, lightDirection.w);
+  if (length(worldPos - lightPosRadius.xyz) < lightPosRadius.w && geomAttenuation > 0)
+    spotCount.x++;
+}
+
 half4 get_dynamic_lights_count(float3 worldPos, float w, float2 screenpos, float2 screen_size, float lights_debug_mode)
 {
   half3 result = 0;
@@ -33,87 +56,22 @@ half4 get_dynamic_lights_count(float3 worldPos, float w, float2 screenpos, float
   uint2 tileIdx = screen_uv_to_tile_idx(screenpos);
   uint tileOffset = (tileIdx.x * tiledGridSize.y + tileIdx.y) * DWORDS_PER_TILE;
 
-  uint zbinsOmni = structuredBufferAt(z_binning_lookup, depth_to_z_bin(w));
-  uint omniBinsBegin = zbinsOmni >> 16;
-  uint omniBinsEnd = zbinsOmni & 0xFFFF;
-  uint mergedOmniBinsBegin = WAVE_MIN(omniBinsBegin);
-  uint mergedOmniBinsEnd = WAVE_MAX(omniBinsEnd);
-  uint omniLightsBegin = mergedOmniBinsBegin >> 5;
-  uint omniLightsEnd = mergedOmniBinsEnd >> 5;
-  uint omniMaskWidth = clamp((int)omniBinsEnd - (int)omniBinsBegin + 1, 0, 32);
-  uint omniWord = 0;
-
   int2 spotCount = 0; // y - tile count, x - actual lit surface
   int2 omniCount = 0; // y - tile count, x - actual lit surface
 
-  for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
-  {
-    uint mask = structuredBufferAt(lights_list, tileOffset + omniWord);
-    //return float(mask)*0.1;
-    // Mask by ZBin mask
-    uint localMin = clamp((int)omniBinsBegin - (int)(omniWord << 5), 0, 31);
-    // BitFieldMask op needs manual 32 size wrap support
-    uint zbinMask = omniMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(omniMaskWidth, localMin);
-    mask &= zbinMask;
-    uint mergedMask = WAVE_OR(mask);
+  #define TILED_LIGHTS_WALK_SPOT 0
+  #define TILED_LIGHTS_WALK_DEPTH w
+  #define TILED_LIGHTS_WALK_TILE_OFFSET tileOffset
+  #define TILED_LIGHTS_WALK_BUFFER_AT(buffer, index) structuredBufferAt(buffer, index)
+  #define TILED_LIGHTS_WALK_LIGHT_BODY(omni_light_index) count_omni_light(omni_light_index, worldPos, omniCount);
+  #include <tiled_lights_walk.hlsli>
 
-    LOOP
-    while (mergedMask)
-    {
-      uint bitIdx = firstbitlow(mergedMask);
-      uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
-      mergedMask ^= (1U << bitIdx);
-
-      RenderOmniLight ol = omni_lights_cb[omni_light_index];
-      float4 pos_and_radius = ol.posRadius;
-
-      omniCount.y++;
-
-      if (length(worldPos - pos_and_radius.xyz) < pos_and_radius.w && getOmniRestrictionBox(ol, worldPos) > 0)
-        omniCount.x++;
-    }
-  }
-
-  uint zbinsSpot = structuredBufferAt(z_binning_lookup, depth_to_z_bin(w) + Z_BINS_COUNT);
-  uint spotBinsBegin = zbinsSpot >> 16;
-  uint spotBinsEnd = zbinsSpot & 0xFFFF;
-  uint mergedSpotBinsBegin = WAVE_MIN(spotBinsBegin);
-  uint mergedSpotBinsEnd = WAVE_MAX(spotBinsEnd);
-  uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
-  uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
-  uint spotMaskWidth = clamp((int)spotBinsEnd - (int)spotBinsBegin + 1, 0, 32);
-  uint spotWord = DWORDS_PER_TILE / 2;
-
-  for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
-  {
-    uint mask = structuredBufferAt(lights_list, tileOffset + spotWord);
-    // Mask by ZBin mask
-    uint localMin = clamp((int)spotBinsBegin - (int)((spotWord - DWORDS_PER_TILE / 2) << 5), 0, 31);
-    // BitFieldMask op needs manual 32 size wrap support
-    uint zbinMask = spotMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(spotMaskWidth, localMin);
-    mask &= zbinMask;
-    uint mergedMask = WAVE_OR(mask);
-
-    LOOP
-    while (mergedMask)
-    {
-      uint bitIdx = firstbitlow(mergedMask);
-      uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
-      mergedMask ^= (1U << bitIdx);
-
-      spotCount.y++;
-
-      RenderSpotLight sl = spot_lights_cb[spot_light_index];
-      float4 lightPosRadius = decode_spot_light_pos_radius(sl);
-      float4 lightColorScale = sl.lightColorAngleScale;
-      float4 lightDirection = sl.lightDirectionAngleOffset;
-
-      float geomAttenuation = getAngleClip(normalize(worldPos - lightPosRadius.xyz),
-                                           lightDirection.xyz, lightColorScale.w, lightDirection.w);
-      if (length(worldPos - lightPosRadius.xyz) < lightPosRadius.w && geomAttenuation > 0)
-        spotCount.x++;
-    }
-  }
+  #define TILED_LIGHTS_WALK_SPOT 1
+  #define TILED_LIGHTS_WALK_DEPTH w
+  #define TILED_LIGHTS_WALK_TILE_OFFSET tileOffset
+  #define TILED_LIGHTS_WALK_BUFFER_AT(buffer, index) structuredBufferAt(buffer, index)
+  #define TILED_LIGHTS_WALK_LIGHT_BODY(spot_light_index) count_spot_light(spot_light_index, worldPos, spotCount);
+  #include <tiled_lights_walk.hlsli>
 
   float3 dynamicLighting = float3(omniCount.x, spotCount.x, omniCount.x + spotCount.x);
 

@@ -6,6 +6,9 @@
 
 #include <util/dag_compilerDefs.h>
 #include <util/dag_preprocessor.h>
+#if !defined(DA_PROFILER_ENABLED) && !defined(TIME_PROFILER_ENABLED)
+#error Do not include dag_daProfiler.h directly! Include dag_statDrv.h instead.
+#endif
 #if DA_PROFILER_ENABLED
 #include <perfMon/dag_perfTimer.h> //for profile_ref_ticks (inlined rdtsc) only
 #endif
@@ -184,9 +187,7 @@ inline void create_leaf_event(desc_id_t, uint64_t, uint64_t) {}
 
 #else
 
-#if _TARGET_STATIC_LIB
 #define DA_PROFILE_THREADS 1
-#endif
 
 // should we store filenames in events? in release builds we don't to reduce executable size and leakage of file names
 #ifndef DA_PROFILE_FILE_NAMES

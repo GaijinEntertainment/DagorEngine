@@ -63,6 +63,7 @@ struct GraphicsPipelineStaticState
       // stores power of two of count plus one so that 0 is 0 not 1
       uint32_t forcedSampleCountExponent : 3;
       uint32_t alphaToCoverage : 1;
+      uint32_t dualSourceBlendEnabled : 1;
     };
     uint32_t bitField;
   };
@@ -144,6 +145,7 @@ struct GraphicsPipelineStaticState
     conservativeRasterEnable = 0;
     colorMask = 0;
     alphaToCoverage = 0;
+    dualSourceBlendEnabled = 0;
   }
 };
 

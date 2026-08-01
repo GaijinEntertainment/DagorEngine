@@ -19,8 +19,11 @@ FSR::FSR(const IPoint2 &outputResolution) : AntiAliasing(outputResolution, outpu
     return;
 
   applierNode = dafg::register_node("fsr", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::Viewport);
     auto opaqueFinalTargetHndl =
       registry.readTexture("target_for_transparency").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+    // Run after the AA benchmark consumed target_for_transparency (no-op when the benchmark is off).
+    (registry.root() / "aa_benchmark").readBlob("accumulate_ordering_token").optional();
 
     auto depthHndl =
       registry.readTexture("depth_after_transparency").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
@@ -32,15 +35,16 @@ FSR::FSR(const IPoint2 &outputResolution) : AntiAliasing(outputResolution, outpu
         .useAs(dafg::Usage::COLOR_ATTACHMENT)
         .handle();
     auto camera = registry.readBlob<CameraParams>("current_camera").handle();
+    auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
-    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, camera] {
+    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, camera, cameraHistory] {
       render::antialiasing::ApplyContext ctx;
       ctx.depthTexture = depthHndl.get();
       ctx.motionTexture = motionVecsHndl.get();
-      ctx.jitterPixelOffset = jitterOffset;
-      ctx.resetHistory = frameCounter == 0;
+      ctx.jitterPixelOffset = camera.ref().jitterOffset;
       ctx.timeElapsed = deltaTimeMs;
       ctx.persp = camera.ref().noJitterPersp;
+      ctx.resetHistory = is_teleporting(camera.ref(), cameraHistory.ref());
       render::antialiasing::apply_fsr(opaqueFinalTargetHndl.get(), ctx, antialiasedHndl.get());
     };
   });
@@ -48,6 +52,7 @@ FSR::FSR(const IPoint2 &outputResolution) : AntiAliasing(outputResolution, outpu
   if (render::antialiasing::is_frame_generation_enabled())
   {
     frameGenerationNode = dafg::register_node("fsr_fg", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::Viewport);
       registry.executionHas(dafg::SideEffects::External);
       auto beforeUINs = registry.root() / "before_ui";
       auto finalFrameHandle =
@@ -73,8 +78,8 @@ FSR::FSR(const IPoint2 &outputResolution) : AntiAliasing(outputResolution, outpu
           .motionVectorTexture = motionVectorsHandle.get(),
           .uiTexture = uiHandle.get(),
           .timeElapsed = deltaTimeMs,
-          .jitterPixelOffset = jitterOffset,
-          .resetHistory = frameCounter == 0};
+          .jitterPixelOffset = camera.ref().jitterOffset,
+          .resetHistory = is_teleporting(camera.ref(), cameraHistory.ref())};
         render::antialiasing::schedule_generated_frames(frameGenContext);
       };
     });
@@ -82,6 +87,7 @@ FSR::FSR(const IPoint2 &outputResolution) : AntiAliasing(outputResolution, outpu
     // the sole purpose of this node is to reference history of the resources used by fsr_fg node in order to make these resources
     // "survive" until present()
     lifetimeExtenderNode = dafg::register_node("fsr_fg_lifetime_extender", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::Viewport);
       registry.executionHas(dafg::SideEffects::External);
       // ordering before setup_world_rendering_node makes lifetimes as short as possible while making sure the resources are still
       // alive during present()

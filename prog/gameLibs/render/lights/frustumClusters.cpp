@@ -57,8 +57,7 @@ void FrustumClusters::prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float
         vec4f maxRowSlice = v_splat_z(depthSliceScaleBias);
         for (int x = 0; x < CLUSTERS_W / 4; ++x, sliceDepth++, slicesNo++)
           *slicesNo = getVecMaxSliceAtDepth(*sliceDepth, depthSliceScaleBias, maxRowSlice);
-        maxRowSlice = v_min(maxRowSlice, v_rot_2(maxRowSlice));
-        sliceNoRowMax[y] = v_extract_xi(v_cvt_ceili(v_min(maxRowSlice, v_rot_1(maxRowSlice))));
+        sliceNoRowMax[y] = v_extract_xi(v_cvt_ceili(v_hmin(maxRowSlice)));
       }
       //
     }
@@ -419,7 +418,7 @@ inline bool test_cone_vs_sphere(vec4f pos_radius, vec4f dir_cos_angle, vec4f tes
   result = v_and(result, nfrontCull);
   vec3f nbackCull = v_cmp_ge(V1len, v_neg(sphereRad));
   result = v_and(result, nbackCull);
-  return v_signmask(result) & 1;
+  return !v_test_vec_x_eqi_0(result); // only lane x is meaningful (all math is _x)
 }
 
 uint32_t FrustumClusters::cullSpot(ClusterGridItemMasks &items, int i, vec4f pos_radius, vec4f dir_angle, uint32_t *result_mask,
@@ -582,8 +581,8 @@ uint32_t FrustumClusters::cullFrustum(ClusterGridItemMasks &items, int i, mat44f
   return items.itemsListCount;
 }
 
-uint32_t FrustumClusters::cullSpots(const vec4f *pos_radius, int pos_aligned_stride, const vec4f *dir_angle, int dir_aligned_stride,
-  ClusterGridItemMasks &items, uint32_t *result_mask, uint32_t word_count)
+uint32_t FrustumClusters::cullSpots(const SpotsCullingData *culling_data, ClusterGridItemMasks &items, uint32_t *result_mask,
+  uint32_t word_count)
 {
   if (!items.itemsListCount)
     return 0;
@@ -597,8 +596,7 @@ uint32_t FrustumClusters::cullSpots(const vec4f *pos_radius, int pos_aligned_str
       return items.itemsListCount;
 
     uint32_t id = grid->itemId;
-    vec4f wpos = pos_radius[id * pos_aligned_stride], wdir = dir_angle[id * dir_aligned_stride];
-    // float cosHalfAngle = 1./sqrtf(1 + dir_angle[id].w*dir_angle[id].w);
+    vec4f wpos = v_ld(&culling_data[id].pos_radius.x), wdir = v_ld(&culling_data[id].dir_tanHalfAngle.x);
     vec4f tanHalf = v_splat_w(wdir);
     vec4f vpos = v_mat44_mul_vec3p(view, wpos);
     vec4f vdir = v_mat44_mul_vec3v(view, wdir);

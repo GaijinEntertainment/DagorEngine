@@ -5,7 +5,6 @@
 #include "expanim2.h"
 #include "dagor.h"
 #include "resource.h"
-// #include "debug.h"
 
 static Interval lim;
 static float ort_thr;
@@ -19,8 +18,6 @@ static inline Quat qadd(Quat a, Quat b)
   q.Normalize();
   return q;
 }
-double length(Quat &q) { return sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w); }
-
 static inline Quat SLERP(Quat a, Quat b, float t)
 {
   float f = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
@@ -65,36 +62,12 @@ static inline void calc_cp(PosKey &k0, PosKey &k1, Point3 p13, Point3 p23)
   k1.i = k1.p * (-5.0f / 6.0f) + k0.p * (1.0f / 3.0f) + p23 * 3 - p13 * 1.5f;
 }
 
-static inline void calc_cpi(PosKey &k0, PosKey &k1, Point3 p23)
-{
-  k1.i = k1.p * (-2.0f / 3.0f) - k0.p * (1.0f / 12.0f) - k0.o * 0.5f + p23 * (9.0f / 4.0f);
-}
-
-static inline void calc_cpo(PosKey &k0, PosKey &k1, Point3 p13)
-{
-  k0.o = k0.p * (-2.0f / 3.0f) - k1.p * (1.0f / 12.0f) - k1.i * 0.5f + p13 * (9.0f / 4.0f);
-}
-
 static inline void calc_cp(RotKey &k0, RotKey &k1, Quat p13, Quat p23)
 {
   Quat q0 = SLERP(SLERP(k0.p, k1.p, 1.0f / 3.0f), p13, 9.0f / 4.0f);
   Quat q1 = SLERP(SLERP(k1.p, k0.p, 1.0f / 3.0f), p23, 9.0f / 4.0f);
   k0.o = SLERP(q0, q1, -1);
   k1.i = SLERP(q1, q0, -1);
-  //      k0.o=SLERP(SLERP(q0,q1,-1),k1.p,1.0f/3.0f);
-  //      k1.i=SLERP(SLERP(q1,q0,-1),k0.p,1.0f/3.0f);
-}
-
-static inline void calc_cpi(RotKey &k0, RotKey &k1, Quat p23)
-{
-  Quat q1 = SLERP(SLERP(k1.p, k0.p, 1.0f / 3.0f), p23, 9.0f / 4.0f);
-  k1.i = SLERP(k0.o, q1, 1.5f);
-}
-
-static inline void calc_cpo(RotKey &k0, RotKey &k1, Quat p13)
-{
-  Quat q0 = SLERP(SLERP(k0.p, k1.p, 1.0f / 3.0f), p13, 9.0f / 4.0f);
-  k0.o = SLERP(k1.i, q0, 1.5f);
 }
 
 static inline int is_orthog(Point3 ax, Point3 ay, Point3 az)
@@ -112,11 +85,6 @@ static void interp_tm(TimeValue t, Point3 &p, Quat &q, Point3 &s, ExpTMAnimCB &c
 {
   Matrix3 m;
   cb.interp_tm(t, m);
-  /*
-    debug ( "%s: %d: (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f)", cb.get_name(), t,
-            m.GetRow(0).x, m.GetRow(0).y, m.GetRow(0).z, m.GetRow(1).x, m.GetRow(1).y, m.GetRow(1).z,
-            m.GetRow(2).x, m.GetRow(2).y, m.GetRow(2).z, m.GetRow(3).x, m.GetRow(3).y, m.GetRow(3).z );
-  */
   Point3 ax = m.GetRow(0), ay = m.GetRow(1), az = m.GetRow(2);
   p = m.GetRow(3);
   float lx = Length(ax), ly = Length(ay), lz = Length(az);
@@ -129,13 +97,11 @@ static void interp_tm(TimeValue t, Point3 &p, Quat &q, Point3 &s, ExpTMAnimCB &c
     m.SetRow(1, ay /= ly);
   if (lz != 0)
     m.SetRow(2, az /= lz);
-  // m.SetRow(3,Point3(0,0,0));
   if (!is_orthog(ax, ay, az))
   {
     cb.non_orthog_tm(t);
     m.Orthogonalize();
   }
-  // m.SetIdentFlags(POS_IDENT|SCL_IDENT);
   q = Quat(m);
 }
 
@@ -177,9 +143,6 @@ static inline Quat interp_seg(RotKey a, RotKey b, TimeValue time)
 {
   float t = float(time - a.t) / float(b.t - a.t);
   return SLERP(SLERP(a.p, b.p, t), SLERP(a.o, b.i, t), 2 * (1 - t) * t);
-  /*      Quat q1=SLERP(a.o,b.i,t);
-          return SLERP(SLERP(SLERP(a.p,a.o,t),q1,t),SLERP(q1,SLERP(b.i,b.p,t),t),t);
-  */
 }
 
 static inline void make_seg_smooth(PosKey a, PosKey &b, PosKey &c, PosKey d)
@@ -223,8 +186,6 @@ static inline void make_seg_smooth(RotKey a, RotKey &b, RotKey &c, RotKey d)
 }
 
 static DWORD WINAPI dummyfn(LPVOID a) { return 0; }
-static void debug_pos_diff(const char *nodename, const Tab<PosKey> &pos, const Tab<Point3> &temp_pos, float thres);
-static void debug_rot_diff(const char *nodename, const Tab<RotKey> &pos, const Tab<Quat> &temp_pos, float thres);
 
 static void optimize_pos_key(Tab<PosKey> &pos, int ktime_count, bool reduce_keys, Interval limit, float pos_thr, const char *label)
 {
@@ -319,10 +280,6 @@ static void optimize_pos_key(Tab<PosKey> &pos, int ktime_count, bool reduce_keys
     if (i > 5)
       pos.Delete(1, 1);
   }
-
-  // debug ( "---- after full %s optimize ----", label );
-  // debug ( "%s: total=%d removed1=%d removed2=%d", label, total_pos, removed_pos1, removed_pos2 );
-  // debug_pos_diff ( node[k]->GetName(), pos, temp_pos, pos_thr );
 }
 
 static void optimize_rot_key(Tab<RotKey> &rot, int ktime_count, bool reduce_keys, Interval limit, float rot_thr, const char *label)
@@ -420,10 +377,6 @@ static void optimize_rot_key(Tab<RotKey> &rot, int ktime_count, bool reduce_keys
     if (i > 5)
       rot.Delete(1, 1);
   }
-
-  // debug ( "---- after full %s optimize ----", label );
-  // debug ( "%s: total=%d removed1=%d removed2=%d", label, total_rot, removed_rot1, removed_rot2 );
-  // debug_rot_diff ( node[k]->GetName(), rot, temp_rot, rot_thr );
 }
 
 bool get_tm_anim_2(Tab<AnimChanPoint3 *> &npos, Tab<AnimChanQuat *> &nrot, Tab<AnimChanPoint3 *> &nscl, const Interval &limit,
@@ -432,11 +385,6 @@ bool get_tm_anim_2(Tab<AnimChanPoint3 *> &npos, Tab<AnimChanQuat *> &nrot, Tab<A
   int i, k;
   int t0, t1;
 
-  /*
-  int total_pos = 0, removed_pos1 = 0, removed_pos2 = 0;
-  int total_rot = 0, removed_rot1 = 0, removed_rot2 = 0;
-  int total_scl = 0, removed_scl1 = 0, removed_scl2 = 0;
-  */
 
   ort_thr = ort_eps;
   lim = limit;
@@ -582,18 +530,7 @@ bool get_tm_anim_2(Tab<AnimChanPoint3 *> &npos, Tab<AnimChanQuat *> &nrot, Tab<A
     optimize_rot_key(rot, ktime.Count(), !(expflags & EXP_DONT_REDUCE_ROT), lim, rot_thr, "rot");
 
     // report results
-    /*
-    debug ("node %d: %s", k, cb.get_name ());
-    debug ("pos.Count()=%d", pos.Count ());
-    debug ("scl.Count()=%d", scl.Count ());
-    debug ("rot.Count()=%d", rot.Count ());
-    */
   }
-  /*
-  debug ( "total_pos=%d removed_pos1=%d removed_pos2=%d", total_pos, removed_pos1, removed_pos2 );
-  debug ( "total_rot=%d removed_rot1=%d removed_rot2=%d", total_rot, removed_rot1, removed_rot2 );
-  debug ( "total_scl=%d removed_scl1=%d removed_scl2=%d", total_scl, removed_scl1, removed_scl2 );
-  */
   ip->ProgressEnd();
 
   return true;
@@ -607,18 +544,12 @@ Point3 getAngularVelocity(const Quat &q0, const Quat &q1, float dt)
   double _1_w2 = 1 - dq.w * dq.w;
   if (dq.w < 0)
     dq = -dq;
-  /*debug ( "q0=%.5f,%.5f,%.5f,%.5f\nq1=%.5f,%.5f,%.5f,%.5f\ndq=%.5f,%.5f,%.5f,%.5f\n1-w*w=%.9f",
-          q0.x, q0.y, q0.z, q0.w,
-          q1.x, q1.y, q1.z, q1.w,
-          dq.x, dq.y, dq.z, dq.w,
-          _1_w2 );*/
 
   if (_1_w2 < 1e-7)
     return Point3(0, 0, 0);
 
   Point3 wvel = Point3(dq.x, dq.y, dq.z);
   wvel *= (2 * acos(dq.w) / sqrt(_1_w2)) / dt;
-  // debug ( "wvel=%.5f, %.5f, %.5f  dt=%.3f", wvel.x, wvel.y, wvel.z, dt );
   return wvel;
 }
 
@@ -703,7 +634,6 @@ bool get_node_vel(Tab<AnimKeyPoint3> &lin_vel, Tab<AnimKeyPoint3> &ang_vel, Tab<
       or_rot = make_tm(Point3(0, 0, 0), rot[i].p, Point3(1, 1, 1));
       pos[i].p = or_pos;
       or_pos += Inverse(or_rot) * d_pos;
-      //==debug ( "p=(%.3f,%.3f,%.3f) -> (%.3f,%.3f,%.3f)", l_pos.x, l_pos.y, l_pos.z, pos[i].p.x, pos[i].p.y, pos[i].p.z );
 
       l_pos = pos[i + 1].p;
     }
@@ -749,14 +679,12 @@ bool get_node_vel(Tab<AnimKeyPoint3> &lin_vel, Tab<AnimKeyPoint3> &ang_vel, Tab<
   lin_vel.SetCount(pos.Count());
   lin_vel_t.SetCount(pos.Count());
 
-  // float sum = 0;
   for (i = pos.Count() - 1; i >= 0; i--)
   {
     AnimKeyPoint3 k;
     int dt;
 
     lin_vel_t[i] = pos[i].t;
-    // debug ( "%5d: t=%5d  pos[i].p=%.3f,%.3f,%.3f", i, pos[i].t, pos[i].p.x, pos[i].p.y, pos[i].p.z );
 
     if (i + 1 >= pos.Count())
     {
@@ -787,23 +715,6 @@ bool get_node_vel(Tab<AnimKeyPoint3> &lin_vel, Tab<AnimKeyPoint3> &ang_vel, Tab<
     lin_vel[i].k1 = 2 * k.k2 / dt; // dt;
     lin_vel[i].k2 = 3 * k.k3 / dt; // dt/dt;
     lin_vel[i].k3 = Point3(0, 0, 0);
-
-    //==debug ( "%3d: t=%5d  lin_vel[i].p=%.7f,%.7f,%.7f  dt=%d", i, lin_vel_t[i], lin_vel[i].p.x, lin_vel[i].p.y, lin_vel[i].p.z, dt
-    //);
-
-    /*
-    debug ( "%3d: t=%5d  lin_vel[i].p=%.7f,%.7f,%.7f  p=(%.5f,%.5f,%.5f) k1=(%.5f,%.5f,%.5f) k2=(%.5f,%.5f,%.5f) k3=(%.5f,%.5f,%.5f),
-    dt=%d", i, lin_vel_t[i], lin_vel[i].p.x, lin_vel[i].p.y, lin_vel[i].p.z, k.p.x, k.p.y, k.p.z, k.k1.x, k.k1.y, k.k1.z, k.k2.x,
-    k.k2.y, k.k2.z, k.k3.x, k.k3.y, k.k3.z, dt );
-
-    float step_x = 0.02;
-    for ( float px = 1.0; px >= 0.0; px -= step_x ) {
-      float vel_z = (lin_vel[i].k2.z*px+lin_vel[i].k1.z)*px+lin_vel[i].p.z;
-      sum += (vel_z * dt) * step_x;
-      debug ( "p.z=%.8f  vel=%.8f  sum=%.8f", ((k.k3.z*px+k.k2.z)*px+k.k1.z)*px+k.p.z, vel_z, sum );
-    }
-    debug ( "approx. len: %.7f", sum );
-    */
   }
 
   // calculate angular velocity
@@ -819,7 +730,6 @@ bool get_node_vel(Tab<AnimKeyPoint3> &lin_vel, Tab<AnimKeyPoint3> &ang_vel, Tab<
     Quat drot;
 
     ang_vel_t[i] = rot[i].t;
-    // debug ( "segment i=%d, rot.count=%d", i, rot.Count());
 
     if (i + 1 >= rot.Count())
     {
@@ -841,34 +751,22 @@ bool get_node_vel(Tab<AnimKeyPoint3> &lin_vel, Tab<AnimKeyPoint3> &ang_vel, Tab<
     {
       nk[0].p = getAngularVelocity(interp_seg(rot[i - 1], rot[i], rot[i].t - deriv_dt / 2),
         interp_seg(rot[i], rot[i + 1], rot[i].t + deriv_dt / 2), deriv_dt);
-      /*debug ( "nk0: (%d:%d, %d:%d, %d), (%d:%d, %d:%d, %d), %d",
-              i-1, rot[i-1].t, i, rot[i].t, rot[i].t-deriv_dt/2,
-              i, rot[i].t, i+1, rot[i+1].t, rot[i].t+deriv_dt/2, deriv_dt );*/
     }
     else
     { // extrapolate then
       nk[0].p = getAngularVelocity(interp_seg(rot[i], rot[i + 1], rot[i].t - deriv_dt / 2),
         interp_seg(rot[i], rot[i + 1], rot[i].t + deriv_dt / 2), deriv_dt);
-      /*debug ( "nk0: (%d:%d, %d:%d, %d), (%d:%d, %d:%d, %d), %d",
-              i, rot[i].t, i+1, rot[i+1].t, rot[i].t-deriv_dt/2,
-              i, rot[i].t, i+1, rot[i+1].t, rot[i].t+deriv_dt/2, deriv_dt );*/
     }
 
     if (i + 2 < rot.Count())
     {
       nk[1].p = getAngularVelocity(interp_seg(rot[i], rot[i + 1], rot[i + 1].t - deriv_dt / 2),
         interp_seg(rot[i + 1], rot[i + 2], rot[i + 1].t + deriv_dt / 2), deriv_dt);
-      /*debug ( "nk1: (%d:%d, %d:%d, %d), (%d:%d, %d:%d, %d), %d",
-              i, rot[i].t, i+1, rot[i+1].t, rot[i+1].t-deriv_dt/2,
-              i+1, rot[i+1].t, i+2, rot[i+2].t, rot[i+1].t+deriv_dt/2, deriv_dt );*/
     }
     else
     { // extrapolate then
       nk[1].p = getAngularVelocity(interp_seg(rot[i], rot[i + 1], rot[i + 1].t - deriv_dt / 2),
         interp_seg(rot[i], rot[i + 1], rot[i + 1].t + deriv_dt / 2), deriv_dt);
-      /*debug ( "nk1: (%d:%d, %d:%d, %d), (%d:%d, %d:%d, %d), %d",
-              i, rot[i].t, i+1, rot[i+1].t, rot[i+1].t-deriv_dt/2,
-              i, rot[i].t, i+1, rot[i+1].t, rot[i+1].t+deriv_dt/2, deriv_dt );*/
     }
 
     temp_t = (rot[i].t * 2 + rot[i + 1].t * 1) / 3;
@@ -886,89 +784,10 @@ bool get_node_vel(Tab<AnimKeyPoint3> &lin_vel, Tab<AnimKeyPoint3> &ang_vel, Tab<
     ang_vel[i].k1 = (nk[0].o - nk[0].p) * 3;
     ang_vel[i].k2 = (nk[0].p + nk[1].i - nk[0].o * 2) * 3;
     ang_vel[i].k3 = (nk[0].o - nk[1].i) * 3 + nk[1].p - nk[0].p;
-
-    /*
-        debug ( "%3d: time=%5d  ang_vel[i].p=%.7f,%.7f,%.7f ang_vel[i].k1=%.7f,%.7f,%.7f ang_vel[i].k2=%.7f,%.7f,%.7f
-       ang_vel[i].k3=%.7f,%.7f,%.7f", i, ang_vel_t[i], ang_vel[i].p.x, ang_vel[i].p.y, ang_vel[i].p.z, ang_vel[i].k1.x,
-       ang_vel[i].k1.y, ang_vel[i].k1.z, ang_vel[i].k2.x, ang_vel[i].k2.y, ang_vel[i].k2.z, ang_vel[i].k3.x, ang_vel[i].k3.y,
-       ang_vel[i].k3.z );
-    */
   }
 
-  /*
-    float sumrot = 0;
-    for ( i = 0; i < rot.Count()-1; i ++ ) {
-      const int dt = ang_vel_t[i+1]-ang_vel_t[i];
-      float step_x = 48.0 / dt;
-      for ( float px = 0.0; px < 1.0; px += step_x ) {
-        float vel_y = ((ang_vel[i].k3.y*px+ang_vel[i].k2.y)*px+ang_vel[i].k1.y)*px+ang_vel[i].p.y;
-        vel_y *= dt;
-        sumrot += vel_y * step_x;
-        debug ( "fr %d: vel=%.8f  sum=%.8f", int(ang_vel_t[i]+dt*px)/160, vel_y, sumrot*180/PI );
-      }
-    }
-    debug ( "approx. rot: %.7f", sumrot );
-  */
 
   ip->ProgressEnd();
 
   return true;
-}
-
-static void debug_rot_diff(const char *nodename, const Tab<RotKey> &pos, const Tab<Quat> &temp_pos, float thres)
-{
-  int i, j;
-
-  debug("node <%s> rot points (thres=%.5f):", nodename, thres);
-  for (i = 0; i < ktime.Count() - 1; ++i)
-  {
-    Quat p = Quat(-10000.0f, -10000.0f, -10000.0f, -10000.0f), dp;
-    if (ktime[i] <= pos[0].t)
-      p = pos[0].p;
-    else if (ktime[i] >= pos[pos.Count() - 1].t)
-      p = pos[pos.Count() - 1].p;
-    else
-      for (j = 0; j < pos.Count() - 1; j++)
-        if (pos[j].t <= ktime[i] && ktime[i] < pos[j + 1].t)
-        {
-          p = interp_seg(pos[j], pos[j + 1], ktime[i]);
-          break;
-        }
-
-    dp = p - temp_pos[i];
-    if (!rot_equal(p, temp_pos[i], thres))
-      debug("!!! %5d: dp=(%8.5f, %8.5f, %8.5f, %8.5f) p=(%9.5f, %9.5f, %9.5f, %9.5f)", ktime[i], dp.x, dp.y, dp.z, dp.w, p.x, p.y, p.z,
-        p.w);
-    // else
-    //   debug ( "    %5d:  p=(%9.5f, %9.5f, %9.5f, %9.5f)", ktime[i], p.x, p.y, p.z, p.w );
-  }
-}
-static void debug_pos_diff(const char *nodename, const Tab<PosKey> &pos, const Tab<Point3> &temp_pos, float thres)
-{
-  return;
-
-  int i, j;
-
-  debug("node <%s> pos points (thres=%.5f):", nodename, thres);
-  for (i = 0; i < ktime.Count() - 1; ++i)
-  {
-    Point3 p = Point3(-10000, -10000, -10000), dp;
-    if (ktime[i] <= pos[0].t)
-      p = pos[0].p;
-    else if (ktime[i] >= pos[pos.Count() - 1].t)
-      p = pos[pos.Count() - 1].p;
-    else
-      for (j = 0; j < pos.Count() - 1; j++)
-        if (pos[j].t <= ktime[i] && ktime[i] < pos[j + 1].t)
-        {
-          p = interp_seg(pos[j], pos[j + 1], ktime[i]);
-          break;
-        }
-
-    dp = p - temp_pos[i];
-    if (dp.x * dp.x + dp.y * dp.y + dp.z * dp.z > thres * thres)
-      debug("!!! %5d: dp=(%8.5f, %8.5f, %8.5f) p=(%9.5f, %9.5f, %9.5f)", ktime[i], dp.x, dp.y, dp.z, p.x, p.y, p.z);
-    else
-      debug("    %5d:  p=(%9.5f, %9.5f, %9.5f)", ktime[i], p.x, p.y, p.z);
-  }
 }

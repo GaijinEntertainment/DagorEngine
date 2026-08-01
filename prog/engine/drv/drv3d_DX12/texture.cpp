@@ -760,7 +760,7 @@ void BaseTex::fillLockedLevelInfo(int level, uint64_t offset)
 {
   auto subResInfo = calculate_texture_mip_info(*image, MipMapIndex::make(level));
   lockMsr.rowPitch = subResInfo.footprint.RowPitch;
-  lockMsr.slicePitch = subResInfo.footprint.RowPitch * subResInfo.rowCount;
+  lockMsr.slicePitch = uint64_t{subResInfo.footprint.RowPitch} * subResInfo.rowCount;
   lockMsr.memSize = lockMsr.slicePitch;
   lockMsr.ptr = stagingMemory.cpuPointer() + offset;
 }
@@ -863,6 +863,7 @@ void BaseTex::setParams(int w, int h, int d, int levels, const char *stat_name)
   D3D_CONTRACT_ASSERT(levels > 0);
   D3D_CONTRACT_ASSERTF((1 << (levels - 1)) <= max(w, h),
     "DX12: Mip levels are too high for texture size. Levels: %d, Size: %dx%d. Texture %s", levels, w, h, stat_name);
+  check_texture_srgb_format(cflg, stat_name);
   fmt = FormatStore::fromCreateFlags(cflg);
   mipLevels = levels;
   width = w;
@@ -924,6 +925,7 @@ bool BaseTex::updateTexResFormat(unsigned d3d_format)
   if (!isStub())
     return cflg == implant_d3dformat(cflg, d3d_format);
   cflg = implant_d3dformat(cflg, d3d_format);
+  check_texture_srgb_format(cflg, getTexName());
   fmt = FormatStore::fromCreateFlags(cflg);
   return true;
 }
@@ -965,6 +967,7 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     eastl::swap(width, other->width);
     eastl::swap(height, other->height);
     eastl::swap(depth, other->depth);
+    eastl::swap(cflg, other->cflg);
     eastl::swap(mipLevels, other->mipLevels);
     eastl::swap(minMipLevel, other->minMipLevel);
     eastl::swap(maxMipLevel, other->maxMipLevel);
@@ -2025,8 +2028,11 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
     }
     *data = lockMsr.ptr = stagingMemory.cpuPointer();
     row_pitch = lockMsr.rowPitch = subResInfo.footprint.RowPitch;
-    slice_pitch = lockMsr.slicePitch = subResInfo.footprint.RowPitch * subResInfo.rowCount;
-    lockMsr.memSize = static_cast<uint32_t>(subResInfo.totalByteSize);
+    lockMsr.slicePitch = uint64_t{subResInfo.footprint.RowPitch} * subResInfo.rowCount;
+    G_ASSERTF_RETURN(lockMsr.slicePitch <= eastl::numeric_limits<int>::max(), 0,
+      "DX12: Compute slice pitch of %llu exceeds signed int bit storage of slice_pitch", lockMsr.slicePitch);
+    slice_pitch = static_cast<int>(lockMsr.slicePitch);
+    lockMsr.memSize = subResInfo.totalByteSize;
     return 1;
   }
   else
@@ -2108,9 +2114,14 @@ uint32_t BaseTex::getSize() const
     return 0;
 
   Extent3D ext{width, height, type == D3DResourceType::VOLTEX ? depth : 1u};
-  return static_cast<int>(
+  auto sizeValue =
     calculate_texture_staging_buffer_size(ext, MipMapCount::make(mipLevels), fmt, SubresourceRange::make(0, mipLevels)) *
-    getArrayCount().count());
+    getArrayCount().count();
+
+  G_ASSERTF_RETURN(sizeValue <= eastl::numeric_limits<uint32_t>::max(), eastl::numeric_limits<uint32_t>::max(),
+    "DX12: Calculated sizes of %llu exceeds limit of 32 bits", sizeValue);
+
+  return static_cast<uint32_t>(sizeValue);
 }
 
 int BaseTex::getinfo(TextureInfo &ti, int level) const

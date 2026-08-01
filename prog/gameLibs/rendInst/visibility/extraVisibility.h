@@ -73,4 +73,31 @@ struct RiGenExtraVisibility
     uint16_t lod;
   };
   SmallTab<DynamicRiExtraInstances> dynamicRiExtraInstances;
+
+  // release buffer capacity retained from the last prepare; the object stays valid
+  // and all buffers are regrown by the next prepare
+  void shrink()
+  {
+    clear_and_shrink(largeTempData);
+    for (auto &l : riexLarge)
+      clear_and_shrink(l);
+    for (auto &d : riexData)
+      clear_and_shrink(d);
+    for (auto &d : minSqDistances)
+      clear_and_shrink(d);
+    for (auto &d : approxInvDensities)
+      clear_and_shrink(d);
+    for (auto &v : vbOffsets)
+      clear_and_shrink(v);
+    for (auto &v : vbCounts)
+      clear_and_shrink(v);
+    clear_and_shrink(riexPoolOrder);
+    clear_and_shrink(sortedTransparentElems);
+    clear_and_shrink(hideMarkedMaterialsForInstances);
+    clear_and_shrink(dynamicRiExtraInstances);
+    vbExtraGeneration = INVALID_VB_EXTRA_GEN; // stale vb offsets must not be reused
+    riExLodNotEmpty = 0;
+    riexInstCount = 0;
+    partitionedElemsCount = 0;
+  }
 };

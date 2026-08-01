@@ -39,5 +39,8 @@ incDir:t="../../../prog/3rdPartyLibs/nvapi"
     "@delete:water_refraction_tex":i=1
     bvh_decals:i=0
     rtr_use_specular_occlusion:i=1
+    bvh_use_group_gpu_foliage:i=1
+    bvh_use_group_water:i=1
+    bvh_use_group_camo_net:i=0
   }
 }

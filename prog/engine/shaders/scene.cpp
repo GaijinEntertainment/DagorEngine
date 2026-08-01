@@ -456,6 +456,8 @@ void RenderScene::foreachElem(ElemCallback &callback) const
 
   for (int i = optScn.getMatStartIdx(ShaderMesh::STG_opaque); i < optScn.getMatEndIdx(ShaderMesh::STG_atest); i++)
   {
+    if (!optScn.mats[i].e) // make_elem() may fail for a material, same as in render paths
+      continue;
     ScriptedShaderElement &material = optScn.mats[i].e->native();
     for (int ei = optScn.mats[i].se; ei < optScn.mats[i].ee; ++ei)
     {

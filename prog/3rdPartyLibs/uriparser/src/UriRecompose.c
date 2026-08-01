@@ -66,6 +66,9 @@
 # include "UriCommon.h"
 #endif
 
+#include <limits.h> /* for INT_MAX */
+#include <stdint.h> /* for SIZE_MAX */
+
 
 
 static int URI_FUNC(ToStringEngine)(URI_CHAR * dest, const URI_TYPE(Uri) * uri,
@@ -116,13 +119,17 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 	/* [02/19]	if defined(scheme) then */
 				if (uri->scheme.first != NULL) {
 	/* [03/19]		append scheme to result; */
-					const int charsToWrite
-							= (int)(uri->scheme.afterLast - uri->scheme.first);
+					const size_t charsToWrite
+							= uri->scheme.afterLast - uri->scheme.first;
 					if (dest != NULL) {
-						if (written + charsToWrite <= maxChars) {
+						/* Detect and avoid integer overflow */
+						if (charsToWrite > (size_t)INT_MAX - written) {
+							return URI_ERROR_TOSTRING_TOO_LONG;
+						}
+						if (written + charsToWrite <= (size_t)maxChars) {
 							memcpy(dest + written, uri->scheme.first,
 									charsToWrite * sizeof(URI_CHAR));
-							written += charsToWrite;
+							written += (int)charsToWrite;
 						} else {
 							dest[0] = _UT('\0');
 							if (charsWritten != NULL) {
@@ -131,7 +138,11 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 							return URI_ERROR_TOSTRING_TOO_LONG;
 						}
 					} else {
-						(*charsRequired) += charsToWrite;
+						/* Detect and avoid integer overflow */
+						if (charsToWrite > (size_t)INT_MAX - *charsRequired) {
+							return URI_ERROR_TOSTRING_TOO_LONG;
+						}
+						(*charsRequired) += (int)charsToWrite;
 					}
 	/* [04/19]		append ":" to result; */
 					if (dest != NULL) {
@@ -147,6 +158,10 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 							return URI_ERROR_TOSTRING_TOO_LONG;
 						}
 					} else {
+						/* Detect and avoid integer overflow */
+						if (1 > (size_t)INT_MAX - *charsRequired) {
+							return URI_ERROR_TOSTRING_TOO_LONG;
+						}
 						(*charsRequired) += 1;
 					}
 	/* [05/19]	endif; */
@@ -167,17 +182,25 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 							return URI_ERROR_TOSTRING_TOO_LONG;
 						}
 					} else {
+						/* Detect and avoid integer overflow */
+						if (2 > (size_t)INT_MAX - *charsRequired) {
+							return URI_ERROR_TOSTRING_TOO_LONG;
+						}
 						(*charsRequired) += 2;
 					}
 	/* [08/19]		append authority to result; */
 					/* UserInfo */
 					if (uri->userInfo.first != NULL) {
-						const int charsToWrite = (int)(uri->userInfo.afterLast - uri->userInfo.first);
+						const size_t charsToWrite = uri->userInfo.afterLast - uri->userInfo.first;
 						if (dest != NULL) {
-							if (written + charsToWrite <= maxChars) {
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - written) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							if (written + charsToWrite <= (size_t)maxChars) {
 								memcpy(dest + written, uri->userInfo.first,
 										charsToWrite * sizeof(URI_CHAR));
-								written += charsToWrite;
+								written += (int)charsToWrite;
 							} else {
 								dest[0] = _UT('\0');
 								if (charsWritten != NULL) {
@@ -198,7 +221,12 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
-							(*charsRequired) += charsToWrite + 1;
+							/* Detect and avoid integer overflow */
+							if ((charsToWrite > (size_t)INT_MAX - 1)
+									|| (charsToWrite + 1 > (size_t)INT_MAX - *charsRequired)) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							(*charsRequired) += (int)charsToWrite + 1;
 						}
 					}
 
@@ -246,7 +274,14 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 									}
 								}
 							} else {
-								(*charsRequired) += charsToWrite + ((i == 3) ? 0 : 1);
+								const int extra = (i == 3) ? 0 : 1;
+
+								/* Detect and avoid integer overflow */
+								if ((charsToWrite > INT_MAX - extra)
+										|| (charsToWrite + extra > INT_MAX - *charsRequired)) {
+									return URI_ERROR_TOSTRING_TOO_LONG;
+								}
+								(*charsRequired) += charsToWrite + extra;
 							}
 						}
 					} else if (uri->hostData.ip6 != NULL) {
@@ -265,6 +300,10 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
+							/* Detect and avoid integer overflow */
+							if (1 > (size_t)INT_MAX - *charsRequired) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
 							(*charsRequired) += 1;
 						}
 
@@ -286,6 +325,10 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 									return URI_ERROR_TOSTRING_TOO_LONG;
 								}
 							} else {
+								/* Detect and avoid integer overflow */
+								if (2 > (size_t)INT_MAX - *charsRequired) {
+									return URI_ERROR_TOSTRING_TOO_LONG;
+								}
 								(*charsRequired) += 2;
 							}
 							if (((i & 1) == 1) && (i < 15)) {
@@ -302,6 +345,10 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 										return URI_ERROR_TOSTRING_TOO_LONG;
 									}
 								} else {
+									/* Detect and avoid integer overflow */
+									if (1 > (size_t)INT_MAX - *charsRequired) {
+										return URI_ERROR_TOSTRING_TOO_LONG;
+									}
 									(*charsRequired) += 1;
 								}
 							}
@@ -320,12 +367,16 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
+							/* Detect and avoid integer overflow */
+							if (1 > (size_t)INT_MAX - *charsRequired) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
 							(*charsRequired) += 1;
 						}
 					} else if (uri->hostData.ipFuture.first != NULL) {
 						/* IPvFuture */
-						const int charsToWrite = (int)(uri->hostData.ipFuture.afterLast
-								- uri->hostData.ipFuture.first);
+						const size_t charsToWrite = uri->hostData.ipFuture.afterLast
+								- uri->hostData.ipFuture.first;
 						if (dest != NULL) {
 							if (written + 1 <= maxChars) {
 								memcpy(dest + written, _UT("["),
@@ -339,9 +390,13 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 
-							if (written + charsToWrite <= maxChars) {
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - written) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							if (written + charsToWrite <= (size_t)maxChars) {
 								memcpy(dest + written, uri->hostData.ipFuture.first, charsToWrite * sizeof(URI_CHAR));
-								written += charsToWrite;
+								written += (int)charsToWrite;
 							} else {
 								dest[0] = _UT('\0');
 								if (charsWritten != NULL) {
@@ -362,16 +417,25 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
-							(*charsRequired) += 1 + charsToWrite + 1;
+							/* Detect and avoid integer overflow */
+							if ((charsToWrite > (size_t)INT_MAX - 1 - 1)
+									|| (1 + charsToWrite + 1 > (size_t)INT_MAX - *charsRequired)) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							(*charsRequired) += 1 + (int)charsToWrite + 1;
 						}
 					} else if (uri->hostText.first != NULL) {
 						/* Regname */
-						const int charsToWrite = (int)(uri->hostText.afterLast - uri->hostText.first);
+						const size_t charsToWrite = uri->hostText.afterLast - uri->hostText.first;
 						if (dest != NULL) {
-							if (written + charsToWrite <= maxChars) {
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - written) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							if (written + charsToWrite <= (size_t)maxChars) {
 								memcpy(dest + written, uri->hostText.first,
 										charsToWrite * sizeof(URI_CHAR));
-								written += charsToWrite;
+								written += (int)charsToWrite;
 							} else {
 								dest[0] = _UT('\0');
 								if (charsWritten != NULL) {
@@ -380,13 +444,17 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
-							(*charsRequired) += charsToWrite;
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - *charsRequired) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							(*charsRequired) += (int)charsToWrite;
 						}
 					}
 
 					/* Port */
 					if (uri->portText.first != NULL) {
-						const int charsToWrite = (int)(uri->portText.afterLast - uri->portText.first);
+						const size_t charsToWrite = uri->portText.afterLast - uri->portText.first;
 						if (dest != NULL) {
 							/* Leading ':' */
 							if (written + 1 <= maxChars) {
@@ -401,11 +469,15 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - written) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
 							/* Port number */
-							if (written + charsToWrite <= maxChars) {
+							if (written + charsToWrite <= (size_t)maxChars) {
 								memcpy(dest + written, uri->portText.first,
 										charsToWrite * sizeof(URI_CHAR));
-								written += charsToWrite;
+								written += (int)charsToWrite;
 							} else {
 								dest[0] = _UT('\0');
 								if (charsWritten != NULL) {
@@ -414,7 +486,12 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
-							(*charsRequired) += 1 + charsToWrite;
+							/* Detect and avoid integer overflow */
+							if ((charsToWrite > (size_t)INT_MAX - 1)
+									|| (1 + charsToWrite > (size_t)INT_MAX - *charsRequired)) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							(*charsRequired) += 1 + (int)charsToWrite;
 						}
 					}
 	/* [09/19]	endif; */
@@ -436,6 +513,10 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 							return URI_ERROR_TOSTRING_TOO_LONG;
 						}
 					} else {
+						/* Detect and avoid integer overflow */
+						if (1 > (size_t)INT_MAX - *charsRequired) {
+							return URI_ERROR_TOSTRING_TOO_LONG;
+						}
 						(*charsRequired) += 1;
 					}
 				}
@@ -443,12 +524,16 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 				if (uri->pathHead != NULL) {
 					URI_TYPE(PathSegment) * walker = uri->pathHead;
 					do {
-						const int charsToWrite = (int)(walker->text.afterLast - walker->text.first);
+						const size_t charsToWrite = walker->text.afterLast - walker->text.first;
 						if (dest != NULL) {
-							if (written + charsToWrite <= maxChars) {
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - written) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							if (written + charsToWrite <= (size_t)maxChars) {
 								memcpy(dest + written, walker->text.first,
 										charsToWrite * sizeof(URI_CHAR));
-								written += charsToWrite;
+								written += (int)charsToWrite;
 							} else {
 								dest[0] = _UT('\0');
 								if (charsWritten != NULL) {
@@ -457,7 +542,11 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
-							(*charsRequired) += charsToWrite;
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - *charsRequired) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							(*charsRequired) += (int)charsToWrite;
 						}
 
 						/* Not last segment -> append slash */
@@ -475,6 +564,10 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 									return URI_ERROR_TOSTRING_TOO_LONG;
 								}
 							} else {
+								/* Detect and avoid integer overflow */
+								if (1 > (size_t)INT_MAX - *charsRequired) {
+									return URI_ERROR_TOSTRING_TOO_LONG;
+								}
 								(*charsRequired) += 1;
 							}
 						}
@@ -498,17 +591,25 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 							return URI_ERROR_TOSTRING_TOO_LONG;
 						}
 					} else {
+						/* Detect and avoid integer overflow */
+						if (1 > (size_t)INT_MAX - *charsRequired) {
+							return URI_ERROR_TOSTRING_TOO_LONG;
+						}
 						(*charsRequired) += 1;
 					}
 	/* [13/19]		append query to result; */
 					{
-						const int charsToWrite
-								= (int)(uri->query.afterLast - uri->query.first);
+						const size_t charsToWrite
+								= uri->query.afterLast - uri->query.first;
 						if (dest != NULL) {
-							if (written + charsToWrite <= maxChars) {
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - written) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							if (written + charsToWrite <= (size_t)maxChars) {
 								memcpy(dest + written, uri->query.first,
 										charsToWrite * sizeof(URI_CHAR));
-								written += charsToWrite;
+								written += (int)charsToWrite;
 							} else {
 								dest[0] = _UT('\0');
 								if (charsWritten != NULL) {
@@ -517,7 +618,11 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
-							(*charsRequired) += charsToWrite;
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - *charsRequired) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							(*charsRequired) += (int)charsToWrite;
 						}
 					}
 	/* [14/19]	endif; */
@@ -538,17 +643,25 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 							return URI_ERROR_TOSTRING_TOO_LONG;
 						}
 					} else {
+						/* Detect and avoid integer overflow */
+						if (1 > (size_t)INT_MAX - *charsRequired) {
+							return URI_ERROR_TOSTRING_TOO_LONG;
+						}
 						(*charsRequired) += 1;
 					}
 	/* [17/19]		append fragment to result; */
 					{
-						const int charsToWrite
-								= (int)(uri->fragment.afterLast - uri->fragment.first);
+						const size_t charsToWrite
+								= uri->fragment.afterLast - uri->fragment.first;
 						if (dest != NULL) {
-							if (written + charsToWrite <= maxChars) {
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - written) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							if (written + charsToWrite <= (size_t)maxChars) {
 								memcpy(dest + written, uri->fragment.first,
 										charsToWrite * sizeof(URI_CHAR));
-								written += charsToWrite;
+								written += (int)charsToWrite;
 							} else {
 								dest[0] = _UT('\0');
 								if (charsWritten != NULL) {
@@ -557,7 +670,11 @@ static URI_INLINE int URI_FUNC(ToStringEngine)(URI_CHAR * dest,
 								return URI_ERROR_TOSTRING_TOO_LONG;
 							}
 						} else {
-							(*charsRequired) += charsToWrite;
+							/* Detect and avoid integer overflow */
+							if (charsToWrite > (size_t)INT_MAX - *charsRequired) {
+								return URI_ERROR_TOSTRING_TOO_LONG;
+							}
+							(*charsRequired) += (int)charsToWrite;
 						}
 					}
 	/* [18/19]	endif; */

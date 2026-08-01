@@ -30,7 +30,6 @@ function textarea(txt, params={}) {
   return {
     rendObj = ROBJ_TEXTAREA
     color = Color(198,198,128)
-    textOverflowX = TOVERFLOW_CLIP
     textOverflowY = TOVERFLOW_LINE
     text = txt
     behavior = Behaviors.TextArea
@@ -46,10 +45,7 @@ function textAreaContainer(txt, params={}) {
   let ta = {
     rendObj = ROBJ_TEXTAREA
     textOverflowY = TOVERFLOW_LINE
-    textOverflowX = TOVERFLOW_CHAR
     halign = ALIGN_LEFT
-    ellipsis = true
-    ellipsisSepLine = true
     text = txt
     behavior = [Behaviors.TextArea, Behaviors.WheelScroll]
     size = flex()
@@ -127,7 +123,7 @@ return {
         }
         sText("Scrollable by wheel text area with split by line")
         {rendObj = ROBJ_FRAME size = const [hdpx(707),hdpx(90)] padding=hdpx(5)
-           children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] textOverflowY = TOVERFLOW_CLIP ellipsis = true textOverflowX= TOVERFLOW_CHAR }
+           children = { size = flex() rendObj = ROBJ_TEXTAREA text = text behavior = [Behaviors.TextArea, Behaviors.WheelScroll] textOverflowY = TOVERFLOW_CLIP }
         }
         sText("Resizable and Scrollable by wheel text area with split by line")
         textAreaContainer(text)
@@ -145,8 +141,7 @@ return {
           - halign = ALIGN_TOP(default) | ALIGN_RIGHT | ALIGN_CENTER
           - valign = ALIGN_TOP(default) | ALIGN_BOTTOM | ALIGN_CENTER
           - textOverflowY = TOVERFLOW_LINE | TOVERFLOW_CLIP //truncate text by lines on vertical overflow or just clip text
-          - textOverflowX = TOVERFLOW_CHAR (not working!) | TOVERFLOW_CLIP | TOVERFLOW_WORD //truncate lines on horizontal overflow by words, chars or just in any place
-          - ellipsis = true //show ellipsis if text is truncated
+          - ellipsis: shown by default on truncation; hide with preformatted = FMT_HIDE_ELLIPSIS
           - lineSpacing // extra spacing between lines
           - parSpacing  //spacing between paragraphs
           - indent //indent on new lines
@@ -155,7 +150,6 @@ return {
           - monoWidth //monowidth output. can be character or size monWidth='W' or monowidth=20
 
           <color=#ff5555>known issues </color>:
-          - textOverflowX - not working
           - textOverflowY - works only as TOVERFLOW_LINES
 
           "

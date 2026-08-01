@@ -24,7 +24,7 @@ if $(KernelLinkage) = static { _DEF_COM_CMDLINE += -D_TARGET_STATIC_LIB ; }
 if $(PlatformArch) = e2k { _DEF_COM_CMDLINE += -D_XM_NO_INTRINSICS_ -w2620 -w2189 -w826 -Wno-unused-parameter ; }
 
 local _DEF_C_CMDLINE = -std=c99 ;
-local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -fconserve-space -Wno-invalid-offsetof ;
+local _DEF_CPP_CMDLINE = -std=c++$(CPPStd) -fconserve-space -Wno-invalid-offsetof -fvisibility-inlines-hidden ;
 
 _LINK         = g++ -pipe -m$(MAbi) -isysroot /usr/include ;
 _LINK_DLL     = g++ -pipe -m$(MAbi) -isysroot /usr/include -shared ;

@@ -364,7 +364,7 @@ void RayTriangle2_SoA(
   float2 pz = dir.x * e2y - dir.y * e2x;
   float2 det = e1x * px + e1y * py + e1z * pz;
   uint2 detSignMask = asuint(det) & 0x80000000u;
-  float2 absDet = asfloat(asuint(det) ^ detSignMask);
+  float2 absDet = abs(det);
 #if BACKFACE_CULLING
   // Match scalar's `det < -kEpsilon`: reject only strong backfaces. Front-facing 0 <= det < kEpsilon
   // hits must still be considered; bary tolerance below filters near-degenerate naturally.
@@ -421,7 +421,7 @@ bool RayTriangle2_SoA_AnyHit(
   float2 pz = dir.x * e2y - dir.y * e2x;
   float2 det = e1x * px + e1y * py + e1z * pz;
   uint2 detSignMask = asuint(det) & 0x80000000u;
-  float2 absDet = asfloat(asuint(det) ^ detSignMask);
+  float2 absDet  = abs(det);                       // bit-clear, independent of signDet
   float2 sx = orig.x - v0x, sy = orig.y - v0y, sz = orig.z - v0z;
   float2 u = asfloat(asuint(sx * px + sy * py + sz * pz) ^ detSignMask);
   float2 qx = sy * e1z - sz * e1y;
@@ -432,6 +432,77 @@ bool RayTriangle2_SoA_AnyHit(
   bool2 degenerate = absDet < 1.0e-37f;
   bool2 noHit = degenerate | (u < 0) | (v < 0) | ((u + v) > absDet) | (t < 0);
   return !noHit.x || !noHit.y;
+}
+
+// 4-wide SoA closest-hit, sized for a whole double-quad leaf (4 sub-triangles: quad A tri 0/1,
+// quad B tri 0/1). Returns 4 hit distances (+inf = miss or >= tMax). No u/v output on purpose:
+// closest-hit traversal only needs the distance to pick the winning lane, and bary/normal are
+// recovered by a single refetch on that lane (see rayBLAS). Dropping the per-lane u/v keeps the
+// live-register count down -- the reason the 2-wide SoA closest path previously lost to scalar.
+// Cull / degeneracy / edge-tolerance contract matches RayTriangle2_SoA.
+float4 RayTriangle4_SoA(
+    float3 orig, float3 dir, float tMax,
+    float4 v0x, float4 v0y, float4 v0z,
+    float4 v1x, float4 v1y, float4 v1z,
+    float4 v2x, float4 v2y, float4 v2z)
+{
+  float4 e1x = v1x - v0x, e1y = v1y - v0y, e1z = v1z - v0z;
+  float4 e2x = v2x - v0x, e2y = v2y - v0y, e2z = v2z - v0z;
+  float4 px = dir.y * e2z - dir.z * e2y;
+  float4 py = dir.z * e2x - dir.x * e2z;
+  float4 pz = dir.x * e2y - dir.y * e2x;
+  float4 det = e1x * px + e1y * py + e1z * pz;
+  uint4 detSignMask = asuint(det) & 0x80000000u;
+  float4 absDet = abs(det);
+#if BACKFACE_CULLING
+  bool4 cullReject = det < -kEpsilon;
+#else
+  bool4 cullReject = bool4(false, false, false, false);
+#endif
+  bool4 degenerate = absDet < 1.0e-37f;
+  float4 detSafe = select(degenerate, 1.0f, absDet);
+  float4 sx = orig.x - v0x, sy = orig.y - v0y, sz = orig.z - v0z;
+  float4 u = asfloat(asuint(sx * px + sy * py + sz * pz) ^ detSignMask);
+  float4 qx = sy * e1z - sz * e1y;
+  float4 qy = sz * e1x - sx * e1z;
+  float4 qz = sx * e1y - sy * e1x;
+  float4 v = asfloat(asuint(dir.x * qx + dir.y * qy + dir.z * qz) ^ detSignMask);
+  float4 t = asfloat(asuint(e2x * qx + e2y * qy + e2z * qz) ^ detSignMask);
+  float4 epsAbsDet = absDet * TRACE_EPSILON;
+  bool4 noHit = cullReject | degenerate |
+                (u < -epsAbsDet) | (v < -epsAbsDet) | ((u + v) > absDet + 2.0f * epsAbsDet) | (t < 0);
+  float4 tDist = t * rcp(detSafe);
+  return select(noHit | (tDist >= tMax), asfloat(0x7F800000u), tDist); // +inf for misses / beyond tMax
+}
+
+// 4-wide any-hit (shadow) over a whole double-quad leaf. Lean variant matching RayTriangle2_SoA_AnyHit:
+// no division, no edge-tolerance band. Degenerate lanes (single quad / single tri / absent quad B
+// collapse to zero area) are rejected by the absDet < 1e-37 guard.
+bool RayTriangle4_SoA_AnyHit(
+    float3 orig, float3 dir,
+    float4 v0x, float4 v0y, float4 v0z,
+    float4 v1x, float4 v1y, float4 v1z,
+    float4 v2x, float4 v2y, float4 v2z)
+{
+  float4 e1x = v1x - v0x, e1y = v1y - v0y, e1z = v1z - v0z;
+  float4 e2x = v2x - v0x, e2y = v2y - v0y, e2z = v2z - v0z;
+  float4 px = dir.y * e2z - dir.z * e2y;
+  float4 py = dir.z * e2x - dir.x * e2z;
+  float4 pz = dir.x * e2y - dir.y * e2x;
+  float4 det = e1x * px + e1y * py + e1z * pz;
+  uint4 detSignMask = asuint(det) & 0x80000000u;
+  float4 absDet  = abs(det);                       // bit-clear, independent of signDet
+  float4 sx = orig.x - v0x, sy = orig.y - v0y, sz = orig.z - v0z;
+  float4 u = asfloat(asuint(sx * px + sy * py + sz * pz) ^ detSignMask);
+  float4 qx = sy * e1z - sz * e1y;
+  float4 qy = sz * e1x - sx * e1z;
+  float4 qz = sx * e1y - sy * e1x;
+  float4 v = asfloat(asuint(dir.x * qx + dir.y * qy + dir.z * qz) ^ detSignMask);
+  float4 t = asfloat(asuint(e2x * qx + e2y * qy + e2z * qz) ^ detSignMask);
+
+  bool4 degenerate = absDet < 1.0e-37f;
+  bool4 noHit = degenerate | (u < 0) | (v < 0) | ((u + v) > absDet) | (t < 0);
+  return any(!noHit);
 }
 
 bool RayTriangleIntersectShadow(

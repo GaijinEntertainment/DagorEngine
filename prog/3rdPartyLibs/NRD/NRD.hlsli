@@ -195,10 +195,10 @@ NOISY INPUTS:
 
     #define numthreads                                                                  NUM_THREADS
     #define groupshared                                                                 thread_group_memory
-    #define SV_GroupId                                                                  S_GROUP_ID
+    #define SV_GroupID                                                                  S_GROUP_ID
     #define SV_GroupIndex                                                               S_GROUP_INDEX
-    #define SV_GroupThreadId                                                            S_GROUP_THREAD_ID
-    #define SV_DispatchThreadId                                                         S_DISPATCH_THREAD_ID
+    #define SV_GroupThreadID                                                            S_GROUP_THREAD_ID
+    #define SV_DispatchThreadID                                                         S_DISPATCH_THREAD_ID
     #define GroupMemoryBarrierWithGroupSync                                             ThreadGroupMemoryBarrierSync
     #define GroupMemoryBarrier                                                          ThreadGroupMemoryBarrier
     #define RWTexture2D                                                                 RW_Texture2D
@@ -265,6 +265,16 @@ NOISY INPUTS:
 
     #pragma warning( disable: 3577 ) // value cannot be NaN, isnan() may not be necessary. /Gis may force isnan() to be performed
 
+#endif
+
+// Wave intrinsics
+// ( Optional ) used only to enhance image quality
+#ifndef NRD_SUPPORTS_WAVE_INTRINSICS
+    #if( defined( NRD_COMPILER_DXC ) || defined( NRD_COMPILER_PSSLC ) || defined( NRD_COMPILER_UNREAL_ENGINE ) )
+        #define NRD_SUPPORTS_WAVE_INTRINSICS 1
+    #else
+        #define NRD_SUPPORTS_WAVE_INTRINSICS 0
+    #endif
 #endif
 
 //=================================================================================================================================
@@ -770,16 +780,12 @@ void NRD_FrontEnd_SpecHitDistAveraging_End( inout float accumulatedSpecHitDist )
 
 // FRONT-END
 
-// This function returns AO / SO which REBLUR can decode back to "hit distance" internally.
-// Use this function only if a diffuse or specular lobe was not skipped due to probabilistic selection
+// Normalized hit distance for REBLUR, which can be decoded back to "units" internally
 float REBLUR_FrontEnd_GetNormHitDist( float hitDist, float viewZ, float3 hitDistParams, float roughness )
 {
     float f = _REBLUR_GetHitDistanceNormalization( viewZ, hitDistParams, roughness );
-    hitDist = saturate( hitDist / f );
 
-    // "hitDist = 0" means "no data", i.e. the lobe is skipped due to probabilistic selection of diffuse or specular.
-    // But if this function is called, we assume that the lobe was not skipped, thus we need to avoid 0
-    return max( hitDist, NRD_EPS );
+    return saturate( hitDist / f );
 }
 
 // X => IN_DIFF_RADIANCE_HITDIST

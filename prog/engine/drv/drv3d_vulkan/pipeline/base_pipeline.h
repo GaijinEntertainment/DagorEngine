@@ -57,9 +57,16 @@ private:
     }
 
     activeRegisters = 0;
+    uint32_t activeStageCount = 0;
     for (size_t i = 0; i < ShaderConfig::count; ++i) // -V1008
       if (moduleHeaders.list[i].first)
+      {
         activeRegisters = i + 1;
+        ++activeStageCount;
+      }
+    // dynamic uniform buffers are a per pipeline layout total shared across its stages; split it by
+    // this layout's actual stage count so common 1-2 stage layouts keep most b slots dynamic
+    const uint32_t dynamicBSlots = Globals::cfg.dynamicUniformBufferSlotsForLayout(activeStageCount);
 
     shaderStages = 0;
     bindlessSetsUsed = 0;
@@ -78,7 +85,7 @@ private:
       if (moduleHeaders.list[i].first)
       {
         bindlessSetsUsed = max(header.header.bindlessSetsUsed, bindlessSetsUsed);
-        registers.list[i].init(header.hash, header.header, ShaderConfig::stages[i]);
+        registers.list[i].init(header.hash, header.header, ShaderConfig::stages[i], dynamicBSlots);
         shaderStages |= header.stage;
         if (header.header.pushConstantsCount)
         {
@@ -167,9 +174,20 @@ public:
       if (headers.list[i] && i >= activeRegisters)
         return false;
 
+    // match on the raw module identity: registers hold per-layout normalized headers, but the
+    // normalization is a deterministic function of this same module set, so raw identity is the key
     for (uint32_t i = 0; i < activeRegisters; ++i)
     {
-      if (!registers.list[i].matches(headers.list[i]))
+      const eastl::pair<bool, ShaderModuleHeader> &stored = moduleHeaders.list[i];
+      const ShaderModuleHeader *inc = headers.list[i];
+      if (!inc)
+      {
+        if (stored.first)
+          return false;
+        continue;
+      }
+      if (!stored.first || stored.second.hash != inc->hash ||
+          memcmp(&stored.second.header, &inc->header, sizeof(spirv::ShaderHeader)) != 0)
         return false;
     }
 

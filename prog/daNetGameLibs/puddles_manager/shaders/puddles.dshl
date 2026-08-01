@@ -2,10 +2,16 @@ float puddle_hardness = 10;
 float puddle_increase = 0;
 float4 world_to_puddles_ofs;
 float4 world_to_puddles_tex_ofs;
-float ri_puddle_min_normal_similarity = 0.995;
+float ri_puddle_slope_fade_start = 0.999;
+float ri_puddle_slope_fade_end = 1.0;
 float ri_puddle_depth_above_inaccuracy_threshold = -2;
 float puddle_waternormal_lerp_param = 0.5;
 float ri_puddle_porosity = 0.2;
+float ri_puddle_edge_hardness = 3;
+float ri_puddle_normal_step_size = 0.5;
+float ri_puddle_hardness = 10;
+float ri_puddle_depth_scale = 1;
+float ri_puddle_depth_add = 0;
 texture puddles;
 
 macro USE_PUDDLE_TEXTURE_ENCODER(stage)
@@ -33,9 +39,15 @@ macro INIT_PUDDLE_WITHOUT_TEX(stage)
     world_to_puddles_tex_ofs @f4 = (world_to_puddles_tex_ofs.x, world_to_puddles_tex_ofs.y, puddle_hardness, water_level);
     puddle_increase @f1 = (puddle_increase, 0,0,0);
     puddle_waternormal_lerp_param @f1 = puddle_waternormal_lerp_param;
-    ri_puddle_min_normal_similarity @f1 = ri_puddle_min_normal_similarity;
     ri_puddle_depth_above_inaccuracy_threshold @f1 = ri_puddle_depth_above_inaccuracy_threshold;
     ri_puddle_porosity @f1 = ri_puddle_porosity;
+    ri_puddle_slope_fade_start @f1 = ri_puddle_slope_fade_start;
+    ri_puddle_slope_fade_end @f1 = ri_puddle_slope_fade_end;
+    ri_puddle_edge_hardness @f1 = ri_puddle_edge_hardness;
+    ri_puddle_normal_step_size @f1 = ri_puddle_normal_step_size;
+    ri_puddle_hardness @f1 = ri_puddle_hardness;
+    ri_puddle_depth_scale @f1 = ri_puddle_depth_scale;
+    ri_puddle_depth_add @f1 = ri_puddle_depth_add;
   }
 endmacro
 
@@ -245,42 +257,52 @@ macro USE_RI_PUDDLES()
     // always defined if a variant of `USE_DEPTH_ABOVE` is used.
     // (Which includes get_depth_above_fast)
     #ifdef USE_DEPTH_ABOVE_SAMPLING
-    bool cull_away_puddles(float3 wpos, float delta)
+    bool cull_away_puddles(float3 wpos, float delta, out float depthAboveHt)
     {
       float depthVignette = 0;
-      return wpos.y < get_depth_above_precise(wpos, depthVignette) + delta;
+      depthAboveHt = get_depth_above_fast(wpos, depthVignette);
+      return wpos.y < depthAboveHt + delta;
     }
     #endif
 
     ##if in_editor_assume != yes
-      float getPuddleHeightRi(float hmapHeight, float2 puddleTc, out float onlyPuddleHeight)
+      float getPuddleHeightRi(float2 puddleTc)
       {
         float encodedPuddleHeight = tex2Dlod(puddles, float4(puddleTc, 0,0)).x;
         float read_puddle_val = decodePuddleHeight(0, encodedPuddleHeight);
 
-        onlyPuddleHeight = read_puddle_val + puddle_increase;
-        return hmapHeight + onlyPuddleHeight;
+        return read_puddle_val + puddle_increase;
+      }
+
+      void getPuddleDataRi(float3 worldPos, out float puddle, out float onlyPuddleHeight)
+      {
+        float vignetteEffect;
+        float2 puddleTc = getPuddleTC(worldPos, vignetteEffect);
+        onlyPuddleHeight = getPuddleHeightRi(puddleTc);
+        puddle = saturate(1+onlyPuddleHeight*ri_puddle_hardness);
+
+        // how far into the puddle we are
+        float inPuddle = saturate(onlyPuddleHeight*ri_puddle_hardness);
+        onlyPuddleHeight = onlyPuddleHeight*ri_puddle_depth_scale + ri_puddle_depth_add*inPuddle;
+      }
+    ##else
+      void getPuddleDataRi(float3 worldPos, out float puddle, out float onlyPuddleHeight)
+      {
+        puddle = 0;
+        onlyPuddleHeight = 0;
       }
     ##endif
 
-    void getPuddleDataRi(float3 worldPos, out float puddle, out float onlyPuddleHeight)
-    {
-      puddle = 0;
-      onlyPuddleHeight = 0;
-    ##if in_editor_assume != yes
-      float vignetteEffect;
-      float2 puddleTc = getPuddleTC(worldPos, vignetteEffect);
-      float puddleHeight = getPuddleHeightRi(0, puddleTc, onlyPuddleHeight);
-      puddle = saturate(1+puddleHeight*puddle_hardness);
-    ##endif
-    }
-
-    half addPuddlesRi(inout UnpackedGbuffer result, float3 worldPos, float3 worldNormal)
+    half addPuddlesRi(inout UnpackedGbuffer result, float3 worldPos, float3 vertexNormal)
     {
       const float3 puddle_normal = float3(0, 1, 0);
-      bool apply_puddles = worldNormal.y > ri_puddle_min_normal_similarity;
+
+      // Not a clamp. Remaps normal.y from [ri_puddle_slope_fade_start, ri_puddle_slope_fade_end] to [0,1].
+      float slopeFade = clamp_range(vertexNormal.y, ri_puddle_slope_fade_start, ri_puddle_slope_fade_end);
+      bool apply_puddles = slopeFade > 0;
     #ifdef USE_DEPTH_ABOVE_SAMPLING
-      apply_puddles = apply_puddles && !cull_away_puddles(worldPos, ri_puddle_depth_above_inaccuracy_threshold);
+      float depthAboveHt;
+      apply_puddles = apply_puddles && !cull_away_puddles(worldPos, ri_puddle_depth_above_inaccuracy_threshold, depthAboveHt);
     #endif
 
       BRANCH
@@ -290,6 +312,18 @@ macro USE_RI_PUDDLES()
       float onlyPuddleHeight;
       float puddle;
       getPuddleDataRi(worldPos, puddle, onlyPuddleHeight);
+      puddle *= slopeFade;
+
+    #ifdef USE_DEPTH_ABOVE_SAMPLING
+      float2 unclampedTc = world_to_depth_ao.xy * worldPos.xz + world_to_depth_ao.zw;
+      float2 unclampedExtraTc = world_to_depth_ao_extra.xy * worldPos.xz + world_to_depth_ao_extra.zw;
+      float4 crossHtEncoded = get_depth_above_cross(unclampedTc, unclampedExtraTc, 0, ri_puddle_normal_step_size);
+      float4 crossHt = decode_depth_above4(crossHtEncoded);
+      float convexity = max(0.0, depthAboveHt - 0.5 * (crossHt.x + crossHt.y))
+                      + max(0.0, depthAboveHt - 0.5 * (crossHt.z + crossHt.w));
+      float edgeFade = saturate(1.0 - convexity * ri_puddle_edge_hardness);
+      puddle *= edgeFade;
+    #endif
 
       float waterLevel = get_wetness_water_level();
       return applyPuddle(result, worldPos, puddle_normal, waterLevel, ri_puddle_porosity, onlyPuddleHeight, puddle);

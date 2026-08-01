@@ -118,7 +118,6 @@ if $(Platform) in windows {
     gdk/network.cpp
     gdk/queues.cpp
     gdk/storage.cpp
-    gdk/gameinput.cpp
     gdk/handlesDebug.cpp
     gdk/wer.cpp
   ;

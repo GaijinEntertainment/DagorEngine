@@ -101,3 +101,8 @@ and #include "ogg/ogg.h" wherever you need to acces Ogg functionality.
 be found in those source modules' README files)
 
 $Id$
+
+UPSTREAM:
+
+Upstream: libogg, https://github.com/xiph/ogg (canonical: https://gitlab.xiph.org/xiph/ogg)
+Vendored version: 1.1.3.

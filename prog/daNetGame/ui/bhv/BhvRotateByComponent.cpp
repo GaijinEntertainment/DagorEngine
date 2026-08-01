@@ -20,6 +20,13 @@ SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvRotateByComponent, bhv_rotate_by_compo
 
 using namespace darg;
 
+// Keeps the component name alive so update() can build HashedConstString without refetching it
+struct BhvRotateByComponentData
+{
+  eastl::string componentName;
+  ecs::hash_str_t componentHash = 0;
+};
+
 BhvRotateByComponent::BhvRotateByComponent() : Behavior(darg::Behavior::STAGE_BEFORE_RENDER, 0) {}
 
 void BhvRotateByComponent::onAttach(Element *elem)
@@ -30,10 +37,25 @@ void BhvRotateByComponent::onAttach(Element *elem)
   if (elem->isHidden())
     return;
 
-  eastl::string rotationComponentName =
+  BhvRotateByComponentData *bhvData = new BhvRotateByComponentData();
+  bhvData->componentName =
     elem->props.scriptDesc.RawGetSlotValue<eastl::string>(strings->rotationComponentName, "ui__rotateElementByAngle");
-  ecs::hash_str_t rotationComponentHash = ecs_str_hash(rotationComponentName.c_str());
-  elem->props.storage.SetValue(strings->rotationComponentHash, rotationComponentHash);
+  bhvData->componentHash = ecs_str_hash(bhvData->componentName.c_str());
+  elem->props.storage.SetValue(strings->rotationComponentData, bhvData);
+}
+
+void BhvRotateByComponent::onDetach(Element *elem, DetachMode)
+{
+  const auto strings = cstr.resolveVm(elem->getVM());
+  G_ASSERT_RETURN(strings, );
+
+  BhvRotateByComponentData *bhvData =
+    elem->props.storage.RawGetSlotValue<BhvRotateByComponentData *>(strings->rotationComponentData, nullptr);
+  if (bhvData)
+  {
+    elem->props.storage.DeleteSlot(strings->rotationComponentData);
+    delete bhvData;
+  }
 }
 
 int BhvRotateByComponent::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt*/)
@@ -49,12 +71,16 @@ int BhvRotateByComponent::update(UpdateStage /*stage*/, darg::Element *elem, flo
   if (entity == ecs::INVALID_ENTITY_ID)
     return 0;
 
-  eastl::string rotationComponentName =
-    elem->props.scriptDesc.RawGetSlotValue<eastl::string>(strings->rotationComponentName, "ui__rotateElementByAngle");
-  ecs::hash_str_t rotationComponentHash = elem->props.storage.RawGetSlotValue<ecs::hash_str_t>(strings->rotationComponentHash, 0);
-  ecs::HashedConstString rotationComponentNameHashed{rotationComponentName.c_str(), rotationComponentHash};
+  BhvRotateByComponentData *bhvData =
+    elem->props.storage.RawGetSlotValue<BhvRotateByComponentData *>(strings->rotationComponentData, nullptr);
+  if (!bhvData)
+    return 0;
+
+  ecs::HashedConstString rotationComponentNameHashed{bhvData->componentName.c_str(), bhvData->componentHash};
   const float angle = g_entity_mgr->getOr(entity, rotationComponentNameHashed, 0.0f);
 
+  if (!elem->transform) // transform is an optional element prop
+    return 0;
   elem->transform->rotate = angle;
   return 0;
 }

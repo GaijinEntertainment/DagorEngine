@@ -2,6 +2,10 @@
 Clipper Change Log
 ============================================================
 
+Upstream: Clipper polygon clipping library by Angus Johnson, v4.5.5.
+https://sourceforge.net/projects/polyclipping/ (superseded by
+https://github.com/AngusJohnson/Clipper2)
+
 v4.5.5 - 8 October 2011
 * Bugfix: Fixed an obscure bug in Clipper's JoinCommonEdges 
   method. 

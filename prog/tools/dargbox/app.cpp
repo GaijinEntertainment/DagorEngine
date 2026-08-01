@@ -694,7 +694,7 @@ public:
     StdGuiRender::update_internals_per_act();
 
     // Quit Game
-    if (requestExit)
+    if (requestExit || requested_exit_code_by_script >= 0)
       quit_game(dargbox_get_exit_code());
     // !!! Alt+F4 or closing with X button will still exit with 0 code
   }
@@ -982,7 +982,7 @@ static void shutdown_sound() { gamelib::sound::finalize(); }
 static void das_init()
 {
   das::daScriptEnvironment::ensure();
-  (*das::daScriptEnvironment::bound)->das_def_tab_size = 2; // our coding style requires indenting of 2
+  das::daScriptEnvironment::getBound()->das_def_tab_size = 2; // our coding style requires indenting of 2
 
   NEED_FUSION;
   NEED_MODULE(Module_BuiltIn);

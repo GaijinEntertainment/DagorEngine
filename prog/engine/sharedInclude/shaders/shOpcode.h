@@ -68,7 +68,7 @@ enum
   SHCOD_NOP,
   SHCOD_NOP,
   SHCOD_NOP,
-  SHCOD_NOP,
+  SHCOD_GET_GMAT43, // 2p      | load global var to FLOAT3x4 reg     | p1=reg#  p2=varId
 
   SHCOD_INVERSE, // 2p      | reg# = -reg#                        | p1=reg# p2=reg_cnt
   SHCOD_NOP,

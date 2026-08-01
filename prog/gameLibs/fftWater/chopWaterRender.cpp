@@ -67,7 +67,7 @@ void ChopWaterRender::reset() { del_it(renderQuad); }
 void ChopWaterRender::reinit()
 {
   calcWaveHeight(maxWaveHeight, significantWaveHeight);
-  setLevel(waterLevel);
+  setMinMaxLevel(minWaterLevel, maxWaterLevel);
 }
 
 ChopWaterRender::ChopWaterRender(ChopWaterGenerator &chop_gen, int render_quality, int geom_quality, bool depth_renderer,
@@ -88,7 +88,7 @@ ChopWaterRender::ChopWaterRender(ChopWaterGenerator &chop_gen, int render_qualit
   waterHeightmap = water_heightmap;
   heightmapCulling = heightmap_culling;
   memset(maxWaveSize, 0, sizeof(maxWaveSize));
-  setLevel(0);
+  setMinMaxLevel(0.0f, 0.0f);
   numCascades = WATER_VISUAL_CASCADES_COUNT;
   G_STATIC_ASSERT(MAX_NUM_CASCADES <= 5);
   reset();
@@ -129,24 +129,13 @@ ChopWaterRender::ChopWaterRender(ChopWaterGenerator &chop_gen, int render_qualit
 
 bool ChopWaterRender::isDetailWavesEnabled() const { return renderQuality >= fft_water::RENDER_EXCELLENT; }
 
-void ChopWaterRender::setLevel(float water_level)
-{
-  waterLevel = water_level;
-  minWaterLevel = waterLevel;
-  maxWaterLevel = waterLevel;
-  if (waterHeightmap)
-  {
-    minWaterLevel = min(minWaterLevel, waterHeightmap->heightOffset);
-    maxWaterLevel = max(maxWaterLevel, waterHeightmap->heightMax);
-  }
-  minWaterLevel -= maxWaveHeight;
-  maxWaterLevel += maxWaveHeight;
-}
-
 void ChopWaterRender::setMinMaxLevel(float min_water_level, float max_water_level)
 {
-  minWaterLevel = min_water_level - maxWaveHeight;
-  maxWaterLevel = max_water_level + maxWaveHeight;
+  minWaterLevel = min_water_level;
+  maxWaterLevel = max_water_level;
+
+  minWaterHeight = minWaterLevel - maxWaveHeight;
+  maxWaterHeight = maxWaterLevel + maxWaveHeight;
 }
 
 void ChopWaterRender::calcWaveHeight(float &out_max_wave_height, float &out_significant_wave_height)
@@ -190,11 +179,11 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
   else
     logerr("Non-existent water rendering mode %d", render_mode);
 
-  float waterHeight = waterLevel;
+  float waterHeight = minWaterLevel;
   if (waterHeightmap)
     waterHeightmap->getHeightmapDataBilinear(origin.x, origin.z, waterHeight);
   else if ((geom_lod_quality == fft_water::GEOM_LOD_LOW) || (geom_lod_quality == fft_water::GEOM_LOD_HIGH))
-    waterHeight = maxWaterLevel;
+    waterHeight = maxWaterHeight;
   float originAlt = origin.y - waterHeight;
 
   ShaderGlobal::set_float(tess_distanceVarId, lod0AreaRadius * 0.66f);
@@ -247,8 +236,8 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
 
   if (renderQuad)
   {
-    if (!frustum.testBoxB(BBox3(Point3(renderQuad->lim[0].x, minWaterLevel, renderQuad->lim[0].y),
-          Point3(renderQuad->lim[1].x, maxWaterLevel, renderQuad->lim[1].y))))
+    if (!frustum.testBoxB(BBox3(Point3(renderQuad->lim[0].x, minWaterHeight, renderQuad->lim[0].y),
+          Point3(renderQuad->lim[1].x, maxWaterHeight, renderQuad->lim[1].y))))
       return;
     centerOfHmap.x = clamp(centerOfHmap.x, renderQuad->lim[0].x, renderQuad->lim[1].x);
     centerOfHmap.y = clamp(centerOfHmap.y, renderQuad->lim[0].y, renderQuad->lim[1].y);
@@ -267,11 +256,11 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
 
   LodGrid lodGrid;
   lodGrid.init(lodCount, lod0Rad, lod0TessFactor, lastLodRad, lastLodExtension);
-  LodGridCullData defaultCullData(framemem_ptr());
+  LodGridRingCullData defaultCullData(framemem_ptr());
   int hmap_tess_factorVarId = renderer ? renderer->get_hmap_tess_factorVarId() : -1;
   BBox2 lodsRegion;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
-    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
+    minWaterHeight, maxWaterHeight, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
     false /*not used*/, heightmapCulling, &lodsRegion);
   if (!defaultCullData.getCount())
     return;

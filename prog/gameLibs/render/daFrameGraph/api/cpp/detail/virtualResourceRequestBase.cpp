@@ -64,7 +64,7 @@ void VirtualResourceRequestBase::buffer(const BufferCreateInfo &info)
   createdRes->type = ResourceType::Buffer;
 }
 
-void VirtualResourceRequestBase::blob(BlobDescription &&desc, detail::RTTI &&rtti)
+void VirtualResourceRequestBase::blob(BlobDescription &&desc, RTTI::RecursiveMakerRef rtti_maker)
 {
   auto &createdRes = registry->resources.get(resUid.resId).createdResData;
 
@@ -72,7 +72,16 @@ void VirtualResourceRequestBase::blob(BlobDescription &&desc, detail::RTTI &&rtt
   createdRes->creationInfo = eastl::move(desc);
   createdRes->type = ResourceType::Blob;
 
-  dafg::Runtime::get().getTypeDb().registerNativeType(typeTag, eastl::move(rtti));
+  auto &typeDb = dafg::Runtime::get().getTypeDb();
+  if (typeDb.getRTTI(typeTag) == nullptr)
+  {
+    RTTI::TempStorage blobSubRttis;
+    auto [blobTag, blobRtti] = rtti_maker(blobSubRttis);
+
+    typeDb.registerNativeType(blobTag, eastl::move(blobRtti));
+    for (auto &[tag, rtti] : blobSubRttis)
+      typeDb.registerNativeType(tag, eastl::move(rtti));
+  }
 
   markWithTag(typeTag);
 }
@@ -132,6 +141,33 @@ void VirtualResourceRequestBase::recordShaderVarBinding(BindingType binding_type
     Binding{binding_type, resUid.resId, static_cast<bool>(resUid.history), reset, thisRequest().optional, projected_tag, projector};
 
   // NOTE: we don't need to set this for blobs, but it doesn't matter anyways
+  thisRequest().usage.type = Usage::SHADER_RESOURCE;
+}
+
+void VirtualResourceRequestBase::forBlock(const char *block_name, const char *shader_var_name, ResourceSubtypeTag projected_tag)
+{
+  G_ASSERT_RETURN(block_name != nullptr, );
+
+  if (shader_var_name == nullptr)
+    shader_var_name = registry->knownNames.getShortName(resUid.resId);
+
+  const int svId = VariableMap::getVariableId(shader_var_name);
+
+  const auto nodeNsId = registry->knownNames.getParent(nodeId);
+  const auto blockId = registry->knownNames.getNameId<RefinedBlockNameId>(nodeNsId, block_name);
+  auto &blockBindings = registry->nodes[nodeId].refinedBlockBindings[blockId];
+
+  if (DAGOR_UNLIKELY(blockBindings.find(svId) != blockBindings.end()))
+  {
+    logerr("daFG: shader var '%s' is set into block '%s' more than once within '%s' frame graph node! Ignoring one of them!",
+      shader_var_name, block_name, registry->knownNames.getName(nodeId));
+    return;
+  }
+
+  blockBindings[svId] = Binding{BindingType::ShaderVar, resUid.resId, static_cast<bool>(resUid.history), false, thisRequest().optional,
+    projected_tag, +[](const void *data) { return data; }};
+
+  // Mark the resource as used so it is scheduled and kept alive.
   thisRequest().usage.type = Usage::SHADER_RESOURCE;
 }
 

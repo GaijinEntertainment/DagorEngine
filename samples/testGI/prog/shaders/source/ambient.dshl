@@ -99,12 +99,11 @@ shader render_ambient
       GI_VOLUMETRIC_IRRADIANCE_INIT(ps)
       GI_VOLUMETRIC_IRRADIANCE_USE(ps)
     }
-
-
     hlsl(ps) {
       #define AMBIENT 1
       #define NEED_SAMPLE_DEPTH 1
       #include <interleavedGradientNoise.hlsl>
+      #include <dagi_specular_clamp.hlsl>
     }
   }
 
@@ -243,16 +242,21 @@ shader render_ambient
             specular = giSpecular;
         }
         #if HACK_SPECULAR_BRIGHTNESS
-           //fixme: add support specular from radiance grid
-            half3 environmentAmbientReflection = specular;
-            //https://www.activision.com/cdn/research/Volumetric_Global_Illumination_at_Treyarch.pdf
-            //another (much faster) fake from Volumetric Global Illumination at Treyarch
-            float mipForTrick =  linearRoughness*NUM_PROBE_MIPS;
-            float maximumSpecValue = max3( 1.26816, 9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV, 9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
-            maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
-            float3 adjustedMaxSpec = ambient * maximumSpecValue;
-            float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentAmbientReflection + 0.001));//avoid nans
-            specular = reflection;
+        {
+            ##if gi_quality == screen_probes
+            const float minSpecScale = 8.0;
+            ##elif (gi_quality == colored)
+            const float minSpecScale = 4.0;
+            ##else
+            const float minSpecScale = 1.26816;
+            ##endif
+            float maxSpecScale = dagi_max_specular_scale(linearRoughness, NdotV, minSpecScale, NUM_PROBE_MIPS);
+            ##if gi_quality == screen_probes
+            specular = dagi_bound_probe_specular(specular, ambient, maxSpecScale);
+            ##else
+            specular = dagi_clamp_untrusted_specular(specular, ambient, maxSpecScale);
+            ##endif
+        }
         #endif
       ##endif
 

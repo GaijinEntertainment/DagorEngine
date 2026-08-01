@@ -85,8 +85,8 @@ shader dynamic_mirror
         float3 pointToEye             : TEXCOORD1;
         float3 normal                 : TEXCOORD2;
         float4 reflectionTexcoord     : TEXCOORD3;
-        float4 out_pos                : TEXCOORD4;
-        float4 out_pos_prev           : TEXCOORD5;
+        float3 out_pos                : TEXCOORD4;
+        float3 out_pos_prev           : TEXCOORD5;
       };
     }
   }

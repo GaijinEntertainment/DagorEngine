@@ -73,9 +73,19 @@ class AnimCharShadowOcclusionManager;
 AnimCharShadowOcclusionManager *get_animchar_shadow_occlusion();
 bool is_bbox_visible_in_shadows(const AnimCharShadowOcclusionManager *manager, bbox3f_cref bbox);
 
-extern ShaderBlockIdHolder dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
+extern ShaderBlockIdHolder dynamicTransSceneBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
 
 using namespace dynrend;
+
+static void update_animchar_lods(
+  bool *animchar__switched_lod, DynamicRenderableSceneInstance *scene, const vec4f &animchar_bsph, const vec4f camPos)
+{
+  const int curLodNo = scene->getCurrentLodNo();
+  const int newLodNo = scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(camPos, animchar_bsph))));
+
+  if (animchar__switched_lod)
+    *animchar__switched_lod = curLodNo != newLodNo;
+}
 
 static void update_geom_tree(AnimV20::AnimcharRendComponent &animchar_render,
   const AnimcharNodesMat44 &animchar_node_wtm,
@@ -136,7 +146,7 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
       const bbox3f *animchar_attaches_bbox_precalculated, vec4f &animchar_bsph, const vec4f *animchar_bsph_precalculated,
       const BBox3 *animchar_bbox_precalculated, const BBox3 *animchar_shadow_cull_bbox_precalculated, bbox3f &animchar_bbox,
       bbox3f &animchar_shadow_cull_bbox, animchar_visbits_t &animchar_visbits, float &animchar_render__shadow_cast_dist,
-      bool animchar__usePrecalculatedData = false, bool animchar_render__enabled = true,
+      bool *animchar__switched_lod = nullptr, bool animchar__usePrecalculatedData = false, bool animchar_render__enabled = true,
       const ecs::Tag *animchar__actOnDemand = nullptr, bool animchar__updatable = true, float animchar_extra_culling_dist = 100,
       bool animchar__use_precise_shadow_culling = false) {
       if (animchar__usePrecalculatedData)
@@ -151,6 +161,10 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
         if (animchar_attaches_bbox && animchar_attaches_bbox_precalculated)
           *animchar_attaches_bbox = *animchar_attaches_bbox_precalculated;
       }
+
+      if (animchar__switched_lod)
+        *animchar__switched_lod = false;
+
       animchar_visbits = 0;
       if (!animchar_render__enabled)
         return;
@@ -196,8 +210,8 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
       prepare_for_render(animchar_render);
       DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
       G_ASSERT_RETURN(scene != nullptr, );
-      scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(camPos, animchar_bsph))));
 
+      update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, camPos);
       update_geom_tree(animchar_render, animchar_node_wtm, stg.negRoundedCamPos, stg.negRemainderCamPos);
     });
 
@@ -205,7 +219,8 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
   {
     animchar_process_objects_in_shadow_ecs_query(manager,
       [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, bbox3f &animchar_bbox,
-        const vec4f &animchar_bsph, animchar_visbits_t &animchar_visbits, bool animchar_render__enabled = true) {
+        const vec4f &animchar_bsph, animchar_visbits_t &animchar_visbits, bool *animchar__switched_lod = nullptr,
+        bool animchar_render__enabled = true) {
         if (!animchar_render__enabled || (animchar_visbits & VISFLG_MAIN_AND_SHADOW_VISIBLE) ||
             !v_bbox3_test_box_intersect(activeShadowVolume, animchar_bbox))
           return;
@@ -217,8 +232,8 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
 
         DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
         G_ASSERT_RETURN(scene != nullptr, );
-        scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(camPos, animchar_bsph))));
 
+        update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, camPos);
         update_geom_tree(animchar_render, animchar_node_wtm, stg.negRoundedCamPos, stg.negRemainderCamPos);
       });
   }
@@ -262,7 +277,7 @@ void preprocess_visible_animchars_in_frustum(
 {
   preprocess_visible_animchars_in_frustum_ecs_query(*g_entity_mgr,
     [&](AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, const vec4f &animchar_bsph,
-      animchar_visbits_t &animchar_visbits, bool animchar_render__enabled) {
+      animchar_visbits_t &animchar_visbits, bool animchar_render__enabled, bool *animchar__switched_lod = nullptr) {
       if (!animchar_render__enabled || !(animchar_visbits & VISFLG_WITHIN_RANGE))
         return;
       // animchar_bsph is already calculated if the animchar is within range
@@ -275,7 +290,8 @@ void preprocess_visible_animchars_in_frustum(
       {
         DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
         G_ASSERT_RETURN(scene != nullptr, );
-        scene->chooseLodByDistSq(v_extract_x(v_length3_sq_x(v_sub(eye_pos, animchar_bsph))));
+
+        update_animchar_lods(animchar__switched_lod, scene, animchar_bsph, eye_pos);
         animchar_visbits |= VISFLG_LOD_CHOSEN;
       }
 
@@ -663,7 +679,7 @@ static void animchar_render_hmap_deform_es(const RenderHmapDeform &event, ecs::E
       // Render
       const DynamicRenderableSceneResource *lodResource = scene->getLodsResource()->lods[deformLod].scene;
       auto filter = PathFilterView(vehicle_trails__nodesFilter);
-      add_animchar(ctx, 0, ShaderMesh::STG_opaque, scene, lodResource, animchar_additional_data::get_optional_data(additional_data),
+      add_animchar(ctx, 0, ShaderMesh::STG_atest, scene, lodResource, animchar_additional_data::get_optional_data(additional_data),
         NeedPreviousMatrices::No, {}, filter, 1);
     });
 
@@ -761,7 +777,7 @@ static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTr
       }
     });
 
-  render_dynrend_ctx(ctx, dynamicSceneTransBlockId);
+  render_dynrend_ctx(ctx, dynamicTransSceneBlockId);
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
@@ -810,6 +826,10 @@ void render_mainhero_trans(const TMatrix &view_tm)
   ContextId heroCtx = get_or_create_context("dynmodel_immediate");
   ContextId heroCockpitCtx = get_or_create_context("immediate_hero_trans_cockpit");
 
+  TMatrix vtm = view_tm;
+  vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
+
   animchar_render_trans_second_ecs_query(*g_entity_mgr,
     [&heroCtx, &heroCockpitCtx](ECS_REQUIRE(ecs::Tag late_transparent_render) AnimV20::AnimcharRendComponent &animchar_render,
       const ecs::Point4List *additional_data, animchar_visbits_t animchar_visbits,
@@ -833,18 +853,14 @@ void render_mainhero_trans(const TMatrix &view_tm)
       }
     });
 
-  TMatrix vtm = view_tm;
-  vtm.setcol(3, 0, 0, 0);
-  d3d::settm(TM_VIEW, vtm);
-
   {
     TIME_D3D_PROFILE(hero_late_transparents)
-    render_dynrend_ctx(heroCtx, dynamicSceneTransBlockId);
+    render_dynrend_ctx(heroCtx, dynamicTransSceneBlockId);
   }
   {
     TIME_D3D_PROFILE(hero_transparent_cockpit);
     ShaderGlobal::set_int(is_hero_cockpitVarId, 1);
-    render_dynrend_ctx(heroCockpitCtx, dynamicSceneTransBlockId);
+    render_dynrend_ctx(heroCockpitCtx, dynamicTransSceneBlockId);
     ShaderGlobal::set_int(is_hero_cockpitVarId, 0);
   }
 

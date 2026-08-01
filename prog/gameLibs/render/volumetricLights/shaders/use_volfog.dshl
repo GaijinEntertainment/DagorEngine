@@ -1,8 +1,15 @@
 include "use_downsampled_checkerboard_depth_tex.dshl"
 include "use_volfog_common.dshl"
-include "dynamic_resolution.dshl"
 
 texture view_result_inscatter;
+sampler view_result_inscatter_samplerstate
+{
+  mipmap_mode = linear;
+  filter = linear;
+  address_u = clamp;
+  address_v = clamp;
+  address_w = clamp;
+};
 texture distant_fog_result_inscatter;
 
 int volfog_blended_slice_cnt = 4;
@@ -42,7 +49,8 @@ macro INIT_VOLUMETRIC_LIGHT_BASE(code)
   if (volumetric_light_assumed_off == no)
   {
     (code) {
-      view_result_inscatter@smp3d = view_result_inscatter;
+      view_result_inscatter@tex3d = view_result_inscatter;
+      view_result_inscatter_samplerstate@sampler = view_result_inscatter_samplerstate;
       volume_fog_use_params@f4 = (volfog_use_params_base.x, volfog_use_params_base.y, volfog_froxel_range_params.y, volfog_use_params_base.z);
 
       distant_fog_result_inscatter@tex2d = distant_fog_result_inscatter;
@@ -105,7 +113,6 @@ endmacro
 
 
 macro USE_VOLUMETRIC_LIGHT_ONLY_INC(code)
-  INIT_DYNAMIC_RESOLUTION(code)
   //(code) {
   //  distant_fog_test_params@f4 = distant_fog_test_params; // for testing
   //}
@@ -186,7 +193,7 @@ macro USE_VOLUMETRIC_LIGHT_ONLY_INC(code)
 #if !DISTANT_FOG_USE_BILINEAR_SAMPLING
       float load_distant_fog_lowres_depth(int2 pos)
       {
-        return texture2DAt(distant_fog_lowres_depth, pos * current_dynamic_resolution_scale).x;
+        return texture2DAt(distant_fog_lowres_depth, pos).x;
       }
 #endif
 
@@ -390,6 +397,18 @@ macro USE_VOLUMETRIC_LIGHT_WITH_SCATTERING(code)
         get_volfog_with_scattering_impl(true, tc, jittered_tc, view, dist, w, fog_mul, fog_add);
       }
 
+      void get_volfog_with_scattering_opt(float2 tc, float2 jittered_tc, float3 view, float dist, float w, out half3 fog_mul, out half3 fog_add)
+      {
+        BRANCH
+        if (volume_fog_use_params.x > 0)
+          get_volfog_with_scattering_impl(true, tc, jittered_tc, view, dist, w, fog_mul, fog_add);
+        else
+        {
+          fog_mul = 1;
+          fog_add = 0;
+        }
+      }
+
       void get_volfog_with_precalculated_scattering(float2 tc, float2 jittered_tc, float3 view, float dist, float w, inout half3 fog_mul, inout half3 fog_add)
       {
         get_volfog_with_scattering_impl(false, tc, jittered_tc, view, dist, w, fog_mul, fog_add);
@@ -400,6 +419,11 @@ macro USE_VOLUMETRIC_LIGHT_WITH_SCATTERING(code)
         BRANCH
         if (volume_fog_use_params.x > 0)
           get_volfog_with_scattering_impl(false, tc, jittered_tc, view, dist, w, fog_mul, fog_add);
+        else
+        {
+          fog_mul = 1;
+          fog_add = 0;
+        }
       }
 
       // inside volfog frustum, it also contains scattering loss (since scattering is integrated into volfog), but it is not significant near the camera
@@ -423,6 +447,22 @@ macro USE_VOLUMETRIC_LIGHT_WITH_SCATTERING(code)
         get_volfog_with_scattering(tc, jittered_tc, pointToEye*rdist, dist2*rdist, w, fog_mul, fog_add);
       }
 
+      void get_volfog_with_scattering_opt(float2 tc, float2 jittered_tc, float3 pointToEye, float w, out half3 fog_mul, out half3 fog_add)
+      {
+        BRANCH
+        if (volume_fog_use_params.x > 0)
+        {
+          float dist2 = dot(pointToEye, pointToEye);
+          float rdist = rsqrt(dist2);
+          get_volfog_with_scattering(tc, jittered_tc, pointToEye*rdist, dist2*rdist, w, fog_mul, fog_add);
+        }
+        else
+        {
+          fog_mul = 1;
+          fog_add = 0;
+        }
+      }
+
       void apply_volfog_with_scattering(inout half3 result, float2 tc, float2 jittered_tc, float3 view, float dist, float w)
       {
         half3 fog_mul, fog_add;
@@ -441,7 +481,15 @@ macro USE_VOLUMETRIC_LIGHT_WITH_SCATTERING(code)
       {
         get_scattering_tc_fog(tc, view, dist, fog_mul, fog_add);
       }
+      void get_volfog_with_scattering_opt(float2 tc, float2 jittered_tc, float3 view, float dist, float w, out half3 fog_mul, out half3 fog_add)
+      {
+        get_scattering_tc_fog(tc, view, dist, fog_mul, fog_add);
+      }
       void get_volfog_with_scattering(float2 tc, float2 jittered_tc, float3 pointToEye, float w, out half3 fog_mul, out half3 fog_add)
+      {
+        get_scattering_tc_fog(tc, pointToEye, fog_mul, fog_add);
+      }
+      void get_volfog_with_scattering_opt(float2 tc, float2 jittered_tc, float3 pointToEye, float w, out half3 fog_mul, out half3 fog_add)
       {
         get_scattering_tc_fog(tc, pointToEye, fog_mul, fog_add);
       }

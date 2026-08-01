@@ -61,11 +61,24 @@ LibPointer PIX::try_load_capture_interface(Issues &issues)
 
 void PIX::configure() { PIXSetHUDOptions(PIXHUDOptions::PIX_HUD_SHOW_ON_NO_WINDOWS); }
 
+static void prepare_file_path(wchar_t *file_path, size_t file_path_size, const wchar_t *file_name)
+{
+  GetCurrentDirectoryW(file_path_size, file_path);
+  wcscat_s(file_path, file_path_size, L"\\GpuCaptures");
+  CreateDirectoryW(file_path, nullptr);
+  wcscat_s(file_path, file_path_size, L"\\");
+  wcscat_s(file_path, file_path_size, file_name);
+  wcscat_s(file_path, file_path_size, L".wpix");
+}
+
 void PIX::beginCapture(const wchar_t *name)
 {
+  eastl::basic_string<wchar_t> filePath;
+  filePath.resize(1024);
+  prepare_file_path(filePath.data(), filePath.size(), name ? name : L"capture");
   PIXCaptureParameters params = {};
-  params.GpuCaptureParameters.FileName = name;
-  PIXBeginCapture2(PIX_CAPTURE_GPU, name ? &params : nullptr);
+  params.GpuCaptureParameters.FileName = filePath.data();
+  PIXBeginCapture2(PIX_CAPTURE_GPU, &params);
 }
 
 void PIX::endCapture() { PIXEndCapture(false); }
@@ -74,15 +87,11 @@ void PIX::onPresent() {}
 
 void PIX::captureFrames(const wchar_t *file_name, int count)
 {
-  wchar_t filePath[1024];
-  GetCurrentDirectoryW(ARRAYSIZE(filePath), filePath);
-  wcscat_s(filePath, L"\\GpuCaptures");
-  CreateDirectoryW(filePath, nullptr);
-  wcscat_s(filePath, L"\\");
-  wcscat_s(filePath, file_name);
-  wcscat(filePath, L".wpix");
+  eastl::basic_string<wchar_t> filePath;
+  filePath.resize(1024);
+  prepare_file_path(filePath.data(), filePath.size(), file_name);
 
-  PIXGpuCaptureNextFrames(filePath, count);
+  PIXGpuCaptureNextFrames(filePath.data(), count);
 }
 
 void PIX::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text)

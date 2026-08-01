@@ -194,7 +194,7 @@ static void load(SceneTime &s, const DataBlock &blk, float time_of_day, int year
 {
   s.year = blk.getInt("year", year);
   s.month = blk.getInt("month", month);
-  s.day = blk.getInt("month", day);
+  s.day = blk.getInt("day", day);
   s.timeOfDay = blk.getReal("time", time_of_day);
   s.latitude = lat >= -90 ? lat : blk.getReal("latitude", 55.f);
   s.longtitude = lon >= -180 ? lon : blk.getReal("longtitude", 37.f);
@@ -382,13 +382,12 @@ public:
         rendinstfloating::init_floating_ri_res_groups(riGenExtraConfig.getBlockByName("riExtra"), true);
 #if DAGOR_DBGLEVEL > 0
       Tab<rendinst::riex_handle_t> tmp;
-      for (uint32_t i = 0, cnt = rendinst::getRiGenExtraResCount(); i < cnt; ++i)
-      {
+      rendinst::iterateRiGenExtraResId([&](int i) {
         int ni = rendinst::getRiGenExtraInstances(tmp, i);
         if (ni)
           logerr("Not empty (%d) ri extra '%s'(%d) before generation", ni, rendinst::getRIGenExtraName(i), i);
         G_UNUSED(ni);
-      }
+      });
 #endif
       rendinst::precomputeRIGenCellsAndPregenerateRIExtra();
       rendinst::setRiExtraTiledSceneWritingThread(get_main_thread_id());
@@ -410,7 +409,6 @@ public:
           lmeshMgr->initHolesManager();
 
         dacoll::add_collision_hmap(lmeshMgr.get(), /* restitution */ 0.f, /* margin */ 0.f);
-        lmeshMgr->getHmapHandler()->pushHmapModificationOnPrepare = false;
         if (get_world_renderer())
         {
           const char *fname = levelBlk->getStr(LEVEL_BIN_NAME, "undefined");
@@ -465,8 +463,8 @@ public:
         if (dataNeeded & LC_GRASS_DATA)
           lmeshMgr->setGrassMaskBlk(*levelBlk->getBlockByNameEx("grass")); // fixme
         lmeshMgr->setRenderDataNeeded(dataNeeded);
-
-        if (!lmeshMgr->loadDump(crd, midmem, dataNeeded != 0))
+        // afterDeviceReset() reloads what the level holds, so no system copies
+        if (!lmeshMgr->loadDump(crd, midmem, dataNeeded != 0, LandMeshReset::ReloadFromSource))
         {
           lmeshMgr.reset();
           debug("can't load lmesh");
@@ -717,6 +715,7 @@ private:
     const bool isWaitForPipelinesEnabled = dgs_get_settings()->getBlockByNameEx("video")->getBool("waitForPipelinesCompilation", true);
     if (!isWaitForPipelinesEnabled)
       return;
+    DA_PROFILE;
     uint64_t startTime = ref_time_ticks();
     while (uint32_t queueLength = d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH))
     {
@@ -732,6 +731,8 @@ public:
   const char *getJobName(bool &) const override { return "LevelLoadJob"; }
   void doJob() override
   {
+    net::NetSnapshotScope snapshotScope(/*assumeSingleUpdate*/ false, "LevelLoadJob"); // long-running; spans multiple publishes
+
     if (strcmp(binName, EMPTY_LEVEL_NAME) != 0)
     {
       scn->openSingle(binName);
@@ -952,6 +953,12 @@ static WeatherAndDateTime setup_level_weather_and_datetime(ecs::EntityManager &m
   return WeatherAndDateTime{timeOfDay, String(weatherBlk), String(weatherSelectedChoice), year, month, day, lat, lon};
 }
 
+// false in daEditorX/tools; level streaming is a game/server-only concern
+static bool location_holder_active()
+{
+  return g_entity_mgr->getTemplateDB().info().filterTags.count(ECS_HASH("not_inside_tools").hash) != 0;
+}
+
 struct LocationHolder
 {
   friend struct OnLevelLoadedAction;
@@ -959,6 +966,12 @@ struct LocationHolder
 
   LocationHolder(ecs::EntityManager &mgr, ecs::EntityId eid)
   {
+    if (!location_holder_active())
+    {
+      set_level_status(LEVEL_EMPTY);
+      return;
+    }
+
     if (level_status == LEVEL_LOADING)
     {
       // just noop for now (to avoid complex logic of thread canceling or waiting for end of async load)
@@ -997,6 +1010,11 @@ struct LocationHolder
 
   ~LocationHolder()
   {
+    if (!location_holder_active())
+    {
+      return;
+    }
+
     if (ecs::EntityId goeid = g_entity_mgr->getSingletonEntity(ECS_HASH("game_objects")))
       g_entity_mgr->destroyEntity(goeid);
     unload();
@@ -1122,6 +1140,9 @@ static void create_weather_entities_from_blk(ecs::EntityManager &mgr, const Data
 void save_weather_settings_to_screenshot(DataBlock &blk)
 {
   const ecs::EntityId levelEid = get_current_level_eid();
+  if (levelEid == ecs::INVALID_ENTITY_ID)
+    return;
+
   int weatherSeed = 0;
   int timeSeed = 0;
   int skiesSeed = 0;

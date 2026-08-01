@@ -55,7 +55,7 @@ struct SemiTransRenderManager
 ECS_DECLARE_RELOCATABLE_TYPE(SemiTransRenderManager);
 ECS_REGISTER_RELOCATABLE_TYPE(SemiTransRenderManager, nullptr);
 
-extern ShaderBlockIdHolder dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder dynamicTransSceneBlockId;
 extern ShaderBlockIdHolder rendinstTransSceneBlockId;
 
 using namespace dynrend;
@@ -117,7 +117,7 @@ static __forceinline void animchar_render_semi_trans_es_event_handler(const Rend
     return;
   }
 
-  SCENE_LAYER_GUARD(dynamicSceneTransBlockId);
+  SCENE_LAYER_GUARD(dynamicTransSceneBlockId);
   render_all_stages(ctx);
   d3d::settm(TM_VIEW, event.viewTm);
 }

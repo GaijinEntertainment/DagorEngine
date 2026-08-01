@@ -41,10 +41,11 @@ endmacro
 macro USE_CLOUDS_PANORAMA()
   if (compatibility_mode == compatibility_mode_off && clouds_panorama_mip != NULL)
   {
-    (ps) { clouds_panorama_mip@smp2d = clouds_panorama_mip; }
+    (ps) { clouds_panorama_mip@tex2d = clouds_panorama_mip; }
     INIT_CLOUDS_ALPHA_PANORAMA()
     USE_CLOUDS_ALPHA_PANORAMA()
     hlsl(ps) {
+      #define clouds_panorama_mip_samplerstate global_linear_wrap_u_clamp_v_sampler
       #define USED_CLOUDS_PANORAMA 1
     }
   }

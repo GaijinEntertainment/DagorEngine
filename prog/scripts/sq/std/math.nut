@@ -2,13 +2,13 @@ import "math" as math
 
 const GOLDEN_RATIO = 1.618034
 
-let minByAbs = @[pure](a, b) math.fabs(a) < math.fabs(b) ? a : b
-let maxByAbs = @[pure](a, b) math.fabs(a) > math.fabs(b) ? a : b
+let minByAbs = @[pure](a: number, b: number): number math.fabs(a) < math.fabs(b) ? a : b
+let maxByAbs = @[pure](a: number, b: number): number math.fabs(a) > math.fabs(b) ? a : b
 
 //round @value to valueble @digits amount
 // roundToDigits(1.23, 2) = 1.2
 // roundToDigits(123, 2) = 120
-function [pure] roundToDigits(value, digits) {
+function [pure] roundToDigits(value: number, digits: number): number {
   if (value==0) return value
   let log = math.log10(math.fabs(value))
   let mul = math.pow(10, math.floor(log) - digits + 1)
@@ -17,25 +17,25 @@ function [pure] roundToDigits(value, digits) {
 
 //round @value by @roundValue
 //round_by_value(1.56, 0.1) = 1.6
-function [pure] round_by_value(value, roundValue) {
+function [pure] round_by_value(value, roundValue: number): float {
   return math.floor(value.tofloat() / roundValue + 0.5) * roundValue
 }
 
-function [pure] number_of_set_bits(i) {
+function [pure] number_of_set_bits(i: int): int {
   i = i - ((i >> 1) & (0x5555555555555555));
   i = (i & 0x3333333333333333) + ((i >> 2) & 0x3333333333333333);
   return (((i + (i >> 4)) & 0xF0F0F0F0F0F0F0F) * 0x101010101010101) >> 56;
 }
 
-function [pure] is_bit_set(bitMask, bitIdx) {
+function [pure] is_bit_set(bitMask: int, bitIdx: int): bool {
   return (bitMask & (1 << bitIdx)) != 0
 }
 
-function [pure] change_bit(bitMask, bitIdx, value) {
+function [pure] change_bit(bitMask: int, bitIdx: int, value): int {
   return (bitMask & ~(1 << bitIdx)) | (value ? (1 << bitIdx) : 0)
 }
 
-function [pure] change_bit_mask(bitMask, bitMaskToSet, value) {
+function [pure] change_bit_mask(bitMask: int, bitMaskToSet: int, value): int {
   return (bitMask & ~bitMaskToSet) | (value ? bitMaskToSet : 0)
 }
 
@@ -61,7 +61,7 @@ function [pure] lerp(valueMin, valueMax, resMin, resMax, curValue) {
 * f(valueMax) = resMax
 * but result is clamped by min/max values
 */
-let lerpClamped = @[pure](valueMin, valueMax, resMin, resMax, tvalue)
+let lerpClamped = @[pure](valueMin: number, valueMax: number, resMin, resMax, tvalue: number)
   lerp(valueMin, valueMax, resMin, resMax,
     valueMax > valueMin ? math.clamp(tvalue, valueMin, valueMax) : math.clamp(tvalue, valueMax, valueMin))
 
@@ -89,12 +89,12 @@ function interpolateArray(arr, value) {
 * with a closer table size to golden ratio
 * <widthToHeight> is a item size ratio (width / height)
 */
-function calc_golden_ratio_columns(total, widthToHeight = 1.0) {
+function calc_golden_ratio_columns(total, widthToHeight: number = 1.0): int {
   let rows = (math.sqrt(total.tofloat() / GOLDEN_RATIO * widthToHeight) + 0.5).tointeger()
   return math.ceil(total.tofloat() / math.max(rows, 1)).tointeger()
 }
 
-let color2uint = @[pure](r, g, b, a = 255) math.clamp(r + g * 256 + b * 65536 + a * 16777216, 0, 4294967295)
+let color2uint = @[pure](r: number, g: number, b: number, a: number = 255): number math.clamp(r + g * 256 + b * 65536 + a * 16777216, 0, 4294967295)
 
 let romanNumeralLookup = [
   "","I","II","III","IV","V","VI","VII","VIII","IX",
@@ -104,7 +104,7 @@ let romanNumeralLookup = [
 let maxRomanDigit = 3
 
 //Function from http://blog.stevenlevithan.com/archives/javascript-roman-numeral-converter
-function getRomanNumeral(num) {
+function getRomanNumeral(num): string {
   let t = type(num)
   if ((t != "integer" && t != "float") || num < 0)
     return ""
@@ -127,7 +127,7 @@ function getRomanNumeral(num) {
   return "".join(thousands.extend(roman).filter(@(v) v!=null))
 }
 
-function splitThousands(val, spacer = " ") {
+function splitThousands(val, spacer = " "): string {
   val = val.tostring()
   local sign = ""
   if (val.startswith("-")) {
@@ -147,7 +147,7 @@ function splitThousands(val, spacer = " ") {
  * @param {array} list - Array of integers or floats.
  * @return {float|null} - Average value, or null for empty array.
  */
-function average(list) {
+function average(list): float|null {
   let n = list.len()
   return n == 0 ? null
     : list.reduce(@(sum, v) sum + v, 0.0) / n
@@ -158,14 +158,14 @@ function average(list) {
  * @param {array} sortedList - Array of integers or floats. MUST be sorted!
  * @return {float|null} - Median value, or null for empty array.
  */
-function median(sortedList) {
+function median(sortedList): float|null {
   let n = sortedList.len()
   return n == 0 ? null
     : (n % 2 == 1) ? (sortedList[(n - 1) / 2] * 1.0)
     : (sortedList[(n / 2) - 1] + sortedList[n / 2]) / 2.0
 }
 
-function truncateToMultiple(number, multiple) {
+function truncateToMultiple(number, multiple: number): number {
   if (multiple == 0)
     return -1
   return math.floor(number.tofloat() / multiple) * multiple
@@ -189,7 +189,7 @@ let export = math.__merge({
   color2uint
   getRomanNumeral
   splitThousands
-  calcPercent = @[pure](value) (100.0 * value + (value < 0 ? -0.5 : 0.5)).tointeger()
+  calcPercent = @[pure](value: number): int (100.0 * value + (value < 0 ? -0.5 : 0.5)).tointeger()
   average
   median
   truncateToMultiple

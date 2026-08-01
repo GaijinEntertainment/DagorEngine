@@ -26,7 +26,7 @@ let hasModalWindows = Computed(@() modalWindowsGeneration.get() >= 0 && modalWin
 
 let nextModalGeneration = @() modalWindowsGeneration.modify(@(v) v + 1)
 
-function removeModalWindow(key) {
+function removeModalWindow(key): bool {
   let idx = modalWindows.findindex(@(w) w.key == key)
   if (idx == null)
     return false

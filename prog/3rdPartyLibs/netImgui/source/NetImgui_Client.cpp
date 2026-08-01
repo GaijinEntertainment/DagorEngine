@@ -432,7 +432,8 @@ bool Communications_Initialize(ClientInfo& client)
 	CmdVersion cmdVersionSend, cmdVersionRcv;
 	PendingCom PendingRcv, PendingSend;
 
-	client.mbComInitActive = true;
+	client.mbDisconnectPending	= false;
+	client.mbComInitActive 		= true;
 
 	//---------------------------------------------------------------------
 	// Handshake confirming connection validity
@@ -516,7 +517,7 @@ void Communications_Loop(void* pClientVoid)
 	if (pSocket){
 		NetImgui::Internal::Network::Disconnect(pSocket);
 	}
-
+	pClient->mbDisconnectPending	= false;
 	pClient->mbClientThreadActive 	= false;
 }
 
@@ -542,6 +543,7 @@ void CommunicationsHost(void* pClientVoid)
 	ClientInfo* pClient				= reinterpret_cast<ClientInfo*>(pClientVoid);
 	pClient->mbListenThreadActive	= true;
 	pClient->mbDisconnectListen		= false;
+	pClient->mbDisconnectPending	= false;
 	pClient->mpSocketListen			= pClient->mpSocketPending.exchange(nullptr);
 	
 	while( pClient->mpSocketListen.load() != nullptr && !pClient->mbDisconnectListen )
@@ -995,10 +997,10 @@ bool ClientInfo::TextureTrackingRem(ClientTextureID clientTextureID)
 
 void ClientInfo::TexturePendingServerAdd(CmdTexture& cmdTexture)
 {
-	std::lock_guard<std::mutex> guard(mPendingTexturesLock);
 	if( IsConnected() )
 	{
 		// Find last added entry
+		std::lock_guard<std::mutex> guard(mPendingTexturesLock);
 		CmdTexture** ppNextTexture 	= &mPendingTextures;
 		CmdTexture* pendingTexture 	= mPendingTextures;
 		while( pendingTexture != nullptr )
@@ -1020,6 +1022,7 @@ void ClientInfo::TexturePendingServerAdd(CmdTexture& cmdTexture)
 
 		// Add as last element and ready to be sent
 		cmdTexture.mSent	= false;
+		cmdTexture.mpNext 	= nullptr;
 		*ppNextTexture		= &cmdTexture;
 	}
 }

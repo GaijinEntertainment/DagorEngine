@@ -7,8 +7,6 @@
 
 #include <osApiWrappers/dag_miscApi.h>
 
-#include "pools.h"
-
 static inline int DivideRoundingUp(int i, int j)
 {
   return (i + (j - 1)) / j;

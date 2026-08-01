@@ -136,7 +136,7 @@ void MobileSSAORenderer::setReprojection(const TMatrix &view_tm, const TMatrix4 
 }
 
 void MobileSSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssaoDepthTexUse, BaseTexture *ssao_tex,
-  BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, const DPoint3 *, SubFrameSample, const DynRes *dynamic_resolution)
+  BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, const DPoint3 *, SubFrameSample)
 {
   TIME_D3D_PROFILE(SSAO_total)
   SCOPE_RENDER_TARGET;
@@ -148,15 +148,12 @@ void MobileSSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm,
   G_UNUSED(ssao_tex);
   G_UNUSED(prev_ssao_tex);
   G_UNUSED(tmp_tex);
-  G_UNUSED(dynamic_resolution);
 
   G_ASSERT(ssaoDepthTexUse);
 
   setFrameNo();
 
   set_viewvecs_to_shader(view_tm, proj_tm);
-
-  G_ASSERTF_ONCE(!dynamic_resolution, "Handle dynamic resolution for mobile ssao render!");
 
   {
     TIME_D3D_PROFILE(SSAO_render)

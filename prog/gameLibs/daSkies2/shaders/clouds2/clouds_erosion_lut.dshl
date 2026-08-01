@@ -1,8 +1,19 @@
+//orthogonal erosion curve: strength = total amount, height_bias = distribution (0 = uniform,
+//1 = tops only); (1-density) protects cores so high strength cannot swiss-cheese them.
+//edge mul/add is the edge ease (edge opacity/softness, does not move the boundary).
+float clouds_erosion_strength = 0.15;
+float clouds_erosion_height_bias = 0.5;
+float clouds_erosion_edge_mul = 2;
+float clouds_erosion_edge_add = 0.25;
+
 macro EROSION_HEIGHT_MATH(code)
+  (code) {
+    clouds_erosion_strength_p@f4 = (clouds_erosion_strength, clouds_erosion_height_bias, clouds_erosion_edge_mul, clouds_erosion_edge_add);
+  }
   hlsl(code) {
     float erosionFunctionMath(float heightFraction, float density)
     {
-      return 0.1 + 0.1*(heightFraction)*(1-density);
+      return clouds_erosion_strength_p.x*lerp(1, heightFraction, clouds_erosion_strength_p.y)*(1-density);
     }
   }
 endmacro

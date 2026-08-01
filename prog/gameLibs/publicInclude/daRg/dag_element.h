@@ -295,6 +295,7 @@ private:
   void afterRecalc();
 
   void validateStaticText();
+  void overrideRootSize(SetupMode setup_mode);
   void clampSizeToLimits(int axis, float &sz_px);
 
   void applyTransform(const GuiVertexTransform &prev_gvtm, GuiVertexTransform &res_gvtm) const;

@@ -236,7 +236,7 @@ static void close_grass_billboards(ContextId context_id)
 
 void init(ContextId context_id)
 {
-  if (!context_id->has(Features::GPUGrass))
+  if (!context_id->hasAny(Features::GPUGrass))
     return;
 
   bvhConnection.contexts.insert(context_id);
@@ -245,7 +245,7 @@ void init(ContextId context_id)
 
 void teardown(ContextId context_id)
 {
-  if (!context_id->has(Features::GPUGrass))
+  if (!context_id->hasAny(Features::GPUGrass))
     return;
 
   bvhConnection.contexts.erase(context_id);
@@ -271,7 +271,7 @@ void on_unload_scene(ContextId context_id)
 
 void generate_instances(ContextId context_id, bool has_grass)
 {
-  if (!context_id->has(Features::GPUGrass))
+  if (!context_id->hasAny(Features::GPUGrass))
     return;
 
   bvhConnection.instancesView = {};
@@ -325,7 +325,7 @@ void generate_instances(ContextId context_id, bool has_grass)
 
 void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count)
 {
-  if (context_id->has(Features::GPUGrass))
+  if (context_id->hasAny(Features::GPUGrass))
   {
     instances = bvhConnection.instancesView.getBuf();
     instance_count = bvhConnection.instanceCountView.getBuf();

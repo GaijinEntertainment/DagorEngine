@@ -12,6 +12,22 @@ int get_test_value(const char *k)
   return it == values.end() ? -1 : it->second;
 }
 
+// bit-exact special doubles for tracked compare tests, das has no literals for them
+double make_nan_double()
+{
+  const uint64_t qnan = 0x7FF8000000000000ULL;
+  double d;
+  memcpy(&d, &qnan, sizeof(d));
+  return d;
+}
+double make_neg_zero_double()
+{
+  const uint64_t negZero = 0x8000000000000000ULL;
+  double d;
+  memcpy(&d, &negZero, sizeof(d));
+  return d;
+}
+
 bool ignore_log_errors;
 
 void ignore_log_errors_(const das::TBlock<void> &block, das::Context *context, das::LineInfoArg *at)
@@ -34,6 +50,9 @@ public:
     das::addExtern<DAS_BIND_FUN(get_test_value)>(*this, lib, "get_test_value", das::SideEffects::modifyExternal, "get_test_value");
     das::addExtern<DAS_BIND_FUN(ignore_log_errors_)>(*this, lib, "ignore_log_errors", das::SideEffects::invokeAndAccessExternal,
       "ignore_log_errors_");
+    das::addExtern<DAS_BIND_FUN(make_nan_double)>(*this, lib, "make_nan_double", das::SideEffects::none, "make_nan_double");
+    das::addExtern<DAS_BIND_FUN(make_neg_zero_double)>(*this, lib, "make_neg_zero_double", das::SideEffects::none,
+      "make_neg_zero_double");
     verifyAotReady();
   }
   virtual das::ModuleAotType aotRequire(das::TextWriter &tw) const override

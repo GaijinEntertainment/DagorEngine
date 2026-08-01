@@ -649,6 +649,11 @@ bool buildDdsxTexPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
     return false;
   }
 
+  // The per-asset loop above already touched every currently-relevant file/prop entry regardless of whether the pack itself
+  // needs rebuilding, so this is safe to run unconditionally here (same fix as buildGameResPack()'s: a pack that stays
+  // up-to-date across many build-server runs would otherwise never get its cache pruned).
+  c4.removeUntouched();
+
   if (prev_pack && !trh.needsPacking(*prev_pack))
   {
     log.addMessage(log.NOTE, "skip up-to-date %s", pack_fname);
@@ -727,6 +732,53 @@ bool buildDdsxTexPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
   del_it(prev_pack);
   stat_tex_built++;
   return true;
+}
+
+// Separate from checkDdsxTexPackUpToDate() below: checks the whole pack still matches the cache from the
+// last real build, never calls gatherSrcDataFiles(), and never pinpoints which asset is stale - a UI-only
+// indicator, not suitable for a real build decision. Unlike the precise version, it also doesn't detect a
+// texture removed from the pack (that needs the same gatherSrcDataFiles-adjacent work this skips) - fine
+// here since that only affects whether a rebuild could trim the pack, not whether existing data is stale.
+bool quickCheckDdsxTexPackReady(unsigned tc, bool be, dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4,
+  const char *pack_fname)
+{
+  if (dabuild_build_tex_separate)
+    return true;
+
+  FullFileLoadCB prev_fcrd(pack_fname);
+  BinDumpReader prev_crd(&prev_fcrd, tc, be);
+  DDSxTexPack2Serv *prev_pack = NULL;
+  IDagorAssetExporter *exp = assets[0]->getMgr().getAssetExporter(assets[0]->getType());
+  int gameres_ver = exp ? exp->getGameResVersion() : 0;
+
+  if (!dabuild_force_dxp_rebuild && prev_fcrd.fileHandle && (df_length(prev_fcrd.fileHandle) >= 16) &&
+      !c4.checkAssetExpVerChanged(assets[0]->getType(), gameres_ver, DDSX_EXP_VER) && !c4.checkTargetFileChanged(pack_fname))
+    prev_pack = DDSxTexPack2Serv::make(prev_crd);
+
+  if (dd_file_exist(tq_split_fn) && c4.checkFileChanged(tq_split_fn, -1))
+    del_it(prev_pack);
+
+  bool ready = prev_pack && prev_pack->getFormatVer() == dabuild_dxp_write_ver;
+  for (int i = 0; ready && i < assets.size(); i++)
+  {
+    if (!prev_pack->hasDDSx(assets[i]->getName())) //-V522
+      ready = false;
+    else if (c4.checkDataBlockChanged(assets[i]->getNameTypified(), assets[i]->props, -1))
+      ready = false;
+    else if (AssetExportCache::sharedDataIsAssetInForceRebuildList(*assets[i]))
+      ready = false;
+    else if (c4.checkFileChanged(assets[i]->getTargetFilePath(), -1))
+      ready = false;
+    else if (int id = prev_pack->findDDSx(assets[i]->getName());
+             id < 0 || prev_pack->rec[id].packedDataSize < 0 || !is_srgb_config_valid(prev_pack->hdr[id]))
+      ready = false;
+  }
+
+  ready = ready && c4.allTrackedFilesUpToDate(pack_fname);
+
+  prev_fcrd.close();
+  del_it(prev_pack);
+  return ready;
 }
 
 bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4,

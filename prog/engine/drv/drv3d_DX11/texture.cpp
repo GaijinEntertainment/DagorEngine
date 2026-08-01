@@ -134,19 +134,6 @@ void clear_textures_pool_garbage() { g_textures.clearGarbage(); }
 
 #define MAX_CLEAR_TEXTURE_SIZE 512
 
-struct RtRec
-{
-  uint16_t w;
-  uint16_t h;
-  uint16_t used;
-  uint16_t levels;
-
-  DXGI_FORMAT fmt;
-  ID3D11Texture2D *tex;
-};
-
-static Tab<RtRec> rtPool(inimem);
-
 bool init_textures()
 {
   if (resetting_device_now)
@@ -371,6 +358,7 @@ const char *dxgi_format_to_string(DXGI_FORMAT format)
     case DXGI_FORMAT_BC1_UNORM: return "DXT1";
     case DXGI_FORMAT_BC4_UNORM: return "ATI1N";
     case DXGI_FORMAT_BC5_UNORM: return "ATI2N";
+    case DXGI_FORMAT_BC5_SNORM: return "BC5S";
     case DXGI_FORMAT_BC6H_UF16: return "BC6H";
     case DXGI_FORMAT_BC7_UNORM: return "BC7";
     case DXGI_FORMAT_BC7_UNORM_SRGB:
@@ -462,6 +450,7 @@ DXGI_FORMAT dxgi_format_from_flags(uint32_t cflg)
     case TEXFMT_DXT5: return DXGI_FORMAT_BC3_UNORM;
     case TEXFMT_ATI1N: return DXGI_FORMAT_BC4_UNORM;
     case TEXFMT_ATI2N: return DXGI_FORMAT_BC5_UNORM;
+    case TEXFMT_BC5S: return DXGI_FORMAT_BC5_SNORM;
     case TEXFMT_BC6H: return DXGI_FORMAT_BC6H_UF16;
     case TEXFMT_BC7: return DXGI_FORMAT_BC7_UNORM;
     case TEXFMT_R8UI: return DXGI_FORMAT_R8_UINT;
@@ -613,6 +602,7 @@ uint32_t calc_surface_size(uint32_t w, uint32_t h, DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC3_UNORM:
     case DXGI_FORMAT_BC3_UNORM_SRGB:
     case DXGI_FORMAT_BC5_UNORM:
+    case DXGI_FORMAT_BC5_SNORM:
     case DXGI_FORMAT_BC6H_UF16:
     case DXGI_FORMAT_BC7_UNORM:
     case DXGI_FORMAT_BC7_UNORM_SRGB: return ((w + 3) / 4) * ((h + 3) / 4) * 16;
@@ -633,6 +623,7 @@ uint32_t calc_row_pitch(uint32_t w, DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC3_UNORM:
     case DXGI_FORMAT_BC3_UNORM_SRGB:
     case DXGI_FORMAT_BC5_UNORM:
+    case DXGI_FORMAT_BC5_SNORM:
     case DXGI_FORMAT_BC6H_UF16:
     case DXGI_FORMAT_BC7_UNORM:
     case DXGI_FORMAT_BC7_UNORM_SRGB: return ((w + 3) / 4) * 16;
@@ -652,6 +643,7 @@ uint32_t get_min_tex_size(DXGI_FORMAT fmt)
     case DXGI_FORMAT_BC3_UNORM:
     case DXGI_FORMAT_BC3_UNORM_SRGB:
     case DXGI_FORMAT_BC5_UNORM:
+    case DXGI_FORMAT_BC5_SNORM:
     case DXGI_FORMAT_BC6H_UF16:
     case DXGI_FORMAT_BC7_UNORM:
     case DXGI_FORMAT_BC7_UNORM_SRGB: return 4;
@@ -872,6 +864,7 @@ void set_tex_params(BaseTex *tex, int w, int h, int d, uint32_t flg, int levels,
 {
   ResAutoLock resLock; // Writing to a bitfield isn't atomic, must protect getResView.
 
+  check_texture_srgb_format(flg, stat_name);
   DXGI_FORMAT fmt = dxgi_format_from_flags(flg);
   G_ASSERT(fmt != DXGI_FORMAT_UNKNOWN);
   D3D_CONTRACT_ASSERTF(levels > 0, "(%s).levels=%d", tex->getName(), levels);
@@ -1454,6 +1447,7 @@ Texture *drv3d_dx11::create_d3d_tex(ID3D11Texture2D *tex_res, const char *name, 
   D3D11_TEXTURE2D_DESC desc;
   tex_res->GetDesc(&desc);
 
+  check_texture_srgb_format(flg, name);
   BaseTex *tex = BaseTex::create_tex(flg, desc.ArraySize > 1 ? D3DResourceType::ARRTEX : D3DResourceType::TEX);
   tex->tex.tex2D = tex_res;
   D3D_CONTRACT_ASSERTF(desc.MipLevels < DX11_MIP_LEVELS_LIMIT && desc.MipLevels > 0, "DX11: %d is invalid value for mipLevels",

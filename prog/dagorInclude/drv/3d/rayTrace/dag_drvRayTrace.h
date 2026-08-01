@@ -911,6 +911,11 @@ struct PipelineCreateInfo : PipelineExpandInfo
   /// will guess on basis of some meta data of all used procedural hit groups and triangle hit
   /// groups.
   uint32_t maxAttributeSize = 0;
+  /// When true, the pipeline is built to trace against acceleration structures that contain Opacity
+  /// Micro Maps -- but only on devices that support OMM (the driver auto-disables it otherwise, so a
+  /// single build works everywhere). Carries a perf cost, so opt in only for pipelines that actually
+  /// trace OMM-bearing geometry.
+  bool allowOpacityMicroMaps = false;
 };
 
 /// Creates a new pipeline object with the given properties defined by the 'pci' parameter.

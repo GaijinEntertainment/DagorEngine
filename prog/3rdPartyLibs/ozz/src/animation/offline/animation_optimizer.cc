@@ -47,9 +47,6 @@ namespace ozz {
 namespace animation {
 namespace offline {
 
-// Setup default values (favoring quality).
-AnimationOptimizer::AnimationOptimizer() {}
-
 namespace {
 
 AnimationOptimizer::Setting GetJointSetting(
@@ -247,6 +244,11 @@ bool AnimationOptimizer::operator()(const RawAnimation& _input,
   if (!_output) {
     return false;
   }
+
+  if (&_input == _output) {
+    return false;
+  }
+
   // Reset output animation to default.
   *_output = RawAnimation();
 

@@ -5,6 +5,8 @@
 #include "ui/scriptStrings.h"
 #include <daECS/core/entitySystem.h>
 
+struct BhvOpacityByComponentData;
+
 class BhvOpacityByComponent : public darg::Behavior
 {
 public:
@@ -12,10 +14,11 @@ public:
     cstr, //
     opacityComponentEntity,
     opacityComponentName,
-    opacityComponentHash);
+    opacityComponentData);
 
   BhvOpacityByComponent();
   virtual void onAttach(darg::Element *) override;
+  virtual void onDetach(darg::Element *, DetachMode) override;
   virtual int update(UpdateStage stage, darg::Element *elem, float dt) override final;
 };
 

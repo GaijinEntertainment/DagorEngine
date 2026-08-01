@@ -194,6 +194,20 @@ public:
   }
 
   bool blitStillImage();
+  bool isBackendOnlyAcquire() { return onlyBackendAcquire; }
+  void toggleBackendOnlyAcquire() { onlyBackendAcquire = !onlyBackendAcquire; }
+
+#if DAGOR_DBGLEVEL > 0
+  static constexpr uint32_t ACQUIRE_IDX_HISTORY_SZ = 32;
+  uint32_t acquireIdxHistory[ACQUIRE_IDX_HISTORY_SZ] = {};
+  uint32_t acquireIdxHistoryIdx = 0;
+
+  void recordAcquiredIndex(uint32_t idx);
+  int getPresentedRingSize();
+#else
+  void recordAcquiredIndex(uint32_t) {}
+  int getPresentedRingSize() { return 0; }
+#endif
 };
 
 class SecondarySwapchainStorage

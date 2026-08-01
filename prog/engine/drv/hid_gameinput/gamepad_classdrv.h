@@ -32,12 +32,7 @@ public:
   // generic joystick class driver interface
   IGenJoystick *getDevice(int idx) const override;
   IGenJoystick *getDeviceByUserId(unsigned short userId) const override;
-  bool isDeviceConfigChanged() const override
-  {
-    if (deviceConfigChanged)
-      return deviceConfigChanged;
-    return secDrv ? secDrv->isDeviceConfigChanged() : false;
-  }
+  bool isDeviceConfigChanged() const override;
   void useDefClient(IGenJoystickClient *cli) override;
 
   IGenJoystick *getDefaultJoystick() override { return defJoy; }
@@ -69,22 +64,18 @@ public:
 
   static constexpr int GAMEPAD_MAX = 8;
 
-  void setDeviceMask(unsigned int new_mask);
-
   void updateVirtualDevice();
 
 protected:
   GameInputGamepadDevice *virtualDevice = nullptr;
   GameInputGamepadDevice *device[GAMEPAD_MAX] = {};
-  unsigned int deviceStateMask = 0;
+  unsigned devicesConfigGen = unsigned(-1);
   int deviceNum = 0;
   IGenJoystickClient *defClient = nullptr;
   IGenJoystickClassDrv *secDrv = nullptr;
   IGenJoystick *defJoy = nullptr;
   int prevUpdateRefTime = 0;
-  int nextUpdatePresenseTime = 0;
   bool enabled = false;
-  bool deviceConfigChanged = true;
   bool enableAutoDef = false;
   bool emulateSingleDevice = false;
   float stickDeadZoneScale[2] = {1, 1};

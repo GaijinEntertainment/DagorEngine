@@ -24,7 +24,6 @@
 #include <daScript/daScript.h>
 #include <daScript/simulate/bin_serializer.h>
 #include <daECS/core/coreEvents.h>
-#include <daScript/misc/smart_ptr.h>
 #include <daScript/misc/sysos.h>
 #include <daScript/simulate/aot_builtin_debugger.h>
 #include <ecs/scripts/dascripts.h>
@@ -198,8 +197,8 @@ RAIIDasEnvBound::RAIIDasEnvBound()
     G_ASSERT(mainThreadBound);
     if (!is_main_thread())
     {
-      savedBound = *das::daScriptEnvironment::bound; // Preserve old value for nested ESes
-      *das::daScriptEnvironment::bound = mainThreadBound;
+      savedBound = das::daScriptEnvironment::getBound(); // Preserve old value for nested ESes
+      das::daScriptEnvironment::setBound(mainThreadBound);
     }
   }
 }
@@ -207,7 +206,7 @@ RAIIDasEnvBound::RAIIDasEnvBound()
 RAIIDasEnvBound::~RAIIDasEnvBound()
 {
   if (alwaysUseMainThreadEnv && !is_main_thread())
-    *das::daScriptEnvironment::bound = savedBound;
+    das::daScriptEnvironment::setBound(savedBound);
 }
 
 struct RAIIContextMgr
@@ -1347,7 +1346,7 @@ struct EsFunctionAnnotation final : das::FunctionAnnotation
 
     block->annotationDataSid = das::hash_blockz64((uint8_t *)mangledName.c_str());
     block->annotationData = uintptr_t(desc.get()); // todo: add indirection to control pointers
-    auto program = (*das::daScriptEnvironment::bound)->g_Program;
+    auto program = das::daScriptEnvironment::getBound()->g_Program;
     const bool promoteToBuiltin = program->promoteToBuiltin;
     desc->shared = promoteToBuiltin;
     mg.unresolvedQueries.emplace_back(QueryData{blockName, eastl::move(desc)});
@@ -1406,17 +1405,6 @@ void shutdown_systems()
     G_VERIFY(esQueryDescsAllocator.clear() == 0);
   }
   das::Module::Shutdown();
-
-#if DAS_SMART_PTR_TRACKER
-  if (das::g_smart_ptr_total > 0)
-    debug("smart pointers leaked: %@", uint64_t(das::g_smart_ptr_total));
-
-#if DAS_SMART_PTR_ID
-  debug("leaked ids:");
-  for (auto it : das::ptr_ref_count::ref_count_ids)
-    debug("0x%X", it);
-#endif
-#endif
 
   if (debuggerEnvironment)
   {
@@ -1639,7 +1627,7 @@ struct DascriptLoadJob final : public DaThread
   void do_work(Scripts &local_scripts, das::vector<das::string> &file_names)
   {
     StackFillRAII fillStack(enableStackFill);
-    (*das::daScriptEnvironment::bound)->g_resolve_annotations = false;
+    das::daScriptEnvironment::getBound()->g_resolve_annotations = false;
     if (!globally_thread_init_script.empty())
     {
       TIME_PROFILE(loadScript)
@@ -1658,7 +1646,7 @@ struct DascriptLoadJob final : public DaThread
       success = local_scripts.loadScript(file_names[i], file_access, ctx) && success;
       count++;
     }
-    (*das::daScriptEnvironment::bound)->g_resolve_annotations = true;
+    das::daScriptEnvironment::getBound()->g_resolve_annotations = true;
   }
 
   void execute() override
@@ -1678,12 +1666,12 @@ struct DascriptLoadJob final : public DaThread
       localScripts.thisThreadDone();
     }
 
-    G_ASSERT(*das::daScriptEnvironment::owned == *das::daScriptEnvironment::bound);
-    G_ASSERT(!!*das::daScriptEnvironment::owned);
-    environment = *das::daScriptEnvironment::owned;
+    G_ASSERT(das::daScriptEnvironment::getOwned() == das::daScriptEnvironment::getBound());
+    G_ASSERT(!!das::daScriptEnvironment::getOwned());
+    environment = das::daScriptEnvironment::getOwned();
 
-    *das::daScriptEnvironment::owned = nullptr;
-    *das::daScriptEnvironment::bound = nullptr;
+    das::daScriptEnvironment::setOwned(nullptr);
+    das::daScriptEnvironment::setBound(nullptr);
     debug("dascript: queue: job loaded ok? %@ in %@ ms %@ files", success, profile_time_usec(startTime) / 1000, count);
   }
 };
@@ -1852,8 +1840,8 @@ bool stop_loading_queue(TInitDas init, void *user_data)
       das::daScriptEnvironment *jobEnv = jobs[i].environment;
       if (jobEnv) // if jobEnv is nullptr, it means that job was not started
       {
-        *das::daScriptEnvironment::owned = jobEnv;
-        *das::daScriptEnvironment::bound = jobEnv;
+        das::daScriptEnvironment::setOwned(jobEnv);
+        das::daScriptEnvironment::setBound(jobEnv);
         das::Module::CollectFileInfo(scripts.orphanFileInfos);
         das::Module::Shutdown();
       }
@@ -2072,7 +2060,7 @@ bool main_thread_post_load()
   const bool res = scripts.mainThreadDone();
   dump_statistics();
 
-  mainThreadBound = *das::daScriptEnvironment::bound;
+  mainThreadBound = das::daScriptEnvironment::getBound();
   G_ASSERT(mainThreadBound);
 
   return res;
@@ -2736,9 +2724,9 @@ static bool aotEsRunBlock(das::TextWriter &ss, EsQueryDesc *desc, const bind_das
   }
   const bool doLoop = !(esType == EsType::SingleEidQuery || isEmptySystem || isUnicastSystem);
   if (doLoop)
-    body << "\tuint32_t i = qv.begin(), ie = qv.end();\n\tG_ASSERT(ie > i);\n\tdo {\n";
+    body << "\tuint32_t i = qv.begin(), ie = qv.end();\n\tG_FAST_ASSERT(ie > i);\n\tdo {\n";
   else if (!isUnicastSystem || esType == EsType::SingleEidQuery)
-    body << "\tconstexpr uint32_t i = 0;\n\tG_ASSERT(qv.end() == 1 && qv.begin() == 0);\n\t{\n";
+    body << "\tconstexpr uint32_t i = 0;\n\tG_FAST_ASSERT(qv.end() == 1 && qv.begin() == 0);\n\t{\n";
   else
     body << "\tconstexpr uint32_t i = 0;\n\t{\n";
 
@@ -2985,7 +2973,7 @@ struct EsRunFunctionAnnotation : das::FunctionAnnotation
       {
         if (argument.name != "fn_name")
           continue;
-        const das::ModuleGroup *moduleGroup = (*das::daScriptEnvironment::bound)->g_Program->thisModuleGroup;
+        const das::ModuleGroup *moduleGroup = das::daScriptEnvironment::getBound()->g_Program->thisModuleGroup;
         const ESModuleGroupData *gd = (ESModuleGroupData *)moduleGroup->getUserData("es");
         for (const auto &es : gd->unresolvedEs)
           if (es.second == argument.sValue)
@@ -3232,7 +3220,7 @@ DAG_DECLARE_RELOCATABLE(bind_dascript::DascriptLoadJob);
 static void pull()
 {
   das::daScriptEnvironment::ensure();
-  (*das::daScriptEnvironment::bound)->das_def_tab_size = 2; // our coding style requires indenting of 2
+  das::daScriptEnvironment::getBound()->das_def_tab_size = 2; // our coding style requires indenting of 2
   if (das::Module::require("ecs"))
     return;
   NEED_FUSION;
@@ -3348,7 +3336,7 @@ void bind_dascript::init_systems(AotMode enable_aot, HotReload allow_hot_reload,
 
   if (is_main_thread())
   { // init mainThreadBound for any standalone application
-    mainThreadBound = *das::daScriptEnvironment::bound;
+    mainThreadBound = das::daScriptEnvironment::getBound();
     G_ASSERT(mainThreadBound);
   }
 }

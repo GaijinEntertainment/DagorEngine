@@ -15,6 +15,7 @@
 #define CINEMATIC_MODE_SHADERVARS  \
   VAR(cinematic_mode_on)           \
   VAR(chromatic_aberration_params) \
+  VAR(film_grain_params)           \
   VAR(vignette_strength)           \
   VAR(flare_halo_space_mul)        \
   VAR(flare_ghosts_space_mul)      \
@@ -39,6 +40,8 @@ CinematicMode::~CinematicMode()
   dagor_set_game_act_rate(getOrigActRate());
   ShaderGlobal::set_int(cinematic_mode_onVarId, 0);
   PriorityShadervar::clear(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY);
+  if (get_film_grain_mode() == FilmGrainMode::NOISE_BASED)
+    PriorityShadervar::clear(film_grain_paramsVarId, FILM_GRAIN_PRIORITY);
   PriorityShadervar::clear(vignette_strengthVarId, VIGNETTE_PRIORITY);
   FilmGrainLutHolder::disable_external_modifier();
   reset_default_color_grading();
@@ -59,10 +62,13 @@ void CinematicMode::setChromaticAberration(Point3 chromatic_aberration)
   PriorityShadervar::set_float4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(chromatic_aberration));
 }
 
-void CinematicMode::setFilmGrain(float strength_mul, Point4 film_grain)
+void CinematicMode::setFilmGrain(float strength_mul, Point3 film_grain_noise, Point4 film_grain_lut)
 {
-  film_grain.x *= strength_mul;
-  FilmGrainLutHolder::enable_external_modifier(film_grain);
+  film_grain_noise.x *= strength_mul;
+  film_grain_lut.x *= strength_mul;
+  if (get_film_grain_mode() == FilmGrainMode::NOISE_BASED)
+    PriorityShadervar::set_float4(film_grain_paramsVarId, FILM_GRAIN_PRIORITY, Point4::xyz0(film_grain_noise));
+  FilmGrainLutHolder::enable_external_modifier(film_grain_lut);
 }
 
 void CinematicMode::setFps(int fps) { settings.videoSettings.fps = fps; }

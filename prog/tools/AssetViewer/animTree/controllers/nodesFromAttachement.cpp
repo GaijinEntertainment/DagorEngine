@@ -2,6 +2,7 @@
 
 #include "nodesFromAttachement.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
@@ -52,7 +53,6 @@ void nodes_from_attachement_init_block_settings(PropPanel::ContainerPropertyCont
 void nodes_from_attachement_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
   if (listName.empty())
     return;
 
@@ -99,14 +99,36 @@ void nodes_from_attachement_set_selected_node_list_settings(PropPanel::Container
   panel->setBool(PID_CTRLS_NODES_FROM_ATTACHEMENT_RECURSIVE, selectedBlock->getBool("recursive", DEFAULT_RECURSIVE));
   panel->setBool(PID_CTRLS_NODES_FROM_ATTACHEMENT_INCLUDING_ROOT, selectedBlock->getBool("includingRoot", DEFUALT_INCLUDING_ROOT));
   bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
-  for (int i = PID_CTRLS_FOOT_LOCKER_IK_HIP; i <= PID_CTRLS_FOOT_LOCKER_IK_TOE; ++i)
+  for (int i = PID_CTRLS_NODES_FROM_ATTACHEMENT_SRC_NODE; i <= PID_CTRLS_NODES_FROM_ATTACHEMENT_INCLUDING_ROOT; ++i)
     panel->setEnabledById(i, isEditable);
 }
 
 void nodes_from_attachement_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (removeName == settings->getBlock(i)->getStr("srcNode", nullptr))
-      settings->removeBlock(i);
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "node");
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
+}
+
+class NodesFromAttachementReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  NodesFromAttachementReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    dag::Vector<int> positions = collect_block_positions_by_name(settings, "node");
+    move_block_at_positions(settings, positions, from, to);
+  }
+};
+
+IListReorderHandler *nodes_from_attachement_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new NodesFromAttachementReorderHandler(plugin, controllers, panel);
 }

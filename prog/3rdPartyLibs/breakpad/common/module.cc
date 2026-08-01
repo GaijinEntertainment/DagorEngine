@@ -80,7 +80,7 @@ void Module::AddFunction(Function *function) {
   // callers try to add one.
   assert(!function->name.empty());
   std::pair<FunctionSet::iterator,bool> ret = functions_.insert(function);
-  if (!ret.second) {
+  if (!ret.second && (*ret.first != function)) {
     // Free the duplicate that was not inserted because this Module
     // now owns it.
     delete function;
@@ -98,9 +98,7 @@ void Module::AddStackFrameEntry(StackFrameEntry *stack_frame_entry) {
 }
 
 void Module::AddExtern(Extern *ext) {
-  Function func;
-  func.name = ext->name;
-  func.address = ext->address;
+  Function func(ext->name, ext->address);
 
   // Since parsing debug section and public info are not necessarily
   // mutually exclusive, check if the symbol has already been read
@@ -141,8 +139,7 @@ Module::File *Module::FindFile(const string &name) {
   FileByNameMap::iterator destiny = files_.lower_bound(&name);
   if (destiny == files_.end()
       || *destiny->first != name) {  // Repeated string comparison, boo hoo.
-    File *file = new File;
-    file->name = name;
+    File *file = new File(name);
     file->source_id = -1;
     destiny = files_.insert(destiny,
                             FileByNameMap::value_type(&file->name, file));

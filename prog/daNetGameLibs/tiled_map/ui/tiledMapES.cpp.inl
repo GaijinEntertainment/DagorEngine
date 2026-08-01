@@ -15,11 +15,11 @@
 
 ECS_TAG(render)
 ECS_REQUIRE(ecs::Tag &tiled_map)
+ECS_BEFORE(hud_tiled_map_fog_of_war_es)
 static void hud_tiled_map_es(const RenderEventUI &evt) { tiled_map_on_render_ui(evt); }
 
 
 ECS_TAG(render)
-ECS_BEFORE(hud_tiled_map_fog_of_war_es)
 static void hud_tiled_map_fog_of_war_update_data_es(
   const UpdateStageInfoBeforeRender &evt, const ecs::IntList &fog_of_war__data, const int fog_of_war__dataGen)
 {
@@ -29,7 +29,7 @@ static void hud_tiled_map_fog_of_war_update_data_es(
 // updates the fog of war texture even if there is no map entity in the scene
 ECS_TAG(render)
 ECS_NO_ORDER
-static void hud_tiled_map_fog_of_war_es(const UpdateStageInfoBeforeRender &evt) { tiled_map_fog_of_war_before_render(evt); }
+static void hud_tiled_map_fog_of_war_es(const RenderEventUI &evt) { tiled_map_fog_of_war_render_ui(evt); }
 
 template <typename Cb>
 static inline void tiled_map_fog_of_war_get_data_ecs_query(ecs::EntityManager &manager, Cb cb);

@@ -199,7 +199,12 @@ All tiles share a single `kdNodes[]` array. Each tile records `kdTreeLeftNode` (
 3. Call `kdtree::make_nodes()` to build a full binary KD-tree
 4. Flatten to leaves-only via `kdtree::leaves_only()`
 5. Rearrange tile's node_index array to match leaf ordering (critical: culling iterates nodes by leaf ranges)
-6. Encode per-leaf flags union and max disappear distance into KDNode W components
+6. Sort each leaf's node range by disappear distance, DESCENDING (ties by internal index; NaN keys
+   canonicalized to sort first). This order is correctness-load-bearing, not a locality nicety: the
+   distance cull early-breaks the leaf scan at the first node whose disappear distance falls below the
+   leaf's conservative distance bound, which requires the non-increasing order. `updateTile` restores
+   it in place when a node's disappear distance changes (see incremental updates below).
+7. Encode per-leaf flags union and max disappear distance into KDNode W components
 
 ### KD-Tree Parameters (tunable)
 - `min_kdtree_nodes_count` = 16 -- minimum nodes to build a KD-tree
@@ -237,11 +242,16 @@ The `pos_distscale` parameter is `vec4f(posX, posY, posZ, distScale)`. If `distS
    - Frustum box-extent test: `v_box_frustum_intersect_extent2` returns OUTSIDE/INTERSECT/INSIDE
    - If `use_external_filter`: call `external_filter(bmin, bmax)` instead of frustum test
    - Distance check (if `use_dist`): `minDist^2_to_tile * globalDistScale > tileBox.bmax.w` -> skip. `tileBox.bmax.w` stores the maximum `(worldSphRad*distScale)^2` across all nodes in the tile -- if even the farthest-visible node in the tile is too far, skip the whole tile
-   - Occlusion check: `occlusion->isVisibleBox(tileBox.bmin, tileBox.bmax)`
+   - Occlusion check: `occlusion->isVisibleBoxInFrustum(tileBox.bmin, tileBox.bmax)` - the trimmed HZB
+     variant; its precondition (box already frustum-classified as at least partially visible) is
+     satisfied by the frustum test above. The kd-leaf occlusion check below uses it under the same
+     precondition (leaf frustum test, or fully-inside tile)
 2. **KD-leaf iteration** (if KD-tree exists):
    - For each leaf: flag check, distance check, frustum intersect, occlusion check
    - Collect visible leaves into `fixed_vector<VisibleLeaf, 256>` (2KB on stack, framemem overflow)
-   - Adjacent leaves with same inside/intersect status are merged (optimization)
+   - Adjacent leaves with same inside/intersect status are merged (optimization) - only when distance
+     culling is off; under `use_dist` each leaf run is processed unmerged, since merging would
+     concatenate independently sorted runs and break the sorted early exit
 3. **If no KD-tree**: single VisibleLeaf covering all tile nodes
 4. **Per-node loop** over each VisibleLeaf's range:
    - Flag filter
@@ -341,7 +351,7 @@ Each pass is time-budgeted: if `get_time_usec(reft) > max_time_to_spend_usec`, t
 When a node moves, the code tries to avoid a full KD-tree rebuild. The logic finds which KD-leaf contains the node by scanning leaf ranges:
 
 1. **Node stays inside its KD-leaf AND same disappear distance**: No flags set, nothing changes. Fastest path.
-2. **Node stays inside its KD-leaf BUT disappear distance changed**: Recalculate leaf's max disappear distance. No geometric rebuild.
+2. **Node stays inside its KD-leaf BUT disappear distance changed**: Recalculate leaf's max disappear distance and restore the leaf's descending disappear-distance order by moving the node with local swaps. No geometric rebuild.
 3. **Node moved inside leaf (was on border, moved inward)**: Recalculate leaf AABB from all leaf nodes via `fastGrowNodeBox`. Clear REBUILD/INVALIDATE flags.
 4. **Node moved outside leaf (crossed border)**: Expand leaf AABB to include new position. Accumulate `rebuildPenalty += relative_expansion`. If `rebuildPenalty < kdtree_rebuild_threshold`: tolerate degraded tree. If exceeded: schedule REBUILD.
 5. **Node removal from leaf**: If leaf count drops to 0, remove the KDNode (memmove). If leaf count > 0 and node was on leaf border, recompute leaf AABB. If tile node count drops below `min_kdtree_nodes_count`, invalidate the KD-tree entirely.

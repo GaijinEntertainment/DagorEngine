@@ -3,7 +3,7 @@
 #include <daBVH/dag_bvhSerialization.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_bits.h>
-#include "swCommon.h"
+#include <daBVH/swCommon.h>
 
 namespace build_bvh
 {
@@ -16,8 +16,8 @@ bool checkIfIsBox(const IdxT *indices, int index_count, const vec4f *vertices, i
   vec4f threshold = v_max(v_mul(v_splats(1e-6f), v_bbox3_size(box)), v_splats(1e-6f));
   for (int i = 0; i < vertex_count; ++i)
   {
-    vec4f minMaskV = v_cmp_lt(v_abs(v_sub(vertices[i], box.bmin)), threshold);
-    vec4f maxMaskV = v_cmp_lt(v_abs(v_sub(vertices[i], box.bmax)), threshold);
+    vec4f minMaskV = v_cmp_lt(v_abs_diff(vertices[i], box.bmin), threshold);
+    vec4f maxMaskV = v_cmp_lt(v_abs_diff(vertices[i], box.bmax), threshold);
     vec4f mask = v_or(minMaskV, maxMaskV);
     if (!v_check_xyz_all_true(mask))
       return false;
@@ -28,7 +28,7 @@ bool checkIfIsBox(const IdxT *indices, int index_count, const vec4f *vertices, i
     const vec4f n = v_cross3(v_sub(vertices[indices[i + 1]], v0), v_sub(vertices[indices[i + 2]], v0));
     const vec4f threshold = v_mul(v_length3(n), v_splats(1e-6f));
     const vec4f nA = v_abs(n);
-    if (__popcount(7 & v_signmask(v_cmp_gt(nA, threshold))) != 1)
+    if (v_count_true_xyz(v_cmp_gt(nA, threshold)) != 1)
       return false;
   }
   return true;

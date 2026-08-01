@@ -1,0 +1,102 @@
+let {Point2} = require("dagor.math")
+
+let TestInput = class {
+  function mouseClick(button) { assert(type(button)=="integer") }
+  function mousePosition(at) { assert(at instanceof Point2, "at should be Point2") }
+  function mouseMove(from, to, over_seconds) {
+    assert(from instanceof Point2, "from should be Point2")
+    assert(to instanceof Point2, "to should be Point2")
+    assert(type(over_seconds)=="float")
+  }
+  function keyPress(key) { assert(type(key)=="integer") }
+  function keyPressModifier(key, modifier) { assert(type(key)=="integer" && type(modifier)=="integer") }
+  function keyHeld(key, over_seconds) { assert(type(key)=="integer" && type(over_seconds)=="float") }
+  function keyHeldModifier(key, modifier, over_seconds) {
+    assert(type(key)=="integer")
+    assert(type(modifier)=="integer")
+    assert(type(over_seconds)=="float")
+  }
+  function characterInput(text, between_seconds) { assert(type(text)=="string" && type(between_seconds)=="float") }
+  function mouseDrag(button, from, to, over_seconds) {
+    assert(type(button)=="integer")
+    assert(from instanceof Point2, "from should be Point2")
+    assert(to instanceof Point2, "to should be Point2")
+    assert(type(over_seconds)=="float")
+  }
+  function mouseMoveItem(path, over_seconds) {
+    assert(type(path)=="string" && type(over_seconds)=="float")
+    return true
+  }
+  function mouseClickItem(path, button) {
+    assert(type(path)=="string" && type(button)=="integer")
+    return true
+  }
+}
+
+let TestRuntime = class {
+  function registerTest(name, func) {
+    assert(type(name)=="string" && type(func)=="function")
+    println($"--- registerTest({name}):")
+    func(this)
+  }
+  isRunning = @() true
+  markFailed = @() {}
+  yieldFrame = @() {}
+  function yieldTime(seconds) { assert(type(seconds)=="float") }
+  function queryItem(path) {
+    assert(type(path)=="string")
+    return {
+      id = 1
+      bb = {
+        Min = Point2(2, 3)
+        Max = Point2(4, 5)
+      }
+      parentId = 0
+    }
+  }
+  input = @() TestInput()
+}
+
+return {
+  getInstance = @() TestRuntime()
+
+  Mouse = {
+    Left   = 0
+    Right  = 1
+    Middle = 2
+  }
+
+  Modifier = {
+    None  = 0
+    Ctrl  = 0
+    Shift = 0
+    Alt   = 0
+    Super = 0
+  }
+
+  // Key names match ImGui::GetKeyName() output used in the C++ binding.
+  // Extend this table when new keys are referenced in test scripts.
+  Keys = {
+    Tab            = 0
+    LeftArrow      = 0
+    RightArrow     = 0
+    UpArrow        = 0
+    DownArrow      = 0
+    PageUp         = 0
+    PageDown       = 0
+    Home           = 0
+    End            = 0
+    Insert         = 0
+    Delete         = 0
+    Backspace      = 0
+    Space          = 0
+    Enter          = 0
+    Escape         = 0
+    A = 0  B = 0  C = 0  D = 0  E = 0  F = 0  G = 0  H = 0
+    I = 0  J = 0  K = 0  L = 0  M = 0  N = 0  O = 0  P = 0
+    Q = 0  R = 0  S = 0  T = 0  U = 0  V = 0  W = 0  X = 0
+    Y = 0  Z = 0
+    F1  = 0  F2  = 0  F3  = 0  F4  = 0  F5  = 0  F6  = 0
+    F7  = 0  F8  = 0  F9  = 0  F10 = 0  F11 = 0  F12 = 0
+  }
+}

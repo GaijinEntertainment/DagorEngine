@@ -14,8 +14,9 @@ namespace dafx_helper_globals
 extern dafx::ContextId ctx;
 extern dafx::CullingId cull_id;
 extern dafx::CullingId cull_fom_id;
-extern dafx::Stats stats;
+extern bool context_is_owned;
 extern float dt_mul;
+extern float accum_dt;
 extern int particles_resolution_preview;
 } // namespace dafx_helper_globals
 
@@ -37,7 +38,7 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
   constexpr uint32_t DEFAULT_BUFFER_SIZE = 524288;
   cfg.gpu_data_buffer_size =
     get_project_settings_blk()->getBlockByNameEx("graphics")->getInt("fxHighQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
-  cfg.emission_limit = 40960; // Max value: 65536 ; ~40k particles (value also set in Enlisted / AM configs)
+  cfg.emission_limit = 40960; // Max value: 65535 ; ~40k particles (value also set in Enlisted / AM configs)
 
   dafx_ctx = dafx::create_context(cfg);
   if (dafx_ctx)
@@ -94,14 +95,17 @@ inline void set_dafx_camera_velocity(dafx::ContextId dafx_ctx, const Point3 &cam
   dafx::set_global_value(dafx_ctx, "camera_velocity", &cam_vel, 12);
 }
 
-inline void act_dafx(dafx::ContextId dafx_ctx, float dt)
+inline void act_dafx(dafx::ContextId dafx_ctx)
 {
+  float dt = dafx_helper_globals::accum_dt;
+  dafx_helper_globals::accum_dt = 0.f;
+  dt *= dafx::get_config(dafx_ctx).time_scale;
   dafx::set_global_value(dafx_ctx, "dt", &dt, 4);
   dafx::start_update(dafx_ctx, dt);
   dafx::finish_update(dafx_ctx);
 }
 
-inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, dafx::Stats &dafx_stats, TMatrix4 &prevGlobTm)
+inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cull, TMatrix4 &prevGlobTm)
 {
   TMatrix4 globtm;
   d3d::getglobtm(globtm);
@@ -183,8 +187,7 @@ inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cu
     }
   }
 
-  act_dafx(dafx_ctx, 0.0f);
-  memset(&dafx_stats, 0, sizeof(dafx::Stats));
+  act_dafx(dafx_ctx);
 
   dafx::update_culling_state(dafx_ctx, dafx_cull, Frustum(globtm), Point3::xyz(itm.getcol(3)));
   dafx::sync_instance_flags(dafx_ctx);
@@ -235,18 +238,4 @@ inline void render_dafx_fom(dafx::ContextId dafx_ctx, dafx::CullingId dafx_fom_c
   dafx::set_global_value(dafx_ctx, "view_dir_y", &prevViewDirs[1], 12);
   dafx::set_global_value(dafx_ctx, "view_dir_z", &prevViewDirs[2], 12);
   dafx::flush_global_values(dafx_ctx);
-}
-
-inline void calc_dafx_stats(dafx::ContextId dafx_ctx, dafx::Stats &dafx_stats)
-{
-  // there could be multiple renders per 1 update
-  dafx::Stats stats;
-  dafx::get_stats(dafx_ctx, stats);
-  dafx_stats.activeInstances = max(dafx_stats.activeInstances, stats.activeInstances);
-  dafx_stats.cpuElemProcessed = max(dafx_stats.cpuElemProcessed, stats.cpuElemProcessed);
-  dafx_stats.gpuElemProcessed = max(dafx_stats.gpuElemProcessed, stats.gpuElemProcessed);
-  dafx_stats.visibleTriangles = max(dafx_stats.visibleTriangles, stats.visibleTriangles);
-  dafx_stats.renderedTriangles = max(dafx_stats.renderedTriangles, stats.renderedTriangles);
-  dafx_stats.renderDrawCalls = max(dafx_stats.renderDrawCalls, stats.renderDrawCalls);
-  dafx::clear_stats(dafx_ctx);
 }

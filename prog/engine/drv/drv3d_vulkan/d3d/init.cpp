@@ -1401,6 +1401,9 @@ bool d3d::reset_device()
     if (isDLSSSupported())
       closeDLSS();
     Globals::xess.shutdown();
+
+    if (amd::FSRVulkan *fsr = amd::FSRVulkan::getExistingInstance())
+      fsr->beforeReset();
   }
 
   if (dagor_d3d_force_driver_reset || Backend::interop.deviceLost.load())
@@ -1436,6 +1439,9 @@ bool d3d::reset_device()
     if (isDLSSSupported())
       initDLSS();
     Globals::xess.init();
+
+    if (amd::FSRVulkan *fsr = amd::FSRVulkan::getExistingInstance())
+      fsr->afterReset();
   }
 
   if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)

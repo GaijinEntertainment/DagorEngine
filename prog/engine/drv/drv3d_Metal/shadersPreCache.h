@@ -150,17 +150,15 @@ class ShadersPreCache
   size_t g_descriptors_saved = 0;
   size_t g_psos_saved = 0;
   size_t g_csos_saved = 0;
-  bool g_cache_dirty = false;
+  std::atomic<bool> g_cache_dirty = false;
   eastl::vector<QueuedShader> g_queued_shaders;
 
-  bool pso_cache_loaded = false;
+  std::atomic<bool> pso_cache_loaded = false;
 
   std::atomic<bool> g_is_exiting;
-  std::atomic<bool> g_saver_exited;
-  std::atomic<bool> g_compiler_exited;
 
-  std::mutex g_saver_mutex;
-  std::condition_variable g_saver_condition;
+  std::mutex g_cache_mutex;
+  std::condition_variable g_cache_condition;
 
   std::mutex g_compiler_mutex;
   std::condition_variable g_compiler_condition;
@@ -185,14 +183,17 @@ public:
 
   id<MTLFunction> compileShader(const QueuedShader &shader);
   MTLVertexDescriptor *compileDescriptor(uint64_t hash, CachedVertexDescriptor &desc);
-  id<MTLRenderPipelineState> compilePipeline(uint64_t hash, CachedPipelineState *pso, bool free);
-  id<MTLRenderPipelineState> compileMeshPipeline(uint64_t hash, CachedPipelineState *pso, bool free);
+  id<MTLRenderPipelineState> compilePipeline(uint64_t hash, CachedPipelineState *pso, bool is_sync);
+  id<MTLRenderPipelineState> compileMeshPipeline(uint64_t hash, CachedPipelineState *pso, bool is_sync);
   id<MTLComputePipelineState> compilePipeline(uint64_t hash);
 
   void saveShaders(const ska::flat_hash_map<uint64_t, CachedShader *> &shaderCache);
   void saveDescriptors(const ska::flat_hash_map<uint64_t, CachedVertexDescriptor *> &descriptorCache);
   void savePSOs(const ska::flat_hash_map<uint64_t, CachedPipelineState *> &psoCache);
   void saveCSOs(const ska::flat_hash_map<uint64_t, CachedComputePipelineState *> &psoCache);
+
+  void pushNewPipeline(uint64_t hash, CachedPipelineState *pso);
+  void pushNewShader(uint64_t hash, CachedShader *shader);
 
   void tickCache();
   void tickCompilation();

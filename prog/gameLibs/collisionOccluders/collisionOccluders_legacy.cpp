@@ -7,63 +7,58 @@
 #include <vecmath/dag_vecMath.h>
 #include <EASTL/fixed_vector.h>
 
-// Legacy (SW masked-occlusion-culling) occluder feeder. BLAS-resident nodes drop their
-// ownVertices/ownIndices; verts live in the grid's vert21 array (8 B/vert). Handled by consumer
-// lifetime:
-//  - withNodeMeshData feeds a *synchronous* consumer: materialises resident verts/indices into
+// Legacy (SW masked-occlusion-culling) occluder feeder. Owning CollisionResources keep verts
+// vert21-packed: BLAS-resident nodes in the grid's vert21 array (8 B/vert), every other mesh/convex
+// node as a per-node BLAS chunk block. Faces are read from the BLAS. Handled by consumer lifetime:
+//  - withNodeMeshData feeds a *synchronous* consumer: materialises verts (+ resident indices) into
 //    framemem scratch for the call.
-//  - addRasterizationTasks builds *async* tasks holding a raw float pointer that outlives the call;
+//  - addRasterizationTasks builds *async* tasks holding raw pointers that outlive the call;
 //    on-the-fly decode can't satisfy that without owning the buffer, so resident nodes are covered
-//    by the whole-grid RenderBLAS task (MOC RenderBLAS reads the stable grid blasData directly) and
-//    skipped in the raw-pointer per-node loop. A resident node with no covering task is dropped
-//    with LOGERR_ONCE (conservative overdraw; does not happen for rendinst occluder content).
+//    by the whole-grid RenderBlasSOA4 task (MOC RenderBlasSOA4 reads the stable grid blasData directly) and
+//    skipped in the per-node loop, while non-resident nodes feed a RenderBlasSOA4 task over their own
+//    resource-stable per-node BLAS chunk (same walk-and-emit, no caller index list). A resident node
+//    with no covering task is dropped with LOGERR_ONCE (conservative overdraw; does not happen for
+//    rendinst occluder content).
 void CollisionGeometryFeeder::withNodeMeshData(const CollisionResource &coll_res, int node_id, const NodeMeshConsumer &cb)
 {
-  auto verts = coll_res.getNodeVertices(node_id);
-  auto idxs = coll_res.getNodeIndices(node_id);
-  if (!verts.empty())
-  {
-    cb(verts.data(), (int)verts.size(), sizeof(Point3_vec4), idxs.data(), (int)idxs.size(), sizeof(uint16_t));
-    return;
-  }
-  // BLAS-resident node: ownVertices/ownIndices were dropped, so the getters return empty. cb
-  // consumes the pointers synchronously (NodeMeshConsumer contract: raw pointers valid only during
-  // the call, may reference transient decoded scratch), so materialise verts+indices from the grid's
-  // vert21 array into framemem scratches and feed those. Without this, resident geometry (e.g.
-  // damage-model armor in the X-ray hit-cam cache) produced zero-vertex entries and rendered nothing.
+  // Owning resources keep verts vert21-packed (per-node BLAS chunk, or the grid for BLAS-resident
+  // nodes), so materialise verts+indices via the dispatch-aware iterators into framemem scratches and
+  // feed those. cb consumes the pointers synchronously (NodeMeshConsumer contract: raw pointers valid
+  // only during the call, may reference transient decoded scratch).
   const CollisionNode *n = coll_res.getNode(node_id);
-  if (!n || !(n->flags & CollisionNode::BLAS_RESIDENT) || n->indicesCount == 0)
+  if (!n || !n->hasGeometry())
     return; // genuinely empty node
   dag::Vector<Point3_vec4, framemem_allocator> matVerts;
-  matVerts.reserve((size_t)n->verticesCount + 1u);
+  matVerts.reserve((size_t)n->verticesCount);
   coll_res.iterateNodeVerts(node_id, [&](int, vec4f v) {
     Point3_vec4 p;
     v_st(&p.x, v);
     matVerts.push_back(p);
   });
-  dag::Vector<uint16_t, framemem_allocator> matIdx;
+  // 32-bit indices: a per-node BLAS chunk (heavy QUAD_O1 over-spread dup) can exceed 65536 verts. The
+  // sole consumer (X-ray vertex cache) uploads the full node mesh into a 32-bit index buffer, so feed all
+  // faces -- dropping triangles would render a partial damage mesh and trip its index-count assert.
+  dag::Vector<uint32_t, framemem_allocator> matIdx;
   matIdx.reserve(n->indicesCount);
-  coll_res.iterateNodeFaces(node_id, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+  coll_res.iterateNodeFaces(node_id, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
     matIdx.push_back(i0);
     matIdx.push_back(i1);
     matIdx.push_back(i2);
   });
   if (matVerts.empty() || matIdx.empty())
     return;
-  cb(matVerts.data(), (int)matVerts.size(), sizeof(Point3_vec4), matIdx.data(), (int)matIdx.size(), sizeof(uint16_t));
+  cb(matVerts.data(), (int)matVerts.size(), sizeof(Point3_vec4), matIdx.data(), (int)matIdx.size(), sizeof(uint32_t));
 }
 
 void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &coll_res, mat44f_cref worldviewproj,
   eastl::vector<ParallelOcclusionRasterizer::RasterizationTaskData> &out_tasks, uint32_t triangles_partition, bool allow_convex)
 {
-  const vec4f bmin = v_ld(&coll_res.boundingBox[0].x);
-  const vec4f bmax = v_ldu(&coll_res.boundingBox[1].x);
   const auto allNodes = coll_res.getAllNodes();
 
-  // BLAS-resident mesh occluders feed MOC RenderBLAS, which walks the combined-per-behavior vert21
+  // BLAS-resident mesh occluders feed MOC RenderBlasSOA4, which walks the combined-per-behavior vert21
   // quad-BVH directly. The grid's blasData is a stable (resource-lifetime) pointer, satisfying the
   // task's async lifetime -- which is why these nodes can't use the raw-float-pointer triangle path
-  // (their ownVertices were dropped). The per-node loop below skips BLAS_RESIDENT nodes.
+  // (they have no ownVerts21 block). The per-node loop below skips grid-resident nodes.
   // Gate: the combined BLAS can't exclude individual nodes, and a FLAG_TRANSPARENT occluder must not
   // write depth, so skip the BLAS task entirely if any covered node is transparent (dropping the
   // resident occluders -- conservative overdraw, never wrong culling; transparent collision is rare.
@@ -100,10 +95,10 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
       raw2local.col3 = v_perm_xyzd(occlGrid.blasBBox.bmin, v_splats(1.0f));
       mat44f rawToClip;
       v_mat44_mul43(rawToClip, worldviewproj, raw2local);
-      // Slice the BLAS triangle range into triangles_partition-sized RenderBLAS sub-jobs via
+      // Slice the BLAS triangle range into triangles_partition-sized RenderBlasSOA4 sub-jobs via
       // triSkip/triLimit so workers parallelize one resource's occluders with a bounded per-job index
-      // cache. treeStart/treeEnd span the whole tree ([0, blasTreeBytes)); bmin/bmax are the
-      // raw-vert21 extent ([0..2097120]) the rawToClip frustum test operates in.
+      // cache. soa4Root routes the job to the SoA4 walker; bmin/bmax are the raw-vert21 extent
+      // ([0..2097120]) the rawToClip frustum test operates in.
       const uint32_t partition = triangles_partition ? triangles_partition : blasTriCount;
       for (uint32_t triStart = 0; triStart < blasTriCount; triStart += partition)
       {
@@ -113,8 +108,7 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
         task.bmax = v_splats(2097120.f);
         task.blasData = occlGrid.blasData.data();
         task.vertOffset = occlGrid.blasVertsOfs();
-        task.treeStart = 0; //-V1048 intentional: whole-tree range [treeStart, treeEnd), paired with treeEnd below
-        task.treeEnd = occlGrid.blasTreeBytes;
+        task.soa4Root = occlGrid.blasRootRef; // routes the job to RenderBlasSOA4 (grid trees are SoA4)
         task.triSkip = triStart;
         const uint32_t remaining = blasTriCount - triStart;
         task.tri_count = partition < remaining ? partition : remaining;
@@ -141,57 +135,74 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
   for (int ni = 0, ne = (int)allNodes.size(); ni < ne; ++ni)
   {
     const CollisionNode *node = coll_res.getNode(ni);
-    if (!node || !node->indicesCount)
+    if (!node || !node->hasGeometry())
       continue;
     if (!(node->type == COLLISION_NODE_TYPE_MESH || (allow_convex && node->type == COLLISION_NODE_TYPE_CONVEX)))
       continue;
     if (!node->checkBehaviorFlags(CollisionNode::TRACEABLE) || node->checkBehaviorFlags(CollisionNode::FLAG_TRANSPARENT))
       continue;
-    // Covered by the whole-grid RenderBLAS task above: nothing to emit here (emitting again would
-    // double-rasterize). Membership in blasNodeRanges -- not BLAS_RESIDENT -- is the right key: a
-    // node with post-dup vert span > 65536 keeps its NodeRange but stays non-resident (retains
-    // ownVertices), yet its triangles are in the submitted task all the same.
+    // Covered by the whole-grid RenderBlasSOA4 task above: nothing to emit here (emitting again would
+    // double-rasterize). Membership in blasNodeRanges is the key: a node in this grid's ranges has
+    // its triangles in the submitted task, whatever its post-dup vert span (no 65536 ceiling now).
     if (
       blasTaskSubmitted && node->nodeIndex < nodeCount && ((coveredByBlasTask[node->nodeIndex >> 5] >> (node->nodeIndex & 31u)) & 1u))
       continue;
-    if (node->flags & CollisionNode::BLAS_RESIDENT)
+    if (coll_res.isGridResident(*node))
     {
-      // Resident node with NO covering RenderBLAS task: its raw verts were dropped at load and the
+      // Resident node with NO covering RenderBlasSOA4 task: its raw verts were dropped at load and the
       // async task struct needs pointers that outlive this call, so the occluder is dropped --
       // conservative overdraw, never wrong culling. Occluders are rendinst traceable collision after
       // collapseAndOptimize, where the traceable grid is built and covers every resident node;
       // reaching here means unusual content (traceable grid not built while the node is resident in
       // gridForCollidable, or the task was dropped over a transparent covered node) -- shout once.
-      LOGERR_ONCE("collision occluder: dropping BLAS-resident node <%s> with no covering RenderBLAS task",
+      LOGERR_ONCE("collision occluder: dropping BLAS-resident node <%s> with no covering RenderBlasSOA4 task",
         coll_res.getNodeName(node->nodeIndex));
       continue;
     }
-
-    auto nodeVerts = coll_res.getNodeVertices(ni);
-    auto nodeIdx = coll_res.getNodeIndices(ni);
-    if (nodeVerts.empty())
-      continue; // defensive (shouldn't trigger after the BLAS_RESIDENT skip above)
-    const float *const vertsPtr = (const float *)nodeVerts.data();
-    const uint16_t *const facesPtr = nodeIdx.data();
-    const uint32_t faceCount = (uint32_t)nodeIdx.size() / 3;
-
+    if (!coll_res.hasNodeBlas(ni))
+      continue; // defensive: a non-resident occluder with geometry always has a per-node chunk
+    // Owning resource: the node's verts AND quad-BVH tree live in its resource-stable per-node BLAS
+    // chunk, which satisfies the async task lifetime -- feed it to MOC RenderBlasSOA4 exactly like the
+    // whole-grid task above (walk-and-emit; no caller index list). The decode frame -- and the node tm
+    // for non-IDENT nodes -- folds into the task matrix: linear part invScale/32 per axis (MOC fetches
+    // via unpackVert21Raw, [0..2097120] = 32 * box-space), translation = the block's bmin. The frame IS
+    // the node-slice bbox, so the frustum pretest range [0, 2097120]^3 is exactly the node's bounds.
+    const CollisionResource::NodeOccluderBlas chunk = coll_res.getNodeOccluderBlas(*node);
+    const vec3f s = v_mul(chunk.invScale, v_splats(1.0f / 32.0f));
+    const float sx = v_extract_x(s), sy = v_extract_y(s), sz = v_extract_z(s);
+    mat44f raw2local;
+    raw2local.col0 = v_make_vec4f(sx, 0.f, 0.f, 0.f);
+    raw2local.col1 = v_make_vec4f(0.f, sy, 0.f, 0.f);
+    raw2local.col2 = v_make_vec4f(0.f, 0.f, sz, 0.f);
+    raw2local.col3 = v_perm_xyzd(chunk.bmin, v_splats(1.0f));
+    mat44f rawToClip;
     if ((node->flags & (CollisionNode::IDENT | CollisionNode::TRANSLATE)) == CollisionNode::IDENT)
-    {
-      for (uint32_t i = 0; i < faceCount; i += triangles_partition)
-        out_tasks.emplace_back(ParallelOcclusionRasterizer::RasterizationTaskData{
-          worldviewproj, bmin, bmax, vertsPtr, facesPtr + i * 3, min(faceCount - i, triangles_partition)});
-    }
+      v_mat44_mul43(rawToClip, worldviewproj, raw2local);
     else
     {
       mat44f nodeTm;
       v_mat44_make_from_43ca(nodeTm, coll_res.getNodeTm(ni)[0]);
       v_mat44_mul43(nodeTm, worldviewproj, nodeTm);
-      alignas(16) BBox3 nodeBBox = coll_res.getNodeBBox(ni);
-      const vec4f nbmin = v_ld(&nodeBBox[0].x);
-      const vec4f nbmax = v_ldu(&nodeBBox[1].x);
-      for (uint32_t i = 0; i < faceCount; i += triangles_partition)
-        out_tasks.emplace_back(ParallelOcclusionRasterizer::RasterizationTaskData{
-          nodeTm, nbmin, nbmax, vertsPtr, facesPtr + i * 3, min(faceCount - i, triangles_partition)});
+      v_mat44_mul43(rawToClip, nodeTm, raw2local);
+    }
+    // Slice the node's triangles into triangles_partition RenderBlasSOA4 sub-jobs (triSkip/tri_count),
+    // same as the whole-grid task. soa4Root routes to the SoA4 walker; vertOffset locates the vert21
+    // stream past the tree and the 24 B block header.
+    const uint32_t faceCount = node->indicesCount / 3u;
+    const uint32_t partition = triangles_partition ? triangles_partition : faceCount;
+    for (uint32_t triStart = 0; triStart < faceCount; triStart += partition)
+    {
+      ParallelOcclusionRasterizer::RasterizationTaskData task;
+      task.viewproj = rawToClip;
+      task.bmin = v_zero();
+      task.bmax = v_splats(2097120.f);
+      task.blasData = chunk.blasData;
+      task.vertOffset = chunk.vertOffset;
+      task.soa4Root = chunk.rootRef; // routes the job to RenderBlasSOA4 (chunk trees are SoA4)
+      task.triSkip = triStart;
+      const uint32_t remaining = faceCount - triStart;
+      task.tri_count = partition < remaining ? partition : remaining;
+      out_tasks.emplace_back(task);
     }
   }
 }

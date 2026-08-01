@@ -68,6 +68,7 @@ struct BackGraphicsStateStorage
   StateFieldGraphicsShadingRate shadingRate;
 
   BackDynamicGraphicsState dynamic;
+  BackExtDynamicGraphicsState extDynamic;
 
   void reset() {}
   void dumpLog() const { debug("BackGraphicsStateStorage end"); }
@@ -96,8 +97,8 @@ class BackGraphicsState
       StateFieldGraphicsConditionalRenderingScopeOpener,
 
       StateFieldGraphicsPrimitiveTopology, StateFieldGraphicsDynamicRenderStateIndex, BackDynamicGraphicsState,
-      StateFieldGraphicsPipeline, StateFieldGraphicsDepthBounds, StateFieldGraphicsBlendConstantFactor, StateFieldGraphicsIndexBuffer,
-      StateFieldGraphicsVertexBuffersBindArray, StateFieldGraphicsShadingRate>
+      BackExtDynamicGraphicsState, StateFieldGraphicsPipeline, StateFieldGraphicsDepthBounds, StateFieldGraphicsBlendConstantFactor,
+      StateFieldGraphicsIndexBuffer, StateFieldGraphicsVertexBuffersBindArray, StateFieldGraphicsShadingRate>
 {
 public:
   template <typename T>

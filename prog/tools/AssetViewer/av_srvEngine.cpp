@@ -24,6 +24,7 @@
 #include <assetsGui/av_selObjDlg.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_ViewportWindow.h>
 #include <libTools/util/strUtil.h>
 #include <shaders/dag_shaders.h>
 #include <perfMon/dag_graphStat.h>
@@ -670,7 +671,10 @@ class ServicesRenderPlugin : public IGenEditorPlugin, public ILightingChangeClie
 
       d3d::settm(TM_WORLD, TMatrix::IDENT);
       TMatrix4 globtm;
-      d3d::getglobtm(globtm);
+      if (ViewportWindow *vpw = static_cast<ViewportWindow *>(EDITORCORE->getRenderViewport()))
+        d3d::calcglobtm(vpw->getViewTm(), vpw->getProjTm(), globtm);
+      else
+        d3d::getglobtm(globtm);
       Frustum frustum;
       frustum.construct(globtm);
 

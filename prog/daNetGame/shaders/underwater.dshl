@@ -80,7 +80,7 @@ shader underwater_fog
     underwater_fade@f3 = underwater_fade;
     sun_color_0@f3 = sun_color_0;
     from_sun_direction@f3 = from_sun_direction;
-    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    water_heightmap_lowres@tex2d = water_heightmap_lowres;
     fog_base_diffuse@f1 = underwater_fog_base_diffuse;
     fog_normal_diffuse@f1 = underwater_fog_normal_diffuse;
     fog_base_spec@f1 = underwater_fog_base_spec;
@@ -89,7 +89,9 @@ shader underwater_fog
     fog_base_ambient@f1 = underwater_fog_base_ambient;
   }
   INIT_WORLD_TO_WATER_HEIGHTMAP(ps)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
   hlsl(ps) {
+    #define water_heightmap_lowres_samplerstate global_linear_wrap_sampler
     #include <interleavedGradientNoise.hlsl>
 
     float3 fog_brdf(float3 point_to_eye, float3 ambient, float caustic, float shadow)

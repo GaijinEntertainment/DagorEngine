@@ -11,6 +11,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_renderStates.h>
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
+#include <EASTL/bit.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_string.h>
@@ -31,11 +32,13 @@ struct StaticRenderStateIDWithHash
 
 class DeviceContext;
 
-BEGIN_BITFIELD_TYPE(PipelineOptionalDynamicStateMask, uint8_t)
-  ADD_BITFIELD_MEMBER(hasDepthBoundsTest, 0, 1)
-  ADD_BITFIELD_MEMBER(hasStencilTest, 1, 1)
-  ADD_BITFIELD_MEMBER(hasBlendConstants, 2, 1)
-END_BITFIELD_TYPE()
+struct PipelineOptionalDynamicStateMask
+{
+  bool hasDepthBoundsTest : 1 = false;
+  bool hasStencilTest : 1 = false;
+  bool hasBlendConstants : 1 = false;
+};
+
 class PipelineCache;
 class PipelineManager;
 // Manages IDs handed out for registered shaders::RenderState data structures.
@@ -55,60 +58,40 @@ class RenderStateSystem
 public:
   struct DynamicState
   {
-    uint32_t stencilRef : 8;
-    uint32_t enableScissor : 1;
+    uint32_t stencilRef : 8 = 0;
+    uint32_t enableScissor : 1 = 0;
   };
+
   struct StaticStateBits
   {
     // first 32 bits
-    uint32_t enableDepthTest : 1;
-    uint32_t enableDepthWrite : 1;
-    uint32_t enableDepthClip : 1;
-    uint32_t enableDepthBounds : 1;
-    uint32_t enableStencil : 1;
-    uint32_t enableIndependentBlend : 1;
-    uint32_t enableAlphaToCoverage : 1;
+    uint32_t enableDepthTest : 1 = 0;
+    uint32_t enableDepthWrite : 1 = 0;
+    uint32_t enableDepthClip : 1 = 0;
+    uint32_t enableDepthBounds : 1 = 0;
+    uint32_t enableStencil : 1 = 0;
+    uint32_t enableIndependentBlend : 1 = 0;
+    uint32_t enableAlphaToCoverage : 1 = 0;
 
-    uint32_t depthFunc : 3;
-    uint32_t forcedSampleCountShift : 3;
-    uint32_t enableConservativeRaster : 1;
-    uint32_t viewInstanceCount : 2;
-    uint32_t cullMode : 15; // 2 bit used, 13 free
-    uint32_t enableDualSourceBlending : 1;
+    uint32_t depthFunc : 3 = 0;
+    uint32_t forcedSampleCountShift : 3 = 0;
+    uint32_t enableConservativeRaster : 1 = 0;
+    uint32_t viewInstanceCount : 2 = 0;
+    uint32_t cullMode : 15 = 0; // 2 bit used, 13 free
+    uint32_t enableDualSourceBlending : 1 = 0;
 
     // second 32 bits
-    uint32_t stencilReadMask : 8;
-    uint32_t stencilWriteMask : 8;
-    uint32_t stencilFunction : 3;
-    uint32_t stencilOnFail : 3;
-    uint32_t stencilOnDepthFail : 3;
-    uint32_t stencilOnPass : 7; // 3 bit used, 4 free
+    uint32_t stencilReadMask : 8 = 0;
+    uint32_t stencilWriteMask : 8 = 0;
+    uint32_t stencilFunction : 3 = 0;
+    uint32_t stencilOnFail : 3 = 0;
+    uint32_t stencilOnDepthFail : 3 = 0;
+    uint32_t stencilOnPass : 7 = 0; // 3 bit used, 4 free
 
     // third 32 bits
-    uint32_t colorWriteMask;
+    uint32_t colorWriteMask = 0;
 
-    StaticStateBits() :
-      enableDepthTest{0},
-      enableDepthWrite{0},
-      enableDepthClip{0},
-      enableDepthBounds{0},
-      enableStencil{0},
-      enableIndependentBlend{0},
-      enableAlphaToCoverage{0},
-      depthFunc{0},
-      forcedSampleCountShift{0},
-      enableConservativeRaster{0},
-      viewInstanceCount{0},
-      cullMode{0},
-      enableDualSourceBlending{0},
-      stencilReadMask{0},
-      stencilWriteMask{0},
-      stencilFunction{0},
-      stencilOnFail{0},
-      stencilOnDepthFail{0},
-      stencilOnPass{0},
-      colorWriteMask{0}
-    {}
+    bool operator==(const StaticStateBits &) const = default;
   };
 
   // Struct should not have alignment intervals,
@@ -191,8 +174,8 @@ public:
       result.aprintf(64, " viewInstanceCount %u", viewInstanceCount);
       result.aprintf(64, " cullMode %u", cullMode);
       result.aprintf(64, " colorWriteMask %u", colorWriteMask);
-      result.aprintf(64, " depthBias %x", *reinterpret_cast<const uint32_t *>(&depthBias));
-      result.aprintf(64, " depthBiasSloped %x", *reinterpret_cast<const uint32_t *>(&depthBiasSloped));
+      result.aprintf(64, " depthBias %x", eastl::bit_cast<uint32_t>(depthBias));
+      result.aprintf(64, " depthBiasSloped %x", eastl::bit_cast<uint32_t>(depthBiasSloped));
 
       auto appendParams = [&result](const auto &param, int i) {
         result.aprintf(64, " blendParams[%d].enableBlending %u", i, param.enableBlending);
@@ -221,78 +204,23 @@ public:
       return result;
     }
 
-    eastl::string toStringForPipelineName() const
+    // Unused blendParams entries are not normalized on creation, so only the
+    // bytes selected by the blend mode take part in the comparison.
+    size_t usedBlendParamsSize() const
     {
-      eastl::string result;
-
-      // the string is every long
-      result.reserve(0x4000);
-
-      result = "[";
-
-      result.append_sprintf("enableDepthTest=%u,", enableDepthTest);
-      result.append_sprintf("enableDepthWrite=%u,", enableDepthWrite);
-      result.append_sprintf("enableDepthClip=%u,", enableDepthClip);
-      result.append_sprintf("enableDepthBounds=%u,", enableDepthBounds);
-      result.append_sprintf("enableStencil=%u,", enableStencil);
-      result.append_sprintf("enableIndependentBlend=%u,", enableIndependentBlend);
-      result.append_sprintf("enableAlphaToCoverage=%u,", enableAlphaToCoverage);
-      result.append_sprintf("enableDualSourceBlending=%u,", enableDualSourceBlending);
-
-      result.append_sprintf("depthFunc=%u,", depthFunc);
-      result.append_sprintf("stencilReadMask=%u,", stencilReadMask);
-      result.append_sprintf("stencilWriteMask=%u,", stencilWriteMask);
-      result.append_sprintf("stencilFunction=%u,", stencilFunction);
-      result.append_sprintf("stencilOnFail=%u,", stencilOnFail);
-      result.append_sprintf("stencilOnDepthFail=%u,", stencilOnDepthFail);
-      result.append_sprintf("stencilOnPass=%u,", stencilOnPass);
-      result.append_sprintf("forcedSampleCountShift=%u,", forcedSampleCountShift);
-      result.append_sprintf("enableConservativeRaster=%u,", enableConservativeRaster);
-
-      result.append_sprintf("viewInstanceCount=%u,", viewInstanceCount);
-      result.append_sprintf("cullMode=%u,", cullMode);
-      result.append_sprintf("colorWriteMask=%08x,", colorWriteMask);
-      result.append_sprintf("depthBias=%08x,", *reinterpret_cast<const uint32_t *>(&depthBias));
-      result.append_sprintf("depthBiasSloped=%08x,", *reinterpret_cast<const uint32_t *>(&depthBiasSloped));
-
-      result += "blendParams";
-
-      auto appendParams = [&result](const auto &param, int i) {
-        result.append_sprintf("[%d][", i);
-        result.append_sprintf("enableBlending=%u,", param.enableBlending);
-        result.append_sprintf("blendFactors.Source=%u,", param.blendFactors.Source);
-        result.append_sprintf("blendFactors.Destination=%u,", param.blendFactors.Destination);
-        result.append_sprintf("blendAlphaFactors.Source=%u,", param.blendAlphaFactors.Source);
-        result.append_sprintf("blendAlphaFactors.Destination=%u,", param.blendAlphaFactors.Destination);
-        result.append_sprintf("blendFunction=%u,", param.blendFunction);
-        result.append_sprintf("blendAlphaFunction=%u", param.blendAlphaFunction);
-        result += "]";
-      };
-
-      if (enableDualSourceBlending)
-        appendParams(dualSourceBlend.params, 0);
-      else
-      {
-        for (uint32_t i = 0; i < shaders::RenderState::NumIndependentBlendParameters; i++)
-          appendParams(blendParams[i], i);
-      }
-
-      result += "]";
-
-      return result;
+      if (enableIndependentBlend)
+        return sizeof(blendParams);
+      return enableDualSourceBlending ? sizeof(ExtendedBlendParams) : sizeof(BlendParams);
     }
 
-    friend bool operator==(const StaticState &l, const StaticState &r)
+    bool operator==(const StaticState &other) const
     {
-      const auto blendBytesToCompare = l.enableIndependentBlend ? sizeof(blendParams) : sizeof(BlendParams);
-      return 0 ==
-               memcmp(static_cast<const StaticStateBits *>(&l), static_cast<const StaticStateBits *>(&r), sizeof(StaticStateBits)) &&
-             0 == memcmp(l.blendParams, r.blendParams, blendBytesToCompare) && l.depthBias == r.depthBias &&
-             l.depthBiasSloped == r.depthBiasSloped;
+      return static_cast<const StaticStateBits &>(*this) == static_cast<const StaticStateBits &>(other) &&
+             depthBias == other.depthBias && depthBiasSloped == other.depthBiasSloped &&
+             0 == memcmp(blendParams, other.blendParams, usedBlendParamsSize());
     }
-    friend bool operator!=(const StaticState &l, const StaticState &r) { return !(l == r); }
 
-    inline uint32_t distance(const StaticState &other) const
+    uint32_t distance(const StaticState &other) const
     {
       uint32_t d = 0;
 #define CMP(name)         \
@@ -367,9 +295,6 @@ public:
           G_ASSERT(!"When forcedSampleCount is set, then depth test has to be disabled!");
           logwarn("DX12: RenderState with forcedSamplerCount of %u but ztest was set, forcing ztest off!", def.forcedSampleCount);
         }
-        result.enableDepthTest = 0;
-        result.depthBias = 0.f;
-        result.depthBiasSloped = 0.f;
         result.depthFunc = D3D12_COMPARISON_FUNC_ALWAYS - D3D12_COMPARISON_FUNC_NEVER;
       }
 
@@ -389,12 +314,6 @@ public:
       }
       else
       {
-        result.enableStencil = 0;
-        result.stencilReadMask = 0;
-        result.stencilWriteMask = 0;
-        result.stencilOnFail = 0;
-        result.stencilOnDepthFail = 0;
-        result.stencilOnPass = 0;
         result.stencilFunction = D3D12_COMPARISON_FUNC_ALWAYS - D3D12_COMPARISON_FUNC_NEVER;
       }
 
@@ -419,7 +338,7 @@ public:
             // NOTE: color channel blend mode has its range altered from [D3D11_BLEND_ZERO, ...) to
             // [D3D11_BLEND_ZERO-D3D11_BLEND_ZERO, ...-D3D11_BLEND_ZERO) so index 0 corresponds to
             // D3D11_BLEND_ZERO
-            static const uint32_t colorToAlphaChannelMap[] = //
+            constexpr uint32_t colorToAlphaChannelMap[] = //
               {
                 D3D12_BLEND_ZERO, D3D12_BLEND_ONE,
                 D3D12_BLEND_SRC_ALPHA,     // D3D11_BLEND_SRC_COLOR   = 3,
@@ -440,7 +359,6 @@ public:
         }
         else
         {
-          dst.enableBlending = 0;
           dst.blendFunction = D3D12_BLEND_OP_ADD - D3D12_BLEND_OP_ADD;
           dst.blendFactors.Source = D3D12_BLEND_ONE - D3D12_BLEND_ZERO;
           dst.blendFactors.Destination = D3D12_BLEND_ZERO - D3D12_BLEND_ZERO;
@@ -466,7 +384,6 @@ public:
 
       // decodes back to count by (1u << result.forcedSampleCountShift) >> 1u;
       // this encoding saves one bit
-      result.forcedSampleCountShift = 0;
       result.forcedSampleCountShift += def.forcedSampleCount > 0 ? 1 : 0;
       result.forcedSampleCountShift += def.forcedSampleCount > 1 ? 1 : 0;
       result.forcedSampleCountShift += def.forcedSampleCount > 2 ? 1 : 0;
@@ -478,7 +395,7 @@ public:
       return result;
     }
 
-    static bool has_uniform_color_mask(uint32_t mask)
+    static constexpr bool has_uniform_color_mask(uint32_t mask)
     {
       // checks if all sets of 4 bits are equal
       return 0 == (((mask ^ (mask >> 16)) & 0xFFFF) | ((mask ^ (mask >> 8)) & 0xFF) | ((mask ^ (mask >> 4)) & 0xF));
@@ -510,25 +427,28 @@ public:
     D3D12_BLEND_DESC getBlendDesc(uint32_t frame_buffer_render_target_mask) const
     {
       auto finalColorTargetMask = adjustColorTargetMask(frame_buffer_render_target_mask);
-      D3D12_BLEND_DESC result = {};
-
-      result.AlphaToCoverageEnable = enableAlphaToCoverage;
-
-      result.IndependentBlendEnable =
-        (!has_uniform_color_mask(finalColorTargetMask) && !enableDualSourceBlending) || enableIndependentBlend;
+      D3D12_BLEND_DESC result = {
+        .AlphaToCoverageEnable = 0 != enableAlphaToCoverage,
+        // dual source blending requires blending to be enabled on render target 0 only,
+        // so it must never use the independent blend path that replicates its params
+        .IndependentBlendEnable =
+          !enableDualSourceBlending && (!has_uniform_color_mask(finalColorTargetMask) || enableIndependentBlend),
+      };
       const auto RTCount = result.IndependentBlendEnable ? Driver3dRenderTarget::MAX_SIMRT : 1;
 
       auto fillRtBlendDesc = [&finalColorTargetMask](D3D12_RENDER_TARGET_BLEND_DESC &dst, const auto &src) {
-        dst.RenderTargetWriteMask = finalColorTargetMask & 15;
-        dst.BlendEnable = src.enableBlending;
-        dst.LogicOpEnable = FALSE;
-        dst.SrcBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendFactors.Source);
-        dst.DestBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendFactors.Destination);
-        dst.BlendOp = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + src.blendFunction);
-        dst.SrcBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendAlphaFactors.Source);
-        dst.DestBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendAlphaFactors.Destination);
-        dst.BlendOpAlpha = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + src.blendAlphaFunction);
-        dst.LogicOp = D3D12_LOGIC_OP_NOOP;
+        dst = {
+          .BlendEnable = 0 != src.enableBlending,
+          .LogicOpEnable = FALSE,
+          .SrcBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendFactors.Source),
+          .DestBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendFactors.Destination),
+          .BlendOp = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + src.blendFunction),
+          .SrcBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendAlphaFactors.Source),
+          .DestBlendAlpha = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + src.blendAlphaFactors.Destination),
+          .BlendOpAlpha = static_cast<D3D12_BLEND_OP>(D3D12_BLEND_OP_ADD + src.blendAlphaFunction),
+          .LogicOp = D3D12_LOGIC_OP_NOOP,
+          .RenderTargetWriteMask = static_cast<UINT8>(finalColorTargetMask & 15),
+        };
       };
 
       for (uint32_t i = 0; i < RTCount; ++i)
@@ -548,49 +468,41 @@ public:
 
     D3D12_RASTERIZER_DESC getRasterizerDesc(D3D12_FILL_MODE fill_mode) const
     {
-      D3D12_RASTERIZER_DESC result = {};
-      result.FillMode = fill_mode;
-      if (cullMode == CULL_NONE)
-        result.CullMode = D3D12_CULL_MODE_NONE;
-      else if (cullMode == CULL_CCW)
-        result.CullMode = D3D12_CULL_MODE_BACK;
-      else
-        result.CullMode = D3D12_CULL_MODE_FRONT;
-      result.FrontCounterClockwise = FALSE;
-      result.DepthBias = depthBias / MINIMUM_REPRESENTABLE_D16;
-      result.DepthBiasClamp = 0.f;
-      result.SlopeScaledDepthBias = depthBiasSloped;
-      result.DepthClipEnable = enableDepthClip;
-      result.MultisampleEnable = FALSE;
-      result.AntialiasedLineEnable = FALSE;
-      result.ForcedSampleCount = (1u << forcedSampleCountShift) >> 1u;
-      result.ConservativeRaster =
-        enableConservativeRaster ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
       // The only valid Fill Mode for Conservative Rasterization is D3D11_FILL_SOLID,
       // any other Fill Mode is an invalid parameter for the Rasterizer State.
       // https://microsoft.github.io/DirectX-Specs/d3d/ConservativeRasterization.html#fill-modes-interaction
-      if (fill_mode == D3D12_FILL_MODE_WIREFRAME)
-        result.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-
-      return result;
+      const bool conservativeRaster = enableConservativeRaster && fill_mode != D3D12_FILL_MODE_WIREFRAME;
+      return {
+        .FillMode = fill_mode,
+        .CullMode = cullMode == CULL_NONE  ? D3D12_CULL_MODE_NONE
+                    : cullMode == CULL_CCW ? D3D12_CULL_MODE_BACK
+                                           : D3D12_CULL_MODE_FRONT,
+        .FrontCounterClockwise = FALSE,
+        .DepthBias = static_cast<INT>(depthBias / MINIMUM_REPRESENTABLE_D16),
+        .DepthBiasClamp = 0.f,
+        .SlopeScaledDepthBias = depthBiasSloped,
+        .DepthClipEnable = 0 != enableDepthClip,
+        .MultisampleEnable = FALSE,
+        .AntialiasedLineEnable = FALSE,
+        .ForcedSampleCount = (1u << forcedSampleCountShift) >> 1u,
+        .ConservativeRaster =
+          conservativeRaster ? D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON : D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF,
+      };
     }
 
     D3D12_DEPTH_STENCIL_DESC getDepthStencilDesc() const
     {
-      D3D12_DEPTH_STENCIL_DESC result = {};
-      result.DepthEnable = enableDepthTest;
-      result.DepthWriteMask = enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-      result.DepthFunc = static_cast<D3D12_COMPARISON_FUNC>(D3D12_COMPARISON_FUNC_NEVER + depthFunc);
-      result.StencilEnable = enableStencil;
-      result.StencilReadMask = stencilReadMask;
-      result.StencilWriteMask = stencilWriteMask;
-      result.FrontFace.StencilFailOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnFail);
-      result.FrontFace.StencilDepthFailOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnDepthFail);
-      result.FrontFace.StencilPassOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnPass);
-      result.FrontFace.StencilFunc = static_cast<D3D12_COMPARISON_FUNC>(D3D12_COMPARISON_FUNC_NEVER + stencilFunction);
-      result.BackFace = result.FrontFace;
-      return result;
+      const auto desc = getDepthStencilDesc1();
+      return {
+        .DepthEnable = desc.DepthEnable,
+        .DepthWriteMask = desc.DepthWriteMask,
+        .DepthFunc = desc.DepthFunc,
+        .StencilEnable = desc.StencilEnable,
+        .StencilReadMask = desc.StencilReadMask,
+        .StencilWriteMask = desc.StencilWriteMask,
+        .FrontFace = desc.FrontFace,
+        .BackFace = desc.BackFace,
+      };
     }
 
     bool needsViewInstancing() const { return viewInstanceCount > 0; }
@@ -601,55 +513,60 @@ public:
       // We also support mapping a specific view index, to the same viewport.
       // In fact, these conditions make more likely to a GPU to do instancing more efficiently.
 
-      static const D3D12_VIEW_INSTANCE_LOCATION viewInstanceLocations[4] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}};
+      static constexpr D3D12_VIEW_INSTANCE_LOCATION viewInstanceLocations[4] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}};
 
       // We doesn't support the instancing mask. Our intended use with this doesn't need it.
 
-      D3D12_VIEW_INSTANCING_DESC result;
-      result.ViewInstanceCount = viewInstanceCount + 1; // zero based
-      result.pViewInstanceLocations = viewInstanceLocations;
-      result.Flags = D3D12_VIEW_INSTANCING_FLAG_NONE;
-      return result;
+      return {
+        .ViewInstanceCount = viewInstanceCount + 1u, // zero based
+        .pViewInstanceLocations = viewInstanceLocations,
+        .Flags = D3D12_VIEW_INSTANCING_FLAG_NONE,
+      };
     }
 
     D3D12_DEPTH_STENCIL_DESC1 getDepthStencilDesc1() const
     {
-      D3D12_DEPTH_STENCIL_DESC1 result = {};
-      result.DepthEnable = enableDepthTest;
-      result.DepthWriteMask = enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-      result.DepthFunc = static_cast<D3D12_COMPARISON_FUNC>(D3D12_COMPARISON_FUNC_NEVER + depthFunc);
-      result.StencilEnable = enableStencil;
-      result.StencilReadMask = stencilReadMask;
-      result.StencilWriteMask = stencilWriteMask;
-      result.FrontFace.StencilFailOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnFail);
-      result.FrontFace.StencilDepthFailOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnDepthFail);
-      result.FrontFace.StencilPassOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnPass);
-      result.FrontFace.StencilFunc = static_cast<D3D12_COMPARISON_FUNC>(D3D12_COMPARISON_FUNC_NEVER + stencilFunction);
-      result.BackFace = result.FrontFace;
-      result.DepthBoundsTestEnable = enableDepthBounds;
-      return result;
+      const D3D12_DEPTH_STENCILOP_DESC stencilOp = {
+        .StencilFailOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnFail),
+        .StencilDepthFailOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnDepthFail),
+        .StencilPassOp = static_cast<D3D12_STENCIL_OP>(D3D12_STENCIL_OP_KEEP + stencilOnPass),
+        .StencilFunc = static_cast<D3D12_COMPARISON_FUNC>(D3D12_COMPARISON_FUNC_NEVER + stencilFunction),
+      };
+      return {
+        .DepthEnable = 0 != enableDepthTest,
+        .DepthWriteMask = enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO,
+        .DepthFunc = static_cast<D3D12_COMPARISON_FUNC>(D3D12_COMPARISON_FUNC_NEVER + depthFunc),
+        .StencilEnable = 0 != enableStencil,
+        .StencilReadMask = static_cast<UINT8>(stencilReadMask),
+        .StencilWriteMask = static_cast<UINT8>(stencilWriteMask),
+        .FrontFace = stencilOp,
+        .BackFace = stencilOp,
+        .DepthBoundsTestEnable = 0 != enableDepthBounds,
+      };
     }
 
     PipelineOptionalDynamicStateMask getDynamicStateMask() const
     {
-      PipelineOptionalDynamicStateMask mask = {};
-      mask.hasDepthBoundsTest = enableDepthBounds;
-      mask.hasStencilTest = enableStencil;
-      mask.hasBlendConstants = false;
-      uint32_t numBlendParamsToCheck = enableIndependentBlend ? shaders::RenderState::NumIndependentBlendParameters : 1;
-      for (uint32_t i = 0; i < numBlendParamsToCheck; i++)
+      PipelineOptionalDynamicStateMask mask = {
+        .hasDepthBoundsTest = enableDepthBounds == 1,
+        .hasStencilTest = enableStencil == 1,
+      };
+      auto usesBlendFactor = [](const auto &params) {
+        auto isBlendFactor = [](uint32_t stored_factor) {
+          const auto factor = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + stored_factor);
+          return (D3D12_BLEND_BLEND_FACTOR == factor) || (D3D12_BLEND_INV_BLEND_FACTOR == factor);
+        };
+        return isBlendFactor(params.blendFactors.Source) || isBlendFactor(params.blendFactors.Destination) ||
+               isBlendFactor(params.blendAlphaFactors.Source) || isBlendFactor(params.blendAlphaFactors.Destination);
+      };
+
+      if (enableDualSourceBlending)
+        mask.hasBlendConstants = usesBlendFactor(dualSourceBlend.params);
+      else
       {
-        auto srcBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParams[i].blendFactors.Source);
-        auto dstBlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParams[i].blendFactors.Destination);
-        auto srcABlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParams[i].blendAlphaFactors.Source);
-        auto dstABlend = static_cast<D3D12_BLEND>(D3D12_BLEND_ZERO + blendParams[i].blendAlphaFactors.Destination);
-        mask.hasBlendConstants = (D3D12_BLEND_BLEND_FACTOR == srcBlend) || (D3D12_BLEND_INV_BLEND_FACTOR == srcBlend) ||
-                                 (D3D12_BLEND_BLEND_FACTOR == dstBlend) || (D3D12_BLEND_INV_BLEND_FACTOR == dstBlend) ||
-                                 (D3D12_BLEND_BLEND_FACTOR == srcABlend) || (D3D12_BLEND_INV_BLEND_FACTOR == srcABlend) ||
-                                 (D3D12_BLEND_BLEND_FACTOR == dstABlend) || (D3D12_BLEND_INV_BLEND_FACTOR == dstABlend) ||
-                                 bool(mask.hasBlendConstants);
-        if (mask.hasBlendConstants)
-          break;
+        const uint32_t numBlendParamsToCheck = enableIndependentBlend ? shaders::RenderState::NumIndependentBlendParameters : 1;
+        for (uint32_t i = 0; i < numBlendParamsToCheck && !mask.hasBlendConstants; i++)
+          mask.hasBlendConstants = usesBlendFactor(blendParams[i]);
       }
       return mask;
     }
@@ -684,7 +601,8 @@ public:
     {
       auto staticStateId = registerStaticState(ctx, def);
       auto dynamicState = getDynamicStateFromState(def);
-      ref = publicStateTable.insert(end(publicStateTable), eastl::pair(def, PublicStateInfo{dynamicState, staticStateId}));
+      ref = publicStateTable.insert(end(publicStateTable),
+        eastl::pair(def, PublicStateInfo{.dynamicState = dynamicState, .staticRenderStateID = staticStateId}));
     }
     return static_cast<uint32_t>(ref - begin(publicStateTable));
   }
@@ -699,26 +617,18 @@ public:
   static bool is_compatible(const DriverDesc &desc, const StaticState &state)
   {
     // either support the feature or don't use it
-    if ((desc.caps.hasDepthBoundsTest || 0 == state.enableDepthBounds) &&
-        (desc.caps.hasConservativeRassterization || 0 == state.enableConservativeRaster) &&
-        (desc.caps.hasBasicViewInstancing || 0 == state.viewInstanceCount))
-    {
-      return true;
-    }
+    const bool depthBoundsOk = desc.caps.hasDepthBoundsTest || 0 == state.enableDepthBounds;
+    const bool conservativeRasterOk = desc.caps.hasConservativeRassterization || 0 == state.enableConservativeRaster;
+    const bool viewInstancingOk = desc.caps.hasBasicViewInstancing || 0 == state.viewInstanceCount;
 
-    if (!(desc.caps.hasDepthBoundsTest || 0 == state.enableDepthBounds))
-    {
+    if (!depthBoundsOk)
       logdbg("DX12: ...render state is not compatible, uses depth bounds test...");
-    }
-    if (!(desc.caps.hasConservativeRassterization || 0 == state.enableConservativeRaster))
-    {
+    if (!conservativeRasterOk)
       logdbg("DX12: ...render state is not compatible, uses conservative raster...");
-    }
-    if (!(desc.caps.hasBasicViewInstancing || 0 == state.viewInstanceCount))
-    {
+    if (!viewInstancingOk)
       logdbg("DX12: ...render state is not compatible, uses view instancing...");
-    }
-    return false;
+
+    return depthBoundsOk && conservativeRasterOk && viewInstancingOk;
   }
 
   DynamicArray<StaticRenderStateIDWithHash> loadStaticStatesFromBlk(DeviceContext &ctx, const DriverDesc &desc, const DataBlock *blk,
@@ -748,7 +658,9 @@ private:
     MEMBER_COMPARE(zClip);
     MEMBER_COMPARE(viewInstanceCount);
 
-    if (l.ztest)
+    // fromRenderState forces ztest off when forcedSampleCount is set, so
+    // depth func and biases do not reach the static state in that case
+    if (l.ztest && 0 == l.forcedSampleCount)
     {
       MEMBER_COMPARE(zFunc);
       MEMBER_COMPARE(zBias);
@@ -798,13 +710,11 @@ private:
   }
   static DynamicState getDynamicStateFromState(const shaders::RenderState &def)
   {
-    DynamicState result;
-
     // also a function to overwrite this in d3d interface...
-    result.stencilRef = def.stencilRef;
-    result.enableScissor = 0 != def.scissorEnabled;
-
-    return result;
+    return {
+      .stencilRef = def.stencilRef,
+      .enableScissor = 0 != def.scissorEnabled,
+    };
   }
   StaticRenderStateID registerStaticState(DeviceContext &ctx, const StaticState &def);
   StaticRenderStateID registerStaticState(DeviceContext &ctx, const shaders::RenderState &def)

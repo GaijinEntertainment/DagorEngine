@@ -414,10 +414,12 @@ public:
   void setUserData(void *user_data) { userData = user_data; }
   void *getUserData() const { return userData; }
 
-  // ownerThreadId is volatile int64: written by the owner thread (typically via
-  // setOwnerThreadId at save/restore boundaries -- e.g. AdditionalGameJob), read cross-thread
-  // by the net topology lock's owner-skip check in TopologyLock::ReadScope. Aligned int64
-  // reads/writes are atomic on supported platforms; interlocked_* makes the ordering explicit.
+  // ownerThreadId is volatile int64: written by the owner thread at save/restore boundaries.
+  // The net topology owner-skip check reads a lock-free mirror of this value, not this field.
+  // For an EM that may be net-bound (g_entity_mgr), change ownership only through
+  // net::change_em_ownership, which keeps that mirror in sync; a bare setOwnerThreadId on the
+  // net-bound EM would desync the mirror. Aligned int64 reads/writes are atomic on supported
+  // platforms; interlocked_* makes the ordering explicit.
   int64_t getOwnerThreadId() const { return interlocked_relaxed_load(ownerThreadId); }
   void setOwnerThreadId(int64_t value) { interlocked_release_store(ownerThreadId, value); }
 

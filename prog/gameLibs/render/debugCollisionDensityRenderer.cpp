@@ -79,11 +79,10 @@ void DebugCollisionDensityRenderer::fillCollisionDensity(int threshold, const Po
   };
   uint32_t numFaces = 0;
   eastl::vector<RiCollision> collisionInfo(rendinst::getRiGenExtraResCount());
-  for (int i = 0, ei = collisionInfo.size(); i < ei; ++i)
-  {
+  rendinst::iterateRiGenExtraResId([&](int i) {
     CollisionResource *collRes = rendinst::getRIGenExtraCollRes(i);
-    if (!collRes)
-      continue;
+    if (!collRes || i >= collisionInfo.size())
+      return;
     RiCollision &c = collisionInfo[i];
     dag::ConstSpan<CollisionNode> nodes = collRes->getAllNodes();
     c.firstFace = numFaces;
@@ -96,7 +95,7 @@ void DebugCollisionDensityRenderer::fillCollisionDensity(int threshold, const Po
           c.faceCount += collRes->getNodeFaceCount(node.nodeIndex);
       }
     numFaces += c.faceCount;
-  }
+  });
   if (!numFaces)
     return;
   //== end of calc num verts

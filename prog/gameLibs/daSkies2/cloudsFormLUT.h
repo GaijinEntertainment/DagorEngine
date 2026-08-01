@@ -15,7 +15,7 @@ public:
 
 private:
   UniqueTexWithShaderVar clouds_types_lut;
-  UniqueTex clouds_erosion_lut;
-  PostFxRenderer gen_clouds_types_lut, gen_clouds_erosion_lut;
+  UniqueTexWithShaderVar clouds_phase_lut;
+  PostFxRenderer gen_clouds_types_lut, gen_clouds_phase_lut;
   bool frameValid = true;
 };

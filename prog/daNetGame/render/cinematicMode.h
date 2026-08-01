@@ -5,6 +5,7 @@
 #include <videoEncoder/videoEncoder.h>
 #include <daECS/core/componentTypes.h>
 #include <render/fx/flare.h>
+#include <render/filmGrain.h>
 
 class CinematicMode
 {
@@ -26,8 +27,9 @@ public:
   void setVignetteStrength(float strength);
   static constexpr int CHROMATIC_ABERRATION_PRIORITY = 1;
   static constexpr int VIGNETTE_PRIORITY = 1;
+  static constexpr int FILM_GRAIN_PRIORITY = 1;
   void setChromaticAberration(Point3 chromatic_aberration);
-  void setFilmGrain(float strength_mul, Point4 film_grain);
+  void setFilmGrain(float strength_mul, Point3 film_grain_noise, Point4 film_grain_lut);
   void setFps(int fps);
   void setSubPixels(int sub_pixels);
   void setSuperPixels(int super_pixels);

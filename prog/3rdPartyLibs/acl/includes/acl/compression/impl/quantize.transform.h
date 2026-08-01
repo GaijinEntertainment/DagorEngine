@@ -1682,8 +1682,7 @@ namespace acl
 						// Interpolate our transforms in local space before we convert or apply the additive and transform to object space
 						for (uint32_t bone_index = 0; bone_index < num_bones; ++bone_index)
 						{
-							// TODO: Implement qvv_lerp(..)
-							const rtm::quatf interp_rotation = rtm::quat_lerp(lossy_transforms_start[bone_index].rotation, lossy_transforms_end[bone_index].rotation, interpolation_alpha);
+							const rtm::quatf interp_rotation = quat_lerp_stable(lossy_transforms_start[bone_index].rotation, lossy_transforms_end[bone_index].rotation, interpolation_alpha);
 							const rtm::vector4f interp_translation = rtm::vector_lerp(lossy_transforms_start[bone_index].translation, lossy_transforms_end[bone_index].translation, interpolation_alpha);
 							const rtm::vector4f interp_scale = rtm::vector_lerp(lossy_transforms_start[bone_index].scale, lossy_transforms_end[bone_index].scale, interpolation_alpha);
 

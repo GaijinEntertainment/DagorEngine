@@ -660,8 +660,8 @@ TileCacheDetailSettings tilecache_get_detailed_data_settings()
   return get_nav_mesh_data(NM_MAIN).tcMeshProc.getDetailedDataSettings();
 }
 
-static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int navDataSize, int patchedTilesSize,
-  const char *patchNavMeshFileName, int extra_tiles)
+static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int navDataSize, const char *patchNavMeshFileName,
+  PatchedNavMeshFileInfo patch_info, int reload_extra_tiles)
 {
   NavMeshData &nmData = get_nav_mesh_data(nav_mesh_idx);
   const unsigned char *endPtr = curPtr + navDataSize;
@@ -673,8 +673,65 @@ static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int navD
   INIT_BY_PTR(int, numTiles);
   INIT_BY_PTR(int, numTCTiles);
   INIT_BY_PTR(int, numObsResNameHashes);
-  nmParams->maxTiles += extra_tiles;
-  if (dtStatusFailed(nmData.navMesh->init(nmParams, false)))
+  // Patch refs are raw save file data: a legitimate save cannot pin a tile index at
+  // or above the exported grid tile count (free slots are allocated lowest first),
+  // so drop the whole patch before it can inflate the allocation or partially apply.
+  if (patch_info.maxNavTileIndex >= 0 && patch_info.maxNavTileIndex >= nmParams->maxTiles)
+  {
+    LOGERR_CTX("navmesh: patch '%s' pins tile index %d beyond the %d tiles grid, patch ignored", patchNavMeshFileName,
+      patch_info.maxNavTileIndex, nmParams->maxTiles);
+    patch_info = PatchedNavMeshFileInfo();
+  }
+  // Copies: the dump stays untouched so a reload sizes from the original params again.
+  dtNavMeshParams meshParams = *nmParams;
+  dtTileCacheParams cacheParams = *tcParams;
+  // Free-list headroom added to both tile arrays below.
+  int freeExtraTiles = reload_extra_tiles + max(patch_info.numTcTiles, patch_info.numNavTiles);
+#ifdef DT_POLYREF64
+  // Exported maxTiles counts the whole tile grid while the dump only stores tiles with
+  // data. With DT_POLYREF64 the poly ref bit layout does not depend on maxTiles, so size
+  // the tile arrays by what can actually occupy a slot: prebuilt nav tiles and patch nav
+  // tiles restore into their saved indices, tile cache tiles and runtime rebuilds take
+  // free slots (each tile cache tile may build one nav tile).
+  {
+    int maxTileIndex = patch_info.maxNavTileIndex;
+    const unsigned char *scanPtr = curPtr;
+    const intptr_t recordHeaderSize = sizeof(dtTileRef) + sizeof(int);
+    for (int i = 0; i < *numTiles; ++i)
+    {
+      // the tile table is not validated yet, so never scan past the loaded dump
+      if (endPtr - scanPtr < recordHeaderSize)
+        break;
+      const dtTileRef tileRef = *(const dtTileRef *)scanPtr;
+      const int tileDataSize = *(const int *)(scanPtr + sizeof(dtTileRef));
+      if (!tileRef || tileDataSize <= 0 || tileDataSize > endPtr - scanPtr - recordHeaderSize)
+        break;
+      maxTileIndex = max(maxTileIndex, (int)nmData.navMesh->decodePolyIdTile(tileRef));
+      scanPtr += recordHeaderSize + tileDataSize;
+    }
+    // int64: numTCTiles comes from the dump, the sums must not wrap before min() clamps
+    const int64_t pinnedTiles = max(maxTileIndex + 1, 1);
+    const int64_t tcTileCount = max(*numTCTiles, 0);
+    // rebuildNavMesh_initFromCurrent may grow the number of occupied slots with no
+    // reload, so its net new tiles are not covered by extra_tiles like on the reload
+    // paths; keep free slots for that growth (the rebuild skips with a logerr when
+    // they run out).
+    const int64_t runtimeHeadroom = tcTileCount + max(nmParams->maxTiles / 2048, 128);
+    meshParams.maxTiles = (int)min((int64_t)meshParams.maxTiles, pinnedTiles + tcTileCount + runtimeHeadroom);
+    // pinned refs are raw file data, so never let them size past the exported grid,
+    // the upper bound the old grid sized allocation had (patch refs are validated
+    // above, this guards dump refs; a slot below it is always covered by the min())
+    meshParams.maxTiles = (int)max((int64_t)meshParams.maxTiles, min(pinnedTiles, (int64_t)nmParams->maxTiles));
+    cacheParams.maxTiles = (int)min((int64_t)cacheParams.maxTiles, tcTileCount + runtimeHeadroom);
+    // patch nav tiles restore into pinned slots counted above, only patch tile cache
+    // tiles allocate from the free lists and need headroom
+    freeExtraTiles = reload_extra_tiles + patch_info.numTcTiles;
+    debug("navmesh: tile arrays sized for %d nav / %d tc tiles (dump %d / %d), %d extra", meshParams.maxTiles, cacheParams.maxTiles,
+      nmParams->maxTiles, tcParams->maxTiles, freeExtraTiles);
+  }
+#endif
+  meshParams.maxTiles += freeExtraTiles;
+  if (dtStatusFailed(nmData.navMesh->init(&meshParams, false)))
   {
     LOGERR_CTX("Could not init tiled Detour navmesh");
     return false;
@@ -687,10 +744,10 @@ static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int navD
     nmData.tcMeshProc.setNavMesh(nmData.navMesh);
     nmData.tcMeshProc.setNavMeshQuery(nullptr);
     nmData.tcMeshProc.setTileCache(tc);
-    tcParams->maxTiles += extra_tiles;
-    // Note: `dtObstacleRef` idx is assumed to be 16 bit (see `dtTileCache::encodeObstacleId`)
-    tcParams->maxObstacles = min(tcParams->maxObstacles, USHRT_MAX + 1);
-    if (dtStatusFailed(tc->init(tcParams, &nmData.tcAllocator, &nmData.tcComp, &nmData.tcMeshProc)))
+    cacheParams.maxTiles += freeExtraTiles;
+    // Note: the exported maxObstacles is ignored, the obstacle pool is paged on
+    // demand up to the 16 bit dtObstacleRef index limit (dtTileCache::allocObstacle)
+    if (dtStatusFailed(tc->init(&cacheParams, &nmData.tcAllocator, &nmData.tcComp, &nmData.tcMeshProc)))
     {
       LOGERR_CTX("Could not init tiled Detour tile cache");
       dtFreeTileCache(tc);
@@ -743,10 +800,17 @@ static bool load_nav_mesh_orig(int nav_mesh_idx, unsigned char *curPtr, int navD
   else
     nmData.tcMeshProc.setDetailedData(false, 0.0f, 0.0f);
 
-  if (patchedTilesSize > 0)
+  if (patch_info.fileSize > 0)
   {
     nmData.navMesh->reconstructFreeList();
-    patchedNavMesh_loadFromFile(patchNavMeshFileName, tc, curPtr, obstacleResNameHashes);
+    // a patch that fails mid way leaves inconsistent tiles behind, so fail the load
+    if (!patchedNavMesh_loadFromFile(patchNavMeshFileName, tc, curPtr, obstacleResNameHashes))
+    {
+      LOGERR_CTX("Could not apply navmesh patch '%s'", patchNavMeshFileName);
+      if (tc)
+        dtFreeTileCache(tc);
+      return false;
+    }
   }
   nmData.navMesh->reconstructFreeList();
   if (tc)
@@ -796,7 +860,7 @@ bool reload_nav_mesh(int extra_tiles)
   if (!create_nav_mesh(NM_MAIN))
     return false;
 
-  if (!load_nav_mesh_orig(NM_MAIN, &nmData.navData[0], nmData.navDataSize, 0, "", extra_tiles))
+  if (!load_nav_mesh_orig(NM_MAIN, &nmData.navData[0], nmData.navDataSize, "", {}, extra_tiles))
     return false;
 
   if (!init_nav_query(NM_MAIN))
@@ -862,19 +926,18 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
       chunkedReadBuf.resize(navDataSize);
   }
 
-  int patchedExtraTiles = 0;
-  unsigned patchedTilesSize = 0;
+  PatchedNavMeshFileInfo patchInfo;
   if (type == NMT_TILECACHED && patchNavMeshFileName && *patchNavMeshFileName)
-    patchedTilesSize = patchedNavMesh_getFileSizeAndNumTiles(patchNavMeshFileName, patchedExtraTiles);
+    patchInfo = patchedNavMesh_getFileInfo(patchNavMeshFileName);
 #if !_TARGET_PC_TOOLS_BUILD
-  if (DAGOR_UNLIKELY(patchedTilesSize)) // TODO: pass to loadNavMesh{BucketFormat,Chunked} to avoid this realloc
+  if (DAGOR_UNLIKELY(patchInfo.fileSize)) // TODO: pass to loadNavMesh{BucketFormat,Chunked} to avoid this realloc
   {
-    chunkedReadBuf.reserve(chunkedReadBuf.size() + patchedTilesSize); // Realloc to exact size (without sizex1.5)
+    chunkedReadBuf.reserve(chunkedReadBuf.size() + patchInfo.fileSize); // Realloc to exact size (without sizex1.5)
     chunkedReadBuf.resize(chunkedReadBuf.capacity());
   }
   auto &navDataLocal = chunkedReadBuf;
 #else // Note: Tools might use custom dtAlloc/dtFree so conform to it
-  decltype(nmData.navData) navDataLocal((uint8_t *)dtAlloc(chunkedReadBuf.size() + patchedTilesSize, DT_ALLOC_PERM));
+  decltype(nmData.navData) navDataLocal((uint8_t *)dtAlloc(chunkedReadBuf.size() + patchInfo.fileSize, DT_ALLOC_PERM));
   memcpy(navDataLocal.get(), chunkedReadBuf.data(), chunkedReadBuf.size());
 #endif
 
@@ -915,7 +978,32 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
   curPtr += sizeof(typ);
     INIT_BY_PTR(dtNavMeshParams, params);
     INIT_BY_PTR(int, numTiles);
-    if (dtStatusFailed(nmData.navMesh->init(params, false)))
+    dtNavMeshParams meshParams = *params;
+#ifdef DT_POLYREF64
+    // Exported maxTiles counts the whole tile grid while the buffer only holds tiles
+    // with data. With DT_POLYREF64 the poly ref bit layout does not depend on maxTiles,
+    // so size the tile array by the highest index in use.
+    {
+      int maxTileIndex = -1;
+      const unsigned char *scanPtr = curPtr;
+      const unsigned char *endPtr = &navDataLocal[0] + navDataSize;
+      const intptr_t recordHeaderSize = sizeof(dtTileRef) + sizeof(int);
+      for (int i = 0; i < *numTiles; ++i)
+      {
+        // the tile table is not validated yet, so never scan past the loaded dump
+        if (endPtr - scanPtr < recordHeaderSize)
+          break;
+        const dtTileRef tileRef = *(const dtTileRef *)scanPtr;
+        const int tileDataSize = *(const int *)(scanPtr + sizeof(dtTileRef));
+        if (!tileRef || tileDataSize <= 0 || tileDataSize > endPtr - scanPtr - recordHeaderSize)
+          break;
+        maxTileIndex = max(maxTileIndex, (int)nmData.navMesh->decodePolyIdTile(tileRef));
+        scanPtr += recordHeaderSize + tileDataSize;
+      }
+      meshParams.maxTiles = min(meshParams.maxTiles, max(maxTileIndex + 1, 1));
+    }
+#endif
+    if (dtStatusFailed(nmData.navMesh->init(&meshParams, false)))
     {
       LOGERR_CTX("Could not init tiled Detour navmesh");
       return false;
@@ -955,11 +1043,15 @@ bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &_crd, NavMes
 #undef INIT_BY_PTR
   }
   else if (type == NMT_TILECACHED)
-    load_nav_mesh_orig(nav_mesh_idx, &navDataLocal[0], (int)navDataSize, patchedTilesSize, patchNavMeshFileName, patchedExtraTiles);
+  {
+    if (!load_nav_mesh_orig(nav_mesh_idx, &navDataLocal[0], (int)navDataSize, patchNavMeshFileName, patchInfo, 0))
+      return false;
+  }
   else
     G_ASSERTF_RETURN(0, false, "Unknown navmesh type %#x", (int)type);
 
-  init_nav_query(nav_mesh_idx);
+  if (!init_nav_query(nav_mesh_idx))
+    return false;
 
   nmData.navData = eastl::move(navDataLocal);
   nmData.navDataSize = (int)navDataSize;
@@ -2108,7 +2200,7 @@ void renderDebug(const Frustum *p_frustum, int nav_mesh_idx, bool flag_coloring)
           perpDir = normalize(Point3(-perpDir.z, 0.f, perpDir.x));
           Point3 arrowPos1 = a + perpDir * 0.03f;
           Point3 arrowPos2 = a - perpDir * 0.03f;
-          E3DCOLOR color = E3DCOLOR(30, 0, 170);
+          E3DCOLOR color = E3DCOLOR(255, 0, 170);
           draw_cached_debug_line(a, b, color);
           draw_cached_debug_line(arrowPos1, b, color);
           draw_cached_debug_line(arrowPos2, b, color);
@@ -2290,6 +2382,7 @@ int find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, float *
     return 0;
 
   static const float MIN_TARGET_DIST = 0.01f;
+  static const float MAX_JUMPLINK_DIST = 1.5f;
 
   int ncorners = 0;
   nmData.navQuery->findStraightPath(corridor.getPos(), corridor.getTarget(), corridor.getPath(), corridor.getPathCount(), corner_verts,
@@ -2299,6 +2392,9 @@ int find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, float *
   while (ncorners)
   {
     if (corner_flags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
+      break;
+    const float nextDistSq = dtVdist2DSqr(&corner_verts[0], corridor.getPos());
+    if (nextDistSq > dtSqr(MAX_JUMPLINK_DIST))
       break;
     uint16_t polyFlags = 0;
     // cut-off almost passed offmesh connections
@@ -2313,7 +2409,7 @@ int find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, float *
         break;
       }
     }
-    if (dtVdist2DSqr(&corner_verts[0], corridor.getPos()) > dtSqr(MIN_TARGET_DIST))
+    if (nextDistSq > dtSqr(MIN_TARGET_DIST))
       break;
     ncorners--;
     if (ncorners)
@@ -2463,7 +2559,8 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     if (over_link != OVER_JUMP_LINK)
     {
       Point2 dir = normalize(Point2::xz(end - start));
-      if (dir * Point2::xz(start - pos) > min(extents.x, extents.z)) // we haven't reached start yet
+      Point2 delta = Point2::xz(start - pos);
+      if (dir * delta > extents.x || abs(dir.y * delta.x - dir.x * delta.y) > extents.z) // we haven't reached start yet
         return 0;
     }
 

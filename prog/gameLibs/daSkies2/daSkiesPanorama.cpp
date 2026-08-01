@@ -39,39 +39,37 @@ static uint32_t panorama_async_pipe_feedback = 0;
 
 static uint32_t panoramaFmt = TEXFMT_R11G11B10F; // TEXCF_SRGBREAD|TEXCF_SRGBWRITE;// TEXFMT_A16B16G16R16F;//TEXFMT_R11G11B10F;
 
-#define GLOBAL_VARS_LIST                             \
-  VAR(render_sun, false)                             \
-  VAR(real_skies_sun_light_dir, false)               \
-  VAR(real_skies_sun_color, false)                   \
-  VAR(skies_moon_dir, true)                          \
-  VAR(skies_moon_color, true)                        \
-  VAR(skies_primary_sun_light_dir, false)            \
-  VAR(skies_secondary_sun_light_dir, false)          \
-  VAR(skies_primary_sun_color, false)                \
-  VAR(skies_secondary_sun_color, false)              \
-  VAR(skies_panorama_light_dir, false)               \
-  VAR(panoramaTC, false)                             \
-  VAR(clouds_panorama_tex_res, false)                \
-  VAR(clouds_panorama_use_biquadratic, true)         \
-  VAR(cloudsAlphaPanoramaWorldPos, false)            \
-  VAR(currentPanoramaWorldOffset, false)             \
-  VAR(skies_world_view_pos, false)                   \
-  VAR(strata_pos_x, false)                           \
-  VAR(strata_pos_z, false)                           \
-  VAR(skies_render_panorama_scattering, false)       \
-  VAR(skies_panorama_mu_horizon, false)              \
-  VAR(skies_panorama_sun_opposite_tc_x, true)        \
-  VAR(clouds_panorama_frame, false)                  \
-  VAR(clouds_panorama_blend, false)                  \
-  VAR(clouds_panorama_blend_from, false)             \
-  VAR(clouds_panorama_tex, false)                    \
-  VAR(clouds_panorama_tex_samplerstate, false)       \
-  VAR(clouds_panorama_patch_tex, false)              \
-  VAR(clouds_panorama_patch_tex_samplerstate, false) \
-  VAR(rgbm_panorama_scale_factor, false)             \
-  VAR(clouds_panorama_depth_out, true)               \
-  VAR(clouds_panorama_split, true)                   \
-  VAR(clouds_alpha_panorama_tex_samplerstate, true)
+#define GLOBAL_VARS_LIST                       \
+  VAR(render_sun, false)                       \
+  VAR(real_skies_sun_light_dir, false)         \
+  VAR(real_skies_sun_color, false)             \
+  VAR(skies_moon_dir, true)                    \
+  VAR(skies_moon_color, true)                  \
+  VAR(skies_primary_sun_light_dir, false)      \
+  VAR(skies_secondary_sun_light_dir, false)    \
+  VAR(skies_primary_sun_color, false)          \
+  VAR(skies_secondary_sun_color, false)        \
+  VAR(skies_panorama_light_dir, false)         \
+  VAR(panoramaTC, false)                       \
+  VAR(clouds_panorama_tex_res, false)          \
+  VAR(clouds_panorama_use_biquadratic, true)   \
+  VAR(cloudsAlphaPanoramaWorldPos, false)      \
+  VAR(currentPanoramaWorldOffset, false)       \
+  VAR(skies_world_view_pos, false)             \
+  VAR(strata_pos_x, false)                     \
+  VAR(strata_pos_z, false)                     \
+  VAR(skies_render_panorama_scattering, false) \
+  VAR(skies_panorama_mu_horizon, false)        \
+  VAR(skies_panorama_sun_opposite_tc_x, true)  \
+  VAR(clouds_panorama_frame, false)            \
+  VAR(clouds_panorama_blend, false)            \
+  VAR(clouds_panorama_blend_from, false)       \
+  VAR(clouds_panorama_tex, false)              \
+  VAR(clouds_panorama_patch_tex, false)        \
+  VAR(rgbm_panorama_scale_factor, false)       \
+  VAR(clouds_panorama_depth_out, true)         \
+  VAR(clouds_panorama_split, true)             \
+  VAR(skies_panorama_below_skies_fill_color, true)
 
 #define VAR(a, opt) static ShaderVariableInfo a##VarId;
 GLOBAL_VARS_LIST
@@ -147,33 +145,17 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
 
     cloudsAlphaPanoramaTex =
       dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | alphaPanoramaFmt, 1, "clouds_alpha_panorama_tex", RESTAG_DASKIES2);
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = d3d::AddressMode::Wrap;
-      smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-      ShaderGlobal::set_sampler(clouds_alpha_panorama_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
-    }
 
     if (VariableMap::isGlobVariablePresent(get_shader_variable_id("clouds_panorama_mip", true)))
     {
       cloudsPanoramaMipTex = dag::create_tex(NULL, resolutionW / 4, resolutionH / 4, TEXCF_RTARGET | panoramaFmt, 4,
         "clouds_panorama_mip", RESTAG_DASKIES2);
       mipRenderer.init("bloom_filter_mipchain", d3d::AddressMode::Clamp);
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = d3d::AddressMode::Wrap;
-      smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-      ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_panorama_mip_samplerstate", true), d3d::request_sampler(smpInfo));
     }
 
     // todo: sky panorama patch
     // todo: skyPanoramaTex can and should be just LUT in panoramaData
     skyPanoramaTex = dag::create_tex(NULL, 256, 128, TEXCF_RTARGET | panoramaFmt, 1, "sky_panorama_tex", RESTAG_DASKIES2);
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = d3d::AddressMode::Wrap;
-      smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-      ShaderGlobal::set_sampler(::get_shader_variable_id("sky_panorama_tex_samplerstate"), d3d::request_sampler(smpInfo));
-    }
 
     createCloudsPanoramaTex(blend_two, resolutionW, resolutionH);
 
@@ -186,20 +168,6 @@ void DaSkies::initPanorama(SkiesData * /*panorama_data*/, bool blend_two, int re
     if (cloudsPanoramaMipTex)
       cloudsPanoramaMipTex->getinfo(tinfo);
     ShaderGlobal::set_float4(clouds_panorama_tex_resVarId, resolutionW, resolutionH, tinfo.w, tinfo.h);
-  }
-
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = d3d::AddressMode::Wrap;
-    smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-    ShaderGlobal::set_sampler(clouds_panorama_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
-  }
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = d3d::AddressMode::Clamp;
-    smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-    smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    ShaderGlobal::set_sampler(clouds_panorama_patch_tex_samplerstateVarId, d3d::request_sampler(smpInfo));
   }
 }
 
@@ -385,6 +353,9 @@ void DaSkies::renderPanorama(const Point3 &origin, const TMatrix &view_tm, const
   if (skyPanoramaPatchEnabled)
     ShaderGlobal::set_texture(clouds_panorama_patch_texVarId, cloudsPanoramaPatchTex[currentPanorama]);
 
+  if (skies_panorama_below_skies_fill_colorVarId != -1)
+    ShaderGlobal::set_float4(skies_panorama_below_skies_fill_colorVarId, panoramaBelowSkiesFillColor);
+
   {
     TIME_D3D_PROFILE(applyPanorama);
     // There is some renderpass split when rendering envi probe.
@@ -427,7 +398,9 @@ void DaSkies::startUseOfCompressedTex()
 {
   // 12 comes from daScatteringCPU (hardcoded), 2 is hardcoded in renderSkiesInc.sh
   float maxSunBrightness = 12.f * skyParams.sun_brightness * 2.f;
-  panoramaRGBMScaleFactor = maxSunBrightness > maxRGBMScaleFactor ? maxRGBMScaleFactor : maxSunBrightness;
+  // lower clamp: night/overcast presets drive sun_brightness towards 0, and a near-zero
+  // RGBM scale turns the encode into inf and the decode into a black panorama
+  panoramaRGBMScaleFactor = clamp(maxSunBrightness, 1.f, maxRGBMScaleFactor);
   panoramaCompressor->updateCompressedTexture(compressedCloudsPanoramaTex.getTex2D(), panoramaRGBMScaleFactor);
   ShaderGlobal::set_float(rgbm_panorama_scale_factorVarId, panoramaRGBMScaleFactor);
 
@@ -453,16 +426,19 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
       panoramaValidFrame =
         panoramaFrame + (cloudsPanoramaTex[1] ? panorma_temporal_frames * 2 : panorma_temporal_upsample * frames_to_exp_validate);
       panoramaValid = PANORAMA_OLD;
+      // warn once per valid->old transition; a continuously moving sun would otherwise
+      // flood the log on every threshold crossing
+      logwarn("One shouldn't use dynamic skies with panorama rendering. If you want to trigger update, call invalidatePanorama()."
+              "sun dir %@ %@ dot %f < %f == %d br = %f %f %d generation = %d %d clouds %d %d",
+        primarySunDir, panorama_sun_light_dir, dot(primarySunDir, panorama_sun_light_dir), panorama_light_dir_change_threshold,
+        dot(primarySunDir, panorama_sun_light_dir) < panorama_light_dir_change_threshold, sunBrightness,
+        panorama_sun_light_color_brightness, !is_relative_equal_float(sunBrightness, panorama_sun_light_color_brightness, 0.05f, 0.2f),
+        computedScatteringGeneration, panoramaScatteringGeneration, cloudsGeneration, panoramaCloudsGeneration);
     }
-    else
-      panoramaValidFrame += totalCycle;
+    else // already refilling: extend, but keep revalidation bounded under a continuously moving sun.
+      // never below the already scheduled deadline: the bound must not cut a running refill short
+      panoramaValidFrame = max(panoramaValidFrame, min(panoramaValidFrame + totalCycle, panoramaFrame + 2 * totalCycle));
     forcedInvalidate = true;
-    logwarn("One shouldn't use dynamic skies with panorama rendering. If you want to trigger update, call invalidatePanorama()."
-            "sun dir %@ %@ dot %f < %f == %d br = %f %f %d generation = %d %d clouds %d %d",
-      primarySunDir, panorama_sun_light_dir, dot(primarySunDir, panorama_sun_light_dir), panorama_light_dir_change_threshold,
-      dot(primarySunDir, panorama_sun_light_dir) < panorama_light_dir_change_threshold, sunBrightness,
-      panorama_sun_light_color_brightness, !is_relative_equal_float(sunBrightness, panorama_sun_light_color_brightness, 0.05f, 0.2f),
-      computedScatteringGeneration, panoramaScatteringGeneration, cloudsGeneration, panoramaCloudsGeneration);
   }
   d3d::AutoPipelineAsyncCompileFeedback<false /*allow_compute_pipelines*/> asyncFeedback(
     panoramaAllowAsyncPipelineFeedback ? &panorama_async_pipe_feedback : nullptr);

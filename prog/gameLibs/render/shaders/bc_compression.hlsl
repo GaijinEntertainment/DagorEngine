@@ -130,7 +130,7 @@
       minMaxProj.x = min(proj, minMaxProj.x);
       minMaxProj.y = max(proj, minMaxProj.y);
     }
-    min_color = half4(majorVec*minMaxProj.x + texels_mean.rgb, minMaxAlpha.x);
-    max_color = half4(majorVec*minMaxProj.y + texels_mean.rgb, minMaxAlpha.y);
+    min_color = saturate(half4(majorVec*minMaxProj.x + texels_mean.rgb, minMaxAlpha.x));
+    max_color = saturate(half4(majorVec*minMaxProj.y + texels_mean.rgb, minMaxAlpha.y));
   }
 #endif

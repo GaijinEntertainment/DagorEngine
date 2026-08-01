@@ -23,6 +23,7 @@
 #include "properties_panel.h"
 #include "graph_panel.h"
 #include "plugin.h"
+#include "graph_undo.h"
 #include "pluginService/graph_tex_gen_service.h"
 
 namespace
@@ -291,9 +292,14 @@ void PropertiesPanel::updateImgui()
   {
     needRebuild = sourcePathChanged;
   }
+  if (forceRebuild)
+  {
+    needRebuild = true;
+  }
 
   if (needRebuild)
   {
+    forceRebuild = false;
     IEditorCoreEngine::get()->sendImmediateFocusLossNotification();
 
     panelWindow->clear();
@@ -573,6 +579,8 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
     {
       return;
     }
+    GraphSettings before;
+    plugin.getGraphSettings(before);
     plugin.mutateGraphData([&](GraphData &gd) {
       if (pcb_id == PID_GRAPH_TEX_WIDTH)
       {
@@ -596,6 +604,7 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
       }
     });
     plugin.markGraphDirtyAndRegen();
+    plugin.recordGraphSettingsChange(eastl::move(before));
     return;
   }
 
@@ -613,6 +622,8 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
   // intermediate onChange, so holding a spin button doesn't regenerate every frame.
   if (pcb_id == PID_GRAPH_HEIGHT_SCALE || pcb_id == PID_GRAPH_HEIGHT_MIN || pcb_id == PID_GRAPH_CELL_SIZE)
   {
+    GraphSettings before;
+    plugin.getGraphSettings(before);
     plugin.mutateGraphData([&](GraphData &gd) {
       if (pcb_id == PID_GRAPH_HEIGHT_SCALE)
       {
@@ -635,6 +646,7 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
         effective_height(gd.heightmapMin, DEFAULT_HEIGHT_MIN), effective_height(gd.heightmapCellSize, DEFAULT_CELL_SIZE));
       svc->requestRegenerate();
     }
+    plugin.recordGraphSettingsChange(eastl::move(before));
     return;
   }
 
@@ -662,6 +674,8 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
       panel->setText(pcb_id, newValue); // reflect the normalized app-relative form
     }
 
+    GraphSettings before;
+    plugin.getGraphSettings(before);
     bool changed = false;
     plugin.mutateGraphData([&](GraphData &gd) {
       if (pcb_id == PID_GRAPH_RENDER_DIR)
@@ -685,6 +699,7 @@ void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyC
     {
       plugin.markGraphDirtyAndRegen();
     }
+    plugin.recordGraphSettingsChange(eastl::move(before));
     return;
   }
 
@@ -773,6 +788,28 @@ void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropert
     return; // read-only stub types -- not editable.
   }
 
+  // Skip a no-op edit (e.g. focus leaving an unchanged field): nothing to apply or record. Compare
+  // against the live value, treating an unset property as its descriptor default.
+  const eastl::string *curVal = find_property_value(*n, it->second.c_str());
+  if (curVal)
+  {
+    if (*curVal == newVal)
+    {
+      return;
+    }
+  }
+  else if (newVal == param_as_string(propDesc, "val"))
+  {
+    return;
+  }
+
+  // One undo entry per edit gesture (the daEditorX ObjectEditor UndoPropsChange pattern): snapshot the
+  // node's whole propertyValues before the change, apply, then accept. Continuous controls commit once
+  // on finish and discrete ones once per change, so each gesture is a single "Change property" entry.
+  UndoSystem *undoSystem = IEditorCoreEngine::get()->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoNodeProps(plugin, lastRenderedNodeId));
+
   // Re-find the node inside mutateGraphData so the mutable reference comes from the locked-access
   // path. lastRenderedNodeId is stable across the lambda; main is the only writer that could remove
   // a node and we're on main.
@@ -803,4 +840,5 @@ void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropert
 
   // Worker thread runs compile_graph_to_blks asynchronously and then regenerates.
   plugin.markGraphDirtyAndRegen();
+  undoSystem->accept("Change property");
 }

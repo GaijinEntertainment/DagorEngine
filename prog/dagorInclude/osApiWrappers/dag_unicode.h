@@ -35,6 +35,10 @@ KRNLIMP wchar_t *convert_path_to_u16_c(wchar_t *dest_u16, int dest_sz, const cha
 // converts wchar_t* to UTF-8 char*; returns dest_utf8.data()
 KRNLIMP char *convert_to_utf8(Tab<char> &dest_utf8, const wchar_t *s, int len = -1);
 
+// largest m <= len at which UTF-8 bytes [0, len) end on a codepoint boundary, dropping an
+// incomplete trailing sequence. Reads only [0, len), so the span need not be NUL-terminated.
+KRNLIMP int utf8_truncate_len(const char *data, int len);
+
 // counts number of SYMBOLS in utf8 NULL-terminated string
 KRNLIMP int utf8_strlen(const dag_char8_t *utf8_str);
 #ifdef __cpp_char8_t

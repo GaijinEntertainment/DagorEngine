@@ -12,8 +12,7 @@
 
 #define HAS_SHADER_GRAPH_COMPILE_SUPPORT (DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN)
 
-typedef bool (*ShaderCompilerCallback)(uint32_t variant_id, const String &name, const String &code, const DataBlock &shader_blk,
-  String &out_errors);
+typedef bool (*ShaderCompilerCallback)(const String &name, const DataBlock &shader_blk, String &out_errors);
 
 typedef String (*ShaderGetSrcCallback)(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
 
@@ -23,12 +22,10 @@ public:
   void recompile();
   void update(float /* dt */);
 
-  void getIncludeFileNames(Tab<String> &includeGraphNames);
-
   static void activate(NodeBasedShaderType shader);
 
   static void initialize(NodeBasedShaderType shader, ShaderCompilerCallback compiler_callback, const char *root_graph_filename,
-    const char *subgraphs_dir = nullptr, String user_script = String(""), const char *optional_graphs_dir = nullptr);
+    const char *subgraphs_dir = nullptr, String user_script = String(""), const char *permutations_blk_filename = nullptr);
 
   static ShaderGraphRecompiler *getInstance();
 
@@ -55,7 +52,9 @@ protected:
   ShaderGraphRecompiler(const char *editor_name, ShaderGetSrcCallback shader_get_src_callback);
 
   void init(NodeBasedShaderType shader, const char *subgraphs_dir, const char *user_script, const char *root_graph_filename,
-    const char *optional_graphs_dir, ShaderCompilerCallback compiler_callback);
+    const char *permutations_blk_filename, ShaderCompilerCallback compiler_callback);
+
+  bool gatherPermutationGraphs(Tab<String> &out_graph_filenames, String &out_permutation_table_json);
 
   static ShaderGraphRecompiler *activeInstance;
 
@@ -66,6 +65,8 @@ private:
 
   NodeBasedShaderType shaderType = static_cast<NodeBasedShaderType>(0);
   String currentShaderName;
+  String rootShaderName;
+  int editedPermutationIdx = -1;
   String shaderBlkText;
   String currentGraphFileName;
   String lastCompileError;
@@ -73,6 +74,7 @@ private:
   String translateDir; // for translated to .blk
   String rootGraphFileName;
   String optionalGraphsDir;
+  String permutationsBlkFileName;
 
   String editorName;
 
@@ -91,6 +93,8 @@ String collect_template_files(const String &template_dir, const Tab<String> &tem
 
 extern webui::HttpPlugin get_fog_shader_graph_editor_http_plugin();
 extern webui::HttpPlugin get_envi_cover_shader_graph_editor_http_plugin();
+extern webui::HttpPlugin get_clouds_shader_graph_editor_http_plugin();
 
 #define FOG_SHADER_EDITOR_PLUGIN_NAME        "fog_shader_editor"
 #define ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME "envi_cover_shader_editor"
+#define CLOUDS_SHADER_EDITOR_PLUGIN_NAME     "clouds_shader_editor"

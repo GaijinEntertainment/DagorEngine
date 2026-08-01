@@ -287,7 +287,7 @@ static void recursive_split(RecursiveContext &ctx, int global_x, int global_y, u
   }
 
   float subPatchSize = patchSize * 0.5f;
-  const int mask = v_signmask(v_cmp_gt(v_add(ctx.viewPos, ctx.viewPos), center2));
+  const int mask = v_truemask(v_cmp_gt(v_add(ctx.viewPos, ctx.viewPos), center2));
   const int primary = ((mask & 1) | ((mask >> 1) & 2));
   int child_global_x = global_x << 1;
   int child_global_y = global_y << 1;
@@ -347,7 +347,6 @@ void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, con
 {
   const bool exactEdges = allow_exact_edges && (q.quality & q.EXACT_EDGES), useMorph = exactEdges && (q.quality & q.USE_MORPH);
   cull_data.eraseAll();
-  cull_data.useHWTesselation = false;
   const int dimBits = get_log2i(errors.dim);
 
   float hDisplacementRange = maxUpwardDisplacement + maxDownwardDisplacement;

@@ -1113,7 +1113,7 @@ int DagorWinMain(bool debugmode)
       mem_set_0(show_props);
       iterate_names(listAssetPropsForTypes, [&](int, const char *name) {
         if (strcmp(name, "*") == 0)
-          mem_set_ff(show_props);
+          eastl::fill(show_props.begin(), show_props.end(), true);
         else
         {
           int atype = mgr.getAssetTypeId(name);

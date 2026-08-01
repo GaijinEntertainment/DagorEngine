@@ -34,6 +34,7 @@
 #include <3d/dag_render.h>
 #include <3d/dag_lockTexture.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_lock.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/dag_cur_view.h>
@@ -1677,6 +1678,8 @@ void ViewportWindow::worldToNDC(const Point3 &world, Point3 &ndc) const
 {
   Point3 vertexVS(viewport->getViewMatrix() * world);
   Point4 clipSpace = Point4(vertexVS.x, vertexVS.y, vertexVS.z, 1.f) * viewport->getProjectionMatrix();
+  // the projection is reverse-Z; keep returning forward z (0 near, 1 far) as pick/sort consumers expect
+  clipSpace.z = clipSpace.w - clipSpace.z;
   if (clipSpace.w != 0.f)
   {
     clipSpace.w = 1.f / clipSpace.w;
@@ -2698,7 +2701,11 @@ Point3 ViewportWindow::getCameraPanAnchorPoint()
         real depth = 0.f;
         if (tryReadingDepthFromBuffer(getW() / 2, getH() / 2, getDepthBuffer(), depth))
         {
-          Point4 unprojected = Point4(0, 0, (1.f - depth), 1) * inverse44(viewport->getProjectionMatrix());
+          // unproject with the projection the depth buffer was rendered with: render
+          // hooks may give the driver a different z range than the viewport's matrix
+          TMatrix4 depthProjTm;
+          d3d::gettm(TM_PROJ, &depthProjTm);
+          Point4 unprojected = Point4(0, 0, depth, 1) * inverse44(depthProjTm);
           unprojected /= unprojected.w;
 
           const Point3 newAnchor = camera * Point3(unprojected.x, unprojected.y, unprojected.z);

@@ -3,6 +3,7 @@
 #include "../av_plugin.h"
 #include "../av_tree.h"
 #include "../av_appwnd.h"
+#include "../av_viewportWindow.h"
 #include <assets/assetRefs.h>
 #include <assetsGui/av_selObjDlg.h>
 #include <assetsGui/av_assetTreeDragHandler.h>
@@ -45,7 +46,6 @@
 #include <math/dag_bezier.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_TMatrix4.h>
-#include <gui/dag_stdGuiRenderEx.h>
 
 #include <dafxToolsHelper/dafxToolsHelper.h>
 #include <render/dag_cur_view.h>
@@ -380,6 +380,10 @@ public:
   }
   bool end() override
   {
+    for (int i = 0; i < EDITORCORE->getViewportCount(); ++i)
+      if (auto *viewport = static_cast<AssetViewerViewportWindow *>(EDITORCORE->getViewport(i)))
+        viewport->getFxStats().clear();
+
     savePanelState();
     IWndManager &manager = getWndManager();
 
@@ -594,51 +598,47 @@ public:
 
     effectTotalLifeTime += dt;
   }
-  void drawDafxStats(BaseEffectObject &effect)
+  void fillViewportFxStats(AssetViewerViewportWindow &viewport)
   {
-    if (!dafx_helper_globals::ctx)
+    FxStats &s = viewport.getFxStats();
+    if (!effect || !dafx_helper_globals::ctx)
+    {
+      s.clear();
       return;
+    }
 
-    bool started = StdGuiRender::is_render_started();
-    if (!started)
-      StdGuiRender::continue_render();
+    dafx::Stats stats;
+    dafx::get_stats(dafx_helper_globals::ctx, stats);
+    if (!dafx::is_simulation_paused(dafx_helper_globals::ctx))
+    {
+      lastSimStats.activeInstances = stats.activeInstances;
+      lastSimStats.cpuElemProcessed = stats.cpuElemProcessed;
+      lastSimStats.gpuElemProcessed = stats.gpuElemProcessed;
+    }
 
-    StdGuiRender::set_font(0);
-    StdGuiRender::set_color(E3DCOLOR_MAKE(255, 255, 255, 255));
+    s.valid = true;
+    s.instances = lastSimStats.activeInstances / 2;
+    s.cpuElemProcessed = lastSimStats.cpuElemProcessed;
+    s.gpuElemProcessed = lastSimStats.gpuElemProcessed;
+    s.drawCalls = stats.renderDrawCalls;
+    s.visibleTriangles = stats.visibleTriangles;
+    s.renderedTriangles = stats.renderedTriangles;
 
-    const dafx::Stats &s = dafx_helper_globals::stats;
-    String insts(128, "instances: %d", (int)(s.activeInstances / 2)); // instances are 2 part objects
-    String cpuSim(128, "cpuSimulation: %d", s.cpuElemProcessed);
-    String gpuSim(128, "gpuSimulation: %d", s.gpuElemProcessed);
-    String dips(128, "dips: %d", s.renderDrawCalls);
-    String tris(128, "tris: %d/%d", s.visibleTriangles, s.renderedTriangles);
-
-    int fxStats[4] = {0};
-    effect.getParam(_MAKE4C('PFXX'), fxStats);
-    String params(128, "param_ren: %d, param_sim: %d", fxStats[0], fxStats[1]);
-    String data(128, "part_ren: %d, part_sim: %d", fxStats[2], fxStats[3]);
-    String distance(128, "distance to camera: %.2f", length(::grs_cur_view.pos));
-
-    int x = hdpi::_pxS(8);
-    int y = hdpi::_pxS(40);
-    int n = hdpi::_pxS(20);
-    StdGuiRender::draw_strf_to(x, y + n * 0, insts);
-    StdGuiRender::draw_strf_to(x, y + n * 1, cpuSim);
-    StdGuiRender::draw_strf_to(x, y + n * 2, gpuSim);
-    StdGuiRender::draw_strf_to(x, y + n * 3, dips);
-    StdGuiRender::draw_strf_to(x, y + n * 4, tris);
-    StdGuiRender::draw_strf_to(x, y + n * 5, data);
-    StdGuiRender::draw_strf_to(x, y + n * 6, params);
-    StdGuiRender::draw_strf_to(x, y + n * 7, distance);
-
-    StdGuiRender::flush_data();
-    if (!started)
-      StdGuiRender::end_render();
+    int elemSize[4] = {0};
+    effect->getParam(_MAKE4C('PFXX'), elemSize);
+    s.paramRenSize = elemSize[0];
+    s.paramSimSize = elemSize[1];
+    s.partRenSize = elemSize[2];
+    s.partSimSize = elemSize[3];
   }
   void beforeRenderObjects() override
   {
     if (ScriptHelpers::obj_editor)
       ScriptHelpers::obj_editor->beforeRender();
+
+    auto *viewport = static_cast<AssetViewerViewportWindow *>(EDITORCORE->getCurrentViewport());
+    if (viewport)
+      fillViewportFxStats(*viewport);
   }
   void renderObjects() override
   {
@@ -680,8 +680,6 @@ public:
         Point3 pos = particles_debug_tm.getcol(3);
         effect->drawEmitter(pos);
       }
-
-      drawDafxStats(*effect);
     }
   }
   void renderGeometry(Stage stage) override
@@ -1320,6 +1318,13 @@ protected:
   TMatrix4 globtmPrev = TMatrix4::IDENT;
   float effectTotalLifeTime = 0;
 
+  struct SimStats
+  {
+    int activeInstances = 0;
+    int cpuElemProcessed = 0;
+    int gpuElemProcessed = 0;
+  } lastSimStats;
+
   class EffectsPropPanelDropHandler : public PropPanel::IDropTargetHandler
   {
   public:
@@ -1449,6 +1454,7 @@ protected:
 
     effect = (BaseEffectObject *)obj;
     effectDafxSetupDone = false;
+    lastSimStats = SimStats();
 
     DAEDITOR3.setFatalHandler();
     DAEDITOR3.resetFatalStatus();

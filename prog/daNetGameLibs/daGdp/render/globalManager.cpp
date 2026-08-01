@@ -7,13 +7,16 @@
 #include <math/dag_hlsl_floatx.h>
 #include <shaders/dag_shaderResUnitedData.h>
 #include <shaders/dag_computeShaders.h>
+#include <shaders/dag_refinedBlock.h>
 #include <render/daFrameGraph/daFG.h>
 #include <3d/dag_ringCPUQueryLock.h>
 #include <drv/3d/dag_rwResource.h>
 #include <ecs/rendInst/riExtra.h>
 #include <render/noiseTex.h>
+#include <math/dag_Point3.h>
 #include "../shaders/dagdp_common.hlsli"
 #include "../shaders/dagdp_dynamic.hlsli"
+#include "block.h"
 #include "globalManager.h"
 #include <render/world/bvh.h>
 #include "CSMShadows.h"
@@ -65,7 +68,10 @@ GlobalManager::~GlobalManager() { destroyViews(); }
 void GlobalManager::destroyViews()
 {
   if (viewsAreCreated)
+  {
     release_blue_noise();
+    release_perline_noise_3d();
+  }
   viewsAreCreated = false;
   views.clear();
   viewIndependentNodes.clear();
@@ -78,6 +84,8 @@ void GlobalManager::recreateViews()
   G_ASSERT(views.empty());
 
   init_and_get_blue_noise();
+  Point3 perlinNoiseMin, perlinNoiseMax;
+  init_and_get_perlin_noise_3d(perlinNoiseMin, perlinNoiseMax);
 
   if (!config.enabled)
   {
@@ -140,6 +148,8 @@ void GlobalManager::update(ecs::EntityManager &manager)
     rebuildViews(manager);
     ::debug("daGdp: rebuildViews took %d us", get_time_usec(startRef));
   }
+
+  refined_block::get_global().set(var::global_density_mul, globalDensityMul);
 }
 
 void GlobalManager::rebuildRules()
@@ -277,6 +287,8 @@ void GlobalManager::rebuildViews(ecs::EntityManager &manager)
       persistentData->constants.numRenderables = numRenderables;
       persistentData->constants.dynamicInstanceRegion = viewBuilder.dynamicInstanceRegion;
 
+      auto viewBlock = get_dagdp_view_block(view.info.uniqueName.c_str());
+
       if (viewBuilder.dynamicInstanceRegion.maxCount > 0)
       {
         {
@@ -311,8 +323,6 @@ void GlobalManager::rebuildViews(ecs::EntityManager &manager)
             perInstanceFormat})
           .atStage(dafg::Stage::COMPUTE)
           .useAs(dafg::Usage::SHADER_RESOURCE);
-
-        return [] { ShaderGlobal::set_float(var::global_density_mul, globalDensityMul); };
       });
 
       dafg::NodeHandle dynamicSetupNode =
@@ -335,34 +345,37 @@ void GlobalManager::rebuildViews(ecs::EntityManager &manager)
           return [dynCountersHandle] { d3d::zero_rwbufi(dynCountersHandle.get()); };
         });
 
-      dafg::NodeHandle dynamicRecountNode = ns.registerNode("recount", DAFG_PP_NODE_SRC, [persistentData](dafg::Registry registry) {
-        const auto &constants = persistentData->constants;
-        view_multiplex(registry, constants.viewInfo.kind);
-
-        registry.rename("dyn_allocs_stage0", "dyn_allocs_stage1")
-          .buffer()
-          .atStage(dafg::Stage::COMPUTE)
-          .bindToShaderVar("dagdp__dyn_allocs");
-
-        registry.rename("dyn_counters_stage0", "dyn_counters_stage1")
-          .buffer()
-          .atStage(dafg::Stage::COMPUTE)
-          .bindToShaderVar("dagdp__dyn_counters");
-
-        return [persistentData, shader = ComputeShader("dagdp_dynamic_recount")] {
+      dafg::NodeHandle dynamicRecountNode = ns.registerNode("recount", DAFG_PP_NODE_SRC,
+        [persistentData, passBlock = viewBlock.refineBlock("dynamic_recount")](dafg::Registry registry) {
           const auto &constants = persistentData->constants;
+          view_multiplex(registry, constants.viewInfo.kind);
 
-          // TODO: to support more, need a multi-stage prefix sum here. Not done for simplicity.
-          G_ASSERT(constants.totalCounters <= DAGDP_DYNAMIC_RECOUNT_GROUP_SIZE);
+          registry.rename("dyn_allocs_stage0", "dyn_allocs_stage1")
+            .buffer()
+            .atStage(dafg::Stage::COMPUTE)
+            .bindToShaderVar("dagdp__dyn_allocs");
 
-          ShaderGlobal::set_int(var::dyn_counters_num, constants.totalCounters);
-          ShaderGlobal::set_int4(var::dyn_region, constants.dynamicInstanceRegion.baseIndex, constants.dynamicInstanceRegion.maxCount,
-            0, 0);
-          const bool res = shader.dispatchThreads(constants.totalCounters, 1, 1);
-          if (!res)
-            logerr("daGdp: dynamic recount dispatch failed!");
-        };
-      });
+          registry.rename("dyn_counters_stage0", "dyn_counters_stage1")
+            .buffer()
+            .atStage(dafg::Stage::COMPUTE)
+            .bindToShaderVar("dagdp__dyn_counters");
+
+          return [persistentData, shader = ComputeShader("dagdp_dynamic_recount"), passBlock] {
+            const auto &constants = persistentData->constants;
+
+            // TODO: to support more, need a multi-stage prefix sum here. Not done for simplicity.
+            G_ASSERT(constants.totalCounters <= DAGDP_DYNAMIC_RECOUNT_GROUP_SIZE);
+            passBlock.setState();
+
+            ShaderGlobal::set_int(var::dyn_counters_num, constants.totalCounters);
+            ShaderGlobal::set_int4(var::dyn_region, constants.dynamicInstanceRegion.baseIndex,
+              constants.dynamicInstanceRegion.maxCount, 0, 0);
+
+            const bool res = shader.dispatchThreads(constants.totalCounters, 1, 1);
+            if (!res)
+              logerr("daGdp: dynamic recount dispatch failed!");
+          };
+        });
 
       dafg::NodeHandle dynamicReadbackNode =
         ns.registerNode("readback", DAFG_PP_NODE_SRC, [persistentData, &view](dafg::Registry registry) {

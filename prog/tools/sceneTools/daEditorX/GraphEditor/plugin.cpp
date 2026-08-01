@@ -7,8 +7,12 @@
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/container.h>
 #include <libTools/util/strUtil.h>
+#include <libTools/util/undo.h>
 #include <osApiWrappers/dag_direct.h>
 #include <winGuiWrapper/wgw_dialogs.h>
+
+#include <EASTL/algorithm.h>
+#include <EASTL/hash_set.h>
 
 #include <imgui/imgui.h>
 
@@ -20,6 +24,7 @@
 #include "graph_compile.h"
 #include "graph_panel.h"
 #include "graph_shortcuts_panel.h"
+#include "graph_undo.h"
 #include "histogram_panel.h"
 #include "landscape_preview_panel.h"
 #include "landscape_preview_scene.h"
@@ -377,6 +382,11 @@ void GraphEditorPlg::newEmptyGraph()
   {
     graphPanel->onGraphDataChanged();
   }
+  // The new graph reuses node ids from 0, so our existing undo entries would alias different
+  // nodes. Drop only THIS plugin's ops (matched by owner); other plugins keep their history.
+  // The cast goes through IGenEditorPlugin* because that is the subobject the engine stamps as
+  // the op owner (set_op_owner) -- with multiple inheritance the void* must match exactly.
+  EDITORCORE->getUndoSystem()->remove_ops_by_owner(static_cast<IGenEditorPlugin *>(this));
 }
 
 void GraphEditorPlg::promptAndLoadGraphBlk()
@@ -400,6 +410,9 @@ void GraphEditorPlg::promptAndLoadGraphBlk()
   {
     graphPanel->onGraphDataChanged();
   }
+  // Loaded graph reuses node ids from 0; drop only this plugin's stale undo entries (matched by
+  // owner) so a later Ctrl+Z cannot alias an unrelated node in the new graph. See newEmptyGraph.
+  EDITORCORE->getUndoSystem()->remove_ops_by_owner(static_cast<IGenEditorPlugin *>(this));
 }
 
 void GraphEditorPlg::promptAndSaveGraphBlk()
@@ -1766,8 +1779,578 @@ void GraphEditorPlg::spawnBaseNode(const char *template_uid, float x, float y)
     return;
   }
   n.id = graphPanel->allocateNodeId();
-  graphPanel->addNode(eastl::move(n)); // already locks via mutateGraphData internally
+  graphPanel->addNode(n); // already locks via mutateGraphData internally
   markGraphDirtyAndRegen();
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoCreateNode(*this, eastl::move(n)));
+  undoSystem->accept("Create node");
+}
+
+void GraphEditorPlg::reinsertNode(const GraphData::Node &node)
+{
+  if (graphPanel)
+  {
+    graphPanel->addNode(node);
+  }
+  else
+  {
+    mutateGraphData([&node](GraphData &gd) { gd.nodes.push_back(node); });
+  }
+  markGraphDirtyAndRegen();
+}
+
+void GraphEditorPlg::eraseNode(int node_id)
+{
+  if (graphPanel)
+  {
+    graphPanel->removeNodeById(node_id); // strips incident edges + regens internally
+    return;
+  }
+  // Graph panel closed: mutate the canonical store directly so undo stays correct with no canvas.
+  mutateGraphData([node_id](GraphData &gd) {
+    auto edgeEnd = eastl::remove_if(gd.edges.begin(), gd.edges.end(),
+      [node_id](const GraphData::Edge &e) { return e.elemA == node_id || e.elemB == node_id; });
+    gd.edges.erase(edgeEnd, gd.edges.end());
+    auto nodeIt = eastl::find_if(gd.nodes.begin(), gd.nodes.end(), [node_id](const GraphData::Node &n) { return n.id == node_id; });
+    if (nodeIt != gd.nodes.end())
+    {
+      gd.nodes.erase(nodeIt);
+    }
+  });
+  markGraphDirtyAndRegen();
+}
+
+void GraphEditorPlg::reinsertEdge(const GraphData::Edge &edge)
+{
+  if (graphPanel)
+  {
+    graphPanel->addEdge(edge); // mutates + marks dirty + cull
+  }
+  else
+  {
+    mutateGraphData([&edge](GraphData &gd) { gd.edges.push_back(edge); });
+    markGraphDirtyAndRegen();
+  }
+}
+
+void GraphEditorPlg::eraseEdge(int edge_id)
+{
+  if (graphPanel)
+  {
+    graphPanel->removeEdgeById(edge_id); // mutates + marks dirty + cull
+    return;
+  }
+  // Graph panel closed: mutate the canonical store directly so undo stays correct with no canvas.
+  bool erased = false;
+  mutateGraphData([edge_id, &erased](GraphData &gd) {
+    auto it = eastl::find_if(gd.edges.begin(), gd.edges.end(), [edge_id](const GraphData::Edge &e) { return e.id == edge_id; });
+    if (it != gd.edges.end())
+    {
+      gd.edges.erase(it);
+      erased = true;
+    }
+  });
+  if (erased)
+  {
+    markGraphDirtyAndRegen();
+  }
+}
+
+void GraphEditorPlg::eraseNodes(const eastl::vector<int> &node_ids)
+{
+  for (int id : node_ids)
+  {
+    eraseNode(id);
+  }
+}
+
+void GraphEditorPlg::restoreNodesAndEdges(const eastl::vector<GraphData::Node> &nodes, const eastl::vector<GraphData::Edge> &edges)
+{
+  // Nodes first, then edges, so a restored edge never references a not-yet-present node.
+  for (const GraphData::Node &n : nodes)
+  {
+    reinsertNode(n);
+  }
+  for (const GraphData::Edge &e : edges)
+  {
+    reinsertEdge(e);
+  }
+}
+
+void GraphEditorPlg::deleteNodesUndoable(const eastl::vector<int> &node_ids)
+{
+  if (node_ids.empty())
+  {
+    return;
+  }
+
+  // Snapshot the removed sub-graph BEFORE erasing: the nodes plus every edge incident to any of
+  // them, so undo can restore the exact connections. This is a main-thread READ of node/edge data,
+  // which only the main thread ever writes (always under mutateGraphData). The texgen worker takes
+  // graphData by const ref and writes only the compiled-output BLKs, so at most it reads these
+  // concurrently -- and read-vs-read is not a race -- so no graph mutex is needed for the snapshot.
+  eastl::hash_set<int> idSet;
+  idSet.reserve(node_ids.size());
+  for (int id : node_ids)
+  {
+    idSet.insert(id);
+  }
+  eastl::vector<GraphData::Node> removedNodes;
+  eastl::vector<GraphData::Edge> removedEdges;
+  removedNodes.reserve(node_ids.size());
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    if (idSet.find(n.id) != idSet.end())
+    {
+      removedNodes.push_back(n);
+    }
+  }
+  for (const GraphData::Edge &e : graphData.edges)
+  {
+    if (idSet.find(e.elemA) != idSet.end() || idSet.find(e.elemB) != idSet.end())
+    {
+      removedEdges.push_back(e);
+    }
+  }
+  if (removedNodes.empty())
+  {
+    return;
+  }
+
+  eraseNodes(node_ids);
+
+  // Incident-edge ids (for the link-selection fold below), captured before removedEdges is moved.
+  eastl::hash_set<int> removedEdgeIds;
+  removedEdgeIds.reserve(removedEdges.size());
+  for (const GraphData::Edge &e : removedEdges)
+  {
+    removedEdgeIds.insert(e.id);
+  }
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoDeleteNodes(*this, eastl::move(removedNodes), eastl::move(removedEdges)));
+  if (graphPanel)
+  {
+    // Fold the selection change in: undo re-adds the nodes/edges and reselects what was selected, redo
+    // deletes them and drops them from the selection -- one Ctrl+Z covers both.
+    const GraphSelection &oldSel = graphPanel->getRecordedSelection();
+    GraphSelection newSel;
+    for (int id : oldSel.nodes)
+    {
+      if (idSet.find(id) == idSet.end())
+      {
+        newSel.nodes.push_back(id);
+      }
+    }
+    for (int id : oldSel.links)
+    {
+      if (removedEdgeIds.find(id) == removedEdgeIds.end())
+      {
+        newSel.links.push_back(id);
+      }
+    }
+    if (oldSel != newSel)
+    {
+      undoSystem->put(new UndoSelection(*this, oldSel, eastl::move(newSel)));
+    }
+    graphPanel->suppressSelectionUndoThisFrame();
+  }
+  undoSystem->accept("Delete nodes");
+}
+
+void GraphEditorPlg::addEdgeUndoable(GraphData::Edge edge)
+{
+  reinsertEdge(edge);
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoCreateEdge(*this, edge));
+  undoSystem->accept("Create edge");
+}
+
+void GraphEditorPlg::deleteEdgesUndoable(const eastl::vector<int> &edge_ids)
+{
+  if (edge_ids.empty())
+  {
+    return;
+  }
+
+  // Snapshot the edges before erasing so undo can restore them. Main-thread read of edge data (see
+  // the snapshot note in deleteNodesUndoable).
+  eastl::vector<GraphData::Edge> removedEdges;
+  removedEdges.reserve(edge_ids.size());
+  for (int id : edge_ids)
+  {
+    auto it = eastl::find_if(graphData.edges.begin(), graphData.edges.end(), [id](const GraphData::Edge &e) { return e.id == id; });
+    if (it != graphData.edges.end())
+    {
+      removedEdges.push_back(*it);
+    }
+  }
+  if (removedEdges.empty())
+  {
+    return;
+  }
+
+  for (int id : edge_ids)
+  {
+    eraseEdge(id);
+  }
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoDeleteEdges(*this, eastl::move(removedEdges)));
+  if (graphPanel)
+  {
+    // Fold the link-selection change in: undo re-adds the edges and reselects what was selected, redo
+    // removes them and drops them from the selection.
+    eastl::hash_set<int> idSet;
+    idSet.reserve(edge_ids.size());
+    for (int id : edge_ids)
+    {
+      idSet.insert(id);
+    }
+    const GraphSelection &oldSel = graphPanel->getRecordedSelection();
+    GraphSelection newSel;
+    newSel.nodes = oldSel.nodes;
+    for (int id : oldSel.links)
+    {
+      if (idSet.find(id) == idSet.end())
+      {
+        newSel.links.push_back(id);
+      }
+    }
+    if (oldSel != newSel)
+    {
+      undoSystem->put(new UndoSelection(*this, oldSel, eastl::move(newSel)));
+    }
+    graphPanel->suppressSelectionUndoThisFrame();
+  }
+  undoSystem->accept("Delete edges");
+}
+
+void GraphEditorPlg::recordPaste(eastl::vector<GraphData::Node> pasted_nodes, eastl::vector<GraphData::Edge> pasted_edges)
+{
+  if (pasted_nodes.empty())
+  {
+    return;
+  }
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  for (const GraphData::Node &n : pasted_nodes)
+  {
+    undoSystem->put(new UndoCreateNode(*this, n));
+  }
+  for (const GraphData::Edge &e : pasted_edges)
+  {
+    undoSystem->put(new UndoCreateEdge(*this, e));
+  }
+  if (graphPanel)
+  {
+    // Paste clears the selection and selects the pasted nodes; fold that so undo restores the prior
+    // selection (and removes the nodes) while redo reselects the paste.
+    const GraphSelection &oldSel = graphPanel->getRecordedSelection();
+    GraphSelection newSel;
+    newSel.nodes.reserve(pasted_nodes.size());
+    for (const GraphData::Node &n : pasted_nodes)
+    {
+      newSel.nodes.push_back(n.id);
+    }
+    if (oldSel != newSel)
+    {
+      undoSystem->put(new UndoSelection(*this, oldSel, eastl::move(newSel)));
+    }
+    graphPanel->suppressSelectionUndoThisFrame();
+  }
+  undoSystem->accept("Paste");
+}
+
+void GraphEditorPlg::recordRemoveKeepingConnections(eastl::vector<GraphData::Node> removed_nodes,
+  eastl::vector<GraphData::Edge> removed_edges, eastl::vector<GraphData::Edge> bridge_edges)
+{
+  if (removed_nodes.empty())
+  {
+    return;
+  }
+
+  // One UndoDeleteNodes (the removed nodes + their incident edges) followed by a UndoCreateEdge per
+  // bridge edge. The holder redoes forward (delete, then add bridges) and undoes in reverse (remove
+  // bridges, then restore the sub-graph), reproducing/reverting the splice exactly.
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoDeleteNodes(*this, eastl::move(removed_nodes), eastl::move(removed_edges)));
+  for (const GraphData::Edge &e : bridge_edges)
+  {
+    undoSystem->put(new UndoCreateEdge(*this, e));
+  }
+  if (graphPanel)
+  {
+    // The splice clears the selection (it removed the selected nodes); fold that so undo brings the
+    // nodes back selected and redo clears again.
+    const GraphSelection &oldSel = graphPanel->getRecordedSelection();
+    if (oldSel != GraphSelection())
+    {
+      undoSystem->put(new UndoSelection(*this, oldSel, GraphSelection()));
+    }
+    graphPanel->suppressSelectionUndoThisFrame();
+  }
+  undoSystem->accept("Remove keeping connections");
+}
+
+void GraphEditorPlg::recordReconnectEdge(const GraphData::Edge &removed_edge, const GraphData::Edge *added_edge)
+{
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  eastl::vector<GraphData::Edge> removed;
+  removed.push_back(removed_edge);
+  undoSystem->put(new UndoDeleteEdges(*this, eastl::move(removed)));
+  if (added_edge)
+  {
+    undoSystem->put(new UndoCreateEdge(*this, *added_edge));
+  }
+  undoSystem->accept("Reconnect edge");
+}
+
+void GraphEditorPlg::recordSelectionChange(GraphSelection old_selection, GraphSelection new_selection)
+{
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoSelection(*this, eastl::move(old_selection), eastl::move(new_selection)));
+  undoSystem->accept("Select");
+}
+
+void GraphEditorPlg::applySelection(const GraphSelection &selection)
+{
+  if (graphPanel)
+  {
+    graphPanel->setPendingSelection(selection);
+  }
+}
+
+void GraphEditorPlg::getNodeProperties(int node_id, eastl::vector<eastl::pair<eastl::string, eastl::string>> &out) const
+{
+  out.clear();
+  // Main-thread read of node data (see the snapshot note in deleteNodesUndoable).
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    if (n.id == node_id)
+    {
+      out = n.propertyValues;
+      return;
+    }
+  }
+}
+
+void GraphEditorPlg::setNodeProperties(int node_id, const eastl::vector<eastl::pair<eastl::string, eastl::string>> &props)
+{
+  bool found = false;
+  mutateGraphData([&](GraphData &gd) {
+    for (auto &node : gd.nodes)
+    {
+      if (node.id == node_id)
+      {
+        node.propertyValues = props;
+        found = true;
+        break;
+      }
+    }
+  });
+  if (found)
+  {
+    markGraphDirtyAndRegen();
+  }
+  // The displayed controls still show the pre-undo values; force the panel to rebuild them.
+  if (propertiesPanel)
+  {
+    propertiesPanel->invalidateControls();
+  }
+}
+
+void GraphEditorPlg::getGraphSettings(GraphSettings &out) const
+{
+  // Main-thread read of graph data (see the snapshot note in deleteNodesUndoable).
+  out.renderDir = graphData.renderDir;
+  out.entityDir = graphData.entityDir;
+  out.heightmapScale = graphData.heightmapScale;
+  out.heightmapMin = graphData.heightmapMin;
+  out.heightmapCellSize = graphData.heightmapCellSize;
+  out.graphTextureWidth = graphData.graphTextureWidth;
+  out.graphTextureHeight = graphData.graphTextureHeight;
+  out.graphTextureDepth = graphData.graphTextureDepth;
+  out.graphTextureType = graphData.graphTextureType;
+  out.graphTextureWrap = graphData.graphTextureWrap;
+}
+
+void GraphEditorPlg::setGraphSettings(const GraphSettings &settings)
+{
+  mutateGraphData([&](GraphData &gd) {
+    gd.renderDir = settings.renderDir;
+    gd.entityDir = settings.entityDir;
+    gd.heightmapScale = settings.heightmapScale;
+    gd.heightmapMin = settings.heightmapMin;
+    gd.heightmapCellSize = settings.heightmapCellSize;
+    gd.graphTextureWidth = settings.graphTextureWidth;
+    gd.graphTextureHeight = settings.graphTextureHeight;
+    gd.graphTextureDepth = settings.graphTextureDepth;
+    gd.graphTextureType = settings.graphTextureType;
+    gd.graphTextureWrap = settings.graphTextureWrap;
+  });
+  // Re-push heightmap params (mirrors notifyGraphSourceChanged, minus the disruptive setGraphData) so
+  // the landscape preview follows the restored values, then kick a recompile.
+  if (texGenService)
+  {
+    texGenService->setHeightmapParams(graphData.heightmapScale, graphData.heightmapMin, graphData.heightmapCellSize);
+  }
+  markGraphDirtyAndRegen();
+  if (propertiesPanel)
+  {
+    propertiesPanel->invalidateControls();
+  }
+}
+
+void GraphEditorPlg::recordGraphSettingsChange(GraphSettings old_settings)
+{
+  GraphSettings current;
+  getGraphSettings(current);
+  if (current == old_settings)
+  {
+    return; // no net change (e.g. focus left an unedited field, or a combo re-picked its value)
+  }
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoGraphSettings(*this, eastl::move(old_settings)));
+  undoSystem->accept("Change graph settings");
+}
+
+void GraphEditorPlg::setPinComment(int node_id, int pin_index, const eastl::string &comment)
+{
+  mutateGraphData([&](GraphData &gd) {
+    for (GraphData::Node &n : gd.nodes)
+    {
+      if (n.id == node_id && pin_index >= 0 && pin_index < static_cast<int>(n.pins.size()))
+      {
+        n.pins[pin_index].comment = comment;
+        break;
+      }
+    }
+  });
+  // Display-only annotation: the canvas re-reads graphData each frame, so no regen is needed.
+}
+
+void GraphEditorPlg::setPinCommentUndoable(int node_id, int pin_index, const eastl::string &new_comment)
+{
+  // Read the current comment as the undo's old value (main-thread read; see deleteNodesUndoable).
+  eastl::string oldComment;
+  bool found = false;
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    if (n.id == node_id && pin_index >= 0 && pin_index < static_cast<int>(n.pins.size()))
+    {
+      oldComment = n.pins[pin_index].comment;
+      found = true;
+      break;
+    }
+  }
+  if (!found || oldComment == new_comment)
+  {
+    return;
+  }
+
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  undoSystem->put(new UndoPinComment(*this, node_id, pin_index, oldComment, new_comment));
+  setPinComment(node_id, pin_index, new_comment);
+  undoSystem->accept("Edit pin comment");
+}
+
+void GraphEditorPlg::applyBlockSizes(const eastl::vector<BlockSize> &sizes)
+{
+  mutateGraphData([&](GraphData &gd) {
+    for (const BlockSize &bs : sizes)
+    {
+      for (GraphData::Node &n : gd.nodes)
+      {
+        if (n.id == bs.nodeId)
+        {
+          n.blockWidth = bs.width;
+          n.blockHeight = bs.height;
+          break;
+        }
+      }
+    }
+  });
+  // ne stores group bounds and ignores drawBlockNode's supplied size for an existing group, so the
+  // size must be pushed via ne::SetGroupSize -- queue it (drawBlockNode drains it before BeginNode).
+  if (graphPanel)
+  {
+    eastl::vector<int> ids;
+    ids.reserve(sizes.size());
+    for (const BlockSize &bs : sizes)
+    {
+      ids.push_back(bs.nodeId);
+    }
+    graphPanel->markBlockSizesPending(ids);
+  }
+  // Block size is display-only; no regen needed.
+}
+
+void GraphEditorPlg::applyNodePositions(const eastl::vector<NodePos> &positions)
+{
+  if (positions.empty())
+  {
+    return;
+  }
+  mutateGraphData([&positions](GraphData &gd) {
+    for (const NodePos &p : positions)
+    {
+      for (GraphData::Node &n : gd.nodes)
+      {
+        if (n.id == p.nodeId)
+        {
+          n.x = p.x;
+          n.y = p.y;
+          break;
+        }
+      }
+    }
+  });
+  if (graphPanel)
+  {
+    eastl::vector<int> ids;
+    ids.reserve(positions.size());
+    for (const NodePos &p : positions)
+    {
+      ids.push_back(p.nodeId);
+    }
+    graphPanel->markPositionsPending(ids);
+  }
+  // Node position is display-only -- do not markGraphDirtyAndRegen.
+}
+
+void GraphEditorPlg::commitNodeTransforms(eastl::vector<NodePos> old_positions, eastl::vector<NodePos> new_positions,
+  eastl::vector<BlockSize> old_sizes, eastl::vector<BlockSize> new_sizes)
+{
+  applyNodePositions(new_positions); // commit positions to graphData + push to ne (no-op if empty)
+  // Sizes are already committed to graphData live by syncBlockSizes; only the undo entry is needed.
+
+  // Fold a corner resize (which moves and resizes the same block) into one entry, so a single Ctrl+Z
+  // restores both -- the deferred SetNodePosition + SetGroupSize on undo re-anchor the block correctly.
+  const bool hasResize = !old_sizes.empty();
+  UndoSystem *undoSystem = EDITORCORE->getUndoSystem();
+  undoSystem->begin();
+  if (!old_positions.empty())
+  {
+    undoSystem->put(new UndoMoveNodes(*this, eastl::move(old_positions), eastl::move(new_positions)));
+  }
+  if (hasResize)
+  {
+    undoSystem->put(new UndoBlockResize(*this, eastl::move(old_sizes), eastl::move(new_sizes)));
+  }
+  undoSystem->accept(hasResize ? "Resize block" : "Move nodes");
 }
 
 void GraphEditorPlg::markGraphDirtyAndRegen()

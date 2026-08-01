@@ -1,0 +1,52 @@
+{
+ "fib": {
+  "quirrel": 127.0,
+  "lua54": 65.0,
+  "luau": 56.338800000958145
+ },
+ "binarytrees": {
+  "quirrel": 36.0,
+  "lua54": 52.0,
+  "luau": 16.483300016261637
+ },
+ "life": {
+  "quirrel": 150.0,
+  "lua54": 85.0,
+  "luau": 72.37390000955202
+ },
+ "mandel": {
+  "quirrel": 83.0,
+  "lua54": 43.0,
+  "luau": 32.16400000383146
+ },
+ "strings": {
+  "quirrel": 98.0,
+  "lua54": 88.0,
+  "luau": 78.61729999422096
+ },
+ "desc_churn": {
+  "quirrel": 137.0,
+  "lua54": 222.0,
+  "luau": 67.76559998979792
+ },
+ "probe_storm": {
+  "quirrel": 106.0,
+  "lua54": 97.0,
+  "luau": 65.02800001180731
+ },
+ "nullable_probe": {
+  "quirrel": 118.0,
+  "lua54": 38.0,
+  "luau": 31.91680001327768
+ },
+ "closure_storm": {
+  "quirrel": 140.0,
+  "lua54": 240.0,
+  "luau": 34.1513000021223
+ },
+ "method_calls": {
+  "quirrel": 564.0,
+  "lua54": 369.0,
+  "luau": 226.95110001950525
+ }
+}

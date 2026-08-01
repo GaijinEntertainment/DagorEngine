@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/dynmodelRenderer.h>
+#include "lockFreeFixedVector.h"
 
 #include <3d/dag_resPtr.h>
 #include <3d/dag_ringDynBuf.h>
@@ -196,7 +197,7 @@ struct NodeCollapserData
 
 static void fill_node_collapser_data(const DynamicRenderableSceneInstance *scene, NodeCollapserData &out)
 {
-  const auto &ncBits = scene->getNodeCollapserBits();
+  const auto &ncBits = scene->getNodeCollapserBits().data;
   out.data[0] = Point4(bitwise_cast<float>(ncBits[0]), bitwise_cast<float>(ncBits[1]), bitwise_cast<float>(ncBits[2]),
     bitwise_cast<float>(ncBits[3]));
   out.data[1] = Point4(bitwise_cast<float>(ncBits[4]), bitwise_cast<float>(ncBits[5]), bitwise_cast<float>(ncBits[6]),
@@ -305,7 +306,7 @@ struct ContextData
   };
   eastl::optional<CachedTm> cachedTm;
 
-  ContextData(const char *name_, int idx, int ringBufferSize = 0) : name(name_)
+  ContextData(int idx, const char *name_, int ringBufferSize = 0) : name(name_)
   {
     perInstanceRenderData.emplace_back();
     recreateRingBuffer(ringBufferSize ? ringBufferSize : initialRingBufferSize, idx);
@@ -385,8 +386,11 @@ Intervals *DipChunk::getIntervals(ContextData &ctx) const
   return perInstanceRenderData.intervals.empty() ? NULL : &perInstanceRenderData.intervals;
 }
 
+// Fixed count to avoid reallocations and possible race with add_animchar() holding ref
+constexpr inline int MAX_DYNMODEL_CONTEXTS = 48;
 
-static eastl::vector<ContextData> contexts;
+static LockFreeFixedVector<ContextData, ContextId, MAX_DYNMODEL_CONTEXTS> contexts;
+
 static Tab<const char *> shadersRenderOrder;
 static TMatrix4_vec4 globalPrevViewTm = TMatrix4_vec4::IDENT;
 static TMatrix4_vec4 globalPrevProjTm = TMatrix4_vec4::IDENT;
@@ -413,31 +417,31 @@ static void update_context_gpu_data(const ContextGpuData &data)
 ContextId create_context(const char *name)
 {
   G_ASSERT(contexts.size() >= (int)ContextId::FIRST_USER_CONTEXT);
-  int id = contexts.size();
-  contexts.emplace_back(name, id);
-  return (ContextId)id;
+  return contexts.emplace_back(name);
 }
 
 
 ContextId get_or_create_context(const char *name)
 {
-  for (auto &c : contexts)
+  for (int idx = 0, ei = contexts.size(); idx < ei; ++idx)
+  {
+    ContextData &c = contexts.data()[idx];
     if (c.name == name)
     {
-      int idx = &c - contexts.data();
       if (!c.ringBuffer)
         c.recreateRingBuffer(initialRingBufferSize, idx);
       c.clear();
       return (ContextId)idx;
     }
+  }
   return create_context(name);
 }
 
 ContextId find_context(const char *name)
 {
-  for (auto &c : contexts)
-    if (c.name == name)
-      return (ContextId)(&c - contexts.data());
+  for (int id = 0, ei = contexts.size(); id < ei; ++id)
+    if (contexts.data()[id].name == name)
+      return ContextId(id);
   return ContextId::INVALID;
 }
 
@@ -445,7 +449,7 @@ void delete_context(ContextId context_id)
 {
   G_ASSERT(context_id >= ContextId::FIRST_USER_CONTEXT && (int)context_id < contexts.size());
   ContextData &ctx = contexts[(int)context_id];
-  ctx.recreateRingBuffer(0, &ctx - contexts.begin());
+  ctx.recreateRingBuffer(0, &ctx - contexts.data());
   while (!contexts.back().ringBuffer)
     contexts.pop_back();
 }
@@ -460,8 +464,8 @@ void init()
   initialRingBufferSize = graphicsBlk->getInt("dynrendInitialRingBufferSize", DEFAULT_INITIAL_RING_BUFFER_SIZE);
   initialMainRingBufferSize = graphicsBlk->getInt("dynrendInitialMainRingBufferSize", DEFAULT_INITIAL_MAIN_RING_BUFFER_SIZE);
 
-  contexts.emplace_back("MAIN", (int)ContextId::MAIN, initialMainRingBufferSize);
-  contexts.emplace_back("IMMEDIATE", (int)ContextId::IMMEDIATE);
+  contexts.emplace_back("MAIN", initialMainRingBufferSize);
+  contexts.emplace_back("IMMEDIATE");
 
   contextGpuDataBuffer =
     dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ContextGpuData>(), "context_gpu_data", RESTAG_DYNMODEL);
@@ -475,8 +479,8 @@ void init()
 
 void close()
 {
-  for (ContextData &ctx : contexts)
-    ctx.recreateRingBuffer(0, &ctx - contexts.begin());
+  for (ContextData *ctx = contexts.data(), *ec = ctx + contexts.size(); ctx < ec; ++ctx)
+    ctx->recreateRingBuffer(0, ctx - contexts.data());
 
   contexts.clear();
 
@@ -485,7 +489,7 @@ void close()
 }
 
 
-bool is_initialized() { return !contexts.empty(); }
+bool is_initialized() { return contexts.size(); }
 
 
 void set_shaders_forced_render_order(const eastl::vector<eastl::string> &shader_names)
@@ -1260,7 +1264,7 @@ bool prepare_render_finalize(ContextId context_id)
   const int sizeOfAllChunks = ctx.renderDataBuffer.vec_size();
   if (sizeOfAllChunks > ctx.ringBufferSizeInVecs)
   {
-    ctx.recreateRingBuffer(3 * sizeOfAllChunks, &ctx - contexts.begin());
+    ctx.recreateRingBuffer(3 * sizeOfAllChunks, (int)context_id);
     debug("dynrend: '%s' ring buffer size = %dK", ctx.name.c_str(), (ctx.ringBufferSizeInVecs * sizeof(vec4f)) >> 10);
   }
 
@@ -1268,7 +1272,7 @@ bool prepare_render_finalize(ContextId context_id)
   {
     if (ctx.prevDiscardOnFrame == ::dagor_frame_no())
     {
-      ctx.recreateRingBuffer(3 * ctx.ringBufferSizeInVecs, &ctx - contexts.begin());
+      ctx.recreateRingBuffer(3 * ctx.ringBufferSizeInVecs, (int)context_id);
       debug("dynrend: '%s' ring buffer size = %dK", ctx.name.c_str(), (ctx.ringBufferSizeInVecs * sizeof(vec4f)) >> 10);
     }
     ctx.prevDiscardOnFrame = dagor_frame_no();
@@ -1668,8 +1672,8 @@ void clear(ContextId context_id)
 
 void clear_all_contexts()
 {
-  for (ContextData &ctx : contexts)
-    ctx.clear();
+  for (ContextData *ctx = contexts.data(), *ec = ctx + contexts.size(); ctx < ec; ++ctx)
+    ctx->clear();
 }
 
 

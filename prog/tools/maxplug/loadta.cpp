@@ -3,18 +3,13 @@
 #include <max.h>
 #include <stdio.h>
 #include <vector>
+#include <string>
+#include <fstream>
+#include <filesystem>
 #include "loadta.h"
+#include "common.h"
 
-TexAnimFile::~TexAnimFile() { clear(); }
-
-void TexAnimFile::clear()
-{
-  frm.ZeroCount();
-  for (int i = 0; i < tex.Count(); ++i)
-    if (tex[i])
-      free(tex[i]);
-  tex.ZeroCount();
-}
+namespace fs = std::filesystem;
 
 void _simplify_filename(char *s)
 {
@@ -136,37 +131,14 @@ void _append_slash(char *fn)
     }
 }
 
-const char *get_extension(const char *fn)
-{
-  if (!fn)
-    return fn;
-  for (int i = (int)strlen(fn) - 1; i >= 0; --i)
-    if (fn[i] == '.')
-      return fn + i;
-    else if (fn[i] == '\\' || fn[i] == '/' || fn[i] == ':')
-      break;
-  return NULL;
-}
-
 static char basepath[256], basefile[256];
 
-static void setbasefile(const char *fn)
+static void setbasefile(const wchar_t *fn)
 {
-  int len = (int)strlen(fn);
-  int i;
-  for (i = len - 1; i >= 0; --i)
-    if (fn[i] == '\\' || fn[i] == '/' || fn[i] == ':')
-      break;
-  ++i;
-  memcpy(basepath, fn, i);
-  basepath[i] = 0;
+  fs::path p(fn);
+  strcpy(basepath, wideToStr(p.parent_path().c_str()).c_str());
   _append_slash(basepath);
-  int fl = len - i;
-  const char *p = get_extension(fn + i);
-  if (p)
-    fl = (p - fn) - i;
-  memcpy(basefile, fn + i, fl);
-  basefile[fl] = 0;
+  strcpy(basefile, wideToStr(p.stem().c_str()).c_str());
 }
 
 void TexAnimFile::add_frame(char *fname)
@@ -175,32 +147,27 @@ void TexAnimFile::add_frame(char *fname)
   strcpy(fn, basepath);
   strcat(fn, fname);
   _simplify_filename(fn);
+  std::wstring wfn = strToWide(fn);
+
   int i;
-  for (i = 0; i < tex.Count(); ++i)
-    if (stricmp(tex[i], fn) == 0)
+  for (i = 0; i < (int)tex.size(); ++i)
+    if (iequal(tex[i], wfn))
       break;
-  if (i >= tex.Count())
-  {
-    char *s = strdup(fn);
-    tex.Append(1, &s);
-  }
-  frm.Append(1, &i);
+  if (i >= (int)tex.size())
+    tex.push_back(wfn);
+
+  frm.push_back(i);
 }
 
 struct StopParser
 {};
 
-static const char *errmsg;
+static const wchar_t *errmsg;
 static int errln, errcol;
 
-char *TexAnimFile::getlasterr()
-{
-  static char buf[256];
-  sprintf(buf, "(line %d, col %d): %s", errln, errcol, errmsg);
-  return buf;
-}
+std::wstring TexAnimFile::getlasterr() { return format_str(L"(line %d, col %d): %s", errln, errcol, errmsg); }
 
-static void error(const char *msg)
+static void error(const wchar_t *msg)
 {
   errmsg = msg;
   throw StopParser();
@@ -256,17 +223,6 @@ static void skipcomm(char *&text, bool skipnl)
     break;
   }
 }
-
-/*
-static bool skipident(char* &text) {
-  if((*text>='a' && *text<='z') || (*text>='A' && *text<='Z') || *text=='_') {
-    ++text;
-    while(*text>='a' && *text<='z') || (*text>='A' && *text<='Z')
-    || (*text>='0' && *text<='9') || *text=='_') ++text;
-    return true;
-  }else return false;
-}
-*/
 
 static bool parse_int(char *&text, int *val)
 {
@@ -325,7 +281,7 @@ bool TexAnimFile::parse(char *text)
         ++text;
         skipcomm(text, true);
         if (*text != '"')
-          error("expected \"");
+          error(L"expected \"");
         char templ[256];
         char *p = templ;
         for (++text; *text; ++text)
@@ -351,7 +307,7 @@ bool TexAnimFile::parse(char *text)
         }
         *p = 0;
         if (*text != '"')
-          error("unclosed string");
+          error(L"unclosed string");
         ++text;
         for (;;)
         {
@@ -365,7 +321,7 @@ bool TexAnimFile::parse(char *text)
           }
           int f1, f2, fs = 1;
           if (!parse_int(text, &f1))
-            error("expected integer number");
+            error(L"expected integer number");
           f2 = f1;
           skipcomm(text, true);
           if (*text == '-')
@@ -373,7 +329,7 @@ bool TexAnimFile::parse(char *text)
             ++text;
             skipcomm(text, true);
             if (!parse_int(text, &f2))
-              error("expected integer number");
+              error(L"expected integer number");
             if (f2 < f1)
               fs = -1;
           }
@@ -382,19 +338,19 @@ bool TexAnimFile::parse(char *text)
             ++text;
             skipcomm(text, true);
             if (!parse_int(text, &fs))
-              error("expected integer number");
+              error(L"expected integer number");
             fs = fs - f1;
             if (fs == 0)
-              error("frame step can't be zero");
+              error(L"frame step can't be zero");
             skipcomm(text, true);
             if (*text != '-')
-              error("expected -");
+              error(L"expected -");
             ++text;
             skipcomm(text, true);
             if (!parse_int(text, &f2))
-              error("expected integer number");
+              error(L"expected integer number");
             if ((f2 - f1) * fs < 0)
-              error("invalid frame step");
+              error(L"invalid frame step");
           }
           else if (*text == '*')
           {
@@ -402,7 +358,7 @@ bool TexAnimFile::parse(char *text)
             skipcomm(text, true);
             int rep;
             if (!parse_int(text, &rep))
-              error("expected integer number");
+              error(L"expected integer number");
             char fn[256];
             sprintf(fn, templ, f1);
             for (; rep > 0; --rep)
@@ -490,34 +446,23 @@ bool TexAnimFile::parse(char *text)
   return true;
 }
 
-bool TexAnimFile::load(const char *fn)
+bool TexAnimFile::load(const wchar_t *fn)
 {
   errln = 0;
   errcol = 0;
-  errmsg = "Error reading file";
-  FILE *h = fopen(fn, "rb");
-  if (!h)
+  errmsg = L"Error reading file";
+  std::ifstream is(fs::path(fn), std::ios::binary);
+  if (!is)
     return false;
-  fseek(h, 0, SEEK_END);
-  int l = ftell(h);
-  if (l < 0)
-  {
-    fclose(h);
-    return false;
-  }
-  fseek(h, 0, SEEK_SET);
-  std::vector<char> text(l + 1);
-  if (fread(text.data(), l, 1, h) != 1)
-  {
-    fclose(h);
-    return false;
-  }
+
+  std::vector<char> text((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
+  int l = (int)text.size();
+  text.push_back(0);
+
   for (int i = 0; i < l; ++i)
     if (!text[i])
       text[i] = ' ';
-  text[l] = 0;
-  fclose(h);
+
   setbasefile(fn);
-  bool res = parse(text.data());
-  return res;
+  return parse(text.data());
 }

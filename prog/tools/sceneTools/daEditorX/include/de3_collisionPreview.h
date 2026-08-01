@@ -119,34 +119,23 @@ static inline void addMeshCollision(LightMesh &m, const Mesh &mesh, const TMatri
   m.edge.shrink_to_fit();
 }
 
+// works with any tracer exposing the cell geometry enumeration API (getCellVertCount /
+// getCellTriCount / iterateCellVertices / iterateCellFaces)
 template <typename LightMesh, typename LandRayTracer>
 static inline void addLandRtMeshCellCollision(LightMesh &m, const LandRayTracer &lrt, int cell_idx)
 {
   if (cell_idx < 0 || cell_idx >= lrt.getCellCount())
     return;
 
-  dag::ConstSpan<typename LandRayTracer::Vertex> verts = lrt.getCellVerts(cell_idx);
-  dag::ConstSpan<uint16_t> indices = lrt.getCellFaces(cell_idx);
-  vec4f c_scale = lrt.getCellPackScale(cell_idx), c_ofs = lrt.getCellPackOffset(cell_idx);
-
-  m.v.resize(verts.size());
-  Point3_vec4 p3;
-  for (int i = 0; i < verts.size(); i++)
-  {
-    vec4i verti = v_lduush(verts[i].v);
-    v_st(&p3.x, v_madd(v_cvt_vec4f(verti), c_scale, c_ofs));
-    m.v[i] = p3;
-  }
+  m.v.reserve(lrt.getCellVertCount(cell_idx));
+  lrt.iterateCellVertices(cell_idx, [&](const Point3 &p) { m.v.push_back() = p; });
 
   static FastIntList pairs;
   pairs.reset();
-  m.edge.reserve(indices.size());
-  for (int i = 0; i < indices.size(); i += 3)
-  {
-    int v0 = indices[i], v1 = indices[i + 1], v2 = indices[i + 2];
-
+  m.edge.reserve(lrt.getCellTriCount(cell_idx) * 3);
+  lrt.iterateCellFaces(cell_idx, [&](int v0, int v1, int v2) {
     if ((v0 == v1) | (v0 == v2) | (v1 == v2))
-      continue;
+      return;
 
 #define PAIR(a, b) ((a < b ? a : b) << 16) | (a < b ? b : a)
     if (pairs.addInt(PAIR(v0, v1)))
@@ -156,7 +145,7 @@ static inline void addLandRtMeshCellCollision(LightMesh &m, const LandRayTracer 
     if (pairs.addInt(PAIR(v0, v2)))
       m.edge.push_back().set(v0, v2);
 #undef PAIR
-  }
+  });
   m.edge.shrink_to_fit();
 }
 template <typename Collision, typename LandRayTracer>

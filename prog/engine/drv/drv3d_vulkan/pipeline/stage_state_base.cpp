@@ -40,6 +40,8 @@ void PipelineStageStateBase::invalidateState()
 
 void PipelineStageStateBase::syncDepthROStateInT(Image *image, uint32_t, uint32_t, bool ro_ds)
 {
+  if (Globals::cfg.bits.sampledDepthReadOnlyLayout)
+    return;
   for (uint32_t j = 0; j < spirv::T_REGISTER_INDEX_MAX; ++j)
   {
     TRegister &reg = tBinds[j];
@@ -145,6 +147,8 @@ void PipelineStageStateBase::setUbuffer(uint32_t unit, BufferRef buffer)
 void PipelineStageStateBase::setBbuffer(uint32_t unit, BufferRef buffer)
 {
   G_ASSERTF(buffer, "vulkan: obj must be valid!");
+  // offset-only change is flagged as a cheap rebind here; the apply path promotes it to a full
+  // descriptor rewrite for slots that turn out to be static uniform buffers in the bound shader
   if (bBinds[unit].buffer == buffer.buffer && bBinds[unit].visibleDataSize == buffer.visibleDataSize)
   {
     bBinds[unit] = buffer;
@@ -325,7 +329,11 @@ PipelineStageStateBase::ApplyStatus PipelineStageStateBase::applyBReg(const Buff
   VkAnyDescriptorInfo &descriptor = dtab.arr[absReg];
 
   if (reg.buffer)
-    descriptor += VkDescriptorBufferInfo{reg.getHandle(), 0, reg.visibleDataSize};
+  {
+    // static uniform buffers carry the offset in the descriptor; dynamic ones get it at bind time
+    const bool isDynamic = hdr.descriptorTypes[absReg].get() == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    descriptor += VkDescriptorBufferInfo{reg.getHandle(), isDynamic ? 0 : reg.bufOffset(0), reg.visibleDataSize};
+  }
   else
     descriptor.clear();
   return descriptor.type != VkAnyDescriptorInfo::TYPE_NULL ? ApplyStatus::RESOURCE : ApplyStatus::DUMMY;
@@ -515,6 +523,9 @@ void PipelineStageStateBase::trackBResAccesses(uint32_t slot, ExtendedShaderStag
 bool PipelineStageStateBase::updateOnDemand(DescriptorSet &registers, ExtendedShaderStage stage, size_t frame_index)
 {
   const spirv::ShaderHeader &hdr = registers.header;
+  // static uniform buffers bake the offset into the descriptor, so an offset-only change on such a
+  // slot needs a full rewrite instead of the dynamic-offset rebind fast path below
+  bBinds.dirtyMask |= bOffsetDirtyMask & hdr.bRegisterUseMask & ~registers.dynamicBRegisterMask;
   // frequency sorted jump outs
   for (;;)
   {
@@ -547,6 +558,9 @@ bool PipelineStageStateBase::updateOnDemand(DescriptorSet &registers, ExtendedSh
 bool PipelineStageStateBase::updateOnDemandWithSyncStep(DescriptorSet &registers, ExtendedShaderStage stage, size_t frame_index)
 {
   const spirv::ShaderHeader &hdr = registers.header;
+  // static uniform buffers bake the offset into the descriptor, so an offset-only change on such a
+  // slot needs a full rewrite instead of the dynamic-offset rebind fast path below
+  bBinds.dirtyMask |= bOffsetDirtyMask & hdr.bRegisterUseMask & ~registers.dynamicBRegisterMask;
   // frequency sorted jump outs
   for (;;)
   {

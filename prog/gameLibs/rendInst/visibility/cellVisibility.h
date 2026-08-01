@@ -43,12 +43,14 @@ struct VisibleCells
     uint8_t endRange = subcell_div * subcell_div - 1;
     if (occlusion)
     {
+      // sub-cell boxes nest in the fully-inside cell box, so the trimmed InFrustum contract holds
       for (; startRange < subcell_div * subcell_div; ++startRange)
-        if (!occlusion->isOccludedBox(bbox[startRange + SUBCELL_BBOX_OFFSET].bmin, bbox[startRange + SUBCELL_BBOX_OFFSET].bmax))
+        if (
+          !occlusion->isOccludedBoxInFrustum(bbox[startRange + SUBCELL_BBOX_OFFSET].bmin, bbox[startRange + SUBCELL_BBOX_OFFSET].bmax))
           break;
 
       for (; endRange > startRange; --endRange)
-        if (!occlusion->isOccludedBox(bbox[endRange + SUBCELL_BBOX_OFFSET].bmin, bbox[endRange + SUBCELL_BBOX_OFFSET].bmax))
+        if (!occlusion->isOccludedBoxInFrustum(bbox[endRange + SUBCELL_BBOX_OFFSET].bmin, bbox[endRange + SUBCELL_BBOX_OFFSET].bmax))
           break;
 
       if (endRange < startRange)
@@ -62,20 +64,27 @@ struct VisibleCells
   inline void calcIntersectVisibility(Cell &cell, const bbox3f *__restrict bbox, Occlusion *occlusion, const vec4f *__restrict planes,
     int n_planes)
   {
-    for (uint8_t range = 0; range < subcell_div * subcell_div; ++range)
+    constexpr int total = subcell_div * subcell_div;
+    G_STATIC_ASSERT(total % 4 == 0); // sub-boxes are tested four at a time, no scalar tail
+
+    for (int range = 0; range < total; range += 4) // four sub-boxes per plane-test batch
     {
-      const auto bboxIdx = range + SUBCELL_BBOX_OFFSET;
-      if (test_box_planesb(bbox[bboxIdx].bmin, bbox[bboxIdx].bmax, planes, n_planes))
+      int mask = test_box_planesb_4(&bbox[range + SUBCELL_BBOX_OFFSET], planes, n_planes);
+      for (int b = 0; b < 4; ++b) // ascending order keeps the contiguous-range merge correct
       {
-        if (occlusion && occlusion->isOccludedBox(bbox[bboxIdx].bmin, bbox[bboxIdx].bmax))
+        if (!(mask & (1 << b)))
           continue;
-        if (!cell.rangesCount || subCellRanges.back().end != range - 1)
+        const int idx = range + b;
+        // the sub-box just passed the plane test above, so the trimmed InFrustum contract holds
+        if (occlusion && occlusion->isOccludedBoxInFrustum(bbox[idx + SUBCELL_BBOX_OFFSET].bmin, bbox[idx + SUBCELL_BBOX_OFFSET].bmax))
+          continue;
+        if (!cell.rangesCount || subCellRanges.back().end != idx - 1)
         {
-          subCellRanges.emplace_back(SubCellRange{range, range});
+          subCellRanges.emplace_back(SubCellRange{uint8_t(idx), uint8_t(idx)});
           cell.rangesCount++;
         }
         else
-          subCellRanges.back().end = range;
+          subCellRanges.back().end = idx;
       }
     }
   }
@@ -95,7 +104,8 @@ struct VisibleCells
     if (cellIntersection == Frustum::OUTSIDE)
       return;
 
-    if (occlusion && occlusion->isOccludedBox(bbox[CELL_BBOX_OFFSET].bmin, bbox[CELL_BBOX_OFFSET].bmax))
+    // same box the plane test above classified, so the trimmed InFrustum contract holds
+    if (occlusion && occlusion->isOccludedBoxInFrustum(bbox[CELL_BBOX_OFFSET].bmin, bbox[CELL_BBOX_OFFSET].bmax))
       return;
 
     cell.distance = v_extract_x(v_sqrt_x(v_distance_sq_to_bbox_x(bbox[0].bmin, bbox[0].bmax, view_pos)));

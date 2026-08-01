@@ -48,6 +48,7 @@ int ShaderGlobal::get_int_fast(int) { return 0; }
 real ShaderGlobal::get_float(int) { return 0.f; }
 Color4 ShaderGlobal::get_float4(int) { return ZERO<Color4>(); }
 TMatrix4 ShaderGlobal::get_float4x4(int) { return ZERO<TMatrix4>(); }
+TMatrix ShaderGlobal::get_float4x3(int) { return ZERO<TMatrix>(); }
 IPoint4 ShaderGlobal::get_int4(int) { return IPoint4::ZERO; }
 TEXTUREID ShaderGlobal::get_tex_fast(int) { return BAD_TEXTUREID; }
 D3DRESID ShaderGlobal::get_buf_fast(int) { return BAD_D3DRESID; }

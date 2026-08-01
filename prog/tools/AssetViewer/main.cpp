@@ -17,9 +17,6 @@
 #include <coolConsole/conBatch.h>
 
 #include <perfMon/dag_cpuFreq.h>
-#include <perfMon/dag_daProfilerSettings.h>
-#include <perfMon/dag_daProfiler.h>
-#include <util/dag_threadPool.h>
 
 String get_global_av_settings_file_path();
 
@@ -91,15 +88,13 @@ int DagorWinMain(int /*nCmdShow*/, bool /*debugmode*/)
       open_app_blk = dgs_argv[i];
 
   cpujobs::init();
-  threadpool::init(eastl::min(cpujobs::get_core_count(), 64), 1024, 128 << 10);
   dagor_install_dev_fatal_handler(NULL);
-
-  da_profiler::tick_frame();
 
   EditorMainWindow mainWindow(appManager);
   mainWindow.run(nullptr);
 
-  da_profiler::shutdown();
+  quit_game(0);
+  G_ASSERT(false);
 
   return 0;
 }

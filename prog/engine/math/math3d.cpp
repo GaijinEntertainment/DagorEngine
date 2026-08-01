@@ -13,14 +13,7 @@
 #include <math/integer/dag_IPoint2.h>
 #include <math/integer/dag_IPoint3.h>
 #include <math/integer/dag_IPoint4.h>
-
-#if _TARGET_PC && !_TARGET_SIMD_NEON
-#if _MSC_VER <= 1310
-#include <xmmintrin.h>
-#else
-#include <intrin.h>
-#endif
-#endif
+#include <supp/dag_cpuControl.h>
 
 static const int QNaNint = 0xFFFFFFFF;
 static const int SNaNint = 0xFFBFFFFF;
@@ -61,12 +54,8 @@ const float math_float_zero[16] __attribute__((aligned(16))) = {0, 0, 0, 0, 0, 0
 void init_math()
 {
   perlin_noise::init_noise(1120272305);
-#if _TARGET_SIMD_SSE
-  _mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | _MM_FLUSH_ZERO_MASK | _MM_ROUND_NEAREST | 0x40); // 0x40 - denorms are zero.
-  // it is helpful to have 0x40 - denorms are zero - flag, for performance reasons.
-  // it should not matter for our math, since we do have _MM_FLUSH_ZERO_MASK (flush-to-zero), but if we load thrash from memory, which
-  // we won't use anyway (consider .w in vertex position), it will affect performance! DEBUG_CTX("set DAZ and RN flags");
-#endif
+  // re-assert for the main thread; other threads get this automatically (see cpuControl.cpp)
+  set_default_fp_control_this_thread();
 }
 
 static inline void calc_screen_box(BBox2 &scbox, Point2 pt[8], BBox3 &b, TMatrix4 &gtm)

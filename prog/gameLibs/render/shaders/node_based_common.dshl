@@ -1,3 +1,5 @@
+include "nbsPermutations/node_based_perm_inc.dshl"
+
 texture hmapMain always_referenced;
 float4 biom_attributes[32] always_referenced;
 texture static_shadow_tex always_referenced;
@@ -67,11 +69,6 @@ float4 camera_in_camera_vp_uv_remapping always_referenced;
 float camera_in_camera_postfx_lens_view always_referenced;
 float camera_in_camera_active always_referenced;
 
-int nbsPermIdG0 always_referenced;
-interval nbsPermIdG0 : off < 1, p0 < 2, p1 < 3, p2 < 4, p3 always_referenced;
-int nbsPermIdG1 always_referenced;
-interval nbsPermIdG1 : off < 1, p0 < 2, p1 < 3, p2 < 4, p3 always_referenced;
-
 int nbs_quality always_referenced;
 interval nbs_quality : low < 1, medium < 2, high always_referenced;
 
@@ -99,6 +96,7 @@ macro NBS_COMMON_BLOCK()
     tex_hmap_inv_sizes@f4 = tex_hmap_inv_sizes;
     world_to_depth_ao@f4 = world_to_depth_ao;
     depth_ao_heights@f4 = depth_ao_heights;
+    meter_to_depth_ao_tex_space@f1 = (1.0 / max(depth_ao_heights.x, 0.00001));
     depth_ao_extra_enabled@i1 = depth_ao_extra_enabled;
     world_to_depth_ao_extra@f4 = world_to_depth_ao_extra;
     depth_ao_heights_extra@f4 = depth_ao_heights_extra;

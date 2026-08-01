@@ -1,0 +1,116 @@
+include "water_3d_geometry.dshl"
+include "heightmap_common.dshl"
+include "underwater_fog.dshl"
+include "water_3d_overrides.dshl"
+include "camera_in_camera.dshl"
+
+shader water_normal_nv2, water_normal_nv2_heightmap
+{
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
+  if (hardware.metal && water_tess_factor != water_tess_factor_off)
+  {
+    dont_render;
+  }
+
+  cull_mode = none;
+
+  bool colorPass = false;
+  WATER_3D_COMMON()
+  VIEW_VEC_OPTIMIZED(ps)
+
+  INIT_WATER_PROJECTED_EFFECTS(ps)
+  USE_WATER_PROJECTED_EFFECTS(ps)
+
+  WATER_3D_DEFERRED_COMMON()
+  USE_WATER_CASCADES_ROUGHNESS()
+
+  USE_WATER_RAIN_RIPPLES(ps)
+  USE_WATER_NORMALS_PS()
+
+  hlsl(ps) {
+    #include <NRD.hlsli>
+
+    struct WaterOutput
+    {
+      float4 packed_normal_roughness : SV_Target0;
+    };
+
+    float3 calcWaterNormal(PsInput input, ShoreData shoreData, float3 worldPos, float dist)
+    {
+      float perlinSurfGrad = 1;
+      float perlinSpotInfluence = 0;
+
+      half3 worldNormal;
+      ##if has_water_flowmap
+        float crossFade = getWaterFlowmapCrossFade();
+
+        float3 worldPos_a = float3(input.worldPosXZ_ab.x, worldPos.y, input.worldPosXZ_ab.y);
+        float3 worldPos_b = float3(input.worldPosXZ_ab.z, worldPos.y, input.worldPosXZ_ab.w);
+
+        GradientsData surfaceAttributes_a = getWaterGradients(worldPos_a, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence);
+        GradientsData surfaceAttributes_b = getWaterGradients(worldPos_b, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence);
+
+        worldNormal = normalize(lerp(surfaceAttributes_a.normal, surfaceAttributes_b.normal, crossFade));
+      ##else
+        worldNormal = getWaterGradients(worldPos, perlinSurfGrad, float3(1, 1, 1), shoreData, perlinSpotInfluence).normal;
+      ##endif
+
+      return worldNormal;
+    }
+
+    WaterOutput water_nv_ps(PsInput input HW_USE_SCREEN_POS INPUT_VFACE)
+    {
+      float4 screenPos = GET_SCREEN_POS(input.screenPos);
+      float3 pointToEye = getPointToEye(screenPos.xy, screenPos.w);
+      float3 worldPos = world_view_pos.xyz-pointToEye;
+      float distSq = dot(pointToEye, pointToEye);
+      float invDist = rsqrt(distSq);
+      float dist = distSq*invDist;
+      ShoreData shoreData;
+      getShoreAttributes(worldPos, shoreData);
+
+      float3 worldNormal = calcWaterNormal(input, shoreData, worldPos, dist);
+
+      float4 water_projection_pos = mul(float4(input.worldPosUndisplaced, 1), water_effects_proj_tm);
+      float distortion;
+      ##if water_heightmap_pages != NULL
+        float3 geometryNormal = normalize(cross(input.bitangent, input.tangent));
+        half rainRipplesFade = water_rain_ripples_slope_fade(geometryNormal.y);
+      ##else
+        half rainRipplesFade = 1;
+      ##endif
+      worldNormal = get_water_normal(shoreData, worldPos, dist, worldNormal, normalize_wfx_tc(water_projection_pos).xy, rainRipplesFade, distortion);
+
+      ##if water_heightmap_pages != NULL
+        float3x3 tangentSpace = float3x3(input.tangent, geometryNormal, input.bitangent);
+        worldNormal = mul(worldNormal, tangentSpace);
+      ##endif
+
+      worldNormal = MUL_VFACE(worldNormal);
+
+      bool isAboveWater = true;
+      SET_IF_IS_BACK_FACE(isAboveWater, false);
+      // mark sea-level-plane pixels so the SSR resolve can gate its planar terrain
+      // fallback; heightmap-paged water above sea level keeps plain above-water.
+      float materialID = isAboveWater ? WATER_MATERIAL_ID_ABOVE_WATER : WATER_MATERIAL_ID_BELOW_WATER;
+      ##if shader == water_normal_nv2
+        if (isAboveWater && abs(input.worldPosUndisplaced.y - water_level) < 0.01)
+          materialID = WATER_MATERIAL_ID_OCEAN_PLANE;
+      ##endif
+      WaterOutput output;
+      output.packed_normal_roughness = NRD_FrontEnd_PackNormalAndRoughness(
+        normalize(worldNormal), get_cascades_roughness(log2(dist)), materialID);
+      return output;
+    }
+  }
+
+  if (shader == water_normal_nv2)
+  {
+    WATER_3D_DEFERRED_SHADERS_COMMON()
+  }
+  else
+  {
+    WATER_3D_HEIGHTMAP_RENDER()
+  }
+}

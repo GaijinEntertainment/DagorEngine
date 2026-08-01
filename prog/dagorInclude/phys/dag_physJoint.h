@@ -100,6 +100,7 @@ public:
   }
 
   void setTargetOrientation(const TMatrix &tm);
+  void disableMotors();
   void setTwistSwingMotorSettings(float twistFrequency, float twistDamping, float swingFrequency, float swingDamping);
 };
 

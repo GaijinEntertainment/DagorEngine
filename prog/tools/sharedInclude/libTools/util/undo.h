@@ -101,6 +101,25 @@ public:
   // remove all undo/redo operations
   virtual void clear() = 0;
 
+  // Per-operation owner token. The undo system never dereferences it -- the owner
+  // is opaque and interpreted by the caller (the editor app uses it as the active
+  // plugin). The current owner is stamped onto every operation committed by
+  // accept(); set_op_owner is normally called when the active plugin changes.
+  // Default owner is NULL.
+  virtual void set_op_owner(void *owner) = 0;
+
+  // Owner of the operation that the next undo() / redo() would act on, or NULL when
+  // there is no such operation. Lets the caller switch to the owning context before
+  // applying the change.
+  virtual void *get_undo_owner() = 0;
+  virtual void *get_redo_owner() = 0;
+
+  // Remove every top-level operation stamped with `owner` (both undo and redo sides),
+  // adjusting the current position so the surviving operations keep their order. Used
+  // to drop one owner's history without touching others -- e.g. a plugin reloading its
+  // document. No-op while an operation is being recorded (is_holding()).
+  virtual void remove_ops_by_owner(void *owner) = 0;
+
   // "Dirty" flag is set when undo system is modified in some way, or when setDirty() is called.
   virtual bool isDirty() const = 0;
 

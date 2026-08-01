@@ -220,6 +220,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
   ContextId contextId;
   int threadIx;
   Point3 viewPosition;
+  Point3 lodAnchorPosition;
   Frustum bvhFrustum;
   Frustum viewFrustum;
   vec4f lightDirection;
@@ -228,7 +229,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
   unsigned elemCount;
 
   dag::AtomicInteger<int> *nextGroupIx = nullptr;
-  eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge> newUniqueRiExtraTreeBuffers[Context::maxUniqueLods];
+  eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance> newUniqueRiExtraTreeBuffers[Context::maxUniqueLods];
   RiExtraBVHJob *otherFlip = nullptr;
   threadpool::JobPriority prio = threadpool::PRIO_DEFAULT;
   dag::AtomicInteger<unsigned> chunkBudgetItems = 0;
@@ -237,33 +238,23 @@ struct RiExtraBVHJob : public cpujobs::IJob
 
   int fetchNextGroupIx() { return nextGroupIx->fetch_add(1); }
 
-  static ReferencedTransformData *mapTreeRiEx(ContextId context_id, uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle,
-    int lod_ix, void *user_data, bool &recycled, int &anim_index)
+  static ReferencedTransformData *mapTreeRiEx(ContextId context_id, uint64_t object_id, uint64_t id, int lod_ix, void *user_data,
+    bool &recycled, int &anim_index)
   {
-    struct RiExtraTreeHash
-    {
-      inline static uint64_t hash(uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle)
-      {
-        G_UNUSED(object_id);
-        G_UNUSED(pos);
-        uint64_t id = handle;
-        return id;
-      }
-    };
     MapTreePointers pointers;
     pointers.uniqueTreeBuffers = make_span(context_id->uniqueRiExtraTreeBuffers, Context::maxUniqueLods);
     pointers.newUniqueTreeBuffers =
       make_span(static_cast<RiExtraBVHJob *>(user_data)->newUniqueRiExtraTreeBuffers, Context::maxUniqueLods);
     pointers.contextId = context_id;
     pointers.freeUniqueTreeBLASes = &context_id->freeUniqueRiExtraTreeBLASes;
-    return map_tree_base<RiExtraTreeHash, false>(object_id, pos, handle, lod_ix, recycled, anim_index, pointers);
+    return map_tree_base<false>(object_id, id, lod_ix, recycled, anim_index, pointers);
   }
 
   const char *getJobName(bool &) const override { return "RiExtraBVHJob"; }
 
   template <bool useMinLod, bool cullDistIncreased, bool riBaked, bool rangeCheck, bool treeOrFlagsCheck, bool instanceHasNode>
   void doJobHotPath(int riType, IPoint2 interval, float maxLodDistSq, float distSqMul, float distSqMulOOC, float rangeCheckSq,
-    vec4f viewPositionVec, vec4f viewPositionX, vec4f viewPositionY, vec4f viewPositionZ)
+    vec4f viewPositionVec, vec4f viewPositionX, vec4f viewPositionY, vec4f viewPositionZ, vec4f lodAnchorPositionVec)
     DAG_TS_REQUIRES_SHARED(contextId->objectsLock)
   {
     auto riRes = rendinst::getRIGenExtraRes(riType);
@@ -317,7 +308,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
         bbox3f lbb = rendinst::riex_get_lbb(riType);
         vec4f center = v_bbox3_center(lbb);
         auto riPosition = v_madd(center, v_make_vec4f(0.0f, 1.0f, 0.0f, 0.0f), pos);
-        vec4f difference = v_sub(riPosition, viewPositionVec);
+        vec4f difference = v_sub(riPosition, lodAnchorPositionVec);
         float distSq = v_extract_x(v_dot3(difference, difference));
         if (distSq < 0)
           distSq = 0;
@@ -339,7 +330,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
             effectiveDistSqMul = distSqMulOOC;
 
         float poolRadSq = cacheDataPoolRadSqArr[i];
-        auto distSqScaled = v_extract_x(v_length3_sq_x(v_sub(viewPositionVec, bsphere))) * effectiveDistSqMul;
+        auto distSqScaled = v_extract_x(v_length3_sq_x(v_sub(lodAnchorPositionVec, bsphere))) * effectiveDistSqMul;
         auto rad = v_extract_w(bsphere);
         auto rad2 = rad * rad;
         auto sdist = distSqScaled / rad2;
@@ -416,7 +407,6 @@ struct RiExtraBVHJob : public cpujobs::IJob
           {
             mat44f tm44;
             v_mat43_transpose_to_mat44(tm44, transform);
-            tm44.col3 = v_add(tm44.col3, v_make_vec4f(0, 0, 0, 1));
 
             bbox3f aabb = {v_ldu(&riRes->bbox.boxMin().x), v_ldu_p3_safe(&riRes->bbox.boxMax().x)};
             bbox3f aabbWorld;
@@ -444,10 +434,11 @@ struct RiExtraBVHJob : public cpujobs::IJob
                 isStationary = // TODO: move all these out of the loop, but check if the batch has trees, also put this under a
                                // template filter
                   v_test_vec_x_gt(v_length3_sq_x(v_sub(worldBsphereForAnimation, viewPositionVec)), ri_tree_anim_max_distance_sq_v);
-              bool isOk = isStationary ? handle_tree<map_tree_stationary>(contextId, elem, meshId, lodIx, false, tm44, originalPos,
-                                           colors, handle, invWorldTm, treeInfo, metaAllocId, this, true, isBurning, hashVal)
-                                       : handle_tree<mapTreeRiEx>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors,
-                                           handle, invWorldTm, treeInfo, metaAllocId, this, false, isBurning, hashVal);
+              bool isOk = isStationary
+                            ? handle_tree<map_tree_stationary, true>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors,
+                                handle, invWorldTm, treeInfo, metaAllocId, this, true, isBurning, hashVal)
+                            : handle_tree<mapTreeRiEx, true>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors, handle,
+                                invWorldTm, treeInfo, metaAllocId, this, false, isBurning, hashVal);
               if (!isOk)
                 continue;
               const bool forceEnableBackfaceCulling = isTessellated && treeInfo.data.isTrunk;
@@ -459,7 +450,6 @@ struct RiExtraBVHJob : public cpujobs::IJob
           {
             mat44f tm44;
             v_mat43_transpose_to_mat44(tm44, transform);
-            tm44.col3 = v_add(tm44.col3, v_make_vec4f(0, 0, 0, 1));
 
             bbox3f aabb = {v_ldu(&riRes->bbox.boxMin().x), v_ldu_p3_safe(&riRes->bbox.boxMax().x)};
             bbox3f aabbWorld;
@@ -492,6 +482,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
     vec4f viewPositionX = v_make_vec4f(0, 0, 0, viewPosition.x);
     vec4f viewPositionY = v_make_vec4f(0, 0, 0, viewPosition.y);
     vec4f viewPositionZ = v_make_vec4f(0, 0, 0, viewPosition.z);
+    vec4f lodAnchorPositionVec = v_make_vec4f(lodAnchorPosition.x, lodAnchorPosition.y, lodAnchorPosition.z, 0);
 
     handleCount = instanceCount = elemCount = 0;
 
@@ -523,16 +514,16 @@ struct RiExtraBVHJob : public cpujobs::IJob
       if (riRes->hasTreeOrFlag())
       {
         doJobHotPath<useMinLod, cullDistIncreased, riBaked, rangeCheck, true, true>(group.riType, region0, group.maxLodDistSq,
-          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ);
+          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ, lodAnchorPositionVec);
         doJobHotPath<useMinLod, cullDistIncreased, riBaked, rangeCheck, true, false>(group.riType, region1, group.maxLodDistSq,
-          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ);
+          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ, lodAnchorPositionVec);
       }
       else
       {
         doJobHotPath<useMinLod, cullDistIncreased, riBaked, rangeCheck, false, true>(group.riType, region0, group.maxLodDistSq,
-          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ);
+          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ, lodAnchorPositionVec);
         doJobHotPath<useMinLod, cullDistIncreased, riBaked, rangeCheck, false, false>(group.riType, region1, group.maxLodDistSq,
-          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ);
+          distSqMul, distSqMulOOC, rangeCheckSq, viewPositionVec, viewPositionX, viewPositionY, viewPositionZ, lodAnchorPositionVec);
       }
 
       const int heuristic = handleCount + elemCount * 15;
@@ -580,7 +571,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
     float distSqMul = safediv(rendinst::getCullDistSqMul(), dist_mul * dist_mul);
     float distSqMulOOC = override_dist_sq_mul_ooc ? saved_ooc_cull_dist_sq_mul : rendinst::getCullDistSqMul();
     bool cullDistIncreased = distSqMul != distSqMulOOC;
-    bool riBaked = contextId->has(Features::RIBaked);
+    bool riBaked = contextId->hasAny(Features::RIBaked);
     const bool useMinLod = bvh::ri::get_ri_lod_dist_bias() > 0;
 
     hitChunkBudget = false;
@@ -761,10 +752,8 @@ void prepare_ri_extra_instances()
 
       handleHeap.clear();
 
-      int totalRiTypes = rendinst::getRiGenExtraResCount();
       allRiExtraHandles.clear();
-      for (int riType = 0; riType < totalRiTypes; ++riType)
-        processType(riType, allRiExtraHandles[riType]);
+      rendinst::iterateRiGenExtraResId([&](int riType) { processType(riType, allRiExtraHandles[riType]); });
 
       needSort = true;
     }
@@ -810,8 +799,8 @@ void prepare_ri_extra_instances()
   }
 }
 
-void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, const Point3 &light_direction, threadpool::JobPriority prio)
+void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Point3 &lod_anchor_position,
+  const Frustum &bvh_frustum, const Frustum &view_frustum, const Point3 &light_direction, threadpool::JobPriority prio)
 {
   {
     OSSpinlockScopedLock lock(typeDirtListLock);
@@ -837,6 +826,7 @@ void update_ri_extra_instances(ContextId context_id, const Point3 &view_position
       job.contextId = context_id;
       job.threadIx = threadIx;
       job.viewPosition = view_position;
+      job.lodAnchorPosition = lod_anchor_position;
       job.nextGroupIx = &jobGroup.nextGroupIx;
       job.bvhFrustum = bvh_frustum;
       job.viewFrustum = view_frustum;

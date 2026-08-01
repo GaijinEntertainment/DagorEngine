@@ -68,9 +68,8 @@ public:
 
   DescriptorAllocationResult allocateTextureSRVDescriptor(ID3D12Device *device)
   {
-    return srvHeap.allocate(device).or_else([](HRESULT errorCode) -> DescriptorAllocationResult {
-      return dag::Unexpected<MemoryAllocationError>{{.errorCode = errorCode}};
-    });
+    return srvHeap.allocate(device).or_else(
+      [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
   }
   void freeTextureSRVDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) { srvHeap.free(descriptor); }
   void freeTextureSRVDescriptors(eastl::span<const D3D12_CPU_DESCRIPTOR_HANDLE> descriptors)
@@ -82,9 +81,8 @@ public:
   }
   DescriptorAllocationResult allocateTextureRTVDescriptor(ID3D12Device *device)
   {
-    return rtvHeap.allocate(device).or_else([](HRESULT errorCode) -> DescriptorAllocationResult {
-      return dag::Unexpected<MemoryAllocationError>{{.errorCode = errorCode}};
-    });
+    return rtvHeap.allocate(device).or_else(
+      [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
   }
   void freeTextureRTVDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) { rtvHeap.free(descriptor); }
   void freeTextureRTVDescriptors(eastl::span<const D3D12_CPU_DESCRIPTOR_HANDLE> descriptors)
@@ -96,9 +94,8 @@ public:
   }
   DescriptorAllocationResult allocateTextureDSVDescriptor(ID3D12Device *device)
   {
-    return dsvHeap.allocate(device).or_else([](HRESULT errorCode) -> DescriptorAllocationResult {
-      return dag::Unexpected<MemoryAllocationError>{{.errorCode = errorCode}};
-    });
+    return dsvHeap.allocate(device).or_else(
+      [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
   }
   void freeTextureDSVDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) { dsvHeap.free(descriptor); }
   void freeTextureDSVDescriptors(eastl::span<const D3D12_CPU_DESCRIPTOR_HANDLE> descriptors)
@@ -183,9 +180,8 @@ protected:
 public:
   DescriptorAllocationResult allocateBufferSRVDescriptor(ID3D12Device *device)
   {
-    return srvHeap.access()->allocate(device).or_else([](HRESULT errorCode) -> DescriptorAllocationResult {
-      return dag::Unexpected<MemoryAllocationError>{{.errorCode = errorCode}};
-    });
+    return srvHeap.access()->allocate(device).or_else(
+      [](HRESULT errorCode) -> DescriptorAllocationResult { return unexpected_memory_allocation_error(errorCode); });
   }
   void freeBufferSRVDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) { srvHeap.access()->free(descriptor); }
   void freeBufferSRVDescriptors(eastl::span<const D3D12_CPU_DESCRIPTOR_HANDLE> descriptors)

@@ -685,7 +685,7 @@ void TexturesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
 
   igrp->createStatic(0, "Gamma:");
   igrp->createStatic(0, String(32, "%.1f", GET_PROP(Real, "gamma", 2.2)), false);
-  ShaderGlobal::set_int_fast(::get_shader_glob_var_id("tex_sRGB_mode", true), fabsf(GET_PROP(Real, "gamma", 2.2f) - 1.0f) > 1e-3f);
+  ShaderGlobal::set_int_fast(::get_shader_glob_var_id("tex_sRGB_mode", true), !is_equal_float(GET_PROP(Real, "gamma", 2.2f), 1.0f));
 
   if (GET_PROP(Int, "stubTexIdx", 0) >= 0)
   {

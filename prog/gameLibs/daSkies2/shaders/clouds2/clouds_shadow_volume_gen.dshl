@@ -4,6 +4,7 @@ include "skyLight.dshl"
 include "hardware_defines.dshl"
 include "shader_global.dshl"
 include "writeToTex.dshl"
+include "statistical_clouds_shadow.dshl"
 
 int cloud_shadow_samples_cnt = 40;
 
@@ -109,6 +110,9 @@ macro USE_GEN_CLOUD_SHADOWS_VOLUME(stage)
     skies_planet_radius@f1 = (skies_planet_radius);
     cloud_shadow_samples_cnt@f2 = (cloud_shadow_samples_cnt, 8,0,0);
     start_compute_offset@f3 = clouds_start_compute_offset;
+    //coverage-mean extinction for the un-marched tail, in the march's own units
+    //(log2 per km, last octave), godray statistical calibration (coverage * 0.5)
+    clouds_stat_tail@f1 = (ms_sigma.z*clouds_shadow_coverage*1000*0.5);
   }
   if (shader == gen_cloud_shadows_volume_partial_cs || shader == gen_cloud_shadows_volume_partial_ps)
   {
@@ -135,6 +139,7 @@ macro GEN_CLOUD_SHADOWS_VOLUME_MAIN(stage)
   {
     #include <monteCarlo.hlsl>
     #include <fibonacci_sphere.hlsl>
+    #include <atmosphere/statistical_clouds_shadow.hlsli>
     uint3 gen_cloud_shadows_volume_main(in uint3 dtid, in uint3 gid, out float2 result)
     {
       //todo: toroidal update for additional around
@@ -194,7 +199,23 @@ macro GEN_CLOUD_SHADOWS_VOLUME_MAIN(stage)
          expStep
        );
 
-
+      //the march reach is finite (~80km at low sun): at grazing sun it ends in clear
+      //air below a higher layer it never climbed into, reading unshadowed. Attenuate
+      //by the coverage-mean transmittance of the un-marched remainder of the shell,
+      //evaluated at the true marched endpoint - horizontal travel also raises the
+      //radius and tilts the local mu, a vertical-only endpoint re-attenuates path the
+      //march already covered. A march that exits the shell gets a zero remainder, and
+      //past the reach the sun disk penumbra averages per-gap structure out anyway
+      {
+        float marchLen = (firstSampleCount*firstShadowStep +
+                         shadowStep*(exp2(float(shadowSamples)*log2(1. + expStep)) - 1.)/expStep)*0.001;//km
+        float mu = skies_primary_sun_light_dir.z;
+        float r0 = worldPos.y*0.001 - clouds_radiuses.z;//.z = -planet radius, km
+        float rEnd = sqrt(r0*r0 + marchLen*(2.*r0*mu + marchLen));
+        float muEnd = (r0*mu + marchLen)/rEnd;
+        float remainLen = getCloudsLength(rEnd, muEnd, clouds_radiuses.x, clouds_radiuses.y);
+        light_sample_extinctionLast *= exp2(clouds_stat_tail*remainLen);
+      }
 
       float ambient_extinction = 0.0;
       #if TEMPORAL_UPDATE_SHADOW

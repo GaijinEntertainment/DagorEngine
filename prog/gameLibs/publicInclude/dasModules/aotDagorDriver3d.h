@@ -14,6 +14,7 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_rwResource.h>
 #include <3d/dag_render.h>
 #include <3d/dag_texStreamingContext.h>
@@ -32,6 +33,7 @@ MAKE_TYPE_FACTORY(ShadersECS, ShadersECS);
 MAKE_TYPE_FACTORY(OverrideState, shaders::OverrideState);
 MAKE_TYPE_FACTORY(PostFxRenderer, PostFxRenderer);
 MAKE_TYPE_FACTORY(ComputeShader, ComputeShader);
+MAKE_TYPE_FACTORY(RenderTarget, RenderTarget);
 
 DAS_BIND_ENUM_CAST(d3d::SamplerHandle);
 DAS_BASE_BIND_ENUM_FACTORY(d3d::SamplerHandle, "SamplerHandle");
@@ -83,6 +85,14 @@ inline float d3d_get_vsync_refresh_rate()
 }
 
 inline void d3d_stretch_rect(BaseTexture *src, BaseTexture *dst) { d3d::stretch_rect(src, dst); }
+
+// Bridge for the unified d3d::set_render_target: daScript passes the color
+// targets as an array, which we view as a ConstSpan for the engine call.
+inline void d3d_set_render_target(const RenderTarget &depth, DepthAccess depth_access, const das::TArray<RenderTarget> &colors)
+{
+  d3d::set_render_target(depth, depth_access,
+    dag::ConstSpan<RenderTarget>(reinterpret_cast<const RenderTarget *>(colors.data), colors.size));
+}
 
 inline d3d::SamplerHandle d3d_request_sampler(const das::TBlock<void, das::TTemporary<d3d::SamplerInfo &>> &block,
   das::Context *context, das::LineInfoArg *at)

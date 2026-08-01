@@ -19,7 +19,9 @@ using editorcore_extapi::dagGeom;
 
 objgenerator::WorldHugeBitmask bm_loft_mask[LAYER_ORDER_MAX], bm_poly_mask;
 //! allocated for this DLL plugin (but should be avoided in future)
+#if !_TARGET_STATIC_LIB
 objgenerator::WorldHugeBitmask objgenerator::lcmapExcl, objgenerator::splgenExcl;
+#endif
 
 
 static void build_loft_sizes(Tab<Point4> &lso, splineclass::LoftGeomGenData *g)

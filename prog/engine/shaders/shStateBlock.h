@@ -20,7 +20,7 @@
 #include <drv/3d/dag_info.h>
 #include <util/dag_compilerDefs.h>
 
-#include "concurrentElementPool.h"
+#include <generic/dag_concurrentElementPool.h>
 #include "shStateBlk.h"
 
 #if _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
@@ -78,7 +78,7 @@ struct ShaderStateBlock
 #endif
   uint16_t texLevel = 0;
 
-  static ConcurrentElementPool<ShaderStateBlockId, ShaderStateBlock, 11> blocks;
+  static dag::ConcurrentElementPool<ShaderStateBlockId, ShaderStateBlock, 11> blocks;
   static int deleted_blocks;
 
   static_assert(DEFAULT_SHADER_STATE_BLOCK_ID == decltype(blocks)::FIRST_ID);

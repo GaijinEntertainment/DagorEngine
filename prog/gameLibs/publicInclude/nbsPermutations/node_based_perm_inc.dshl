@@ -1,0 +1,4 @@
+int nbsPermIdG0 always_referenced;
+interval nbsPermIdG0 : off < 1, p0 < 2, p1 < 3, p2 < 4, p3 always_referenced;
+int nbsPermIdG1 always_referenced;
+interval nbsPermIdG1 : off < 1, p0 < 2, p1 < 3, p2 < 4, p3 always_referenced;

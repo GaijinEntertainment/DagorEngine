@@ -409,41 +409,57 @@ void ComputeMultipleScatteringApprox(
   // Compute next intersection with atmosphere or ground
   bool rayIntersectGround = RayIntersectsGround(atmosphere_p, r, mu);
   Length tMax = DistanceToNearestAtmosphereBoundary(atmosphere_p, r, mu, rayIntersectGround);
-  Length dx = tMax/SampleCount;
 
   // Ray march the atmosphere to integrate optical depth
   L = IrradianceSpectrum(0.0f,0.0f,0.0f);
   MultiScatAs1 = DimensionlessSpectrum(0,0,0);
   DimensionlessSpectrum throughput = DimensionlessSpectrum(1.0,1.0,1.0);
-  Length d = 0.0f;
-  for (int i = 0; i <= SampleCount; ++i)
+  // segments around the narrow aerosol bands (see CloudAerosolSegmentSteps);
+  // one plain segment when no aerosol
+  Length bounds[6];
+  int aSteps = CloudAerosolRayIntervals(atmosphere_p, r, mu, tMax, bounds[1], bounds[2], bounds[3], bounds[4]);
+  bounds[0] = 0.0f;
+  bounds[5] = tMax;
+  // LOOP: the trip counts are data-dependent, fxc must not try to unroll
+  LOOP
+  for (int s = 0; s < 5; ++s)
   {
-    Length dt = (i == SampleCount || i == 0) ? 0.5*dx : dx;
-    d += dt;
-    Length r_d = ClampRadius(atmosphere_p, sqrt(d * d + 2.0 * r * mu * d + r * r));
-    Number mu_s_d = ClampCosine((r * mu_s + d * nu) / r_d);
+    Length segLen = bounds[s + 1] - bounds[s];
+    if (segLen <= 0.0f)
+      continue;
+    int n = CloudAerosolSegmentSteps(s, aSteps, SampleCount, segLen, tMax);
+    Length dx = segLen/n;
+    Length d = bounds[s];
+    LOOP
+    for (int i = 0; i <= n; ++i)
+    {
+      Length dt = (i == n || i == 0) ? 0.5*dx : dx;
+      d += dt;
+      Length r_d = ClampRadius(atmosphere_p, sqrt(d * d + 2.0 * r * mu * d + r * r));
+      Number mu_s_d = ClampCosine((r * mu_s + d * nu) / r_d);
 
-    DimensionlessSpectrum scattering, extinction;
-    SampleMedium(atmosphere_p, r_d-atmosphere_p.bottom_radius, Position(0,0,0), scattering, extinction);
-    extinction = max(extinction, scattering);//to be sure we are energy conservative
+      DimensionlessSpectrum scattering, extinction;
+      SampleMedium(atmosphere_p, r_d-atmosphere_p.bottom_radius, Position(0,0,0), scattering, extinction);
+      extinction = max(extinction, scattering);//to be sure we are energy conservative
 
-    DimensionlessSpectrum sampleTransmittance = exp(-extinction * dt);
-    DimensionlessSpectrum transmittanceToSun = GetTransmittanceToSun(atmosphere_p, transmittance_texture, r_d, mu_s_d);
+      DimensionlessSpectrum sampleTransmittance = exp(-extinction * dt);
+      DimensionlessSpectrum transmittanceToSun = GetTransmittanceToSun(atmosphere_p, transmittance_texture, r_d, mu_s_d);
 
-    float3 S = transmittanceToSun * scattering;
-    // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
-    float3 Sint = (S - S * sampleTransmittance) / extinction;    // integrate along the current step segment
-    L += throughput * Sint;                                                     // accumulate and also take into account the transmittance from previous steps
+      float3 S = transmittanceToSun * scattering;
+      // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
+      float3 Sint = (S - S * sampleTransmittance) / extinction;    // integrate along the current step segment
+      L += throughput * Sint;                                                     // accumulate and also take into account the transmittance from previous steps
 
-    // When using the power serie to accumulate all sattering order, serie r must be <1 for a serie to converge.
-    // Under extreme coefficient, MultiScatAs1 can grow larger and thus result in broken visuals.
-    // The way to fix that is to use a proper analytical integration as proposed in slide 28 of http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
-    // However, it is possible to disable as it can also work using simple power serie sum unroll up to 5th order. The rest of the orders has a really low contribution.
-    float3 MS = scattering;
-    float3 MSint = (MS - MS * sampleTransmittance) / extinction;
-    MultiScatAs1 += throughput * MSint;
+      // When using the power serie to accumulate all sattering order, serie r must be <1 for a serie to converge.
+      // Under extreme coefficient, MultiScatAs1 can grow larger and thus result in broken visuals.
+      // The way to fix that is to use a proper analytical integration as proposed in slide 28 of http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
+      // However, it is possible to disable as it can also work using simple power serie sum unroll up to 5th order. The rest of the orders has a really low contribution.
+      float3 MS = scattering;
+      float3 MSint = (MS - MS * sampleTransmittance) / extinction;
+      MultiScatAs1 += throughput * MSint;
 
-    throughput = throughput*sampleTransmittance;
+      throughput = throughput*sampleTransmittance;
+    }
   }
   // Phase functions
   const float uniformPhase = 1.0 / (4.0 * PI);

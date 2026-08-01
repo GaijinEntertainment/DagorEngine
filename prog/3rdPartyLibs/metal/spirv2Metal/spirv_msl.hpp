@@ -795,6 +795,8 @@ protected:
 		SPVFuncImplSSign,
 		SPVFuncImplArrayCopy,
 		SPVFuncImplArrayCopyMultidim,
+		SPVFuncImplArrayCopyExtendedSrc,
+		SPVFuncImplArrayCopyExtendedDst,
 		SPVFuncImplTexelBufferCoords,
 		SPVFuncImplImage2DAtomicCoords, // Emulate texture2D atomic operations
 		SPVFuncImplGradientCube,
@@ -1309,7 +1311,13 @@ protected:
 	SmallVector<SPIRVariable *> entry_point_bindings;
 
 	// Must be ordered since array is in a specific order.
-	std::map<SetBindingPair, std::pair<uint32_t, uint32_t>> buffers_requiring_dynamic_offset;
+	struct DynamicBuffer
+	{
+		uint32_t base_index;
+		uint32_t var_id;
+		std::string mbr_name;
+	};
+	std::map<SetBindingPair, DynamicBuffer> buffers_requiring_dynamic_offset;
 
 	SmallVector<uint32_t> disabled_frag_outputs;
 

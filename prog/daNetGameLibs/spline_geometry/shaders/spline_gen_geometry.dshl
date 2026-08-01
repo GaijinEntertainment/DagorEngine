@@ -362,7 +362,7 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen,
 
     ##if (dyn_model_render_pass == render_pass_normal)
       #ifdef MOTION_VECTORS_ENABLED
-        output.out_pos = output.pos;
+        output.out_pos =  output.pos.xyw;
         float3 prevPos = worldPos;
         if (instanceData.flags & PREV_SB_VALID)
         {
@@ -373,7 +373,7 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen,
           prevPos = get_world_pos(prevSpline, instanceData, coord, uvOffsets, uvScales);
         ##endif
         }
-        output.out_prev_pos = mul(float4(prevPos, 1), prevOrigoRelativeViewProjTm);
+        output.out_pos_prev = mul(float4(prevPos, 1), prevOrigoRelativeViewProjTm).xyw;
       #endif
     ##else
       output.normal = 0;

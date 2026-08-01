@@ -19,15 +19,17 @@ macro INIT_PANORAMA_LIGHTNING_FLASH()
       lightning_color@f3 = lightning_point_light_color;
       clouds_depth_panorama_tex@smp2d = clouds_depth_downsampled_panorama_tex;
       clouds_depth_panorama_patch_tex@smp2d = clouds_depth_downsampled_panorama_patch_tex;
-      clouds_alpha_panorama_tex@smp2d = clouds_alpha_panorama_tex;
+      clouds_alpha_panorama_tex@tex2d = clouds_alpha_panorama_tex;
     }
   }
+  INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(ps)
 endmacro
 
 macro USE_PANORAMA_LIGHTNING_FLASH()
   hlsl(ps)
   {
     ##if use_panorama_lightning
+      #define clouds_alpha_panorama_tex_samplerstate global_linear_wrap_u_clamp_v_sampler
       float sample_clouds_depth_panorama(float2 sky_uv, float3 viewDirection)
       {
         float panorama = tex2Dlod(clouds_depth_panorama_tex, float4(sky_uv, 0, 0)).x;

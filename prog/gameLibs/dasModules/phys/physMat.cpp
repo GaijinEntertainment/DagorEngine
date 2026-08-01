@@ -9,6 +9,43 @@ struct MaterialDataAnnotation : das::ManagedStructureAnnotation<PhysMat::Materia
   {
     cppName = " ::PhysMat::MaterialData";
     addField<DAS_BIND_MANAGED_FIELD(id)>("id");
+    addField<DAS_BIND_MANAGED_FIELD(imp_absorb_k)>("imp_absorb_k");
+    addField<DAS_BIND_MANAGED_FIELD(imp_weak_k)>("imp_weak_k");
+    addField<DAS_BIND_MANAGED_FIELD(r_bounce_k)>("r_bounce_k");
+    addField<DAS_BIND_MANAGED_FIELD(shake_factor)>("shake_factor");
+    addField<DAS_BIND_MANAGED_FIELD(mk_dmg)>("mk_dmg");
+    addField<DAS_BIND_MANAGED_FIELD(dont_trace)>("dont_trace");
+    addField<DAS_BIND_MANAGED_FIELD(clippable)>("clippable");
+    addField<DAS_BIND_MANAGED_FIELD(autoReset)>("autoReset");
+    addField<DAS_BIND_MANAGED_FIELD(disable_control)>("disable_control");
+    addField<DAS_BIND_MANAGED_FIELD(invisible_clipping)>("invisible_clipping");
+    addField<DAS_BIND_MANAGED_FIELD(phobj_only)>("phobj_only");
+    addField<DAS_BIND_MANAGED_FIELD(damage_k)>("damage_k");
+    addField<DAS_BIND_MANAGED_FIELD(deformableWidth)>("deformableWidth");
+    addField<DAS_BIND_MANAGED_FIELD(resistanceK)>("resistanceK");
+    addField<DAS_BIND_MANAGED_FIELD(completelyTransparent)>("completelyTransparent");
+    addField<DAS_BIND_MANAGED_FIELD(lightTransparent)>("lightTransparent");
+    addField<DAS_BIND_MANAGED_FIELD(noTransparentThickness)>("noTransparentThickness");
+    addField<DAS_BIND_MANAGED_FIELD(fly_through_clip)>("fly_through_clip");
+    addField<DAS_BIND_MANAGED_FIELD(stick_k)>("stick_k");
+    addField<DAS_BIND_MANAGED_FIELD(lifeTime)>("lifeTime");
+    addField<DAS_BIND_MANAGED_FIELD(physBodyMaterial)>("physBodyMaterial");
+    addField<DAS_BIND_MANAGED_FIELD(physStaticFriction)>("physStaticFriction");
+    addField<DAS_BIND_MANAGED_FIELD(physRestitution)>("physRestitution");
+    addField<DAS_BIND_MANAGED_FIELD(camera_collision)>("camera_collision");
+    addField<DAS_BIND_MANAGED_FIELD(physics_collision)>("physics_collision");
+    addField<DAS_BIND_MANAGED_FIELD(bullets_collision)>("bullets_collision");
+    addField<DAS_BIND_MANAGED_FIELD(characters_collision)>("characters_collision");
+    addField<DAS_BIND_MANAGED_FIELD(characters_collision2)>("characters_collision2");
+    addField<DAS_BIND_MANAGED_FIELD(characters_collision3)>("characters_collision3");
+    addField<DAS_BIND_MANAGED_FIELD(directocclusion)>("directocclusion");
+    addField<DAS_BIND_MANAGED_FIELD(reverbocclusion)>("reverbocclusion");
+    addFieldEx("soundMaterial", "soundMaterial", offsetof(PhysMat::MaterialData, soundMaterial), das::makeType<char *>(ml));
+    addField<DAS_BIND_MANAGED_FIELD(isSolid)>("isSolid");
+    addField<DAS_BIND_MANAGED_FIELD(tankTracksTexId)>("tankTracksTexId");
+    addField<DAS_BIND_MANAGED_FIELD(vehicleHeightmapDeformation)>("vehicleHeightmapDeformation");
+    addField<DAS_BIND_MANAGED_FIELD(humanHeightmapDeformation)>("humanHeightmapDeformation");
+    addField<DAS_BIND_MANAGED_FIELD(trailDetailStrength)>("trailDetailStrength");
   }
 };
 

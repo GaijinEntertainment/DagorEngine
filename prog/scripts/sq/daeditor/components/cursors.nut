@@ -147,7 +147,7 @@ cursors.actionPick <- Cursor(function(){
   ], cursorPick)
 })
 
-let getEvenIntegerHdpx = @(px) hdpx(0.5 * px).tointeger() * 2
+let getEvenIntegerHdpx = @(px: number): int hdpx(0.5 * px).tointeger() * 2
 let cursorSzResizeDiag = getEvenIntegerHdpx(18)
 
 function mkResizeC(commands, angle=0){

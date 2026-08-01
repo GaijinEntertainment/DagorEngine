@@ -26,6 +26,7 @@ class GPUGrassService : public IGPUGrassService
   RandomGPUGrassRenderHelper grassHelper;
   eastl::vector<GPUGrassType> grassTypes;
   eastl::vector<GPUGrassDecal> grassDecals;
+  DataBlock *grassBlock = nullptr;
   void enumerateGrassTypes(DataBlock &grassBlk);
   void enumerateGrassDecals(DataBlock &grassBlk);
   int findFreeDecalId() const;
@@ -37,6 +38,7 @@ public:
   void createGrass(DataBlock &grassBlk) override;
   void closeGrass() override;
   DataBlock *createDefaultGrass() override;
+  DataBlock *getSettings() override;
   void enableGrass(bool flag) override;
   void beforeRender(Stage stage) override;
   void renderGeometry(Stage stage) override;

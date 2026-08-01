@@ -4,30 +4,27 @@
 #include "cableNodesES.cpp.inl"
 ECS_DEF_PULL_VAR(cableNodes);
 #include <daECS/core/internal/performQuery.h>
-static constexpr ecs::ComponentDesc cabels_node_created_es_event_handler_comps[] =
+static constexpr ecs::ComponentDesc cables_view_nodes_es_comps[] =
 {
-//start of 1 rw components at [0]
-  {ECS_HASH("cable_trans_framegraph_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+//start of 1 rq components at [0]
+  {ECS_HASH("cables_nodes_registrator"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
-static void cabels_node_created_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void cables_view_nodes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    cabels_node_created_es_event_handler(evt
-        , ECS_RW_COMP(cabels_node_created_es_event_handler_comps, "cable_trans_framegraph_node", dafg::NodeHandle)
-    );
-  while (++comp != compE);
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<OnCameraPerViewNodeConstruction>());
+  cables_view_nodes_es(static_cast<const OnCameraPerViewNodeConstruction&>(evt)
+        );
 }
-static ecs::EntitySystemDesc cabels_node_created_es_event_handler_es_desc
+static ecs::EntitySystemDesc cables_view_nodes_es_es_desc
 (
-  "cabels_node_created_es",
+  "cables_view_nodes_es",
   "prog/daNetGameLibs/cables/render/cableNodesES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, cabels_node_created_es_event_handler_all_events),
-  make_span(cabels_node_created_es_event_handler_comps+0, 1)/*rw*/,
+  ecs::EntitySystemOps(nullptr, cables_view_nodes_es_all_events),
   empty_span(),
   empty_span(),
+  make_span(cables_view_nodes_es_comps+0, 1)/*rq*/,
   empty_span(),
-  ecs::EventSetBuilder<ChangeRenderFeatures,
-                       ecs::EventEntityCreated,
-                       ecs::EventComponentsAppear>::build(),
+  ecs::EventSetBuilder<OnCameraPerViewNodeConstruction>::build(),
   0
 ,"render");

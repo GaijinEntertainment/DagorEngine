@@ -188,3 +188,70 @@ static void nbs_envi_cover_init_es(const OnLevelLoaded &, const ecs::string &env
   logerr("Tried to load enviCover graph with name %s, but was not found in gameResources, loading failed",
     envi_cover_nbs__rootGraph.c_str());
 }
+
+
+template <typename Callable>
+static void clouds_optional_graphs_ecs_query(ecs::EntityManager &manager, Callable c);
+
+void add_clouds_optional_graphs()
+{
+  if (WorldRenderer *wr = (WorldRenderer *)get_world_renderer())
+  {
+    clouds_optional_graphs_ecs_query(*g_entity_mgr,
+      [wr](const ecs::string &clouds_optional_graph) { wr->enableCloudsOptionalShader(String(clouds_optional_graph.c_str()), true); });
+  }
+}
+
+ECS_ON_EVENT(on_appear, on_disappear)
+static void add_clouds_optional_graph_es_event_handler(const ecs::Event &evt, const ecs::string &clouds_optional_graph)
+{
+  if (WorldRenderer *wr = (WorldRenderer *)get_world_renderer())
+  {
+    bool dest = evt.is<ecs::EventEntityDestroyed>() || evt.is<ecs::EventComponentsDisappear>();
+    wr->enableCloudsOptionalShader(String(clouds_optional_graph.c_str()), !dest);
+  }
+}
+
+
+struct LoadNbsCloudsJob final : public cpujobs::IJob
+{
+  eastl::string resName;
+  String rootGraph;
+  GameResource *loadedRes = nullptr;
+
+  LoadNbsCloudsJob(eastl::string &&res_name, const char *root_graph) : resName(res_name), rootGraph(root_graph) {}
+
+  const char *getJobName(bool &) const override { return "LoadNbsCloudsJob"; }
+
+  void doJob() override
+  {
+    loadedRes = get_one_game_resource_ex(resName.c_str(), LShaderGameResClassId);
+
+    if (!loadedRes)
+      logerr("Could not find clouds gameRes during loading: %s", resName.c_str());
+  }
+
+  void releaseJob() override
+  {
+    if (auto wr = static_cast<WorldRenderer *>(get_world_renderer()))
+      wr->loadCloudsNodes(rootGraph);
+    if (loadedRes)
+      release_game_resource_ex(loadedRes, LShaderGameResClassId);
+
+    delete this;
+  }
+};
+
+ECS_ON_EVENT(OnLevelLoaded)
+static void nbs_clouds_init_es(const OnLevelLoaded &, const ecs::string &clouds_nbs__rootGraph)
+{
+  eastl::string fullName = node_based_shader_get_resource_name(clouds_nbs__rootGraph.c_str());
+  if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
+  {
+    auto job = new LoadNbsCloudsJob(eastl::move(fullName), clouds_nbs__rootGraph.c_str());
+    G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
+    return;
+  }
+
+  logerr("Tried to load clouds graph with name %s, but was not found in gameResources, loading failed", clouds_nbs__rootGraph.c_str());
+}

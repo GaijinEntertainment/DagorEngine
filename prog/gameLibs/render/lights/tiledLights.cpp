@@ -298,8 +298,8 @@ void TiledLights::fillzBins(uint32_t max_id, uint32_t offset, const Tab<vec4f> &
 void TiledLights::prepareZBinningLUT(const Tab<vec4f> &omni_ligth_bounds, const Tab<vec4f> &spot_light_bounds,
   const vec4f &cur_view_pos, const vec4f &cur_view_dir)
 {
-  fillzBins(MAX_OMNI_LIGHTS, 0, omni_ligth_bounds, cur_view_pos, cur_view_dir);
-  fillzBins(MAX_SPOT_LIGHTS, Z_BINS_COUNT, spot_light_bounds, cur_view_pos, cur_view_dir);
+  fillzBins(MAX_CLUSTERED_OMNI_LIGHTS, 0, omni_ligth_bounds, cur_view_pos, cur_view_dir);
+  fillzBins(MAX_CLUSTERED_SPOT_LIGHTS, Z_BINS_COUNT, spot_light_bounds, cur_view_pos, cur_view_dir);
 }
 
 void TiledLights::applyBinning()
@@ -308,14 +308,14 @@ void TiledLights::applyBinning()
 
   if (isGPUZBinning())
   {
-    G_ASSERTF(Z_BINNING_GROUP_SIZE >= MAX_OMNI_LIGHTS,
+    G_ASSERTF(Z_BINNING_GROUP_SIZE >= MAX_CLUSTERED_OMNI_LIGHTS,
       "TiledLights::applyBinning - thread group has not enough capacity for omni lights");
-    G_ASSERTF(Z_BINNING_GROUP_SIZE >= MAX_SPOT_LIGHTS,
+    G_ASSERTF(Z_BINNING_GROUP_SIZE >= MAX_CLUSTERED_SPOT_LIGHTS,
       "TiledLights::applyBinning - thread group has not enough capacity for spot lights");
 
     TIME_D3D_PROFILE(tiled_light_execute_gpu_z_binning);
 
-    // set parameters for zBinning (omniLightsCount, spotLightsCount, omni_lights, spot_lights already set)
+    // set parameters for zBinning (omni_lights, spot_lights already set)
     ShaderGlobal::set_float(maxDistanceVarId, maxLightsDist);
     ShaderGlobal::set_float4(viewDirVarId, binningViewDir);
     ShaderGlobal::set_float4(viewPosVarId, binningViewPos);

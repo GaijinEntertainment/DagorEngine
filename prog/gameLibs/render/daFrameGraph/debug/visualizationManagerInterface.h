@@ -11,6 +11,8 @@
 #include <backend/passColoring.h>
 #include <backend/nodeStateDeltas.h>
 
+#include <drv/3d/dag_enhanced_barrier.h>
+
 
 namespace dafg::visualization
 {
@@ -32,6 +34,8 @@ public:
   virtual void clearResourceBarriers() {}
   virtual void recResourcePlacement(ResNameId, int, int, int, int, bool) {}
   virtual void recResourceBarrier(ResNameId, int, int, int, ResourceBarrier) {}
+  virtual void recEnhancedBufferBarrier(ResNameId, int, int, int, const d3d::BufferBarrier &) {}
+  virtual void recEnhancedTextureBarrier(ResNameId, int, int, int, const d3d::TextureBarrier &) {}
 };
 
 inline eastl::unique_ptr<IVisualizationManager> make_dummy_manager() { return eastl::make_unique<IVisualizationManager>(); }

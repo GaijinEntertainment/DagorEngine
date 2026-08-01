@@ -207,6 +207,7 @@ void StaticGeometryPlugin::renderGeometry(Stage stage)
       dagGeom->geomObjectRender(*geom);
       // dagGeom->geomObjectRenderTrans(*geom);
       break;
+    default: break;
   }
 }
 

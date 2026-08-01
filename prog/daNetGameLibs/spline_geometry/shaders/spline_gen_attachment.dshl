@@ -81,7 +81,7 @@ shader dynamic_spline_attachment
       output.texcoord = input.texcoord;
       output.normal = currNormal;
       #ifdef MOTION_VECTORS_ENABLED
-        output.out_pos =  output.pos;
+        output.out_pos =  output.pos.xyw;
         float3 prevPos = currWorldPos;
         if ((instanceData.flags & PREV_ATTACHMENT_DATA_VALID))
         {
@@ -91,7 +91,7 @@ shader dynamic_spline_attachment
           unpack_tm(prevData, prevRotScaleMat, prevBaseWorldPos);
           prevPos = mul(input.position, prevRotScaleMat) + prevBaseWorldPos;
         }
-        output.out_prev_pos = mul(float4(prevPos, 1), prevOrigoRelativeViewProjTm);
+        output.out_pos_prev = mul(float4(prevPos, 1), prevOrigoRelativeViewProjTm).xyw;
       #endif
       return output;
     }

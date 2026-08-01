@@ -12,7 +12,7 @@ let mkText = @(cond, val) {
   color = cond ? 0xFFFFFF : 0xFF0000
 }
 
-let function mkButton(label, action) {
+function mkButton(label, action) {
   let sf = Watched(0)
   return @() {
     rendObj = ROBJ_BOX

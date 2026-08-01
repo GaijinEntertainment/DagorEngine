@@ -34,6 +34,7 @@ return {
   get_antialiasing_options = @() ""
   get_antialiasing_upscaling_options = @(...) ""
   get_supported_generated_frames = @(...) 0
+  is_dynamic_mfg_supported = @(...) false
   get_frame_generation_unsupported_reason = @(...) null
   is_dlss_rr_supported = @() false
   get_vsync_refresh_rate = @() 0

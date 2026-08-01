@@ -1,0 +1,5 @@
+; Stub path for native EditorCore modules (test_runtime, etc.)
+base_path = ../../libTools/EditorCore/sq_stubs
+
+sqrat_bind_dagor_math_module = yes
+sqstd_register_base_libs = yes

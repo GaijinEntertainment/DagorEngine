@@ -12,8 +12,6 @@
 #define LENS_FLARE_VARS_LIST                                \
   VAR(lens_flare_texture)                                   \
   VAR(lens_flare_prepare_num_manual_flares)                 \
-  VAR(lens_flare_prepare_num_omni_light_flares)             \
-  VAR(lens_flare_prepare_num_spot_light_flares)             \
   VAR(lens_flare_prepare_camera_pos)                        \
   VAR(lens_flare_prepare_camera_dir)                        \
   VAR(lens_flare_rounding_type)                             \
@@ -124,8 +122,7 @@ public:
   void collectAndPrepareECSFlares_PointFlares(const Point3 &camera_pos, const Point3 &camera_dir, const Frustum &frustum,
     const Occlusion * = nullptr);
   void collectAndPrepareECSFlares_DynamicLights();
-  bool endPreparingLights(const Point3 &camera_pos, const Point3 &camera_dir, int omni_light_count, int spot_light_count,
-    int shadow_frames_count);
+  bool endPreparingLights(const Point3 &camera_pos, const Point3 &camera_dir, bool hasClusteredLights, int shadow_frames_count);
   void render(const Point2 &resolution, float zoom = 1.0f) const;
   void setDownsampledFarDepthMipCount(int mipcount) { downSampledDepthMipCount = mipcount; }
 

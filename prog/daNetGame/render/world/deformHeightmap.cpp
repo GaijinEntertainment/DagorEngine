@@ -16,6 +16,7 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <render/renderer.h>
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shaderVariableInfo.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_overrideStates.h>
 #include <perfMon/dag_statDrv.h>
@@ -56,6 +57,9 @@ CONSOLE_FLOAT_VAL_MINMAX("deform_hmap", cam_dist_forced, 0, 0, 2.0f);
 #define VAR(a) static int a##VarId = -1;
 GLOBAL_VARS_LIST
 #undef VAR
+// Only used under supportsTiledReprojection(); kept out of GLOBAL_VARS_LIST so its
+// absence doesn't fail the mandatory isValid check below.
+static ShaderVariableInfo deform_tiles_count_horVarId("deform_tiles_count_hor", true);
 
 // For console commands
 static DeformHeightmap *instance = nullptr;
@@ -174,6 +178,8 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
 #undef VAR
 
   ShaderGlobal::set_int(deform_hmap_tex_sizeVarId, texSize);
+  if (supportsTiledReprojection())
+    ShaderGlobal::set_int(deform_tiles_count_horVarId, maskTexSize); // fixed after init
   ShaderGlobal::set_float4(deform_hmap_zn_zfVarId, zn, zf, 0, 0);
 
   iViewTm.identity();
@@ -204,10 +210,7 @@ bool DeformHeightmap::isEnabled() const { return deform_enabled.get(); }
 void DeformHeightmap::fillDeformParams()
 {
   const int physMatCount = PhysMat::physMatCount();
-  const PhysMat::MaterialData &defaultPhysMat = PhysMat::getMaterial("default");
-  const Point2 &defaultVehicleHmapDeformParams = defaultPhysMat.vehicleHeightmapDeformation;
-  dag::Vector<Point4, framemem_allocator> deformParams(physMatCount,
-    {defaultVehicleHmapDeformParams.x, defaultVehicleHmapDeformParams.y, defaultPhysMat.humanHeightmapDeformation, 0});
+  dag::Vector<Point4, framemem_allocator> deformParams(physMatCount);
   for (int physmatId = 0; physmatId < physMatCount; physmatId++)
   {
     const PhysMat::MaterialData &currentPhysMat = PhysMat::getMaterial(physmatId);
@@ -322,7 +325,6 @@ void DeformHeightmap::beforeRenderDepth()
     const uint32_t maxTilesCount = numThreadGroupsOnTexXY * numThreadGroupsOnTexXY;
     const uint32_t maxTilesBits =
       dag::align_up(maxTilesCount, max((uint32_t)classifyReprojectionTiles->getThreadGroupSizes()[0], 32u));
-    ShaderGlobal::set_int(get_shader_variable_id("deform_tiles_count_hor"), maskTexSize);
     {
       TIME_D3D_PROFILE(deform_hmap_classifyReprojectionTiles);
       classifyReprojectionTiles->dispatchThreads(maxTilesBits, 1, 1);

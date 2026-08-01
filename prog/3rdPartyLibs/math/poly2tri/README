@@ -1,6 +1,10 @@
 ﻿#####################################################################################
 ###
-### Since there are no Input validation of the data given for triangulation you need 
+### Upstream: poly2tri 2D constrained Delaunay triangulation library, by Mason Green
+### and contributors. https://github.com/jhasse/poly2tri (originally
+### code.google.com/p/poly2tri).
+###
+### Since there are no Input validation of the data given for triangulation you need
 ### to think about this. Poly2Tri does not support repeat points within epsilon.
 ### 
 ### * If you have a cyclic function that generates random points make sure you don't 

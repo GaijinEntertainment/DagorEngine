@@ -37,6 +37,9 @@ public:
   }
 
 private:
+  static constexpr uint32_t min_bucket_size = 4;
+  static_assert(min_bucket_size && !(min_bucket_size & (min_bucket_size - 1)), "min_bucket_size must be a power of 2");
+
   static constexpr uint32_t bucket_count = 32;
 
   struct HeapEntry
@@ -135,7 +138,13 @@ private:
     }
   }
 
-  static inline uint32_t sizeToBucketIndex(uint32_t size) { return 32 - __clz(size); }
+  static inline uint32_t sizeToBucketIndex(uint64_t size)
+  {
+    // move heaps with range < min_bucket_size to 0-th (no free space) index
+    uint32_t clampedSize = min<uint64_t>(size / min_bucket_size, eastl::numeric_limits<uint32_t>::max());
+    // move giant ranges to the last index
+    return min<uint32_t>(32 - __clz(clampedSize), bucket_count - 1);
+  }
 
   carray<Buckets, MaxSignatureCount> signatureToBuckets;
   dag::Vector<HeapPosition> resourceIndexToHeapPosition;

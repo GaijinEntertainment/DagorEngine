@@ -48,6 +48,7 @@ GraphicsPipelineStaticState RenderStateSystemBackend::extractStaticState(const s
   }
 
   ret.indenpendentBlendEnabled = state.independentBlendEnabled;
+  ret.dualSourceBlendEnabled = state.dualSourceBlendEnabled;
 
   auto translateBlendParams = [](GraphicsPipelineStaticState::BlendState &dst, const auto &src) {
     dst.blendOp = translate_blend_op_to_vulkan(src.blendOp);
@@ -91,12 +92,28 @@ GraphicsPipelineStaticState RenderStateSystemBackend::extractStaticState(const s
       translateBlendParams(ret.blendStates[i], state.blendParams[i]);
   }
 
+  // when these states are driven dynamically (VK_EXT_extended_dynamic_state) they must not
+  // contribute to the pipeline variation key, so collapse them to fixed values here - the real
+  // values ride along the dynamic state (see extractDynamicState). depthWriteEnable stays baked.
+  if (Globals::VK::phy.hasExtendedDynamicState)
+  {
+    ret.cullMode = 0;
+    ret.depthTestEnable = 0;
+    ret.depthTestFunc = VK_COMPARE_OP_NEVER;
+    ret.depthBoundsEnable = 0;
+    ret.stencilTestEnable = 0;
+    ret.stencilTestFunc = VK_COMPARE_OP_NEVER;
+    ret.stencilTestOpStencilFail = VK_STENCIL_OP_KEEP;
+    ret.stencilTestOpDepthFail = VK_STENCIL_OP_KEEP;
+    ret.stencilTestOpPass = VK_STENCIL_OP_KEEP;
+  }
+
   return ret;
 }
 
 RenderStateSystem::DynamicState RenderStateSystemBackend::extractDynamicState(const shaders::RenderState &state)
 {
-  RenderStateSystem::DynamicState ret;
+  RenderStateSystem::DynamicState ret = {};
 
   if (state.stencil.func > 0)
   {
@@ -112,6 +129,32 @@ RenderStateSystem::DynamicState RenderStateSystemBackend::extractDynamicState(co
   ret.enableScissor = state.scissorEnabled;
   ret.depthBias = state.zBias;
   ret.slopedDepthBias = state.slopeZBias;
+
+  // states that are baked into the pipeline unless VK_EXT_extended_dynamic_state moves them to the
+  // command buffer; extract them here only in that case so extractStaticState can normalize them away
+  if (Globals::VK::phy.hasExtendedDynamicState)
+  {
+    ret.extCullMode = state.cull - 1;
+    ret.extDepthTestEnable = state.ztest;
+    ret.extDepthTestFunc = translate_compare_func_to_vulkan(state.zFunc);
+    ret.extDepthBoundsTestEnable = state.depthBoundsEnable;
+    if (state.stencil.func > 0)
+    {
+      ret.extStencilTestEnable = 1;
+      ret.extStencilTestFunc = translate_compare_func_to_vulkan(state.stencil.func);
+      ret.extStencilTestOpPass = translate_stencil_op_to_vulkan(state.stencil.pass);
+      ret.extStencilTestOpDepthFail = translate_stencil_op_to_vulkan(state.stencil.zFail);
+      ret.extStencilTestOpStencilFail = translate_stencil_op_to_vulkan(state.stencil.fail);
+    }
+    else
+    {
+      ret.extStencilTestEnable = 0;
+      ret.extStencilTestFunc = VK_COMPARE_OP_ALWAYS;
+      ret.extStencilTestOpPass = VK_STENCIL_OP_KEEP;
+      ret.extStencilTestOpDepthFail = VK_STENCIL_OP_KEEP;
+      ret.extStencilTestOpStencilFail = VK_STENCIL_OP_KEEP;
+    }
+  }
 
   return ret;
 }

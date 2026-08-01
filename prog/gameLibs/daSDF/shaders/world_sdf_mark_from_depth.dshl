@@ -7,7 +7,6 @@ include "world_sdf_typed_load.dshl"
 include "gpu_occlusion.dshl"
 include "dagi_windows.dshl"
 include "gbuffer.dshl"
-include "dynamic_resolution.dshl"
 
 define_macro_if_not_defined PROJECT_DO_NOT_UPDATE_FROM_POINT(code)
   hlsl(code) {
@@ -159,8 +158,6 @@ shader world_sdf_from_gbuf_remove_cs
   INIT_AND_USE_GLOBTM(cs)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
 
-  INIT_DYNAMIC_RESOLUTION(cs)
-
   (cs) {
     downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
     world_view_pos@f3 = world_view_pos;
@@ -270,7 +267,7 @@ shader world_sdf_from_gbuf_remove_cs
       uint2 dim;
       hzb_tex.GetDimensions(dim.x, dim.y);
       uint2 tcI = uint2(random.x%dim.x, (random.x/dim.x)%dim.y);
-      float rawDepth = texture2DAt(hzb_tex, tcI * current_dynamic_resolution_scale).x;
+      float rawDepth = texture2DAt(hzb_tex, tcI).x;
 
       float2 tc = (tcI+0.5)/dim;
       float3 ndcCoord = float3(tc.xy*float2(2, -2) - float2(1, -1), rawDepth);

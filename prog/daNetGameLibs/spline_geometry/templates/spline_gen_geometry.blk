@@ -134,6 +134,11 @@ spline_gen_repository{
   spline_gen_repository{
     _tags:t="render"
   }
+
+  _group{
+    _tags:t="render"
+    dafg_camera_registrator__name:t="spline_gen"
+  }
 }
 
 spline_gen_shape{

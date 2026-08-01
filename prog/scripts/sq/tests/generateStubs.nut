@@ -12,7 +12,7 @@ let {getbuildinfo=@() {}} = require_optional("debug")
     we need return type of function or it is mostly useless even for stubs
     class are not generated yet
 */
-function saveFile(file_path, data){
+function saveFile(file_path, data): bool {
   assert(type(data) == "string", "data should be string")
   let file = io.file(file_path, "wt+")
   file.writestring(data)

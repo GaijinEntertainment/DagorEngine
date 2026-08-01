@@ -8,6 +8,7 @@ namespace drv3d_vulkan
 {
 
 VULKAN_TRACKED_STATE_FIELD_REF(BackDynamicGraphicsState, dynamic, BackGraphicsStateStorage);
+VULKAN_TRACKED_STATE_FIELD_REF(BackExtDynamicGraphicsState, extDynamic, BackGraphicsStateStorage);
 
 } // namespace drv3d_vulkan
 
@@ -16,3 +17,7 @@ using namespace drv3d_vulkan;
 void BackDynamicGraphicsStateStorage::makeDirty() {}
 
 void BackDynamicGraphicsStateStorage::clearDirty() {}
+
+void BackExtDynamicGraphicsStateStorage::makeDirty() {}
+
+void BackExtDynamicGraphicsStateStorage::clearDirty() {}

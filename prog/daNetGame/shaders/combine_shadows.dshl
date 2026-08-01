@@ -82,7 +82,7 @@ shader combine_shadows
         float ssssDepthMask : SV_Depth;
         ##endif
       };
-      CombinedShadowResult get_combined_shadows(PackedShadows shadows, float2 caustics)
+      CombinedShadowResult get_combined_shadows(PackedShadows shadows, float2 caustics, float ssssDepthMask)
       {
         CombinedShadowResult result;
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.x = shadows.combinedShadow * saturate(caustics.x); // caustics.x always == 1 above water
@@ -92,11 +92,11 @@ shader combine_shadows
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = 0.5f * (shadows.combinedShadow * saturate(caustics.x - 1) + caustics.y) * shadows.cloudsShadow;
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.w = shadows.cloudsShadow;
         ##if ssss_quality != off
-        result.ssssDepthMask = shadows.ssssDepthMask;
+        result.ssssDepthMask = ssssDepthMask;
         ##endif
         return result;
       }
-      CombinedShadowResult get_black_shadow(float2 caustics, float cloudsShadow)
+      CombinedShadowResult get_black_shadow(float2 caustics, float cloudsShadow, float ssssDepthMask)
       {
         CombinedShadowResult result;
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.x = 0;
@@ -104,7 +104,7 @@ shader combine_shadows
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = 0.5f*(caustics.y * cloudsShadow);
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.w = cloudsShadow;
         ##if ssss_quality != off
-        result.ssssDepthMask = 0;
+        result.ssssDepthMask = ssssDepthMask;
         ##endif
         return result;
       }
@@ -116,14 +116,26 @@ shader combine_shadows
       ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
       float NoL = dot(gbuffer.normal, -from_sun_direction);
       float2 caustics = load_caustics(input.texcoord);
+      ##if ssss_quality != off
+        bool ssssNeeded = isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 1.0/255;
+        float ssssDepthMask = ssssNeeded ? 1.0 : 0.0;
+        ##if ssss_quality == transmittance_and_reflectance_blur
+          bool ssssTransmittanceNeeded = ssssNeeded;
+        ##else
+          bool ssssTransmittanceNeeded = false;
+        ##endif
+      ##else
+        float ssssDepthMask = 0;
+        bool ssssTransmittanceNeeded = false;
+      ##endif
       BRANCH
-      if (!(isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 1.0/255) && NoL <= 0.f)
+      if (!ssssTransmittanceNeeded && NoL <= 0.f)
       {
         float cloudsShadow = calculate_clouds_shadow(caustics.y, input.texcoord, input.viewVec);
-        return get_black_shadow(caustics, cloudsShadow);
+        return get_black_shadow(caustics, cloudsShadow, ssssDepthMask);
       }
-      PackedShadows shadows = getShadows(input.texcoord, GET_SCREEN_POS(input.pos), input.viewVec, gbuffer.isHeroCockpit);
-      return get_combined_shadows(shadows, caustics);
+      PackedShadows shadows = getShadows(input.texcoord, GET_SCREEN_POS(input.pos), input.viewVec, gbuffer);
+      return get_combined_shadows(shadows, caustics, ssssDepthMask);
     }
   }
 

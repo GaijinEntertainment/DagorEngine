@@ -91,6 +91,8 @@ typedef ResourceImplBase<RenderPassDescription, VulkanRenderPassHandle, Resource
 
 class DeviceContext;
 
+#define RP_RESOURCE_CHECK_FRAMEBUFFER_HASH DAGOR_DBGLEVEL > 0
+
 // use Resource suffix to avoid confusion with other "RenderPass" stuff
 class RenderPassResource : public RenderPassResourceImplBase
 {
@@ -204,6 +206,7 @@ private:
 
   struct FbWithCreationInfo
   {
+#if RP_RESOURCE_CHECK_FRAMEBUFFER_HASH
     struct CompressedAtt
     {
       union
@@ -226,9 +229,24 @@ private:
         img = nullptr;
       }
     };
-    CompressedAtt atts[MAX_RENDER_PASS_ATTACHMENTS];
     VkExtent2D extent;
+#else
+    struct CompressedAtt
+    {
+      union
+      {
+        Image *img;
+        struct
+        {
+          VkImageUsageFlags usage;
+        } imageless;
+      };
+      CompressedAtt() : imageless() { img = nullptr; }
+    };
+#endif
+    CompressedAtt atts[MAX_RENDER_PASS_ATTACHMENTS];
     VulkanFramebufferHandle handle;
+    size_t lastUsedGpuWorkId;
   };
 
   VulkanFramebufferHandle compileFB(const FbWithCreationInfo &ref_info);
@@ -238,6 +256,7 @@ private:
   void dumpCreateInfo(VkRenderPassCreateInfo &rpci);
 
   Tab<FbWithCreationInfo> compiledFBs;
+  Tab<uint64_t> compiledFBHashes;
   std::atomic<size_t> pipelineCompileRefs = 0;
 
 public:

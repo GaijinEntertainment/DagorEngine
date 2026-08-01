@@ -144,7 +144,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
         ##if (dyn_model_render_pass == render_pass_normal)
           //division by PI omitted intentionally, lightColor is divided by Pi
           float3 sun01lighting = (saturate(dot(output.normal.xyz, -from_sun_direction.xyz))) * sun_color_0.xyz;
-          output.lighting = (sun01lighting + sky_color) * 0.f;
+          output.lighting = (sun01lighting + sky_color);
         ##endif
       }
     }

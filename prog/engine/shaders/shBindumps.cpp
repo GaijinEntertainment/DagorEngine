@@ -177,6 +177,7 @@ bool ScriptedShadersBinDumpOwner::linkAgaistGlobalData(ScriptedShadersGlobalData
       {
         case SHCOD_GET_GVEC:
         case SHCOD_GET_GMAT44:
+        case SHCOD_GET_GMAT43:
         case SHCOD_GET_GREAL:
         case SHCOD_GET_GTEX:
         case SHCOD_GET_GBUF:

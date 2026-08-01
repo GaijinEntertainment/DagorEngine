@@ -8,8 +8,8 @@
 #include <perfMon/dag_statDrv.h>
 #include <generic/dag_carray.h>
 
-#include "swCommon.h"
-#include "shaders/swBVHDefine.hlsli"
+#include <daBVH/swCommon.h>
+#include <daBVH/swBVHDefine.hlsli>
 
 namespace build_bvh
 {

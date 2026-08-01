@@ -36,6 +36,7 @@ include "apply_shadow_modifications.dshl"
 include "ptgi_use.dshl"
 include "bvh_usable_inc.dshl"
 include "precomputed_dynamic_lights_inc.dshl"
+include "nrd_material.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
@@ -71,14 +72,16 @@ macro COMMON_RESOLVE_SIMPLE(code)
   (code) {
     leaves_ss_profile_gamb@f4 = (leaves_ss_profile.x, leaves_ss_profile.y, leaves_ss_profile.z, grass_ambient_ss_shadow);
     blood_ss_profile@f3 = blood_ss_profile;
-    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    water_heightmap_lowres@tex2d = water_heightmap_lowres;
     water_heightmap_lowres_exists@i1 = exists_tex(water_heightmap_lowres);
     water_level_ocean@f1 = water_level;
     sheen_color@f3 = sheen_color;
     shadow_frame@f1 = shadow_frame;
   }
   INIT_WORLD_TO_WATER_HEIGHTMAP(code)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   hlsl(code) {
+    #define water_heightmap_lowres_samplerstate global_linear_wrap_sampler
     #define leaves_ss_profile (leaves_ss_profile_gamb.xyz)
     #define grass_ambient_ss_shadow (leaves_ss_profile_gamb.w)
     #define sheen_ss_profile (sheen_color.rgb)
@@ -131,6 +134,11 @@ macro COMMON_RESOLVE_EXTENDED(code)
   (code) {
     hero_cockpit_vec@f4 = hero_cockpit_vec;
     bvh_usable@i1 = bvh_usable;
+  }
+
+  if (bvh_usable == yes)
+  {
+    INIT_AND_USE_DENOISER_MATERIAL(code)
   }
 
   hlsl(code) {
@@ -486,7 +494,8 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       ##if bvh_usable == yes
       if (isRTREnabled())
       {
-        half3 rtr = getRTRFiltered(uint2(screenpos), gbuffer.linearRoughness) * enviBRDF;
+        uint nrdMaterial = getNRDMaterialID(w, gbuffer.isHeroCockpit, gbuffer.isGrass, gbuffer.isFoliage);
+        half3 rtr = getRTRFiltered(uint2(screenpos), gbuffer.linearRoughness, w, nrdMaterial) * enviBRDF;
         half underwaterComponent = calc_underwater_fade_rtr(worldPos.y - water_level);
         half cockpit = gbuffer.isHeroCockpit ? 1-cockpitFade : 1;
         half s = cockpit * underwaterComponent;

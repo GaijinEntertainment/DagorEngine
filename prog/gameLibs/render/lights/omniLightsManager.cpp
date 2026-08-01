@@ -3,7 +3,6 @@
 #include <render/lights/omniLightsManager.h>
 #include <math/dag_frustum.h>
 #include <generic/dag_sort.h>
-#include <scene/dag_occlusion.h>
 #include <generic/dag_tab.h>
 #include <debug/dag_debug3d.h>
 #include <ioSys/dag_dataBlock.h>
@@ -12,12 +11,11 @@
 #include <shaders/dag_shaders.h>
 #include <util/dag_texMetaData.h>
 #include <drv/3d/dag_driver.h>
-#include "smallLights.h"
-
+#include <render/lights/shadowSystem.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/unique_ptr.h>
 
-OmniLightsManager::OmniLightsManager()
+OmniLightsManager::OmniLightsManager() : LightsManager<OmniLight>("omni")
 {
   G_STATIC_ASSERT(1ULL << (sizeof(*freeLightIds.data()) * 8) >= MAX_LIGHTS);
 
@@ -41,83 +39,6 @@ void OmniLightsManager::close()
     photometryTextures = nullptr;
   }
 }
-
-void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lights_with_camera_inside,
-  Tab<uint16_t> &lights_with_camera_outside, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box,
-  const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask,
-  float cutoff_dist_sq) const
-{
-  prepare(frustum, lights_with_camera_inside, lights_with_camera_outside, occlusion, inside_box, outside_box, frustum.camPlanes[5],
-    shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask, cutoff_dist_sq);
-}
-
-void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsInside, Tab<uint16_t> &lightsOutside,
-  Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
-  float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask, float cutoff_dist_sq) const
-{
-  prepare(frustum, lightsInside, lightsOutside, nullptr, occlusion, inside_box, outside_box, znear_plane, shadow,
-    markSmallLightsAsFarLimit, cameraPos, require_any_mask, cutoff_dist_sq);
-}
-
-typedef uint16_t shadow_index_t;
-
-void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsInside, Tab<uint16_t> &lightsOutside,
-  eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-  const StaticTab<uint16_t, MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask,
-  float cutoff_dist_sq) const
-{
-  int maxIdx = maxIndex();
-  int reserveSize = (maxIdx + 1) / 2;
-  lightsInside.reserve(reserveSize);
-  lightsOutside.reserve(reserveSize);
-  vec4f rad_scale = v_splats(1.1f);
-  vec3f cutoff_dist_sq_v = cutoff_dist_sq > 0 ? v_splats(cutoff_dist_sq) : V_C_INF;
-  for (int i = 0; i <= maxIdx; ++i)
-  {
-    if (require_any_mask && !(require_any_mask & masks[i]))
-      continue;
-    const RawLight &l = rawLights[i];
-    if (l.pos_radius.w <= 0)
-      continue;
-    vec4f lightPosRad = v_ld(&l.pos_radius.x);
-    vec3f rad = v_splat_w(lightPosRad);
-    if (!frustum.testSphereB(lightPosRad, rad))
-      continue;
-    if (occlusion && occlusion->isOccludedSphere(lightPosRad, rad))
-      continue;
-    if (visibleIdBitset)
-      visibleIdBitset->set(i, true);
-
-    vec4f radScaled = v_mul_x(rad_scale, rad);
-    vec4f res = v_add_x(v_sub_x(v_dot3_x(lightPosRad, znear_plane), radScaled), v_splat_w(znear_plane));
-    vec4f length_sq = v_length3_sq(v_sub(cameraPos, lightPosRad));
-    if (v_test_vec_x_gt(length_sq, cutoff_dist_sq_v))
-      continue;
-    vec4f camInSphereVec = v_sub_x(length_sq, v_mul(rad, rad));
-
-#if _TARGET_SIMD_SSE
-    bool intersectsNear = _mm_movemask_ps(res) & 1;
-    bool camInSphere = _mm_movemask_ps(camInSphereVec) & 1;
-#else
-    bool intersectsNear = v_test_vec_x_lt_0(res);
-    bool camInSphere = v_test_vec_x_lt_0(camInSphereVec);
-#endif
-    bool small = shadows[i] == shadow_index_t(~0) && is_viewed_small(lightPosRad, length_sq, markSmallLightsAsFarLimit);
-    if ((intersectsNear || small) && !camInSphere)
-    {
-      inside_box.bmin = v_min(inside_box.bmin, v_sub(lightPosRad, rad));
-      inside_box.bmax = v_max(inside_box.bmax, v_add(lightPosRad, rad));
-      lightsInside.push_back(i);
-    }
-    else
-    {
-      outside_box.bmin = v_min(outside_box.bmin, v_sub(lightPosRad, rad));
-      outside_box.bmax = v_max(outside_box.bmax, v_add(lightPosRad, rad));
-      lightsOutside.push_back(i);
-    }
-  }
-}
-
 
 void OmniLightsManager::drawDebugInfo()
 {
@@ -233,4 +154,25 @@ void OmniLightsManager::setLightTexture(unsigned int id, int tex)
 {
   IesTextureCollection::PhotometryData photometryData = getPhotometryData(tex);
   rawLights[id].setTexture(tex, photometryData.zoom, photometryData.rotated);
+}
+
+void OmniLightsManager::updateShadowVolume(uint32_t light_id)
+{
+  const auto shadowId = getShadowId(light_id);
+  if (shadowId == INVALID_SHADOW_VOLUME_ID)
+  {
+    return;
+  }
+  const auto &l = getLight(light_id);
+
+  bbox3f box;
+  v_bbox3_init_empty(box);
+  float2 lightZnZfar = get_light_shadow_zn_zf(l.pos_radius.w);
+  if (l.shadowNearFarClippingPlanesPad.x > 0)
+    lightZnZfar.x = l.shadowNearFarClippingPlanesPad.x;
+  if (l.shadowNearFarClippingPlanesPad.y > 0)
+    lightZnZfar.y = l.shadowNearFarClippingPlanesPad.y;
+
+  vec3f vpos = v_make_vec4f(l.pos_radius.x, l.pos_radius.y, l.pos_radius.z, 0);
+  shadowSystem->setOctahedralShadowVolume(shadowId, vpos, lightZnZfar.x, lightZnZfar.y, box);
 }

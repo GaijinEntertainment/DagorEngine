@@ -5,6 +5,7 @@ void bind_hosting_internal_server(Sqrat::Table &) {}
 void prelaunch_internal_server_if_needed() {}
 void shutdown_internal_server_on_host_exit() {}
 void kill_internal_server(bool) {}
+void cancel_scheduled_internal_server_start() {}
 bool is_hosted_internal_server_active() { return false; }
 bool try_begin_hosted_server_start() { return false; }
 void clear_hosted_server_start_pending() {}

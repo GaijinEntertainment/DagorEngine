@@ -39,7 +39,7 @@ struct VirtualResourceRequestBase
   void texture(const Texture2dCreateInfo &info);
   void texture(const Texture3dCreateInfo &info);
   void buffer(const BufferCreateInfo &info);
-  void blob(BlobDescription &&desc, detail::RTTI &&rtti);
+  void blob(BlobDescription &&desc, RTTI::RecursiveMakerRef rtti_maker);
   void backBuffer();
   void externalBuffer(dafg::ExternalResourceProvider &&external_resource_provider);
   void externalTexture(dafg::ExternalResourceProvider &&external_resource_provider);
@@ -47,6 +47,7 @@ struct VirtualResourceRequestBase
   void markWithTag(ResourceSubtypeTag tag);
 
   void optional();
+  void forBlock(const char *block_name, const char *shader_var_name, ResourceSubtypeTag projectedTag);
   void bindToShaderVar(const char *shader_var_name, ResourceSubtypeTag projectedTag, TypeErasedProjector projector);
   void bindlessShaderVar(const char *shader_var_name, ResourceSubtypeTag projected_tag);
   void bindAsView(ResourceSubtypeTag projectedTag, TypeErasedProjector projector);

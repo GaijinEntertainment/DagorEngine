@@ -143,7 +143,7 @@ function updateWidget(w, uid){
   }
 }
 
-function removeMsgboxByUid(uid) {
+function removeMsgboxByUid(uid): bool {
   let idx = widgets.findindex(@(w) w.uid == uid)
   if (idx == null)
     return false
@@ -152,7 +152,7 @@ function removeMsgboxByUid(uid) {
   return true
 }
 
-function isMsgboxInList(uid) {
+function isMsgboxInList(uid): bool {
   return widgets.findindex(@(w) w.uid == uid) != null
 }
 

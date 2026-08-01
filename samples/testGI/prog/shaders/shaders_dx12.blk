@@ -23,6 +23,10 @@ include "shaders_dx11.blk"
     "@delete:dagi_warp64_irradiance":i=0
     "@delete:swrt_use_hw_rt":i = 0
      gi_voxelize_use_multidraw:i=1
+     // the sample never denoises with NRD checkerboard depth; pinning the
+     // interval skips compiling that variant (broken upstream in the RTR
+     // half-res motion store), which the sample build would otherwise hit
+     rtr_depth_mode:i=0
   }
 }
 

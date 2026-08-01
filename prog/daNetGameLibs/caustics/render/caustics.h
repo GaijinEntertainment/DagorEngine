@@ -3,7 +3,8 @@
 
 #include <render/daFrameGraph/daFG.h>
 
-eastl::array<dafg::NodeHandle, 2> makeCausticsNode();
+dafg::NodeHandle makeCausticsPerCameraResNode();
+dafg::NodeHandle makeCausticsRenderNode(const char *view_ns, bool is_main_view);
 struct CausticsSetting
 {
   float causticsScrollSpeed = 0.75;

@@ -346,17 +346,12 @@ macro WATER_3D_DEFERRED_COMMON_PS()
   }
   (ps) {
     shore_heightmap_min_max@f4 = shore_heightmap_min_max;
-    water_reflection_tex@tex2d = water_reflection_tex;
-    water_reflection_strength_tex@tex2d = water_reflection_strength_tex;
     water_rain_ripples_enabled_special_vision@i2 = (water_rain_ripples_enabled, special_vision);
     shallow_water_normal_multiplier@f1 = shallow_water_normal_multiplier;
-    water_ssr_linear_clamp_samplerstate@sampler = water_ssr_linear_clamp_sampler;
   }
   hlsl(ps) {
     #define projected_on_water_effects_tex_samplerstate global_linear_clamp_sampler
     #define water_refraction_tex_samplerstate global_linear_clamp_sampler
-    #define water_reflection_tex_samplerstate water_ssr_linear_clamp_samplerstate
-    #define water_reflection_strength_tex_samplerstate water_ssr_linear_clamp_samplerstate
     #define water_rain_ripples_enabled water_rain_ripples_enabled_special_vision.x
     #define special_vision water_rain_ripples_enabled_special_vision.y
   }

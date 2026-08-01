@@ -6,8 +6,9 @@ require ECSGlobalTags
 [export]
 def load_motionMatching(base_path : string) : bool
   var ok = true
+  let canBeUsedAtRuntime = ecs_has_tag("render") && typeinfo builtin_module_exists(MotionMatching)
 
-  if ecs_has_tag("render") || is_in_aot()
+  if canBeUsedAtRuntime || is_in_aot()
     ok = load_sub_folder(base_path, "das") && ok
 
     if (ecs_has_tag("dev") && typeinfo builtin_module_exists(DngHuman)) || is_in_aot()

@@ -20,8 +20,8 @@ public:
       das::SideEffects::modifyExternal, "bind_dascript::disable_auto_hosted_server_ready");
     das::addExtern<DAS_BIND_FUN(is_hosted_internal_server_active)>(*this, lib, "is_hosted_internal_server_active",
       das::SideEffects::accessExternal, "bind_dascript::is_hosted_internal_server_active");
-    das::addExtern<DAS_BIND_FUN(is_hosted_server_manual_ready_enabled)>(*this, lib, "is_hosted_server_manual_ready_enabled",
-      das::SideEffects::accessExternal, "bind_dascript::is_hosted_server_manual_ready_enabled");
+    das::addExtern<DAS_BIND_FUN(should_server_invoke_ready_manually)>(*this, lib, "should_server_invoke_ready_manually",
+      das::SideEffects::accessExternal, "bind_dascript::should_server_invoke_ready_manually");
     das::addExtern<DAS_BIND_FUN(request_start_hosted_server)>(*this, lib, "request_start_hosted_server",
       das::SideEffects::modifyExternal, "bind_dascript::request_start_hosted_server");
     das::addExtern<DAS_BIND_FUN(request_stop_hosted_server)>(*this, lib, "request_stop_hosted_server",

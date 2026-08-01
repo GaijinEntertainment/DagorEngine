@@ -5,6 +5,7 @@
 #include "mapBinarySearch.h"
 #include <shaders/dag_shaderCommon.h>
 #include <shaders/dag_dynVariantsCache.h>
+#include <shaders/shLimits.h>
 #include <ioSys/dag_zstdIo.h>
 #include <osApiWrappers/dag_files.h>
 #include <ioSys/dag_dataBlock.h>
@@ -250,6 +251,14 @@ bool ScriptedShadersBinDumpOwner::loadFromData(uint8_t const *dump, int size, ch
   }
 
   debug("[SH] Mapped main bindump structure, layout hash is %llx", get_layout_hash<shader_layout::ScriptedShadersBinDump>());
+
+  const int variantCount = mShaderDump->vprCount + mShaderDump->fshCount;
+  if (variantCount > SOFT_SHADER_VARIANT_LIMIT)
+  {
+    logerr("[SH] Bindump contains %d shader bins, while dagor rule is no more than %d! Too many shaders cause excessive compilations, "
+           "FREEZES and CRASHES for users! Optimize shaders and reduce shader variants!",
+      variantCount, SOFT_SHADER_VARIANT_LIMIT);
+  }
 
   map_optional_extension(mShaderDumpV2, mSelfData.data(), "V2");
   map_optional_extension(mShaderDumpV3, mSelfData.data(), "V3");

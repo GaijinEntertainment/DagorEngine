@@ -21,7 +21,7 @@ struct LodGridVertexData
   Ibuffer *ib = nullptr;
   Ibuffer *quadsIb = nullptr;
   int patchDim = 0;
-  volatile int refCnt = 0;
+  int refCnt = 0; // guarded by the lifetime spinlock in cpp file
   bool recreateBuffers = false;
   void close();
   bool init(int dim_start);
@@ -29,6 +29,10 @@ struct LodGridVertexData
   void beforeResetDevice();
   void afterResetDevice();
 };
+
+// Device reset hooks for the shared lod grid index buffer pool (all renderer instances).
+void lod_grid_vdata_before_reset_device();
+void lod_grid_vdata_after_reset_device();
 
 class HeightmapHeightCulling
 {
@@ -109,16 +113,9 @@ struct LodGridCullData
   }
   bool hasPatches() const { return !patches.empty() || hasAdditionalTriPatches(); }
   uint32_t morph_at = 0, morph_no_edges_at = 0, edges_at = 0;
-  int startFlipped = 1000000;      // starting from startFlipped, patches triangulation is flipped
-  Point2 originPos = Point2::ZERO; // just in case
   float scaleX = 1;
-  uint32_t lod0PatchesCount = 0;
-  LodGrid lodGrid;
-  Point4 worldToLod0 = Point4::ZERO;
   float maxDisplacementErrAtMaxLod = 0.f;
-  bool useHWTesselation = true;
   bool exact_edges = false;
-  eastl::optional<Frustum> frustum;
 
   LodGridCullData(IMemAlloc *mem = midmem) : patches(mem), edgesData(mem), morphData(mem) {}
   int getCount() const { return patches.size(); }
@@ -130,6 +127,26 @@ struct LodGridCullData
     patches.clear();
     for (int i = 0; i < additionalTriPatches.size(); ++i)
       additionalTriPatches[i].clear();
+  }
+};
+
+// Cull output of cull_lod_grid, the analytic lod-ring grid (fftWater, tools terrain
+// preview, samples). The extra fields drive HeightmapRenderer::render's HW tessellation
+// and flipped diamond triangulation; the metrics path (cull_lod_grid3 + renderCulled)
+// never touches them.
+struct LodGridRingCullData : LodGridCullData
+{
+  int startFlipped = 1000000;      // starting from startFlipped, patches triangulation is flipped
+  Point2 originPos = Point2::ZERO; // lod0 ring center, aligned
+  uint32_t lod0PatchesCount = 0;
+  Point4 worldToLod0 = Point4::ZERO;
+  bool useHWTesselation = true;
+  eastl::optional<Frustum> frustum;
+
+  using LodGridCullData::LodGridCullData;
+  void eraseAll()
+  {
+    LodGridCullData::eraseAll();
     startFlipped = 1000000;
   }
 };
@@ -151,7 +168,7 @@ struct HeightmapFrustumCullingInfo
 
 
 void cull_lod_grid(const LodGrid &lodGrid, int max_lod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
-  float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridCullData &cull_data,
+  float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridRingCullData &cull_data,
   const Occlusion *occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId = -1, int dim = default_patch_dim,
   bool fight_t_junctions = true, const HeightmapHeightCulling *handler = NULL, BBox2 *lodsRegion = nullptr,
   float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL, const Point3 *viewPos = nullptr,

@@ -101,12 +101,12 @@ void SmokeTracerManager::initGPU(const DataBlock &settings)
   G_ASSERT(updateCommands_cs);
   G_ASSERT(clearIndirectBuffers);
 
-  tracerBuffer =
-    dag::buffers::create_ua_sr_structured(sizeof(GPUSmokeTracer), MAX_TRACERS, "smokeTracers", d3d::buffers::Init::No, RESTAG_TRACER);
+  tracerBuffer = dag::buffers::create_ua_sr_structured(sizeof(GPUSmokeTracer), MAX_TRACERS, "smokeTracers", d3d::buffers::Init::Zero,
+    RESTAG_TRACER);
   tracerVertsBuffer = dag::buffers::create_ua_sr_structured(sizeof(GPUSmokeTracerVertices), TRACER_SEGMENTS_COUNT * MAX_TRACERS,
-    "smokeTracerVerts", d3d::buffers::Init::No, RESTAG_TRACER);
+    "smokeTracerVerts", d3d::buffers::Init::Zero, RESTAG_TRACER);
   tracerBufferDynamic = dag::buffers::create_ua_sr_structured(sizeof(GPUSmokeTracerDynamic), MAX_TRACERS, "smokeTracersDynamic",
-    d3d::buffers::Init::No, RESTAG_TRACER);
+    d3d::buffers::Init::Zero, RESTAG_TRACER);
 
   // Published for bvh_smoke_tracers_cs (raster path binds these directly).
   ShaderGlobal::set_buffer(get_shader_variable_id("smoke_tracer_tracer_buf", true), tracerBuffer.get());

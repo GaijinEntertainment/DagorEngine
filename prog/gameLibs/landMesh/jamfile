@@ -7,12 +7,16 @@ Target      = gameLibs/landMesh.lib ;
 Sources =
   landMicroDetails.cpp
   lmeshManager.cpp
+  lmeshWeightAtlas.cpp
+  lmeshWeightAtlasLegacyCpu.cpp
+  lmeshWeightAtlasLegacyGpu.cpp
   lmeshLandClasses.cpp
   lmeshRenderer.cpp
+  lmeshRenderingModeState.cpp
   lmeshRendererLandClasses.cpp
 #  clipmap.cpp
   virtualtexture.cpp
-  landRayTracer.cpp
+  landRayTracerSoA4.cpp
   lmeshRendererGlue.cpp
   lastClip.cpp
   biomeQuery.cpp
@@ -25,6 +29,8 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/gamePhys/collision
   $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/lib3d
+  $(Root)/prog/3rdPartyLibs
 ;
 
 UseProgLibs =
@@ -32,6 +38,8 @@ UseProgLibs =
   gameLibs/heightmap
   gameLibs/physMap
   3rdPartyLibs/eastl
+  engine/daBVH
+  3rdPartyLibs/convert/fastDXT
 ;
 
 if $(Config) in dbg dev {

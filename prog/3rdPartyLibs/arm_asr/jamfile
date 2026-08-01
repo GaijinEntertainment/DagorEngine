@@ -18,7 +18,7 @@ Sources =
 SHADERS_SRC = src/backends/shared/blob_accessors/ffxm_fsr2_shaderblobs.cpp ;
 Sources += $(SHADERS_SRC) ;
 
-PASS_SHADER_OUTPUT_PATH = $(Root)/$(Location)/src/backends/shared/blob_accessors/prebuilt_shaders/ ;
+PASS_SHADER_OUTPUT_PATH = $(_Output)/_$(Target:S=)/prebuilt_shaders/ ;
 
 AddIncludes =
   $(Root)/$(Location)/include/
@@ -39,7 +39,7 @@ if $(Platform) in windows {
   AddIncludes += $(Root)/prog/3rdPartyLibs/vulkan/include ;
 }
 
-FSR2_BASE_ARGS = -reflection -deps=gcc -DFFXM_GPU=1 ;
+FSR2_BASE_ARGS = -reflection -DFFXM_GPU=1 ;
 
 FSR2_HLSL_BASE_ARGS =
   -E main -Wno-for-redefinition -Wno-ambig-lit-shift
@@ -66,7 +66,8 @@ FSR2_SC_ARGS = $(FSR2_BASE_ARGS) $(FSR2_HLSL_BASE_ARGS) $(FSR2_PERMUTATION_ARGS)
 if ! [ GLOB $(_DEVTOOL)/FidelityFX_SC_ARM/ : * ] { exit FATAL\: \"$(_DEVTOOL)/FidelityFX_SC_ARM\" not found!  Please, update DEVTOOLS ; }
 FFX_SC_EXECUTABLE = $(_DEVTOOL)/FidelityFX_SC_ARM/FidelityFX_SC.exe ;
 PASS_SHADER_INPUT_PATH = $(Root)/$(Location)/src/backends/vk/shaders/fsr2/hlsl/ ;
-PASS_SHADER_INCLUDES = -I $(Root)/$(Location)/include/gpu -I $(Root)/$(Location)/include/gpu/fsr2 ;
+PASS_SHADER_INC_DIRS = $(Root)/$(Location)/include/gpu $(Root)/$(Location)/include/gpu/fsr2 ;
+PASS_SHADER_INCLUDES = -I$(PASS_SHADER_INC_DIRS) ;
 
 actions together quietly FidelityFX_CS
 {
@@ -82,6 +83,12 @@ rule FidelityFX_CompileShader
   local target = $(4) ;
   opt on $(dst) = -name=$(1) $(3) ;
   Depends $(dst) : $(src) ;
+
+  HDRSCAN on $(src) = "^[ ]*#[ ]*include[ ]*[<\"]([^\">]*)[\">].*$" ;
+  HDRRULE on $(src) = DepRuleDry ;
+  inc on $(src) = $(PASS_SHADER_INC_DIRS) $(src:D) ;
+  inc_suffix on $(src) = ;
+
   MakeDirectory $(dst) : $(dst:D) ;
   FidelityFX_CS  $(dst) : $(src) ;
   Includes $(target) : $(dst) ;

@@ -50,35 +50,36 @@ public:
       float py_ofs = a.props.getReal("root_py_ofs", 0);
       if (const char *base_skel_nm = a.props.getStr("charDepBaseSkeleton", NULL))
       {
-        GeomNodeTree tree;
-        if (!getSkeleton(tree, a.getMgr(), base_skel_nm, log))
+        GeomNodeTreeUniquePtr tree = getSkeleton(a.getMgr(), base_skel_nm, log);
+        if (!tree)
         {
           log.addMessage(log.ERROR, "cannot find charDepBaseSkeleton: %s", base_skel_nm);
           return false;
         }
-        auto n = tree.findNodeIndex(root_node_nm);
+        auto n = tree->findNodeIndex(root_node_nm);
         if (!n)
         {
           log.addMessage(log.ERROR, "cannot find rootNode \"%s\" in charDepBaseSkeleton \"%s\"", root_node_nm, base_skel_nm);
           return false;
         }
-        py_ofs = tree.getNodeWposRelScalar(n).y;
+        py_ofs = tree->getNodeWposRelScalar(n).y;
 
 
         const char *skel_nm = a.props.getStr("skeleton", "");
-        if (!getSkeleton(tree, a.getMgr(), skel_nm, log))
+        tree = getSkeleton(a.getMgr(), skel_nm, log);
+        if (!tree)
         {
           log.addMessage(log.ERROR, "cannot find skeleton: %s", skel_nm);
           return false;
         }
-        n = tree.findNodeIndex(root_node_nm);
+        n = tree->findNodeIndex(root_node_nm);
         if (!n)
         {
           log.addMessage(log.ERROR, "cannot find rootNode \"%s\" in skeleton \"%s\"", root_node_nm, skel_nm);
           return false;
         }
 
-        py_ofs = tree.getNodeWposRelScalar(n).y - py_ofs;
+        py_ofs = tree->getNodeWposRelScalar(n).y - py_ofs;
       }
       cwr.writeReal(py_ofs);
       cwr.writeReal(a.props.getReal("root_px_scale", 1));
@@ -103,8 +104,8 @@ public:
   static void calcCenterNode(String &centerNode, float &centerBsphRad, const char *dm_name, const char *skel_nm, DagorAssetMgr &m,
     ILogWriter &log)
   {
-    GeomNodeTree tree;
-    if (!getSkeleton(tree, m, skel_nm, log))
+    GeomNodeTreeUniquePtr tree = getSkeleton(m, skel_nm, log);
+    if (!tree)
       return;
 
     static DagorAssetMgr *mgr = NULL;
@@ -127,7 +128,7 @@ public:
       log.addMessage(ILogWriter::ERROR, "can't get dynModel asset <%s>", dm_name);
       return;
     }
-    processDynModel(*dm_a, tree, log, centerNode, centerBsphRad);
+    processDynModel(*dm_a, *tree, log, centerNode, centerBsphRad);
   }
   static void processDynModel(DagorAsset &a, const GeomNodeTree &tree, ILogWriter &log, String &centerNode, float &centerBsphRad)
   {

@@ -229,7 +229,7 @@ public:
   {
     if (!bits)
       return true;
-    else if ((readOffset + bits) > bitsUsed)
+    else if (readOffset > bitsUsed || bits > bitsUsed - readOffset) // overflow-safe: bits may be wire-controlled
     {
 #if DAGOR_DBGLEVEL > 0 && defined(_DEBUG_TAB_)
       if (output)
@@ -282,7 +282,7 @@ public:
     if (!ReadCompressed(numberOfBitsUsed))
       return false;
     AlignReadToByteBoundary();
-    if (readOffset + numberOfBitsUsed > bitsUsed)
+    if (readOffset > bitsUsed || numberOfBitsUsed > bitsUsed - readOffset) // overflow-safe
       return false;
     bs.bitsUsed = numberOfBitsUsed;
     uint32_t bytesToCopy = bits2bytes(numberOfBitsUsed);

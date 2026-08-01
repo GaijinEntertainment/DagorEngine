@@ -6,6 +6,10 @@
 #include "globals.h"
 #include "driver_config.h"
 #include "vulkan_allocation_callbacks.h"
+#include "backend.h"
+#include "timeline_latency.h"
+#include "timelines.h"
+#include <util/dag_hash.h>
 
 using namespace drv3d_vulkan;
 
@@ -14,11 +18,46 @@ using namespace drv3d_vulkan;
 VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
 {
   // be aware of quite memory hungry linear search here!
-  constexpr uint32_t maxArraySizeForLinearSearch = 10;
+  constexpr uint32_t maxArraySizeForLinearSearch = 64;
 
   VulkanFramebufferHandle ret;
   uint32_t lastFreeFB = -1;
   VkExtent2D areaExtent = toVkFbExtent(state->area.data);
+
+  uint64_t computedFBHash = -1;
+  {
+    uint64_t hash = FNV1Params<64>::offset_basis;
+
+    hash = fnv1a_step<64>(areaExtent.width, hash);
+    hash = fnv1a_step<64>(areaExtent.height, hash);
+    for (int i = 0; i < desc.targetCount; ++i)
+    {
+      const auto &targetData = state->targets.data[i];
+
+      hash = fnv1a_step<64>(targetData.mipLevel, hash);
+      hash = fnv1a_step<64>(targetData.layer, hash);
+      if (Globals::cfg.has.imagelessFramebuffer)
+      {
+#if VK_KHR_imageless_framebuffer
+        const auto &bakedAttachmentInfo = bakedAttachments->infos[i];
+        hash = fnv1a_step<64>(bakedAttachmentInfo.width, hash);
+        hash = fnv1a_step<64>(bakedAttachmentInfo.height, hash);
+        hash = fnv1a_step<64>(bakedAttachmentInfo.usage, hash);
+        hash = fnv1a_step<64>(bakedAttachmentInfo.flags, hash);
+        hash = fnv1a_step<64>(bakedAttachmentInfo.layerCount, hash);
+        FormatStore imageFormat = targetData.image->getFormat();
+        G_STATIC_ASSERT(eastl::has_unique_object_representations_v<FormatStore>);
+        hash = mem_hash_fnv1<64>((const char *)(&imageFormat), sizeof(FormatStore), hash, fnv1a_step<64>);
+#endif
+      }
+      else
+      {
+        hash = mem_hash_fnv1<64>((const char *)(&targetData.image), sizeof(Image *), hash, fnv1a_step<64>);
+      }
+    }
+    computedFBHash = hash;
+  }
+
   for (uint32_t i = 0; i < compiledFBs.size(); ++i)
   {
     if (is_null(compiledFBs[i].handle))
@@ -26,6 +65,9 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
       lastFreeFB = i;
       continue;
     }
+    if (computedFBHash != compiledFBHashes[i])
+      continue;
+#if RP_RESOURCE_CHECK_FRAMEBUFFER_HASH
     bool fit = true;
     fit &= (areaExtent.height == compiledFBs[i].extent.height) && (areaExtent.width == compiledFBs[i].extent.width);
     if (fit)
@@ -49,11 +91,15 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
         else
           fit &= state->targets.data[j].image == att.img;
 
+        G_ASSERT(fit);
+
         if (!fit)
           break;
       }
     if (fit)
+#endif
     {
+      compiledFBs[i].lastUsedGpuWorkId = Backend::gpuJob->index;
       ret = compiledFBs[i].handle;
       break;
     }
@@ -61,9 +107,38 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
 
   if (is_null(ret))
   {
+    if (lastFreeFB == -1 && compiledFBs.size() == maxArraySizeForLinearSearch)
+    {
+      // evict least recently used entry by GPU work ID
+      uint32_t lruIdx = 0;
+      size_t oldestWorkId = compiledFBs[0].lastUsedGpuWorkId;
+      for (uint32_t i = 1; i < compiledFBs.size(); ++i)
+      {
+        if (compiledFBs[i].lastUsedGpuWorkId < oldestWorkId)
+        {
+          oldestWorkId = compiledFBs[i].lastUsedGpuWorkId;
+          lruIdx = i;
+        }
+      }
+      VulkanDevice &device = Globals::VK::dev;
+      if (TimelineLatency::isGPUWorkCompleted(oldestWorkId, Backend::gpuJob->index) && !is_null(compiledFBs[lruIdx].handle))
+      {
+        VULKAN_LOG_CALL(device.vkDestroyFramebuffer(device.get(), compiledFBs[lruIdx].handle, VKALLOC(framebuffer)));
+        compiledFBs[lruIdx].handle = VulkanFramebufferHandle();
+        lastFreeFB = lruIdx;
+      }
+    }
+
+    uint64_t &newFBHash = lastFreeFB != -1 ? compiledFBHashes[lastFreeFB] : compiledFBHashes.push_back();
+    newFBHash = computedFBHash;
+
     FbWithCreationInfo &newFB = lastFreeFB != -1 ? compiledFBs[lastFreeFB] : compiledFBs.push_back();
-    if (compiledFBs.size() >= maxArraySizeForLinearSearch)
+    if (compiledFBs.size() > maxArraySizeForLinearSearch && lastFreeFB == -1)
       D3D_ERROR("vulkan: too much FB variations for RP %p[%p]<%s>, reduce them or redo search", this, getBaseHandle(), getDebugName());
+    newFB.lastUsedGpuWorkId = Backend::gpuJob->index;
+
+    G_ASSERT(compiledFBHashes.size() == compiledFBs.size());
+
     for (uint32_t i = 0; i < desc.targetCount; ++i)
     {
       const StateFieldRenderPassTarget &tgt = state->targets.data[i];
@@ -71,16 +146,20 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
         getBaseHandle(), getDebugName());
       if (Globals::cfg.has.imagelessFramebuffer)
       {
+        newFB.atts[i].imageless.usage = bakedAttachments->infos[i].usage;
+#if RP_RESOURCE_CHECK_FRAMEBUFFER_HASH
         newFB.atts[i].imageless.width = bakedAttachments->infos[i].width;
         newFB.atts[i].imageless.height = bakedAttachments->infos[i].height;
         newFB.atts[i].imageless.flags = bakedAttachments->infos[i].flags;
-        newFB.atts[i].imageless.usage = bakedAttachments->infos[i].usage;
         newFB.atts[i].imageless.layerCount = bakedAttachments->infos[i].layerCount;
         newFB.atts[i].imageless.fmt = tgt.image->getFormat();
+#endif
       }
       else
         newFB.atts[i].img = tgt.image;
+#if RP_RESOURCE_CHECK_FRAMEBUFFER_HASH
       newFB.atts[i].mipLayer = (tgt.mipLevel << 16) | (tgt.layer & 0xFFFF);
+#endif
 
       // verify various stuff
 
@@ -116,7 +195,9 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
           getBaseHandle(), getDebugName(), expectedFormat.getNameString(), actualFormats, tgt.image, tgt.image->getDebugName());
       }
     }
+#if RP_RESOURCE_CHECK_FRAMEBUFFER_HASH
     newFB.extent = areaExtent;
+#endif
     newFB.handle = compileFB(newFB);
     ret = newFB.handle;
   }

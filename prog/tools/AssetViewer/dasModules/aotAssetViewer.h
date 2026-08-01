@@ -15,4 +15,6 @@ inline void select_asset(const char *assetName)
   get_app().selectAsset(*asset);
 }
 
+inline const char *get_application_blk_path() { return get_app().getWorkspace().getAppBlkPath(); }
+
 } // namespace bind_dascript

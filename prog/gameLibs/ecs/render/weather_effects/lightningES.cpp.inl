@@ -23,6 +23,9 @@ CONSOLE_FLOAT_VAL("lightning", debug_sleep_time, 2.0f);
 CONSOLE_FLOAT_VAL("lightning", debug_azimuth, -1.0f);
 CONSOLE_FLOAT_VAL("lightning", debug_distance, 6000.0f);
 
+CONSOLE_FLOAT_VAL("lightning", cloud_trace_threshold, 0.5f);
+CONSOLE_FLOAT_VAL("lightning", cloud_trace_margin, 200.0f);
+
 #define GLOBAL_VARS_LIST                                     \
   VAR(lightning_point_light_pos)                             \
   VAR(lightning_point_light_color)                           \
@@ -195,6 +198,12 @@ struct LightningFX
   Point3 sunDir;
   bool doFlickering = false;
 
+  // Sky-trace cloud gating: a vertical ray is traced through the cloud layer at
+  // the upcoming strike's XZ to only spawn lightning where clouds exist
+  int cloudTraceId = -1;    // in-flight trace id, -1 = none
+  bool cloudPresent = true; // verdict for the current strike (default/fail-open: allow)
+  bool suppressed = false;  // current strike hidden (no clouds at its XZ)
+
 private:
   TMatrix defaultRotTM;
 
@@ -300,7 +309,7 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
   Point2 lightning__point_light_strength_interval, float lightning__point_light_extinction_threshold,
   bool lightning__point_light_natural_fade, Point3 lightning__point_light_color, float lightning__scene_illumination_multiplier,
   bool lightning__scene_illumination_enable_for_flash, float lightning__scene_illumination_near_sun_threshold,
-  ecs::EidList &lightning__animchars_eids)
+  ecs::EidList &lightning__animchars_eids, bool lightning__cloud_density_check = false)
 {
   auto skies = lightning_get_skies();
   if (!skies || !lightning.animcharNum)
@@ -334,6 +343,10 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
   bool earlyExitOnUnmatchedSkies = lightning__is_volumetric != !lightning_get_skies()->panoramaEnabled();
   if (earlyExitOnUnmatchedSkies)
   {
+    lightning.cloudPresent = true;
+    lightning.suppressed = false;
+    lightning.cloudTraceId = -1;
+
     // disable current animchar when swtiching skies settings
     if (lightning.started)
     {
@@ -347,6 +360,23 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
   }
   bool isSeries = lightning.isNextSeries;
 
+  if (lightning__cloud_density_check && lightning.cloudTraceId >= 0)
+  {
+    float traceT, traceTransmittance;
+    if (skies->getCloudsTraceResult(lightning.cloudTraceId, traceT, traceTransmittance))
+    {
+      // traceT >= 0: cloud hit. traceT < 0 with high transmittance: ray cleared the layer -> no cloud.
+      // traceT < 0 with ~0 transmittance: tracer frame-timeout (not a real result) -> fail open.
+      if (traceT >= 0.f)
+        lightning.cloudPresent = true;
+      else if (traceTransmittance >= cloud_trace_threshold)
+        lightning.cloudPresent = false;
+      else
+        lightning.cloudPresent = true;
+      lightning.cloudTraceId = -1;
+    }
+  }
+
   // enable lightning effect if currently in between strike start time and end time
   if (lightning.strikeStartTime < currentTime && currentTime < lightning.strikeEndTime && !lightning.isFadingOut)
   {
@@ -355,12 +385,18 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
       float timeDiff = lightning.strikeEndTime - lightning.strikeStartTime;
       lightning.strikeStartTime = currentTime;
       lightning.strikeEndTime = currentTime + timeDiff;
-
-      lightning.startHighQualityFrames();
       lightning.started = true;
-      lightning.updateTM(transform, lightning.azimuthCurrent * TWOPI, lightning.distanceCurrent, lightning__base_offset);
+      lightning.suppressed = lightning__cloud_density_check && !lightning.cloudPresent;
+
       bool doBolt = lightning__bolt_probability > _rnd_float(lightning.rngSeed, 0.0f, 1.0f);
       doBolt = (doBolt && lightning__series_create_bolt) || (doBolt && !isSeries);
+      lightning.doFlickering = lightning__point_light_flickering_probability > _rnd_float(lightning.rngSeed, 0.0f, 1.0f);
+
+      if (lightning.suppressed)
+        return;
+
+      lightning.startHighQualityFrames();
+      lightning.updateTM(transform, lightning.azimuthCurrent * TWOPI, lightning.distanceCurrent, lightning__base_offset);
       float cloudsHeight = getCloudsAlt();
       Point3 lightPos = transform.getcol(3);
       lightPos.y = cloudsHeight + lightning__point_light_offset;
@@ -369,7 +405,6 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
       lightPos2D.normalize();
       sunDir2D.normalize();
       bool isNearSun = dot(lightPos2D, sunDir2D) > cos(lightning__scene_illumination_near_sun_threshold * DEG_TO_RAD);
-      lightning.doFlickering = lightning__point_light_flickering_probability > _rnd_float(lightning.rngSeed, 0.0f, 1.0f);
       if ((doBolt || lightning__scene_illumination_enable_for_flash) && isNearSun)
       {
         Point3 towardsLightDir = lightPos;
@@ -419,6 +454,9 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
         });
     }
 
+    if (lightning.suppressed)
+      return;
+
     float bottomLerpVal = (currentTime - lightning.strikeStartTime) / lightning__bolt_strike_time;
     float currentNoise = eastl::max(1 - (currentTime - lightning.strikeStartTime) / lightning__vert_noise_time, 0.0f);
     float currentBottom = eastl::max(lerp(getCloudsAlt(), 0.0f, bottomLerpVal), 0.0f);
@@ -460,6 +498,7 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
   }
 
   // player, who joined after some time, will catch up and will have lightning synchronized; catching up 2 hours takes ~3usec
+  bool newStrikeGenerated = false;
   while (lightning.strikeEndTime < currentTime)
   {
     // Determine if next strike would be a part of series or not
@@ -510,6 +549,30 @@ static void lightning_update_es(const ecs::UpdateStageInfoAct &evt, ecs::EntityM
 
     lightning.currentAnimcharId =
       (lightning.currentAnimcharId + _rnd_int(lightning.rngSeed, 1, lightning.animcharNum - 1)) % (lightning.animcharNum);
+
+    newStrikeGenerated = true;
+  }
+
+  if (lightning__cloud_density_check && newStrikeGenerated)
+  {
+    lightning.cloudTraceId = -1; // abandon any stale in-flight trace from the previous strike
+
+    // vertical ray straight down at the strike's XZ; only volumetric clouds participate (clouds_field, not strata).
+    float startAlt = skies->getCloudsStartAlt();
+    float topAlt = skies->getCloudsTopAlt();
+    if (startAlt >= 0.f && topAlt > startAlt)
+    {
+      lightning.cloudPresent = true;
+      float azimuth = lightning.azimuthCurrent * TWOPI;
+      float dist = lightning.distanceCurrent;
+      Point3 traceOrigin = Point3(cos(azimuth) * dist, topAlt + cloud_trace_margin, sin(azimuth) * dist);
+      float traceDist = (topAlt - startAlt) + 2.0f * cloud_trace_margin;
+      lightning.cloudTraceId = skies->addCloudsTrace(traceOrigin, Point3(0.0f, -1.0f, 0.0f), traceDist, cloud_trace_threshold, 0.0f);
+    }
+    else
+    {
+      lightning.cloudPresent = false;
+    }
   }
 
   // Update point light radius and strength for fadeout effect

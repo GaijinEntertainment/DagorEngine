@@ -49,3 +49,7 @@ def mm_enable_for_animation_player(act : ParallelUpdateFrameDelayed;
 [es(tag=dev, on_event=InvalidateAnimationDataBase)]
 def mm_clear_clips_progress(evt : Event; var mm_clips_clipProgress : IntList)
   resize(mm_clips_clipProgress, 0)
+
+[es(REQUIRE=animchar__lockAnimStateChange)]
+def disable_mm_for_debug_lock_anim_state(evt : ParallelUpdateFrameDelayed; var motion_matching__enabled : bool&)
+  motion_matching__enabled = false

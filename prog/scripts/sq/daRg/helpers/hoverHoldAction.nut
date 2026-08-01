@@ -4,7 +4,7 @@ const REPAY_TIME = 0.3
 
 let allTimers = {}
 
-function mkOnHover(groupId, itemId, action, repayTime = REPAY_TIME) {
+function mkOnHover(groupId, itemId, action, repayTime: number = REPAY_TIME): function {
   if (!(groupId in allTimers))
     allTimers[groupId] <- {}
   let groupTimers = allTimers[groupId]

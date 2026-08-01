@@ -28,7 +28,7 @@ macro PROJECT_TRACE(code, supports_raygen)
         HitInfo hitInfo;
         //fixme: (sp_world_view_pos - bvh_origin) is constant that should be calculated in doubles!
         float3 bvhFrom = (origin - bvh_origin) + cam_from;
-        if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupAll, hitInfo, 0.5))
+        if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupAll, hitInfo))
         {
           hit.hitAt = hitInfo.t;
           hit.hitCamPos = cam_from + worldDir*hit.hitAt;

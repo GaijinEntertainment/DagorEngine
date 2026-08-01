@@ -11,6 +11,9 @@
 
 const intptr_t invalid_console_handle = -1;
 static intptr_t out_debug_console_handle = invalid_console_handle;
+#if _TARGET_IOS|_TARGET_TVOS
+static bool console_output_crypted = false;
+#endif
 
 void set_debug_console_handle(intptr_t handle)
 {
@@ -30,6 +33,10 @@ void out_debug_str(const char *str)
   static aslclient client = asl_open(NULL, "com.apple.console", 0);
   asl_log(client, NULL, ASL_LEVEL_NOTICE, "%s", str);
 #endif
+#if _TARGET_IOS|_TARGET_TVOS
+  if (console_output_crypted) // handle is the crypted log file; a plain write would break decryption
+    return;
+#endif
   if (out_debug_console_handle != invalid_console_handle) // do quiet while output not requested
   {
     fwrite(str, 1, strlen(str), (FILE*)out_debug_console_handle);
@@ -40,6 +47,11 @@ void out_debug_str(const char *str)
 #if _TARGET_IOS|_TARGET_TVOS
 static bool only_file_log = false;
 static bool copy_log_to_console = false;
+
+void set_debug_console_crypted(bool val)
+{
+  console_output_crypted = val;
+}
 
 void set_debug_console_ios_file_output(bool val)
 {

@@ -24,7 +24,7 @@
 
 namespace net
 {
-extern void update_dirty_component_filter_mask();
+extern void update_dirty_component_filter_mask(ecs::EntityManager &mgr);
 
 bool write_server_eid(ecs::entity_id_t eidVal, danet::BitStream &bs)
 {
@@ -52,8 +52,8 @@ bool write_server_eid(ecs::entity_id_t eidVal, danet::BitStream &bs)
   }
   else // 4 bytes
   {
-    G_FAST_ASSERT(index < (1 << 20)); // Note: encoding allows 20 bits; replication is hard-capped at 16 by `entityIndexToReplicaIndex`
-    uint32_t compressedData = 0;      // two zeroes at the end means uncompressed + 4byte version
+    G_FAST_ASSERT(index < (1 << NET_EID_INDEX_BITS)); // generation occupies the bits above
+    uint32_t compressedData = 0;                      // two zeroes at the end means uncompressed + 4byte version
     compressedData |= index << 2;
     compressedData |= generation << 22;
     bs.Write(uint16_t(compressedData));
@@ -124,9 +124,9 @@ struct PendingReplicationPacketInfo
   PendingReplicationPacketInfo(sequence_t seq) : waitSequence(seq) {}
 };
 
+// randomize initial local sequence in order to avoid relying on lack of sequence oveflowing
 Connection::Connection(ecs::EntityManager &mgr, ConnectionId id_, scope_query_cb_t &&scope_query) :
-  mgr(mgr), id(id_), scopeQuery(eastl::move(scope_query)), reliabilitySys(grnd()) // randomize initial local sequence in order to avoid
-                                                                                  // relying on lack of sequence oveflowing
+  mgr(mgr), id(id_), scopeQuery(eastl::move(scope_query)), reliabilitySys(grnd()), objectKeysRepl(&objectKeysLocal)
 {
   G_ASSERT(id != net::INVALID_CONNECTION_ID);
 }
@@ -142,10 +142,10 @@ Connection::~Connection()
 
 ObjectReplica *Connection::getReplicaByEid(ecs::EntityId eid)
 {
-  auto it = entityIndexToReplicaIndex.find(eid.index()); // To consider: check for index overflow?
+  auto it = entityIndexToReplicaIndex.find(EidIndex24(eid.index()));
   if (it == entityIndexToReplicaIndex.end())
     return nullptr;
-  ObjectReplica *repl = &replicaRefs[it->second];
+  ObjectReplica *repl = &replicaRefs[it->second.get()];
 #if DAECS_EXTENSIVE_CHECKS
   G_FAST_ASSERT(repl->getEid() == eid);
 #endif
@@ -165,7 +165,7 @@ ObjectReplica *Connection::addObjectInScope(Object &obj)
   if (numReplicas >= MaxReplicas)
     return NULL;
   uint32_t eidIndex = obj.getEid().index();
-  if (eidIndex > eastl::numeric_limits<decltype(entityIndexToReplicaIndex)::key_type>::max())
+  if (eidIndex > MAX_REPLICATED_EID_INDEX)
     return NULL;
 
   // allocate new replica
@@ -185,7 +185,7 @@ ObjectReplica *Connection::addObjectInScope(Object &obj)
 
   uint32_t replIndex = (uint32_t)eastl::distance(replicaRefs.begin(), repl);
   G_ASSERT(MaxReplicas <= (USHRT_MAX + 1) || replIndex <= USHRT_MAX);
-  G_VERIFY(entityIndexToReplicaIndex.emplace(eidIndex, replIndex).second); // shall not exist already
+  G_VERIFY(entityIndexToReplicaIndex.emplace(EidIndex24(eidIndex), ReplicaIdx(replIndex)).second); // shall not exist already
 
   pushToDirty(repl); // by default new in scope object considered dirty
 
@@ -199,7 +199,7 @@ void Connection::killObjectReplica(ObjectReplica *repl, Object *obj)
   if (obj)
     repl->detachFromObj(*obj);
   repl->flags |= ObjectReplica::ToKill;
-  G_VERIFY(entityIndexToReplicaIndex.erase(repl->getEid().index()));
+  G_VERIFY(entityIndexToReplicaIndex.erase(EidIndex24(repl->getEid().index())));
   repl->prevRepl = repl->nextRepl = NULL;
 
   pushToDirty(repl);
@@ -314,7 +314,7 @@ void Connection::setReplicatingTo()
 /* static */
 void Connection::collapseDirtyObjects(ecs::EntityManager &mgr)
 {
-  update_dirty_component_filter_mask();
+  update_dirty_component_filter_mask(mgr);
   for (ecs::EntityId dirtyEid : Object::dirtyList)
   {
     Object *obj = Object::getByEid(mgr, dirtyEid);
@@ -448,13 +448,14 @@ void Connection::writeReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmp
   eastl::bitvector<> componentsSyncedSaved;
   eastl::vector<uint16_t> serverTemplateComponentsCountSaved;
   ecs::template_t syncedTemplateSaved = 0;
-  InternedStrings objectKeysSaved;
+  InternedStringsShared objectKeysSharedTmp;
+  InternedStringsRepl objectKeysReplSaved(&objectKeysSharedTmp);
 
   serverTemplatesIdx.swap(serverTemplatesIdxSaved);
   serverIdxToTemplates.swap(serverIdxToTemplatesSaved);
   componentsSynced.swap(componentsSyncedSaved);
   serverTemplateComponentsCount.swap(serverTemplateComponentsCountSaved);
-  eastl::swap(objectKeys, objectKeysSaved);
+  eastl::swap(objectKeysRepl, objectKeysReplSaved);
   eastl::swap(syncedTemplate, syncedTemplateSaved);
 
   // Step 2. Sync all entities as fresh entities
@@ -485,7 +486,7 @@ void Connection::writeReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmp
   serverIdxToTemplates.swap(serverIdxToTemplatesSaved);
   componentsSynced.swap(componentsSyncedSaved);
   serverTemplateComponentsCount.swap(serverTemplateComponentsCountSaved);
-  eastl::swap(objectKeys, objectKeysSaved);
+  eastl::swap(objectKeysRepl, objectKeysReplSaved);
   eastl::swap(syncedTemplate, syncedTemplateSaved);
 
   // Step 4. Serialize exist network templates
@@ -504,7 +505,7 @@ void Connection::writeReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmp
   serializeBlockCount = 0;
   blockSizePos = bs.GetWriteOffset();
   bs.Write(serializeBlockCount);
-  for (auto const &it : objectKeys.index)
+  for (auto const &it : objectKeysRepl.shared->index)
   {
     bs.Write(it.second);
     bs.Write((uint16_t)it.first.length());
@@ -527,13 +528,14 @@ void Connection::writeClientReplayKeyFrame(danet::BitStream &bs, danet::BitStrea
   eastl::bitvector<> componentsSyncedSaved;
   eastl::vector<uint16_t> serverTemplateComponentsCountSaved;
   ecs::template_t syncedTemplateSaved = 0;
-  InternedStrings objectKeysSaved;
+  InternedStringsShared objectKeysSharedTmp;
+  InternedStringsRepl objectKeysReplSaved(&objectKeysSharedTmp);
 
   serverTemplatesIdx.swap(serverTemplatesIdxSaved);
   serverIdxToTemplates.swap(serverIdxToTemplatesSaved);
   componentsSynced.swap(componentsSyncedSaved);
   serverTemplateComponentsCount.swap(serverTemplateComponentsCountSaved);
-  eastl::swap(objectKeys, objectKeysSaved);
+  eastl::swap(objectKeysRepl, objectKeysReplSaved);
   eastl::swap(syncedTemplate, syncedTemplateSaved);
 
   // Step 2. Sync all entities as fresh entities
@@ -560,7 +562,7 @@ void Connection::writeClientReplayKeyFrame(danet::BitStream &bs, danet::BitStrea
   serverIdxToTemplates.swap(serverIdxToTemplatesSaved);
   componentsSynced.swap(componentsSyncedSaved);
   serverTemplateComponentsCount.swap(serverTemplateComponentsCountSaved);
-  eastl::swap(objectKeys, objectKeysSaved);
+  eastl::swap(objectKeysRepl, objectKeysReplSaved);
   eastl::swap(syncedTemplate, syncedTemplateSaved);
 
   // Step 4. Serialize exist network templates
@@ -594,7 +596,7 @@ void Connection::writeClientReplayKeyFrame(danet::BitStream &bs, danet::BitStrea
     BitSize_t blockSizePos = bs.GetWriteOffset();
     uint16_t serializeBlockCount = 0;
     bs.Write(serializeBlockCount);
-    for (auto const &it : objectKeys.index)
+    for (auto const &it : objectKeysRepl.shared->index)
     {
       bs.Write(it.second);
       bs.Write((uint16_t)it.first.length());
@@ -634,10 +636,11 @@ bool Connection::readReplayKeyFrame(const danet::BitStream &bs, const on_object_
     G_ASSERT_RETURN(tpl_deserialized, false);
   }
 
-  auto objectKeys_index = objectKeys.index;
-  auto objectKeys_strings = objectKeys.strings;
-  objectKeys.index.clear();
-  objectKeys.strings.clear();
+  G_ASSERT(objectKeysRepl.shared == &objectKeysLocal);
+  auto objectKeys_index = objectKeysLocal.index;
+  auto objectKeys_strings = objectKeysLocal.strings;
+  objectKeysLocal.index.clear();
+  objectKeysLocal.strings.clear();
 
   REPL_VER(bs.Read(serializeBlockCount));
   for (int i = 0; i < serializeBlockCount; ++i)
@@ -648,16 +651,16 @@ bool Connection::readReplayKeyFrame(const danet::BitStream &bs, const on_object_
     REPL_VER(bs.Read(size));
     eastl::string str(size, '\0');
     REPL_VER(bs.Read(str.data(), size));
-    if (objectKeys.strings.size() <= key)
-      objectKeys.strings.resize(key + 1);
-    objectKeys.strings[key] = str;
-    objectKeys.index.emplace(str, key);
+    if (objectKeysLocal.strings.size() <= key)
+      objectKeysLocal.strings.resize(key + 1);
+    objectKeysLocal.strings[key] = str;
+    objectKeysLocal.index.emplace(str, key);
   }
   mgr.updateAllQueries();
   return true;
 }
 
-bool Connection::writeConstructionPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes)
+bool Connection::writeConstructionPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes, SharedReplicationCache *cache)
 {
   G_ASSERT(isReplicatingFrom());
   if (!numDirtyReplicas)
@@ -688,7 +691,8 @@ bool Connection::writeConstructionPacket(danet::BitStream &bs, danet::BitStream 
     DAECS_EXT_ASSERTF(!mgr.isLoadingEntity(eid), "%d", (ecs::entity_id_t)eid);
     net::write_server_eid((ecs::entity_id_t)eid, bs);
 
-    uint32_t blockSizeBytes = write_block(bs, tmpbs, [this, eid](danet::BitStream &bs2) { serializeConstruction(eid, bs2); });
+    uint32_t blockSizeBytes =
+      write_block(bs, tmpbs, [&](danet::BitStream &bs2) { serializeConstruction(eid, bs2, CanSkipInitial::Yes, cache); });
 
     DAECS_EXT_ASSERT(blockSizeBytes);
     G_UNUSED(blockSizeBytes);

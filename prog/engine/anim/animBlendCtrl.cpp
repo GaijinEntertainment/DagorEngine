@@ -342,12 +342,21 @@ void AnimBlendNodeContinuousLeaf::buildBlendingList(BlendCtx &bctx, real w)
 
   if (irqs.size() && bctx.lastDt && w > 0 && !wt[bnlId])
   {
-    int prevTime = calcAnimTimePos(p - bctx.lastDt * st.getParamEffTimeScale(paramId));
-    for (int i = 0; i < irqs.size(); i++)
-      if (irqs[i].irqTime > curTime)
-        break;
-      else if (prevTime < irqs[i].irqTime || (prevTime == 0 && irqs[i].irqTime == 0))
-        bctx.irq(irqs[i].irqId, (intptr_t)this, curTime, 0);
+    real prevP = p - bctx.lastDt * st.getParamEffTimeScale(paramId);
+    int prevTime = calcAnimTimePos(prevP);
+    if (prevP < p && prevTime > curTime)
+    {
+      // anim time wrapped past loop end: passed range is (prevTime, t0+dt) + [t0, curTime]
+      for (int i = 0; i < irqs.size(); i++)
+        if (irqs[i].irqTime > prevTime || irqs[i].irqTime <= curTime)
+          bctx.irq(irqs[i].irqId, (intptr_t)this, curTime, 0);
+    }
+    else
+      for (int i = 0; i < irqs.size(); i++)
+        if (irqs[i].irqTime > curTime)
+          break;
+        else if (prevTime < irqs[i].irqTime || (prevTime == 0 && irqs[i].irqTime == 0))
+          bctx.irq(irqs[i].irqId, (intptr_t)this, curTime, 0);
   }
 
 #if DAGOR_DBGLEVEL > 0
@@ -564,7 +573,7 @@ real AnimBlendNodeParametricLeaf::tell(AnimGraphStateHolder &st)
   else
     param = clamp(param, 0.0f, 1.0f);
   int curTime = int(t0 + (param)*dt);
-  return real(curTime) / real(dt);
+  return real(curTime - t0) / real(dt);
 }
 void AnimBlendNodeParametricLeaf::setDefaultState(AnimGraphStateHolder &st)
 {
@@ -810,8 +819,10 @@ void AnimBlendCtrl_1axis::buildBlendingList(BlendCtx &bctx, real w)
         else
           a = a0 + (param - t0) / (t1 - t0) * (a1 - a0);
 
-        if (a < 0.001f || a >= 0.999f)
-          continue;
+        if (a >= 0.999f)
+          continue; // new slice contributes ~nothing
+        if (a < 0.001f)
+          active.clear(); // prev slices contribute ~nothing, only the new one remains
 
         for (j = 0; j < active.size(); j++)
           active[j].w *= a;
@@ -921,7 +932,7 @@ void AnimBlendCtrl_LinearPoly::buildBlendingList(BlendCtx &bctx, real w)
     real diff = param - curPos;
     real range = maxParam - minParam;
     if (rabs(diff) > 0.5f * range)
-      param = -sign(diff) * range;
+      param -= sign(diff) * range; // unwrap so that approach takes the short way around
     curPos = approach(curPos, param, dt, paramTau);
     curPos = move_to(curPos, param, dt, paramSpeed);
     if (curPos > maxParam)
@@ -1059,6 +1070,8 @@ void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, Animatio
   if (l % 32 == 0) // We just exceeded our 32 bit limit in the last bitmap
     add_rewind_bitmap(rewindBitmapParamsIds, graph, ctrl_name);
 }
+
+void AnimBlendCtrl_LinearPoly::sortBlendNodes() { sort(poly, &anim_point_p0_cmp); }
 
 
 //
@@ -1265,7 +1278,7 @@ void AnimBlendCtrl_RandomSwitcher::setRandomAnim(AnimGraphStateHolder &st)
   int lastIdRepeat = st.getParamInt(repParamId);
 
   int seed = interlocked_relaxed_load(rndSeed);
-  for (;;)
+  for (int attempt = 0;; attempt++)
   {
     real p = _frnd(seed);
 
@@ -1282,7 +1295,8 @@ void AnimBlendCtrl_RandomSwitcher::setRandomAnim(AnimGraphStateHolder &st)
     if (id == -1)
       id = list.size() - 1;
 
-    if (lastIdRepeat >= list[id].maxRepeat && lastId == id)
+    // bounded reroll: with a single pickable anim maxRepeat can never be satisfied
+    if (attempt < 64 && lastIdRepeat >= list[id].maxRepeat && lastId == id)
       continue;
 
     if (lastId == id)
@@ -1310,7 +1324,7 @@ bool AnimBlendCtrl_RandomSwitcher::setAnim(AnimGraphStateHolder &st, IAnimBlendN
     if (list[i].node == n)
     {
       if (st.getParamInt(paramId) == i)
-        st.setParamInt(repParamId, st.getParamInt(repParamId));
+        st.setParamInt(repParamId, st.getParamInt(repParamId) + 1);
       else
       {
         st.setParamInt(paramId, i);
@@ -1681,7 +1695,7 @@ void AnimBlendCtrl_ParametricSwitcher::buildBlendingList(BlendCtx &bctx, real w)
     float res = 0, ctime = st.getParam(AnimationGraph::PID_GLOBAL_TIME);
     for (int i = 0; i < list.size(); i++)
       if (float nw = fifo->getEnqueuedWeight(list[i].node, ctime))
-        res = (p - list[i].baseVal) * nw;
+        res += (p - list[i].baseVal) * nw;
     st.setParam(residualParamId, res * w);
   }
 

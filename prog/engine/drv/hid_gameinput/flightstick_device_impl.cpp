@@ -142,7 +142,7 @@ static bool can_trust_data(bool can_trust_prev, eastl::span<const float> axis, e
 
 bool FlightStickDevice::updateState(int dt_msec)
 {
-  gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindAny, device);
+  gameinput::Reading reading = gameinput::get_current_reading(GameInputKindController, device);
   if (!reading)
     return false;
 

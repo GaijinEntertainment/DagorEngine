@@ -42,6 +42,7 @@ namespace das {
     DAS_API Func builtin_SimFunction_by_MNH ( Context & context, uint64_t MNH );
     DAS_API vec4f builtin_breakpoint ( Context & context, SimNode_CallBase * call, vec4f * );
     DAS_API void builtin_stackwalk ( bool args, bool vars, Context * context, LineInfoArg * lineInfo );
+    DAS_API char * builtin_get_stackwalk ( bool args, bool vars, bool outOfScope, bool topOnly, Context * context, LineInfoArg * lineInfo );
     DAS_API void builtin_terminate ( Context * context, LineInfoArg * lineInfo );
     DAS_API int builtin_table_size ( const Table & arr );
     DAS_API bool builtin_table_empty ( const Table & arr );

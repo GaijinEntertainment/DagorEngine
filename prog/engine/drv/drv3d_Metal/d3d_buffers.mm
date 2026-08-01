@@ -80,14 +80,16 @@ bool d3d::setvsrc_ex(int slot, Sbuffer *vb, int offset, int stride)
   return set_buffer_ex(STAGE_VS, GEOM_BUFFER, slot, (Buffer*)vb, offset, stride);
 }
 
-bool d3d::set_const_buffer(unsigned stage, unsigned slot, Sbuffer* buffer, uint32_t consts_offset, uint32_t consts_size)
+bool d3d::set_const_buffer(unsigned stage, unsigned slot, Sbuffer* buffer)
 {
-  D3D_CONTRACT_ASSERT_RETURN(!consts_offset && !consts_size, false); //not implemented, not tested
+  D3D_CONTRACT_ASSERT(slot < CONST_BUFFER_COUNT);
+  D3D_CONTRACT_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_CONSTANT));
   return set_buffer_ex(stage, CONST_BUFFER, slot, (Buffer*)buffer, 0, 0);
 }
 
 bool d3d::set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer)
 {
+  D3D_CONTRACT_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_SHADER_RES));
   int offset = 0;
   Buffer* buf = (Buffer*)buffer;
   return set_buffer_ex(shader_stage, STRUCT_BUFFER, slot, buf, offset, 0);

@@ -5,7 +5,6 @@
 // Dependencies of commands
 #include "device_queue.h"
 #include "fsr_args.h"
-#include "fsr2_wrapper.h"
 #include "info_types.h"
 #include "pipeline.h"
 #include "query_manager.h"
@@ -776,7 +775,7 @@ void FrameCommandLogger::dumpFrameCommandLog(FrameCommandLog &frame_log, debug::
         auto s = cmdToStr(buffer, device_state, value);
         if (buffer.length() > 5)
         {
-          logdbg(s);
+          logdbg("%s", s);
         }
       });
       // NOTE: this reports entries after lastCheckpoint and including with checkpoint
@@ -796,7 +795,7 @@ void FrameCommandLogger::dumpFrameCommandLog(FrameCommandLog &frame_log, debug::
       auto s = cmdToStr(buffer, device_state, value);
       if (buffer.length() > 5)
       {
-        logdbg(s);
+        logdbg("%s", s);
       }
     });
   }

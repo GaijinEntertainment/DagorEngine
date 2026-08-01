@@ -318,8 +318,8 @@ hlsl(ds) {
     #ifdef MOTION_VECTORS_ENABLED
       // TODO use prev tm from the ri extra additional data
       // This code assumes no movement of the object, but handles camera movement
-      output.out_pos = output.pos;
-      output.out_pos_prev = mulPointTm(pos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+      output.out_pos = output.pos.xyw;
+      output.out_pos_prev = mulPointTm(pos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip).xyw;
     #endif
     return output;
   }

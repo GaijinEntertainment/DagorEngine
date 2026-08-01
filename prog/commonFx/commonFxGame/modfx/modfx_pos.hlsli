@@ -115,7 +115,7 @@ void modfx_pos_init_cone( BufferData_cref buf, uint ofs, rnd_seed_ref rnd_seed, 
 {
   ModfxDeclPosInitCone pp = ModfxDeclPosInitCone_load( buf, ofs );
 
-  rnd_seed_t burst_seed = dafx_fastrnd( dispatch_seed );
+  rnd_seed_t burst_seed = dafx_calc_instance_rnd_seed( 0, dispatch_seed );
   float3 rnd_sector = dafx_srnd_vec3( burst_seed );
   float3 yaxis = normalize( lerp( pp.vec, rnd_sector, pp.random_burst ) );
 
@@ -159,7 +159,7 @@ void modfx_pos_init_cylinder( BufferData_cref buf, uint ofs, rnd_seed_ref rnd_se
 {
   ModfxDeclPosInitCylinder pp = ModfxDeclPosInitCylinder_load( buf, ofs );
 
-  rnd_seed_t burst_seed = dafx_fastrnd( dispatch_seed );
+  rnd_seed_t burst_seed = dafx_calc_instance_rnd_seed( 0, dispatch_seed );
   float3 rnd_sector = dafx_srnd_vec3( burst_seed );
   float3 v = normalize( lerp( pp.vec, rnd_sector, pp.random_burst ) );
 
@@ -219,7 +219,7 @@ void modfx_pos_init_sphere_sector( BufferData_cref buf, uint ofs, rnd_seed_ref r
 
   float3 tv = float3( c0 * c1, s1, s0 * c1 );
 
-  rnd_seed_t burst_seed = dafx_fastrnd( dispatch_seed );
+  rnd_seed_t burst_seed = dafx_calc_instance_rnd_seed( 0, dispatch_seed );
   float3 rnd_sector = dafx_srnd_vec3( burst_seed );
   float3 yaxis = normalize( lerp( pp.vec, rnd_sector, pp.random_burst ) );
 

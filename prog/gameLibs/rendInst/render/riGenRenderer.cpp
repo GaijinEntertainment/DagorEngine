@@ -683,6 +683,9 @@ void RiGenRenderer::renderObjects(const RendInstGenData::RtData &rt_data, const 
     shaders::overrides::set(previousOverrideId);
   }
 
+  if (renderPass == RenderPass::ToShadow)
+    d3d::settex(dynamic_impostor_texture_const_no + DYNAMIC_IMPOSTOR_TEX_SHADOW_OFFSET, nullptr);
+
   debug_mesh::reset_debug_value();
 }
 

@@ -341,7 +341,7 @@ static bool save_compressed(const char *path, const Tab<char> &bytes, const Comp
 }
 
 
-syncvroms::LoadedSyncVrom syncvroms::load_vromfs_dump(const char *path, const VromfsCompression &compr)
+syncvroms::LoadedSyncVrom syncvroms::load_vromfs_dump(const char *path, const VromfsCompression &compr, bool allow_shared_mem)
 {
   static constexpr VromfsCompression::CheckType vromfsCheck = VromfsCompression::CHECK_VERBOSE;
   static constexpr VromfsCompression::InputDataType inputData = VromfsCompression::IDT_DATA;
@@ -351,11 +351,10 @@ syncvroms::LoadedSyncVrom syncvroms::load_vromfs_dump(const char *path, const Vr
   if (!vrom.first.empty() && compr.getDataType(vrom.first.data() + 1, vrom.first.size() - 1, vromfsCheck) != inputData)
   {
     dag::ConstSpan<char> vromSlice{vrom.first.data(), (intptr_t)vrom.first.size()};
-    if (syncvroms::LoadedSyncVrom loadedVrom{vrom.second, dd_get_fname(path), load_vromfs_dump_from_mem(vromSlice, defaultmem)})
-    {
-      loadedVrom.fsData->mtime = mtime;
+    const char *shared_nm = allow_shared_mem ? dd_get_fname(path) : nullptr;
+    if (syncvroms::LoadedSyncVrom loadedVrom{
+          vrom.second, dd_get_fname(path), load_vromfs_dump_from_mem(vromSlice, defaultmem, shared_nm, mtime)})
       return loadedVrom;
-    }
   }
 
   return {};

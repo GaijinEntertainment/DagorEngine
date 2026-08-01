@@ -93,6 +93,15 @@ void drv3d_vulkan::WindowState::getRenderWindowSettings()
     h = extent.height;
   }
   get_settings_resolution(settings.resolutionX, settings.resolutionY, isRetina, w, h, isAuto);
+
+  const DataBlock &videoBlk = *dgs_get_settings()->getBlockByNameEx("video");
+  const int positionIndex = videoBlk.findParam("position");
+  if (positionIndex >= 0 && videoBlk.getParamType(positionIndex) == DataBlock::TYPE_IPOINT2)
+    settings.position = videoBlk.getIPoint2(positionIndex);
+  else
+    settings.position.reset();
+
+  settings.maximized = videoBlk.getBool("maximized", true);
 }
 
 bool drv3d_vulkan::WindowState::setRenderWindowParams()
@@ -109,7 +118,13 @@ bool drv3d_vulkan::WindowState::setRenderWindowParams()
     return true;
 
   closeWindow();
-  if (linux_GUI::init_window(windowTitle, settings.resolutionX, settings.resolutionY))
+
+  linux_GUI::WindowCreationOptions windowCreationOptions{
+    .position = settings.position,
+    .maximized = settings.maximized,
+  };
+
+  if (linux_GUI::init_window(windowTitle, settings.resolutionX, settings.resolutionY, windowCreationOptions))
   {
     bool windowed = dgs_get_window_mode() != WindowMode::FULLSCREEN_EXCLUSIVE &&
                     dgs_get_window_mode() != WindowMode::WINDOWED_FULLSCREEN &&

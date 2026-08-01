@@ -22,6 +22,9 @@ SQUIRREL_API SQBool sqstd_rex_search(SQRex* exp,const char* text, const char** o
 SQUIRREL_API SQBool sqstd_rex_searchrange(SQRex* exp,const char* text_begin,const char* text_end,const char** out_begin, const char** out_end);
 SQUIRREL_API SQInteger sqstd_rex_getsubexpcount(SQRex* exp);
 SQUIRREL_API SQBool sqstd_rex_getsubexp(SQRex* exp, SQInteger n, SQRexMatch *subexp);
+// true when the last match/search was aborted (step budget or memory), so its
+// negative result does not mean "no match"
+SQUIRREL_API SQBool sqstd_rex_matchaborted(SQRex* exp);
 
 SQUIRREL_API SQRESULT sqstd_format(HSQUIRRELVM v,SQInteger nformatstringidx,SQInteger *outlen,char **output);
 

@@ -7,11 +7,11 @@ from "%darg/ui_imports.nut" import *
 from "%sqstd/ecs.nut" import *
 let rexFloat = regexp(@"(\+|-)?([0-9]+\.?[0-9]*|\.[0-9]+)([eE](\+|-)?[0-9]+)?")
 let rexInt = regexp(@"[\+\-]?[0-9]+")
-let tofloat = @(v) v.tofloat()
-let tointeger = @(v) v.tointeger()
-let isStrInt = @(v) rexInt.match(strip(v))
-let isStrFloat = @(v) rexFloat.match(strip(v))
-function isStrBool(text){
+let tofloat = @(v): float v.tofloat()
+let tointeger = @(v): int v.tointeger()
+let isStrInt = @(v: string) rexInt.match(strip(v))
+let isStrFloat = @(v: string) rexFloat.match(strip(v))
+function isStrBool(text: string): bool {
   let s = strip(text)
   return (s == "true" || s == "1" || s == "false" || s == "0")
 }
@@ -144,7 +144,7 @@ let map_class_to_str = {
   },
 }
 
-function instance_to_str(v, max_cvstr_len, compValToString_){
+function instance_to_str(v, max_cvstr_len, compValToString_): string {
   function objToStr(o){
     local s = format("[%d]={", o.len())
     foreach (val in o) {
@@ -188,7 +188,7 @@ function instance_to_str(v, max_cvstr_len, compValToString_){
   return res
 }
 
-function compValToString(v, max_cvstr_len = 80){
+function compValToString(v, max_cvstr_len = 80): string {
   let compValToString_ = callee()
   return type(v) == "instance"
     ? instance_to_str(v, max_cvstr_len, compValToString_)

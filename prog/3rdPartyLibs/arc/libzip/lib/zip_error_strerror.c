@@ -48,7 +48,7 @@ zip_error_strerror(zip_error_t *err)
     zip_error_fini(err);
 
     if (err->zip_err < 0 || err->zip_err >= _zip_nerr_str) {
-	sprintf(buf, "Unknown error %d", err->zip_err);
+	snprintf(buf, sizeof(buf), "Unknown error %d", err->zip_err);
 	zs = NULL;
 	ss = buf;
     }
@@ -72,11 +72,11 @@ zip_error_strerror(zip_error_t *err)
     if (ss == NULL)
 	return zs;
     else {
-	if ((s=(char *)malloc(strlen(ss)
-			      + (zs ? strlen(zs)+2 : 0) + 1)) == NULL)
+	size_t len = strlen(ss) + (zs ? strlen(zs)+2 : 0) + 1;
+	if ((s=(char *)malloc(len)) == NULL)
 	    return _zip_err_str[ZIP_ER_MEMORY];
-	
-	sprintf(s, "%s%s%s",
+
+	snprintf(s, len, "%s%s%s",
 		(zs ? zs : ""),
 		(zs ? ": " : ""),
 		ss);

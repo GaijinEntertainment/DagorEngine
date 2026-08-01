@@ -140,7 +140,10 @@ rule ProcessCompileTarget
 }
 
 
-rule DepRule
+# newer jam.exe provides this rule as the DepRulePlain C builtin (see
+# $(JAM_BUILTINS)); keep the interpreted fallback for older jam.exe
+if ! DepRulePlain in $(JAM_BUILTINS) {
+rule DepRulePlain
 {
   local changed_dep = ;
 
@@ -158,6 +161,7 @@ rule DepRule
   Includes $(<) : $(changed_dep) ;
   null_action $(changed_dep) ;
 }
+}
 
 
 rule CheckHeaders
@@ -169,7 +173,7 @@ rule CheckHeaders
   # scan line for header, skipping any ../ at the beginning [will be prefixed with $(Root)]
   HDRSCAN   on $(>) = "^.*: [\.\\\/]*([^\
 ]*).*$" ;
-  HDRRULE   on $(>) = DepRule ;
+  HDRRULE   on $(>) = DepRulePlain ;
 }
 
 

@@ -11,15 +11,10 @@ if ! $(UseD3DMultiList) {
   UseD3DMultiList_linux   = vulkan ;
 }
 
-if $(Platform) = windows && ! $(Sanitize) {
-  PlatformSpec = vc17 ;
-}
-
 if $(CheckOnly) = yes { DisableUsingPCH = yes ; }
 Exceptions = yes ;
 CheckedContainers = no ;
 UseMemoryDebugLevel = def ;
-UseLLDLink ?= no ;
 HaveOverlayUI = no ;
 HaveDngInput = no ;
 HaveEditor = no ;
@@ -28,6 +23,7 @@ HaveSound = no ;
 HaveSoundNet = no ;
 include $(Root)/prog/daNetGame/setup.jam ;
 
+ImguiTestRuntime ?= yes ;
 UseQuirrel = yes ;
 
 VRDeviceSupport = yes ;
@@ -50,8 +46,6 @@ include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-if $(Platform)-$(PlatformArch) = windows-arm64 { VRDeviceSupport = no ; }
-
 AddIncludes +=
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/tools/sceneTools/daEditorX/include
@@ -67,6 +61,7 @@ Sources =
   console.cpp
   av_version.cpp
   av_appwnd.cpp
+  canopyEditor.cpp
   av_engine.cpp
   av_assetSearchResultsWindow.cpp
   av_assetSearchResultsListControl.cpp
@@ -229,6 +224,7 @@ UseProgLibs =
   3rdPartyLibs/arc/zlib-$(UseZlibVer)
   3rdPartyLibs/image/psdRead
   3rdPartyLibs/hash
+  3rdPartyLibs/ImGuiColorTextEdit
 
   daNetGame
   1stPartyLibs/daScript/modules/dasStdDlg
@@ -255,12 +251,7 @@ gamePulls =
   game_pulls                 #second line is name of var
 ;
 
-if $(VRDeviceSupport) = yes && $(Platform) = windows {
-  BundleCopy +=
-    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
-    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
-  ;
-}
+if $(VRDeviceSupport) = yes { include $(Root)/prog/engine/drv/vr_device/bundle.jam ; }
 
 if [ GLOB $(Root)/skyquake/prog/tools : * ] { # FIXME_BROKEN_DEP
   UseRootLibs =

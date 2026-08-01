@@ -15,15 +15,17 @@ macro INIT_HEAT_HAZE_OFFSET()
     haze_target_texel_size@f2  = (1.0 / haze_target_width, 1.0 / haze_target_height, 0, 0);
     haze_offset_tex@smp2d      = haze_offset_tex;
     haze_color_tex@tex2d       = haze_color_tex;
-    haze_noise_tex@smp2d       = haze_noise_tex;
+    haze_noise_tex@tex2d       = haze_noise_tex;
     haze_depth_tex@smp2d       = haze_depth_tex;
     haze_scene_depth_tex@smp2d = haze_scene_depth_tex;
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 endmacro
 
 macro USE_HEAT_HAZE_OFFSET()
   hlsl(ps)
   {
+      #define haze_noise_tex_samplerstate global_linear_wrap_sampler
       #ifndef SAMPLE_HAZE_SCENE_DEPTH
       #define SAMPLE_HAZE_SCENE_DEPTH(tc) h4tex2Dlod(haze_scene_depth_tex, half4((tc),0,0)).x;
       #endif

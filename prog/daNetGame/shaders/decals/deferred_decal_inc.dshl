@@ -6,9 +6,14 @@ macro DEFERRED_DECAL_DEPTH()
   hlsl(ps) {
     half read_depth_mask(int2 tci, float w, float depth_start, float depth_end)
     {
-      float depth = loadGbufferDepth(tci);
-      float sceneDepth = linearize_z(depth, zn_zfar.zw);
-      float delta = sceneDepth - w;
+      #if RENDINST_IMPOSTOR_VOXEL
+        float depth = baker_read_last_depth(tci);
+        float delta = (depth - w) * impostor_depth_to_world;
+      #else
+        float depth = loadGbufferDepth(tci);
+        float sceneDepth = linearize_z(depth, zn_zfar.zw);
+        float delta = sceneDepth - w;
+      #endif
       float depth_mask_scale = 1/(depth_start-depth_end);
       float depth_mask_bias = -depth_end*depth_mask_scale;
       float depthMask = saturate(depth_mask_bias + depth_mask_scale * abs(delta));

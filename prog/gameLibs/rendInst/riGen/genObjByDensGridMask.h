@@ -14,12 +14,12 @@ namespace rendinst::gen
 #define ADD_ENTITY_BYMASK(rect_test, mask, rect, ent, ret_word)                                                  \
   float rndx, rndy;                                                                                              \
   rnd_fvec2(seed, rndx, rndy);                                                                                   \
-  pos.x = (ou + rndx) * gstepx + (mx + entity_ofs_x);                                                            \
-  pos.y = init_y0;                                                                                               \
-  pos.z = (ov + rndy) * gstepy + (my + entity_ofs_z);                                                            \
+  pos.x = (ou + rndx) * gstepx + (mx + pctx.entity_ofs_x);                                                       \
+  pos.y = pctx.init_y0;                                                                                          \
+  pos.z = (ov + rndy) * gstepy + (my + pctx.entity_ofs_z);                                                       \
   align_place_xz(pos);                                                                                           \
-  int mtx = int(floorf(pos.x * world2sampler) - floorf(world2sampler * entity_ofs_x));                           \
-  int mtz = int(floorf(pos.z * world2sampler) - floorf(world2sampler * entity_ofs_z));                           \
+  int mtx = int(floorf(pos.x * pctx.world2sampler) - floorf(pctx.world2sampler * pctx.entity_ofs_x));            \
+  int mtz = int(floorf(pos.z * pctx.world2sampler) - floorf(pctx.world2sampler * pctx.entity_ofs_z));            \
   if ((rect_test && !(rect & Point2::xz(pos))) || !mask.getClamped(mtx, mtz) || !is_place_allowed(pos.x, pos.z)) \
   {                                                                                                              \
     skip6_rnd(seed);                                                                                             \
@@ -51,9 +51,9 @@ namespace rendinst::gen
   }                                                                                                              \
   if (entIdx < 0)                                                                                                \
     ret_word;                                                                                                    \
-  rendinst::gen::SingleEntityPool &pool = pools[entIdx];                                                         \
+  rendinst::gen::SingleEntityPool &pool = pctx.pools[entIdx];                                                    \
   int paletteId = 0;                                                                                             \
-  if (pool.tryAdd(pos.x, pos.z))                                                                                 \
+  if (pool.tryAdd(ctx, pos.x, pos.z))                                                                            \
   {                                                                                                              \
     Point3 norm(0, 1, 0);                                                                                        \
     custom_get_height(pos, sgeg.obj[objId].orientType == sgeg.obj[objId].ORIENT_WORLD ? nullptr : &norm);        \
@@ -64,7 +64,7 @@ namespace rendinst::gen
       TMatrix rot_tm = TMatrix::IDENT;                                                                           \
       RotationPaletteManager::Palette palette;                                                                   \
       if (paletteRotation)                                                                                       \
-        palette = get_rotation_palette_manager()->getPalette({layerIdx, int(ent_remap[entIdx])});                \
+        palette = get_rotation_palette_manager()->getPalette({layerIdx, int(pctx.ent_remap[entIdx])});           \
       calc_matrix_33(sgeg.obj[objId], rot_tm, seed, palette, paletteId);                                         \
       mppRec = sgeg.obj[objId].mpRec;                                                                            \
       place_multipoint(mppRec, pos, rot_tm, sgeg.aboveHt);                                                       \
@@ -103,7 +103,7 @@ namespace rendinst::gen
       rotate_multipoint(tm, mppRec);                                                                             \
     RotationPaletteManager::Palette palette;                                                                     \
     if (paletteRotation)                                                                                         \
-      palette = get_rotation_palette_manager()->getPalette({layerIdx, int(ent_remap[entIdx])});                  \
+      palette = get_rotation_palette_manager()->getPalette({layerIdx, int(pctx.ent_remap[entIdx])});             \
     calc_matrix_33(sgeg.obj[objId], tm, seed, palette, paletteId);                                               \
     pos.y += getRandom(seed, sgeg.obj[objId].yOffset);                                                           \
     tm.setcol(3, pos);                                                                                           \
@@ -114,7 +114,7 @@ namespace rendinst::gen
       tm.setcol(2, Point3(0, 0, 0));                                                                             \
       paletteId = 0;                                                                                             \
     }                                                                                                            \
-    pool.addEntity(tm, posInst, ent_remap[entIdx], paletteRotation ? paletteId : -1);                            \
+    pool.addEntity(ctx, tm, posInst, pctx.ent_remap[entIdx], paletteRotation ? paletteId : -1);                  \
   }                                                                                                              \
   else                                                                                                           \
     skip6_rnd(seed);
@@ -122,24 +122,29 @@ namespace rendinst::gen
 namespace internal
 {
 static constexpr int CSZ = rendinst::gen::land::DensMapLeaf::SZ;
-
-static dag::Span<rendinst::gen::SingleEntityPool> pools;
-static BBox2 rect;
-static const void *pMask;
-static float world2sampler, world0_x, world0_y, entity_ofs_x, entity_ofs_z;
-static int subtype, skip_test_rect;
-static float init_y0;
-int16_t *ent_remap;
 } // namespace internal
+
+struct RiGenPlantedCtx
+{
+  dag::Span<SingleEntityPool> pools;
+  const int16_t *ent_remap = nullptr;
+  BBox2 rect;
+  float world2sampler = 0, entity_ofs_x = 0, entity_ofs_z = 0, init_y0 = 0;
+  bool skip_test_rect = false;
+};
 
 template <class BitMask>
 struct GenObjCB
 {
+  RiGenCellCtx &ctx;
+  RiGenPlantedCtx &pctx;
   const rendinst::gen::land::SingleGenEntityGroup &sgeg;
+  const BitMask &mask;
   float density, gstepx, gstepy, x0, y0;
   int layerIdx;
 
-  GenObjCB(const rendinst::gen::land::SingleGenEntityGroup &g, int layer_idx) : sgeg(g), x0(0.f), y0(0.f), layerIdx(layer_idx)
+  GenObjCB(RiGenCellCtx &c, RiGenPlantedCtx &pc, const rendinst::gen::land::SingleGenEntityGroup &g, const BitMask &m, int layer_idx) :
+    ctx(c), pctx(pc), sgeg(g), mask(m), x0(0.f), y0(0.f), layerIdx(layer_idx)
   {
     density = sgeg.density * sgeg.densMapCellSz.x * sgeg.densMapCellSz.y * 0.01f;
     gstepx = sgeg.densMapCellSz.x;
@@ -214,7 +219,7 @@ struct GenObjCB
           if (cu[i / CSZ][i % CSZ] == ADDED)
             cu[i / CSZ][i % CSZ] = ADD;
       }
-      ADD_ENTITY_BYMASK(!skip_test_rect, (*(BitMask *)pMask), rect, ent, continue);
+      ADD_ENTITY_BYMASK(!pctx.skip_test_rect, mask, pctx.rect, ent, continue);
     }
 
     if (num > 0)
@@ -228,7 +233,7 @@ struct GenObjCB
       }
       if (rnd(seed) < ((ptrdiff_t(l) == 1 || l->get(ov, ou)) ? (int)floorf(num * 32768) + 1 : 0))
       {
-        ADD_ENTITY_BYMASK(!skip_test_rect, (*(BitMask *)pMask), rect, ent, return);
+        ADD_ENTITY_BYMASK(!pctx.skip_test_rect, mask, pctx.rect, ent, return);
       }
     }
   }
@@ -239,25 +244,25 @@ private:
 };
 
 template <class BitMask>
-inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::PlantedEntities &planted, int layerIdx,
-  dag::Span<rendinst::gen::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x, float world0_y,
-  float box, float entity_ofs_x, float entity_ofs_z, float init_y0, int16_t *ent_remap, float dens_map_pivot_x, float dens_map_pivot_z)
+inline void generatePlantedEntitiesInMaskedRect(rendinst::gen::RiGenCellCtx &ctx, const rendinst::gen::land::PlantedEntities &planted,
+  int layerIdx, dag::Span<rendinst::gen::SingleEntityPool> pools, const BitMask &mask, float world2sampler, float world0_x,
+  float world0_y, float box, float entity_ofs_x, float entity_ofs_z, float init_y0, int16_t *ent_remap, float dens_map_pivot_x,
+  float dens_map_pivot_z)
 {
   Point3 pos;
   TMatrix tm;
 
   tm.identity();
-  internal::pools.set(pools.data(), pools.size());
-  internal::pMask = &mask;
-  internal::world2sampler = world2sampler;
-  internal::world0_x = world0_x;
-  internal::world0_y = world0_y;
-  internal::entity_ofs_x = entity_ofs_x;
-  internal::entity_ofs_z = entity_ofs_z;
-  internal::init_y0 = init_y0;
-  internal::rect[0] = Point2(world0_x + entity_ofs_x, world0_y + entity_ofs_z);
-  internal::rect[1] = Point2(internal::rect[0].x + box, internal::rect[0].y + box);
-  internal::ent_remap = ent_remap;
+
+  RiGenPlantedCtx pctx;
+  pctx.pools = pools;
+  pctx.world2sampler = world2sampler;
+  pctx.entity_ofs_x = entity_ofs_x;
+  pctx.entity_ofs_z = entity_ofs_z;
+  pctx.init_y0 = init_y0;
+  pctx.rect[0] = Point2(world0_x + entity_ofs_x, world0_y + entity_ofs_z);
+  pctx.rect[1] = Point2(pctx.rect[0].x + box, pctx.rect[0].y + box);
+  pctx.ent_remap = ent_remap;
 
   for (int i = 0; i < planted.data.size(); i++)
   {
@@ -302,7 +307,7 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::Plant
           numu = 0;
           memset(cu2, 0, sizeof(cu2));
         }
-        ADD_ENTITY_BYMASK(1, mask, internal::rect, planted.ent, continue);
+        ADD_ENTITY_BYMASK(1, mask, pctx.rect, planted.ent, continue);
       }
 
       if (num > 0)
@@ -316,13 +321,13 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::Plant
         }
         if (rnd(seed) < (int)floorf(num * 32768) + 1)
         {
-          ADD_ENTITY_BYMASK(1, mask, internal::rect, planted.ent, continue);
+          ADD_ENTITY_BYMASK(1, mask, pctx.rect, planted.ent, continue);
         }
       }
       continue;
     }
 
-    GenObjCB<BitMask> cb(sgeg, layerIdx);
+    GenObjCB<BitMask> cb(ctx, pctx, sgeg, mask, layerIdx);
     if (!cb.checkDensity())
       continue;
 
@@ -332,10 +337,10 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::Plant
     real gstepyRcp = 1.f / cb.gstepy;
     float densMapOfsX = sgeg.densMapOfs.x + dens_map_pivot_x - entity_ofs_x;
     float densMapOfsZ = sgeg.densMapOfs.y + dens_map_pivot_z - entity_ofs_z;
-    real tx0 = floorf((internal::rect[0].x - (entity_ofs_x + densMapOfsX)) / dx) * dx + densMapOfsX;
-    real ty0 = floorf((internal::rect[0].y - (entity_ofs_z + densMapOfsZ)) / dy) * dy + densMapOfsZ;
-    real tx1 = ceilf((internal::rect[1].x - (entity_ofs_x + densMapOfsX)) / dx) * dx + densMapOfsX;
-    real ty1 = ceilf((internal::rect[1].y - (entity_ofs_z + densMapOfsZ)) / dy) * dy + densMapOfsZ;
+    real tx0 = floorf((pctx.rect[0].x - (entity_ofs_x + densMapOfsX)) / dx) * dx + densMapOfsX;
+    real ty0 = floorf((pctx.rect[0].y - (entity_ofs_z + densMapOfsZ)) / dy) * dy + densMapOfsZ;
+    real tx1 = ceilf((pctx.rect[1].x - (entity_ofs_x + densMapOfsX)) / dx) * dx + densMapOfsX;
+    real ty1 = ceilf((pctx.rect[1].y - (entity_ofs_z + densMapOfsZ)) / dy) * dy + densMapOfsZ;
 
     IBBox2 densMapClip;
     densMapClip[0].x = densMapClip[0].y = 0;
@@ -348,15 +353,15 @@ inline void generatePlantedEntitiesInMaskedRect(const rendinst::gen::land::Plant
         IBBox2 bb;
         bb[0].x = (int)floorf((world0_x - mx) * gstepxRcp);
         bb[0].y = (int)floorf((world0_y - my) * gstepyRcp);
-        bb[1].x = (int)ceilf((internal::rect[1].x - (entity_ofs_x + mx)) * gstepxRcp - 1);
-        bb[1].y = (int)ceilf((internal::rect[1].y - (entity_ofs_z + my)) * gstepyRcp - 1);
+        bb[1].x = (int)ceilf((pctx.rect[1].x - (entity_ofs_x + mx)) * gstepxRcp - 1);
+        bb[1].y = (int)ceilf((pctx.rect[1].y - (entity_ofs_z + my)) * gstepyRcp - 1);
         densMapClip.clipBox(bb);
 
         if (!bb.isEmpty())
         {
           cb.x0 = mx;
           cb.y0 = my;
-          internal::skip_test_rect = (bb == densMapClip);
+          pctx.skip_test_rect = (bb == densMapClip);
           sgeg.densityMap->enumerateL1Blocks(cb, bb);
         }
       }

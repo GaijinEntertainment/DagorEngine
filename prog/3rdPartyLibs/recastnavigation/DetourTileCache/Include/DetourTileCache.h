@@ -1,7 +1,11 @@
+// Altered source version of recastnavigation DetourTileCache, modified for
+// Dagor Engine; not the original library (github.com/recastnavigation).
+
 #ifndef DETOURTILECACHE_H
 #define DETOURTILECACHE_H
 
 #include "DetourStatus.h"
+#include <stdint.h>
 
 
 
@@ -70,6 +74,14 @@ static const int DT_MAX_TOUCHED_TILES = 64;
 #else
 static const int DT_MAX_TOUCHED_TILES = 8;
 #endif
+
+static const int DT_OBSTACLE_INDEX_BITS = 16;	///< dtObstacleRef layout: [salt : index], see encodeObstacleId.
+
+// The obstacle pool grows one page at a time; pages keep obstacle addresses
+// stable, so outstanding dtTileCacheObstacle pointers survive growth.
+static const int DT_OBSTACLES_PER_PAGE = 64;
+static const int DT_MAX_OBSTACLE_PAGES = (1 << DT_OBSTACLE_INDEX_BITS) / DT_OBSTACLES_PER_PAGE;
+
 struct dtTileCacheObstacle
 {
 	union
@@ -80,15 +92,20 @@ struct dtTileCacheObstacle
 	};
 
 	dtCompressedTileRef touched[DT_MAX_TOUCHED_TILES];
-	dtCompressedTileRef pending[DT_MAX_TOUCHED_TILES];
+	uint64_t pending;	///< Bit j set = touched[j] still awaits rebuild.
 	unsigned short salt;
+	// 32 bit index/next land in tail padding for free, but do not extend the
+	// obstacle cap: dtObstacleRef still encodes a DT_OBSTACLE_INDEX_BITS index.
+	unsigned int index;	///< Global slot index, set once at page allocation; dtObstacleRef encodes it.
+	unsigned int next;	///< Freelist link (slot index), valid only while the slot is free; next == index ends the list.
 	unsigned char type;
 	unsigned char state;
 	unsigned char ntouched;
-	unsigned char npending;
 	unsigned char areaId;
-	dtTileCacheObstacle* next;
 };
+static_assert(DT_MAX_TOUCHED_TILES <= 64, "dtTileCacheObstacle::pending is a 64 bit mask over touched[]");
+static_assert(sizeof(void*) != 8 || sizeof(dtTileCacheObstacle) == (DT_MAX_TOUCHED_TILES == 64 ? 320 : 96),
+	"unexpected dtTileCacheObstacle size");
 
 struct dtTileCacheParams
 {
@@ -100,7 +117,7 @@ struct dtTileCacheParams
 	float walkableClimb;
 	float maxSimplificationError;
 	int maxTiles;
-	int maxObstacles;
+	int maxObstacles;	///< Serialized worst-case cap preallocated by older runtimes; the runtime pool is paged on demand and ignores it.
 };
 
 struct dtTileCacheMeshProcess
@@ -127,8 +144,8 @@ public:
 	inline int getTileCount() const { return m_params.maxTiles; }
 	inline const dtCompressedTile* getTile(const int i) const { return &m_tiles[i]; }
 	
-	inline int getObstacleCount() const { return m_params.maxObstacles; }
-	inline const dtTileCacheObstacle* getObstacle(const int i) const { return &m_obstacles[i]; }
+	inline int getObstacleCount() const { return m_nobstaclePages*DT_OBSTACLES_PER_PAGE; }	///< Current paged capacity, not the live obstacle count.
+	inline const dtTileCacheObstacle* getObstacle(const int i) const { return &m_obstaclePages[i / DT_OBSTACLES_PER_PAGE][i % DT_OBSTACLES_PER_PAGE]; }
 	
 	const dtTileCacheObstacle* getObstacleByRef(dtObstacleRef ref);
 	
@@ -203,21 +220,21 @@ public:
 	/// Encodes an obstacle id.
 	inline dtObstacleRef encodeObstacleId(unsigned int salt, unsigned int it) const
 	{
-		return ((dtObstacleRef)salt << 16) | (dtObstacleRef)it;
+		return ((dtObstacleRef)salt << DT_OBSTACLE_INDEX_BITS) | (dtObstacleRef)it;
 	}
 	
 	/// Decodes an obstacle salt.
 	inline unsigned int decodeObstacleIdSalt(dtObstacleRef ref) const
 	{
-		const dtObstacleRef saltMask = ((dtObstacleRef)1<<16)-1;
-		return (unsigned int)((ref >> 16) & saltMask);
+		const dtObstacleRef saltMask = ((dtObstacleRef)1<<(32-DT_OBSTACLE_INDEX_BITS))-1;
+		return (unsigned int)((ref >> DT_OBSTACLE_INDEX_BITS) & saltMask);
 	}
 	
 	/// Decodes an obstacle id.
 	inline unsigned int decodeObstacleIdObstacle(dtObstacleRef ref) const
 	{
-		const dtObstacleRef tileMask = ((dtObstacleRef)1<<16)-1;
-		return (unsigned int)(ref & tileMask);
+		const dtObstacleRef indexMask = ((dtObstacleRef)1<<DT_OBSTACLE_INDEX_BITS)-1;
+		return (unsigned int)(ref & indexMask);
 	}
 
 	inline void decNumReqs() { --m_nreqs; }
@@ -228,6 +245,11 @@ private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	dtTileCache(const dtTileCache&);
 	dtTileCache& operator=(const dtTileCache&);
+
+	// Pops a free obstacle slot, allocating a new page on demand. Returns 0 only
+	// at the dtObstacleRef index limit or on allocation failure.
+	dtTileCacheObstacle* allocObstacle();
+	inline dtTileCacheObstacle* getObstacleForModify(const int i) { return &m_obstaclePages[i / DT_OBSTACLES_PER_PAGE][i % DT_OBSTACLES_PER_PAGE]; }
 
 	enum ObstacleRequestAction
 	{
@@ -257,7 +279,8 @@ private:
 	dtTileCacheCompressor* m_tcomp;
 	dtTileCacheMeshProcess* m_tmproc;
 	
-	dtTileCacheObstacle* m_obstacles;
+	dtTileCacheObstacle* m_obstaclePages[DT_MAX_OBSTACLE_PAGES];	///< On-demand pages; capacity is m_nobstaclePages*DT_OBSTACLES_PER_PAGE.
+	int m_nobstaclePages;
 	dtTileCacheObstacle* m_nextFreeObstacle;
 	
 	static const int MAX_REQUESTS = 64;

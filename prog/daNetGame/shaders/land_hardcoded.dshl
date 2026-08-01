@@ -6,7 +6,6 @@ int lmesh_ps_weight_params = 65 always_referenced;
 //float4 details_size_ofs = (16, 16, 0, 0);
 int lmesh_sampler__land_detail_ntex1 = 1;//normalmaps for mega
 int lmesh_sampler__land_detail_map = 6;
-int lmesh_sampler__land_detail_map2 = 7;
 int lmesh_sampler__land_detail_tex1 = 8;
 int lmesh_sampler__max_used_sampler = 15 always_referenced;
 int lmesh_hc_detail_array_elements = 96 always_referenced;
@@ -22,7 +21,6 @@ macro INIT_HARDCODED_INV_TEX_SIZES()
 endmacro
 
 int land_detail_map_n0_const_no = 6;
-int land_detail_map_n1_const_no = 7;
 int land_detail_tex_n0_const_no = 8;
 int land_detail_tex_n1_const_no = 9;
 int land_detail_tex_n2_const_no = 10;
@@ -44,7 +42,6 @@ int land_detail_map_tc_const_no = 58;
 macro INIT_HARDCODED_TEX_INFO()
   (ps) {
     land_detail_map_n0@tex2d : register(land_detail_map_n0_const_no);
-    land_detail_map_n1@tex2d : register(land_detail_map_n1_const_no);
     land_detail_tex_n0@tex2d : register(land_detail_tex_n0_const_no);
     land_detail_tex_n1@tex2d : register(land_detail_tex_n1_const_no);
     land_detail_tex_n2@tex2d : register(land_detail_tex_n2_const_no);
@@ -54,7 +51,6 @@ macro INIT_HARDCODED_TEX_INFO()
     land_detail_tex_n6@tex2d : register(land_detail_tex_n6_const_no);
 
     land_detail_map_n0_samplerstate@sampler : register(land_detail_map_n0_const_no);
-    land_detail_map_n1_samplerstate@sampler : register(land_detail_map_n1_const_no);
     land_detail_tex_n0_samplerstate@sampler : register(land_detail_tex_n0_const_no);
     land_detail_tex_n1_samplerstate@sampler : register(land_detail_tex_n1_const_no);
     land_detail_tex_n2_samplerstate@sampler : register(land_detail_tex_n2_const_no);
@@ -87,9 +83,7 @@ int land_detail_detail_mul_const_no = 51;
 macro INIT_HARDCODED_TEX_INFO_ONE_LC()
   (ps) {
     land_detail_map_n0@tex2d : register(land_detail_map_n0_const_no);
-    land_detail_map_n1@tex2d : register(land_detail_map_n1_const_no);
     land_detail_map_n0_samplerstate@sampler : register(land_detail_map_n0_const_no);
-    land_detail_map_n1_samplerstate@sampler : register(land_detail_map_n1_const_no);
 
     colormapTex@tex2d : register(colormapTex_const_no);
     colormapTex_samplerstate@sampler : register(colormapTex_const_no);

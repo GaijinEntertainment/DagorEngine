@@ -92,6 +92,18 @@ char *convert_to_utf8(Tab<char> &dest_utf8, const wchar_t *s, int len)
   return dest_utf8.data();
 }
 
+int utf8_truncate_len(const char *data, int len)
+{
+  int m = len;
+  while (m > 0 && ((unsigned char)data[m - 1] & 0xC0) == 0x80) // back up to the last sequence start
+    --m;
+  if (m == 0) // no lead byte in range: not valid UTF-8, leave untouched
+    return len;
+  unsigned char lead = (unsigned char)data[m - 1];
+  int seq = lead < 0x80 ? 1 : lead < 0xE0 ? 2 : lead < 0xF0 ? 3 : 4;
+  return m - 1 + seq <= len ? len : m - 1; // keep the trailing sequence only if whole
+}
+
 #if _TARGET_PC_WIN
 char *acp_to_utf8(char *in_str, Tab<char> &out_str, int dir)
 {

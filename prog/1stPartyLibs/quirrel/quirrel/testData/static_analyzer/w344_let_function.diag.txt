@@ -1,0 +1,33 @@
+WARNING: w344 (let-function-style) 'let function' is legacy style; the plain form already declares a non-reassignable binding.
+testData/static_analyzer/w344_let_function.nut:1:0
+
+let function lf() {            // w344: legacy style
+^
+  return 1
+
+
+WARNING: w344 (let-function-style) 'let class' is legacy style; the plain form already declares a non-reassignable binding.
+testData/static_analyzer/w344_let_function.nut:6:0
+
+let class LC {}                // w344: legacy style (class form)
+^--------------
+let _u2 = LC
+
+
+WARNING: w344 (let-function-style) 'let function' is legacy style; the plain form already declares a non-reassignable binding.
+testData/static_analyzer/w344_let_function.nut:29:0
+
+let function typedlf(x: int): int { // w344: annotations do not change the form
+^
+  return x
+
+
+WARNING: w344 (let-function-style) 'let function' is legacy style; the plain form already declares a non-reassignable binding.
+testData/static_analyzer/w344_let_function.nut:35:2
+
+function outer() {
+  let function nested() { // w344 also inside another function
+  ^
+    return 1
+
+

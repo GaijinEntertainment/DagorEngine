@@ -51,6 +51,12 @@ VkBufferUsageFlags Buffer::getUsage(DeviceMemoryClass memClass)
       VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
   }
 #endif
+#if VK_EXT_opacity_micromap
+  if (Globals::VK::dev.hasExtension<OpacityMicromapEXT>())
+  {
+    usage |= VK_BUFFER_USAGE_MICROMAP_STORAGE_BIT_EXT | VK_BUFFER_USAGE_MICROMAP_BUILD_INPUT_READ_ONLY_BIT_EXT;
+  }
+#endif
   return usage;
 }
 

@@ -563,6 +563,40 @@ bool RendInstGenData::notRenderedStaticShadowsBBox(BBox3 &box)
   return hasNotRendered;
 }
 
+// This version differs from above in a way that it doesn't postpone update.
+// Instead it lets user to decide how it wants to execute update.
+bool RendInstGenData::notRenderedStaticShadowsBBoxes(Tab<BBox3> &boxes)
+{
+  ScopedLockRead lock(rtData->riRwCs);
+
+  dag::ConstSpan<int> ld = rtData->loaded.getList();
+
+  bool hasNotRendered = false;
+  for (auto ldi : ld)
+  {
+    RendInstGenData::CellRtData *crt_ptr = cells[ldi].isReady();
+    if (!crt_ptr)
+      continue;
+    RendInstGenData::CellRtData &crt = *crt_ptr;
+    if (!(crt.cellStateFlags & RendInstGenData::CellRtData::STATIC_SHADOW_RENDERED))
+    {
+      crt.cellStateFlags |= RendInstGenData::CellRtData::STATIC_SHADOW_RENDERED;
+
+      bbox3f cellBbox = crt.bbox[0];
+      v_bbox3_add_box(cellBbox, crt.pregenRiExtraBbox); //==
+      BBox3 cellBox;
+      v_stu_bbox3(cellBox, cellBbox);
+      if (!cellBox.isempty())
+      {
+        boxes.push_back(cellBox);
+        hasNotRendered = true;
+      }
+    }
+  }
+
+  return hasNotRendered;
+}
+
 void RendInstGenData::setClipmapShadowsRendered(int cascadeNo)
 {
   if (!rendinst::render::is_clipmap_shadows_renderable())

@@ -59,7 +59,7 @@
 // When including this header, make sure imgui.h is included first 
 // (either always included in NetImgui_config.h or have it included after Imgui.h in your cpp)
 //-------------------------------------------------------------------------------------------------
-#if !defined(IMGUI_VERSION)
+#if !defined(IMGUI_VERSION) || defined(IMGUI_DISABLE)
 	#undef	NETIMGUI_ENABLED
 	#define NETIMGUI_ENABLED 					0
 #endif

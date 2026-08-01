@@ -36,7 +36,8 @@
                             } \
                         }
 
-#define END_SCOPE_NO_CLOSE() {  if(_fs->GetStackSize() != _scope.stacksize) { \
+#define END_SCOPE_NO_CLOSE() {  CheckForwardDeclarationsDefined(); \
+                        if(_fs->GetStackSize() != _scope.stacksize) { \
                             _fs->SetStackSize(_scope.stacksize); \
                         } \
                         _scope = __oldscope__; \
@@ -44,7 +45,8 @@
                         _scopedconsts.pop_back(); \
                     }
 
-#define END_SCOPE() {   SQInteger oldouters = _fs->_outers;\
+#define END_SCOPE() {   CheckForwardDeclarationsDefined(); \
+                        SQInteger oldouters = _fs->_outers;\
                         if(_fs->GetStackSize() != _scope.stacksize) { \
                             _fs->SetStackSize(_scope.stacksize); \
                             if(oldouters != _fs->_outers) { \
@@ -137,6 +139,27 @@ bool CodeGenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
     }
 }
 
+void CodeGenVisitor::ThrowIfUsedBeforeDefinition(const Id *id, const SQCompiletimeVarInfo &varInfo) {
+    if (varInfo.isUndefinedForwardDeclaration())
+        _ctx.throwError(id, "binding '%s' cannot be used before its definition", id->name());
+}
+
+void CodeGenVisitor::ThrowForwardDeclarationWriteError(Expr *lvalue, const SQCompiletimeVarInfo &varInfo) {
+    const char *name = varInfo.forward_decl->name();
+    if (varInfo.initializer)
+        _ctx.throwError(lvalue, "binding '%s' is already defined; a 'let' binding accepts a single assignment "
+            "(declare it with 'local' to allow more)", name);
+    _ctx.throwError(lvalue, "forward declaration '%s' must be initialized in its declaring scope", name);
+}
+
+void CodeGenVisitor::CheckForwardDeclarationsDefined() {
+    for (SQInteger i = _scope.stacksize, n = _fs->_vlocals_info.size(); i < n; ++i) {
+        const SQCompiletimeVarInfo &varInfo = _fs->_vlocals_info[i];
+        if (varInfo.isUndefinedForwardDeclaration())
+            _ctx.throwError(varInfo.forward_decl, "forward declaration '%s' is never defined", varInfo.forward_decl->name());
+    }
+}
+
 void CodeGenVisitor::CheckDuplicateLocalIdentifier(Node *n, SQObject name, const char *desc, bool ignore_global_consts) {
     SQCompiletimeVarInfo varInfo;
     if (_fs->GetLocalVariable(name, varInfo) >= 0)
@@ -147,6 +170,14 @@ void CodeGenVisitor::CheckDuplicateLocalIdentifier(Node *n, SQObject name, const
     SQObjectPtr constant;
     if (ignore_global_consts ? IsLocalConstant(name, constant) : IsConstant(name, constant))
         _ctx.throwError(n, "%s name '%s' conflicts with existing constant/enum/import", desc, _stringval(name));
+}
+
+void CodeGenVisitor::CheckOuterLocalIdentifier(Node *n, SQObject name, const char *desc) {
+    SQCompiletimeVarInfo varInfo;
+    for (SQFuncState *parent = _fs->_parent; parent; parent = parent->_parent) {
+        if (parent->GetLocalVariable(name, varInfo) != -1)
+            _ctx.throwError(n, "%s name '%s' conflicts with outer local variable", desc, _stringval(name));
+    }
 }
 
 static bool compareLiterals(LiteralExpr *a, LiteralExpr *b) {
@@ -435,7 +466,7 @@ void CodeGenVisitor::visitForStatement(ForStatement *forLoop) {
           _fs->SetInstructionParam(_fs->GetCurrentPos(), 1, jmppos - cmpPos - 1);
     } else
         _fs->AddInstruction(_OP_JMP, 0, jmppos - _fs->GetCurrentPos() - 1, 0);
-    if (jzpos > 0) _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
+    if (jzpos != -1) _fs->SetInstructionParam(jzpos, 1, _fs->GetCurrentPos() - jzpos);
     _fs->RestoreOpt();
 
     END_BREAKABLE_BLOCK(continuetrg);
@@ -1438,6 +1469,7 @@ bool CodeGenVisitor::isPureFunctionCall(Expr *node) {
 void CodeGenVisitor::visitVarDecl(VarDecl *var) {
     addLineNumber(var);
     const char *name = var->name();
+    const bool isForwardDeclaration = !var->isAssignable() && !var->initializer() && !var->isDestructured();
     char varFlags = var->isAssignable() ? VF_ASSIGNABLE : 0;
     if (var->isDestructured())
         varFlags |= VF_DESTRUCTURED;
@@ -1468,7 +1500,7 @@ void CodeGenVisitor::visitVarDecl(VarDecl *var) {
     }
     else {
         _fs->AddInstruction(_OP_LOADNULLS, _fs->PushTarget(), 1);
-        if ((var->getTypeMask() & _RT_NULL) == 0 && !var->isDestructured())
+        if ((var->getTypeMask() & _RT_NULL) == 0 && !var->isDestructured() && !isForwardDeclaration)
             _ctx.throwError(var, "Assigned null type differs from the declared type");
     }
 
@@ -1477,7 +1509,8 @@ void CodeGenVisitor::visitVarDecl(VarDecl *var) {
         _ctx.throwError(var, "too many function stack slots: cannot allocate local '%s' at slot %d; bytecode supports at most %d slots per function",
             _stringval(varName), int(_fs->GetStackSize()), int(MAX_FUNC_STACKSIZE));
     }
-    _fs->PushLocalVariable(varName, SQCompiletimeVarInfo{varFlags, var->getTypeMask(), var->initializer()});
+    _fs->PushLocalVariable(varName, SQCompiletimeVarInfo{
+        varFlags, var->getTypeMask(), var->initializer(), isForwardDeclaration ? var : nullptr});
 }
 
 void CodeGenVisitor::visitDeclGroup(DeclGroup *group) {
@@ -1714,6 +1747,7 @@ void CodeGenVisitor::visitConstDecl(ConstDecl *decl) {
 
     SQObjectPtr id = _fs->CreateString(decl->name());
 
+    CheckOuterLocalIdentifier(decl, id, "Constant");
     CheckDuplicateLocalIdentifier(decl, id, "Constant", decl->isGlobal() && !(_fs->lang_features & LF_FORBID_GLOBAL_CONST_REWRITE));
 
     SQTable *constantsTbl = decl->isGlobal() ? _table(_ss(_vm)->_consts) : GetScopedConstsTable();
@@ -1734,6 +1768,7 @@ void CodeGenVisitor::visitEnumDecl(EnumDecl *enums) {
 
     SQObjectPtr id = _fs->CreateString(enums->name());
 
+    CheckOuterLocalIdentifier(enums, id, "Enum");
     CheckDuplicateLocalIdentifier(enums, id, "Enum", enums->isGlobal() && !(_fs->lang_features & LF_FORBID_GLOBAL_CONST_REWRITE));
 
     for (auto &c : enums->consts()) {
@@ -1800,6 +1835,12 @@ void CodeGenVisitor::visitCallExpr(CallExpr *call) {
     if (callee->op() == TO_GETFIELD) {
         isTypeMethod = callee->asGetField()->isTypeMethod();
     }
+    // A bare identifier callee resolves as a target, so visitId() does not see it as a read.
+    if (callee->op() == TO_ID) {
+        SQCompiletimeVarInfo calleeInfo;
+        if (_fs->GetLocalVariable(_fs->CreateString(callee->asId()->name()), calleeInfo) != -1)
+            ThrowIfUsedBeforeDefinition(callee->asId(), calleeInfo);
+    }
 
     visitForTarget(callee);
 
@@ -1860,7 +1901,29 @@ void CodeGenVisitor::visitCallExpr(CallExpr *call) {
     SQInteger target = _fs->PushTarget();
     assert(target >= -1);
     assert(target < 255);
-    _fs->AddInstruction(isNullCall ? _OP_NULLCALL : _OP_CALL, target, closure, stackbase, args.size() + 1);
+
+    SQOpcode callOp = isNullCall ? _OP_NULLCALL : _OP_CALL;
+    // Specialize a compile-time-known fastcall-eligible native (imported math
+    // stdlib etc.) to _OP_FASTCALL. The callee must be a plain Id that resolves
+    // to a constant native closure (not a local/outer, so it cannot be shadowed
+    // or reassigned) with no env/outers and a matching arity. Everything else
+    // keeps the generic call path; the runtime guard in _OP_FASTCALL falls back
+    // to _OP_CALL if the constant is ever not what we resolved here.
+    if (!isNullCall && callee->op() == TO_ID) {
+        SQObjectPtr name(_fs->CreateString(callee->asId()->name()));
+        SQObjectPtr c;
+        if (ResolveUnshadowedConst(name, c) && sq_type(c) == OT_NATIVECLOSURE) {
+            SQNativeClosure *nc = _nativeclosure(c);
+            if (nc->_isfastcall && nc->_env == nullptr && nc->_noutervalues == 0) {
+                SQInteger np = nc->_nparamscheck;
+                SQInteger nargs = (SQInteger)args.size() + 1;
+                if ((np > 0 && np == nargs) || (np < 0 && nargs >= -np))
+                    callOp = _OP_FASTCALL;
+            }
+        }
+    }
+
+    _fs->AddInstruction(callOp, target, closure, stackbase, args.size() + 1);
 }
 
 void CodeGenVisitor::visitBaseExpr(BaseExpr *base) {
@@ -2229,7 +2292,12 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
         SQInteger pos = -1;
 
         if ((pos = _fs->GetLocalVariable(nameObj, varInfo)) != -1) {
-            if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
+            if (varInfo.isForwardDeclaration()) {
+                if (varInfo.initializer || pos < _scope.stacksize)
+                    ThrowForwardDeclarationWriteError(lvalue, varInfo);
+                _fs->_vlocals_info[pos].initializer = rvalue;
+            }
+            else if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
                 _ctx.throwError(lvalue, "can't assign to binding '%s' (probably declaring using 'local' was intended, but 'let' was used)", id->name());
 
             SQInteger src = _fs->PopTarget();
@@ -2239,6 +2307,8 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
                 EmitCheckType(dst, varInfo.type_mask);
         }
         else if ((pos = _fs->GetOuterVariable(nameObj, varInfo)) != -1) {
+            if (varInfo.isForwardDeclaration())
+                ThrowForwardDeclarationWriteError(lvalue, varInfo);
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
                 _ctx.throwError(lvalue, "can't assign to binding '%s' (probably declaring using 'local' was intended, but 'let' was used)", id->name());
 
@@ -2619,6 +2689,15 @@ bool CodeGenVisitor::IsConstant(const SQObject &name, SQObjectPtr &e)
     return false;
 }
 
+bool CodeGenVisitor::ResolveUnshadowedConst(const SQObjectPtr &name, SQObjectPtr &e)
+{
+    SQCompiletimeVarInfo varInfo;
+    if (_fs->GetLocalVariable(name, varInfo) != -1 ||
+        _fs->GetOuterVariable(name, varInfo) != -1)
+        return false;  // local/outer shadows any constant
+    return IsConstant(name, e);
+}
+
 bool CodeGenVisitor::IsLocalConstant(const SQObject &name, SQObjectPtr &e)
 {
     SQObjectPtr val;
@@ -2655,12 +2734,8 @@ bool CodeGenVisitor::isConstEvaluable(Expr *expr) {
 
     case TO_ID: {
         SQObjectPtr name = _fs->CreateString(expr->asId()->name());
-        SQCompiletimeVarInfo varInfo;
-        if (_fs->GetLocalVariable(name, varInfo) != -1 ||
-            _fs->GetOuterVariable(name, varInfo) != -1)
-            return false;  // local/outer shadows any constant
         SQObjectPtr c;
-        return IsConstant(name, c);
+        return ResolveUnshadowedConst(name, c);
     }
 
     case TO_NEG:
@@ -2725,6 +2800,8 @@ void CodeGenVisitor::visitId(Id *id) {
     }
 
     if ((pos = _fs->GetLocalVariable(idObj, varInfo)) != -1) {
+        if (_resolve_mode == ExprChainResolveMode::Value)
+            ThrowIfUsedBeforeDefinition(id, varInfo);
         _fs->PushTarget(pos);
     }
     else if ((pos = _fs->GetOuterVariable(idObj, varInfo)) != -1) {

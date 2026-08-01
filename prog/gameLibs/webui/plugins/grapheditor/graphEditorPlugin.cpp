@@ -121,6 +121,24 @@ bool GraphEditor::gatherAdditionalIncludes(const Tab<String> &file_names)
   return true;
 }
 
+bool GraphEditor::getCompileGraphJson(String &out_graph_json, bool only_if_changed)
+{
+  if (only_if_changed && !receivedCompileJsonChanged)
+    return false;
+
+  out_graph_json = receivedCompileJson;
+  receivedCompileJsonChanged = false;
+  return !out_graph_json.empty();
+}
+
+
+void GraphEditor::setPermutationTable(const char *perm_table_json) { permutationTable.setStr(perm_table_json ? perm_table_json : ""); }
+
+
+void GraphEditor::setRootGraphJson(const char *root_graph_json) { rootGraphJson.setStr(root_graph_json ? root_graph_json : ""); }
+
+
+void GraphEditor::setEditedPermutation(int idx) { editedPermutation = idx; }
 
 String GraphEditor::findFileInParentDir(const char *file_name)
 {
@@ -454,7 +472,9 @@ void GraphEditor::processRequest(RequestInfo *params)
       else if (needSendAdditionalIncludes)
       {
         s.reserve(8000);
-        s.printf(128, "%%additional_includes:%s", additionalIncludes.str());
+        s.printf(128, "%%additional_includes:{\"permTable\":%s,\"rootGraph\":%s,\"editedPermutation\":%d,\"includeGraphs\":[%s]}",
+          permutationTable.empty() ? "[]" : permutationTable.str(), rootGraphJson.empty() ? "null" : rootGraphJson.str(),
+          editedPermutation, additionalIncludes.str());
         needSendAdditionalIncludes = false;
       }
       else if (needSendGraphToHtml)
@@ -500,7 +520,7 @@ void GraphEditor::processRequest(RequestInfo *params)
     }
     html_response_raw(params->conn, "");
   }
-  else if (!strcmp(params->params[0], "graph"))
+  else if (!strcmp(params->params[0], "save_graph"))
   {
     if (params->params[2] && !strcmp(clientId.str(), params->params[2]))
     {
@@ -531,6 +551,21 @@ void GraphEditor::processRequest(RequestInfo *params)
           graphJsonToSend = receivedGraphJson;
           receivedGraphJsonChanged = true;
         }
+        tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
+      }
+    }
+    html_response_raw(params->conn, "");
+  }
+  else if (!strcmp(params->params[0], "compile_graph"))
+  {
+    if (params->params[2] && !strcmp(clientId.str(), params->params[2]))
+    {
+      const char *postContent = (const char *)params->read_POST_content();
+      G_ASSERT(postContent != NULL);
+      if (postContent)
+      {
+        receivedCompileJson.setStr(postContent);
+        receivedCompileJsonChanged = true;
         tmpmem->free((void *)postContent); // read_POST_content() uses tmpmem to allocate this
       }
     }

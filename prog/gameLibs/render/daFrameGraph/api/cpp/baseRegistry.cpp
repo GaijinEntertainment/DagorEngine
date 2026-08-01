@@ -74,6 +74,25 @@ BaseRegistry BaseRegistry::executionHas(SideEffects sideEffect)
   return *this;
 }
 
+void BaseRegistry::registerBlockImpl(const char *name, RefinedBlockProvider &&block_provider)
+{
+  G_ASSERT_RETURN(name != nullptr, );
+  const auto blockId = registry->knownNames.addNameId<RefinedBlockNameId>(nameSpaceId, name);
+  registry->nodes[nodeId].registeredRefinedBlocks.emplace(blockId, eastl::move(block_provider));
+}
+
+BaseRegistry BaseRegistry::useBlock(const char *name)
+{
+  G_ASSERT_RETURN(name != nullptr, *this);
+  const auto blockId = registry->knownNames.addNameId<RefinedBlockNameId>(nameSpaceId, name);
+  auto &usedBlock = registry->nodes[nodeId].usedRefinedBlock;
+  if (DAGOR_UNLIKELY(usedBlock.has_value() && *usedBlock != blockId))
+    logerr("daFG: node '%s' uses more than one refined block ('%s' and '%s')! A node may use at most one.",
+      registry->knownNames.getName(nodeId), registry->knownNames.getName(*usedBlock), name);
+  usedBlock = blockId;
+  return *this;
+}
+
 StateRequest BaseRegistry::requestState() { return {registry, nodeId}; }
 
 VirtualPassRequest BaseRegistry::requestRenderPass() { return {nodeId, registry}; }

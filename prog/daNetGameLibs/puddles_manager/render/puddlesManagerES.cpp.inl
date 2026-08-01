@@ -8,6 +8,8 @@
 #include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <daECS/core/coreEvents.h>
+#include <render/world/wrDispatcher.h>
+#include <render/world/depthAOAbove.h>
 #include "puddlesManager.h"
 #include "puddlesManagerEvents.h"
 
@@ -36,6 +38,10 @@ static void reinit_puddles_es(const ChangeRenderFeatures &evt, PuddlesManager &p
 ECS_TAG(render)
 static void prepare_puddles_es(const PreparePuddles &evt, PuddlesManager &puddles__manager)
 {
+  if (const DepthAOAboveContext *ao = WRDispatcher::getDepthAOAboveCtx())
+    for (const BBox2 &region : ao->getRefreshedRegions())
+      puddles__manager.invalidatePuddles(region);
+
   puddles__manager.preparePuddles(evt.camPos);
 }
 

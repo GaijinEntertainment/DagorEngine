@@ -135,8 +135,8 @@ float ImpostorBaker::computeVoxelSize(RenderableInstanceLodsResource *res, const
       continue;
     }
 
-    float vsize = len * 0.5f;                // threshold when triangle is about 2 voxels/pixels
-    float range = proj_scale * 0.5f * vsize; // 0.5 is from radius/diameter, see defaults::projScale comment
+    float vsize = len * 0.5f; // threshold when triangle is about 2 voxels/pixels
+    float range = proj_scale * vsize;
 
     if (warn_bad_range and range < res->lods[lodIndex].range)
     {
@@ -144,8 +144,8 @@ float ImpostorBaker::computeVoxelSize(RenderableInstanceLodsResource *res, const
     }
     else
     {
-      // assume we switch to voxels at the lod range
-      vsize = res->lods[lodIndex].range * 2 / proj_scale;
+      // assume we switch to voxels at the lod range, and have about 2 pixels per voxel
+      vsize = min(res->lods[lodIndex].range, range) * 2 / proj_scale;
     }
 
     voxelSize = max(voxelSize, vsize);
@@ -191,12 +191,16 @@ bool ImpostorBaker::beginVoxelBaking(RenderableInstanceLodsResource *res, int lo
     const static unsigned formats[] = {
       TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE,
       TEXFMT_A8R8G8B8,
-      TEXFMT_A8R8G8B8,
+      TEXFMT_A32B32G32R32UI,
       TEXFMT_R32F,
     };
     voxelRt.reset();
     voxelRt = eastl::make_unique<DeferredRenderTarget>(nullptr, String(0, "voxel_baker_rt_%d", textureCount), extent.x, extent.y,
       DeferredRT::StereoMode::MonoOrMultipass, 0, 4, formats, GBUF_DEPTH_FMT);
+    voxelLastRt0 = dag::create_tex(nullptr, extent.x, extent.y, formats[0] | TEXCF_RTARGET, 1, "voxel_baker_last_rt0");
+    voxelLastRt1 = dag::create_tex(nullptr, extent.x, extent.y, formats[1] | TEXCF_RTARGET, 1, "voxel_baker_last_rt1");
+    voxelLastRt2 = dag::create_tex(nullptr, extent.x, extent.y, formats[2] | TEXCF_RTARGET, 1, "voxel_baker_last_rt2");
+    voxelLastRt3 = dag::create_tex(nullptr, extent.x, extent.y, formats[3] | TEXCF_RTARGET, 1, "voxel_baker_last_rt3");
     textureCount++;
   }
 
@@ -235,7 +239,7 @@ bool ImpostorBaker::VoxelReadBackTextures::create(int w, int h)
   normal = dag::create_tex(nullptr, w, h, TEXFMT_A8R8G8B8 | flags, 1, String(0, "voxel_readback_normal_%u", counter).c_str());
   if (!normal)
     return false;
-  extra = dag::create_tex(nullptr, w, h, TEXFMT_A8R8G8B8 | flags, 1, String(0, "voxel_readback_extra_%u", counter).c_str());
+  extra = dag::create_tex(nullptr, w, h, TEXFMT_A32B32G32R32UI | flags, 1, String(0, "voxel_readback_extra_%u", counter).c_str());
   if (!extra)
     return false;
   depth = dag::create_tex(nullptr, w, h, TEXFMT_R32F | TEXCF_CLEAR_ON_CREATE | flags, 1,
@@ -348,6 +352,7 @@ bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
   SCOPE_VIEW_PROJ_MATRIX;
   int rendinstSceneBlockId = ShaderGlobal::getBlockId("rendinst_scene");
   int depthProjVarId = get_shader_variable_id("impostor_depth_proj", true);
+  int depthToWorldVarId = get_shader_variable_id("impostor_depth_to_world", true);
   int depthSliceVarId = get_shader_variable_id("impostor_depth_slice", true);
 
   // render requested views
@@ -384,6 +389,8 @@ bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
       alloc_image(req.albedo, viewW * VOXEL_OVERSCALE, viewH * VOXEL_OVERSCALE);
       alloc_image(req.normal, viewW * VOXEL_OVERSCALE, viewH * VOXEL_OVERSCALE);
       alloc_image(req.extra, viewW * VOXEL_OVERSCALE, viewH * VOXEL_OVERSCALE);
+      alloc_image(req.colorMul, viewW * VOXEL_OVERSCALE, viewH * VOXEL_OVERSCALE);
+      alloc_image(req.palIndex, viewW * VOXEL_OVERSCALE, viewH * VOXEL_OVERSCALE);
       alloc_image(req.depth, viewW * VOXEL_OVERSCALE, viewH * VOXEL_OVERSCALE);
 
       float wd = viewW * bakeVoxelSize;
@@ -403,6 +410,7 @@ bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
       Point3 zproj = viewToModel.col[2] * (VOXEL_OVERSCALE / bakeVoxelSize);
 
       ShaderGlobal::set_float4(depthProjVarId, zproj, 1 - dot(zproj, viewToModel.col[3]));
+      ShaderGlobal::set_float(depthToWorldVarId, bakeVoxelSize / VOXEL_OVERSCALE);
       ShaderGlobal::set_texture(depthSliceVarId, req.readback.depth.getTex2D());
 
       // debug("!!! faceId=%d", req.faceId);
@@ -466,15 +474,46 @@ bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
       conerror("failed to lock normal readback texture: %s", d3d::get_last_error());
       return false;
     }
-    if (!texture_to_image(req.readback.extra.getTex2D(), req.extra))
-    {
-      conerror("failed to lock extra readback texture: %s", d3d::get_last_error());
-      return false;
-    }
     if (!texture_to_image(req.readback.depth.getTex2D(), req.depth))
     {
       conerror("failed to lock depth readback texture: %s", d3d::get_last_error());
       return false;
+    }
+    {
+      G_ASSERT(req.readback.extra.getTex2D());
+      G_ASSERT(req.extra);
+      G_ASSERT(req.colorMul);
+      G_ASSERT(req.palIndex);
+      auto locked = lock_texture<const IPoint4>(req.readback.extra.getTex2D(), 0, TEXLOCK_READ);
+      if (!bool(locked))
+      {
+        conerror("failed to lock extra readback texture: %s", d3d::get_last_error());
+        return false;
+      }
+      const uint32_t sw = locked.getWidthInElems();
+      const uint32_t sh = locked.getHeightInElems();
+      const uint32_t w = req.extra->w;
+      const uint32_t h = req.extra->h;
+      G_ASSERT(w <= sw and h <= sh);
+      G_ASSERT(w == req.colorMul->w and h == req.colorMul->h);
+      G_ASSERT(w == req.palIndex->w and h == req.palIndex->h);
+      auto extra = req.extra->getPixels();
+      auto colorMul = req.colorMul->getPixels();
+      auto palIndex = req.palIndex->getPixels();
+      for (uint32_t y = 0; y < h; y++)
+        for (uint32_t x = 0; x < w; x++, extra++, colorMul++, palIndex++)
+        {
+          const auto p = locked.at(x, y);
+          extra->r = p.x & 0xff;
+          extra->g = (p.x >> 8) & 0xff;
+          extra->b = (p.x >> 16) & 0xff;
+          extra->a = (p.x >> 24) & 0xff;
+          colorMul->r = p.y & 0xff;
+          colorMul->g = (p.y >> 8) & 0xff;
+          colorMul->b = (p.y >> 16) & 0xff;
+          colorMul->a = (p.y >> 24) & 0xff;
+          *palIndex = uint16_t(p.z);
+        }
     }
   }
 
@@ -665,6 +704,30 @@ struct VoxelBitmap
 };
 
 
+struct VoxelBakingPalette
+{
+  dag::RelocatableFixedVector<uint16_t, 16, true> colors;
+  dag::RelocatableFixedVector<uint32_t, 16, true> counts;
+
+  uint32_t add(uint16_t c)
+  {
+    auto it = eastl::find(colors.cbegin(), colors.cend(), c);
+    if (it == colors.cend())
+    {
+      colors.push_back(c);
+      counts.push_back(1);
+      return colors.size() - 1;
+    }
+    else
+    {
+      uint32_t i = it - colors.cbegin();
+      counts[i]++;
+      return i;
+    }
+  }
+};
+
+
 struct VoxelBakingFace
 {
   using Pixel = voxelcache::Pixel;
@@ -837,7 +900,10 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
   if (!vblk)
     vblk = &defaultVoxelParams;
 
-  const float projScale = vblk->getReal("projScale", defaultVoxelParams.getReal("projScale", defaults::projScale));
+  const float targetFov = vblk->getReal("targetFov", defaultVoxelParams.getReal("targetFov", defaults::targetFov));
+  const float targetResolution =
+    vblk->getReal("targetResolution", defaultVoxelParams.getReal("targetResolution", defaults::targetResolution));
+  const float projScale = voxelcache::compute_proj_scale(targetFov, targetResolution);
   const float triangleThreshold =
     vblk->getReal("triangleThreshold", defaultVoxelParams.getReal("triangleThreshold", defaults::triangleThreshold));
   float voxelSize = vblk->getReal("voxelSize", defaultVoxelParams.getReal("voxelSize", defaults::voxelSize));
@@ -909,6 +975,7 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
   // allocate voxel maps
   VoxelBitmap solid(mapSize * VOXEL_OVERSCALE);
   carray<VoxelBakingFace, 6> surface;
+  VoxelBakingPalette palette;
   IBBox3 ibbox;
 
   int reqCounter = 0;
@@ -945,6 +1012,20 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
           r.normal->h, r.normal->w * 4, nullptr, 0);
         save_png32(String(0, "%s_%02u_e_%c.png", asset->getName(), reqCounter, "LRBTKF"[r.faceId]), r.extra->getPixels(), r.extra->w,
           r.extra->h, r.extra->w * 4, nullptr, 0);
+        save_png32(String(0, "%s_%02u_c_%c.png", asset->getName(), reqCounter, "LRBTKF"[r.faceId]), r.colorMul->getPixels(),
+          r.colorMul->w, r.colorMul->h, r.colorMul->w * 4, nullptr, 0);
+        {
+          eastl::unique_ptr<TexImage32, tmpmemDeleter> image(TexImage32::create(r.palIndex->w, r.palIndex->h, tmpmem));
+          auto const *sp = r.palIndex->getPixels();
+          auto dp = image->getPixels();
+          for (int num = image->w * image->h; num > 0; num--, sp++, dp++)
+          {
+            dp->u = hash_int(*sp);
+            dp->a = 255;
+          }
+          save_png32(String(0, "%s_%02u_p_%c.png", asset->getName(), reqCounter, "LRBTKF"[r.faceId]), image->getPixels(), image->w,
+            image->h, image->w * 4, nullptr, 0);
+        }
         reqCounter++;
       }
     }
@@ -974,11 +1055,12 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
       auto normalPtr = r.normal->getPixels();
       auto extraPtr = r.extra->getPixels();
       auto depthPtr = r.depth->getPixels();
+      auto palIndexPtr = r.palIndex->getPixels();
 
       bool empty = true;
       for (int y = viewH - 1; y >= 0; y--)
       {
-        for (uint32_t x = 0; x < viewW; x++, albedoPtr++, normalPtr++, extraPtr++, depthPtr++)
+        for (uint32_t x = 0; x < viewW; x++, albedoPtr++, normalPtr++, extraPtr++, depthPtr++, palIndexPtr++)
         {
           float d = *depthPtr - 1;
 
@@ -997,6 +1079,7 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
           auto albedo = *albedoPtr;
           auto normal = *normalPtr;
           auto extra = *extraPtr;
+          auto palIndex = *palIndexPtr;
 
           p.albedoR = albedo.r;
           p.albedoG = albedo.g;
@@ -1012,6 +1095,8 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
           p.reflectance = extra.g;
           p.metalness = extra.b;
           p.translucency = extra.a;
+
+          p.palette = palette.add(palIndex);
 
           solid.set(pos);
           ibbox += pos;
@@ -1045,7 +1130,8 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
     auto elems = mesh->getAllElems();
     eastl::hash_set<const char *> shaders;
     for (const auto &e : elems)
-      shaders.insert(e.e->getShaderClassName());
+      if (e.e)
+        shaders.insert(e.e->getShaderClassName());
     String shaderText;
     for (auto s : shaders)
     {
@@ -1098,12 +1184,19 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
     cwr.writeInt32e(ibbox[1].y);
     cwr.writeInt32e(ibbox[1].z);
 
+    mkbindump::PatchTabRef paletteTab;
+    paletteTab.reserveTab(cwr);
+
     auto pointersOffset = cwr.tell();
     for (auto &s : surface)
       cwr.writePtr64e(0);
 
     mkbindump::PatchTabRef insideTab;
     insideTab.reserveTab(cwr);
+
+    paletteTab.startData(cwr, palette.colors.size());
+    cwr.writeTabData16e(make_span_const(palette.colors));
+    paletteTab.finishTab(cwr);
 
     for (auto &s : surface)
     {

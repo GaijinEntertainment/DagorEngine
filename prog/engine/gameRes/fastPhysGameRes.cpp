@@ -7,7 +7,7 @@
 #include <ioSys/dag_memIo.h>
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>
-#include <EASTL/vector.h>
+#include <dag/dag_vector.h>
 #include <generic/dag_initOnDemand.h>
 #include <debug/dag_log.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
@@ -24,7 +24,7 @@ public:
     SmallTab<unsigned, MidmemAlloc> fastPhys;
   };
 
-  eastl::vector<FastPhysData> ffData;
+  dag::Vector<FastPhysData> ffData;
 
 
   int findResData(int res_id) const
@@ -173,6 +173,7 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(ffData, resId, refCount)
 };
+DAG_DECLARE_RELOCATABLE(FastPhysGameResFactory::FastPhysData);
 
 static InitOnDemand<FastPhysGameResFactory> fast_phys_factory;
 

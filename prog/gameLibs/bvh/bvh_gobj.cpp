@@ -115,7 +115,7 @@ void teardown()
 
 void init(ContextId context_id)
 {
-  if (!context_id->has(Features::GpuObjects))
+  if (!context_id->hasAny(Features::GpuObjects))
     return;
 
   bvhConnection.contexts.insert(context_id);
@@ -123,7 +123,7 @@ void init(ContextId context_id)
 
 void teardown(ContextId context_id)
 {
-  if (!context_id->has(Features::GpuObjects))
+  if (!context_id->hasAny(Features::GpuObjects))
     return;
 
   bvhConnection.contexts.erase(context_id);
@@ -131,7 +131,7 @@ void teardown(ContextId context_id)
 
 void on_unload_scene(ContextId context_id)
 {
-  if (!context_id->has(Features::GpuObjects))
+  if (!context_id->hasAny(Features::GpuObjects))
     return;
 
   bvhConnection.teardown();
@@ -139,7 +139,7 @@ void on_unload_scene(ContextId context_id)
 
 void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count)
 {
-  if (context_id->has(Features::GpuObjects))
+  if (context_id->hasAny(Features::GpuObjects))
   {
     instances = bvhConnection.instances.getBuf();
     instance_count = bvhConnection.counter.getBuf();

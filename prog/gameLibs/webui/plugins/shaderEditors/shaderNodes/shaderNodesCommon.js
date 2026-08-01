@@ -1388,6 +1388,22 @@ var GE_nodeDescriptionsCommon = [
   },
 
   {
+    name:"smoothstep with bounds",
+    category:"Math",
+    synonyms:"easing smoothstep",
+    pins:[
+      {name:"x", types:["float", "float2", "float3", "float4"], singleConnect:true, typeGroup:"group1", role:"in"},
+      {name:"min", types:["float", "float2", "float3", "float4"], singleConnect:true, typeGroup:"group1", role:"in"},
+      {name:"max", types:["float", "float2", "float3", "float4"], singleConnect:true, typeGroup:"group1", role:"in"},
+      {name:"sstep(x)", types:["float", "float2", "float3", "float4"], singleConnect:false, typeGroup:"group1", role:"out", data:{code:"smoothstep($min$, $max$, $x$)"}}
+    ],
+    properties:[
+    ],
+    allowLoop:false,
+    width:180
+  },
+
+  {
     name:"map range to 0..1",
     category:"Math",
     synonyms:"clamp,saturate,remap",
@@ -2325,6 +2341,7 @@ var GE_defaultExternalsCommon =
   {type: "float4", name:"world_sdf_to_atlas_decode__gradient_offset"},
   {type: "texture3D", name:"world_sdf_clipmap"},
   {type: "float4", name:"nbs_params"},
+  {type: "float", name:"meter_to_depth_ao_tex_space"},
 
 ]
 
@@ -2839,7 +2856,9 @@ function generateAdditionalText(graph, useVarPool)
     var ay = aElem ? aElem.view.y : a;
     var bElem = graph.elems[b];
     var by = bElem ? bElem.view.y : b;
-    return ay - by;
+    // tie-break on index: duktape sort is unstable (randomized qsort) and
+    // equal y would reorder gvars between runs, breaking build determinism
+    return ay !== by ? ay - by : a - b;
   })
 
 

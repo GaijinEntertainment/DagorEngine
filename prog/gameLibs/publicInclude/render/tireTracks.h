@@ -36,7 +36,10 @@ void clear(bool completeClear = false);
 void before_render(float dt, const Point3 &origin);
 
 // render tires
-void render(const Frustum &frustum, bool for_displacement);
+void render_to_clipmap(bool for_displacement);
+void render_projective_decals();
+
+void render_debug(bool show_nodes_data);
 
 // create new track emitter
 // prio_scale_factor - the smaller number is (>=0) the bigger is priority. Visible distance is affected.

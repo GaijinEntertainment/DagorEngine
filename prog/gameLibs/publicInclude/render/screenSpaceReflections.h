@@ -5,7 +5,6 @@
 #pragma once
 
 #include <shaders/dag_postFxRenderer.h>
-#include <shaders/dag_dynamicResolutionStcode.h>
 #include <math/dag_TMatrix4.h>
 #include <resourcePool/resourcePool.h>
 #include <render/viewDependentResource.h>
@@ -65,8 +64,6 @@ protected:
   bool denoiser;
   bool isHistoryValid = true;
 
-  eastl::optional<DynRes> prevDynRes;
-
   void updateSamplers() const;
 
 public:
@@ -75,13 +72,13 @@ public:
   ~ScreenSpaceReflections();
 
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos, SubFrameSample sub_sample,
-    BaseTexture *ssrTex, BaseTexture *ssrPrevTex, BaseTexture *targetTex, int callId, const DynRes *dynamic_resolution = nullptr);
+    BaseTexture *ssrTex, BaseTexture *ssrPrevTex, BaseTexture *targetTex, int callId);
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
-    SubFrameSample sub_sample = SubFrameSample::Single, const DynRes *dynamic_resolution = nullptr);
-  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DynRes *dynamic_resolution = nullptr)
+    SubFrameSample sub_sample = SubFrameSample::Single);
+  void render(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   {
     DPoint3 worldPos = dpoint3(orthonormalized_inverse(view_tm).getcol(3));
-    render(view_tm, proj_tm, worldPos, SubFrameSample::Single, dynamic_resolution);
+    render(view_tm, proj_tm, worldPos, SubFrameSample::Single);
   }
   void setRandomizationFrames(int v) { randomizeOverNFrames = v; }
   void setCurrentView(int index);

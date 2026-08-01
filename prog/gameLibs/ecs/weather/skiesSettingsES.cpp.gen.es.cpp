@@ -89,7 +89,7 @@ static ecs::EntitySystemDesc skies_settings_skies_loaded_es_event_handler_es_des
 ,nullptr,nullptr,"clouds_form_es,clouds_weather_gen_es,sky_atmosphere_es,strata_clouds_es");
 static constexpr ecs::ComponentDesc clouds_rendering_es_event_handler_comps[] =
 {
-//start of 9 ro components at [0]
+//start of 24 ro components at [0]
   {ECS_HASH("clouds_rendering__forward_eccentricity"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("clouds_rendering__back_eccentricity"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("clouds_rendering__forward_eccentricity_weight"), ecs::ComponentTypeInfo<float>()},
@@ -99,7 +99,22 @@ static constexpr ecs::ComponentDesc clouds_rendering_es_event_handler_comps[] =
   {ECS_HASH("clouds_rendering__ms_attenuation"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("clouds_rendering__ms_ecc_attenuation"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("clouds_rendering__erosionWindSpeed"), ecs::ComponentTypeInfo<float>()},
-//start of 1 rq components at [9]
+  {ECS_HASH("clouds_rendering__droplet_diameter_um"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__edge_albedo"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__edge_albedo_sharpness"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__taa_exposure_scale"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__layer0_aerosolness"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__layer1_aerosolness"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__cumulonimbus_aerosolness"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__cloudAerosolDropletsMieStrength"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__aerosol_reach_below_km"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__bsm_log2_amortize_frames"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__bsm_scattering_physicality"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__erosion_strength"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__erosion_height_bias"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__erosion_edge_mul"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("clouds_rendering__erosion_edge_add"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [24]
   {ECS_HASH("skies_settings_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void clouds_rendering_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -116,6 +131,21 @@ static void clouds_rendering_es_event_handler_all_events(const ecs::Event &__res
     , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__ms_attenuation", float)
     , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__ms_ecc_attenuation", float)
     , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__erosionWindSpeed", float)
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__droplet_diameter_um", float(20.f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__edge_albedo", float(0.8f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__edge_albedo_sharpness", float(4.f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__taa_exposure_scale", float(0.4f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__layer0_aerosolness", float(0.35f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__layer1_aerosolness", float(0.35f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__cumulonimbus_aerosolness", float(0.5f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__cloudAerosolDropletsMieStrength", float(1.f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__aerosol_reach_below_km", float(0.5f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__bsm_log2_amortize_frames", int(4))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__bsm_scattering_physicality", float(1.f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__erosion_strength", float(0.15f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__erosion_height_bias", float(0.5f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__erosion_edge_mul", float(2.f))
+    , ECS_RO_COMP_OR(clouds_rendering_es_event_handler_comps, "clouds_rendering__erosion_edge_add", float(0.25f))
     );
   while (++comp != compE);
 }
@@ -125,8 +155,8 @@ static ecs::EntitySystemDesc clouds_rendering_es_event_handler_es_desc
   "prog/gameLibs/ecs/weather/skiesSettingsES.cpp.inl",
   ecs::EntitySystemOps(nullptr, clouds_rendering_es_event_handler_all_events),
   empty_span(),
-  make_span(clouds_rendering_es_event_handler_comps+0, 9)/*ro*/,
-  make_span(clouds_rendering_es_event_handler_comps+9, 1)/*rq*/,
+  make_span(clouds_rendering_es_event_handler_comps+0, 24)/*ro*/,
+  make_span(clouds_rendering_es_event_handler_comps+24, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<EventSkiesLoaded,
                        ecs::EventEntityCreated,
@@ -340,7 +370,7 @@ static ecs::EntitySystemDesc clouds_weather_gen_es_event_handler_es_desc
 ,nullptr,"*");
 static constexpr ecs::ComponentDesc sky_atmosphere_es_event_handler_comps[] =
 {
-//start of 29 ro components at [0]
+//start of 30 ro components at [0]
   {ECS_HASH("sky_atmosphere__average_ground_albedo"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("sky_atmosphere__min_ground_offset"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("sky_settings__haze_strength"), ecs::ComponentTypeInfo<float>()},
@@ -369,8 +399,9 @@ static constexpr ecs::ComponentDesc sky_atmosphere_es_event_handler_comps[] =
   {ECS_HASH("sky_atmosphere__sun_brightness"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("sky_atmosphere__moon_brightness"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("sky_atmosphere__moon_color"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("sky_atmosphere__polarization_strength"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("sky_disable_sky_influence"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [29]
+//start of 1 rq components at [30]
   {ECS_HASH("skies_settings_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void sky_atmosphere_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -406,6 +437,7 @@ static void sky_atmosphere_es_event_handler_all_events(const ecs::Event &__restr
     , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_atmosphere__sun_brightness", float)
     , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_atmosphere__moon_brightness", float)
     , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_atmosphere__moon_color", Point3)
+    , ECS_RO_COMP_OR(sky_atmosphere_es_event_handler_comps, "sky_atmosphere__polarization_strength", float(0.f))
     , ECS_RO_COMP_OR(sky_atmosphere_es_event_handler_comps, "sky_disable_sky_influence", bool(false))
     );
   while (++comp != compE);
@@ -416,8 +448,8 @@ static ecs::EntitySystemDesc sky_atmosphere_es_event_handler_es_desc
   "prog/gameLibs/ecs/weather/skiesSettingsES.cpp.inl",
   ecs::EntitySystemOps(nullptr, sky_atmosphere_es_event_handler_all_events),
   empty_span(),
-  make_span(sky_atmosphere_es_event_handler_comps+0, 29)/*ro*/,
-  make_span(sky_atmosphere_es_event_handler_comps+29, 1)/*rq*/,
+  make_span(sky_atmosphere_es_event_handler_comps+0, 30)/*ro*/,
+  make_span(sky_atmosphere_es_event_handler_comps+30, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<EventSkiesLoaded,
                        ecs::EventEntityCreated,

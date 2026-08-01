@@ -40,7 +40,12 @@ public:
     accelerationMod,
     acceleration,
     stickFreezeMinVal,
-    stickState);
+    stickState,
+    onMove,
+    onDeltaMove,
+    onShow,
+    onHide,
+    freezeOnTouchEndMode);
 
   BhvTouchScreenStick();
 

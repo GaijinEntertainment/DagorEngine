@@ -37,6 +37,8 @@ public:
   unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_INT | CONTROL_DATA_MIN_MAX_STEP | CONTROL_CAPTION; }
   unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
 
+  unsigned getWidth() const override { return mW > 0 ? mW : ImguiHelper::getDefaultRightSideEditWidth(); }
+
   int getIntValue() const override { return floor(spinEdit.getValue()); }
   void setIntValue(int value) override { spinEdit.setValue(value); }
 

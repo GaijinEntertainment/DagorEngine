@@ -1,6 +1,7 @@
 include "layered_inc.dshl"
 include "paint_details_inc.dshl"
 include "hmap_blend_use_inc.dshl"
+include "voxel_baking.dshl"
 
 
 macro INIT_MASK_LAYERED(is_normal_stage)
@@ -58,6 +59,8 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
   USE_NORMAL_DETAIL()
   DETAIL_WEIGHTS_BLENDING(ps)
 
+  USE_VOXEL_BAKING()
+
   if (isDynamic)
   {
     hlsl(ps) { #define GBUFF_ORDER GBUFFER_ORDER_DYNAMIC}
@@ -78,6 +81,13 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
       FORCE_EARLY_DEPTH_STENCIL
     #endif
 
+#if RENDINST_IMPOSTOR_VOXEL
+    VOXEL_BAKER_OUTPUT mask_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS
+      #if RI_HMAP_BLEND_ON
+        HW_USE_READ_SHADING_RATE
+      #endif
+      )
+#else
   #if VOXELIZE_ALBEDO_PASS
     void mask_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
   #else
@@ -87,6 +97,7 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
         #endif
         )
   #endif
+#endif
     {
       #if SET_UP_MULTIDRAW
         #if RENDINST_SHADER_MULTIDRAW
@@ -115,11 +126,20 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
       half2 weights = GetWeights(detailColor1, detailColor2, baseColor.a, invert_heights.xy);
 
     #if COLOR_NEEDED
-      half3 paint_details_col = input.colorMul;
       half2 lumins = half2(luminance(detailColor1.rgb), luminance(detailColor2.rgb));
       half2 details = get_paint_details().xy * saturate(lumins * get_paint_points_tr().xz + get_paint_points_tr().yw);
-      detailColor1.rgb = lerp(detailColor1.rgb, detailColor1.rgb * paint_details_col, details.x);
-      detailColor2.rgb = lerp(detailColor2.rgb, detailColor2.rgb * paint_details_col, details.y);
+      #if RENDINST_IMPOSTOR_VOXEL
+        uint palRow = input.colorMul.x;
+        uint palIndex = input.colorMul.y;
+        half3 coloringMul1 = detailColor1.rgb * details.x;
+        half3 coloringMul2 = detailColor2.rgb * details.y;
+        detailColor1.rgb = lerp(detailColor1.rgb, 0, details.x);
+        detailColor2.rgb = lerp(detailColor2.rgb, 0, details.y);
+      #else
+        half3 paint_details_col = input.colorMul;
+        detailColor1.rgb = lerp(detailColor1.rgb, detailColor1.rgb * paint_details_col, details.x);
+        detailColor2.rgb = lerp(detailColor2.rgb, detailColor2.rgb * paint_details_col, details.y);
+      #endif
     #endif
 
       half4 packedNormalMap = SAMPLE_TEX(get_basenormal(), input.uv12.xy);
@@ -132,6 +152,9 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
 
       half4 detailColor = detailColor1*weights.x + detailColor2*weights.y;
       half3 diffuseColor = baseColor.rgb * detailColor.rgb * COLOR_CORRECTION_MULTIPLIER;
+      #if RENDINST_IMPOSTOR_VOXEL
+        half3 coloringMul = baseColor.rgb * (coloringMul1 * weights.x + coloringMul2 * weights.y) * COLOR_CORRECTION_MULTIPLIER;
+      #endif
 
     #if VOXELIZE_ALBEDO_PASS
       WRITE_SCENE25D_VOXEL_DATA(world_view_pos.xyz-input.pointToEye.xyz, diffuseColor.rgb, 0, 0);
@@ -181,7 +204,7 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
       float4 screenpos = GET_SCREEN_POS(input.pos);
 
       #ifdef MOTION_VECTORS_ENABLED
-        float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+        float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
         init_motion_vector(gbuffer, motion);
       #endif
       #if RI_HMAP_BLEND_ON
@@ -191,8 +214,15 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
       #ifdef PLOD_PS_GEN
         PLOD_PS_GEN(input, pack_gbuffer(gbuffer), normalMap)
       #endif
+#if RENDINST_IMPOSTOR_VOXEL
+      const half alpha = 1;
+      const float depth = voxel_baker_depth(worldPos, GET_SCREEN_POS(input.pos).xy);
+      return baker_output_from_gbuffer(gbuffer, depth, alpha,
+        coloringMul, palRow, palIndex);
+#else
       return encode_gbuffer(gbuffer, input.pointToEye.xyz, screenpos);
-    #endif
+#endif
+    #endif // VOXELIZE_ALBEDO_PASS
     }
   }
   compile("target_ps", "mask_layered_ps");

@@ -8,6 +8,11 @@
 [![Conan](https://img.shields.io/badge/on-conan-blue.svg)](https://conan.io/center/recipes/nfrechette-acl)
 [![Discord](https://img.shields.io/discord/691048241864769647?label=discord)](https://discord.gg/UERt4bS)
 
+Upstream: nfrechette/acl, https://github.com/nfrechette/acl
+Vendored version: 2.1.99 (development snapshot past the 2.1.0 release).
+`includes/rtm` vendors the separate Realtime Math library; see its own
+README under that folder.
+
 # Animation Compression Library
 
 Animation compression is a fundamental aspect of modern video game engines. Not only is it important to keep the memory footprint down but it is also critical to keep the animation clip sampling performance fast.

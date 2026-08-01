@@ -17,6 +17,8 @@ struct RaytraceASDescription
 {
   bool isTopLevel;
   VkDeviceSize size;
+  // micromaps share buffer management and lifetime handling with ASes, but hold a VkMicromapEXT
+  bool isMicromap;
 
   void fillAllocationDesc(AllocationDesc &alloc_desc) const;
 };
@@ -56,8 +58,15 @@ public:
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
   VkDeviceAddress getDeviceAddress();
 #endif
+#if VK_EXT_opacity_micromap
+  // micromap kind resources store their VkMicromapEXT in the shared base handle slot
+  VulkanMicromapHandle getMicromapHandle() const { return VulkanMicromapHandle{getBaseHandle()}; }
+#endif
 
   static RaytraceAccelerationStructure *create(bool top_level, VkDeviceSize size);
+#if VK_EXT_opacity_micromap
+  static RaytraceAccelerationStructure *createMicromap(VkDeviceSize size);
+#endif
   void destroyPrimaryVulkanObject();
 };
 
@@ -74,8 +83,33 @@ inline VkBuildAccelerationStructureFlagsKHR ToVkBuildAccelerationStructureFlagsK
     result |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_KHR;
   if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::LOW_MEMORY))
     result |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
+#if VK_EXT_opacity_micromap
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::OMM_LINKAGE_UPDATE))
+    result |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_OPACITY_MICROMAP_UPDATE_BIT_EXT;
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::OMM_DISABLE))
+    result |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_DISABLE_OPACITY_MICROMAPS_BIT_EXT;
+#endif
   return result;
 }
+
+#if VK_EXT_opacity_micromap
+inline VkBuildMicromapFlagsEXT ToVkBuildMicromapFlagsEXT(RaytraceBuildFlags flags)
+{
+  VkBuildMicromapFlagsEXT result = 0;
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::FAST_TRACE))
+    result |= VK_BUILD_MICROMAP_PREFER_FAST_TRACE_BIT_EXT;
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::FAST_BUILD))
+    result |= VK_BUILD_MICROMAP_PREFER_FAST_BUILD_BIT_EXT;
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::ALLOW_COMPACTION))
+    result |= VK_BUILD_MICROMAP_ALLOW_COMPACTION_BIT_EXT;
+  return result;
+}
+
+// fills size-relevant fields (index type, base triangle, usage counts left to caller) of the BLAS
+// triangles pNext extension from the abstract OMM linkage
+void fillTrianglesOmmDesc(VkAccelerationStructureTrianglesOpacityMicromapEXT &dst,
+  const RaytraceGeometryDescription::OpacityMicroMapLinkage &src);
+#endif
 
 VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(
   const RaytraceGeometryDescription &desc);

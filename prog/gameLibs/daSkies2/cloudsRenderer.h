@@ -18,12 +18,16 @@ public:
 
   void renderCloudsPrepare(CloudsRendererData &data, BaseTexture *depth, BaseTexture *prev_depth, const Point2 &wind_change_ofs,
     float worldSize, const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos = nullptr,
-    const CloudsRenderFlags flags = CloudsRenderFlags::Default, const DynRes *dynamic_resolution = nullptr);
+    const CloudsRenderFlags flags = CloudsRenderFlags::Default);
 
   // apply-only or direct render (eg. for mobile)
   void renderCloudsApply(CloudsRendererData &data, BaseTexture *downsampled_depth, BaseTexture *target_depth,
     const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm,
     const CloudsRenderFlags flags = CloudsRenderFlags::Default);
+
+  // quarter-rate checkerboard trace of MainView-flagged views (compute path only):
+  // a graphics quality setting the game threads in, not weather data
+  bool traceCheckerboard = false;
 
 private:
   static void set_program(ShaderElement *oe, ShaderElement *ne);

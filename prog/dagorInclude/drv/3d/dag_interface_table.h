@@ -153,7 +153,7 @@ struct D3dInterfaceTable
   bool (*set_pixel_shader)(FSHADER ps);
   int (*set_vs_constbuffer_register_count)(int required_size);
   int (*set_cs_constbuffer_register_count)(int required_size);
-  bool (*set_const_buffer)(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size);
+  bool (*set_const_buffer)(unsigned stage, unsigned slot, Sbuffer *buffer);
 
   uint32_t (*register_bindless_sampler)(d3d::SamplerHandle sampler);
 

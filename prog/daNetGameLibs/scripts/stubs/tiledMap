@@ -9,9 +9,18 @@ local class TiledMapContext {
   setVisibleRadius = @(_radius) 0.0
   mapToWorld = @(_point) Point3()
   worldToMap = @(_point) Point2()
+  getWorldPos = @() Point3()
   setWorldPos = @(_point) null
+  getFogOfWarBase64 = @() ""
+  getFogOfWarBase64Compressed = @() ""
+  toggleFogOfWar = @() null
+}
+
+function blend_and_compress_fog_of_war(_sources, _newLT, _newRB, _newRes) {
+  return ""
 }
 
 return {
   TiledMapContext
+  blend_and_compress_fog_of_war
 }

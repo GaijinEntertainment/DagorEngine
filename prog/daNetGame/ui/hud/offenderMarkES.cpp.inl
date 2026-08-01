@@ -15,6 +15,9 @@ ECS_TAG(render, ui)
 ECS_NO_ORDER
 static inline void offender_mark_es(const RenderEventUI &evt, ecs::EntityId possessedByPlr, ecs::Array &offender_marks)
 {
+  if (offender_marks.empty())
+    return;
+
   if (possessedByPlr != game::get_local_player_eid())
     return;
 

@@ -134,3 +134,7 @@ The code was written to work with the Microsoft Visual Studio compiler (under `_
 
 This project was created to support [SHA3 in OpenPGP](https://tools.ietf.org/html/draft-jivsov-openpgp-sha3) work, but it applies to other protocols and formats, e.g. TLS.
 
+## Upstream
+
+Vendored from https://github.com/brainhub/SHA3IUF.
+

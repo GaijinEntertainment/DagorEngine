@@ -19,6 +19,7 @@ struct Frustum;
 class Occlusion;
 class BaseTexture;
 struct mat44f;
+class BBox3;
 
 using OcclusionSyncWaitFunc = dag::FunctionRef<Occlusion *() const>;
 
@@ -283,7 +284,9 @@ InstanceId create_instance(ContextId cid, SystemId sid);
 InstanceId create_instance(ContextId cid, const eastl::string &name);
 void destroy_instance(ContextId cid, InstanceId &iid);
 void reset_instance(ContextId cid, InstanceId iid);
-void warmup_instance(ContextId cid, InstanceId iid, float time);
+// pre-simulates the instance so it appears mid-playing. time < 0 = auto: one full particle
+// lifetime, i.e. to steady state. per_instance_mode/step_dt: see Config warmup fields.
+void warmup_instance(ContextId cid, InstanceId iid, float time, bool per_instance_mode = false, float step_dt = 0.f);
 void clear_instances(ContextId cid, int keep_allocated_count); // pass keep_allocated_count = 0 for complete memory shrink
 
 CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs, uint32_t visibilityMask = 0xffffffff);
@@ -293,6 +296,8 @@ void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustu
   OcclusionSyncWaitFunc occlusion_sync_wait_f = {});
 void update_culling_state(ContextId cid, CullingId cullid, const Frustum &frustum, const mat44f &globtm, const Point3 &view_pos,
   OcclusionSyncWaitFunc occlusion_sync_wait_f = {});
+void update_instances_culling_state(ContextId cid, CullingId cullid, dag::ConstSpan<InstanceId> iids, const Frustum &frustum,
+  const mat44f *globtm, const Point3 &view_pos, OcclusionSyncWaitFunc occlusion_sync_wait_f = {});
 void clear_culling_state(ContextId cid, CullingId cullid);
 void remap_culling_state_tag(ContextId cid, CullingId cullid, const eastl::string &from, const eastl::string &to); // pass same values
                                                                                                                    // to reset remap
@@ -357,6 +362,7 @@ bool is_instance_renderable_visible(ContextId cid, InstanceId iid);
 bool get_instance_value(ContextId cid, InstanceId iid, int offset, void *out_data, int size);
 bool get_subinstances(ContextId cid, InstanceId iid, eastl::vector<InstanceId> &out);
 eastl::string get_instance_info(ContextId cid, InstanceId iid);
+BBox3 get_instance_bbox(ContextId cid, InstanceId iid);     // in world space
 int get_instance_elem_count(ContextId cid, InstanceId iid); // slow and not thread-safe, only for debug!
 void sync_instance_flags(ContextId cid);
 void gather_instance_stats(ContextId cid, InstanceId iid, eastl::vector<eastl::string> &names, eastl::vector<int> &elems,
@@ -370,6 +376,7 @@ inline const Config &get_config(ContextId cid) { return get_pending_config(cid);
 bool set_config(ContextId cid, const Config &cfg);
 void set_sim_lod_params(ContextId cid, const SimLodGenParams &params);
 uint32_t get_debug_flags(ContextId cid);
+bool is_simulation_paused(ContextId cid);
 void clear_stats(ContextId cid);
 void get_stats(ContextId cid, Stats &out_s);
 void get_stats_as_string(ContextId cid, eastl::string &out_s);
@@ -421,8 +428,17 @@ struct Config
   unsigned int staging_buffer_size = 65536;
   unsigned int cpu_defrag_budget = cpu_data_buffer_size;
   unsigned int cpu_defrag_page_budget = 1;
-  unsigned int warmup_sims_budget = 50; // parent/root instances
-  unsigned int max_warmup_steps_per_instance = 10;
+  unsigned int warmup_shared_steps_budget = 50; // shared-budget stepping: divided evenly between its batched requests
+  unsigned int warmup_shared_steps_limit = 10;  // shared-budget stepping: single instance cap
+  // per-instance warmup stepping (opt-in per warmup_instance request, for long scene
+  // pre-simulations): steps = ceil(warmup_time / step dt); false = such requests fall back
+  // to shared-budget stepping
+  bool warmup_per_instance_mode = false;
+  float warmup_per_instance_step_dt = 0.7f;            // default step dt (typical 0.3-1.0); requests can override it
+  unsigned int warmup_per_instance_steps_limit = 2048; // per-instance stepping: single instance cap
+  // per-instance stepping: frame-time circuit breaker, in sub-steps (steps x subinstances). Bounds only the
+  // fine-stepped portion of a warmup batch: instances past the cap fall back to shared-quality steps, uncounted.
+  unsigned int warmup_per_instance_batch_limit = 32768;
   unsigned int max_multidraw_batch_size = 256;
   unsigned int multidraw_buffer_size = 4096;
 
@@ -435,7 +451,7 @@ struct Config
   bool debug_page_allocs = false;
   bool use_seperate_highres_atest_rtag = false;
 
-  static constexpr int emission_max_limit = 65536;
+  static constexpr int emission_max_limit = 65535;
 
   static const int max_render_tags = 16;
   static const int max_system_depth = 8;

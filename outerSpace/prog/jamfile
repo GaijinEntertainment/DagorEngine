@@ -30,7 +30,7 @@ DAS_AOT_COMPILER_OPT = -- --config outer_space_aot_config.blk -sConfig $(Config)
 
 if ! $(Platform) in macOS android { UseHostedInternalServer = yes ; }
 
-if $(Dedicated) != yes && $(Platform) in windows && $(PlatformArch) != arm64 {
+if $(Dedicated) != yes && $(Platform) in windows {
   VRDeviceSupport ?= yes ;
 }
 
@@ -259,19 +259,7 @@ AutoscanBuildLists $(AllSrcFolder_ES)  : *ES.cpp.inl : SourceES ;
 for s in $(SourceES) { GenESSourceFile $(s) ; }
 SourceES = ;
 
-if $(VRDeviceSupport) = yes {
-  if $(Platform) = android {
-    BundleCopy +=
-      @$(OpenXrSdkPath)/$(Platform)/$(PlatformArch)/Release/libopenxr_loader.so libs/$(PlatformArch)/libopenxr_loader.so
-    ;
-  }
-  else {
-    BundleCopy +=
-      @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
-      @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
-    ;
-  }
-}
+if $(VRDeviceSupport) = yes { include $(Root)/prog/engine/drv/vr_device/bundle.jam ; }
 
 if $(DumpBuildCmds) != yes {
 echo building Target\=$(Target) to $(_Output) "

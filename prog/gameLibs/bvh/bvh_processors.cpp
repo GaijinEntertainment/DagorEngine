@@ -527,7 +527,6 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
-    worldTm._44 = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
 
     VariantKey variantKey = packVariants(args.tree.isPosInstance, args.tree.isPivoted);
     auto &dispatchData = dispatchDataMapping[variantKey][processed_buffer.get()];
@@ -927,7 +926,6 @@ bool LeavesVertexProcessor::process(ContextId context_id, Sbuffer *source, int s
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
-    worldTm._44 = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
 
     set_offset(processed_buffer);
     ShaderGlobal::set_int(bvh_process_leaves_vertices_startVarId, args.baseVertex + args.startVertex);
@@ -1008,7 +1006,6 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, in
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
-    worldTm._44 = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
 
     set_offset(processed_buffer);
     ShaderGlobal::set_int(bvh_process_heli_rotor_vertices_startVarId, args.baseVertex + args.startVertex);
@@ -1122,7 +1119,6 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
-    worldTm._44 = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
 
     set_offset(processed_buffer);
     ShaderGlobal::set_int(bvh_process_flag_vertices_startVarId, args.baseVertex + args.startVertex);
@@ -1247,7 +1243,6 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, int
 
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
-    worldTm._44 = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
 
     float deformId; // uint32_t bitwise
     Point2 simParams;

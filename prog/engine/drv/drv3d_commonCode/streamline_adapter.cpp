@@ -15,6 +15,7 @@
 #include <3d/dag_lowLatency.h>
 #include <EASTL/fixed_vector.h>
 #include <osApiWrappers/dag_winVersionQuery.h>
+#include <osApiWrappers/dag_versionQuery.h>
 #include <perfMon/dag_cpuFreq.h>
 
 #include <sl.h>
@@ -333,6 +334,32 @@ void FrameTracker::initConstants(const Params &params, sl::FrameToken &token, in
   constantsFrameId[viewport_id] = frameId;
 }
 
+#if _TARGET_PC_WIN && _TARGET_64BIT
+static bool is_incompatible_msvcp140_loaded(const DataBlock *settings)
+{
+  HMODULE module = GetModuleHandleW(L"msvcp140.dll");
+  if (!module)
+    return false;
+
+  auto loadedVer = get_library_version(module);
+  if (!loadedVer)
+    return false;
+
+  LibraryVersion minVer{};
+  sscanf(settings->getStr("minVcRedistVer", "14.40.35211.0"), " %hu . %hu . %hu . %hu", &minVer.major, &minVer.minor, &minVer.build,
+    &minVer.revision);
+  if (*loadedVer >= minVer)
+    return false;
+
+  wchar_t path[MAX_PATH] = {};
+  GetModuleFileNameW(module, path, MAX_PATH);
+  logwarn("sl: loaded msvcp140.dll %s ('%ls') is older than the required %s; Streamline will be disabled "
+          "for this session to avoid a startup crash.",
+    loadedVer->toString().c_str(), path, minVer.toString().c_str());
+  return true;
+}
+#endif
+
 StreamlineAdapter::InterposerHandleType StreamlineAdapter::loadInterposer()
 {
 #if !_TARGET_64BIT
@@ -353,6 +380,11 @@ StreamlineAdapter::InterposerHandleType StreamlineAdapter::loadInterposer()
   auto settings = ::dgs_get_settings();
   if (settings->getBlockByNameEx("video")->getBool("disableStreamline", false))
     return {nullptr, nullptr};
+
+#if _TARGET_PC_WIN && _TARGET_64BIT
+  if (is_incompatible_msvcp140_loaded(settings))
+    return {nullptr, nullptr};
+#endif
 
   if (int appId = settings->getInt("nvidia_app_id", 0); appId == 0)
   {
@@ -411,11 +443,20 @@ bool StreamlineAdapter::init(eastl::optional<StreamlineAdapter> &adapter, Render
   if (api == RenderAPI::DX12 || api == RenderAPI::Vulkan)
     initArgs->preferences.flags |= sl::PreferenceFlags::eUseManualHooking;
 
-  initArgs->features = {sl::kFeatureDLSS, sl::kFeatureReflex, sl::kFeaturePCL};
+  auto isKnownUnsupported = [&support_override](sl::Feature feature) {
+    auto it = support_override.find(feature);
+    return it != support_override.end() && it->second != nv::SupportState::Supported;
+  };
+
+  initArgs->features = {sl::kFeatureReflex, sl::kFeaturePCL};
+  if (!isKnownUnsupported(sl::kFeatureDLSS))
+    initArgs->features.push_back(sl::kFeatureDLSS);
   if (api == RenderAPI::DX12 || api == RenderAPI::Vulkan)
   {
-    initArgs->features.push_back(sl::kFeatureDLSS_G);
-    initArgs->features.push_back(sl::kFeatureDLSS_RR);
+    if (!isKnownUnsupported(sl::kFeatureDLSS_G))
+      initArgs->features.push_back(sl::kFeatureDLSS_G);
+    if (!isKnownUnsupported(sl::kFeatureDLSS_RR))
+      initArgs->features.push_back(sl::kFeatureDLSS_RR);
   }
 
   initArgs->preferences.featuresToLoad = initArgs->features.data();
@@ -844,7 +885,12 @@ DLSSFrameGeneration::~DLSSFrameGeneration() { G_VERIFY(sl_funcs::slFreeResources
 static sl::DLSSGOptions make_dlssg_options(bool retain_resources, int frames_to_generate)
 {
   sl::DLSSGOptions options{};
-  options.mode = frames_to_generate > 0 ? sl::DLSSGMode::eOn : sl::DLSSGMode::eOff;
+  if (frames_to_generate > 0)
+    options.mode = sl::DLSSGMode::eOn;
+  else if (frames_to_generate < 0)
+    options.mode = sl::DLSSGMode::eDynamic;
+  else
+    options.mode = sl::DLSSGMode::eOff;
   options.flags = retain_resources ? sl::DLSSGFlags::eRetainResourcesWhenOff : sl::DLSSGFlags(0);
   options.onErrorCallback = &api_error_callback;
   options.numFramesToGenerate = eastl::max(1, frames_to_generate);
@@ -878,23 +924,25 @@ static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames
   if (out_state)
     *out_state = state;
   if (state.status != sl::DLSSGStatus::eOk)
-    D3D_ERROR("DLSSG: failed to set to %s state", frames_to_generate > 0 ? "enabled" : "disabled");
+    D3D_ERROR("DLSSG: failed to set to %s state", frames_to_generate != 0 ? "enabled" : "disabled");
   return state.status == sl::DLSSGStatus::eOk ? frames_to_generate : 0;
 }
 
-dag::AtomicInteger<int> DLSSFrameGeneration::cachedMaxFramesToGenerate{-1};
+dag::AtomicPod<nv::DLSSFrameGenerationCapabilities> DLSSFrameGeneration::cachedFrameGenerationCapabilities{};
 
 void DLSSFrameGeneration::updateCachedState(const sl::DLSSGState &state)
 {
   // numFramesActuallyPresented is a delta since the last slDLSSGGetState call, so accumulate it.
   presentedFramesAccum.fetch_add(state.numFramesActuallyPresented, dag::mo::relaxed);
   cachedMemorySize.store(state.estimatedVRAMUsageInBytes, dag::mo::relaxed);
-  cachedMaxFramesToGenerate.store(int(state.numFramesToGenerateMax), dag::mo::relaxed);
+  cachedFrameGenerationCapabilities.store(
+    nv::DLSSFrameGenerationCapabilities{state.numFramesToGenerateMax, static_cast<uint32_t>(state.bIsDynamicMFGSupported), true},
+    dag::mo::relaxed);
 }
 
 void DLSSFrameGeneration::setEnabled(int frames_to_generate)
 {
-  if (frames_to_generate > 0)
+  if (frames_to_generate != 0)
   {
     this->framesToGenerate = frames_to_generate;
   }
@@ -908,7 +956,7 @@ void DLSSFrameGeneration::setEnabled(int frames_to_generate)
 
 bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *command_buffer)
 {
-  if (framesToGenerate <= 0)
+  if (framesToGenerate == 0)
     return true;
 
   sl::DLSSGState state;
@@ -976,7 +1024,7 @@ bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *co
 
 unsigned DLSSFrameGeneration::getActualFramesPresented() const
 {
-  if (framesToGenerate <= 0)
+  if (framesToGenerate == 0)
     return 1;
 
   // Reads the count accumulated by the backend thread (slDLSSGGetState is not thread safe). Consumes it
@@ -984,24 +1032,26 @@ unsigned DLSSFrameGeneration::getActualFramesPresented() const
   return presentedFramesAccum.exchange(0, dag::mo::relaxed);
 }
 
-int DLSSFrameGeneration::getMaximumNumberOfGeneratedFrames()
+nv::DLSSFrameGenerationCapabilities DLSSFrameGeneration::getFrameGenerationCapabilities()
 {
   // numFramesToGenerateMax is a fixed GPU capability. While FG is active the backend keeps this cached, so
   // the main thread never calls the (non-thread-safe) slDLSSGGetState concurrently. The cold query below
   // only runs when nothing has been cached yet, which implies FG is not running, hence no concurrent call.
-  if (int cached = cachedMaxFramesToGenerate.load(dag::mo::relaxed); cached >= 0)
+  if (auto cached = cachedFrameGenerationCapabilities.load(dag::mo::relaxed); cached.valid)
     return cached;
 
   sl::DLSSGState state;
   auto result = sl_funcs::slDLSSGGetState(0, state, nullptr);
-  G_ASSERT_RETURN((result == sl::Result::eOk || result == sl::Result::eWarnOutOfVRAM) && state.status == sl::DLSSGStatus::eOk, 0);
-  cachedMaxFramesToGenerate.store(int(state.numFramesToGenerateMax), dag::mo::relaxed);
-  return state.numFramesToGenerateMax;
+  G_ASSERT_RETURN((result == sl::Result::eOk || result == sl::Result::eWarnOutOfVRAM) && state.status == sl::DLSSGStatus::eOk,
+    nv::DLSSFrameGenerationCapabilities{});
+  nv::DLSSFrameGenerationCapabilities candidate{state.numFramesToGenerateMax, state.bIsDynamicMFGSupported, true};
+  cachedFrameGenerationCapabilities.store(candidate, dag::mo::relaxed);
+  return candidate;
 }
 
 uint64_t DLSSFrameGeneration::getMemorySize() const
 {
-  if (framesToGenerate < 1)
+  if (framesToGenerate == 0)
   {
     return 0;
   }
@@ -1013,7 +1063,7 @@ static bool is_frame_generation_enabled_in_settings()
 {
   const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
   return blk_video.getInt("dlssFrameGenerationCount", 0) > 0 ||
-         (stricmp(blk_video.getStr("antialiasing_mode", "off"), "dlss") == 0 && blk_video.getInt("antialiasing_fgc", 0) > 0);
+         (stricmp(blk_video.getStr("antialiasing_mode", "off"), "dlss") == 0 && blk_video.getInt("antialiasing_fgc", 0) != 0);
 }
 
 DLSSFrameGeneration *StreamlineAdapter::createDlssGFeature(int viewport_id, void *command_buffer)

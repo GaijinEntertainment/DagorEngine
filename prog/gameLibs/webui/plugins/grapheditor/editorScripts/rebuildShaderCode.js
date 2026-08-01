@@ -134,12 +134,8 @@ function offlineRun()
 
   var additionalIncludesFnFlat = [];
 
-  // @TODO: would be good to have a single source of truth for
-  // group x perm limits. Not worth the hassle probably, as it's in dshl
-  // and js. These limits mirror the intervals nbsPermIdG-X defined in
-  // node_based_common.dshl
-  var maxGroupCount = 2;
-  var maxPermsPerGroup = 4;
+  var maxGroupCount = NBS_PERM_LIMS.MAX_GROUP_COUNT;
+  var maxPermsPerGroup = NBS_PERM_LIMS.MAX_PERMS_PER_GROUP;
 
   var group = 0;
   for (var groupFnamesId in additionalIncludesFn)

@@ -1,0 +1,79 @@
+// Land detail weights out of the atlas built at load (landMesh/lmeshWeightAtlas.h).
+// Shared by every game that renders landclasses, so the sampling stays in one place.
+//
+// The cell is resolved from the world position and its record is read from a
+// buffer, so a weight can be looked up anywhere without the cell's draw being
+// current - which is what lets a pixel be shaded without a per-cell draw.
+int land_weight_cells_const_no = 16 always_referenced; // above lmesh_sampler__max_used_sampler: the
+                                                       // landmesh renderer raw-sets and nulls t0..t15
+// The four of them are hardcoded above the landmesh block instead of allocated:
+// the land shaders have room for one more ps const before the block's own range
+// (compat builds fail on the overlap), and the renderer sets them per pass anyway.
+int land_weight_uv_const_no = 116 always_referenced;   // xy elem, zw page, over the atlas
+int land_weight_ofs_const_no = 117 always_referenced;  // xy page border, z pages per row
+int land_weight_cell_const_no = 118 always_referenced; // x world->cell scale, yz offset, w cells along x
+int land_weight_fold_const_no = 119 always_referenced; // xy mirroring period over the map, zw its reciprocal
+
+macro GET_WEIGHTS()
+  (ps) {
+    land_weight_cells@buf : register(land_weight_cells_const_no) hlsl {
+      ByteAddressBuffer land_weight_cells@buf;
+    }
+    land_weight_uv@f4 : register(land_weight_uv_const_no);
+    land_weight_ofs@f4 : register(land_weight_ofs_const_no);
+    land_weight_cell@f4 : register(land_weight_cell_const_no);
+    land_weight_fold@f4 : register(land_weight_fold_const_no);
+  }
+hlsl(ps) {
+  #include "land_weight_atlas.hlsli"
+
+  float3 land_weight_page(uint page, float2 cell_uv)
+  {
+    uint perRow = (uint)land_weight_ofs.z;
+    float2 uv = float2(page % perRow, page / perRow) * land_weight_uv.zw + land_weight_ofs.xy + cell_uv * land_weight_uv.xy;
+    return tex2Dlod(land_detail_map_n0, float4(uv, 0, 0)).rgb;
+  }
+
+  void get_weights(float2 world_pos_xz, out half4 weight1, out half3 weight2)
+  {
+    // Cells outside the map are mirrored copies of the ones inside. Folding the
+    // continuous cell coordinate reflects the intra-cell position along with it,
+    // for any number of reflections (the renderer only ever mirrors once). The
+    // period is not twice the map: MirroredCellState::init shifts the positive
+    // side by a grid cell, so the far reflection sits half of one inside.
+    float2 cf = world_pos_xz * land_weight_cell.x + land_weight_cell.yz;
+    float2 period = land_weight_fold.xy;
+    float2 wrapped = cf - period * floor(cf * land_weight_fold.zw);
+    float2 folded = min(wrapped, period - wrapped);
+    int2 cell = int2(folded);
+    float2 cellUv = frac(folded);
+
+    uint rec = loadBuffer(land_weight_cells, (cell.y * (int)land_weight_cell.w + cell.x) * LAND_WEIGHT_CELL_STRIDE);
+    uint count = ((rec >> LAND_WEIGHT_COUNT_SHIFT) & LAND_WEIGHT_COUNT_MASK) + 1;
+
+    float4 w0123 = float4(1, 0, 0, 0);
+    float3 w456 = 0;
+    if (count > 1)
+    {
+      w0123.xyz = land_weight_page(rec & LAND_WEIGHT_PAGE_MASK, cellUv);
+      // the fourth landclass is the derived one, so its page is only there from the fifth on
+      if (count > 4)
+      {
+        float3 p1 = land_weight_page((rec >> LAND_WEIGHT_PAGE1_SHIFT) & LAND_WEIGHT_PAGE_MASK, cellUv);
+        w0123.w = p1.x;
+        w456.xy = p1.yz;
+      }
+      // the last blended channel is 1 minus the rest of them, and there is
+      // nothing past it (dot() takes full vectors: a scalar would truncate)
+      float last = count - 1;
+      w0123 *= float4(0, 1, 2, 3) < last;
+      w456 *= float3(4, 5, 6) < last;
+      float derived = saturate(1 - dot(w0123, float4(1, 1, 1, 1)) - dot(w456, float3(1, 1, 1)));
+      w0123 += derived * (float4(0, 1, 2, 3) == last);
+      w456 += derived * (float3(4, 5, 6) == last);
+    }
+    weight1 = half4(w0123);
+    weight2 = half3(w456);
+  }
+}
+endmacro

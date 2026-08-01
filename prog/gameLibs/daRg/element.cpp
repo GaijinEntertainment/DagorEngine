@@ -16,6 +16,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
 #include <math/random/dag_random.h>
+#include <math/integer/dag_IPoint2.h>
 #include <utf8/utf8.h>
 #include <util/dag_convar.h>
 
@@ -272,9 +273,47 @@ void Element::updateBehaviorsList(dag::ConstSpan<Behavior *> comp_behaviors)
 }
 
 
+void Element::overrideRootSize(SetupMode setup_mode)
+{
+  if (isMainTreeRoot())
+  {
+    layout.size[0].mode = SizeSpec::PIXELS;
+    layout.size[1].mode = SizeSpec::PIXELS;
+    layout.size[0].value = StdGuiRender::screen_width();
+    layout.size[1].value = StdGuiRender::screen_height();
+  }
+  else if (!parent)
+  {
+    const IPoint2 canvasSize = props.scriptDesc.RawGetSlotValue("canvasSize", IPoint2(-1, -1));
+    for (int axis = 0; axis < 2; ++axis)
+    {
+      if (layout.size[axis].mode != SizeSpec::FLEX)
+        continue;
+      layout.size[axis].mode = SizeSpec::PIXELS;
+      if (canvasSize[axis] > 0)
+        layout.size[axis].value = canvasSize[axis];
+      else
+      {
+        if (setup_mode == SM_INITIAL)
+          darg_assert_trace_var("FLEX size on a root element needs a parent or canvasSize", props.scriptDesc, csk->size);
+        layout.size[axis].value = 0;
+      }
+    }
+  }
+}
+
+
 void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_mode)
 {
   G_ASSERT(!comp.scriptDesc.IsNull());
+
+  PerfStats &ps = gui_scene->getPerfStats();
+  if (setup_mode == SM_INITIAL)
+    ps.elemsSetupInitial++;
+  else if (setup_mode == SM_REBUILD_UPDATE)
+    ps.elemsSetupRebuild++;
+  else
+    ps.elemsSetupRealtime++;
 
   bool initRendObj = (setup_mode == SM_INITIAL) || (setup_mode == SM_REBUILD_UPDATE && rendObjType != comp.rendObjType);
   if (initRendObj)
@@ -297,13 +336,7 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
   validateStaticText();
 
   layout.read(this, props, csk);
-  if (isMainTreeRoot())
-  {
-    layout.size[0].mode = SizeSpec::PIXELS;
-    layout.size[1].mode = SizeSpec::PIXELS;
-    layout.size[0].value = StdGuiRender::screen_width();
-    layout.size[1].value = StdGuiRender::screen_height();
-  }
+  overrideRootSize(setup_mode);
 
   if (setup_mode != SM_REALTIME_UPDATE)
   {
@@ -1370,6 +1403,15 @@ static float calc_flowing_spacing(int axis, const Element *prev_child, const Ele
   return ::max(prev_child->layout.margin().rb()[axis], cur_child->layout.margin().lt()[axis]) + gap;
 }
 
+static int count_flow_gaps(const Element *parent)
+{
+  int n = 0;
+  for (const Element *child : parent->children)
+    if (ElementTree::does_element_affect_layout(child))
+      ++n;
+  return ::max(0, n - 1);
+}
+
 void Element::calcConstrainedSizes(int axis)
 {
   if (children.size())
@@ -1765,7 +1807,7 @@ float Element::calcParentW(float percent) const
   float available = parent->screenCoord.size[0] - ::max(mgn.l, ppad.l) - ::max(mgn.r, ppad.r);
 
   if (parent->layout.flowType == FLOW_HORIZONTAL)
-    available -= parent->layout.gap * (parent->children.size() - 1);
+    available -= parent->layout.gap * count_flow_gaps(parent);
 
   return floorf(::max(0.0f, available) * percent * 0.01f + 0.5f);
 }
@@ -1798,7 +1840,7 @@ float Element::calcParentH(float percent) const
   float available = parent->screenCoord.size[1] - ::max(mgn.t, ppad.t) - ::max(mgn.b, ppad.b);
 
   if (parent->layout.flowType == FLOW_VERTICAL)
-    available -= parent->layout.gap * (parent->children.size() - 1);
+    available -= parent->layout.gap * count_flow_gaps(parent);
 
   return floorf(::max(0.0f, available) * percent * 0.01f + 0.5f);
 }

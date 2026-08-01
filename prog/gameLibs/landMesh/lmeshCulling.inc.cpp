@@ -48,7 +48,8 @@ bool LandMeshCullingState::calcCellBox(LandMeshManager &provider, int borderX, i
 }
 
 void LandMeshCullingState::cullCell(LandMeshManager &provider, int borderX, int borderY, int x0, int y0, int x1, int y1,
-  const Frustum &frustum, const vec3f *frustumPoints, const bbox3f &frustumBox, const Occlusion *occlusion, LandMeshCullingData &data)
+  const Frustum &frustum, const Frustum::BoxCorrectSAT &sat, const bbox3f &frustumBox, const Occlusion *occlusion,
+  LandMeshCullingData &data)
 {
   if (provider.isInTools() && useExclBox && borderX >= exclBox[0].x && borderY >= exclBox[0].y && borderX < exclBox[1].x &&
       borderY < exclBox[1].y)
@@ -62,7 +63,7 @@ void LandMeshCullingState::cullCell(LandMeshManager &provider, int borderX, int 
     if (!renderInBBox.isempty() && !(bbox & renderInBBox))
       return;
 
-    bool frustumCheck = frustum.testBoxCorrect(bbox, frustumPoints, frustumBox) != Frustum::OUTSIDE;
+    bool frustumCheck = frustum.testBoxCorrectPrepared(bbox, frustumBox, sat) != Frustum::OUTSIDE;
     if (!frustumCheck)
       return;
 
@@ -122,6 +123,12 @@ void LandMeshCullingState::cullDataWithBbox(LandMeshCullingData &dest_data, cons
   ibbox[1].y = (int)ceilf((bbox[1].y - meshOffset.z) / cellSize);
 
   dest_data.count = 0;
+  dest_data.hmapDrawType = src_data.hmapDrawType;
+  dest_data.useExclBox = src_data.useExclBox;
+  dest_data.centerCell = src_data.centerCell;
+  dest_data.centerCellFract = src_data.centerCellFract;
+  dest_data.frustumWorldBBox = src_data.frustumWorldBBox;
+  dest_data.fromCull = src_data.fromCull;
   dest_data.regionsCount = src_data.regionsCount;
   for (int regioni = 0; regioni < dest_data.regionsCount; ++regioni)
     dest_data.regions[regioni].head = LANDMESH_INVALID_CELL;
@@ -150,6 +157,12 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
   int regions_count, const HeightmapFrustumCullingInfo &fi)
 {
   TIME_PROFILE(lmesh_frustum_cull);
+
+  data.hmapDrawType = HmapDrawType::NONE; // set to TESSELATED below iff a tessellated heightmap grid is actually built
+  data.centerCell = centerCell;
+  data.centerCellFract = centerCellFract;
+  fi.frustum.calcFrustumBBox(data.frustumWorldBBox);
+  data.fromCull = true;
 
   int x0, x1, y0, y1;
   IPoint2 startCell;
@@ -230,13 +243,16 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
 
   data.count = 0;
   data.regionsCount = regions_array && regions_count ? regions_count : 1;
+  data.useExclBox = useExclBox;
+
+  for (int regioni = 0; regioni < data.regionsCount; ++regioni)
+    data.regions[regioni].head = LANDMESH_INVALID_CELL;
+
   if (cellBox.lim[1].x < cellBox.lim[0].x || cellBox.lim[1].y < cellBox.lim[0].y)
     return;
 
   G_ASSERT(regions_count <= MAX_LAND_MESH_REGIONS);
   memcpy(regions, regions_array, sizeof(IBBox2) * regions_count);
-  for (int regioni = 0; regioni < data.regionsCount; ++regioni)
-    data.regions[regioni].head = LANDMESH_INVALID_CELL;
 
   if (cullMode == NO_CULLING)
   {
@@ -258,27 +274,32 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
       vec3f frustumPoints[8];
       fi.frustum.generateAllPointFrustm(frustumPoints);
       bbox3f frustumBbox = fi.frustum.calcFrustumBBox(frustumPoints);
+      Frustum::BoxCorrectSAT sat;
+      fi.frustum.prepareBoxCorrectSAT(frustumPoints, sat);
 
       for (int y = cellBox.lim[0].y; y <= cellBox.lim[1].y; y++)
         for (int x = cellBox.lim[0].x; x <= cellBox.lim[1].x; x++)
-          cullCell(provider, x, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
+          cullCell(provider, x, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, sat, frustumBbox, fi.occlusion, data);
     }
   }
   else
   {
     // front-to-back sorting and cullingMng
-    if (!provider.isInTools() && useExclBox && provider.getHmapHandler() && fi.useDetailedHmap)
+    if ((!provider.isInTools() || provider.forceHeightmapRendering) && useExclBox && provider.getHmapHandler() && fi.useDetailedHmap)
     {
       provider.getHmapHandler()->frustumCulling(data.heightmapData, fi);
+      data.hmapDrawType = HmapDrawType::TESSELATED;
     }
 
     vec3f frustumPoints[8];
     fi.frustum.generateAllPointFrustm(frustumPoints);
     bbox3f frustumBbox = fi.frustum.calcFrustumBBox(frustumPoints);
+    Frustum::BoxCorrectSAT sat;
+    fi.frustum.prepareBoxCorrectSAT(frustumPoints, sat);
 
     startCell.x = max(cellBox.lim[0].x, min(cellBox.lim[1].x, startCell.x));
     startCell.y = max(cellBox.lim[0].y, min(cellBox.lim[1].y, startCell.y));
-    cullCell(provider, startCell.x, startCell.y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
+    cullCell(provider, startCell.x, startCell.y, lt.x, lt.y, rb.x, rb.y, fi.frustum, sat, frustumBbox, fi.occlusion, data);
 
     for (int radius = 1; radius <= maxRadius; ++radius)
     {
@@ -287,25 +308,25 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
 
       if (minY >= cellBox.lim[0].y && minY <= cellBox.lim[1].y)
         for (int x = max(minX, cellBox.lim[0].x); x <= min(maxX, cellBox.lim[1].x); x++)
-          cullCell(provider, x, minY, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
+          cullCell(provider, x, minY, lt.x, lt.y, rb.x, rb.y, fi.frustum, sat, frustumBbox, fi.occlusion, data);
 
       if (maxY <= cellBox.lim[1].y && maxY >= cellBox.lim[0].y)
         for (int x = max(minX, cellBox.lim[0].x); x <= min(maxX, cellBox.lim[1].x); x++)
-          cullCell(provider, x, maxY, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
+          cullCell(provider, x, maxY, lt.x, lt.y, rb.x, rb.y, fi.frustum, sat, frustumBbox, fi.occlusion, data);
 
       if (minX >= cellBox.lim[0].x && minX <= cellBox.lim[1].x)
         for (int y = max(minY + 1, cellBox.lim[0].y); y <= min(maxY - 1, cellBox.lim[1].y); y++)
-          cullCell(provider, minX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
+          cullCell(provider, minX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, sat, frustumBbox, fi.occlusion, data);
 
       if (maxX <= cellBox.lim[1].x && maxX >= cellBox.lim[0].x)
         for (int y = max(minY + 1, cellBox.lim[0].y); y <= min(maxY - 1, cellBox.lim[1].y); y++)
-          cullCell(provider, maxX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, frustumPoints, frustumBbox, fi.occlusion, data);
+          cullCell(provider, maxX, y, lt.x, lt.y, rb.x, rb.y, fi.frustum, sat, frustumBbox, fi.occlusion, data);
     }
   }
 }
 
 
-void LandMeshCullingState::copyLandmeshState(LandMeshManager &provider, LandMeshRenderer &renderer)
+void LandMeshCullingState::copyLandmeshState(LandMeshManager &provider, const LandMeshCullDesc &desc)
 {
   // LandMeshManager state
   cellBoundings = &(provider.cellBoundings[0]);
@@ -320,25 +341,34 @@ void LandMeshCullingState::copyLandmeshState(LandMeshManager &provider, LandMesh
   landCellSize = provider.landCellSize;
   gridCellSize = provider.gridCellSize;
 
-  cullMode = provider.cullingState.cullMode;
+  cullMode = desc.noCulling ? NO_CULLING : provider.cullingState.cullMode;
   landMeshOffset = provider.getOffset();
   exclBox = provider.cullingState.exclBox;
-  useExclBox = provider.cullingState.useExclBox;
+  useExclBox = desc.useExclBox;
 
-
-  // LandMeshManager state
+  // Renderer-coupled values (scaled visRange, center cell, border counts) derived through the
+  // manager accessors the renderer itself uses, so cull and render cell indexing cannot diverge.
   visRange = provider.getVisibilityRangeCells();
   if (visRange > 0)
-    visRange *= renderer.scaleVisRange;
+    visRange *= provider.getScaleVisRange();
 
+  Point2 centerCellPos = Point2::xz(desc.viewPos - landMeshOffset);
+  centerCell = IPoint2((int)floorf(centerCellPos.x / landCellSize), (int)floorf(centerCellPos.y / landCellSize));
+  centerCellFract = centerCellPos - Point2(centerCell.x * landCellSize, centerCell.y * landCellSize);
 
-  // LandMeshRenderer state
-  centerCell = renderer.centerCell;
+  if (provider.isInTools() || provider.getVisibilityRangeCells() >= 0)
+    numBorderCellsXPos = numBorderCellsXNeg = numBorderCellsZPos = numBorderCellsZNeg = 0;
+  else
+    provider.getScaledBorderCells(numBorderCellsXPos, numBorderCellsXNeg, numBorderCellsZPos, numBorderCellsZNeg);
 
-  numBorderCellsXPos = renderer.numBorderCellsXPos;
-  numBorderCellsXNeg = renderer.numBorderCellsXNeg;
-  numBorderCellsZPos = renderer.numBorderCellsZPos;
-  numBorderCellsZNeg = renderer.numBorderCellsZNeg;
+  renderInBBox = desc.renderInBBox;
+}
 
-  renderInBBox = renderer.renderInBBox;
+void landmesh::frustum_cull(LandMeshManager &provider, const LandMeshCullDesc &desc, LandMeshCullingData &out)
+{
+  G_ASSERTF(desc.isConstructed(), "build the desc with LandMeshCullDesc::forView");
+  LandMeshCullingState state;
+  state.copyLandmeshState(provider, desc);
+  HeightmapFrustumCullingInfo fi{desc.hmapOrigin.pos, desc.frustum, desc.occlusion, nullptr, desc.useDetailedHmap, desc.hmapMetrics};
+  state.frustumCulling(provider, out, desc.regions, desc.regionsCount, fi);
 }

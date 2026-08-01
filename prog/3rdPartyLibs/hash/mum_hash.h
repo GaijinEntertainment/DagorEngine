@@ -146,12 +146,12 @@ _mum (uint64_t v, uint64_t p) {
 }
 
 #if defined(_MSC_VER)
-#define _mum_bswap_32(x) _byteswap_uint32_t (x)
-#define _mum_bswap_64(x) _byteswap_uint64_t (x)
+#define _mum_bswap32(x) _byteswap_uint32_t (x)
+#define _mum_bswap64(x) _byteswap_uint64_t (x)
 #elif defined(__APPLE__)
 #include <libkern/OSByteOrder.h>
-#define _mum_bswap_32(x) OSSwapInt32 (x)
-#define _mum_bswap_64(x) OSSwapInt64 (x)
+#define _mum_bswap32(x) OSSwapInt32 (x)
+#define _mum_bswap64(x) OSSwapInt64 (x)
 #elif defined(__GNUC__)
 #define _mum_bswap32(x) __builtin_bswap32 (x)
 #define _mum_bswap64(x) __builtin_bswap64 (x)
@@ -227,6 +227,17 @@ static inline uint64_t _mum_rotl (uint64_t v, int sh) {
   return v << sh | v >> (64 - sh);
 }
 
+/* XOR falling back to B on zero result: attacker-chosen A cancelling the
+   prime B would degenerate the mixing (hash flooding).  MUM_V3 keeps the
+   historical unprotected hash values.  */
+static inline uint64_t _mum_xor (uint64_t a, uint64_t b) {
+#ifdef MUM_V3
+  return a ^ b;
+#else
+  return (a ^ b) != 0 ? a ^ b : b;
+#endif
+}
+
 static inline uint64_t _MUM_OPTIMIZE("unroll-loops")
 _mum_hash_aligned (uint64_t start, const void *key, size_t len) {
   uint64_t result = start;
@@ -251,8 +262,8 @@ _mum_hash_aligned (uint64_t start, const void *key, size_t len) {
       result ^= _mum (_mum_le (((uint64_t *) str)[i]), _mum_primes[i]);
 #else
     for (i = 0; i < _MUM_UNROLL_FACTOR; i += 2)
-      result ^= _mum (_mum_le (((uint64_t *) str)[i]) ^ _mum_primes[i],
-		      _mum_le (((uint64_t *) str)[i + 1]) ^ _mum_primes[i + 1]);
+      result ^= _mum (_mum_xor (_mum_le (((uint64_t *) str)[i]), _mum_primes[i]),
+		      _mum_xor (_mum_le (((uint64_t *) str)[i + 1]), _mum_primes[i + 1]));
 #endif
     len -= _MUM_UNROLL_FACTOR * sizeof (uint64_t);
     str += _MUM_UNROLL_FACTOR * sizeof (uint64_t);

@@ -11,15 +11,10 @@ if ! $(UseD3DMultiList) {
   UseD3DMultiList_linux   = vulkan stub ;
 }
 
-if $(Platform) = windows && ! $(Sanitize) {
-  PlatformSpec = vc17 ;
-}
-
 if $(CheckOnly) = yes { DisableUsingPCH = yes ; }
 Exceptions = yes ;
 CheckedContainers = no ;
 UseMemoryDebugLevel = def ;
-UseLLDLink ?= no ;
 HaveOverlayUI = no ;
 HaveDngInput = no ;
 HaveEditor = no ;
@@ -27,6 +22,8 @@ HaveConsole = no ;
 HaveSound = no ;
 HaveSoundNet = no ;
 include $(Root)/prog/daNetGame/setup.jam ;
+
+ImguiTestRuntime ?= yes ;
 
 TargetType  = exe ;
 Target = tools/sceneTools/daEditorX/daEditor3x ;
@@ -62,6 +59,7 @@ Sources =
   de_preferencesDialog.cpp
   de_ProjectSettings.cpp
   de_screenshotMetaInfoLoader.cpp
+  de_cameraPresets.cpp
   de_viewportWindow.cpp
   de_environment.cpp
   de_ecsPull.cpp
@@ -161,6 +159,7 @@ UseProgLibs =
   tools/sceneTools/daEditorX/services/compositMgr
   tools/sceneTools/daEditorX/services/entFilters
   tools/sceneTools/daEditorX/services/bitMaskMgr
+  tools/sceneTools/daEditorX/services/hmapDebugShadingSrv
   tools/sceneTools/daEditorX/services/hmapSrv
   tools/sceneTools/daEditorX/services/assetSrv
   tools/sceneTools/daEditorX/services/builtSceneView
@@ -203,6 +202,7 @@ UseProgLibs =
   gameLibs/ecs/rendInst/stub
   engine/daECS/gameResStub
   engine/daECS/scene
+  engine/daECS/delayedAct
   engine/daECS
   gameLibs/daFx
   gameLibs/eventLog
@@ -249,9 +249,13 @@ else {
 gamePulls =
   daECS/core/componentType.h # first line is used for include!
   game_pulls                 # second line is name of var
+  actInThread_pull
 ;
 
 include $(Root)/$(Location)/_dng_libs.jam ;
+
+include $(Root)/prog/gameLibs/daeditorPlotDebug/_lib.jam ;
+include $(Root)/prog/gameLibs/imgui_daeditor/_lib.jam ;
 
 gamePulls_action = make_module_pull_cpp ;
 Sources += gamePulls.jamvar ;
@@ -325,9 +329,14 @@ gameMain =
   int get_fps_limit(){return 0;}
   void set_corrected_fps_limit(int){}
   void exit_game(const char *){}
-  void (*get_memcollect_cur_thread_cb())(){ return nullptr;}
-  void update_float_exceptions(){}
 ;
+
+if $(KernelLinkage) != static {
+  gameMain +=
+    void (*get_memcollect_cur_thread_cb())(){ return nullptr;}
+    void update_float_exceptions(){}
+  ;
+}
 gameVersion =
   unsigned get_exe_version32(){return 0;}
   char const *get_exe_version_str(){return \"0.0.0.0\";}

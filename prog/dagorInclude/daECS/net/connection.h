@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <climits>
 #include <generic/dag_tab.h>
 #include <generic/dag_smallTab.h>
 #include <daECS/core/componentsMap.h>
@@ -41,19 +42,55 @@ namespace net
 {
 
 class Connection;
+static constexpr uint32_t NET_EID_INDEX_BITS = 20; // widest eid index the 4-byte form of write_server_eid() can carry
 bool write_server_eid(ecs::entity_id_t eid, danet::BitStream &bs);
 bool read_server_eid(ecs::entity_id_t &eid, const danet::BitStream &bs);
+
+// Key and value of Connection::entityIndexToReplicaIndex. Both are byte arrays to keep alignof(pair) == 1: a ska entry is a 1-byte
+// distance tag plus the pair, so a single 2-byte-aligned member would pad the entry from 6 to 8 bytes.
+struct EidIndex24
+{
+  uint8_t bytes[3];
+  EidIndex24() = default;
+  explicit EidIndex24(uint32_t index) : bytes{uint8_t(index), uint8_t(index >> 8), uint8_t(index >> 16)} {}
+  uint32_t get() const { return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16); }
+  bool operator==(const EidIndex24 &rhs) const { return get() == rhs.get(); }
+};
+struct ReplicaIdx
+{
+  uint8_t bytes[2];
+  ReplicaIdx() = default;
+  explicit ReplicaIdx(uint32_t index) : bytes{uint8_t(index), uint8_t(index >> 8)} {}
+  uint32_t get() const { return bytes[0] | (bytes[1] << 8); }
+};
+struct EidIndex24Hash // identity is fine: ska mixes it via fibonacci_hash_policy
+{
+  size_t operator()(const EidIndex24 &key) const { return key.get(); }
+};
+
+static constexpr uint32_t EID_INDEX_KEY_BITS = sizeof(EidIndex24) * CHAR_BIT;
+static_assert(ecs::ENTITY_INDEX_BITS <= EID_INDEX_KEY_BITS, "EidIndex24 must hold any eid index without truncation");
+// Replication is capped by whichever is tighter: the map key or the wire encoding.
+static constexpr uint32_t MAX_REPLICATED_EID_INDEX =
+  (1u << (EID_INDEX_KEY_BITS < NET_EID_INDEX_BITS ? EID_INDEX_KEY_BITS : NET_EID_INDEX_BITS)) - 1;
 
 struct ReplicationAck;
 struct ObjectReplica;
 class EncryptionCtx;
-struct InternedStrings
+struct InternedStringsShared
 {
   ska::flat_hash_map<eastl::string, uint32_t> index;
   eastl::vector<eastl::string> strings; // if strings[index] - "", it is not synced. strings[0] = ''
-  InternedStrings();
+  InternedStringsShared();
+};
+struct InternedStringsRepl
+{
+  InternedStringsShared *shared = nullptr;
+  eastl::bitvector<eastl::allocator, uint64_t> serialized;
+  InternedStringsRepl(InternedStringsShared *shared);
 };
 struct PendingReplicationPacketInfo;
+struct SharedReplicationCache;
 
 // Object that actually manages replication. Exists one per each peer.
 class Connection : public IConnection
@@ -91,7 +128,7 @@ public:
   bool readReplayKeyFrame(const danet::BitStream &bs, const on_object_constructed_cb_t &obj_constructed_cb);
   void writeReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmpbs);
   void writeClientReplayKeyFrame(danet::BitStream &bs, danet::BitStream &tmpbs, dag::ConstSpan<ecs::EntityId> eids);
-  bool writeConstructionPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes);
+  bool writeConstructionPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes, SharedReplicationCache *cache);
   bool writeDestructionPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes);
   bool writeReplicationPacket(danet::BitStream &bs, danet::BitStream &tmpbs, int limit_bytes); // return true if something usefull was
                                                                                                // written
@@ -108,15 +145,18 @@ public:
   bool onAcksReceived(const danet::BitStream &bs, sequence_t &baseseq); // return false if read failed
 
   ConnectionId getId() const override final { return id; }
-  bool isEntityInScope(ecs::EntityId eid) const override final { return entityIndexToReplicaIndex.count(eid.index()) != 0; }
+  bool isEntityInScope(ecs::EntityId eid) const override final
+  {
+    return entityIndexToReplicaIndex.count(EidIndex24(eid.index())) != 0;
+  }
 
   void disconnect(DisconnectionCause) override { connected = false; }
 
   void setUserPtr(void *ptr) override final { userPtr = ptr; }
   void *getUserPtr() const override final { return userPtr; }
 
-  uint32_t getConnFlags() const override { return connFlags; }
-  uint32_t &getConnFlagsRW() override { return connFlags; }
+  uint32_t getConnFlags() const override final { return connFlags; }
+  uint32_t &getConnFlagsRW() override final { return connFlags; }
 
   ObjectReplica *getReplicaByEid(ecs::EntityId eid);
   const ObjectReplica *getReplicaByEid(ecs::EntityId eid) const;
@@ -125,9 +165,9 @@ public:
 
   static void collapseDirtyObjects(ecs::EntityManager &mgr);
 
-  void setEncryptionKey(dag::ConstSpan<uint8_t> ekey, EncryptionKeyBits ebits) override;
+  void setEncryptionKey(dag::ConstSpan<uint8_t> ekey, EncryptionKeyBits ebits) override final;
 
-  ecs::EntityManager &getEntityManager() override { return mgr; }
+  ecs::EntityManager &getEntityManager() override final { return mgr; }
 
 private:
   void killObjectReplica(ObjectReplica *repl, net::Object *obj);
@@ -147,13 +187,19 @@ private:
 protected:
   bool isFiltering = true; // this connection is filtering components. That is used for debug (when we want client to have all
                            // infornation) and for replay connection
+public:
+  mutable InternedStringsRepl objectKeysRepl;
+
 private:
+  mutable InternedStringsShared objectKeysLocal;
+
   ecs::EntityManager &mgr;
   bool connected = true; // might be false when disconnect requested, but not confirmed yet
   ConnectionId id;
-  mutable InternedStrings objectKeys;
 
-  ska::flat_hash_map<uint16_t, uint16_t> entityIndexToReplicaIndex;
+  ska::flat_hash_map<EidIndex24, ReplicaIdx, EidIndex24Hash> entityIndexToReplicaIndex;
+  static_assert(sizeof(eastl::pair<EidIndex24, ReplicaIdx>) == 5 && alignof(eastl::pair<EidIndex24, ReplicaIdx>) == 1,
+    "ska entry must stay 6 bytes");
 
   eastl::vector<eastl::string> serverTemplates; // string table for templates
   uint32_t constructionPacketSequence = 0;
@@ -188,7 +234,8 @@ private:
     No,
     Yes
   };
-  void serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, CanSkipInitial canSkipInitial = CanSkipInitial::Yes);
+  void serializeConstruction(ecs::EntityId eid, danet::BitStream &bs, CanSkipInitial canSkipInitial = CanSkipInitial::Yes,
+    SharedReplicationCache *cache = nullptr);
   void serializeTemplate(danet::BitStream &bs, ecs::template_t templateId, eastl::bitvector<> &componentsSyncedTmp) const;
   void serializeTemplateForClientReplay(danet::BitStream &bs, ecs::template_t templateId, eastl::bitvector<> &componentsSyncedTmp,
     dag::ConstSpan<ecs::component_index_t> clientToServerCidx) const;

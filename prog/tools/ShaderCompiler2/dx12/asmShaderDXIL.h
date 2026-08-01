@@ -33,12 +33,22 @@ inline bool use_two_phase_compilation(Platform p) { return is_xbox_platform(p); 
 
 struct CompilationOptions
 {
-  bool optimize;
-  bool skipValidation;
-  bool debugInfo;
-  bool scarlettW32;
-  bool hlsl2021;
-  bool enableFp16;
+  bool optimize = true;
+  bool skipValidation = false;
+  bool debugInfo = false;
+  bool scarlettW32 = false;
+  bool hlsl2021 = false;
+  bool enableFp16 = false;
+  // RT pipelines only, sourced from the DSHL max_recursion / allow_opacity_micromaps statements. When
+  // hasExplicitRtPipelineConfig is set the driver builds the pipeline-config subobject CPU-side from
+  // these values (max recursion, plus the OMM pipeline flag when allowOpacityMicroMaps and the device
+  // supports OMM) instead of relying on the DXIL-embedded RaytracingPipelineConfig.
+  bool hasExplicitRtPipelineConfig = false;
+  bool allowOpacityMicroMaps = false;
+  int rtMaxRecursion = 1;
+  // Shader has an inline HLSL RaytracingPipelineConfig (DXIL-embedded) and no DSHL config. Recorded so
+  // the driver can reject combining it into a pipeline whose config it builds itself.
+  bool hasDxilRtPipelineConfig = false;
 };
 
 struct CompileInputs
@@ -55,6 +65,7 @@ struct CompileInputs
   DebugLevel debugLevel;
   CompilationOptions compilationOptions;
   wchar_t *PDBDir;
+  wchar_t *PDBName;
   dag::ConstSpan<::dxil::StreamOutputComponentInfo> streamOutputComponents;
 };
 // NOTE: platform has to be the same for each call for the currently running instance
@@ -108,9 +119,9 @@ CombinedShaderStorage combinePhaseOnePixelShader(const ShaderStageData &ps, cons
   bool has_gs, bool has_ts, CompilationOptions options);
 
 eastl::optional<CombinedShaderStorage> recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir,
-  DebugLevel debug_level, bool embed_source);
+  wchar_t *pdb_name, DebugLevel debug_level, bool embed_source);
 
 eastl::optional<CombinedShaderStorage> recompilePixelShader(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir,
-  DebugLevel debug_level, bool embed_source);
+  wchar_t *pdb_name, DebugLevel debug_level, bool embed_source);
 } // namespace dxil
 } // namespace dx12

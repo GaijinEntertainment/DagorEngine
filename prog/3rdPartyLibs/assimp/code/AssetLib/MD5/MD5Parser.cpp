@@ -225,6 +225,8 @@ bool MD5Parser::ParseSection(Section &out) {
         }                                                                          \
     }                                                                              \
     out.length = (size_t)(szEnd - szStart);                                        \
+    if (out.length >= MAXLEN)                                                      \
+        out.length = MAXLEN - 1;                                                   \
     ::memcpy(out.data, szStart, out.length);                                       \
     out.data[out.length] = '\0';
 
@@ -237,6 +239,8 @@ bool MD5Parser::ParseSection(Section &out) {
         ++sz;                                  \
     const char *szEnd = (sz++);                \
     out.length = (ai_uint32)(szEnd - szStart); \
+    if (out.length >= MAXLEN)                  \
+        out.length = MAXLEN - 1;               \
     ::memcpy(out.data, szStart, out.length);   \
     out.data[out.length] = '\0';
 // ------------------------------------------------------------------------------------------------

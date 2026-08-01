@@ -33,6 +33,12 @@ const char *get_platform_string();
 
 DataBlock *get_settings_override_blk();
 
+// Per-project overrides re-applied to global settings on every reload (inside
+// load_settings_and_apply_config), so they aren't wiped by save_settings the way a one-shot
+// setBool would be. Pass a populated block at project launch; pass an empty block at project
+// close to drop the overrides. Stored by value, not persisted to disk.
+void dgs_set_project_override_blk(const DataBlock &blk);
+
 // apply changes to config, from commandline, graphics preset
 void dgs_apply_changes_to_config(DataBlock &config_blk, bool need_merge_cmd = false, const OverrideFilter *override_filter = nullptr);
 

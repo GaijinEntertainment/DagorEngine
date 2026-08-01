@@ -93,19 +93,21 @@ auto ResourceScheduler::initializeHeapRequests(const ResourceProperties &resourc
   // assigned to them
   // ESRAM requests should be first so that we can reschedule
   // non-fitting resources into regular heaps.
-  const auto heapGroupComp = [&ctx](ResourceHeapGroup *h1, ResourceHeapGroup *h2) {
-    const auto heapGroupProp1 = ctx.propertyProvider.getResourceHeapGroupProperties(h1);
-    const auto heapGroupProp2 = ctx.propertyProvider.getResourceHeapGroupProperties(h2);
+  const auto heapClassComp = [&ctx](const HeapClass &c1, const HeapClass &c2) {
+    const auto heapGroupProp1 = ctx.propertyProvider.getResourceHeapGroupProperties(c1.first);
+    const auto heapGroupProp2 = ctx.propertyProvider.getResourceHeapGroupProperties(c2.first);
     if (heapGroupProp1.isDedicatedFastGPULocal != heapGroupProp2.isDedicatedFastGPULocal)
       return heapGroupProp1.isDedicatedFastGPULocal > heapGroupProp2.isDedicatedFastGPULocal;
-    return eastl::less<ResourceHeapGroup *>()(h1, h2);
+    if (c1.first != c2.first)
+      return eastl::less<ResourceHeapGroup *>()(c1.first, c2.first);
+    return c1.second < c2.second;
   };
-  dag::VectorMap<ResourceHeapGroup *, uint32_t, decltype(heapGroupComp), framemem_allocator> resourcesPerHeapType(heapGroupComp);
+  dag::VectorMap<HeapClass, uint32_t, decltype(heapClassComp), framemem_allocator> resourcesPerHeapType(heapClassComp);
   // TODO: remove when dag::Vector::DoInsertValue starts using resizeInplace
   resourcesPerHeapType.reserve(resources.size());
-  for (const auto &resProps : resources)
+  for (auto [idx, resProps] : resources.enumerate())
     if (resProps.offsetAlignment != 0)
-      ++resourcesPerHeapType[resProps.heapGroup]; //-V552
+      ++resourcesPerHeapType[{resProps.heapGroup, ctx.graph.resources[idx].isUntracked()}]; //-V552
   resourcesPerHeapType.shrink_to_fit();
 
   HeapRequests heapRequests;
@@ -121,15 +123,16 @@ auto ResourceScheduler::initializeHeapRequests(const ResourceProperties &resourc
   // previously available heap
   for (auto [idx, heap] : ctx.allocatedHeaps.enumerate())
   {
-    if (activeRequestsForGroup.find(heap.group) == activeRequestsForGroup.end())
-      activeRequestsForGroup.emplace(heap.group, idx);
-    heapRequests.appendNew(HeapRequest{heap.group, 0u});
+    const HeapClass heapClass{heap.group, heap.untracked};
+    if (activeRequestsForGroup.find(heapClass) == activeRequestsForGroup.end())
+      activeRequestsForGroup.emplace(heapClass, idx);
+    heapRequests.appendNew(HeapRequest{heap.group, 0u, heap.untracked});
   }
 
-  // Create new requests for heap groups that were not previously available
-  for (auto [heapGroup, _] : resourcesPerHeapType)
-    if (activeRequestsForGroup.find(heapGroup) == activeRequestsForGroup.end())
-      activeRequestsForGroup[heapGroup] = heapRequests.appendNew(HeapRequest{heapGroup, 0u}).first;
+  // Create new requests for heap classes that were not previously available
+  for (auto [heapClass, _] : resourcesPerHeapType)
+    if (activeRequestsForGroup.find(heapClass) == activeRequestsForGroup.end())
+      activeRequestsForGroup[heapClass] = heapRequests.appendNew(HeapRequest{heapClass.first, 0u, heapClass.second}).first;
 
   return {eastl::move(heapRequests), eastl::move(activeRequestsForGroup)};
 }
@@ -154,7 +157,9 @@ auto ResourceScheduler::bucketResourcesIntoHeaps(int prev_frame, const ResourceP
       // Skip frame copies already claimed by reused heaps
       if (already_scheduled[frame].test(resIdx, false))
         continue;
-      HeapIndex desiredHeap = active_request_for_group.find(resProps.heapGroup)->second;
+      const bool untracked = ctx.graph.resources[resIdx].isUntracked();
+      const HeapClass heapClass{resProps.heapGroup, untracked};
+      HeapIndex desiredHeap = active_request_for_group.find(heapClass)->second;
 
       if (preserveProducedOnFrame == frame && ctx.cachedResources[resIdx].asScheduled().history != History::No)
       {
@@ -162,7 +167,8 @@ auto ResourceScheduler::bucketResourcesIntoHeaps(int prev_frame, const ResourceP
         if (preservedResIdx != intermediate::RESOURCE_NOT_MAPPED && previous_allocations[frame].isMapped(preservedResIdx))
         {
           const auto &prevLoc = previous_allocations[frame][preservedResIdx];
-          if (ctx.allocatedHeaps.isMapped(prevLoc.heap) && ctx.allocatedHeaps[prevLoc.heap].group == resProps.heapGroup)
+          if (ctx.allocatedHeaps.isMapped(prevLoc.heap) && ctx.allocatedHeaps[prevLoc.heap].group == resProps.heapGroup &&
+              ctx.allocatedHeaps[prevLoc.heap].untracked == untracked)
           {
             const uint64_t prevSize =
               cachedCorrectedSizes[frame].isMapped(preservedResIdx) ? cachedCorrectedSizes[frame][preservedResIdx] : 0;
@@ -177,23 +183,23 @@ auto ResourceScheduler::bucketResourcesIntoHeaps(int prev_frame, const ResourceP
       // Don't bucket into a reused heap
       if (reused_heaps.test(desiredHeap, false))
       {
-        // Find another heap of the same group that isn't reused
+        // Find another heap of the same class that isn't reused
         bool foundFallback = false;
         for (auto [candidateIdx, req] : heap_requests.enumerate())
-          if (req.group == resProps.heapGroup && !reused_heaps.test(candidateIdx, false))
+          if (req.group == resProps.heapGroup && req.untracked == untracked && !reused_heaps.test(candidateIdx, false))
           {
             desiredHeap = candidateIdx;
             foundFallback = true;
             break;
           }
-        // If every heap of this group is reused, append a new request -- bucketing
+        // If every heap of this class is reused, append a new request -- bucketing
         // into a reused heap would silently drop the resource, since reused heaps
         // are excluded from scheduling.
         if (!foundFallback)
         {
-          desiredHeap = heap_requests.appendNew(HeapRequest{resProps.heapGroup, 0u}).first;
+          desiredHeap = heap_requests.appendNew(HeapRequest{resProps.heapGroup, 0u, untracked}).first;
           resourcesToBeScheduled.push_back({});
-          active_request_for_group[resProps.heapGroup] = desiredHeap;
+          active_request_for_group[heapClass] = desiredHeap;
         }
       }
 
@@ -457,14 +463,17 @@ void ResourceScheduler::rescheduleOverflowResources(eastl::span<const FrameResou
   dag::Vector<dag::Vector<FrameResource>, framemem_allocator> &new_resources_to_be_scheduled, uint32_t original_resource_count,
   const SchedulingContext &ctx)
 {
-  // Scan next heap requests for a candidate within same group.
+  // Scan next heap requests for a candidate within same class (group + untracked).
   // If the requested group was ESRAM, reschedule into a regular appropriate group.
+  const bool sourceUntracked = heap_requests[source_heap_idx].untracked;
   auto rescheduleHeapIdx = source_heap_idx;
   for (auto candidateHeapIdx : remaining_heaps)
   {
     const auto candidateHeapGroupProp = ctx.propertyProvider.getResourceHeapGroupProperties(heap_requests[candidateHeapIdx].group);
-    if (heap_requests[candidateHeapIdx].group == heap_requests[source_heap_idx].group ||
-        (source_heap_group_prop.isDedicatedFastGPULocal && can_substitute_heap_group(source_heap_group_prop, candidateHeapGroupProp)))
+    if (
+      heap_requests[candidateHeapIdx].untracked == sourceUntracked &&
+      (heap_requests[candidateHeapIdx].group == heap_requests[source_heap_idx].group ||
+        (source_heap_group_prop.isDedicatedFastGPULocal && can_substitute_heap_group(source_heap_group_prop, candidateHeapGroupProp))))
     {
       rescheduleHeapIdx = candidateHeapIdx;
       break;
@@ -485,9 +494,10 @@ void ResourceScheduler::rescheduleOverflowResources(eastl::span<const FrameResou
     {
       const auto candidateHeapReq = new_heap_requests[newHeapRequestsCandidateIdx];
       const auto candidateHeapGroupProp = ctx.propertyProvider.getResourceHeapGroupProperties(candidateHeapReq.group);
-      if (
-        candidateHeapReq.group == heap_requests[source_heap_idx].group ||
-        (source_heap_group_prop.isDedicatedFastGPULocal && can_substitute_heap_group(source_heap_group_prop, candidateHeapGroupProp)))
+      if (candidateHeapReq.untracked == sourceUntracked &&
+          (candidateHeapReq.group == heap_requests[source_heap_idx].group ||
+            (source_heap_group_prop.isDedicatedFastGPULocal &&
+              can_substitute_heap_group(source_heap_group_prop, candidateHeapGroupProp))))
       {
         auto &resourcesPerHeap = new_resources_to_be_scheduled[newHeapRequestsCandidateIdx];
         resourcesPerHeap.insert(resourcesPerHeap.end(), rescheduled_resources.begin(), rescheduled_resources.end());
@@ -515,7 +525,7 @@ void ResourceScheduler::rescheduleOverflowResources(eastl::span<const FrameResou
         DAG_FATAL("Resource packer failed to schedule every single resource! We WILL crash! "
                   "Please, take a full process dump and send it to the render team!");
 
-      new_heap_requests.push_back(HeapRequest{newHeapRequestGroup, 0u});
+      new_heap_requests.push_back(HeapRequest{newHeapRequestGroup, 0u, sourceUntracked});
       dag::Vector<FrameResource> rescheduled(rescheduled_resources.begin(), rescheduled_resources.end());
       new_resources_to_be_scheduled.push_back(eastl::move(rescheduled));
     }
@@ -720,7 +730,8 @@ void ResourceScheduler::scheduleResourcesIntoHeaps(int prev_frame, const Resourc
       eastl::optional<HeapIndex> newIdx{};
       for (auto [idx, isUnused] : heapIsUnused.enumerate())
       {
-        if (isUnused && heapRequests[idx].group == newHeapRequests[i].group)
+        if (isUnused && heapRequests[idx].group == newHeapRequests[i].group &&
+            heapRequests[idx].untracked == newHeapRequests[i].untracked)
         {
           newIdx = idx;
           heapIsUnused[idx] = false;

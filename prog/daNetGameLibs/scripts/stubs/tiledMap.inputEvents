@@ -1,3 +1,4 @@
 return {
   EventTiledMapZoomed = class { name = "EventTiledMapZoomed" }
+  EventTiledMapPanned = class { name = "EventTiledMapPanned" }
 }

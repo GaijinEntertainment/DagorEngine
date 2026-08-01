@@ -2025,7 +2025,7 @@ size_t Compiler::get_declared_struct_size_runtime_array(const SPIRType &type, si
 
 	size_t size = get_declared_struct_size(type);
 	auto &last_type = get<SPIRType>(type.member_types.back());
-	if (!last_type.array.empty() && last_type.array_size_literal[0] && last_type.array[0] == 0) // Runtime array
+	if (!last_type.array.empty() && last_type.array_size_literal.back() && last_type.array.back() == 0) // Runtime array
 		size += array_size * type_struct_member_array_stride(type, uint32_t(type.member_types.size() - 1));
 
 	return size;

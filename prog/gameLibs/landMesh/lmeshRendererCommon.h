@@ -72,7 +72,6 @@ LMESH_VAR_LIST
   VAR(lmesh_ps_const_land_detail_array_slices, -1) \
   /* samplers */                                   \
   VAR(lmesh_sampler__land_detail_map, -1)          \
-  VAR(lmesh_sampler__land_detail_map2, -1)         \
   VAR(lmesh_sampler__land_detail_tex1, -1)         \
   VAR(lmesh_sampler__land_detail_ntex1, -1)        \
   VAR(lmesh_sampler__flowmap_tex, -1)              \
@@ -87,7 +86,7 @@ LMESH_CONST_LIST
 // Resolve an int shader constant by name, falling back to def when absent.
 int get_shader_int_constant(const char *name, int def);
 
-// one_quad, ShaderInfo / landclassShader / shadersNames, LCTexturesLoaded and the
+// one_quad, ShaderInfo / landclassShader, LCTexturesLoaded and the
 // land-class PS-const / texture-bind helpers now live in landVtexRendererCommon.h
 // (included above), as the future home of LandVtexRenderer state.
 
@@ -114,12 +113,12 @@ public:
     memset(lcIds.data(), 0xFF, data_size(lcIds));
     mem_set_0(landBottom);
     mem_set_0(lmeshElems);
-    map1 = map2 = NULL;
+    map1 = NULL;
     numDetailTextures = 0;
     trivial = true;
   }
   CellState() { init(); }
-  BaseTexture *map1, *map2;
+  BaseTexture *map1; // the weight atlas: one texture for the whole map
   enum
   {
     NOT_MIRRORED = 0,
@@ -152,25 +151,22 @@ public:
     d3d::SamplerHandle clampSampler = d3d::request_sampler(smpInfo);
     d3d::settex(lmesh_sampler__land_detail_map, map1);
     d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_map, clampSampler);
-    d3d::settex(lmesh_sampler__land_detail_map2, map2);
-    d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_map2, clampSampler);
     ShaderGlobal::set_int(var::num_detail_textures, numDetailTextures);
     // d3d::set_vs_const(lmesh_vs_const__mul_offset_base+8, (const float*)detMapTcSet, 1);
   }
-  inline void set(bool grass_mask, dag::ConstSpan<LCTexturesLoaded> lc, bool force_trivial, bool water_decals,
-    Sbuffer *physmatIdsBuf = NULL) const
+  inline void set(bool grass_mask, dag::ConstSpan<LCTexturesLoaded> lc, bool water_decals, Sbuffer *physmatIdsBuf = NULL) const
   {
     if (!water_decals)
       setBase();
     uint32_t physmats[4 * 7];
     // fixme: fill with nulls or leave samplers untouched?
-    if ((force_trivial || trivial || grass_mask) && !water_decals)
+    if ((trivial || grass_mask) && !water_decals)
     {
       for (int i = 0; i < numDetailTextures; ++i) // LandMeshRenderer::DET_TEX_NUM
       {
         if (lcIds[i] < lc.size())
         {
-          LandMeshRenderer::TidSamplerWithoutMipbiasPair tex = grass_mask ? lc[lcIds[i]].grassMask : lc[lcIds[i]].colorMap;
+          TidSamplerWithoutMipbiasPair tex = grass_mask ? lc[lcIds[i]].grassMask : lc[lcIds[i]].colorMap;
           mark_managed_tex_lfu(tex.tid);
           d3d::set_tex(STAGE_PS, lmesh_sampler__land_detail_tex1 + i, D3dResManagerData::getBaseTex(tex.tid));
           d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_tex1 + i, tex.sampler);

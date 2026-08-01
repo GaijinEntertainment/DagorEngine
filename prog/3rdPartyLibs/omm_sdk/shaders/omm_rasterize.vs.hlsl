@@ -11,7 +11,6 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include "omm_platform.hlsli"
 #include "omm.hlsli"
 #include "omm_global_cb.hlsli"
-#include "omm_global_samplers.hlsli"
 #include "omm_rasterize.vs.resources.hlsli"
 
 OMM_DECLARE_GLOBAL_CONSTANT_BUFFER
@@ -38,7 +37,7 @@ void main(
 
 	// If we run linear sampling (with the precise method) a base state must always be present.
 	// We select the current 
-	const float4 color			= t_alphaTexture.SampleLevel(s_samplers[g_GlobalConstants.SamplerIndex], texCoord.xy, 0);
+	const float4 color			= t_alphaTexture.SampleLevel(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
 	const float alpha			= color[g_GlobalConstants.AlphaTextureChannel];
 
     const OpacityState vertexState = (OpacityState) (g_GlobalConstants.AlphaCutoff < alpha ? (uint) OpacityState::Opaque : (uint) OpacityState::Transparent);

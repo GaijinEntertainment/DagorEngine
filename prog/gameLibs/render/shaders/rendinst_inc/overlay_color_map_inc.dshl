@@ -27,6 +27,9 @@ macro RENDINST_OVERLAY_COLOR_MAP(code, use_overlap_map_color, paint_details)
 
       float3 get_overlay_map_color(float3 world_pos)
       {
+      #if RENDINST_IMPOSTOR_VOXEL
+        return float3(-1, 0, 0);
+      #else
         float3 color_mul = 0; // artist request
     ##if color_overlay_map_needed
         if (cliff_color_overlay_map_tex_exists)
@@ -37,6 +40,7 @@ macro RENDINST_OVERLAY_COLOR_MAP(code, use_overlap_map_color, paint_details)
         }
     ##endif
         return color_mul;
+      #endif
       }
     }
   }

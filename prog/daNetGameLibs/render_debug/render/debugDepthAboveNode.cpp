@@ -7,25 +7,26 @@
 
 namespace var
 {
-static ShaderVariableInfo dao_show_normal("dao_show_normal", true);
+static ShaderVariableInfo dao_show_mode("dao_show_mode", true);
 }
 
-void set_up_show_depth_above_entity(bool render, bool show_normal)
+// show_mode: 0 = plain, 1 = normals, 2 = texel-size chessboard (see dao_show_mode in debugDepthAbove.dshl)
+void set_up_show_depth_above_entity(bool render, int show_mode)
 {
   g_entity_mgr->destroyEntity(g_entity_mgr->getSingletonEntity(ECS_HASH("debug_show_depth_above")));
   ecs::ComponentsInitializer init;
   init[ECS_HASH("debugShowDepthAboveNode")] =
-    dafg::register_node("debug_show_depth_above", DAFG_PP_NODE_SRC, [render, show_normal](dafg::Registry registry) {
+    dafg::register_node("debug_show_depth_above", DAFG_PP_NODE_SRC, [render, show_mode](dafg::Registry registry) {
       auto debugNs = registry.root() / "debug";
       auto colorTarget = debugNs.modifyTexture("target_for_debug");
       registry.orderMeAfter("post_fx_node");
       read_gbuffer(registry);
       registry.readTexture("depth_for_postfx").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("depth_gbuf").optional();
       registry.requestRenderPass().color({colorTarget});
-      return [render, show_normal, debugRenderer = PostFxRenderer("debug_depth_above")]() {
+      return [render, show_mode, debugRenderer = PostFxRenderer("debug_depth_above")]() {
         if (!render)
           return;
-        ShaderGlobal::set_int(var::dao_show_normal, show_normal ? 1 : 0);
+        ShaderGlobal::set_int(var::dao_show_mode, show_mode);
         debugRenderer.render();
       };
     });

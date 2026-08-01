@@ -2,6 +2,7 @@
 
 #include "../av_plugin.h"
 #include "../av_appwnd.h"
+#include <EditorCore/ec_ViewportWindow.h>
 #include <assets/asset.h>
 #include <propPanel/control/container.h>
 #include <propPanel/c_control_event_handler.h>
@@ -11,7 +12,6 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
-#include <render/dag_cur_view.h>
 #include <generic/dag_initOnDemand.h>
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
@@ -102,13 +102,21 @@ public:
         }
         bool isValid() const override { return true; }
       } hlp;
-      Point3 viewDir = ::grs_cur_view.itm.getcol(2);
       TMatrix viewTm;
       TMatrix4 projTm, globTm;
-      d3d::gettm(TM_VIEW, viewTm);
-      d3d::gettm(TM_PROJ, &projTm);
+      if (ViewportWindow *vpw = static_cast<ViewportWindow *>(EDITORCORE->getRenderViewport()))
+      {
+        viewTm = vpw->getViewTm();
+        projTm = vpw->getProjTm();
+      }
+      else
+      {
+        d3d::gettm(TM_VIEW, viewTm);
+        d3d::gettm(TM_PROJ, &projTm);
+      }
       d3d::calcglobtm(viewTm, projTm, globTm);
-      rndGrass->beforeRender(grs_cur_view.pos, hlp, viewDir, viewTm, projTm, Frustum(globTm));
+      const TMatrix cameraTm = orthonormalized_inverse(viewTm);
+      rndGrass->beforeRender(cameraTm.getcol(3), hlp, cameraTm.getcol(2), viewTm, projTm, Frustum(globTm));
     }
     else if (stage == STG_RENDER_STATIC_OPAQUE)
     {

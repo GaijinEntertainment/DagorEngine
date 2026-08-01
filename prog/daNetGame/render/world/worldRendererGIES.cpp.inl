@@ -622,9 +622,7 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
         rendinst::gatherRIGenExtraCollidableMin(handles, v_ldu_bbox3(sceneBox), voxelSize * 0.5f);
       }
       if (staticSceneCollisionResource && (staticSceneCollisionResource->boundingBox & sceneBox))
-      {
         handles.push_back(rendinst::RIEX_HANDLE_NULL);
-      }
       {
         TIME_PROFILE(sort_instances)
         stlsort::sort(handles.begin(), handles.end(),
@@ -719,27 +717,43 @@ void WorldRenderer::initGI()
   {
     if (frt->getFacesCount())
     {
-      if (frt->getVertsCount() > 65536)
-        logerr("not supporting frt dumps with %d verts correctly. Split into two collision resources", frt->getVertsCount());
+      // One CollisionResource over the whole static scene: uint32 indices remove the old 65536-vert
+      // chunking, so faces reference frt vertices directly. The standard optimize path still ends up
+      // grid-resident or per-node-BLAS-chunked with owning indices, like any loaded collision asset.
+      const uint32_t totalVerts = frt->getVertsCount();
+      uint32_t faceCnt = frt->getFacesCount();
+      const Point3_vec4 *frtVerts = (const Point3_vec4 *)&frt->verts(0);
+      staticSceneCollisionResource.reset();
 
-      uint32_t indicesCnt = frt->getFacesCount() * 3;
-      dag::Vector<uint16_t> indices;
-      indices.reserve(indicesCnt);
-      for (uint32_t j = 0, f = 0; j < indicesCnt; j += 3, ++f)
+      // Cap to the LRU compute voxelizer's per-resource face limit and report the loss rather than
+      // emitting geometry GI will quietly skip (dispatchInstances drops oversized resources whole).
+      constexpr uint32_t maxFaces = LRURendinstCollision::MAX_VOXELIZATION_TRIS;
+      if (faceCnt > maxFaces)
       {
-        uint32_t v0 = frt->faces(f).v[0], v1 = frt->faces(f).v[1], v2 = frt->faces(f).v[2];
-        if (v0 >= 65536 || v1 >= 65536 || v2 >= 65536)
-          continue;
-        indices.push_back((uint16_t)v0);
-        indices.push_back((uint16_t)v1);
-        indices.push_back((uint16_t)v2);
+        logerr("static scene collision has %u faces, over the %u GI voxelization limit; only the first %u are used for SDF", faceCnt,
+          maxFaces, maxFaces);
+        faceCnt = maxFaces;
       }
-      staticSceneCollisionResource.reset(CollisionResource::createSingleMeshNonOwning(
-        dag::ConstSpan<Point3_vec4>((Point3_vec4 *)&frt->verts(0), min<uint32_t>(65536, frt->getVertsCount())),
-        dag::ConstSpan<uint16_t>(indices.data(), indices.size()), frt->getBox(), frt->getSphere()));
+
+      dag::Vector<uint32_t> indices;
+      indices.reserve((size_t)faceCnt * 3);
+      for (uint32_t f = 0; f < faceCnt; ++f)
+      {
+        const uint32_t vs[3] = {frt->faces(f).v[0], frt->faces(f).v[1], frt->faces(f).v[2]};
+        if (vs[0] >= totalVerts || vs[1] >= totalVerts || vs[2] >= totalVerts)
+          continue; // defensive: skip faces referencing out-of-range verts
+        for (uint32_t vi : vs)
+          indices.push_back(vi);
+      }
+
+      BBox3 box;
+      for (uint32_t v = 0; v < totalVerts; ++v)
+        box += Point3(frtVerts[v].x, frtVerts[v].y, frtVerts[v].z);
+      const BSphere3 sph(box.center(), box.width().length() * 0.5f);
+      staticSceneCollisionResource.reset(CollisionResource::createSingleMesh(dag::ConstSpan<Point3_vec4>(frtVerts, totalVerts),
+        dag::ConstSpan<uint32_t>(indices.data(), indices.size()), box, sph, 0, "static_scene"));
     }
   }
-
 
   daGI2 = create_dagi();
   init_voxelization();

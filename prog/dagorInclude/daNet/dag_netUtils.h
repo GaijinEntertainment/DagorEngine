@@ -27,7 +27,7 @@ class BitStream;
 namespace netutils
 {
 void writeCompressedBuffer(danet::BitStream &msg, dag::ConstSpan<uint8_t> buf);
-bool readCompressedBuffer(const danet::BitStream &msg, Tab<uint8_t> &buf);
+bool readCompressedBuffer(const danet::BitStream &msg, Tab<uint8_t> &buf, size_t max_size_bytes = 1 << 20);
 
 void writeCompressedBlk(danet::BitStream *message, const DataBlock &blk);
 bool readCompressedBlk(const danet::BitStream *message, DataBlock &blk);

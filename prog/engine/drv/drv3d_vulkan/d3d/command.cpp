@@ -216,7 +216,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       break;
 
     // Must be used in conjuction with Drv3dCommand::PIX_GPU_END_CAPTURE
-    case Drv3dCommand::PIX_GPU_BEGIN_CAPTURE: Globals::Dbg::rdoc.beginCapture(); break;
+    case Drv3dCommand::PIX_GPU_BEGIN_CAPTURE: Globals::Dbg::rdoc.beginCapture(reinterpret_cast<const wchar_t *>(par2)); break;
 
     // Must be used in conjuction with Drv3dCommand::PIX_GPU_BEGIN_CAPTURE
     case Drv3dCommand::PIX_GPU_END_CAPTURE: Globals::Dbg::rdoc.endCapture(); break;

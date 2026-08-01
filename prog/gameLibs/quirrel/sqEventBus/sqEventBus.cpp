@@ -352,8 +352,15 @@ void send_event_ex(const char *event_name, rapidjson::Document &&data, const Eve
 
   ScopedLockReadTemplate guard(vmsLock);
 
-  int copyFromVmIdx = -1;
+  auto pushQEvt = [&](BoundVm &target, Sqrat::Function &&f, eastl::string &&s, JsonVariant &&jv) {
+    OSSpinlockScopedLock queueGuard(target.queueLock);
+    auto &qevt = target.queue.emplace_back(eastl::move(f), eastl::move(s), eastl::move(jv));
+    qevt.memoryThresholdBytes = event_params.memoryThresholdBytes;
+  };
+
   int8_t isMainThreadCached = -1;
+  BoundVm *pendingTarget = nullptr;
+  eastl::string pendingEvSrc;
   for (auto &v : vms)
   {
     BoundVm &target = v.second;
@@ -362,44 +369,28 @@ void send_event_ex(const char *event_name, rapidjson::Document &&data, const Eve
     if (!collect_handlers(target, isMainThreadCached, event_name, event_params.sourceId, handlersCopy))
       continue;
 
-    OSSpinlockScopedLock queueGuard(target.queueLock);
-
-    auto pushQEvt = [&](Sqrat::Function &&f, eastl::string &&s, JsonVariant &&jv) {
-      auto &qevt = target.queue.emplace_back(eastl::move(f), eastl::move(s), eastl::move(jv));
-      qevt.memoryThresholdBytes = event_params.memoryThresholdBytes;
-    };
     if (!handlersCopy.empty())
     {
       G_ASSERTF(is_main_thread(), "evt=%s vmi=%d", event_name, &v - vms.data()); // Guaranteed by `collect_handlers` impl.
       Sqrat::Object sqjs = rapidjson_to_quirrel(v.first, data);
       if (auto &hf = handlersCopy.front(); handlersCopy.size() == 1) // Fast move code path
-        pushQEvt(eastl::move(hf), eastl::string{}, JsonVariant(eastl::in_place<decltype(sqjs)>, eastl::move(sqjs)));
+        pushQEvt(target, eastl::move(hf), eastl::string{}, JsonVariant(eastl::in_place<decltype(sqjs)>, eastl::move(sqjs)));
       else
         for (auto &h : handlersCopy)
-          pushQEvt(eastl::move(h), eastl::string{}, JsonVariant(eastl::in_place<decltype(sqjs)>, sqjs));
+          pushQEvt(target, eastl::move(h), eastl::string{}, JsonVariant(eastl::in_place<decltype(sqjs)>, sqjs));
     }
     else // non main thread
     {
-      eastl::string evSrc = QueuedEvent::buildEventSource(event_name, event_params.sourceId);
-      if (copyFromVmIdx < 0) [[likely]] // Move on first call
-      {
-        copyFromVmIdx = (int(&v - vms.data()) << 24) | int(target.queue.size());
-        JsonVariant jv{eastl::in_place<rapidjson::Document>, eastl::move(data)};
-        pushQEvt(Sqrat::Function{}, eastl::move(evSrc), eastl::move(jv));
-      }
-      else // copy from previously moved on 2nd and further calls (should be rare code path)
-      {
-        int vmi = copyFromVmIdx >> 24;
-        OSSpinlockScopedLock maybeLock2((vmi != (&v - vms.data())) ? &vms[vmi].second.queueLock : nullptr);
-        const JsonVariant &otherJv = vms[vmi].second.queue[copyFromVmIdx & (~0u >> 8)].value;
-        G_ASSERT(eastl::holds_alternative<rapidjson::Document>(otherJv));
-        JsonVariant jv(eastl::in_place<rapidjson::Document>);
-        auto &rd = eastl::get<rapidjson::Document>(jv);
-        rd.CopyFrom(eastl::get<rapidjson::Document>(otherJv), rd.GetAllocator());
-        pushQEvt(Sqrat::Function{}, eastl::move(evSrc), eastl::move(jv));
-      }
+      if (pendingTarget)
+        pushQEvt(*pendingTarget, Sqrat::Function{}, eastl::move(pendingEvSrc), copy_rjson(data));
+      pendingTarget = &target;
+      pendingEvSrc = QueuedEvent::buildEventSource(event_name, event_params.sourceId);
     }
   }
+
+  if (pendingTarget)
+    pushQEvt(*pendingTarget, Sqrat::Function{}, eastl::move(pendingEvSrc),
+      JsonVariant{eastl::in_place<rapidjson::Document>, eastl::move(data)});
 }
 
 static void send_event_jsoncpp(const char *event_name, Json::Value &data, const char *source_id, bool can_be_moved)
@@ -409,10 +400,25 @@ static void send_event_jsoncpp(const char *event_name, Json::Value &data, const 
   if (g_native_event_handler)
     g_native_event_handler(event_name, data, source_id, /*immediate*/ false);
 
-  BoundVm *copyFromVm = nullptr;
-  int copyFromQidx = -1;
-  int8_t isMainThreadCached = -1;
   ScopedLockReadTemplate guard(vmsLock);
+
+  auto pushToQueue = [&](BoundVm &target, Tab<Sqrat::Function> &handlers, JsonVariant &&jv) {
+    OSSpinlockScopedLock queueGuard(target.queueLock);
+    if (handlers.empty())
+      target.queue.emplace_back(Sqrat::Function{}, QueuedEvent::buildEventSource(event_name, source_id), eastl::move(jv));
+    else
+      for (auto &h : handlers)
+      {
+        if (&h == &handlers.back())
+          target.queue.emplace_back(eastl::move(h), eastl::string{}, eastl::move(jv));
+        else
+          target.queue.emplace_back(eastl::move(h), eastl::string{}, JsonVariant{jv});
+      }
+  };
+
+  int8_t isMainThreadCached = -1;
+  BoundVm *pendingTarget = nullptr;
+  Tab<Sqrat::Function> pendingHandlers(framemem_ptr());
   for (auto &v : vms)
   {
     BoundVm &target = v.second;
@@ -421,44 +427,14 @@ static void send_event_jsoncpp(const char *event_name, Json::Value &data, const 
     if (!collect_handlers(target, isMainThreadCached, event_name, source_id, handlersCopy))
       continue;
 
-    JsonVariant jv = [&]() -> JsonVariant {
-      if (!can_be_moved || (data.isNull() && !copyFromVm)) // legacy slow copying path (or no data)
-        return data;
-      else if (!copyFromVm) // fast move path
-      {
-        copyFromVm = &target;
-        OSSpinlockScopedLock queueGuard(target.queueLock);
-        copyFromQidx = target.queue.size();
-        return eastl::move(data);
-      }
-      else if (copyFromVm == &target) // copy from same vm
-      {
-        OSSpinlockScopedLock queueGuard(target.queueLock);
-        char *base = (char *)&(target.queue.data() + target.queue.size())->value;
-        char *copy = (char *)&target.queue[copyFromQidx].value;
-        return intptr_t(copy - base); // Store relative offset to copy source
-      }
-      else // copy from different vm
-      {
-        G_ASSERT(copyFromVm && copyFromQidx >= 0);
-        OSSpinlockScopedLock queueGuard(copyFromVm->queueLock);
-        const JsonVariant &otherJv = copyFromVm->queue[copyFromQidx].value;
-        G_ASSERT(eastl::holds_alternative<Json::Value>(otherJv));
-        return JsonVariant{eastl::get<Json::Value>(otherJv)};
-      }
-    }();
-    OSSpinlockScopedLock queueGuard(target.queueLock);
-    if (handlersCopy.empty())
-      target.queue.emplace_back(Sqrat::Function{}, QueuedEvent::buildEventSource(event_name, source_id), eastl::move(jv));
-    else
-      for (auto &h : handlersCopy)
-      {
-        if (&h == &handlersCopy.back())
-          target.queue.emplace_back(eastl::move(h), eastl::string{}, eastl::move(jv));
-        else
-          target.queue.emplace_back(eastl::move(h), eastl::string{}, JsonVariant{jv});
-      }
+    if (pendingTarget)
+      pushToQueue(*pendingTarget, pendingHandlers, JsonVariant{data});
+    pendingTarget = &target;
+    pendingHandlers = eastl::move(handlersCopy);
   }
+
+  if (pendingTarget)
+    pushToQueue(*pendingTarget, pendingHandlers, can_be_moved ? JsonVariant{eastl::move(data)} : JsonVariant{data});
 }
 
 void send_event(const char *event_name, const Json::Value &data, const char *source_id)

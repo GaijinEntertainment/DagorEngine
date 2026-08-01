@@ -22,6 +22,7 @@ class ShaderAssumesTable
   HashStrings *intervalNameMap;
   ska::flat_hash_map<int, AssumeRecord> assumes{};
   const char *debugName = nullptr;
+  int toolsAssumeNameId = -1;
 
 public:
   ShaderAssumesTable(const DataBlock &config_assumes, HashStrings &interval_name_map, const ShaderAssumesTable *parent_table = nullptr,

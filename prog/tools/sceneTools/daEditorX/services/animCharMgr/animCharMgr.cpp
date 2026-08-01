@@ -671,7 +671,6 @@ public:
       case STG_BEFORE_RENDER:
       {
         mat44f gtm;
-        d3d::getglobtm(gtm);
         d3d::settm(TM_WORLD, &Matrix44::IDENT);
         d3d::getglobtm(gtm);
         Driver3dPerspective p;

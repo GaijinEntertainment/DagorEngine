@@ -1,0 +1,10 @@
+aa_benchmark{
+  _singleton:b=yes
+  _tags:t="render"
+  "aa_benchmark__nodes:dag::Vector<dafg::NodeHandle>"{}
+  aa_benchmark__subsamples:i=0
+  aa_benchmark__view:i=0 // 0 = off, 1 = error heatmap, 2 = ground truth, 3 = AA output, 4 = temporal mean, 5 = temporal stddev
+  aa_benchmark__metric_exp_decay:r=0.9
+  aa_benchmark__heatmap_scale:r=8
+  aa_benchmark__heatmap_opacity:r=0.75
+}

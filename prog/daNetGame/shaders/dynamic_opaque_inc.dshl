@@ -181,29 +181,7 @@ macro DYNAMIC_BLOCK()
 endmacro
 
 macro DYNAMIC_BLOCK_XRAY()
-  if (shader == hatching_simple || shader == hatching_sphere)
-  {
-    DYNMODEL_SHARED_DECL_IMMEDIATE()
-    supports global_frame;
-
-    (vs) {
-      world_local_x@f3 = world_local_x;
-      world_local_y@f3 = world_local_y;
-      world_local_z@f3 = world_local_z;
-      world_local_pos@f3 = world_local_pos;
-    }
-    (ps) {
-      is_hero_cockpit@i1 = (is_hero_cockpit); // just in case we want to use xray + cockpit
-    }
-    hlsl(ps) {
-      #define GBUFFER_IS_HERO_COCKPIT is_hero_cockpit
-    }
-  }
-  else
-  {
-    DYNAMIC_BLOCK()
-  }
-
+  DYNAMIC_BLOCK()
   INIT_XRAY_RENDER()
 
   channel float3 pos = pos;

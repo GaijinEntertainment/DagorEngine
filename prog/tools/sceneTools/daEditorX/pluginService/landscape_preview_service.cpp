@@ -579,7 +579,7 @@ private:
     LodGrid lodGrid;
     lodGrid.init(lodCount, lodRad, 0, lastLodRad);
 
-    LodGridCullData cullData;
+    LodGridRingCullData cullData;
     const float scaledCell = heightmapCellSize;
     const float minHt = heightmapMin;
     const float maxHt = heightmapMin + heightmapScale;
@@ -658,10 +658,9 @@ private:
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0.0f, 0);
     drawHeightmapOnly();
 
-    TMatrix viewNow;
-    d3d::gettm(TM_VIEW, viewNow);
+    TMatrix viewNow = viewTm;
     TMatrix4 projTmNow;
-    d3d::gettm(TM_PROJ, &projTmNow);
+    d3d::calcproj(persp, projTmNow);
 
     // Publish our view's reprojection globals: globtm_no_ofs_psf_*, projtm_psf_*,
     // view_vec*, prev_view_vec*, prev_world_view_pos, prev_zn_zfar. These are

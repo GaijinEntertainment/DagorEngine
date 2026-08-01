@@ -45,6 +45,8 @@ let ScrollHandler = class {
 
 register_stub_observable_class(ScrollHandler)
 
+global const MAIN_SCREEN_ID = 999
+
 let gui_scene = {
   setShutdownHandler = @(_val) null
   circleButtonAsAction = false
@@ -99,7 +101,10 @@ let gui_scene = {
   mark_panel_dirty = function(_idx){return 0}
   setConfigProps = function(tbl) {assert(type(tbl)=="table", "params must be passed as table")}
   setFocusedScreen = @(_id) false
+  getFocusedScreen = @() MAIN_SCREEN_ID
   enableInput = @(_bool) null
+  activateProfiler = @(_bool) null
+  getPerfStats = @() {}
 }
 
 let axis = class{
@@ -129,7 +134,21 @@ let darg = {
   gui_scene
   set_kb_focus = @(_val) null
   capture_kb_focus = @(_val) null
-  Fonts = {}
+  // runtime Fonts is a class instance resolving unknown names to the default
+  // font id; per-game fonts.stub files patch named fonts in via __update
+  Fonts = class {
+    __custom = {}
+    function _get(key) {
+      if (key in this.__custom)
+        return this.__custom[key]
+      if (this.__custom.len()>0)
+        throw $"No font '{key}' in Fonts"
+      return 0
+    }
+    function __update(tbl) {
+      return this.__custom.__update(tbl)
+    }
+  }()
   move_mouse_cursor = @(_where, _useTransform = true) null
   calc_comp_size = @[pure](_comp) [0,0]
   calc_str_box = @[pure](_txt, _params = null) [0,0]
@@ -144,9 +163,11 @@ let darg = {
   ElemGroup = @() {}
   Picture = class{
     constructor(_file){}
+    function prefetch() { return false }
   }
   PictureImmediate = class{
     constructor(_file){}
+    function prefetch() { return false }
   }
   EditableText
   Cursor = function Cursor(val) {return val}
@@ -168,7 +189,7 @@ let darg = {
   elemh = @(val) val
   get_font_metrics = function[pure](fontId, fontSize=null) {
     assert(type(fontId)=="integer")
-    assert(fontSize==null || type(fontSize)=="float")
+    assert(fontSize==null || type(fontSize)=="float" || type(fontSize)=="integer")
     return {
       ascent = 0.0
       descent = 0.0
@@ -409,6 +430,5 @@ global const XMB_CONTINUE = 1
 
 global const R_PROCESSED = 1
 
-global const MAIN_SCREEN_ID = 999
 
 return darg

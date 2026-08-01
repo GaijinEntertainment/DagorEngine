@@ -57,6 +57,18 @@ public:
   const StcodeCompilationDirs &stcodeDirs() const { return stcodeInfo; }
   bool compilingAdditionalDump() const { return isAdditionalDump; }
 
+  // All files in the separate debug info directory at the start of compilation (filenames only)
+  const NameMap &getDebugInfoDirListing() const { return currentDebugInfoDirListing; }
+  // Names of all complete debug infos in the directory
+  // For example, a dx12 debug info is only complete if XX.hlsl, XX.cso and XX.pdb exist
+  // In that case, XX will be in the list. If some of these don't exist, it's not considered complete and not included.
+  const NameMap &getCompleteDebugInfoPackListing() const { return completeDebugInfoPackListing; }
+
+  // Scans the folder (non-recursive) and fills the 2 listings described in comments above ^^^
+  // required_extensions lists the required files with same stem to make up a pack.
+  // @TODO(pdb): if we extend to other backends, probably better replace with a more generic definition of a pack
+  void buildDebugInfoDirListing(const char *dir, std::initializer_list<const char *> required_extensions);
+
 private:
   Tab<String> sourceFilesList;
   String intermediateDir;
@@ -65,4 +77,12 @@ private:
   ShHardwareOptions opt;
   String destFname;
   bool isAdditionalDump;
+  NameMap currentDebugInfoDirListing;
+  NameMap completeDebugInfoPackListing;
+};
+
+struct ShCompilationLimits
+{
+  int inTargetShaderAmountLimit;
+  bool toolsShadersDetected;
 };

@@ -1,0 +1,146 @@
+
+texture voxel_baker_last_rt0;
+texture voxel_baker_last_rt1;
+texture voxel_baker_last_rt2;
+texture voxel_baker_last_rt3;
+
+macro USE_VOXEL_BAKING()
+  hlsl(ps) {
+    #if RENDINST_IMPOSTOR_VOXEL
+      struct VOXEL_DECAL_OUTPUT
+      {
+        float4 albedo_alpha : SV_Target0;
+        float4 normal_coloring : SV_Target1;
+        uint4 srmt_colormul_palindex : SV_Target2;
+      };
+
+      struct VOXEL_BAKER_OUTPUT
+      {
+        VOXEL_DECAL_OUTPUT data;
+        float depth : SV_Target3;
+      };
+
+      uint voxel_baker_pack_unorm(half4 v)
+      {
+        const uint4 clampMin = 0;
+        const uint4 clampMax = 255;
+        uint4 i = clamp(uint4(floor(v * 255 + 0.5)), clampMin, clampMax);
+        return i.x | (i.y << 8) | (i.z << 16) | (i.w << 24);
+      }
+
+      half4 voxel_baker_unpack_unorm(uint i)
+      {
+        return uint4(i & 0xff, (i >> 8) & 0xff, (i >> 16) & 0xff, (i >> 24) & 0xff) / 255.0;
+      }
+
+      float voxel_baker_depth(float3 world_pos, float2 screen_pos)
+      {
+        float depth = dot(impostor_depth_proj, float4(world_pos, 1));
+        float sliceDepth = texelFetch(impostor_depth_slice, int2(screen_pos), 0).r;
+        if (depth < sliceDepth + 1) discard;
+        return depth;
+      }
+
+      VOXEL_DECAL_OUTPUT init_baker_decal_output()
+      {
+        VOXEL_DECAL_OUTPUT o;
+        o.albedo_alpha = 0;
+        o.normal_coloring = 0;
+        o.srmt_colormul_palindex = 0;
+        return o;
+      }
+
+      VOXEL_BAKER_OUTPUT init_baker_output(float depth)
+      {
+        VOXEL_BAKER_OUTPUT o;
+        o.data = init_baker_decal_output();
+        o.depth = depth;
+        return o;
+      }
+
+      struct VoxelMaterial
+      {
+        half smoothness;
+        half reflectance;
+        half metalness;
+        half translucency;
+      };
+
+      half3 baker_get_albedo(VOXEL_DECAL_OUTPUT o) { return o.albedo_alpha.rgb; }
+      void baker_set_albedo(inout VOXEL_DECAL_OUTPUT o, half3 v) { o.albedo_alpha.rgb = v; }
+
+      float3 baker_get_normal(VOXEL_DECAL_OUTPUT o) { return o.normal_coloring.xyz * 2 - 1; }
+      void baker_set_normal(inout VOXEL_DECAL_OUTPUT o, float3 n) { o.normal_coloring.xyz = normalize(n) * 0.5 + 0.5; }
+
+      VoxelMaterial baker_get_material(VOXEL_DECAL_OUTPUT o)
+      {
+        half4 srmt = voxel_baker_unpack_unorm(o.srmt_colormul_palindex.x);
+        VoxelMaterial m;
+        m.smoothness = srmt.x;
+        m.reflectance = srmt.y;
+        m.metalness = srmt.z;
+        m.translucency = srmt.w;
+        return m;
+      }
+      void baker_set_material(inout VOXEL_DECAL_OUTPUT o, half smoothness, half reflectance, half metalness, half translucency)
+        { o.srmt_colormul_palindex.x = voxel_baker_pack_unorm(half4(smoothness, reflectance, metalness, translucency)); }
+      void baker_set_material(inout VOXEL_DECAL_OUTPUT o, VoxelMaterial mat)
+        { baker_set_material(o, mat.smoothness, mat.reflectance, mat.metalness, mat.translucency); }
+
+      half3 baker_get_coloring(VOXEL_DECAL_OUTPUT o) { return voxel_baker_unpack_unorm(o.srmt_colormul_palindex.y).rgb * 2; }
+      void baker_set_coloring(inout VOXEL_DECAL_OUTPUT o, half3 v)
+      {
+        v *= 0.5;
+        o.normal_coloring.w = luminance(v);
+        o.srmt_colormul_palindex.y = voxel_baker_pack_unorm(half4(v, 0));
+      }
+
+      uint2 baker_get_palette(VOXEL_DECAL_OUTPUT o) { uint i = o.srmt_colormul_palindex.z; return uint2(i & 0x7fff, (i >> 15) & 1); }
+      void baker_set_palette(inout VOXEL_DECAL_OUTPUT o, uint pal_row, uint pal_index)
+        { o.srmt_colormul_palindex.z = (pal_row & 0x7fff) | (pal_index == 0 ? 0 : 0x8000); }
+
+      VOXEL_BAKER_OUTPUT baker_output_from_gbuffer(UnpackedGbuffer gbuffer, float depth, half alpha,
+        half3 coloring_mul, uint pal_row, uint pal_index)
+      {
+        VOXEL_BAKER_OUTPUT o = init_baker_output(depth);
+        baker_set_albedo(o.data, gbuffer.albedo.rgb);
+        o.data.albedo_alpha.a = alpha;
+        baker_set_normal(o.data, gbuffer.normal.xyz);
+        baker_set_material(o.data, gbuffer.smoothness, gbuffer.reflectance, gbuffer.metalness, gbuffer.translucency);
+        baker_set_coloring(o.data, coloring_mul);
+        baker_set_palette(o.data, pal_row, pal_index);
+        return o;
+      }
+    #endif
+  }
+endmacro
+
+macro USE_VOXEL_BAKING_DECAL()
+  USE_VOXEL_BAKING()
+  if (rendinst_render_pass == rendinst_render_pass_impostor_voxel)
+  {
+    (ps) {
+      voxel_baker_last_rt0@tex2d = voxel_baker_last_rt0;
+      voxel_baker_last_rt1@tex2d = voxel_baker_last_rt1;
+      voxel_baker_last_rt2@tex = voxel_baker_last_rt2 hlsl { Texture2D<uint4>voxel_baker_last_rt2@tex; }
+      voxel_baker_last_rt3@tex = voxel_baker_last_rt3 hlsl { Texture2D<float>voxel_baker_last_rt3@tex; }
+    }
+  }
+  hlsl(ps) {
+    #if RENDINST_IMPOSTOR_VOXEL
+      VOXEL_DECAL_OUTPUT baker_read_last(uint2 coord)
+      {
+        VOXEL_DECAL_OUTPUT o;
+        o.albedo_alpha = texelFetch(voxel_baker_last_rt0, coord, 0);
+        o.normal_coloring = texelFetch(voxel_baker_last_rt1, coord, 0);
+        o.srmt_colormul_palindex = texelFetch(voxel_baker_last_rt2, coord, 0);
+        return o;
+      }
+
+      float baker_read_last_depth(uint2 coord)
+      {
+        return texelFetch(voxel_baker_last_rt3, coord, 0).r;
+      }
+    #endif
+  }
+endmacro

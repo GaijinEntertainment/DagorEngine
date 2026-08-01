@@ -17,21 +17,18 @@
 #define IS_ENVI_COVER 0
 #endif
 
-#ifndef shadow2DArray
-  #define shadow2DArray(a, uv) a.SampleCmpLevelZero(a##_cmpSampler, (uv).xyz, (uv).w)
+#ifndef NBS_PS_DEFINED
+  #define PPCAT_(a_, b_) a_ ## b_
+  #define PPCAT(a_, b_) PPCAT_(a_, b_)
+  #define tex2Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xy, (uv).w)
+  #define tex3Dlod(a, uv) a.SampleLevel(PPCAT(a, _samplerstate), (uv).xyz, (uv).w)
+  #define shadow2DArray(a, uv) a.SampleCmpLevelZero(PPCAT(a, _cmpSampler), (uv).xyz, (uv).w)
+  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(PPCAT(a, _samplerstate), tc, lod, ofs)
+  #define textureGather(a, tc) a.Gather(PPCAT(a, _samplerstate), tc)
 #endif
 
-#ifndef tex3Dlod
-  #define tex3Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, (uv).w)
-#endif
-
-#ifndef textureLodOffset
-  #define textureLodOffset(a, tc, lod, ofs) a.SampleLevel(a##_samplerstate, tc, lod, ofs)
-#endif
-
-#ifndef textureGather
-  #define textureGather(a, tc) a.Gather(a##_samplerstate, tc)
-#endif
+#define texture2DAt(a, tc) a[tc]
+#define texture3DAt(a, tc) a[tc]
 
 #define hmapMain_samplerstate  tex_hmap_low_samplerstate
 
@@ -465,9 +462,6 @@ float4 pow2(float4 x)
   return x * x;
 }
 
-#define tex2Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xy, (uv).w)
-#define tex3Dlod(a, uv) a.SampleLevel(a##_samplerstate, (uv).xyz, (uv).w)
-
 float get_smooth_noise3d(float3 v)
 {
   float3 i = floor(v);
@@ -611,3 +605,4 @@ uint4 texelFetch(Texture3D<uint4> a, int3 tc, int lod) { return a.Load(int4(tc, 
 uint3 texelFetch(Texture3D<uint3> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
 uint2 texelFetch(Texture3D<uint2> a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
 uint  texelFetch(Texture3D<uint>  a, int3 tc, int lod) { return a.Load(int4(tc, lod)); }
+

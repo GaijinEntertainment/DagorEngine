@@ -18,6 +18,7 @@ macro INIT_BLURRED_DEPTH_ABOVE_CONSTS(code)
   (code) {
     world_to_depth_ao@f4 = world_to_depth_ao;
     depth_ao_heights@f4 = depth_ao_heights;
+    meter_to_depth_ao_tex_space@f1 = (1.0 / max(depth_ao_heights.x, 0.00001));
     depth_ao_texture_size@f1 = depth_ao_texture_size;
     depth_ao_texture_size_inv@f1 = depth_ao_texture_size_inv;
     depth_ao_extra_enabled@i1 = depth_ao_extra_enabled;
@@ -76,11 +77,14 @@ macro USE_DEPTH_ABOVE(code, tex)
       #define get_depth_above(worldPos, prec, vignette_effect)\
       get_depth_above_impl(worldPos, prec, tex, tex##_samplerstate, vignette_effect)
 
-      #define get_depth_above_normal_by_unclamped_tc(tc, lod)\
-      get_depth_above_normal_by_unclamped_tc_impl(tc, lod, tex, tex##_samplerstate)
+      #define get_depth_above_cross(tc, extraTc, lod, step)\
+      get_depth_above_cross_impl(tc, extraTc, lod, step, tex, tex##_samplerstate)
 
-      #define get_depth_above_normal(worldPos, lod)\
-      get_depth_above_normal_impl(worldPos, lod, tex, tex##_samplerstate)
+      #define get_depth_above_normal_by_unclamped_tc(tc, extraTc, lod, step_size)\
+      get_depth_above_normal_by_unclamped_tc_impl(tc, extraTc, lod, step_size, tex, tex##_samplerstate)
+
+      #define get_depth_above_normal(worldPos, lod, step_size)\
+      get_depth_above_normal_impl(worldPos, lod, step_size, tex, tex##_samplerstate)
 
       #define use_depth_above_impl
     #else

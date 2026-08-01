@@ -3,8 +3,7 @@ outline_renderer{
   outline_brightness:r=5
   "outline_renderer:OutlineRenderer"{ }
   "outline_ctxs:OutlineContexts"{ }
-  "outline_prepare_node:dafg::NodeHandle"{ }
-  "outline_apply_node:dafg::NodeHandle"{ }
+  dafg_camera_registrator__name:t="outline"
   _singleton:b=yes
   _tags:t="render"
 }

@@ -1,9 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <landMesh/landRayTracer.h>
+#include <landMesh/lmeshWeightAtlas.h>
+#include "lmeshWeightAtlasLegacy.h"
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <EASTL/unique_ptr.h>
 #include <3d/dag_texMgrTags.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -11,6 +16,8 @@
 #include <debug/dag_log.h>
 #include <ioSys/dag_baseIo.h>
 #include <ioSys/dag_fileIo.h>
+#include <ioSys/dag_memIo.h>
+#include <memory/dag_framemem.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_roDataBlock.h>
 #include <ioSys/dag_lzmaIo.h>
@@ -24,6 +31,7 @@
 #include <shaders/dag_shaders.h>
 #include <debug/dag_debug.h>
 #include <landMesh/lmeshManager.h>
+#include <landMesh/landRayTracerSoA4.h>
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/biomeQuery.h>
 #include <gameRes/dag_gameResources.h>
@@ -64,15 +72,32 @@ static VDECL lmeshVdecl = BAD_VDECL;
 static constexpr int MAX_CELLS_WIDTH = 64; // because we use 6 bits for storing index
 LandMeshManager::DetailMap::DetailMap() : cells(midmem) {}
 
-LoadElement::LoadElement() : tex1(NULL), tex2(NULL), tex1Id(BAD_TEXTUREID), tex2Id(BAD_TEXTUREID) {}
-
-LoadElement::~LoadElement()
+// reads a cell's full record (ids + sizes + ddsx streams) into memory: the
+// level stream allows no long back seek, so it is read once, in order
+static bool read_cell_record(IGenLoad &cb, Tab<uint8_t> &raw)
 {
-  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(tex1Id, tex1);
-  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(tex2Id, tex2);
+  static constexpr int HDR = LandMeshManager::DET_TEX_NUM + 8;
+  DAGOR_TRY
+  {
+    raw.resize(HDR);
+    cb.read(raw.data(), HDR);
+    int len = 0, tex2Offset = 0;
+    memcpy(&len, &raw[LandMeshManager::DET_TEX_NUM], 4);
+    memcpy(&tex2Offset, &raw[LandMeshManager::DET_TEX_NUM + 4], 4);
+    if (len < 0 || tex2Offset < 0 || tex2Offset > len)
+      return false;
+    raw.resize(HDR + len);
+    if (len)
+      cb.read(raw.data() + HDR, len);
+    return true;
+  }
+  DAGOR_CATCH(const IGenLoad::LoadException &exc) { return false; }
 }
 
-void LandMeshManager::DetailMap::load(IGenLoad &cb, int base_ofs, bool tools_internal)
+// GPU conversion: the entries follow from each cell's landclass count, and the
+
+void LandMeshManager::DetailMap::load(IGenLoad &cb, int base_ofs, bool tools_internal, LandWeightAtlas **out_atlas,
+  unsigned weight_tex_cflg)
 {
   cb.readInt(sizeX);
   cb.readInt(sizeY);
@@ -81,81 +106,64 @@ void LandMeshManager::DetailMap::load(IGenLoad &cb, int base_ofs, bool tools_int
   cells.resize(sizeX * sizeY);
   if (tools_internal)
   {
-    for (int i = 0; i < cells.size(); ++i)
+    // daEditor authors the weights itself: start from an empty atlas reserved
+    // for editing and let the plugin fill the pages as the map is painted
+    if (out_atlas)
     {
-      mem_set_ff(cells[i].detTexIds);
-      cells[i].tex1 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1, RESTAG_LAND);
-      d3d_err(cells[i].tex1);
-      cells[i].tex1Id = ::register_managed_tex(String(32, "land_tex#%d", i), cells[i].tex1);
-
-      cells[i].tex2 = d3d::create_tex(NULL, texSize, texSize, TEXCF_BEST | TEXCF_ABEST, 1, RESTAG_LAND);
-      d3d_err(cells[i].tex2);
-      cells[i].tex2Id = ::register_managed_tex(String(32, "land_tex2#%d", i), cells[i].tex2);
+      *out_atlas = new LandWeightAtlas(sizeX, sizeY, texElemSize, weight_tex_cflg, /*reserve_for_edit*/ true);
+      if (!(*out_atlas)->upload()) // painting into an atlas with no texture would go nowhere
+      {
+        logerr("land weight atlas: %dx%d cells of %d do not fit an atlas, the editor paints no weights", sizeX, sizeY, texElemSize);
+        del_it(*out_atlas);
+      }
     }
     return;
   }
-
 
   SmallTab<int, MidmemAlloc> offsets;
   clear_and_resize(offsets, sizeX * sizeY);
   cb.readTabData(offsets);
   cells.resize(offsets.size());
-  //
+
+  static constexpr int HDR = DET_TEX_NUM + 8;
+  // where DXT1 exists the sources are decodable formats and the CPU packs the
+  // atlas; where it does not (mobile, ASTC) the driver decodes them and the
+  // pages are rendered, so the weights never touch the CPU
+  const bool cpuPack = land_weight_atlas_cpu_pack();
+  LandWeightAtlasBuilder builder(sizeX, sizeY, texSize, texElemSize, weight_tex_cflg);
+  Tab<Tab<uint8_t>> gpuRecords(tmpmem);
+  if (out_atlas && !cpuPack)
+    gpuRecords.resize(offsets.size());
+
+  Tab<uint8_t> raw(tmpmem);
   for (int i = 0; i < offsets.size(); ++i)
   {
-    // G_ASSERT(offsets[index]+manager.getBaseOffset());
     cb.seekto(base_ofs + offsets[i]);
-    load(i, cb);
+    Tab<uint8_t> &rec = cpuPack || !out_atlas ? raw : gpuRecords[i];
+    if (!read_cell_record(cb, rec)) // each cell is seeked to on its own, so one bad record costs one cell
+    {
+      logerr("land weight atlas: cell %d of %d is unreadable and renders as a single landclass", i, (int)cells.size());
+      rec.clear(); // whatever it holds is not a record; nothing downstream may walk it
+      continue;
+    }
+    memcpy(&cells[i].detTexIds[0], rec.data(), DET_TEX_NUM);
+    if (!out_atlas || !cpuPack)
+      continue;
+    int tex2Offset = 0;
+    memcpy(&tex2Offset, &rec[DET_TEX_NUM + 4], 4);
+    const int len = rec.size() - HDR;
+    // no second texture means the record is all first texture, as on the GPU path
+    builder.addCell(i, rec.data(), make_span_const(rec.data() + HDR, tex2Offset ? tex2Offset : len),
+      make_span_const(rec.data() + HDR + tex2Offset, tex2Offset ? len - tex2Offset : 0));
   }
+  if (!out_atlas)
+    return;
+  *out_atlas = cpuPack ? builder.finish() : render_land_weight_atlas(make_span(gpuRecords), sizeX, sizeY, texSize, texElemSize);
+  if (!*out_atlas)
+    logerr("land weight atlas conversion failed: terrain renders without landclass blending");
 }
 
 void LandMeshManager::DetailMap::clear() { clear_and_shrink(cells); }
-
-void LandMeshManager::DetailMap::load(int i, IGenLoad &cb)
-{
-  LoadElement &e = cells[i];
-  DAGOR_TRY
-  {
-    cb.read(&e.detTexIds[0], DET_TEX_NUM); // fixme: we should directly upload that
-
-    int len, tex2Offset;
-    cb.readInt(len);
-    cb.readInt(tex2Offset);
-    if (len)
-    {
-      e.tex1 = d3d::create_ddsx_tex(cb, TEXCF_RGB | TEXCF_SYSTEXCOPY, 0, 0, "land_tex");
-
-      d3d_err(e.tex1);
-      e.tex1Id = ::register_managed_tex(String(32, "land_tex#%d", i), e.tex1);
-      if (tex2Offset != 0 && len - tex2Offset > 0)
-      {
-        e.tex2 = d3d::create_ddsx_tex(cb, TEXCF_RGB | TEXCF_SYSTEXCOPY, 0, 0, "land_tex2");
-        d3d_err(e.tex2);
-
-        e.tex2Id = ::register_managed_tex(String(32, "land_tex2#%d", i), e.tex2);
-      }
-      else
-      {
-        e.tex2Id = BAD_TEXTUREID;
-        e.tex2 = NULL;
-      }
-    }
-    else
-    {
-      e.tex1Id = BAD_TEXTUREID;
-      e.tex1 = NULL;
-    }
-  }
-  DAGOR_CATCH(const IGenLoad::LoadException &exc) { G_ASSERT(false); }
-}
-
-void LandMeshManager::DetailMap::getLandDetailTexture(int index, TEXTUREID &tex1, TEXTUREID &tex2, uint8_t detail_tex_ids[DET_TEX_NUM])
-{
-  LoadElement &e = cells[index];
-  memcpy(detail_tex_ids, e.detTexIds.data(), DET_TEX_NUM);
-  tex1 = e.tex1Id;
-  tex2 = e.tex2Id;
-}
 
 
 LandMeshManager::LandMeshManager(bool tools_internal, LandMeshCullingState::CullMode cull_mode) :
@@ -220,12 +228,14 @@ void LandMeshManager::evictSplattingData()
     RELEASE_MANAGED_TEX(megaDetailsArrayId[i]);
   clear_and_shrink(landClasses);
   detailMap.clear();
+  del_it(weightAtlas);
   for (int i = 0; i < cells.size(); ++i)
     del_it(cells[i].decal);
 }
 
 void LandMeshManager::close()
 {
+  vtex.reset();
   evictSplattingData();
   for (TEXTUREID *id : {&vertTexId, &vertNmTexId, &vertDetTexId})
     RELEASE_MANAGED_TEX(*id);
@@ -723,7 +733,7 @@ bool LandMeshManager::loadMeshData(IGenLoad &cb)
 
 void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
 {
-  if (full_reset)
+  if (full_reset && srcFileName && dd_file_exist(srcFileName))
   {
     int t0 = get_time_msec();
 
@@ -742,6 +752,31 @@ void LandMeshManager::afterDeviceReset(LandMeshRenderer *lrend, bool full_reset)
     loadMeshData(crd);
     fatal_context_pop();
     debug("reloaded land mesh data for %d msec (from %s:0x%x)", get_time_msec() - t0, srcFileName, srcFileMeshMapOfs);
+
+    // The atlas was built without a system copy on the promise that we would do
+    // this, so its pages are gone; the records survive but describe nothing.
+    // tools mode never opts in, and its load would hand back an empty editable
+    // atlas in place of the painted one
+    if (weightAtlas && dataReset == LandMeshReset::ReloadFromSource && srcFileDetailMapOfs && !toolsInternal)
+    {
+      const int t1 = get_time_msec();
+      crd.seekto(srcFileDetailMapOfs);
+      fatal_context_push("landMesh::weights");
+      LandWeightAtlas *fresh = nullptr;
+      detailMap.load(crd, baseDataOffset, toolsInternal, &fresh, 0); // no copy: this reload is the recovery
+      fatal_context_pop();
+      if (fresh)
+      {
+        del_it(weightAtlas);
+        weightAtlas = fresh;
+        debug("reloaded land weight atlas for %d msec (from %s:0x%x)", get_time_msec() - t1, srcFileName, srcFileDetailMapOfs);
+      }
+      else
+        // there is no atlas-less fallback in the shaders, and the stale atlas
+        // still has coherent records - only its pages are gone - so keeping it
+        // degrades to wrong blends instead of undefined reads
+        logerr("land weight atlas: reload after device reset failed, terrain weights stay wrong until the level reloads");
+    }
   }
 
   for (auto &land : landClasses)
@@ -838,8 +873,9 @@ PhysMap *LandMeshManager::loadPhysMap(IGenLoad &loadCb, bool lmp2)
   return physMap;
 }
 
-bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, bool load_render_data)
+bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, bool load_render_data, LandMeshReset reset)
 {
+  dataReset = reset;
   dagor_set_sm_tex_load_ctx_type('LMAP');
   dagor_set_sm_tex_load_ctx_name(NULL);
   textag_clear_tag(TEXTAG_LAND);
@@ -932,29 +968,43 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
         tileXSize = tileYSize = MIN_TILE_SIZE;
       }
     }
+    // hosted-server processes share one tracer dump per level: the first one publishes the dump
+    // it parsed and accepted, siblings attach and skip stream parsing
+    GlobalSharedMemStorage *smStor = land_tracer_t::sharedMem;
+    char smName[256];
+    smName[0] = 0;
+    auto attachSharedTracer = [&]() -> bool {
+      if (!smStor)
+        return false;
+      SNPRINTF(smName, sizeof(smName), "%s:%X", loadCb.getTargetName(), loadCb.tell());
+      // allocated before the claim: nothing may throw between findPtr and attach, or the record's
+      // refcount is stranded and its slot never reused (allocPtr skips claimed slots)
+      land_tracer_t *t = new land_tracer_t;
+      void *p = smStor->findPtr(smName, land_tracer_t::SM_DATA_TAG);
+      if (!p)
+      {
+        delete t;
+        return false;
+      }
+      const size_t psz = smStor->getPtrSize(p); // the record's declared payload size
+      if (!t->attach(p, (int64_t)psz))
+      {
+        logwarn("stale shared land tracer dump '%s', rebuilding", smName);
+        delete t;
+        smStor->releasePtr(land_tracer_t::SM_DATA_TAG, p); // drop findPtr's claim: the attach did not take it
+        return false;
+      }
+      landTracer = t;
+      logmessage(_MAKE4C('SHMM'), "attached SoA4 land tracer dump from shared mem: %p, %dK, '%s'", p, int(psz >> 10), smName);
+      return true;
+    };
     if (rayTracerOfs > baseDataOffset)
     {
       G_ASSERTF(rayTracerOfs == loadCb.tell() + 4, "rayTracerOfs=%d, tell()=%d", rayTracerOfs, loadCb.tell());
-      GlobalSharedMemStorage *sm = LandRayTracer::sharedMem;
-      void *dump = NULL;
-      int dump_sz = 0;
-      bool need_load = true;
-      char sm_ptr_name[256];
-      SNPRINTF(sm_ptr_name, sizeof(sm_ptr_name), "%s:%X", loadCb.getTargetName(), loadCb.tell());
-
-      if (sm && (dump = sm->findPtr(sm_ptr_name, LandRayTracer::SM_DATA_TAG)) != NULL)
+      unsigned fmt = 0;
+      int c_sz = loadCb.beginBlock(&fmt);
+      if (!attachSharedTracer()) // an attached shared dump replaces the whole block
       {
-        dump_sz = (int)sm->getPtrSize(dump);
-        logmessage(_MAKE4C('SHMM'), "reusing LRT dump from shared mem: : %p, %dK, '%s'", dump, dump_sz >> 10, sm_ptr_name);
-        landTracer = new LandRayTracer(rayTracerAllocator);
-        landTracer->load(dump, dump_sz);
-        loadCb.beginBlock();
-        loadCb.endBlock();
-      }
-      else
-      {
-        unsigned fmt = 0;
-        int c_sz = loadCb.beginBlock(&fmt);
         IGenLoad *zcrd_p = NULL;
         if (fmt == btag_compr::OODLE)
         {
@@ -965,59 +1015,40 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
           zcrd_p = new (alloca(sizeof(ZstdLoadCB)), _NEW_INPLACE) ZstdLoadCB(loadCb, c_sz);
         else
           zcrd_p = new (alloca(sizeof(LzmaLoadCB)), _NEW_INPLACE) LzmaLoadCB(loadCb, c_sz);
-        IGenLoad &zcrd = *zcrd_p;
-
-        landTracer = new LandRayTracer(rayTracerAllocator);
-
-        dump_sz = zcrd.readInt();
-        debug("LandRayTracer dump '%s' size=%d (compr %d)", loadCb.getTargetName(), dump_sz, c_sz);
-
-        dump_sz += 7 * 16;
-        if (sm)
+        // a truncated stream throws mid-parse: clean the decoder contexts up before the outer
+        // catch fails the load (the format contract for a torn LTdump), like the LTS4 path does
+        land_tracer_t::LegacyLoadResult lres = land_tracer_t::LegacyLoadResult::Failed;
+        int64_t reft = ref_time_ticks();
+        DAGOR_TRY
         {
-          dump = sm->allocPtr(sm_ptr_name, LandRayTracer::SM_DATA_TAG, dump_sz);
-          if (dump)
-            logmessage(_MAKE4C('SHMM'), "allocated LRT dump in shared mem: %p, %dK, '%s' (mem %lluK/%lluK, rec=%d)", dump,
-              dump_sz >> 10, sm_ptr_name, ((uint64_t)sm->getMemUsed()) >> 10, ((uint64_t)sm->getMemSize()) >> 10, sm->getRecUsed());
-          else
-            logmessage(_MAKE4C('SHMM'),
-              "failed to allocate LRT dump in shared mem: %p, %dK, '%s' (mem %lluK/%lluK, rec=%d); "
-              "falling back to conventional allocator",
-              dump, dump_sz >> 10, sm_ptr_name, ((uint64_t)sm->getMemUsed()) >> 10, ((uint64_t)sm->getMemSize()) >> 10,
-              sm->getRecUsed());
+          int dump_sz = zcrd_p->readInt();
+          debug("LandRayTracer dump '%s' size=%d (compr %d)", loadCb.getTargetName(), dump_sz, c_sz);
+          landTracer = new land_tracer_t;
+          lres = landTracer->loadStreamToDump(*zcrd_p, dump_sz, rayTracerAllocator);
         }
-        if (!dump && landTracer)
-          dump = rayTracerAllocator->alloc(dump_sz);
-
-        if (landTracer)
-          landTracer->loadStreamToDump(dump, zcrd, dump_sz);
-
-        zcrd.ceaseReading();
-        zcrd.~IGenLoad();
-        loadCb.endBlock();
-      }
-    }
-    if (!load_render_data && landTracer && !cellBoundings.size())
-    {
-      clear_and_resize(cellBoundings, mapSizeX * mapSizeY);
-      clear_and_resize(cellBoundingsRadius, mapSizeX * mapSizeY);
-      landBbox = landTracer->getBBox();
-      if (hmapHandler)
-        landBbox += hmapHandler->getWorldBox();
-      for (int i = 0, y = 0; y < mapSizeY; y++)
-      {
-        float cellZ = y * landCellSize + offset.z;
-        for (int x = 0; x < mapSizeX; x++, i++)
+        DAGOR_CATCH(const IGenLoad::LoadException &)
         {
-          float cellX = x * landCellSize + offset.x;
-          cellBoundings[i] =
-            BBox3(Point3(cellX, landBbox[0].y, cellZ), Point3(cellX + landCellSize, landBbox[1].y, cellZ + landCellSize));
-          if (!cellBoundings[i].isempty())
-            cellBoundingsRadius[i] = length(cellBoundings[i].width()) * 0.5f;
+          del_it(landTracer);
+          zcrd_p->ceaseReading();
+          zcrd_p->~IGenLoad();
+          DAGOR_RETHROW();
+        }
+        zcrd_p->ceaseReading();
+        zcrd_p->~IGenLoad();
+        if (lres == land_tracer_t::LegacyLoadResult::Ok)
+          debug("built SoA4 land tracer from LTdump in %d us: %dK", get_time_usec(reft), int(landTracer->dataSize() >> 10));
+        else
+        {
+          del_it(landTracer);
+          if (lres == land_tracer_t::LegacyLoadResult::Failed)
+            // loud, but it must not kill a level the legacy runtime accepted: land collision
+            // degrades to the heightmap, like a tracer-less level
+            logerr("legacy land tracer conversion failed for '%s', land collision unavailable", loadCb.getTargetName());
           else
-            cellBoundingsRadius[i] = sqrtf(2.f) * landCellSize * 0.5f;
+            logwarn("legacy land tracer in '%s' has no cell geometry", loadCb.getTargetName());
         }
       }
+      loadCb.endBlock();
     }
 
     String vertDetTexName;
@@ -1038,10 +1069,6 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       blendToY = loadCb.readReal();
       horizontalBlend = loadCb.readReal();
 
-      vertTexYOffset = 0.f;
-      vertDetTexXZtile = 1.f;
-      vertDetTexYtile = 1.f;
-      vertDetTexYOffset = 0.f;
       vertTexYOffset = loadCb.readReal();
       loadCb.readString(vertDetTexName);
       debug("vertDetTexName =<%@> @0x%X", vertDetTexName, loadCb.tell());
@@ -1132,6 +1159,105 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
       vertNmTexId = BAD_TEXTUREID;
       vertDetTexId = BAD_TEXTUREID;
     }
+
+    // native SoA4 stream appended past the lndm tail both exporter variants write: old loaders
+    // stop before it, and on transitional dual-stream levels the LTdump-built tracer won, so the
+    // block is not read. Bare-file loads have no enclosing block: the probe reads boundedly
+    // instead of trusting block bookkeeping
+    bool lts4Tag = false;
+    if (!landTracer && (loadCb.getBlockLevel() <= 0 || loadCb.getBlockRest() >= 8))
+    {
+      int tag = 0;
+      const int rd = loadCb.tryRead(&tag, sizeof(tag));
+      if (rd == (int)sizeof(tag) && tag == _MAKE4C('LTS4'))
+        lts4Tag = true;
+      else if (rd)
+        loadCb.seekrel(-rd); // non-consuming probe: leave unknown trailing data intact
+    }
+    if (lts4Tag)
+    {
+      // the stream is optional: any failure contained in it must leave the level without a land
+      // tracer, not fail the dump; the sub-block is closed on every path where it was opened
+      bool blockOpen = false, ltLoaded = false;
+      IGenLoad *zcrd_p = NULL;        // reachable from the catch so its heap contexts never leak
+      ZstdLoadCB *zstd_p = nullptr;   // typed view for the frame-completion check
+      OodleLoadCB *oodle_p = nullptr; // typed view for the decoded-size check
+      int oodleSrcSz = 0;
+      // decoder storage outside the try: some ABIs let a catch funclet reuse dynamic stack space
+      void *zcrdMem = alloca(sizeof(OodleLoadCB) > sizeof(ZstdLoadCB) ? sizeof(OodleLoadCB) : sizeof(ZstdLoadCB));
+      DAGOR_TRY
+      {
+        unsigned fmt = 0;
+        int c_sz = loadCb.beginBlock(&fmt);
+        blockOpen = true;
+        if (attachSharedTracer())
+          ltLoaded = true; // the attached shared dump replaces the block; nothing to decode
+        else if (fmt == btag_compr::OODLE)
+        {
+          // the raw size int is part of the block (compressed data is c_sz - 4); a hostile or
+          // truncated envelope must degrade like any other corruption instead of sizing an
+          // allocation or throwing (a throw here is DAG_FATAL on exception-less builds)
+          const int src_sz = c_sz >= 8 ? loadCb.readInt() : 0;
+          if (src_sz > 0 && src_sz <= land_tracer_t::MAX_STREAM_SIZE)
+          {
+            zcrd_p = oodle_p = new (zcrdMem, _NEW_INPLACE) OodleLoadCB(loadCb, c_sz - 4, src_sz);
+            oodleSrcSz = src_sz;
+          }
+          else
+            logwarn("bad LTS4 block envelope in '%s', level continues without a land tracer", loadCb.getTargetName());
+        }
+        else if (fmt == btag_compr::ZSTD)
+          // soft mode turns corrupt payload into a short read -> the rebuild fallback, instead of
+          // the decoder's default fatal (dev builds still stop inside the wrapper by its design)
+          zcrd_p = zstd_p = new (zcrdMem, _NEW_INPLACE) ZstdLoadCB(loadCb, c_sz, nullptr, false, ZstdErrorMode::Soft);
+        else
+          // the lzma decoder has no non-fatal error path, so the exporter never wraps LTS4 in it
+          logwarn("unsupported LTS4 codec %u in '%s', level continues without a land tracer", fmt, loadCb.getTargetName());
+        if (zcrd_p)
+        {
+          landTracer = new land_tracer_t;
+          // non-fatal decoders report an error the same way as a clean end: require the explicit
+          // completion state (last zstd frame hit its end marker / oodle delivered exactly src_sz)
+          if (
+            landTracer->load(*zcrd_p) && (!zstd_p || zstd_p->isFrameFinished()) && (!oodle_p || oodle_p->decodedBytes() == oodleSrcSz))
+            ltLoaded = true;
+          else
+          {
+            logwarn("failed to load LTS4 land tracer from '%s', level continues without a land tracer", loadCb.getTargetName());
+            del_it(landTracer);
+          }
+          zcrd_p->ceaseReading();
+          zcrd_p->~IGenLoad();
+          zcrd_p = NULL; // the catch must not destroy it again if endBlock below throws
+        }
+        loadCb.endBlock();
+        blockOpen = false;
+      }
+      DAGOR_CATCH(const IGenLoad::LoadException &)
+      {
+        // a throw after a successful load can only come from the balancing endBlock: keep the
+        // loaded tracer, the failure is the sub-block bookkeeping, not the payload
+        if (!ltLoaded)
+        {
+          logwarn("broken LTS4 land tracer stream in '%s', level continues without a land tracer", loadCb.getTargetName());
+          del_it(landTracer);
+        }
+        else
+          logwarn("LTS4 sub-block close failed in '%s' after a successful load", loadCb.getTargetName());
+        if (zcrd_p)
+        {
+          zcrd_p->ceaseReading();
+          zcrd_p->~IGenLoad();
+        }
+        if (blockOpen) // deeper truncation makes this endBlock throw too: the outer catch fails the load
+          loadCb.endBlock();
+      }
+    }
+    // publish only a tracer this process accepted (a ready record is what every sibling serves);
+    // an attached or absent tracer makes this a no-op, and publish failure only means siblings
+    // parse for themselves, so the level loads either way
+    if (landTracer)
+      landTracer->publishShared(smName);
   }
   DAGOR_CATCH(const IGenLoad::LoadException &e)
   {
@@ -1147,6 +1273,28 @@ bool LandMeshManager::loadDump(IGenLoad &loadCb, IMemAlloc *rayTracerAllocator, 
   if (is_managed_textures_streaming_load_on_demand())
     prefetch_managed_textures_by_textag(TEXTAG_LAND);
 
+  if (!load_render_data && landTracer && !cellBoundings.size())
+  {
+    clear_and_resize(cellBoundings, mapSizeX * mapSizeY);
+    clear_and_resize(cellBoundingsRadius, mapSizeX * mapSizeY);
+    landBbox = landTracer->getBBox();
+    if (hmapHandler)
+      landBbox += hmapHandler->getWorldBox();
+    for (int i = 0, y = 0; y < mapSizeY; y++)
+    {
+      float cellZ = y * landCellSize + offset.z;
+      for (int x = 0; x < mapSizeX; x++, i++)
+      {
+        float cellX = x * landCellSize + offset.x;
+        cellBoundings[i] =
+          BBox3(Point3(cellX, landBbox[0].y, cellZ), Point3(cellX + landCellSize, landBbox[1].y, cellZ + landCellSize));
+        if (!cellBoundings[i].isempty())
+          cellBoundingsRadius[i] = length(cellBoundings[i].width()) * 0.5f;
+        else
+          cellBoundingsRadius[i] = sqrtf(2.f) * landCellSize * 0.5f;
+      }
+    }
+  }
   return true;
 }
 
@@ -1196,7 +1344,7 @@ bool LandMeshManager::loadHeightmapDump(IGenLoad &loadCb, bool load_render_data,
   return true;
 }
 
-bool LandMeshManager::loadDump(const char *fname, int start_offset, bool load_render_data)
+bool LandMeshManager::loadDump(const char *fname, int start_offset, bool load_render_data, LandMeshReset reset)
 {
   close();
 
@@ -1214,7 +1362,7 @@ bool LandMeshManager::loadDump(const char *fname, int start_offset, bool load_re
     return false;
   }
   loadCb.seekto(start_offset);
-  if (!loadDump(loadCb, midmem, load_render_data))
+  if (!loadDump(loadCb, midmem, load_render_data, reset))
   {
     logerr("Can't load dump file '%s' at %d", filename, start_offset);
     return false;
@@ -1225,22 +1373,21 @@ bool LandMeshManager::loadDump(const char *fname, int start_offset, bool load_re
 
 LandMeshRenderer *LandMeshManager::createRenderer()
 {
-  LandMeshRenderer *renderer = new LandMeshRenderer(*this, landClasses, biomeLandClassIdx, vertTexId, vertNmTexId, vertDetTexId,
-    tileTexId, get_texture_separate_sampler(tileTexId), tileXSize, tileYSize);
-
-  return renderer;
+  landmesh::resolve_lmesh_shader_constants();
+  if (!vtex)
+    vtex = eastl::make_unique<LandVtexRenderer>(*this, landClasses, biomeLandClassIdx, vertTexId, vertNmTexId, vertDetTexId, tileTexId,
+      get_texture_separate_sampler(tileTexId), tileXSize, tileYSize);
+  return new LandMeshRenderer(*this);
 }
 
 
-void LandMeshManager::getLandDetailTexture(int x, int y, TEXTUREID &tex1, TEXTUREID &tex2, uint8_t detail_tex_ids[DET_TEX_NUM])
+void LandMeshManager::getLandDetailTexIds(int x, int y, uint8_t detail_tex_ids[DET_TEX_NUM])
 {
   x -= origin.x;
   y -= origin.y;
-  if (x < 0 || x >= detailMap.sizeX)
+  if (x < 0 || x >= detailMap.sizeX || y < 0 || y >= detailMap.sizeY)
     return;
-  if (y < 0 || y >= detailMap.sizeY)
-    return;
-  detailMap.getLandDetailTexture(x + y * detailMap.sizeX, tex1, tex2, detail_tex_ids);
+  memcpy(detail_tex_ids, detailMap.cells[x + y * detailMap.sizeX].detTexIds.data(), DET_TEX_NUM);
 }
 
 BBox3 LandMeshManager::getBBox(int x, int y, float *sphere_radius)

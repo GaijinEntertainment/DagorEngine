@@ -1,0 +1,60 @@
+include "shader_global.dshl"
+include "cloudsLighting.dshl"
+
+shader gen_clouds_phase_lut
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 tc : TEXCOORD0;
+    };
+  }
+  hlsl(vs) {
+    VsOutput phase_lut_vs(uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertexId);
+      output.pos = float4(pos.xy, 1, 1);
+      output.tc = screen_to_texcoords(pos);
+      return output;
+    }
+  }
+  compile("target_vs", "phase_lut_vs");
+
+  (ps) { clouds_droplet_diameter_um@f1 = clouds_droplet_diameter_um; }
+  hlsl(ps) {
+    #include "clouds_droplet_phase.hlsli"
+    #define PHASE_GEN_PI 3.14159265
+    #define LUT_N float(CLOUDS_PHASE_LUT_SIZE)
+    float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      float d = clamp(clouds_droplet_diameter_um, 5., 50.);
+      float gD    = clouds_droplet_draine_g(d);
+      float alpha = clouds_droplet_draine_alpha(d);
+      float w     = clouds_droplet_hg_weight(d);
+      //lut x = scattering angle; texel centers span [0, PI] endpoints exactly, matching
+      //the lookup's theta01*(N-1)/N + 0.5/N mapping. Only the w*Draine term is stored:
+      //the (1-w)*HG forward spike is far sub-texel (half-max 0.09 deg at d=50 vs 1.42
+      //deg/texel at 128) and is evaluated analytically at the lookup (see cloudsLighting.dshl).
+      //each texel stores its filter-bin average, so linear filtering reconstructs bin
+      //energy; cos() is even at both range ends, so out-of-range bin tails need no clamp
+      float u0 = input.tc.x*(LUT_N/(LUT_N-1.)) - 0.5/(LUT_N-1.);
+      const int BIN_SAMPLES = 64;
+      float sum = 0;
+      LOOP
+      for (int i = 0; i < BIN_SAMPLES; ++i)
+      {
+        float u = u0 + ((float(i) + 0.5)/float(BIN_SAMPLES) - 0.5)*(1./(LUT_N-1.));
+        float c = cos(u*PHASE_GEN_PI);
+        sum += draine_phase_x_pi(alpha, gD, c);
+      }
+      return w * sum * (1./float(BIN_SAMPLES));
+    }
+  }
+  compile("target_ps", "ps_main");
+}

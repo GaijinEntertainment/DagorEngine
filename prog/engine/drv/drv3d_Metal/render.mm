@@ -377,6 +377,7 @@ namespace drv3d_metal
         render.cur_rstate.raster_state.blend[i].ablend = false;
       render.cur_rstate.raster_state.writeMask = color_write ? 0xffffffff : MTLColorWriteMaskNone;
       render.cur_rstate.raster_state.a2c = 0;
+      render.cur_rstate.raster_state.is_dual_blend = 0;
       render.cur_rstate.raster_state.pad[0] = render.cur_rstate.raster_state.pad[1] = 0;
 
       scissor_on = render.scissor_on;
@@ -406,6 +407,7 @@ namespace drv3d_metal
         render.cur_rstate.raster_state.blend[i].ablend = old_rstate.raster_state.blend[i].ablend;
       render.cur_rstate.raster_state.writeMask = old_rstate.raster_state.writeMask;
       render.cur_rstate.raster_state.a2c = 0;
+      render.cur_rstate.raster_state.is_dual_blend = 0;
       render.cur_rstate.raster_state.pad[0] = render.cur_rstate.raster_state.pad[1] = 0;
       render.cur_rstate.vbuffer_stride[0] = old_rstate.vbuffer_stride[0];
 
@@ -1124,6 +1126,7 @@ namespace drv3d_metal
     , progs(midmem_ptr(), 128)
     , vdecls(midmem_ptr(), 128)
     , blases(midmem_ptr(), 128)
+    , queries("query_pool")
   {
     inited = false;
 
@@ -1332,6 +1335,7 @@ namespace drv3d_metal
     if (@available(iOS 16, macos 13, *))
     {
       upscale.supported = [MTLFXSpatialScalerDescriptor supportsDevice: device];
+      upscale.temporalSupported = [MTLFXTemporalScalerDescriptor supportsDevice: device];
     }
 #endif
 
@@ -1344,6 +1348,15 @@ namespace drv3d_metal
 
     caps.readWriteTextureTier1 = device.readWriteTextureSupport == MTLReadWriteTextureTier1 || device.readWriteTextureSupport == MTLReadWriteTextureTier2;
     caps.readWriteTextureTier2 = device.readWriteTextureSupport == MTLReadWriteTextureTier2;
+
+    queries.safeReserve(QUERIES_MAX);
+
+    // pool entries are raw memory; generation must start defined and is never
+    // reset afterwards, createQuery keeps it across reuse
+    queries.lock();
+    for (int i = 0; i < QUERIES_MAX; i++)
+      queries[i].generation = 0;
+    queries.unlock();
 
     // we need to init caps before loading pre cache
     // and caps use clear_cs_pipeline
@@ -1392,13 +1405,6 @@ namespace drv3d_metal
     TEXQL_ON_PERSISTENT_ALLOC_SZ(MAX_CBUFFER_SIZE);
     TEXQL_ON_PERSISTENT_ALLOC_SZ(QUERIES_MAX * sizeof(uint64_t));
 
-    used_query = 0;
-
-    for (int i = 0; i < QUERIES_MAX; i++)
-    {
-        queries[i].offset = i * sizeof(uint64_t);
-    }
-
     cur_query_offset = -1;
 
     for (auto &stg : stages)
@@ -1409,18 +1415,13 @@ namespace drv3d_metal
 
     forceClearOnCreate = ::dgs_get_settings()->getBlockByNameEx("metal")->getBool("forceClear", 0);
 
-    D3DResourceType cube_array_type = D3DResourceType::CUBEARRTEX;
-#if _TARGET_IOS
-    if (![device supportsFamily:MTLGPUFamilyApple4])
-      cube_array_type = D3DResourceType::CUBETEX;
-#endif
     blank_tex[int(MetalImageType::Tex2D)] = new Texture(1, 1, 1, 1, D3DResourceType::TEX, TEXCF_RTARGET, TEXFMT_A8R8G8B8, "blanktex_2d", false, true);
     blank_tex[int(MetalImageType::Tex2DArray)] = new Texture(1, 1, 1, 1, D3DResourceType::ARRTEX, TEXCF_RTARGET, TEXFMT_A8R8G8B8, "blanktex_array", false, true);
     blank_tex[int(MetalImageType::Tex2DDepth)] = new Texture(1, 1, 1, 1, D3DResourceType::TEX, TEXCF_RTARGET, TEXFMT_DEPTH24, "blank_depth", false, true);
     blank_tex[int(MetalImageType::TexCube)] = new Texture(1, 1, 1, 1, D3DResourceType::CUBETEX, TEXCF_RTARGET, TEXFMT_A8R8G8B8, "blank_cube", false, true);
     blank_tex[int(MetalImageType::Tex3D)] = new Texture(1, 1, 1, 1, D3DResourceType::VOLTEX, TEXCF_RTARGET, TEXFMT_A8R8G8B8, "blank_3d", false, true);
     blank_tex[int(MetalImageType::TexBuffer)] = new Texture(1, 1, 1, 1, D3DResourceType::TEX, TEXCF_RTARGET, TEXFMT_A8R8G8B8, "blanktex_buffer", false, true);
-    blank_tex[int(MetalImageType::TexCubeArray)] = new Texture(1, 1, 1, 1, cube_array_type, TEXCF_RTARGET, TEXFMT_A8R8G8B8, "blank_cube_array", false, true);
+    blank_tex[int(MetalImageType::TexCubeArray)] = new Texture(1, 1, 1, 1, D3DResourceType::CUBEARRTEX, TEXCF_RTARGET, TEXFMT_A8R8G8B8, "blank_cube_array", false, true);
 
     blank_tex_uint[int(MetalImageType::Tex2D)] = new Texture(1, 1, 1, 1, D3DResourceType::TEX, TEXCF_RTARGET, TEXFMT_R32UI, "blanktex_uint_2d", false, true);
     blank_tex_uint[int(MetalImageType::Tex2DArray)] = new Texture(1, 1, 1, 1, D3DResourceType::ARRTEX, TEXCF_RTARGET, TEXFMT_R32UI, "blanktex_uint_array", false, true);
@@ -1428,7 +1429,7 @@ namespace drv3d_metal
     blank_tex_uint[int(MetalImageType::TexCube)] = new Texture(1, 1, 1, 1, D3DResourceType::CUBETEX, TEXCF_RTARGET, TEXFMT_R32UI, "blank_uint_cube", false, true);
     blank_tex_uint[int(MetalImageType::Tex3D)] = new Texture(1, 1, 1, 1, D3DResourceType::VOLTEX, TEXCF_RTARGET, TEXFMT_R32UI, "blank_uint_3d", false, true);
     blank_tex_uint[int(MetalImageType::TexBuffer)] = new Texture(1, 1, 1, 1, D3DResourceType::TEX, TEXCF_RTARGET, TEXFMT_R32UI, "blanktex_uint_buffer", false, true);
-    blank_tex_uint[int(MetalImageType::TexCubeArray)] = new Texture(1, 1, 1, 1, cube_array_type, TEXCF_RTARGET, TEXFMT_R32UI, "blank_cube_array", false, true);
+    blank_tex_uint[int(MetalImageType::TexCubeArray)] = new Texture(1, 1, 1, 1, D3DResourceType::CUBEARRTEX, TEXCF_RTARGET, TEXFMT_R32UI, "blank_cube_array", false, true);
 
     blank_tex_rw[int(MetalImageType::Tex2D)] = new Texture(1, 1, 1, 1, D3DResourceType::TEX, TEXCF_UNORDERED, TEXFMT_A8R8G8B8, "blanktexrw_2d", false, true);
     blank_tex_rw[int(MetalImageType::Tex2DArray)] = new Texture(1, 1, 1, 1, D3DResourceType::ARRTEX, TEXCF_UNORDERED, TEXFMT_A8R8G8B8, "blanktexrw_array", false, true);
@@ -1436,7 +1437,7 @@ namespace drv3d_metal
     blank_tex_rw[int(MetalImageType::TexCube)] = new Texture(1, 1, 1, 1, D3DResourceType::CUBETEX, TEXCF_UNORDERED, TEXFMT_A8R8G8B8, "blankrw_cube", false, true);
     blank_tex_rw[int(MetalImageType::Tex3D)] = new Texture(1, 1, 1, 1, D3DResourceType::VOLTEX, TEXCF_UNORDERED, TEXFMT_A8R8G8B8, "blankrw_3d", false, true);
     blank_tex_rw[int(MetalImageType::TexBuffer)] = new Texture(1, 1, 1, 1, D3DResourceType::TEX, TEXCF_UNORDERED, TEXFMT_A8R8G8B8, "blanktexrw_buffer", false, true);
-    blank_tex_rw[int(MetalImageType::TexCubeArray)] = new Texture(1, 1, 1, 1, cube_array_type, TEXCF_UNORDERED, TEXFMT_A8R8G8B8, "blankrw_cube_array", false, true);
+    blank_tex_rw[int(MetalImageType::TexCubeArray)] = new Texture(1, 1, 1, 1, D3DResourceType::CUBEARRTEX, TEXCF_UNORDERED, TEXFMT_A8R8G8B8, "blankrw_cube_array", false, true);
 
     blank_tex[int(MetalImageType::Tex2D)]->apply(blank_tex_2d, 0, 0, false, false);
     G_ASSERT(blank_tex_2d);
@@ -1506,6 +1507,7 @@ namespace drv3d_metal
     }
     cur_rstate.raster_state.writeMask = WRITEMASK_ALL;
     cur_rstate.raster_state.a2c = 0;
+    cur_rstate.raster_state.is_dual_blend = 0;
     cur_rstate.raster_state.pad[0] = cur_rstate.raster_state.pad[1] = 0;
     cur_rstate.sample_count = 1;
     cur_rstate.pixelFormat[0] = MTLPixelFormatBGRA8Unorm;
@@ -1618,8 +1620,8 @@ namespace drv3d_metal
 
         int defaultIndex = blases.getFreeIndex(nullptr);
         G_ASSERT(defaultIndex == 0);
-        nativeBlases = [[NSMutableArray alloc] initWithCapacity : 4096];
-        [nativeBlases addObject : defaultBlas];
+        nativeBlases.reserve(4096);
+        nativeBlases.push_back(defaultBlas);
 
         if (use_residency)
         {
@@ -1651,13 +1653,32 @@ namespace drv3d_metal
     return true;
   }
 
-  void Render::executeUpscale(Texture *color, Texture *output, uint32_t colorMode)
+  void Render::executeSpatialUpscale(Texture *color, Texture *output, uint32_t colorMode)
   {
     checkRenderAcquired();
 
 #if USE_METALFX_UPSCALE
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::None);
     command_encoder.write(CommandType::DoMetalFX).write(color).write(output).write(colorMode);
+#endif
+  }
+
+  void Render::executeTemporalUpscale(Texture *color, Texture *motion, Texture *depth, Texture *output, float jitterX, float jitterY,
+    float motionScaleX, float motionScaleY)
+  {
+    checkRenderAcquired();
+
+#if USE_METALFX_UPSCALE
+    ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::None);
+    command_encoder.write(CommandType::DoMetalFXTemporal)
+      .write(color)
+      .write(motion)
+      .write(depth)
+      .write(output)
+      .write(jitterX)
+      .write(jitterY)
+      .write(motionScaleX)
+      .write(motionScaleY);
 #endif
   }
 
@@ -1672,6 +1693,21 @@ namespace drv3d_metal
       TIME_PROFILE(free_queued);
 
       std::lock_guard<std::mutex> scopedLock(delete_lock);
+
+      {
+        int freed_items = 0;
+        for (freed_items; freed_items < residency2delete.size(); ++freed_items)
+        {
+          const auto &res = residency2delete[freed_items];
+          if (res.submit > submits_completed)
+            break;
+          G_ASSERT(res.type == DeletedResource::Type::RemoveFromResidency);
+          removeResource(res.native_resource);
+        }
+        if (freed_items)
+          residency2delete.erase(residency2delete.begin(), residency2delete.begin() + freed_items);
+        commitResidencySet();
+      }
 
       if (resources2delete.empty() || resources2delete[0].submit > submits_completed)
         return;
@@ -1728,7 +1764,7 @@ namespace drv3d_metal
             progs.freeIndex(res.program)->release();
             break;
           case DeletedResource::Type::RemoveFromResidency:
-            removeResource(res.native_resource);
+            G_ASSERT(0 && "Shouldn't be here");
             break;
           case DeletedResource::Type::NativeResource:
             G_ASSERT(resource_residency.find(res.native_resource) == resource_residency.end());
@@ -1892,7 +1928,8 @@ namespace drv3d_metal
         cmd.dst_format == MTLPixelFormatBC3_RGBA ||
         cmd.dst_format == MTLPixelFormatBC6H_RGBFloat ||
         cmd.dst_format == MTLPixelFormatBC6H_RGBUfloat ||
-        cmd.dst_format == MTLPixelFormatBC5_RGUnorm)
+        cmd.dst_format == MTLPixelFormatBC5_RGUnorm ||
+        cmd.dst_format == MTLPixelFormatBC5_RGSnorm)
     {
       koef = 16;
     }
@@ -2010,6 +2047,8 @@ namespace drv3d_metal
     uint32_t offset = 0;
     uint32_t size : 31 = 0;
     uint32_t update : 1 = 0;
+    Buffer *compactSizeBuffer = nullptr;
+    uint32_t compactSizeOffset = 0;
   };
 
   void Render::executeCommands(bool wait, bool present)
@@ -2069,6 +2108,13 @@ namespace drv3d_metal
                              size : rc.size];
     }
 
+    for (const auto &t : textures2clear)
+    {
+      G_ASSERT(t.tex);
+      track_resource_write(*t.tex);
+      doClearTexture(t.width, t.height, t.slices, t.depth, t.levels, t.metalTex, t.base_format, t.use_dxt);
+    }
+
     for (const auto &rc : textures2upload)
     {
       MTLSize size = { (uint32_t)rc.w, (uint32_t)rc.h, (uint32_t)rc.d };
@@ -2090,13 +2136,6 @@ namespace drv3d_metal
                  destinationSlice : rc.layer
                  destinationLevel : rc.level
                 destinationOrigin : origin];
-    }
-
-    for (const auto &t : textures2clear)
-    {
-      G_ASSERT(t.tex);
-      track_resource_write(*t.tex);
-      doClearTexture(t.width, t.height, t.slices, t.depth, t.levels, t.metalTex, t.base_format, t.use_dxt);
     }
 
     for (const auto &r : regions2copy)
@@ -2691,7 +2730,8 @@ namespace drv3d_metal
         {
           RaytraceAccelerationStructure *dst = nullptr, *src = nullptr;
           id<MTLAccelerationStructure> as_dst = nil, as_src = nil;
-          command_encoder.read(src).read(dst).read(as_src).read(as_dst);
+          uint8_t compact_flag = 0;
+          command_encoder.read(src).read(dst).read(as_src).read(as_dst).read(compact_flag);
 
           ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Acceleration);
 
@@ -2701,8 +2741,23 @@ namespace drv3d_metal
           track_resource_write(*dst);
           track_resource_read(*src);
 
-          [accelerationEncoder copyAccelerationStructure : as_src
-                                 toAccelerationStructure : as_dst];
+          if (compact_flag)
+          {
+            if (@available(macOS 13.0, iOS 16.0, *))
+            {
+              [accelerationEncoder copyAndCompactAccelerationStructure : as_src
+                                              toAccelerationStructure  : as_dst];
+            }
+            else
+            {
+              D3D_ERROR("AS compaction called on unsupported os version");
+              [accelerationEncoder copyAccelerationStructure : as_src
+                                   toAccelerationStructure   : as_dst];
+            }
+          }
+          else
+            [accelerationEncoder copyAccelerationStructure : as_src
+                                   toAccelerationStructure : as_dst];
           dst->was_built = true;
         }
         break;
@@ -2720,7 +2775,10 @@ namespace drv3d_metal
             std::lock_guard<std::mutex> scopedLock(delete_lock);
 
             if (info.scratch)
-              resources2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = info.scratch->getBuffer() });
+              residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = info.scratch->getBuffer() });
+
+            if (info.compactSizeBuffer)
+              residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = info.compactSizeBuffer->getBuffer() });
 
             for (uint32_t i = 0; i < count; ++i)
             {
@@ -2729,7 +2787,7 @@ namespace drv3d_metal
 
               G_ASSERT(!buf->is_fast_discard());
               track_resource_read(*buf);
-              resources2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = buf->getBuffer() });
+              residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = buf->getBuffer() });
             }
           }
 
@@ -2744,7 +2802,7 @@ namespace drv3d_metal
             blases.unlock();
           }
 
-          buildAccelerationStructure(as, desc, info.scratch, info.offset, info.update);
+          buildAccelerationStructure(as, desc, info);
           G_ASSERT(as->acceleration_struct);
         }
         break;
@@ -2755,8 +2813,11 @@ namespace drv3d_metal
           uint32_t colorMode = 0;
           command_encoder.read(color).read(output).read(colorMode);
 
-          bool color_srgb = color->cflg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE);
-          bool output_srgb = output->cflg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE);
+          uint32_t colFlg = color->cflg, outFlg = output->cflg;
+          bool color_srgb = (colFlg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE)) &&
+            (drv3d_metal::Texture::format2Metal(colFlg & TEXFMT_MASK) == drv3d_metal::Texture::format2MetalsRGB(colFlg & TEXFMT_MASK));
+          bool output_srgb = (outFlg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE)) &&
+            (drv3d_metal::Texture::format2Metal(outFlg & TEXFMT_MASK) == drv3d_metal::Texture::format2MetalsRGB(outFlg & TEXFMT_MASK));
           // upscale breaks when input is srgb and output is not, even though the formats are passed correctly
           G_ASSERT(color_srgb == output_srgb);
 
@@ -2783,7 +2844,7 @@ namespace drv3d_metal
             hash_combine(hash, output->metal_format);
             hash_combine(hash, colorMode);
 
-            if (upscale.spatialScalers.find(hash) == upscale.spatialScalers.end())
+            if (upscale.scalers.find(hash) == upscale.scalers.end())
             {
               constexpr static MTLFXSpatialScalerColorProcessingMode color_modes[] = {MTLFXSpatialScalerColorProcessingModePerceptual,
                 MTLFXSpatialScalerColorProcessingModeLinear, MTLFXSpatialScalerColorProcessingModeHDR};
@@ -2797,10 +2858,10 @@ namespace drv3d_metal
               spatialScalerDescriptor.outputHeight = output->getHeight();
               spatialScalerDescriptor.outputTextureFormat = output->metal_format;
               spatialScalerDescriptor.colorProcessingMode = color_modes[colorMode];
-              upscale.spatialScalers[hash] = [spatialScalerDescriptor newSpatialScalerWithDevice : device];
+              upscale.scalers[hash] = [spatialScalerDescriptor newSpatialScalerWithDevice : device];
               [spatialScalerDescriptor release];
             }
-            id<MTLFXSpatialScaler> scaler = upscale.spatialScalers[hash];
+            id<MTLFXSpatialScaler> scaler = upscale.scalers[hash];
 
             if (manual_hazard_tracking)
             {
@@ -2816,15 +2877,111 @@ namespace drv3d_metal
 #endif
         }
         break;
+        case CommandType::DoMetalFXTemporal:
+        {
+#if USE_METALFX_UPSCALE
+          Texture *color = nullptr, *motion = nullptr, *depth = nullptr, *output = nullptr;
+          float jitterX = 0.f, jitterY = 0.f, motionScaleX = 0.f, motionScaleY = 0.f;
+          command_encoder.read(color).read(motion).read(depth).read(output).read(jitterX).read(jitterY).read(motionScaleX)
+            .read(motionScaleY);
+
+          uint32_t colFlg = color->cflg, outFlg = output->cflg;
+          bool color_srgb = (colFlg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE)) &&
+            (drv3d_metal::Texture::format2Metal(colFlg & TEXFMT_MASK) == drv3d_metal::Texture::format2MetalsRGB(colFlg & TEXFMT_MASK));
+          bool output_srgb = (outFlg & (TEXCF_SRGBREAD | TEXCF_SRGBWRITE)) &&
+            (drv3d_metal::Texture::format2Metal(outFlg & TEXFMT_MASK) == drv3d_metal::Texture::format2MetalsRGB(outFlg & TEXFMT_MASK));
+          // upscale breaks when input is srgb and output is not, even though the formats are passed correctly
+          G_ASSERT(color_srgb == output_srgb);
+
+          id<MTLFence> fence = nil;
+          if (@available(iOS 16, macos 13, *))
+          {
+            // create fake blit encoder that's gonna wait for corresponding encoders
+            if (manual_hazard_tracking)
+            {
+              ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::Blit);
+              track_resource_read(*color);
+              track_resource_read(*motion);
+              track_resource_read(*depth);
+              track_resource_write(*output);
+              G_ASSERT(current_encoder);
+              fence = encoders[current_encoder->index].fence;
+            }
+            ensureHaveEncoderExceptRender(commandBuffer, Render::EncoderType::None);
+
+            uint64_t hash = 0;
+            hash_combine(hash, color->getWidth());
+            hash_combine(hash, color->getHeight());
+            hash_combine(hash, color->metal_format);
+            hash_combine(hash, motion->metal_format);
+            hash_combine(hash, depth->metal_format);
+            hash_combine(hash, output->getWidth());
+            hash_combine(hash, output->getHeight());
+            hash_combine(hash, output->metal_format);
+
+            if (upscale.scalers.find(hash) == upscale.scalers.end())
+            {
+              MTLFXTemporalScalerDescriptor *temporalScalerDescriptor = [[MTLFXTemporalScalerDescriptor alloc] init];
+
+              temporalScalerDescriptor.inputWidth = color->getWidth();
+              temporalScalerDescriptor.inputHeight = color->getHeight();
+              temporalScalerDescriptor.colorTextureFormat = color->metal_format;
+              temporalScalerDescriptor.motionTextureFormat = motion->metal_format;
+              temporalScalerDescriptor.depthTextureFormat = depth->metal_format;
+              temporalScalerDescriptor.outputWidth = output->getWidth();
+              temporalScalerDescriptor.outputHeight = output->getHeight();
+              temporalScalerDescriptor.outputTextureFormat = output->metal_format;
+              temporalScalerDescriptor.inputContentPropertiesEnabled = false;
+              temporalScalerDescriptor.autoExposureEnabled = true;
+              upscale.scalers[hash] = [temporalScalerDescriptor newTemporalScalerWithDevice : device];
+              [temporalScalerDescriptor release];
+            }
+            id<MTLFXTemporalScaler> scaler = upscale.scalers[hash];
+
+            if (manual_hazard_tracking)
+            {
+              G_ASSERT(fence != nil);
+              scaler.fence = fence;
+            }
+            scaler.jitterOffsetX = jitterX;
+            scaler.jitterOffsetY = jitterY;
+            scaler.motionVectorScaleX = motionScaleX;
+            scaler.motionVectorScaleY = motionScaleY;
+            scaler.inputContentWidth = color->getWidth();
+            scaler.inputContentHeight = color->getHeight();
+            scaler.depthReversed = true;
+            scaler.outputTexture = output->apiTex->texture;
+            scaler.colorTexture = color->apiTex->texture;
+            scaler.depthTexture = depth->apiTex->texture;
+            scaler.motionTexture = motion->apiTex->texture;
+            [scaler encodeToCommandBuffer : commandBuffer];
+            scaler.outputTexture = nullptr;
+            scaler.colorTexture = nullptr;
+            scaler.depthTexture = nullptr;
+            scaler.motionTexture = nullptr;
+          }
+#endif
+        }
+        break;
         case CommandType::DoQuery:
         {
           Query *query = nullptr;
-          command_encoder.read(query);
+          uint32_t generation = 0;
+          uint64_t submit = 0;
+          command_encoder.read(query).read(generation).read(submit);
 
           G_ASSERT(query);
-          [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
-            query->value = *((uint64_t *)((uint8_t *)[query_buffer contents] + query->offset));
-            query->status = 0;
+          [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer)
+          {
+            // generation mismatch means the query was released (and maybe reused),
+            // submit mismatch means it was restarted; both make this result stale
+            render.queries.lock();
+            if (generation == query->generation && submit == query->submit)
+            {
+              query->value = *((uint64_t *)((uint8_t *)[query_buffer contents] + query->index*sizeof(uint64_t)));
+              query->status = Query::Status::Done;
+            }
+            render.queries.unlock();
           }];
         }
         break;
@@ -2901,15 +3058,15 @@ namespace drv3d_metal
 
     checkRenderAcquired();
 
+    applyQueuedBindlessUpdates();
+
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::None);
 
     std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
 
     for (auto blas : blases2create)
-    {
-      G_ASSERT(blas && blas->acceleration_struct);
-      addResource(blas->acceleration_struct);
-    }
+      addResource(blas);
+    commitResidencySet();
     blases2create.clear();
 
     executeCommands(wait, present);
@@ -3138,7 +3295,7 @@ namespace drv3d_metal
     if (cache[index].tex == texture && cache[index].metal_tex == metal_tex)
       return false;
 
-    if (res)
+    if (cache[index].metal_tex)
       render.removeResource(cache[index].metal_tex);
     cache[index] = { texture, metal_tex };
     if (res)
@@ -3278,6 +3435,125 @@ namespace drv3d_metal
     }
 
     return 1;
+  }
+
+  void Render::resizeBindlessArray(D3DResourceType type, uint32_t new_size)
+  {
+    if (D3DResourceType::SBUF == type)
+    {
+      G_ASSERTF(new_size <= BINDLESS_BUFFER_COUNT, "bindless buffer slot out of range: %d (max slot id: %d)", new_size,
+        BINDLESS_BUFFER_COUNT);
+      bindlessBuffers.resize(new_size);
+    }
+    else
+    {
+      G_ASSERTF(new_size <= BINDLESS_TEXTURE_COUNT, "bindless texture slot out of range: %d (max slot id: %d)", new_size,
+        BINDLESS_TEXTURE_COUNT);
+      if (type == D3DResourceType::TEX)
+        bindlessTextures2D.resize(new_size);
+      else if (type == D3DResourceType::CUBETEX)
+        bindlessTexturesCube.resize(new_size);
+      else if (type == D3DResourceType::ARRTEX)
+        bindlessTextures2DArray.resize(new_size);
+      else if (type == D3DResourceType::VOLTEX)
+        bindlessTextures3D.resize(new_size);
+      else if (type == D3DResourceType::CUBEARRTEX)
+        bindlessTexturesCubeArray.resize(new_size);
+      else
+        G_ASSERTF(0, "Unknown bindless array type %d", int(type));
+    }
+  }
+
+  bool Render::updateBindlessResourceAnyThread(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *>& resources)
+  {
+    if (isRenderAcquiredInThisThread())
+    {
+      applyQueuedBindlessUpdates();
+      bool result = true;
+      for (uint32_t i = 0; i < resources.size(); ++i)
+        if (resources[i])
+          result &= updateBindlessResource(type, index + i, resources[i]);
+        else
+          updateBindlessResourcesToNull(type, index + i, 1);
+      return result;
+    }
+
+    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    for (uint32_t i = 0; i < resources.size(); ++i)
+      if (resources[i])
+        pending_bindless_updates.push_back({PendingBindlessUpdate::Op::Update, type, index + i, 0, resources[i]});
+      else
+        pending_bindless_updates.push_back({PendingBindlessUpdate::Op::Null, type, index + i, 1, nullptr});
+    pending_bindless_count.fetch_add(resources.size(), std::memory_order_release);
+    return true;
+  }
+
+  void Render::updateBindlessResourcesToNullAnyThread(D3DResourceType type, uint32_t index, uint32_t count)
+  {
+    if (isRenderAcquiredInThisThread())
+    {
+      applyQueuedBindlessUpdates();
+      updateBindlessResourcesToNull(type, index, count);
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    pending_bindless_updates.push_back({PendingBindlessUpdate::Op::Null, type, index, count, nullptr});
+    pending_bindless_count.fetch_add(1, std::memory_order_release);
+  }
+
+  void Render::resizeBindlessArrayAnyThread(D3DResourceType type, uint32_t new_size)
+  {
+    if (isRenderAcquiredInThisThread())
+    {
+      resizeBindlessArray(type, new_size);
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    pending_bindless_updates.push_back({PendingBindlessUpdate::Op::Resize, type, new_size, 0, nullptr});
+    pending_bindless_count.fetch_add(1, std::memory_order_release);
+  }
+
+  void Render::purgeQueuedBindlessUpdates(D3dResource *res)
+  {
+    if (pending_bindless_count.load(std::memory_order_acquire) == 0)
+      return;
+
+    std::lock_guard<std::mutex> lock(pending_bindless_lock);
+    for (auto &u : pending_bindless_updates)
+      if (u.op == PendingBindlessUpdate::Op::Update && u.res == res)
+      {
+        u.op = PendingBindlessUpdate::Op::Null;
+        u.res = nullptr;
+        u.count = 1;
+      }
+  }
+
+  void Render::applyQueuedBindlessUpdates()
+  {
+    if (pending_bindless_count.load(std::memory_order_acquire) == 0)
+      return;
+
+    checkRenderAcquired();
+
+    G_ASSERT(pending_bindless_updates_render_acquired.empty());
+    {
+      std::lock_guard<std::mutex> lock(pending_bindless_lock);
+      pending_bindless_updates_render_acquired.swap(pending_bindless_updates);
+      pending_bindless_count.store(0, std::memory_order_release);
+    }
+
+    for (const auto &u : pending_bindless_updates_render_acquired)
+    {
+      switch (u.op)
+      {
+        case PendingBindlessUpdate::Op::Resize: resizeBindlessArray(u.type, u.index); break;
+        case PendingBindlessUpdate::Op::Update: updateBindlessResource(u.type, u.index, u.res); break;
+        case PendingBindlessUpdate::Op::Null: updateBindlessResourcesToNull(u.type, u.index, u.count); break;
+      }
+    }
+    pending_bindless_updates_render_acquired.clear();
   }
 
   bool Render::draw(int prim_type, int start_vertex, int vertex_count, uint32_t num_instances, uint32_t start_instance)
@@ -4474,7 +4750,7 @@ namespace drv3d_metal
 
     if (depth_clip != MTLDepthClipModeClip)
       dirty_state |= DirtyFlags::DepthClip;
-    if ((fabs(depth_bias) > 0.00000001f && fabs(depth_slopebias) > 0.00000001f))
+    if ((fabs(depth_bias) > 0.00000001f || fabs(depth_slopebias) > 0.00000001f))
       dirty_state |= DirtyFlags::DepthBias;
     if (cur_cull != MTLCullModeNone)
       dirty_state |= DirtyFlags::Cull;
@@ -4484,6 +4760,8 @@ namespace drv3d_metal
       dirty_state |= DirtyFlags::Query;
     if (scissor_on)
       dirty_state |= DirtyFlags::Scissor;
+    if (stencil_ref != 0)
+      dirty_state |= DirtyFlags::StencilRef;
     if (blend_factor[0] != 0 || blend_factor[1] != 0 || blend_factor[2] != 0 || blend_factor[3] != 0)
       dirty_state |= DirtyFlags::BlendFactor;
 
@@ -4594,42 +4872,44 @@ namespace drv3d_metal
     return -1;
   }
 
-  Render::Query* Render::createQuery()
+  Render::Query* Render::createQuery(Query::Type type)
   {
-    Query* q = NULL;
+    G_ASSERT(type == Query::Type::Event || type == Query::Type::Visibility);
+    queries.lock();
 
-    for (int i = 0; i < used_query; i++)
+    if (queries.totalUsed() >= QUERIES_MAX)
     {
-      if (!queries[i].used)
-      {
-        q = &queries[i];
-        break;
-      }
+      queries.unlock();
+      DAG_FATAL("Count of used queries was exceeded of max available value");
+      return NULL;
     }
 
-    if (!q)
-    {
-      if (used_query >= QUERIES_MAX)
-      {
-        DAG_FATAL("Count of used queries was exceeded of max available value");
-        return NULL;
-      }
+    int query = queries.alloc();
 
-      q = &queries[used_query];
-
-      used_query++;
-    }
-
-    q->status = 0;
-    q->used = 1;
+    // init under the lock so a stale handler of the previous incarnation can not
+    // observe or clobber a half initialized entry. generation is kept as is
+    Query* q = &queries[query];
+    q->ref_bit = 0; // clear the free bit left over from the free list link
+    q->value = 0;
+    q->submit = 0;
+    q->status = Query::Status::Invalid;
+    q->type = type;
+    q->index = query;
+    queries.unlock();
 
     return q;
   }
 
   void Render::startFence(Query* query)
   {
-    query->value = render.submits_scheduled;
-    query->status = 2;
+    checkRenderAcquired();
+
+    G_ASSERT(query);
+    G_ASSERT(query->type == Query::Type::Event);
+
+    query->value = 1;
+    query->submit = render.submits_scheduled;
+    query->status = Query::Status::Queued;
   }
 
   void Render::startQuery(Query* query)
@@ -4637,27 +4917,25 @@ namespace drv3d_metal
     checkRenderAcquired();
 
     G_ASSERT(query);
-    if (query)
-    {
-      Render::Query *local_query = query;
-      cur_query_offset = local_query->offset;
-      command_encoder.write(CommandType::DoQuery).write(query);
-    }
-    else
-    {
-      cur_query_offset = -1;
-    }
+    G_ASSERT(query->type == Query::Type::Visibility);
 
+    queries.lock();
+    query->status = Query::Status::Queued;
+    query->submit = submits_scheduled;
+    uint32_t generation = query->generation;
+    queries.unlock();
+    command_encoder.write(CommandType::DoQuery).write(query).write(generation).write(submits_scheduled);
+
+    cur_query_offset = query->index*sizeof(uint64_t);
     dirty_state |= DirtyFlags::Query;
-    query->status = 1;
   }
 
   void Render::finishQuery(Query* query)
   {
     checkRenderAcquired();
 
+    G_ASSERT(query->type == Query::Type::Visibility);
     cur_query_offset = -1;
-    query->status = 2;
   }
 
   void Render::setRenderPass(bool set)
@@ -4684,23 +4962,60 @@ namespace drv3d_metal
     return set;
   }
 
-  uint64_t Render::getQueryResult(Query* query, bool force_flush)
+  int64_t Render::getQueryResult(Query* query, bool force_flush)
   {
-    if (query->status != 2)
-      return 1;
-    if (render.submits_completed < query->value && force_flush)
+    if (query->type == Query::Type::Visibility)
+    {
+      queries.lock();
+      Query::Status status = query->status;
+      int64_t value = query->value;
+      queries.unlock();
+
+      if (status != Query::Status::Done)
+      {
+        if (!force_flush)
+          return -1;
+
+        // never flush while holding the pool lock: the DoQuery completed handler
+        // takes it, and flush waits for completed handlers to run
+        @autoreleasepool
+        {
+          render.flush(true);
+        }
+
+        queries.lock();
+        value = query->value;
+        queries.unlock();
+      }
+      return value;
+    }
+
+    G_ASSERT(query->type == Query::Type::Event);
+    if (render.submits_completed < query->submit && force_flush)
     {
       @autoreleasepool
       {
         render.flush(true);
       }
     }
-    return render.submits_completed < query->value && !force_flush ? -1 : 1;
+    return render.submits_completed < query->submit && !force_flush ? -1 : 1;
   }
 
   void Render::releaseQuery(Query* query)
   {
-    query->used = 0;
+    G_ASSERT(query);
+    if (query->type == Query::Type::Timestamp)
+    {
+      delete query;
+      return;
+    }
+    G_ASSERT(query->index < QUERIES_MAX);
+
+    queries.lock();
+    // invalidate pending completion handlers of this incarnation
+    query->generation++;
+    queries.releaseEntryUnsafe(query->index);
+    queries.unlock();
   }
 
   void Render::release()
@@ -4795,6 +5110,7 @@ namespace drv3d_metal
     G_ASSERT(textures2clear.empty());
     G_ASSERT(buffers2clear.empty());
     G_ASSERT(blases2create.empty());
+    G_ASSERT(residency2delete.empty());
 
     [commandQueue release];
 
@@ -4806,6 +5122,7 @@ namespace drv3d_metal
 
     Buffer::cleanup();
     Texture::cleanup();
+    queries.clear();
 
     if (defaultBlas)
     {
@@ -4820,9 +5137,7 @@ namespace drv3d_metal
     if (sampleBuffer)
         [sampleBuffer release];
 #endif
-    if (nativeBlases)
-      [nativeBlases release];
-    nativeBlases = nil;
+    nativeBlases.clear();
 
     if (@available(iOS 18, macOS 15.0, *))
     {
@@ -4884,12 +5199,16 @@ namespace drv3d_metal
 
   void Render::deleteBuffer(Buffer* buff)
   {
+    purgeQueuedBindlessUpdates(buff);
+
     std::lock_guard<std::mutex> scopedLock(delete_lock);
     resources2delete.push_back({ .type = DeletedResource::Type::Buffer, .submit = submits_scheduled, .buffer = buff });
   }
 
   void Render::deleteTexture(Texture* tex)
   {
+    purgeQueuedBindlessUpdates(tex);
+
     if (tex->isStub())
       tex->apiTex = nullptr; // hack?
 
@@ -4971,6 +5290,7 @@ namespace drv3d_metal
     rstate.forcedSampleCount = state.forcedSampleCount;
 
     rstate.raster_state.a2c = state.alphaToCoverage;
+    rstate.raster_state.is_dual_blend = state.dualSourceBlendEnabled;
     rstate.raster_state.writeMask = state.colorWr;
     if (state.dualSourceBlendEnabled)
     {
@@ -5092,14 +5412,17 @@ namespace drv3d_metal
     RaytraceAccelerationStructure *as = new RaytraceAccelerationStructure { .createFlags = flags };
     G_ASSERT(size);
     as->acceleration_struct = [device newAccelerationStructureWithSize : size];
+    if (as->acceleration_struct == nil)
+      DAG_FATAL("Failed to allocate acceleration structure with size %u, available %llukb of %llukb", size,
+        device.currentAllocatedSize >> 10, device.recommendedMaxWorkingSetSize >> 10);
     TEXQL_ON_PERSISTENT_ALLOC_SZ(as->acceleration_struct.allocatedSize);
     if (blas)
     {
       blases.lock();
       as->index = blases.getFreeIndex(as);
-      while (as->index >= nativeBlases.count)
-        [nativeBlases addObject : defaultBlas];
-      [nativeBlases replaceObjectAtIndex : as->index withObject : as->acceleration_struct];
+      if (as->index >= nativeBlases.size())
+        nativeBlases.resize(as->index + 1, defaultBlas);
+      nativeBlases[as->index] = as->acceleration_struct;
 #if DAGOR_DBGLEVEL > 0
       as->acceleration_struct.label = [NSString stringWithFormat:@"blas_%d %llu", as->index, render.frame];
 #endif
@@ -5107,7 +5430,7 @@ namespace drv3d_metal
       G_ASSERT(as->index >= 0);
 
       std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
-      blases2create.emplace_back(as);
+      blases2create.emplace_back(as->acceleration_struct);
     }
     return as;
   }
@@ -5120,8 +5443,8 @@ namespace drv3d_metal
       if (is_blas)
       {
         blases.lock();
-        if (nativeBlases.count > as->index)
-          [nativeBlases replaceObjectAtIndex : as->index withObject : defaultBlas];
+        if (nativeBlases.size() > as->index)
+          nativeBlases[as->index] = defaultBlas;
         blases.freeIndex(as->index);
         blases.unlock();
         as->index = -1;
@@ -5144,7 +5467,7 @@ namespace drv3d_metal
 
       std::lock_guard<std::mutex> scopedLock(delete_lock);
       if (is_blas)
-        resources2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = as->acceleration_struct });
+        residency2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = as->acceleration_struct });
       resources2delete.push_back({ .type = DeletedResource::Type::NativeResource, .submit = submits_scheduled, .native_resource = as->acceleration_struct });
 
       TEXQL_ON_PERSISTENT_RELEASE_SZ(as->acceleration_struct.allocatedSize);
@@ -5165,7 +5488,7 @@ namespace drv3d_metal
     stage.setAccStruct(slot, tlas);
   }
 
-  void Render::copyAccelerationStruct(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src)
+  void Render::copyAccelerationStruct(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact)
   {
     checkRenderAcquired();
 
@@ -5173,10 +5496,11 @@ namespace drv3d_metal
     G_ASSERT(dst->acceleration_struct);
 
     ensureHaveEncoderExceptRenderFrontend(Render::EncoderType::Acceleration);
-    command_encoder.write(CommandType::CopyAccelerationStruct).write(src).write(dst).write(src->acceleration_struct).write(dst->acceleration_struct);
+    uint8_t compact_flag = compact ? 1 : 0;
+    command_encoder.write(CommandType::CopyAccelerationStruct).write(src).write(dst).write(src->acceleration_struct).write(dst->acceleration_struct).write(compact_flag);
   }
 
-  void Render::buildAccelerationStructure(RaytraceAccelerationStructure *as, MTLAccelerationStructureDescriptor *desc, Sbuffer *space_buffer, uint32_t space_buffer_offset, bool refit)
+  void Render::buildAccelerationStructure(RaytraceAccelerationStructure *as, MTLAccelerationStructureDescriptor *desc, ASBuildInfo &info)
   {
     checkRenderAcquired();
 
@@ -5188,44 +5512,64 @@ namespace drv3d_metal
     id<MTLAccelerationStructure> accStruct = as->acceleration_struct;
     G_ASSERT(accStruct.size >= sizes.accelerationStructureSize);
 
-    Buffer *sbuffer = (Buffer *)space_buffer;
+    Buffer *sbuffer = (Buffer *)info.scratch;
     if (sbuffer)
     {
       G_ASSERT(sbuffer && !sbuffer->is_fast_discard());
       track_resource_read(*sbuffer);
     }
 
+    if (info.compactSizeBuffer)
+    {
+      if (@available(macOS 13.0, iOS 16.0, *))
+      {
+        G_ASSERT(!info.compactSizeBuffer->is_fast_discard());
+        track_resource_write(*info.compactSizeBuffer);
+      }
+      else
+      {
+        D3D_ERROR("AS compaction called on unsupported os version");
+      }
+    }
+
     id<MTLBuffer> spaceBuf = sbuffer ? sbuffer->getBuffer() : nil;
 
-    if (refit && as->was_built)
+    if (info.update && as->was_built)
     {
       G_ASSERT(as->was_built);
 
       G_ASSERT(desc.usage & MTLAccelerationStructureUsageRefit);
 
-      G_ASSERT(sizes.refitScratchBufferSize == 0 || sizes.refitScratchBufferSize + space_buffer_offset <= spaceBuf.length);
+      G_ASSERT(sizes.refitScratchBufferSize == 0 || sizes.refitScratchBufferSize + info.offset <= spaceBuf.length);
 
       [accelerationEncoder refitAccelerationStructure: accStruct
                                            descriptor: desc
                                           destination: accStruct
                                         scratchBuffer: spaceBuf
-                                  scratchBufferOffset: space_buffer_offset];
+                                  scratchBufferOffset: info.offset];
     }
     else
     {
-      G_ASSERT(sizes.buildScratchBufferSize + space_buffer_offset <= spaceBuf.length);
+      G_ASSERT(sizes.buildScratchBufferSize + info.offset <= spaceBuf.length);
 
       [accelerationEncoder buildAccelerationStructure: accStruct
                                            descriptor: desc
                                         scratchBuffer: spaceBuf
-                                  scratchBufferOffset: space_buffer_offset];
+                                  scratchBufferOffset: info.offset];
       as->was_built = true;
     }
-
-    // Here struct compression can be done to reduce the size
-    // but it is really performance heavy (requires a flush ([commandBuffer waitUntilCompleted]))
-    // and doing it every frame is too much
     [desc release];
+
+    if (@available(macOS 13.0, iOS 16.0, *))
+    {
+      if (info.compactSizeBuffer)
+      {
+        [accelerationEncoder writeCompactedAccelerationStructureSize : as->acceleration_struct
+                                                            toBuffer : info.compactSizeBuffer->getBuffer()
+                                                              offset : info.compactSizeOffset
+                                                        sizeDataType : MTLDataTypeULong];
+      }
+    }
   }
 
   void Render::buildTLAS(RaytraceTopAccelerationStructure *as, const ::raytrace::TopAccelerationStructureBuildInfo &tasbi)
@@ -5248,7 +5592,7 @@ namespace drv3d_metal
     @autoreleasepool
     {
       accDesc.instanceDescriptorBuffer = instanceBuf;
-      accDesc.instancedAccelerationStructures = [[NSArray alloc] initWithArray : nativeBlases];
+      accDesc.instancedAccelerationStructures = [NSArray arrayWithObjects : nativeBlases.data() count : nativeBlases.size()];
     }
     blases.unlock();
 
@@ -5280,12 +5624,21 @@ namespace drv3d_metal
 
     G_ASSERT(basbi.doUpdate || basbi.scratchSpaceBufferSizeInBytes);
     G_ASSERT(basbi.scratchSpaceBufferSizeInBytes == 0 || basbi.scratchSpaceBuffer);
-    ASBuildInfo info {.scratch = (Buffer *)basbi.scratchSpaceBuffer, .offset = basbi.scratchSpaceBufferOffsetInBytes, .size = basbi.scratchSpaceBufferSizeInBytes, .update = basbi.doUpdate ? 1u : 0u};
+    ASBuildInfo info {
+      .scratch = (Buffer *)basbi.scratchSpaceBuffer,
+      .offset = basbi.scratchSpaceBufferOffsetInBytes,
+      .size = basbi.scratchSpaceBufferSizeInBytes,
+      .update = basbi.doUpdate ? 1u : 0u,
+      .compactSizeBuffer = basbi.compactedSizeOutputBuffer ? (Buffer *)basbi.compactedSizeOutputBuffer : nullptr,
+      .compactSizeOffset = basbi.compactedSizeOutputBufferOffsetInBytes,
+    };
 
     for (const auto &buf : resources)
       addResource(buf->getBuffer());
     if (info.scratch)
       addResource(info.scratch->getBuffer());
+    if (info.compactSizeBuffer)
+      addResource(info.compactSizeBuffer->getBuffer());
 
     commitResidencySet();
 
@@ -5297,6 +5650,8 @@ namespace drv3d_metal
   {
     if (!d3d::get_driver_desc().caps.hasBindless || requestedTypes == 0)
       return;
+
+    applyQueuedBindlessUpdates();
 
     if ((requestedTypes & bindless_resources_bound) == requestedTypes)
       return;

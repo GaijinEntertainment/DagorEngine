@@ -1,7 +1,7 @@
 module node_collapser_common shared
 require ecs
 require AnimV20
-require DagorSystem
+require GeomNodeTree
 require math.base
 require ecs.soa_template
 
@@ -47,3 +47,37 @@ def collapser(position : float3;
         *scene |> scene_instance_markNodeCollapserNode(child)
 
     from += node.animchar_node_collapser__childrenCount
+
+
+def node_collapser_fill_bits(var bits : NodeCollapserBits&;
+                             nodes : Object const?;
+                             animchar : AnimcharBaseComponent;
+                             animchar_render : AnimcharRendComponent)
+  bits |> node_collapser_bits_clear()
+  if nodes == null
+    return
+
+  let scene = animchar_render.sceneInstance
+  let geomtree = animchar.nodeTree
+
+  for iter in *nodes
+    let rootBoneIdx = *geomtree |> geomtree_findNodeIndex(iter.key)
+    if rootBoneIdx <= 0
+      continue
+    var bones : array<int>
+    bones |> push(rootBoneIdx)
+    var i = 0
+    while i < length(bones)
+      let boneName = *geomtree |> geomtree_getNodeName(bones[i])
+      if i > 0 && has(*nodes, boneName)
+        i += 1
+        continue
+      let nodeId = *scene |> scene_instance_getNodeId(boneName)
+      if nodeId >= 0
+        let sceneBoneId = *scene |> scene_instance_getBoneForNode(nodeId)
+        if sceneBoneId >= 0
+          bits |> node_collapser_bits_markBone(uint(sceneBoneId))
+      let childCount = *geomtree |> geomtree_getChildCount(bones[i])
+      for j in range(childCount)
+        bones |> push(*geomtree |> geomtree_getChildNodeIdx(bones[i], uint(j)))
+      i += 1

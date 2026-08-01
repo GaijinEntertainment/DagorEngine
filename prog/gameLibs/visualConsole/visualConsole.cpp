@@ -10,6 +10,7 @@
 #include <memory/dag_framemem.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <math/dag_bounds2.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <drv/3d/dag_driver.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
@@ -50,6 +51,68 @@ VisualConsoleDriver::VisualConsoleDriver() :
 void VisualConsoleDriver::getCommandList(console::CommandList &out_list) { DefaultDagorVisualConsoleDriver::getCommandList(out_list); }
 
 void VisualConsoleDriver::set_cur_height(float ht) { screenLines = (StdGuiRender::screen_height() * ht / lineHeight); }
+
+static bool find_tip_fragment(const char *text, const char *fragment, const char *&out_start, const char *&out_end)
+{
+  if (const char *match = dd_stristr(text, fragment))
+  {
+    out_start = match;
+    out_end = match + strlen(fragment);
+    return true;
+  }
+
+  // Keep highlighting consistent with command filtering.
+  for (const char *start = text; *start; ++start)
+  {
+    const char *text_it = start;
+    const char *fragment_it = fragment;
+    while (*fragment_it)
+    {
+      if (*fragment_it == '_')
+      {
+        ++fragment_it;
+        continue;
+      }
+      if (*text_it == '_')
+      {
+        ++text_it;
+        continue;
+      }
+      if (!*text_it || dd_charlwr(*text_it) != dd_charlwr(*fragment_it))
+        break;
+      ++text_it;
+      ++fragment_it;
+    }
+    while (*fragment_it == '_')
+      ++fragment_it;
+    if (!*fragment_it)
+    {
+      out_start = start;
+      out_end = text_it;
+      return true;
+    }
+  }
+  return false;
+}
+
+static void draw_tip_text(const char *text, const char *fragment)
+{
+  const char *match_start;
+  const char *match_end;
+  if (!find_tip_fragment(text, fragment, match_start, match_end))
+  {
+    StdGuiRender::set_color(E3DCOLOR(255, 255, 255));
+    StdGuiRender::draw_str(text);
+    return;
+  }
+
+  StdGuiRender::set_color(E3DCOLOR(255, 255, 255));
+  StdGuiRender::draw_str(text, match_start - text);
+  StdGuiRender::set_color(E3DCOLOR(255, 255, 0));
+  StdGuiRender::draw_str(match_start, match_end - match_start);
+  StdGuiRender::set_color(E3DCOLOR(255, 255, 255));
+  StdGuiRender::draw_str(match_end);
+}
 
 void VisualConsoleDriver::renderPinnedItems()
 {
@@ -115,8 +178,13 @@ bool VisualConsoleDriver::renderTips()
       for (int offset = 1; offset != -1; offset--)
       {
         StdGuiRender::goto_xy(offset, int((displayedLines + 1 + i - tipsScrollPos - 0.3f) * lineHeight) + offset);
-        StdGuiRender::set_color(offset == 1 ? E3DCOLOR(0, 0, 0) : E3DCOLOR(255, 255, 255));
-        StdGuiRender::draw_str(cmdText.str());
+        if (offset == 1)
+        {
+          StdGuiRender::set_color(E3DCOLOR(0, 0, 0));
+          StdGuiRender::draw_str(cmdText.str());
+        }
+        else
+          draw_tip_text(cmdText.str(), editText.str());
       }
     }
   return true;

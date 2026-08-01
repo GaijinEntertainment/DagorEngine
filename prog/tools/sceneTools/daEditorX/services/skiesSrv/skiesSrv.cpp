@@ -349,7 +349,7 @@ public:
 
     {
       d3d::GpuAutoLock gpuLock;
-      daSkies->prepare(daSkies->getSunDir(), false, time - lastBrTime);
+      daSkies->prepare(daSkies->getSunDir(), time - lastBrTime);
     }
 
     lastBrTime = time;

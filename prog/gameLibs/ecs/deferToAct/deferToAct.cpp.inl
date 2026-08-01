@@ -5,6 +5,7 @@
 #include <daECS/core/entitySystem.h>
 #include <dasModules/dasScriptsLoader.h>
 #include <dasModules/dasSharedStack.h>
+#include <osApiWrappers/dag_spinlock.h>
 
 namespace
 {
@@ -19,23 +20,21 @@ struct DeferToActCall
 };
 } // namespace
 
-static dag::Vector<DeferToActCall> deferred_calls;
-static das::mutex deferToActMutex;
+static OSSpinlock deferToActMutex;
+static dag::Vector<DeferToActCall> deferred_calls DAG_TS_GUARDED_BY(deferToActMutex);
 
 void defer_to_act(das::Context *context, const eastl::string &func_name)
 {
   das::SimFunction *fn = context->findFunction(func_name.c_str());
   G_ASSERT_RETURN(fn, );
 
-  // Called from one of several script-reload threads, need a mutex
-  das::lock_guard<das::mutex> lock(deferToActMutex);
+  OSSpinlockScopedLock lock{deferToActMutex};
   deferred_calls.emplace_back(context, fn);
 }
 
 void clear_deferred_to_act(das::Context *context)
 {
-  // Called from one of several script-reload threads, need a mutex
-  das::lock_guard<das::mutex> lock(deferToActMutex);
+  OSSpinlockScopedLock lock{deferToActMutex};
 
   DeferToActCall *newEnd = eastl::remove_if(deferred_calls.begin(), deferred_calls.end(),
     [context](const DeferToActCall &f) { return f.context == context; });
@@ -45,11 +44,9 @@ void clear_deferred_to_act(das::Context *context)
 ECS_NO_ORDER
 static inline void defer_to_act_es(const ecs::UpdateStageInfoAct &)
 {
-  // Called from main thread, when reload is stopped,
-  // so it has no conflict with clear_deferred_to_act
   dag::Vector<DeferToActCall> grabbedCalls;
   {
-    das::lock_guard<das::mutex> lock(deferToActMutex);
+    OSSpinlockScopedLock lock{deferToActMutex};
     eastl::swap(grabbedCalls, deferred_calls);
   }
 
@@ -72,6 +69,4 @@ static inline void defer_to_act_es(const ecs::UpdateStageInfoAct &)
 
     context->unlock();
   }
-
-  deferred_calls.clear();
 }

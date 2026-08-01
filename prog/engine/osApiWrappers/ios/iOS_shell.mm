@@ -3,6 +3,7 @@
 #import <UIKit/UIApplication.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSURL.h>
+#import <Foundation/NSThread.h>
 #include <wchar.h>
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_shellExecute.h>
@@ -10,18 +11,25 @@
 void os_shell_execute(const char *op, const char *file, const char *params, const char *dir, bool force_sync, OpenConsoleMode)
 {
 #if _TARGET_IOS
-  NSURL *url = [NSURL URLWithString:[NSString stringWithUTF8String:file]];
-  if ([[UIApplication sharedApplication] canOpenURL:url])
+  NSURL *url = file ? [NSURL URLWithString:[NSString stringWithUTF8String:file]] : nil;
+  if (!url)
   {
+    debug("Can't open URL");
+    return;
+  }
+
+  // UIApplication URL calls are main-thread only; os_shell_execute may be called from a script/game thread.
+  void (^openBlock)(void) = ^{
     [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:^(BOOL success)
     {
       if (!success) debug("URL is not opened");
     }];
-  }
+  };
+
+  if ([NSThread isMainThread])
+    openBlock();
   else
-  {
-    debug("Can't open URL");
-  }
+    dispatch_async(dispatch_get_main_queue(), openBlock);
 #else
   logerr("unsupported: shell_execute(%s, %s, %s, %s)", op, file, params, dir);
 #endif

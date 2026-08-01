@@ -39,6 +39,7 @@
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
+#include <gameRes/stripDescRenderInfo.h>
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_basePath.h>
@@ -286,8 +287,11 @@ void setup_base_resources(const GamePackage &game_info, dag::ConstSpan<VromLoadI
         appendRawAddon(ugmAddon);
       }
     }
-    gameres_final_optimize_desc(gameres_rendinst_desc, "riDesc");
-    gameres_final_optimize_desc(gameres_dynmodel_desc, "dynModelDesc");
+    // on dedicated server model resources are stubs, mat/tex descriptions are never read
+    const dag::ConstSpan<const char *> stripBlocks =
+      dedicated::is_dedicated() ? gameres_render_only_desc_block_names() : dag::ConstSpan<const char *>();
+    gameres_final_optimize_desc(gameres_rendinst_desc, "riDesc", stripBlocks);
+    gameres_final_optimize_desc(gameres_dynmodel_desc, "dynModelDesc", stripBlocks);
   }
   watchdog_kick();
 }
@@ -542,7 +546,8 @@ GamePackage load_game_package()
             for (uint32_t chunkId : chunksList)
             {
 #if _TARGET_XBOX
-              allChunksAvailable &= gdk::is_game_chunk_available(chunkId);
+              allChunksAvailable &=
+                gdk::get_package_chunk_availability(gdk::get_package_id(), chunkId) == gdk::PackageChunkAvailability::Ready;
 #elif _TARGET_C1 | _TARGET_C2
 
 
@@ -1033,14 +1038,14 @@ struct ReloadDasModulesJob final : public cpujobs::IJob
   const char *getJobName(bool &) const override { return "ReloadDasModulesJob"; }
   void doJob() override
   {
-    *das::daScriptEnvironment::bound = bound;
+    das::daScriptEnvironment::setBound(bound);
     int rt = gamescripts::get_game_das_reload_threads();
     if (rt)
       gamescripts::set_load_threads_num(eastl::exchange(rt, gamescripts::get_load_threads_num()));
     gamescripts::reload_das_modules();
     if (rt)
       gamescripts::set_load_threads_num(rt); // restore
-    *das::daScriptEnvironment::bound = nullptr;
+    das::daScriptEnvironment::setBound(nullptr);
   }
 
   void releaseJob() override
@@ -1262,7 +1267,7 @@ static void switch_scene_and_apply_update(eastl::string_view scene)
     {
       debug("Start a job to reload das modules.");
 
-      G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), new ReloadDasModulesJob(*das::daScriptEnvironment::bound)));
+      G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), new ReloadDasModulesJob(das::daScriptEnvironment::getBound())));
     }
     else
     {

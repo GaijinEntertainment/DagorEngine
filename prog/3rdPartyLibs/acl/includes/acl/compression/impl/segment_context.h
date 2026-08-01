@@ -120,7 +120,7 @@ namespace acl
 		{
 			deallocate_type_array(allocator, segment.bone_streams, segment.num_bones);
 			deallocate_type_array(allocator, segment.ranges, segment.num_bones);
-			deallocate_type_array(allocator, segment.contributing_error, segment.num_samples_allocated);
+			deallocate_type_array(allocator, segment.contributing_error, 32);		// Always no more than 32 frames per segment
 		}
 	}
 

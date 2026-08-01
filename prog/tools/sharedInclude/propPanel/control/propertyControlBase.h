@@ -65,6 +65,7 @@ public:
     G_UNUSED(step);
   }
 
+  virtual void setGradientMinMaxPointCount([[maybe_unused]] int min, [[maybe_unused]] int max) {}
   virtual void setPrecValue(int prec) { G_UNUSED(prec); }
   virtual void setStringsValue(const Tab<String> &vals) { G_UNUSED(vals); }
   virtual void setSelectionValue(const Tab<int> &sels) { G_UNUSED(sels); }

@@ -4,11 +4,11 @@ from "dagor.fs" import read_text_from_file
 
 let defLogger = @(...) print(" ".join(vargv))
 let callableTypes = {"function":1,"table":1,"instance":1}
-function isCallable(v) {
+function isCallable(v): bool {
   return type(v) in callableTypes && (v.getfuncinfos() != null)
 }
 
-function defSaveJsonFile(file_path, data){
+function defSaveJsonFile(file_path, data): bool {
   assert(type(data) == "string", "data should be string")
   let file = io.file(file_path, "wt+")
   file.writestring(data)
@@ -17,7 +17,7 @@ function defSaveJsonFile(file_path, data){
 }
 
 let defParamsSave = {pretty_print=true, logger=defLogger, save_text_file = defSaveJsonFile}
-function save(file_path, data, params = defParamsSave) {
+function save(file_path, data, params = defParamsSave): bool|null {
   let pretty_print = params?.pretty_print ?? defParamsSave.pretty_print
   let save_text_file = params?.save_text_file ?? defParamsSave.save_text_file
   let logger = params?.logger ?? defParamsSave.logger

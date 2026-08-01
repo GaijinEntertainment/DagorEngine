@@ -223,63 +223,14 @@ getbits(const char *src, int *bitsp)
 }
 
 static int
-getv4(const char *src, unsigned char *dst, int *bitsp)
-{
-  static const char digits[] = "0123456789";
-  unsigned char *odst = dst;
-  int n;
-  unsigned int val;
-  char ch;
-
-  val = 0;
-  n = 0;
-  while ((ch = *src++) != '\0') {
-    const char *pch;
-
-    pch = strchr(digits, ch);
-    if (pch != NULL) {
-      if (n++ != 0 && val == 0)       /* no leading zeros */
-        return (0);
-      val *= 10;
-      val += aresx_sztoui(pch - digits);
-      if (val > 255)                  /* range */
-        return (0);
-      continue;
-    }
-    if (ch == '.' || ch == '/') {
-      if (dst - odst > 3)             /* too many octets? */
-        return (0);
-      *dst++ = (unsigned char)val;
-      if (ch == '/')
-        return (getbits(src, bitsp));
-      val = 0;
-      n = 0;
-      continue;
-    }
-    return (0);
-  }
-  if (n == 0)
-    return (0);
-  if (dst - odst > 3)             /* too many octets? */
-    return (0);
-  *dst = (unsigned char)val;
-  return 1;
-}
-
-static int
-inet_net_pton_ipv6(const char *src, unsigned char *dst, size_t size)
+ares_inet_pton6(const char *src, unsigned char *dst)
 {
   static const char xdigits_l[] = "0123456789abcdef",
     xdigits_u[] = "0123456789ABCDEF";
   unsigned char tmp[NS_IN6ADDRSZ], *tp, *endp, *colonp;
   const char *xdigits, *curtok;
-  int ch, saw_xdigit;
+  int ch, saw_xdigit, count_xdigit;
   unsigned int val;
-  int digits;
-  int bits;
-  size_t bytes;
-  int words;
-  int ipv4;
 
   memset((tp = tmp), '\0', NS_IN6ADDRSZ);
   endp = tp + NS_IN6ADDRSZ;
@@ -289,22 +240,22 @@ inet_net_pton_ipv6(const char *src, unsigned char *dst, size_t size)
     if (*++src != ':')
       goto enoent;
   curtok = src;
-  saw_xdigit = 0;
+  saw_xdigit = count_xdigit = 0;
   val = 0;
-  digits = 0;
-  bits = -1;
-  ipv4 = 0;
   while ((ch = *src++) != '\0') {
     const char *pch;
 
     if ((pch = strchr((xdigits = xdigits_l), ch)) == NULL)
       pch = strchr((xdigits = xdigits_u), ch);
     if (pch != NULL) {
+      if (count_xdigit >= 4)
+        goto enoent;
       val <<= 4;
       val |= aresx_sztoui(pch - xdigits);
-      if (++digits > 4)
+      if (val > 0xffff)
         goto enoent;
       saw_xdigit = 1;
+      count_xdigit++;
       continue;
     }
     if (ch == ':') {
@@ -317,23 +268,21 @@ inet_net_pton_ipv6(const char *src, unsigned char *dst, size_t size)
       } else if (*src == '\0')
         goto enoent;
       if (tp + NS_INT16SZ > endp)
-        return (0);
+        goto enoent;
       *tp++ = (unsigned char)((val >> 8) & 0xff);
       *tp++ = (unsigned char)(val & 0xff);
       saw_xdigit = 0;
-      digits = 0;
+      count_xdigit = 0;
       val = 0;
       continue;
     }
     if (ch == '.' && ((tp + NS_INADDRSZ) <= endp) &&
-        getv4(curtok, tp, &bits) > 0) {
+        inet_net_pton_ipv4(curtok, tp, NS_INADDRSZ) > 0) {
       tp += NS_INADDRSZ;
       saw_xdigit = 0;
-      ipv4 = 1;
-      break;  /* '\0' was seen by inet_pton4(). */
+      count_xdigit = 0;
+      break;  /* '\0' was seen by inet_net_pton_ipv4(). */
     }
-    if (ch == '/' && getbits(src, &bits) > 0)
-      break;
     goto enoent;
   }
   if (saw_xdigit) {
@@ -342,16 +291,6 @@ inet_net_pton_ipv6(const char *src, unsigned char *dst, size_t size)
     *tp++ = (unsigned char)((val >> 8) & 0xff);
     *tp++ = (unsigned char)(val & 0xff);
   }
-  if (bits == -1)
-    bits = 128;
-
-  words = (bits + 15) / 16;
-  if (words < 2)
-    words = 2;
-  if (ipv4)
-    words = 8;
-  endp =  tmp + 2 * words;
-
   if (colonp != NULL) {
     /*
      * Since some memmove()'s erroneously fail to handle
@@ -371,19 +310,58 @@ inet_net_pton_ipv6(const char *src, unsigned char *dst, size_t size)
   if (tp != endp)
     goto enoent;
 
-  bytes = (bits + 7) / 8;
-  if (bytes > size)
-    goto emsgsize;
-  memcpy(dst, tmp, bytes);
-  return (bits);
+  memcpy(dst, tmp, NS_IN6ADDRSZ);
+  return (1);
 
   enoent:
   SET_ERRNO(ENOENT);
   return (-1);
+}
 
-  emsgsize:
-  SET_ERRNO(EMSGSIZE);
-  return (-1);
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 46
+#endif
+
+static int
+inet_net_pton_ipv6(const char *src, unsigned char *dst, size_t size)
+{
+  struct ares_in6_addr in6;
+  int                  ret;
+  int                  bits;
+  size_t               bytes;
+  char                 buf[INET6_ADDRSTRLEN + sizeof("/128")];
+  char                *sep;
+
+  if (strlen(src) >= sizeof buf) {
+    SET_ERRNO(EMSGSIZE);
+    return (-1);
+  }
+  strncpy(buf, src, sizeof buf);
+
+  sep = strchr(buf, '/');
+  if (sep != NULL)
+    *sep++ = '\0';
+
+  ret = ares_inet_pton6(buf, (unsigned char *)&in6);
+  if (ret != 1)
+    return (-1);
+
+  if (sep == NULL)
+    bits = 128;
+  else {
+    if (!getbits(sep, &bits)) {
+      SET_ERRNO(ENOENT);
+      return (-1);
+    }
+  }
+
+  bytes = (bits + 7) / 8;
+  if (bytes > size) {
+    SET_ERRNO(EMSGSIZE);
+    return (-1);
+  }
+  memcpy(dst, &in6, bytes);
+  return (bits);
 }
 
 /*

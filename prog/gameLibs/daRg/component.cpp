@@ -8,6 +8,9 @@
 
 #include "scriptUtil.h"
 #include "dargDebugUtils.h"
+#include "guiScene.h"
+#include "profiler.h"
+#include "behaviors/bhvBoundProps.h"
 
 
 namespace darg
@@ -87,6 +90,11 @@ void Component::read_behaviors(const Sqrat::Table &desc, const StringKeys *csk, 
   {
     darg_assert_trace_var(String(0, "Unexpected 'behavior' field type %s (%X)", sq_objtypestr(bhvType), bhvType), desc, csk->behavior);
   }
+
+  // bindProps implies BoundProps, no explicit behavior entry needed
+  const bool hasBindProps = !desc.RawGetSlot(csk->bindProps).IsNull();
+  if (hasBindProps && eastl::find(behaviors.begin(), behaviors.end(), &bhv_bound_props) == behaviors.end())
+    behaviors.push_back(&bhv_bound_props);
 }
 
 
@@ -192,7 +200,7 @@ void Component::check_if_desc_may_be_component(const Sqrat::Table &desc, const S
     return;
 
   const Sqrat::Object *expected_keys[] = {&csk->children, &csk->behavior, &csk->flow, &csk->rendObj, &csk->size, &csk->transform,
-    &csk->watch, &csk->hotkeys, &csk->eventHandlers};
+    &csk->watch, &csk->hotkeys, &csk->eventHandlers, &csk->bindProps};
 
   bool mayBe = false;
   for (const Sqrat::Object *key : expected_keys)
@@ -243,8 +251,14 @@ bool Component::resolve_description(const Sqrat::Object &desc, Sqrat::Table &des
       builder = desc;
       Sqrat::Function func(vm, Sqrat::Object(vm), desc.GetObject());
       Sqrat::optional<Sqrat::Object> tbl;
+      GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
+      G_ASSERT(guiScene);
+
       {
+        BuilderEvalGuard builderGuard(vm);
         TIME_PROFILE_DEV(comp_gen_sq_call);
+        // cumulative metric: the outermost scope already counts nested evals (e.g. calc_comp_size)
+        AutoProfileScope profile(!builderGuard.prev ? guiScene->getProfiler() : nullptr, M_COMPONENT_SCRIPT);
         tbl = func.Eval<Sqrat::Object>();
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
         String cfn(framemem_ptr());

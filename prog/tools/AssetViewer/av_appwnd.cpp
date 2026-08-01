@@ -74,6 +74,7 @@
 #include <EditorCore/ec_shaders.h>
 #include <EditorCore/ec_workspace.h>
 #include <EditorCore/ec_keyboardShortcutsPanel.h>
+#include <EditorCore/ec_testSystem.h>
 
 #include <daECS/core/entityManager.h>
 #include <daECS/core/event.h>
@@ -100,6 +101,7 @@
 #include <propPanel/constants.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
+#include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_workCycle.h>
 #include <perfMon/dag_daProfilerSettings.h>
@@ -113,6 +115,7 @@
 #include <libTools/shaderResBuilder/matSubst.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_fastPtrList.h>
+#include <util/dag_threadPool.h>
 #include <render/dynmodelRenderer.h>
 
 #include <impostorUtil/impostorBaker.h>
@@ -121,6 +124,7 @@
 
 #include <pointCloudGen.h>
 
+#include "canopyEditor.h"
 #include "Entity/colorDlgAppMat.h"
 #include "Entity/compositeEditorPanel.h"
 #include "Entity/compositeEditorTree.h"
@@ -230,6 +234,7 @@ enum
   TOOLBAR_THEME_SWITCHER_TYPE,
   COMPOSITE_EDITOR_TREEVIEW_TYPE,
   COMPOSITE_EDITOR_PPANEL_TYPE,
+  CANOPY_EDITOR_TYPE,
   SHORTCUTS_EDITOR_TYPE,
 };
 
@@ -473,6 +478,7 @@ void AssetViewerApp::init(const char *select_workspace)
   dagor_init_keyboard_win();
   dagor_init_mouse_win();
   editor_core_initialize_input_handler();
+  editor_core_initialize_test_runtime();
   startup_game(RESTART_ALL);
 
   editor_core_initialize_imgui();
@@ -498,6 +504,33 @@ void AssetViewerApp::init(const char *select_workspace)
   // before registerEditorCommands() so we have to update the menu and toolbar button shortcuts too. So we simply call
   // onEditorCommandKeyChordChanged() to do all these.
   onEditorCommandKeyChordChanged();
+
+  { // Wait till the window layout is ready.
+    // Temporarily lift the FPS limit to prevent dagor_work_cycle() from returning because of not enough elapsed time.
+    const bool oldLimitFps = dgs_limit_fps;
+    dgs_limit_fps = false;
+
+    // The first AssetViewerApp::renderUI() call loads the last used layout or sets the default one, then ImGui needs two
+    // frames to handle auto sizing. The fourth call ensures that the camera is set up with the final viewport resolution
+    // in ViewportWindow::act() (to make zoomAndCenter() work correctly when called by selectAsset()).
+    for (int i = 0; i < 4; i++)
+      dagor_work_cycle();
+
+    dgs_limit_fps = oldLimitFps;
+  }
+
+  if (!assetToInitiallySelect.empty())
+  {
+    if (const DagorAsset *asset = DAEDITOR3.getAssetByName(assetToInitiallySelect))
+      selectAsset(*asset);
+    assetToInitiallySelect.clear();
+
+    if (mPropPanel)
+      mPropPanel->loadState(propPanelStateOfTheAssetToInitiallySelect, true);
+    propPanelStateOfTheAssetToInitiallySelect.reset();
+  }
+
+  logdbg("Asset Viewer has loaded and ready for interaction");
 }
 
 void AssetViewerApp::onEditorCommandKeyChordChanged()
@@ -541,6 +574,7 @@ void AssetViewerApp::registerEditorCommands()
   editor_command_system.addCommand(EditorCommandIds::TOGGLE_TAG_MANAGER);
   editor_command_system.addCommand(EditorCommandIds::TOGGLE_PROPERTY_PANEL, ImGuiKey_P);
   editor_command_system.addCommand(EditorCommandIds::COMPOSITE_EDITOR, ImGuiKey_C);
+  editor_command_system.addCommand(EditorCommandIds::CANOPY_EDITOR);
 
   editor_command_system.addCommand(EditorCommandIds::NEXT_ASSET, ImGuiMod_Ctrl | ImGuiKey_Enter);
   editor_command_system.addCommand(EditorCommandIds::PREV_ASSET, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Enter);
@@ -587,6 +621,7 @@ void AssetViewerApp::registerEditorCommands()
 
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER, ImGuiMod_Ctrl | ImGuiKey_F12);
+  editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEST_RUNTIME, ImGuiMod_Alt | ImGuiKey_T);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_TOAST_MANAGER);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_NODE_DEPS);
@@ -630,6 +665,7 @@ void AssetViewerApp::addAccelerators()
     mManager->addAccelerator(CM_WINDOW_TAGMANAGER, EditorCommandIds::TOGGLE_TAG_MANAGER);
     mManager->addAccelerator(CM_WINDOW_PPANEL_ACCELERATOR, EditorCommandIds::TOGGLE_PROPERTY_PANEL);
     mManager->addAccelerator(CM_WINDOW_COMPOSITE_EDITOR_ACCELERATOR, EditorCommandIds::COMPOSITE_EDITOR);
+    mManager->addAccelerator(CM_WINDOW_CANOPY_EDITOR, EditorCommandIds::CANOPY_EDITOR);
 
     mManager->addAccelerator(CM_CREATE_SCREENSHOT, EditorCommandIds::CREATE_SCREENSHOT);
     mManager->addAccelerator(CM_CREATE_CUBE_SCREENSHOT, EditorCommandIds::CREATE_CUBE_SCREENSHOT);
@@ -683,6 +719,7 @@ void AssetViewerApp::addAccelerators()
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES,
       EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER, EditorCommandIds::VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER);
+    mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_TEST_RUNTIME, EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEST_RUNTIME);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER, EditorCommandIds::VIEW_DEVELOPER_TOOLS_TOAST_MANAGER);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG, EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_NODE_DEPS, EditorCommandIds::VIEW_DEVELOPER_TOOLS_NODE_DEPS);
@@ -715,6 +752,7 @@ ModelessWindowControllerList AssetViewerApp::getModelessWindowControllers()
   for (int i = 0; i < ged.getViewportCount(); ++i)
     ged.getViewport(i)->getModelessWindowControllers(controllers);
 
+  controllers.addWindowController(*get_canopy_editor_window_controller());
   controllers.addWindowController(*get_camera_object_config_modeless_dialog_handler());
   controllers.addWindowController(*environment::get_environment_settings_dialog_controller());
   controllers.addWindowController(*get_preferences_dialog_controller());
@@ -846,7 +884,7 @@ void AssetViewerApp::fillTree()
   mTreeView->getAllAssetsTab().fillTree(assetMgr, &assetDataBlk);
   ::dagor_idle_cycle();
   if (av_perform_uptodate_check)
-    ::check_assets_base_up_to_date({}, true, true);
+    ::quick_check_assets_base_up_to_date({}, true, true);
   AssetExportCache::saveSharedData();
   ::dagor_idle_cycle();
 }
@@ -969,6 +1007,19 @@ void *AssetViewerApp::onWmCreateWindow(int type)
     }
     break;
 
+    case CANOPY_EDITOR_TYPE:
+    {
+      if (canopyEditorWindow)
+        return nullptr;
+
+      canopyEditorWindow = eastl::make_unique<CanopyEditorWindow>();
+      load_canopy_editor_window_state(*canopyEditorWindow);
+      canopyEditorWindow->onAssetSelectionChanged(curAsset);
+      getMainMenu()->setCheckById(CM_WINDOW_CANOPY_EDITOR, true);
+      return canopyEditorWindow.get();
+    }
+    break;
+
     case SHORTCUTS_EDITOR_TYPE:
     {
       if (mShortcutsPanel)
@@ -1049,6 +1100,14 @@ bool AssetViewerApp::onWmDestroyWindow(void *window)
   {
     del_it(mShortcutsPanel);
     getMainMenu()->setCheckById(CM_OPTIONS_KEYBOARD_SHORTCUTS, false);
+    return true;
+  }
+
+  if (canopyEditorWindow && canopyEditorWindow.get() == window)
+  {
+    save_current_canopy_editor_window_state();
+    canopyEditorWindow.reset();
+    getMainMenu()->setCheckById(CM_WINDOW_CANOPY_EDITOR, false);
     return true;
   }
 
@@ -1163,6 +1222,22 @@ void AssetViewerApp::showCompositeEditor(bool show)
   }
 
   compositeEditor.onCompositeEditorVisibilityChanged(show);
+}
+
+void AssetViewerApp::showCanopyEditor(bool show)
+{
+  if ((canopyEditorWindow != nullptr) == show)
+    return;
+
+  if (show)
+    mManager->setWindowType(nullptr, CANOPY_EDITOR_TYPE);
+  else
+  {
+    if (canopyEditorWindow && !canopyEditorWindow->canClose())
+      return;
+
+    mManager->removeWindow(canopyEditorWindow.get());
+  }
 }
 
 void AssetViewerApp::showTagManager(bool show)
@@ -1350,6 +1425,7 @@ void AssetViewerApp::fillMenu(PropPanel::IMenu *menu)
   menu->addItem(CM_WINDOW, CM_WINDOW_VIEWPORT, "Viewport");
   editor_command_system.addMenuItem(*menu, CM_WINDOW, CM_WINDOW_COMPOSITE_EDITOR, EditorCommandIds::COMPOSITE_EDITOR,
     "Composit Editor");
+  editor_command_system.addMenuItem(*menu, CM_WINDOW, CM_WINDOW_CANOPY_EDITOR, EditorCommandIds::CANOPY_EDITOR, "Canopy Editor");
   editor_command_system.addMenuItem(*menu, CM_WINDOW, CM_WINDOW_DABUILD, EditorCommandIds::TOGGLE_DABUILD, "daBuild");
   editor_command_system.addMenuItem(*menu, CM_WINDOW, CM_DISCARD_ASSET_TEX, EditorCommandIds::DISCARD_ASSET_TEX,
     "Discard textures (show stub tex)");
@@ -1359,6 +1435,8 @@ void AssetViewerApp::fillMenu(PropPanel::IMenu *menu)
     EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES, "Console commands and variables");
   editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER,
     EditorCommandIds::VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER, "ImGui debugger");
+  editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_TEST_RUNTIME,
+    EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEST_RUNTIME, "Test runtime");
   editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER,
     EditorCommandIds::VIEW_DEVELOPER_TOOLS_TOAST_MANAGER, "Toast manager");
   editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG,
@@ -1414,18 +1492,18 @@ void AssetViewerApp::updateMenu(PropPanel::IMenu *menu)
       menu->addSeparator(CM_PLATFORM_SUBMENU + i);
       menu->addItem(CM_PLATFORM_SUBMENU + i, CM_BUILD_CLEAR_CACHE + m_index, "Clear cache");
     }
-  }
 
-  menu->addSeparator(CM_EXPORT);
-  editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_ALL_PLATFORM_RES, EditorCommandIds::BUILD_ALL_PLATFORM_RES,
-    "Export gameRes for All platform");
-  editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_ALL_PLATFORM_TEX, EditorCommandIds::BUILD_ALL_PLATFORM_TEX,
-    "Export texPack for All platform");
-  editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_ALL_PLATFORM, EditorCommandIds::BUILD_ALL_PLATFORM,
-    "Export All for All platform");
-  menu->addSeparator(CM_EXPORT);
-  editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_CLEAR_CACHE_ALL, EditorCommandIds::BUILD_CLEAR_CACHE_ALL,
-    "Clear cache for All platform");
+    menu->addSeparator(CM_EXPORT);
+    editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_ALL_PLATFORM_RES, EditorCommandIds::BUILD_ALL_PLATFORM_RES,
+      "Export gameRes for All platform");
+    editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_ALL_PLATFORM_TEX, EditorCommandIds::BUILD_ALL_PLATFORM_TEX,
+      "Export texPack for All platform");
+    editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_ALL_PLATFORM, EditorCommandIds::BUILD_ALL_PLATFORM,
+      "Export All for All platform");
+    menu->addSeparator(CM_EXPORT);
+    editor_command_system.addMenuItem(*menu, CM_EXPORT, CM_BUILD_CLEAR_CACHE_ALL, EditorCommandIds::BUILD_CLEAR_CACHE_ALL,
+      "Clear cache for All platform");
+  }
 }
 
 void AssetViewerApp::updateAssetBuildWarningsMenu()
@@ -1855,6 +1933,8 @@ void AssetViewerApp::saveTreeState()
   else if (assetBuildWarningDisplay == AssetBuildWarningDisplay::ShowWhenSelected)
     setBlk.setStr("AssetBuildWarningDisplay", "ShowWhenSelected");
 
+  save_canopy_editor_settings(assetDataBlk);
+
   DataBlock &assetsFiltersBlk = *assetDataBlk.addBlock("assets_filter");
 
   DataBlock *types_data = assetsFiltersBlk.addBlock("types");
@@ -1935,6 +2015,9 @@ void AssetViewerApp::onClosing()
 
 bool AssetViewerApp::canCloseScene(const char *title)
 {
+  if (canopyEditorWindow && !canopyEditorWindow->canClose())
+    return false;
+
   ::dagor_idle_cycle();
   IGenEditorPlugin *sup = getTypeSupporter(curAsset);
   if (curAsset)
@@ -2175,8 +2258,8 @@ static ImpostorGenerator::GenerateResponse impostor_export_callback(DagorAsset *
 {
   if (ImpostorGenerator::interrupted || !::get_app().getImpostorGenerator())
     return ImpostorGenerator::GenerateResponse::ABORT;
-  if (!::get_app().getImpostorGenerator()->hasAssetChanged(asset))
-    return ImpostorGenerator::GenerateResponse::SKIP;
+  // if (!::get_app().getImpostorGenerator()->hasAssetChanged(asset))
+  //   return ImpostorGenerator::GenerateResponse::SKIP;
   ::get_app().trackChangesContinuous(-1);
   ::get_app().getConsole().addMessage(ILogWriter::NOTE, "[%d/%d] Generating impostor %s", ind + 1, count, asset->getName());
   return ImpostorGenerator::GenerateResponse::PROCESS;
@@ -2227,11 +2310,14 @@ bool AssetViewerApp::loadProject(const char *)
   assetlocalprops::init("develop/.asset-local");
   init3d(appblk, get_per_application_window_layout_blk_path());
 
-  const DataBlock &debugSettings = *dgs_get_settings()->getBlockByNameEx("debug");
-  const DataBlock *profiler = debugSettings.getBlockByName("profiler");
-  da_profiler::set_profiling_settings(debugSettings);
-  if (profiler && profiler->getBool("auto_dump", false))
-    da_profiler::start_file_dump_server("");
+  da_profiler::set_profiling_settings(*dgs_get_settings()->getBlockByNameEx("debug"));
+  da_profiler::tick_frame(); // Apply settings instantly to allow profiling loading times.
+
+  TIME_PROFILE(AssetViewerApp::loadProject);
+
+  // Initialize the thread pool after init3d() because that shuts down daProfiler, and the threads would not be
+  // registered into daProfiler.
+  threadpool::init(eastl::min(cpujobs::get_core_count(), 64), 1024, 128 << 10);
 
   editor_core_initialize_imgui();
   editor_core_load_imgui_theme(getThemeFileName());
@@ -2460,7 +2546,6 @@ bool AssetViewerApp::loadProject(const char *)
     texconvcache::init_build_on_demand_tex_factory(assetMgr, console);
 
   // load asset base
-  int base_nid = blk.getNameId("base");
 
   console->showConsole();
   console->startLog();
@@ -2472,10 +2557,15 @@ bool AssetViewerApp::loadProject(const char *)
     static_geom_mat_subst.setupMatSubst(*remap);
   static_geom_mat_subst.setMatProcessor(new GenericTexSubstProcessMaterialData(nullptr, DataBlock::emptyBlock, &assetMgr, console));
 
+  {
+    eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> loadContext = assetMgr.makeLoadAssetsBaseContext();
+    const int base_nid = blk.getNameId("base");
 
-  for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
-    if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-      assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
+    for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
+      if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
+        assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global", *loadContext);
+  }
+
   if (true)
   {
     dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();
@@ -2618,6 +2708,7 @@ bool AssetViewerApp::loadProject(const char *)
   getMainMenu()->setCheckById(CM_AUTO_ZOOM_N_CENTER, autoZoomAndCenter);
   mToolPanel->setBool(CM_AUTO_ZOOM_N_CENTER, autoZoomAndCenter);
 
+  load_canopy_editor_settings(assetDataBlk);
   compositeEditor.autoShow = setBlk.getBool("AutoShowCompositeEditor", compositeEditor.autoShow);
   getMainMenu()->setCheckById(CM_AUTO_SHOW_COMPOSITE_EDITOR, compositeEditor.autoShow);
 
@@ -2706,7 +2797,7 @@ bool AssetViewerApp::loadProject(const char *)
   INIT_SERVICE("spline", ::init_spline_gen_mgr_service());
   if (!useDngBasedSceneRender)
     ::init_ecs_mgr_service(appblk, getWorkspace().getAppDir());
-  if (appblk.getBlockByNameEx("game")->getBool("enable_webui_av2", true) && !useDngBasedSceneRender)
+  if (appblk.getBlockByNameEx("game")->getBool("enable_webui_av2", true))
     ::init_webui_service();
   else
     debug("webUi disabled with game{ enable_webui_av2:b=no;");
@@ -2869,7 +2960,10 @@ void AssetViewerApp::blockModifyRoutine(bool block) { blockSave = block; }
 void AssetViewerApp::afterUpToDateCheck(bool)
 {
   DEBUG_CP();
-  mTreeView->getAllAssetsTab().markExportedTree(allUpToDateFlags);
+  // Other configured platforms (iOS, Android) are rarely rebuilt locally, so requiring them too would
+  // make the tree show "changed" almost permanently - PC alone drives the indicator when it's a target.
+  int treeUpToDateFlags = (allUpToDateFlags & ASSET_USER_FLG_UP_TO_DATE_PC) ? ASSET_USER_FLG_UP_TO_DATE_PC : allUpToDateFlags;
+  mTreeView->getAllAssetsTab().markExportedTree(treeUpToDateFlags);
   DEBUG_CP();
 }
 
@@ -3363,6 +3457,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       {
         ImpostorOptions options;
         options.assetsToBuild.push_back(eastl::string{curAsset->getName()});
+        options.forceRebake = true;
         generate_impostors(options);
       }
       return 1;
@@ -3373,6 +3468,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       {
         ImpostorOptions options;
         options.packsToBuild.push_back(eastl::string{curAsset->getDestPackName()});
+        options.forceRebake = true;
         generate_impostors(options);
       }
       return 1;
@@ -3683,6 +3779,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       return 1;
 
     case CM_WINDOW_COMPOSITE_EDITOR: showCompositeEditor(!isCompositeEditorShown()); return 1;
+    case CM_WINDOW_CANOPY_EDITOR: showCanopyEditor(canopyEditorWindow == nullptr); return 1;
 
     case CM_WINDOW_DABUILD:
       dabuildWindowVisible = !dabuildWindowVisible;
@@ -3705,6 +3802,12 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER:
       imguiDebugWindowsVisible = !imguiDebugWindowsVisible;
       getMainMenu()->setCheckById(id, imguiDebugWindowsVisible);
+      return 1;
+
+    case CM_VIEW_DEVELOPER_TOOLS_TEST_RUNTIME:
+      testRuntimeWindowVisible = !editor_core_test_runtime_window_is_visible();
+      editor_core_test_runtime_set_window(testRuntimeWindowVisible);
+      getMainMenu()->setCheckById(id, testRuntimeWindowVisible);
       return 1;
 
     case CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER: PropPanel::show_toast_debug_panel(); return 1;
@@ -3991,8 +4094,11 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
 }
 
 
-void AssetViewerApp::onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *)
+bool AssetViewerApp::onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *)
 {
+  if (canopyEditorWindow && !canopyEditorWindow->canSelectAsset(asset))
+    return false;
+
   DagorAsset *prev = curAsset;
   if (prev && getTypeSupporter(prev) && getTypeSupporter(prev)->supportEditing())
   {
@@ -4031,17 +4137,24 @@ void AssetViewerApp::onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder
     switchToPlugin(-1);
   }
 
+  if (canopyEditorWindow)
+    canopyEditorWindow->onAssetSelectionChanged(curAsset);
+
   if (!fillPropPanelHasBeenCalled)
     fillPropPanel();
   repaint();
   ec_set_busy(false);
+  return true;
 }
 
 
 void AssetViewerApp::onAvSelectAsset(DagorAsset *asset, const char *name)
 {
   if (asset)
-    onAssetSelectionChanged(asset, nullptr);
+  {
+    if (!onAssetSelectionChanged(asset, nullptr))
+      return;
+  }
 
   if (mTagManager)
     mTagManager->onAvSelectAsset(asset, name);
@@ -4330,7 +4443,7 @@ void AssetViewerApp::renderUIViewport(ViewportWindow &viewport, const Point2 &si
 void AssetViewerApp::renderUIViewports(bool vr_mode)
 {
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-  ImGui::Begin("Viewport", nullptr, vr_mode ? ImGuiWindowFlags_NoBackground : ImGuiWindowFlags_None);
+  ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | (vr_mode ? ImGuiWindowFlags_NoBackground : ImGuiWindowFlags_None));
   ImGui::PopStyleVar();
 
   const float itemSpacing = ImGui::GetStyle().ItemSpacing.y; // Use the same spacing in both directions.
@@ -4492,6 +4605,7 @@ void AssetViewerApp::renderUI()
     ImGui::DockBuilderDockWindow("Viewport", dockSpaceViewport);
     ImGui::DockBuilderDockWindow("Properties", dockSpaceRightBottom);
     ImGui::DockBuilderDockWindow("Composit Outliner", dockSpaceRightTop);
+    ImGui::DockBuilderDockWindow("Canopy Editor", dockSpaceRightTop);
     ImGui::DockBuilderDockWindow("daBuild", dockSpaceBottom);
 
     ImGui::DockBuilderFinish(rootDockSpaceId);
@@ -4553,6 +4667,17 @@ void AssetViewerApp::renderUI()
       showCompositeEditor(false);
   }
 
+  if (canopyEditorWindow)
+  {
+    bool open = true;
+    DAEDITOR3.imguiBegin(*canopyEditorWindow, &open);
+    canopyEditorWindow->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open)
+      showCanopyEditor(false);
+  }
+
   IGenEditorPlugin *currentPlugin = curPlugin();
   if (currentPlugin)
     currentPlugin->updateImgui();
@@ -4612,6 +4737,8 @@ void AssetViewerApp::updateImgui()
   G_ASSERT(!renderingImGui);
   renderingImGui = true;
 
+  editor_core_test_runtime_begin_frame();
+
   PropPanel::after_new_frame();
 
   // The keyboard press checking itself cannot be in actObject because actObject could be called more often than
@@ -4647,6 +4774,8 @@ void AssetViewerApp::updateImgui()
   renderUI();
 
   PropPanel::before_end_frame();
+
+  editor_core_test_runtime_end_frame();
 
   renderingImGui = false;
 }

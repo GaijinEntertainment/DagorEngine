@@ -1,7 +1,6 @@
 include "shader_global.dshl"
 include "stencil_inc.dshl"
 include "gbuffer.dshl"
-include "dynamic_resolution.dshl"
 
 texture outline_depth;
 
@@ -50,8 +49,6 @@ shader outline_final_render
   }
 
   USE_EMISSION_DECODE_COLOR_MAP(ps)
-
-  INIT_DYNAMIC_RESOLUTION(ps)
 
   hlsl(ps) {
     bool outline_check_discard(float2 screen_pos)
@@ -125,7 +122,7 @@ shader outline_final_render
     PsOutput outline_final_render_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       float4 pos = GET_SCREEN_POS(input.pos);
-      int2 viewport_ipos = int2(pos.xy * current_inv_dynamic_resolution_scale);
+      int2 viewport_ipos = int2(pos.xy);
 
       // Calculating screenpos disregarding the viewport
       float2 screen_pos = outline_scale.xy + input.texcoord * outline_scale.zw;
@@ -157,8 +154,6 @@ shader outline_fill_depth
   INIT_READ_DEPTH_GBUFFER()
   USE_READ_DEPTH_GBUFFER()
 
-  INIT_DYNAMIC_RESOLUTION(ps)
-
   (ps) {
     outline_scale@f4 = (outline_scale);
   }
@@ -167,7 +162,7 @@ shader outline_fill_depth
     float outline_fill_depth_ps(VsOutput input) : SV_Depth
     {
       float2 uv = outline_scale.xy + input.texcoord * outline_scale.zw;
-      float d = readGbufferDepth(uv * current_dynamic_resolution_scale);
+      float d = readGbufferDepth(uv);
       return d -  saturate(d * 100) * 0.0001;//depth dependency bias
     }
   }

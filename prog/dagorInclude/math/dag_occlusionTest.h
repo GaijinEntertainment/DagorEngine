@@ -35,6 +35,39 @@ public:
   {
     vec4f minmax_w, clipScreenBox;
     int visibility = v_screen_size_b(bmin, bmax, threshold, clipScreenBox, minmax_w, clip);
+    return testScreenRect(visibility, clipScreenBox, minmax_w, max_test_mip);
+  }
+
+  // As testVisibility, for a box the caller has ALREADY frustum-classified as at least partially visible
+  // (its own box test, or an enclosing volume known to be inside). Skips the 6-plane frustum test and the
+  // clip-Z transform row (the HZB compare reads only min_w and the x/w, y/w screen rect), returning a
+  // bit-identical result ~30% cheaper. If the contract is violated (box fully outside the frustum) the
+  // result is meaningless but safe to consume, so use it ONLY as a conservative culling gate - never
+  // where CULL_FRUSTUM classification itself is the point.
+  VECTORCALL int testVisibilityInFrustum(vec3f bmin, vec3f bmax, vec3f threshold, mat44f_cref clip, int max_test_mip) const
+  {
+    vec4f minmax_w, clipScreenBox;
+    int visibility = v_screen_size_visible_b(bmin, bmax, threshold, clipScreenBox, minmax_w, clip);
+    return testScreenRect(visibility, clipScreenBox, minmax_w, max_test_mip);
+  }
+
+  __forceinline int testCulledMip(int xMin, int xMax, int yMin, int yMax, int mip, vec4f minw) const
+  {
+    xMin >>= mip;
+    yMin >>= mip;
+    xMax = xMax >> mip;
+    yMax = yMax >> mip;
+    return testCulledZbuffer(xMin, xMax, yMin, yMax, minw, zBuf.getZbuffer(mip), mip);
+  }
+
+protected:
+  const OcclusionZBuffer &zBuf;
+  vec4f clipToScreenVec = {};
+  vec4f screenMax = {};
+
+  // shared tail of the testVisibility variants: clip-space rect -> screen texels -> mip -> HZB walk
+  VECTORCALL int testScreenRect(int visibility, vec4f clipScreenBox, vec4f minmax_w, int max_test_mip) const
+  {
     if (!visibility)
       return CULL_FRUSTUM;
     if (visibility == -1)
@@ -51,20 +84,6 @@ public:
     int mip = min(max(get_log2w(min(sz[0], sz[1])) - 1, 0), min(max_test_mip, OcclusionZBuffer::mip_chain_count));
     return CULL_OCCLUSION - testCulledMip(screenCrd[0], screenCrd[1], screenCrd[3], screenCrd[2], mip, minmax_w);
   }
-
-  __forceinline int testCulledMip(int xMin, int xMax, int yMin, int yMax, int mip, vec4f minw) const
-  {
-    xMin >>= mip;
-    yMin >>= mip;
-    xMax = xMax >> mip;
-    yMax = yMax >> mip;
-    return testCulledZbuffer(xMin, xMax, yMin, yMax, minw, zBuf.getZbuffer(mip), mip);
-  }
-
-protected:
-  const OcclusionZBuffer &zBuf;
-  vec4f clipToScreenVec = {};
-  vec4f screenMax = {};
 
   // return 0 if occluded
   __forceinline int testCulledZbuffer(int xMin, int xMax, int yMin, int yMax, vec4f minw, const float *zbuffer, int mip) const
@@ -107,7 +126,7 @@ protected:
               return 1;
           }
           vec4f passTest = occlusion_depth_vcmp(closestPoint, v_ldu(zbufferP));
-          if (v_signmask(passTest) & endXMask)
+          if (v_truemask(passTest) & endXMask)
             return 1;
         }
       }

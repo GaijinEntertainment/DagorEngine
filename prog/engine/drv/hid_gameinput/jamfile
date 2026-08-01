@@ -5,6 +5,7 @@ TargetType  = lib ;
 Target      = engine/drv/hid_gameinput.lib ;
 
 Sources =
+  gameinput.cpp
   gamepad_classdrv.cpp
   gamepad_device.cpp
   gamepad_composite.cpp
@@ -13,6 +14,7 @@ Sources =
   flightstick_device_impl.cpp
   keyboard_classdrv.cpp
   keyboard_device.cpp
+  keyboard_globals.cpp
   mouse_emu.cpp
   create.cpp
 ;

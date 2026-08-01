@@ -44,8 +44,8 @@ shader dynamic_perlin_layered
         float4 pointToEye                       : TEXCOORD3;
         float3 normal                           : TEXCOORD4;
         #ifdef MOTION_VECTORS_ENABLED
-        float4 out_pos                          : TEXCOORD5;
-        float4 out_pos_prev                     : TEXCOORD6;
+        float3 out_pos                          : TEXCOORD5;
+        float3 out_pos_prev                     : TEXCOORD6;
         #endif
         float localPosY                         : TEXCOORD7;
         #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
@@ -89,6 +89,6 @@ shader dynamic_perlin_layered
     hlsl(ps) {
       #define IS_DYNAMIC 1
     }
-    PERLIN_LAYERED_PS(true, false, GBUFFER_ORDER_DYNAMIC)
+    PERLIN_LAYERED_PS(true, false, GBUFFER_ORDER_DYNAMIC, false)
   }
 }

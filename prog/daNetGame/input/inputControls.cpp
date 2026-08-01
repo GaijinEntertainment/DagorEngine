@@ -14,6 +14,7 @@
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <drv/hid/dag_hiPointing.h>
+#include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiJoystick.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiComposite.h>
@@ -25,6 +26,8 @@
 #include <sqrat.h>
 #include <quirrel_json/quirrel_json.h>
 #include <sqmodules/sqmodules.h>
+#include <sqEventBus/sqEventBus.h>
+#include <json/json.h>
 #include <ecs/scripts/sqBindEvent.h>
 #include <bindQuirrelEx/autoBind.h>
 
@@ -369,6 +372,26 @@ void process_input(double /*dt*/)
         }
       }
     }
+  }
+
+  static int prevGamepads = -1, prevKeyboards = -1, prevMice = -1;
+  int gamepads = 0;
+  if (::global_cls_drv_joy)
+    for (int i = 0, n = ::global_cls_drv_joy->getDeviceCount(); i < n; i++)
+      if (HumanInput::IGenJoystick *joy = ::global_cls_drv_joy->getDevice(i))
+        gamepads += joy->isConnected() ? 1 : 0;
+  int keyboards = ::global_cls_drv_kbd ? ::global_cls_drv_kbd->getDeviceCount() : 0;
+  int mice = ::global_cls_drv_pnt ? ::global_cls_drv_pnt->getDeviceCount() : 0;
+  if (gamepads != prevGamepads || keyboards != prevKeyboards || mice != prevMice)
+  {
+    prevGamepads = gamepads;
+    prevKeyboards = keyboards;
+    prevMice = mice;
+    Json::Value data;
+    data["gamepads"] = gamepads;
+    data["keyboards"] = keyboards;
+    data["mice"] = mice;
+    sqeventbus::send_event("input.devices_num_changed", data);
   }
 
   dainput::process_actions_tick();

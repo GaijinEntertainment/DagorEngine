@@ -56,10 +56,10 @@ bool AnimV20::create_blend_node_from_creators(AnimationGraph &graph, const DataB
 
 struct AnimBlender::NodeSamplers
 {
+  // union to hold the sampler as raw storage: entries are placement-new constructed and never destroyed
   union Entry
   {
     AnimV20Math::PrsAnimNodeSampler<AnimV20Math::OneShotConfig> sampler;
-    dag::Index16 trackId;
     ~Entry() = delete;
   };
 
@@ -638,7 +638,7 @@ int AnimationGraph::getParamId(const char *name, int type) const
     return -1;
   if (paramTypes[id] == type)
     return id;
-  G_ASSERTF("param <%s> of type %d is absent; present with type %d", name, type, paramTypes[id]);
+  G_ASSERTF(false, "param <%s> of type %d is absent; present with type %d", name, type, paramTypes[id]);
   return -1;
 }
 
@@ -697,40 +697,130 @@ void AnimationGraph::clearBlendNodeAllocatedMemoryFromState(AnimGraphStateHolder
   }
 }
 
-void AnimationGraph::sortPbCtrl(const DataBlock &ord)
+int getGraphPbcIndexFromBlock(AnimationGraph &graph, const DataBlock &ord, int i)
 {
-  // force order
-  for (int i = 0, nid = ord.getNameId("name"), dest = 0; i < ord.paramCount(); i++)
-    if (ord.getParamNameId(i) == nid && ord.getParamType(i) == ord.TYPE_STRING)
+  IAnimBlendNode *n = graph.getBlendNodePtr(ord.getStr(i));
+  if (!n)
+  {
+    logerr("Blend node '%s' is present in postBlendCtrlOrder block (idx: %d) but it does not exist.", ord.getStr(i), i);
+    return -1;
+  }
+  if (!n->isSubOf(AnimPostBlendCtrlCID))
+  {
+    logerr("Blend node '%s' is present in postBlendCtrlOrder block (idx: %d) but it is not a post blend controller. Its type is: "
+           "%s. Should be some post blend controller.",
+      ord.getStr(i), i, n->class_name());
+    return -1;
+  }
+  return find_value_idx(graph.getBlender().pbCtrl, static_cast<AnimPostBlendCtrl *>(n));
+}
+
+void AnimationGraph::sortPbCtrl(const DataBlock &initAnimState)
+{
+  const char *orderBlockName = "postBlendCtrlOrder";
+  int orderBlockCount = initAnimState.blockCountByName(orderBlockName);
+  if (orderBlockCount <= 1)
+  {
+    const DataBlock &ord = *initAnimState.getBlockByNameEx(orderBlockName);
+    // force order
+    for (int i = 0, nid = ord.getNameId("name"), dest = 0; i < ord.paramCount(); i++)
+      if (ord.getParamNameId(i) == nid && ord.getParamType(i) == ord.TYPE_STRING)
+      {
+        int idx = getGraphPbcIndexFromBlock(*this, ord, i);
+        if (idx < dest)
+        {
+          logerr("Blend node '%s' is present in postBlendCtrlOrder twice. One post blend controller must be mentioned only once.",
+            ord.getStr(i));
+          continue;
+        }
+        if (idx > dest)
+        {
+          Ptr<AnimPostBlendCtrl> pbn = blender.pbCtrl[idx];
+          erase_items(blender.pbCtrl, idx, 1);
+          insert_items(blender.pbCtrl, dest, 1, &pbn);
+        }
+        dest++;
+      }
+  }
+  else
+  {
+    // Multiple postBlendCtrlOrder blocks: each block is a chain of 'name' params where every
+    // ctrl must precede the next one in the same block. Merge all chains via topological sort,
+    // keeping ctrls that are not mentioned in their current relative order.
+    struct Node
     {
-      IAnimBlendNode *n = getBlendNodePtr(ord.getStr(i));
-      if (!n)
-      {
-        logerr("Blend node '%s' is present in postBlendCtrlOrder block (idx: %d) but it does not exist.", ord.getStr(i), i);
+      int pbIdx = -1;  // index into blender.pbCtrl
+      Tab<int> before; // pbCtrl indices that must be sorted to be before this node
+      Node() : before(framemem_ptr()) {}
+    };
+
+    Tab<Node> nodes(framemem_ptr());
+    nodes.resize(blender.pbCtrl.size());
+    for (int i = 0; i < nodes.size(); i++)
+      nodes[i].pbIdx = i;
+
+    // Collect order for each node from postBlendCtrlOrder blocks
+    const int orderNid = initAnimState.getNameId(orderBlockName);
+    for (int bi = 0; bi < initAnimState.blockCount(); bi++)
+    {
+      const DataBlock &ord = *initAnimState.getBlock(bi);
+      if (ord.getBlockNameId() != orderNid)
         continue;
-      }
-      if (!n->isSubOf(AnimPostBlendCtrlCID))
+
+      int prevIdx = -1;
+      for (int i = 0, nid = ord.getNameId("name"); i < ord.paramCount(); i++)
       {
-        logerr("Blend node '%s' is present in postBlendCtrlOrder block (idx: %d) but it is not a post blend controller. Its type is: "
-               "%s. Should be some post blend controller.",
-          ord.getStr(i), i, n->class_name());
-        continue;
+        if (ord.getParamNameId(i) != nid || ord.getParamType(i) != ord.TYPE_STRING)
+          continue;
+        int idx = getGraphPbcIndexFromBlock(*this, ord, i);
+        if (idx < 0)
+          continue;
+        // prevIdx must be sorted before idx
+        if (prevIdx >= 0 && prevIdx != idx && find_value_idx(nodes[idx].before, prevIdx) < 0)
+          nodes[idx].before.push_back(prevIdx);
+        prevIdx = idx;
       }
-      int idx = find_value_idx(blender.pbCtrl, static_cast<AnimPostBlendCtrl *>(n));
-      if (idx < dest)
-      {
-        logerr("Blend node '%s' is present in postBlendCtrlOrder twice. One post blend controller must be mentioned only once.",
-          ord.getStr(i));
-        continue;
-      }
-      if (idx > dest)
-      {
-        Ptr<AnimPostBlendCtrl> pbn = blender.pbCtrl[idx];
-        erase_items(blender.pbCtrl, idx, 1);
-        insert_items(blender.pbCtrl, dest, 1, &pbn);
-      }
-      dest++;
     }
+
+    // Topo sort by colected order
+    Tab<int> sorted(framemem_ptr());
+    sorted.reserve(nodes.size());
+    while (!nodes.empty())
+    {
+      int removed = 0;
+      for (int i = 0; i < nodes.size();)
+      {
+        if (nodes[i].before.empty())
+        {
+          const int pbIdx = nodes[i].pbIdx;
+          sorted.push_back(pbIdx);
+          erase_items(nodes, i, 1);
+          for (Node &other : nodes)
+            for (int j = other.before.size() - 1; j >= 0; j--)
+              if (other.before[j] == pbIdx)
+                erase_items(other.before, j, 1);
+          removed++;
+        }
+        else
+          i++;
+      }
+      if (removed == 0)
+      {
+        logerr("postBlendCtrlOrder: cyclic dependency detected among %d remaining post blend controllers.", nodes.size());
+        break;
+      }
+    }
+
+    // Reorder blender.pbCtrl into the sorted order
+    if (sorted.size() == blender.pbCtrl.size())
+    {
+      PtrTab<AnimPostBlendCtrl> reordered(midmem);
+      reordered.reserve(blender.pbCtrl.size());
+      for (int idx : sorted)
+        reordered.push_back(blender.pbCtrl[idx]);
+      blender.pbCtrl = eastl::move(reordered);
+    }
+  }
 
   // update pbcId
   for (int i = 0; i < blender.pbCtrl.size(); i++)
@@ -1138,7 +1228,7 @@ bool AnimBlender::blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNod
     chXfm[i].totalNum = 0;
   }
 
-  auto add_sampler = [](NodeSamplers &smp, int i, int j, int targetChN, const AnimDataChan &chan) {
+  auto add_sampler = [](NodeSamplers &smp, int i, int j, int targetChN, const AnimDataChan &chan, const AnimData *anim, int wa_pos) {
     G_UNUSED(targetChN);
     if (DAGOR_UNLIKELY(smp.totalNum >= MAX_ANIMS_IN_NODE))
     {
@@ -1154,7 +1244,7 @@ bool AnimBlender::blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNod
       return false;
     }
     auto &s = smp.samplers[smp.totalNum];
-    s.trackId = chan.nodeTrack[j];
+    new (&s.sampler, _NEW_INPLACE) decltype(s.sampler)(anim, chan.nodeTrack[j], wa_pos);
     smp.totalNum++;
     smp.lastBnl = i;
     return true;
@@ -1211,7 +1301,7 @@ bool AnimBlender::blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNod
       NodeSamplers &smp = chXfm[targetChN];
       // we couldn't have already added animation for this BNL, unless there are nodes with duplicate names
       if (smp.lastBnl != i)
-        if (!add_sampler(smp, i, j, targetChN, pos))
+        if (!add_sampler(smp, i, j, targetChN, pos, anim, wa_pos))
           continue;
 
       ch.blendWt[ch_w.totalNum] = w;
@@ -1257,7 +1347,7 @@ bool AnimBlender::blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNod
 
       NodeSamplers &smp = chXfm[targetChN];
       if (smp.lastBnl != i)
-        if (!add_sampler(smp, i, j, targetChN, scl))
+        if (!add_sampler(smp, i, j, targetChN, scl, anim, wa_pos))
           continue;
 
       ch.blendWt[ch_w.totalNum] = w;
@@ -1299,7 +1389,7 @@ bool AnimBlender::blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNod
 
       NodeSamplers &smp = chXfm[targetChN];
       if (smp.lastBnl != i)
-        if (!add_sampler(smp, i, j, targetChN, rot))
+        if (!add_sampler(smp, i, j, targetChN, rot, anim, wa_pos))
           continue;
 
       ch.blendWt[ch_w.totalNum] = w;
@@ -1308,16 +1398,6 @@ bool AnimBlender::blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNod
       ch_w.totalNum++;
       if (!additive)
         ch_w.wTotal += w;
-    }
-
-    // create added samplers
-    for (j = 0; j < nodenum; j++)
-    {
-      NodeSamplers &smp = chXfm[j];
-      if (smp.lastBnl != i)
-        continue;
-      auto &s = smp.samplers[smp.totalNum - 1];
-      new (&s.sampler, _NEW_INPLACE) decltype(s.sampler)(anim, s.trackId, wa_pos);
     }
   }
   if (PROFILE_BLENDING)
@@ -1577,7 +1657,7 @@ void AnimBlender::blendOriginVel(TlsContext &tls, AnimGraphStateHolder &st, IAni
   // construct blending lists
   for (i = 0; i < bnlNum; i++)
   {
-    if (!*(int *)&bnlWt[i] || !bnl[i] || bnl[i]->dontUseOriginVel || !bnl[i]->anim)
+    if (fabsf(bnlWt[i]) <= 1e-6f || !bnl[i] || bnl[i]->dontUseOriginVel || !bnl[i]->anim)
       continue;
 
     vec3f pts = v_splats(bnlWt[i]);
@@ -1612,7 +1692,7 @@ void AnimBlender::blendOriginVel(TlsContext &tls, AnimGraphStateHolder &st, IAni
   }
   else
   {
-    originVelWt = v_rcp(originVelWt);
+    originVelWt = v_rcp_safe(originVelWt);
     tls.originLinVel = v_mul(originVel, originVelWt);
     tls.originAngVel = v_mul(originWVel, originVelWt);
   }
@@ -1724,7 +1804,8 @@ void AnimBlender::postBlendProcess(TlsContext &tls, AnimGraphStateHolder &st, Ge
     real wt = pbcWt[i];
 #if DAGOR_DBGLEVEL > 0
     AnimV20::AnimcharDebugContext *debugContext = ctx.ac->animcharDebugContext;
-    if (debugContext && debugContext->pbcWtHasOverride[i])
+    // PBC count can change in runtime anim graph editor and the context is resized lazily
+    if (debugContext && i < debugContext->pbcWtHasOverride.size() && debugContext->pbcWtHasOverride[i])
     {
       wt = debugContext->pbcWtOverride[i];
     }
@@ -2081,6 +2162,7 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
       NodeMask *nm = new (tmpmem) NodeMask;
 
       nm->anim = NULL;
+      nm->animInverted = NULL;
       nm->name = b->getStr("name", "");
       for (j = 0; j < b->paramCount(); j++)
         if (b->getParamType(j) == DataBlock::TYPE_STRING && b->getParamNameId(j) == nid2)
@@ -2138,6 +2220,9 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
           if (nodemask[j]->anim)
             nodemask[j]->anim->delRef();
           nodemask[j]->anim = NULL;
+          if (nodemask[j]->animInverted)
+            nodemask[j]->animInverted->delRef();
+          nodemask[j]->animInverted = NULL;
         }
         AnimNodeMaskApplyFilter nmFilter(*b);
 
@@ -2151,6 +2236,8 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
               continue;
             if (pass == 1 && !cb2.getBool("additive", false))
               continue;
+            if (cb2.getStr("exclude_node_mask", NULL))
+              logerr("anim <%s> exclude_node_mask is not supported with splitting by channels", cb2.getStr("name"));
             if (const char *applyNodeMask = cb2.getStr("apply_node_mask", NULL))
             {
               NodeMask *nm = NULL;
@@ -2178,7 +2265,7 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
                 for (int k = 0; k < chan_cnt; k++)
                   if (graph.getStDest()[k].defNodemaskIdx >= 0)
                     graph.registerBlendNode(nullAnim, anim_name, nodemask[graph.getStDest()[k].defNodemaskIdx]->name);
-              chan_cnt = -1; // to skip next for()
+              continue;
             }
             for (int k = -1; k < chan_cnt; k++)
             {
@@ -2213,7 +2300,13 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
               continue;
 
             const char *applyNodeMask = cb2.getStr("apply_node_mask", NULL);
-            if (!applyNodeMask)
+            const char *excludeNodeMask = cb2.getStr("exclude_node_mask", NULL);
+            if (applyNodeMask && excludeNodeMask)
+            {
+              logerr("anim <%s> has both apply_node_mask and exclude_node_mask; ignoring both", cb2.getStr("name"));
+              applyNodeMask = excludeNodeMask = NULL;
+            }
+            if (!applyNodeMask && !excludeNodeMask)
             {
               add_bnl(graph, cb2, anim, ignoredAnimation, def_foreign);
               leafs.emplace_back(
@@ -2221,26 +2314,38 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
             }
             else
             {
+              const char *maskName = applyNodeMask ? applyNodeMask : excludeNodeMask;
+              G_ASSERT(maskName);
               NodeMask *nm = NULL;
               for (int k = 0; k < nodemask.size(); k++)
-                if (strcmp(nodemask[k]->name, applyNodeMask) == 0)
+                if (strcmp(nodemask[k]->name, maskName) == 0) //-V575
                 {
                   nm = nodemask[k];
                   break;
                 }
               if (!nm)
               {
-                DEBUG_CTX("can't find nodemask: <%s>", applyNodeMask);
+                DEBUG_CTX("can't find nodemask: <%s>", maskName);
                 continue;
               }
 
-              if (!nm->anim)
+              if (applyNodeMask && !nm->anim)
               {
                 nm->anim = new (midmem) AnimData(anim, nm->nm, midmem);
                 nm->anim->addRef();
               }
-
-              add_bnl(graph, cb2, nm->anim, ignoredAnimation, def_foreign);
+              else if (excludeNodeMask && !nm->animInverted)
+              {
+                NameMap invertedNodeMask;
+                const AnimDataChan *chans[] = {&anim->anim.pos, &anim->anim.rot, &anim->anim.scl};
+                for (const AnimDataChan *ch : chans)
+                  for (unsigned n = 0; n < ch->nodeNum; n++)
+                    if (nm->nm.getNameId(ch->nodeName[n]) == -1)
+                      invertedNodeMask.addNameId(ch->nodeName[n]);
+                nm->animInverted = new (midmem) AnimData(anim, invertedNodeMask, midmem);
+                nm->animInverted->addRef();
+              }
+              add_bnl(graph, cb2, applyNodeMask ? nm->anim : nm->animInverted, ignoredAnimation, def_foreign);
               leafs.emplace_back(
                 ControllerDependencyLoadHelper{graph.getBlendNodePtr(cb2.getStr("name", NULL), nullptr), &cb2, nullptr});
             }
@@ -2254,6 +2359,9 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
     if (nodemask[j]->anim)
       nodemask[j]->anim->delRef();
     nodemask[j]->anim = NULL;
+    if (nodemask[j]->animInverted)
+      nodemask[j]->animInverted->delRef();
+    nodemask[j]->animInverted = NULL;
   }
 
   // append other controllers
@@ -2347,7 +2455,7 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
   }
   graph.replaceRoot(node);
 
-  graph.sortPbCtrl(*blk.getBlockByNameEx("initAnimState")->getBlockByNameEx("postBlendCtrlOrder"));
+  graph.sortPbCtrl(*blk.getBlockByNameEx("initAnimState"));
 
   int null_used = 0;
   for (int i = 0; i < graph.getAnimNodeCount(); i++)

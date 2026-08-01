@@ -64,15 +64,27 @@ public:
   virtual bool __stdcall checkUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags,
     dag::ConstSpan<const char *> packs_to_check, const char *profile = NULL) = 0;
 
+  // Fast, UI-only counterpart to checkUpToDate() (e.g. AssetViewer's startup scan): never calls
+  // gatherSrcDataFiles(), never removes an outdated cache file, marks readiness per-pack not per-asset.
+  // Never use this to decide whether to actually rebuild anything; use checkUpToDate() for that.
+  // out_* get the totals accumulated across all requested platforms.
+  virtual bool __stdcall quickCheckUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags,
+    dag::ConstSpan<const char *> packs_to_check, int &out_ready_packs, int &out_total_packs, int &out_removed_cache_files,
+    int &out_worker_threads, const char *profile = NULL) = 0;
+
   virtual bool __stdcall isAssetExportable(DagorAsset *asset) = 0;
 
   virtual void __stdcall destroyCache(dag::ConstSpan<unsigned> tc, const char *profile = NULL) = 0;
 
   virtual void __stdcall invalidateBuiltRes(const DagorAsset &a, const char *cache_folder) = 0;
 
-  // if asset builds very we don't save it in cache on disk
+  // Writes asset built data to cwr (uses cache or builds on the fly using exporter) and caches it;
+  // if asset is built very fast we don't save it to cache on disk (unless save_all_caches=true passed).
+  // Optional out_served_from_respack is set to true when the bytes came from an already-built respack rather
+  // than a fresh/cached per-asset rebuild - the latter always embeds materials (see setFastBuildFlag),
+  // so only a respack-served result can have materials split into *Desc.bin.
   virtual bool __stdcall getBuiltRes(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, IDagorAssetExporter *exp, const char *cache_folder,
-    String &cache_path, int &data_offset, bool save_all_caches) = 0;
+    String &cache_path, int &data_offset, bool save_all_caches, bool *out_served_from_respack = nullptr) = 0;
 
   // Get build warnings for the given asset from the saved cache file.
   // cache_up_to_date: output parameter. It is set to true if the cache file is up-to-date (so a getBuiltRes would not rebuild it).
@@ -84,10 +96,16 @@ public:
 
   virtual void __stdcall allowPatchBuild(bool) = 0;
 
+  // True if pkg_name (NULL/"*" for main) has a valid patch build - see detect_valid_patch() in daBuild.cpp.
+  virtual bool __stdcall isPatchBuildActive(const char *pkg_name, const char *target_str) = 0;
+
+  // Discards memoized isPatchBuildActive()/getBuiltRes() state; call after an out-of-process dabuild run.
+  virtual void __stdcall invalidateRespackCaches() = 0;
+
   virtual void __stdcall processSrcHashForDestPacks() = 0;
 
 protected:
-  static const int API_VERSION = 5;
+  static const int API_VERSION = 7;
   int apiVer;
   IDaBuildInterface() : apiVer(API_VERSION) {}
 };

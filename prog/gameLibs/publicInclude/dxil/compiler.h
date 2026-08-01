@@ -67,6 +67,7 @@ struct DXCSettings
   uint32_t optimizeLevel = 3;
   PDBMode pdbMode = PDBMode::NONE;
   eastl::wstring_view PDBBasePath;
+  eastl::wstring_view PDBNameOverride;
   eastl::wstring_view rootSignatureDefine;
   dag::Vector<DXCDefine> defines;
 };

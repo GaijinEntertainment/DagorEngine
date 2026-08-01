@@ -71,7 +71,7 @@ public:
     return clientConnections;
   }
 
-  void addConnection(Connection *conn, unsigned idx);
+  void addConnection(Connection *conn, unsigned idx); // takes ownership; conn must be bound to this network's EntityManager
   void destroyConnection(unsigned idx, DisconnectionCause cause);
   bool debugVerifyNetConnectionPtr(void *conn) const; // work only for truly network connections (i.e. not blackholes)
 
@@ -109,6 +109,7 @@ private:
   Tab<RTTStat> rttstat; // rolling average per connection (server). Warning: doesn't include queue correcton therefore very rough!
   SystemAddress stunSystemAddress;
   scope_query_cb_t scope_query;
+  InternedStringsShared objectKeysShared;
   void *debugConnVtbl = nullptr;
   struct ObjMsg
   {

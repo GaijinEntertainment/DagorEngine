@@ -10,8 +10,10 @@ void *getMainWindowPtrHandle() const;
 bool isMainWindow(void *wnd) const;
 void destroyMainWindow();
 
-bool initWindow(const char *title, int winWidth, int winHeight);
+bool initWindow(const char *title, int winWidth, int winHeight, const linux_GUI::WindowCreationOptions &options);
 void getWindowPosition(void *w, int &cx, int &cy);
+void getWindowFramePosition(void *w, int &x, int &y);
+bool isWindowMaximized(void *w);
 void setTitle(const char *title, const char *tooltip = NULL);
 void setTitleUTF8(const char *title, const char *tooltip = NULL);
 

@@ -159,7 +159,7 @@ public:
 class PhysObjEntity : public VirtualPhysObjEntity, public IRandomSeedHolder, public ILodController
 {
 public:
-  PhysObjEntity(int cls) : VirtualPhysObjEntity(cls), idx(MAX_ENTITIES), nodeTree(NULL) { tm.identity(); }
+  PhysObjEntity(int cls) : VirtualPhysObjEntity(cls), idx(MAX_ENTITIES) { tm.identity(); }
   ~PhysObjEntity() { clear(); }
 
   void *queryInterfacePtr(unsigned huid) override
@@ -171,7 +171,7 @@ public:
 
   void clear()
   {
-    del_it(nodeTree);
+    nodeTree.reset();
     VirtualPhysObjEntity::clear();
   }
 
@@ -236,7 +236,7 @@ public:
   void setup(const DagorAsset &asset)
   {
     VirtualPhysObjEntity::setup(asset);
-    nodeTree = pd && pd->nodeTree ? new GeomNodeTree(*pd->nodeTree) : NULL;
+    nodeTree.reset(pd && pd->nodeTree ? GeomNodeTree::make(*pd->nodeTree) : nullptr);
   }
 
   void copyFrom(const PhysObjEntity &e)
@@ -250,7 +250,7 @@ public:
 
     nameId = e.nameId;
     game_resource_add_ref_ex(pd, PhysObjGameResClassId);
-    nodeTree = pd->nodeTree ? new GeomNodeTree(*pd->nodeTree) : NULL;
+    nodeTree.reset(pd->nodeTree ? GeomNodeTree::make(*pd->nodeTree) : nullptr);
 
     clear_and_resize(scenes, e.scenes.size());
     for (int i = 0, cnt = 0; i < pd->models.size(); i++)
@@ -374,7 +374,7 @@ public:
 
   unsigned idx;
   TMatrix tm;
-  GeomNodeTree *nodeTree;
+  GeomNodeTreeUniquePtr nodeTree;
   int instanceSeed = 0;
 };
 

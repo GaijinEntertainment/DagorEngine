@@ -20,7 +20,7 @@ void phys_bullet_set_phys_body(void *phbody) { phys_set_phys_body(phbody); }
 void phys_bullet_init() { phys_init(); }
 void phys_bullet_close() { phys_close(); }
 
-void phys_bullet_before_render() { phys_before_render(); }
+void phys_bullet_before_render(const Point3 &cam_pos) { phys_before_render(cam_pos); }
 void phys_bullet_render() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_OPAQUE); }
 void phys_bullet_render_trans() { phys_render(IDynRenderService::Stage::STG_RENDER_DYNAMIC_TRANS); }
 

@@ -17,6 +17,9 @@
 #include <render/daFrameGraph/primitive.h>
 #include <render/daFrameGraph/drawRequest.h>
 
+#include <shaders/dag_refinedBlock.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
+
 
 namespace dafg
 {
@@ -28,6 +31,8 @@ namespace dafg
 
 class NodeHandle;
 class Registry;
+
+using RefinedBlockProvider = dag::FixedMoveOnlyFunction<32, refined_block::PassBlockHandle(const multiplexing::Index &) const>;
 
 /**
  * \brief The main builder object for describing at declaration time
@@ -109,6 +114,46 @@ public:
    * \param side_effect The side effect type to set.
    */
   BaseRegistry executionHas(SideEffects side_effect);
+
+  /**
+   * \brief Names a refined_block pass block in the frame graph so it can be
+   * targeted by \ref VirtualResourceRequest::forBlock and consumed via \ref useBlock.
+   *
+   * The provider returns the pass block to use for a given multiplexing index.
+   *
+   * \param name The name to register the block under.
+   * \param block_provider A callable (const multiplexing::Index&) -> PassBlockHandle.
+   */
+  template <class F>
+  BaseRegistry registerBlock(const char *name, F &&block_provider)
+  {
+    registerBlockImpl(name, eastl::forward<F>(block_provider));
+    return *this;
+  }
+
+  /**
+   * \brief Names a refined_block pass block in the frame graph so it can be
+   * targeted by \ref VirtualResourceRequest::forBlock and consumed via \ref useBlock.
+   *
+   * \param name The name to register the block under.
+   * \param block The pass block handle to register.
+   *
+   * \warning In case of multiplexing, only the last index's resources will be set.
+   */
+  BaseRegistry registerBlock(const char *name, refined_block::PassBlockHandle block)
+  {
+    return registerBlock(name, [block](const multiplexing::Index &) { return block; });
+  }
+
+  /**
+   * \brief Declares that this node consumes a refined_block pass block. daFG
+   * calls PassBlockHandle::setState() before the node's draws and orders the
+   * node after the node that sets resources into the block via forBlock.
+   *
+   * \param name The name of a block registered via \ref registerBlock.
+   * \note Only one block can be used within a node.
+   */
+  BaseRegistry useBlock(const char *name);
 
   /**
    * \brief Requests a certain global state for the execution time of this node.
@@ -306,6 +351,9 @@ public:
   using NameSpaceRequest::renameTexture;
 
   ///@}
+
+private:
+  void registerBlockImpl(const char *name, RefinedBlockProvider &&block_provider);
 };
 
 } // namespace dafg

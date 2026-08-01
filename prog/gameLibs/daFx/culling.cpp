@@ -21,6 +21,9 @@ CONSOLE_BOOL_VAL("dafx", allow_screen_area_discard, true);
 
 namespace dafx
 {
+
+constexpr uint32_t CULLING_REQ_FLAGS = SYS_VALID | SYS_ENABLED | SYS_RENDERABLE | SYS_RENDER_REQ;
+
 CullingId create_culling_state(ContextId cid, const eastl::vector<CullingDesc> &descs, uint32_t visibilityMask)
 {
   GET_CTX_RET(CullingId());
@@ -413,7 +416,7 @@ void process_cpu_culling(Context &ctx, int start, int count)
 {
   G_ASSERT(ctx.culling.cpuWorkers.size() >= start + count);
 
-  const uint32_t cpuValidationFlags = SYS_ENABLED | SYS_VALID | SYS_RENDERABLE | SYS_RENDER_REQ | SYS_CPU_RENDER_REQ;
+  const uint32_t cpuValidationFlags = CULLING_REQ_FLAGS | SYS_CPU_RENDER_REQ;
   InstanceGroups &stream = ctx.instances.groups;
 
   const unsigned char *__restrict cpuData = ctx.culling.cpuRes.get();
@@ -457,7 +460,7 @@ void process_gpu_culling(Context &ctx)
   if (!gpuData)
     return;
 
-  const uint32_t gpuValidationFlags = SYS_ENABLED | SYS_VALID | SYS_RENDERABLE | SYS_RENDER_REQ | SYS_GPU_RENDER_REQ;
+  const uint32_t gpuValidationFlags = CULLING_REQ_FLAGS | SYS_GPU_RENDER_REQ;
   InstanceGroups &stream = ctx.instances.groups;
 
   for (int i = 0, ie = feedback.frameWorkers.size(); i < ie; ++i)
@@ -560,8 +563,8 @@ inline void populate_cull_workers(int sid, CullingState *cull, uint32_t &flags, 
   }
 }
 
-void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frustum, const mat44f *glob_tm, const Point3 &view_pos,
-  OcclusionSyncWaitFunc occlusion_sync_wait_f)
+void update_culling_state(Context &ctx, CullingState *cull, dag::ConstSpan<int> workers, const Frustum &frustum, const mat44f *glob_tm,
+  const Point3 &view_pos, OcclusionSyncWaitFunc occlusion_sync_wait_f)
 {
   TIME_D3D_PROFILE(dafx_update_culling_state);
 
@@ -575,7 +578,7 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
   }
 
   uint32_t targetRenderTagsMask = cull->renderTagsMask;
-  uint32_t validationFlags = SYS_VALID | SYS_ENABLED | SYS_RENDERABLE | SYS_RENDER_REQ;
+  uint32_t validationFlags = CULLING_REQ_FLAGS;
 
   dag::Vector<int, framemem_allocator> visibleWorkers;
   bool doTest = !(ctx.debugFlags & DEBUG_DISABLE_CULLING);
@@ -609,7 +612,7 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
   }
 
   InstanceGroups &stream = ctx.instances.groups;
-  for (int sid : ctx.allRenderWorkers)
+  for (int sid : workers)
   {
     uint32_t &flags = stream.get<INST_FLAGS>(sid);
 
@@ -723,7 +726,7 @@ void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frust
 {
   GET_CTX();
   CullingState *cull = ctx.cullingStates.get(cull_id);
-  update_culling_state(ctx, cull, frustum, &glob_tm, view_pos, occlusion_sync_wait_f);
+  update_culling_state(ctx, cull, ctx.allRenderWorkers, frustum, &glob_tm, view_pos, occlusion_sync_wait_f);
 }
 
 
@@ -732,7 +735,25 @@ void update_culling_state(ContextId cid, CullingId cull_id, const Frustum &frust
 {
   GET_CTX();
   CullingState *cull = ctx.cullingStates.get(cull_id);
-  update_culling_state(ctx, cull, frustum, nullptr, view_pos, occlusion_sync_wait_f);
+  update_culling_state(ctx, cull, ctx.allRenderWorkers, frustum, nullptr, view_pos, occlusion_sync_wait_f);
+}
+
+void update_instances_culling_state(ContextId cid, CullingId cull_id, dag::ConstSpan<InstanceId> iids, const Frustum &frustum,
+  const mat44f *globtm, const Point3 &view_pos, OcclusionSyncWaitFunc occlusion_sync_wait_f)
+{
+  GET_CTX();
+  CullingState *cull = ctx.cullingStates.get(cull_id);
+
+  eastl::vector<int, framemem_allocator> workers;
+  for (InstanceId iid : iids)
+  {
+    int *pid = ctx.instances.list.get(iid);
+    if (!pid)
+      continue;
+    gather_subinstances(ctx, *pid, CULLING_REQ_FLAGS, 0, workers);
+  }
+
+  update_culling_state(ctx, cull, workers, frustum, globtm, view_pos, occlusion_sync_wait_f);
 }
 
 int fetch_culling_state_visible_count(ContextId cid, CullingId cull_id, const eastl::string &tag_name)

@@ -228,6 +228,11 @@ int parse_graph_size(const char *s, int fallback);
 // Resets `out` to an empty state.
 void clear_graph_data(GraphData &out);
 
+// Approximate in-memory footprint of a node in bytes -- the Node struct plus its heap-allocated
+// pins and property values. Used for undo-size accounting; intentionally rough (it does not descend
+// into per-pin DataBlocks).
+size_t approx_node_size(const GraphData::Node &node);
+
 // Serializes GraphData source-of-truth (nodes, edges, propertyValues, dirs,
 // heightmap, graph-level texture defaults) as a text DataBlock at `blk_path`.
 // Does NOT write `sourcePath`, and does NOT persist `mainGraphBlk` /

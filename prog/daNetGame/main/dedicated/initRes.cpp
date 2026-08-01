@@ -9,7 +9,6 @@
 #include <generic/dag_span.h>
 #include <util/dag_globDef.h>
 
-extern void init_shared_memory();
 extern bool init_res_factories_for_hosted_internal_server();
 
 void init_shaders() {}
@@ -40,8 +39,6 @@ void init_res_factories()
   };
   ::set_default_tex_factory(get_stub_tex_factory());
   ::register_stub_gameres_factories(make_span_const(stub_types, countof(stub_types)), /* report as loaded */ false);
-
-  init_shared_memory();
 }
 void term_res_factories() { terminate_stub_gameres_factories(); }
 

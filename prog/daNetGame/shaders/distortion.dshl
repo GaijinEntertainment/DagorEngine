@@ -19,7 +19,7 @@ macro DISTORTION_PS()
   static float   distortion_fade_range   = 0;
   static float   distortion_fade_power   = 0;
 
-  texture normal = material.texture[2];
+  texture normal = material.texture[2] stub=(0, 0.5, 0, 0.5);
 
   z_write  =true;
   blend_src[0]=one;
@@ -70,17 +70,11 @@ macro DISTORTION_PS()
       if (depthHaze <= depthScene)
         discard;
 
-      ##if normal != NULL
-        float4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
-        float3 normalMap       = unpack_ag_normal(packedNormalMap);
-        float3 worldNormal     = perturb_normal_precise(normalMap, normalize(input.normal), input.pointToEye, input.texcoord);
-        float  hazeNoise       = packedNormalMap.r;
-        float  hazeBlur        = packedNormalMap.b;
-      ##else
-        float3 worldNormal = normalize(input.normal);
-        float  hazeNoise   = 0;
-        float  hazeBlur    = 0;
-      ##endif
+      float4 packedNormalMap = tex2DBindless(get_normal_tex(), input.texcoord);
+      float3 normalMap       = unpack_ag_normal(packedNormalMap);
+      float3 worldNormal     = perturb_normal_precise(normalMap, normalize(input.normal), input.pointToEye, input.texcoord);
+      float  hazeNoise       = packedNormalMap.r;
+      float  hazeBlur        = packedNormalMap.b;
 
       #if NEED_VCOL_MASK && COLOR_NEEDED
         worldNormal *= input.colorMul.r;

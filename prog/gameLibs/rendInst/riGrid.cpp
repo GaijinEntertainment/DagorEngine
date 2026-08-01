@@ -5,31 +5,31 @@
 #include <grid/gridImpl.h>
 #include <ADT/linearGrid.h>
 
-DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_pos(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred)
+DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_pos(const RiGrid &grid_holder, const bbox3f &bbox, const RiGridObjPred &pred)
 {
   return grid_find_in_box_by_pos_impl<RiGridObject>(grid_holder, bbox, pred);
 }
 
-DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred)
+DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding(const RiGrid &grid_holder, const bbox3f &bbox, const RiGridObjPred &pred)
 {
   return grid_find_in_box_by_bounding_impl<RiGridObject>(grid_holder, bbox, pred);
 }
 
-DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding_min(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred,
-  float min_radius)
+DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding_min(const RiGrid &grid_holder, const bbox3f &bbox,
+  const RiGridObjPred &pred, float min_radius)
 {
   return grid_find_in_box_by_bounding_impl<RiGridObject>(grid_holder, bbox, pred,
     [min_radius](auto, vec4f wbsph) { return v_extract_w(wbsph) > min_radius; });
 }
 
-DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding_max(const RiGrid &grid_holder, bbox3f bbox, const RiGridObjPred &pred,
-  float max_radius)
+DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding_max(const RiGrid &grid_holder, const bbox3f &bbox,
+  const RiGridObjPred &pred, float max_radius)
 {
   return grid_find_in_box_by_bounding_impl<RiGridObject>(grid_holder, bbox, pred,
     [max_radius](auto, vec4f wbsph) { return v_extract_w(wbsph) < max_radius; });
 }
 
-DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding_pool(const RiGrid &grid_holder, bbox3f bbox, uint32_t pool,
+DAGOR_NOINLINE RiGridObject rigrid_find_in_box_by_bounding_pool(const RiGrid &grid_holder, const bbox3f &bbox, uint32_t pool,
   const RiGridObjPred &pred)
 {
   return grid_find_in_box_by_bounding_impl<RiGridObject>(grid_holder, bbox, pred,

@@ -126,10 +126,6 @@ if $(UseWholeOpt) = yes {
   UseLLDLink = yes ;
 }
 
-if $(Sanitize) != disabled {
-  UseLLDLink = no ; # currently there is false positive for ODR violation on string literals
-}
-
 if $(UseLLDLink) != yes {
   _LINK = $(_VC_DIR_BIN)/link.exe ;
 } else {

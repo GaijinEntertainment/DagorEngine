@@ -182,8 +182,11 @@ class SmallVector {
     return true;
   }
 
-// Avoid infinite recursion from rewritten operators in C++20
-#if __cplusplus <= 201703L
+// Avoid infinite recursion from rewritten operators in C++20.
+// MSVC does not update __cplusplus by default (stays at 199711L); use
+// _MSVC_LANG, which it defines to the real language version, instead.
+#if (defined(_MSVC_LANG) && _MSVC_LANG <= 201703L) || \
+    (!defined(_MSVC_LANG) && __cplusplus <= 201703L)
   friend bool operator==(const std::vector<T>& lhs, const SmallVector& rhs) {
     return rhs == lhs;
   }

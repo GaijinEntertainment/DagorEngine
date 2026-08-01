@@ -20,7 +20,6 @@ float contactShadowRayCastWithScaleHitT(
   float linearDepth,
   float4x4 viewProjTmNoOfs,
   out float2 hitUV, float4 viewScaleOfs,
-  float2 dynamic_resolution_scale = float2(1, 1),
   float2 screenHtAspectAndMinLen = float2(1080. / 1920., 0.0))
 {
   float4 rayStartClip = mul( float4( cameraToPoint, 1 ), viewProjTmNoOfs );
@@ -67,10 +66,11 @@ float contactShadowRayCastWithScaleHitT(
     #if FSR_DISTORTION
       float sampleDepth = float(tex2Dlod(depth_gbuf, float4(linearToDistortedTc(sampleUVz.xy), 0, 0)).r);
     #else
-      float sampleDepth = float(tex2Dlod(depth_gbuf, float4(sampleUVz.xy * dynamic_resolution_scale, 0, 0)).r);
+      float sampleDepth = float(tex2Dlod(depth_gbuf, float4(sampleUVz.xy, 0, 0)).r);
     #endif
     float depthDiff = sampleUVz.z - sampleDepth;
-    bool hasHit = depthDiff < -selfOcclusionBias && depthDiff > -(selfOcclusionBias + 2.h * compareTolerance);
+    // samples past the far plane (reversed-z) are below any depth buffer value and would false-hit
+    bool hasHit = depthDiff < -selfOcclusionBias && depthDiff > -(selfOcclusionBias + 2.h * compareTolerance) && sampleUVz.z > 0;
 
 
     #if EARLY_EXIT_CONTACT_SHADOWS
@@ -108,7 +108,6 @@ float contactShadowFilteredRayCastWithScaleHitT(
   float linearDepth,
   float4x4 viewProjTmNoOfs,
   out float2 hitUV, float4 viewScaleOfs,
-  float2 dynamic_resolution_scale = float2(1, 1),
   float2 screenHtAspectAndMinLen = float2(1080./1920., 0.0))
 {
   float4 rayStartClip = mul( float4( cameraToPoint, 1 ), viewProjTmNoOfs );
@@ -160,11 +159,12 @@ float contactShadowFilteredRayCastWithScaleHitT(
     #else
     float2 uv = sampleUVz.xy;
     #endif
-    const float unfiltered_raw_depth = float(depth_gbuf.SampleLevel(depth_gbuf_samplerstate, uv * dynamic_resolution_scale, 0).x);
-    float linear_raw_depth = float(depth_gbuf.SampleLevel(depth_gbuf_linear_samplerstate, uv * dynamic_resolution_scale, 0).x);
+    const float unfiltered_raw_depth = float(depth_gbuf.SampleLevel(depth_gbuf_samplerstate, uv, 0).x);
+    float linear_raw_depth = float(depth_gbuf.SampleLevel(depth_gbuf_linear_samplerstate, uv, 0).x);
     float hitMinDepth = sampleUVz.z + selfOcclusionBias;
+    // samples past the far plane (reversed-z) are below any depth buffer value and would false-hit
     bool hasHit = min(unfiltered_raw_depth, linear_raw_depth) > hitMinDepth &&
-      max(unfiltered_raw_depth, linear_raw_depth) < hitMinDepth + compareTolerance;
+      max(unfiltered_raw_depth, linear_raw_depth) < hitMinDepth + compareTolerance && sampleUVz.z > 0;
     #if EARLY_EXIT_CONTACT_SHADOWS
     if (hasHit)
     {
@@ -188,7 +188,7 @@ float contactShadowFilteredRayCastWithScaleHitT(
     #else
     float2 uv = sampleUVz.xy;
     #endif
-    float sampleDepth = float(depth_gbuf.SampleLevel(depth_gbuf_samplerstate, uv * dynamic_resolution_scale, 0).x);
+    float sampleDepth = float(depth_gbuf.SampleLevel(depth_gbuf_samplerstate, uv, 0).x);
     float depthDiff = sampleUVz.z - sampleDepth;
 
     #if BRANCHED_VERSION
@@ -196,14 +196,15 @@ float contactShadowFilteredRayCastWithScaleHitT(
     BRANCH
     if (i < numFilteredSteps)
     {
-      float linear_raw_depth = depth_gbuf.SampleLevel(depth_gbuf_linear_samplerstate, uv * dynamic_resolution_scale, 0).x;
+      float linear_raw_depth = depth_gbuf.SampleLevel(depth_gbuf_linear_samplerstate, uv, 0).x;
       minDepth = min(minDepth, linear_raw_depth);
       maxDepth = max(maxDepth, linear_raw_depth);
     }
     float hitMinDepth = sampleUVz.z + selfOcclusionBias;
     bool hasHit = minDepth > hitMinDepth && maxDepth < hitMinDepth + compareTolerance;
     #else
-    bool hasHit = depthDiff < -selfOcclusionBias && depthDiff > -(selfOcclusionBias + 2.h * compareTolerance);
+    // samples past the far plane (reversed-z) are below any depth buffer value and would false-hit
+    bool hasHit = depthDiff < -selfOcclusionBias && depthDiff > -(selfOcclusionBias + 2.h * compareTolerance) && sampleUVz.z > 0;
     #endif
 
     #if EARLY_EXIT_CONTACT_SHADOWS
@@ -234,11 +235,10 @@ float contactShadowRayCastWithScale(
   float4x4 projTm,
   float linearDepth,
   float4x4 viewProjTmNoOfs,
-  out float2 hitUV, float4 viewScaleOfs,
-  float2 dynamic_resolution_scale = float2(1, 1))
+  out float2 hitUV, float4 viewScaleOfs)
 {
   float hitT = contactShadowRayCastWithScaleHitT(depth_gbuf, depth_gbuf_samplerstate, cameraToPoint, rayDirection, rayLength,
-    numSteps, stepOffset, projTm, linearDepth, viewProjTmNoOfs, hitUV, viewScaleOfs, dynamic_resolution_scale);
+    numSteps, stepOffset, projTm, linearDepth, viewProjTmNoOfs, hitUV, viewScaleOfs);
   return float(1.h - saturate(1.h - pow2(hitT)));
 }
 
@@ -249,12 +249,11 @@ float contactShadowRayCast(
   float4x4 projTm,
   float linearDepth,
   float4x4 viewProjTmNoOfs,
-  out float2 hitUV,
-  float2 dynamic_resolution_scale = float2(1, 1))
+  out float2 hitUV)
 {
   return contactShadowRayCastWithScale(depth_gbuf, depth_gbuf_samplerstate, cameraToPoint, rayDirection,
                                        rayLength, numSteps, stepOffset, projTm, linearDepth,
-                                       viewProjTmNoOfs, hitUV, float4(1,1,0,0), dynamic_resolution_scale);
+                                       viewProjTmNoOfs, hitUV, float4(1,1,0,0));
 }
 
 #endif

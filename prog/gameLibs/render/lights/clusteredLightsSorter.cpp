@@ -62,10 +62,10 @@ static void dispatch_bitonic_sort(ComputeShader &cs, Sbuffer *buf, int buf_var_i
 
 void ClusteredLightsSorter::sortOmniLightsGPU(Sbuffer *buf, const Point3 &view_pos, int light_count)
 {
-  dispatch_bitonic_sort(sortOmniCS, buf, omni_lights_structured_buf_varId, light_count, view_pos, MAX_OMNI_LIGHTS);
+  dispatch_bitonic_sort(sortOmniCS, buf, omni_lights_structured_buf_varId, light_count, view_pos, MAX_CLUSTERED_OMNI_LIGHTS);
 }
 
 void ClusteredLightsSorter::sortSpotLightsGPU(Sbuffer *buf, const Point3 &view_pos, int light_count)
 {
-  dispatch_bitonic_sort(sortSpotCS, buf, spot_lights_structured_buf_varId, light_count, view_pos, MAX_SPOT_LIGHTS);
+  dispatch_bitonic_sort(sortSpotCS, buf, spot_lights_structured_buf_varId, light_count, view_pos, MAX_CLUSTERED_SPOT_LIGHTS);
 }

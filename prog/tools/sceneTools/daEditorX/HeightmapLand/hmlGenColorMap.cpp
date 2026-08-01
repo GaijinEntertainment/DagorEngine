@@ -5347,6 +5347,7 @@ real HmapLandPlugin::getBrushImageData(int x, int y, IHmapBrushImage::Channel ch
       case IHmapBrushImage::CHANNEL_G: return c.g / 255.0f;
       case IHmapBrushImage::CHANNEL_B: return c.b / 255.0f;
       case IHmapBrushImage::CHANNEL_A: return c.a / 255.0f;
+      default: break;
     }
 
     return (c.r + c.g + c.b) / (255.0f * 3);
@@ -5399,6 +5400,7 @@ void HmapLandPlugin::setBrushImageData(int x, int y, real v, IHmapBrushImage::Ch
       case IHmapBrushImage::CHANNEL_B: col.b = c; break;
 
       case IHmapBrushImage::CHANNEL_A: col.a = c; break;
+      default: break;
     }
 
     edImage->paintImage(lcg, col);

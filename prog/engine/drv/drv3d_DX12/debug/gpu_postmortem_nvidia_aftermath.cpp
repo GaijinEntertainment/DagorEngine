@@ -669,6 +669,14 @@ bool Aftermath::tryEnableDumps()
 
 void Aftermath::onCrashDumpGenerate(const void *dump, const uint32_t size, bool manually_send)
 {
+  // The driver invokes this callback when the GPU crashed, sometimes before the
+  // removal is observable elsewhere. Flag the device lost right away so the
+  // worker thread stops recording into the driver.
+  if (!manually_send)
+  {
+    get_device().signalDeviceErrorNoDebugInfo();
+  }
+
   char path[DAGOR_MAX_PATH];
   // Same format as regular program crash dumps, just with .nv-gpudmp extension which can be opened with NVIDIA Nsight Graphics
   // Log name is pre-determined for crashpad (no times, ids, etc.. within)
@@ -773,12 +781,13 @@ Aftermath::~Aftermath()
   if (lastError != S_OK && lastError != DXGI_ERROR_INVALID_CALL)
   {
     waitForDump();
-    // This will keep the aftermath dll loaded after we destroy the postmortem device,
-    // and if the nvidia driver interacts with the aftermath and calls back our registered functions
-    // through the proxy object, won't cause crash even when the main postmortem device is already destroyed.
-    library.release();
-    proxy.object = nullptr;
   }
+
+  // This will keep the aftermath dll loaded after we destroy the postmortem device,
+  // and if the nvidia driver interacts with the aftermath and calls back our registered functions
+  // through the proxy object, won't cause crash even when the main postmortem device is already destroyed.
+  library.release();
+  proxy.object = nullptr;
 
   if (api.disableGpuCrashDumps)
   {

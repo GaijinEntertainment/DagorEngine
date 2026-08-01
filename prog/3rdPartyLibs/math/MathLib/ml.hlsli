@@ -1694,10 +1694,11 @@ namespace Rng
     #define ML_RNG_UTOF 0
     #define ML_RNG_MANTISSA_BITS 1
 
+    // Both produce a float in [0; 1) range
     #if( ML_RNG_FLOAT01_MODE == ML_RNG_UTOF )
         #define _UintToFloat01( x ) ( ( x >> 8 ) * ( 1.0f / float( 1 << 24 ) ) )
     #else
-        #define _UintToFloat01( x ) ( 2.0f - asfloat( ( x >> 9 ) | 0x3F800000 ) )
+        #define _UintToFloat01( x ) ( asfloat( ( x >> 9 ) | 0x3F800000 ) - 1.0f )
     #endif
 
     // Tiny Encryption Algorithm

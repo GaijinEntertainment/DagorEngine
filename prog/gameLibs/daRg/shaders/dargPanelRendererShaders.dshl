@@ -123,8 +123,8 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
         float3 worldNormal   : TEXCOORD2;
         float3 pointToEye    : TEXCOORD3;
         #ifdef MOTION_VECTORS_ENABLED
-          float4 out_pos                      : TEXCOORD4;
-          float4 out_pos_prev                 : TEXCOORD5;
+          float3 out_pos                      : TEXCOORD4;
+          float3 out_pos_prev                 : TEXCOORD5;
           float3 out_pos_unjittered : TEXCOORD6;
         #endif
       ##elif shader == darg_panel_frame_buffer_no_depth || shader == darg_panel_frame_buffer
@@ -284,7 +284,7 @@ if (shader == darg_panel_reactive_mask)
         #ifdef MOTION_VECTORS_ENABLED
           float2 edgeBias = EDGE_BLEND_WIDTH*(abs(ddx(input.texcoord)) + abs(ddy(input.texcoord)));
           bool rejectTemporalHistory = all(input.texcoord > 0 + edgeBias && input.texcoord < 1 - edgeBias);
-          init_motion_vector(result, rejectTemporalHistory ? encode_motion_mask_no_jitter() : encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw ));
+          init_motion_vector(result, rejectTemporalHistory ? encode_motion_mask_no_jitter() : encode_motion_vector( input.out_pos, input.out_pos_prev ));
         #endif
         return encode_gbuffer(result, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
       }

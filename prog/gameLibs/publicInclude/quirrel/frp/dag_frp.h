@@ -336,11 +336,12 @@ public:
     1
 #endif
     ;
-  int slowUpdateThresholdUsec = 1500 * SLOW_MUL;
-  int slowSubscriberThresholdUsec = 10000 * SLOW_MUL;
+  int slowUpdateThresholdUsec = 1500;
+  int slowSubscriberThresholdUsec = 10000;
   int curSubscriberThresholdUsec = -1;
+  int getSlowUpdateThresholdUsec() const { return slowUpdateThresholdUsec * SLOW_MUL; }
+  int getCurSubscriberThresholdUsec() const { return curSubscriberThresholdUsec * SLOW_MUL; }
   bool forceImmutable = false;
-  bool doCollectSourcesRecursively = false;
   bool reportedSlowUpdate = false;
   bool callingSubscriber = false;
   bool checkSubscribers = false;

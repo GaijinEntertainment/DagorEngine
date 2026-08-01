@@ -116,7 +116,7 @@ local  version, width, neccblk1, neccblk2, datablkw, eccblkwid;
 let  ecclevel = 2;
 
 // set bit to indicate cell in qrframe is immutable.  symmetric around diagonal
-function setmask(x, y) {
+function setmask(x: number, y: number) {
   local  bt;
   if (x > y) {
     bt = x;
@@ -133,7 +133,7 @@ function setmask(x, y) {
 }
 
 // enter alignment pattern - black to qrframe, white to mask (later black frame merged to mask)
-function putalign(x, y) {
+function putalign(x: number, y: number) {
   local j;
 
   qrframe[x + width * y] = 1;
@@ -187,7 +187,7 @@ function appendrs(data, dlen, ecbuf, eclen) {
 // Frame data insert following the path rules
 
 // check mask - since symmetrical use half.
-function ismasked(x, y) {
+function ismasked(x: number, y: number) {
   local  bt;
   if (x > y) {
     bt = x;
@@ -323,7 +323,7 @@ let N4 = 10
 
 // Using the table of the length of each run, calculate the amount of bad image
 // - long runs or those that look like finders; called twice, once each for X and Y
-function badruns(length) {
+function badruns(length: number) {
   local i;
   local runsbad = 0;
   for (i = 0; i <= length; i++)
@@ -752,7 +752,7 @@ function genframe(instring) {
 }
 
 
-function generateQrArray(data) {
+function generateQrArray(data): array {
   let frame = genframe(data ? data : "")
   let res = []
   local i
@@ -762,7 +762,7 @@ function generateQrArray(data) {
   return res
 }
 
-function generateQrBlocks(data) {
+function generateQrBlocks(data): table {
   let codeArr = generateQrArray(data)
   let list = []
   foreach(rowIdx, row in codeArr) {

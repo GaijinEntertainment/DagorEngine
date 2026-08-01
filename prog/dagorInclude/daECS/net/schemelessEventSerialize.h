@@ -15,9 +15,10 @@ class BitStream;
 namespace ecs
 {
 
+class EntityManager;
 struct SchemelessEvent;
 typedef eastl::optional<SchemelessEvent> MaybeSchemelessEvent;
-void serialize_to(const SchemelessEvent &, danet::BitStream &bs);
-MaybeSchemelessEvent deserialize_from(const danet::BitStream &bs);
+void serialize_to(EntityManager &mgr, const SchemelessEvent &, danet::BitStream &bs);
+MaybeSchemelessEvent deserialize_from(EntityManager &mgr, const danet::BitStream &bs);
 
 } // namespace ecs

@@ -1,0 +1,234 @@
+//
+// Dagor Engine 6.5 - Game Libraries
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+//
+#pragma once
+
+#include <EASTL/array.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/string.h>
+#include <EASTL/vector.h>
+#include <EASTL/vector_map.h>
+
+#include <osApiWrappers/dag_critSec.h>
+#include <gameRes/dag_gameResources.h>
+#include <gameRes/dag_stdGameResId.h>
+#include <3d/dag_picMgr.h>
+#include <3d/dag_texIdSet.h>
+#include <3d/dag_resPtr.h>
+#include <shaders/dag_postFxRenderer.h>
+#include <math/dag_math3d.h>
+
+class DataBlock;
+
+namespace AnimV20
+{
+class IAnimCharacter2;
+}
+
+typedef eastl::unique_ptr<GameResource, GameResDeleter> GameResPtr;
+
+struct IconAnimchar
+{
+  enum
+  {
+    FULL,
+    SILHOUETTE,
+    SAME,
+    UNKNOWN
+  };
+
+  void init(AnimV20::IAnimCharacter2 *animchar_, const DataBlock *blk_);
+  void updateTmWtm(AnimV20::IAnimCharacter2 *parent);
+
+  AnimV20::IAnimCharacter2 *animchar = nullptr;
+  const DataBlock *blk = nullptr; // non-null only when setting things up.
+  int slotId = -1;
+  vec4f scaleV = v_zero();
+  int shading = UNKNOWN;
+  E3DCOLOR silhouette = 0;
+  bool silhouetteHasShadow = false;
+  float silhouetteMinShadow = 1.0f;
+  float aoIntensity = 0.0f;
+  float aoRadius = 1.0f;
+  float aoBias = 0.02f;
+  E3DCOLOR outline = 0;
+  bool calcBBox = true;
+  bool swapYZ = true;
+  enum struct AttachType
+  {
+    SLOT,
+    SKELETON,
+    NODE
+  } attachType = AttachType::SLOT;
+
+  eastl::string parentNode = "";
+  TMatrix relativeTm = TMatrix::IDENT;
+  // Index into the attachments array of the animchar this one is mounted on. 0 = base weapon
+  // (default). Lets a nested mod (scope on an adapter) position against its host, not the root.
+  int parentIndex = 0;
+  eastl::vector<SharedTex> managedTextures;
+  eastl::vector<eastl::string> hideNodeNames;
+};
+
+class DeferredRenderTarget;
+using IconAnimcharWithAttachments = eastl::vector<IconAnimchar>;
+
+class EnviPanoramaCache
+{
+  constexpr static size_t ENVI_PANORAMA_CACHE_SIZE = 3;
+
+public:
+  struct Id
+  {
+    int val = -1;
+    operator bool() const { return val >= 0; }
+  };
+
+  Id addEnvi(const char *gameres_tex_name)
+  {
+    if (gameres_tex_name == nullptr || gameres_tex_name[0] == '\0')
+      return {};
+
+    for (int i = 0; i < usedSpace; ++i)
+    {
+      if (!strcmp(gameres_tex_name, texNames[i]))
+      {
+        if (i != 0)
+        {
+          eastl::swap(iconEnviPanoramaTextures[0], iconEnviPanoramaTextures[i]);
+          eastl::swap(texNames[0], texNames[i]);
+        }
+        return Id{0};
+      }
+    }
+
+    debug("Animchar Icon Render: adding new envi panorama `%s` to cache", gameres_tex_name);
+
+    SharedTex tex = dag::get_tex_gameres(gameres_tex_name);
+    if (!tex)
+    {
+      logerr("Animchar Icon Render: enviPanoramaTex '%s' is missing in assets", gameres_tex_name);
+      return {};
+    }
+
+    usedSpace = min(usedSpace + 1, ENVI_PANORAMA_CACHE_SIZE);
+    const size_t cachePos = usedSpace - 1;
+
+    iconEnviPanoramaTextures[cachePos] = eastl::move(tex);
+    texNames[cachePos] = String{gameres_tex_name};
+
+    return Id{(int)cachePos};
+  }
+
+  bool prefetch(const Id id) const
+  {
+    G_ASSERT(id);
+
+    const SharedTex &tex = iconEnviPanoramaTextures[id.val];
+    G_ASSERT(tex.getTexId() != BAD_TEXTUREID);
+
+    const TEXTUREID texId = tex.getTexId();
+    mark_managed_textures_important({&texId, 1});
+
+    return prefetch_and_check_managed_texture_loaded(tex.getTexId(), true);
+  }
+
+  const SharedTex &get(const Id id) const
+  {
+    G_ASSERT(id);
+    return iconEnviPanoramaTextures[id.val];
+  }
+
+  void clear()
+  {
+    iconEnviPanoramaTextures = {};
+    texNames = {};
+    usedSpace = 0;
+
+    debug("Animchar Icon Render: cleared envi panorama cache");
+  }
+
+private:
+  eastl::array<SharedTex, ENVI_PANORAMA_CACHE_SIZE> iconEnviPanoramaTextures = {};
+  eastl::array<String, ENVI_PANORAMA_CACHE_SIZE> texNames = {};
+  size_t usedSpace = 0;
+};
+
+enum class IconPrepareStatus : uint8_t
+{
+  Failed,
+  RetryAgain,
+  Ready
+};
+
+struct IconAnimcharEnviParams
+{
+  EnviPanoramaCache::Id id;
+  bool prefetched = false;
+  float exposure = 1.0f;
+};
+
+struct IconAnimcharRenderingContext
+{
+  IconPrepareStatus status = IconPrepareStatus::Failed;
+  IconAnimcharWithAttachments iconAnimchars;
+  IconAnimcharEnviParams enviParams;
+};
+
+struct IconSSAA
+{
+  int w, h, ssaa;
+};
+
+class RenderAnimCharIconBase
+{
+public:
+  RenderAnimCharIconBase() = default;
+  bool match(const DataBlock &pic_props, int &out_w, int &out_h);
+  bool render(const PictureManager::PictureRenderContext &pic_ctx);
+  void clearPendReq();
+
+  IconSSAA applySSAA(const int dstw, const int dsth, const DataBlock &info) const;
+  Driver3dPerspective updateAnimcharRenderParams(IconAnimcharRenderingContext &render_ctx,
+    const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA &icon_ssaa);
+  SharedTexWithShaderVar setEnviParams(const IconAnimcharEnviParams &envi_params);
+
+  IconAnimcharRenderingContext beforeRender(const PictureManager::PictureRenderContext &pic_ctx);
+  void afterRender(IconAnimcharWithAttachments &icon_animchars, const PICTUREID pid);
+
+protected:
+  DataBlock applyDebugInfo(const DataBlock &info) const;
+
+  struct AnimcharPrefetch
+  {
+    IconPrepareStatus status = IconPrepareStatus::Failed;
+    IconAnimcharWithAttachments ia;
+  };
+
+  AnimcharPrefetch prepareAnimchar(const PictureManager::PictureRenderContext &pic_ctx);
+
+  void resolveFinalTarget(const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA icon_ssaa, const bool use_icon_tonemap);
+
+  IconPrepareStatus renderInternal(const PictureManager::PictureRenderContext &pic_ctx);
+
+  virtual bool renderIconAnimChars(const IconAnimcharRenderingContext &render_ctx, const PictureManager::PictureRenderContext &pic_ctx,
+    const IconSSAA &icon_ssaa, const Driver3dPerspective &persp) = 0;
+  virtual bool needsResolveRenderTarget() = 0;
+  virtual void ensureDim(int w, int h) = 0;
+  virtual void onBeforeRender(const DataBlock &) {};
+  virtual void onAfterRender() {};
+  virtual void setSunLightParams(const Point4 &lightDir, const Point4 &lightColor) = 0;
+  IconAnimcharEnviParams getEnviParams(const DataBlock &info);
+  void setLightParams(const DataBlock &info, bool full_deferred);
+  void clear_to(E3DCOLOR col, const PictureManager::PictureRenderContext &pic_ctx) const;
+  eastl::unique_ptr<DeferredRenderTarget> target;
+  UniqueTexWithShaderVar finalTarget;
+  UniqueTexWithShaderVar finalTargetAA;
+  PostFxRenderer finalAA;
+  PostFxRenderer finalSharpen;
+  EnviPanoramaCache enviPanoramaCache;
+  eastl::vector_map<PICTUREID, IconAnimcharWithAttachments> pendReq;
+  WinCritSec pendReqCs;
+  bool enviInited = false;
+};

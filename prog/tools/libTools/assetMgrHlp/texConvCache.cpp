@@ -9,6 +9,7 @@
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/dtx/makeDDS.h>
 #include <libTools/util/makeBindump.h>
+#include <libTools/util/binDumpReader.h>
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/util/appDirRelativePath.h>
@@ -21,7 +22,10 @@
 #include <ioSys/dag_oodleIo.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_ioUtils.h>
+#include <ioSys/dag_fileIo.h>
 #include <generic/dag_smallTab.h>
+#include <generic/dag_patchTab.h>
+#include <util/dag_roNameMap.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_symHlp.h>
@@ -29,6 +33,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_globalMutex.h>
 #include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_critSec.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_string.h>
 #include <stdlib.h>
@@ -43,6 +48,30 @@ static String cache2Base;
 static bool reqFastConv = false;
 static DagorAssetMgr *assetMgr = NULL;
 static bool dryRun = false;
+
+// Own copy: caller's appblk may be a scratch object, mutated/reused later
+// (same pattern as libTools/assetMgrHlp/assetBuildCache.cpp's bindAssetsBlock).
+static DataBlock texExportBlk;
+
+// Memoized per already-built .dxp.bin, for get_tex_asset_built_ddsx()'s respack reuse fast path
+// (see try_get_ddsx_from_respack() below) - mirrors assetExport.cpp's RespackPackCache for GRP packs.
+// Reloads automatically whenever the cache file's own mtime/size changes.
+struct TexRespackCache
+{
+  AssetExportCache cache;
+  String packFname;
+  unsigned cacheMTime = 0, cacheSize = 0;
+  bool upToDate = false;
+  // Set once any asset here is found genuinely changed; suppresses save() until a fresh reload, since a
+  // never-tracked-before file's hash is committed unconditionally even under the fail-fast check.
+  bool anyAssetChanged = false;
+};
+static OAHashNameMap<true> texRespackCacheFnames;
+static Tab<TexRespackCache> texRespackCaches(inimem);
+// build_on_demand_tex_factory runs several worker threads that can all hit the same respack
+// concurrently (many textures map to one pack); guards all access to the two statics above and
+// to any single TexRespackCache's AssetExportCache, none of which are otherwise thread-safe.
+static WinCritSec texRespackCacheCs;
 
 #define OVERRIDE_ZLIB_PACKING(a)                               \
   bool def_force_zlib = ddsx::ConvertParams::forceZlibPacking; \
@@ -238,6 +267,7 @@ bool texconvcache::init(DagorAssetMgr &mgr, const DataBlock &appblk, const char 
   }
 
   const DataBlock &expblk = *appblk.getBlockByNameEx("assets")->getBlockByNameEx("export");
+  texExportBlk.setFrom(&expblk, appblk.resolveFilename());
   cacheBase.setStrCat(make_eff_app_relative_path(expblk.getStr("cache", "develop/.cache"), true), "ddsx~cvt");
   dd_simplify_fname_c(cacheBase);
   cacheBase.resize(strlen(cacheBase) + 1);
@@ -265,6 +295,9 @@ void texconvcache::term()
   dllHandle = NULL;
   texExp = NULL;
   texActype = -1;
+  texExportBlk.reset();
+  texRespackCacheFnames.reset();
+  texRespackCaches.clear();
 }
 
 bool texconvcache::is_tex_asset_convertible(DagorAsset &a) { return a.getType() == texActype && a.props.getBool("convert", false); }
@@ -452,6 +485,287 @@ static void remove_fast_cache_when_final_ready(DagorAsset &a, const char *eff_ta
     dd_erase(fn2);
   }
 }
+
+// --- get_tex_asset_built_ddsx() texpack (.dxp.bin) reuse fast path ---
+// Mirrors assetExport.cpp's GRP respack-reuse (tryGetBuiltResFromRespack()/tryServeFromRespackVariant()),
+// adapted for DDSx tex packs. Unlike the GRP path, get_tex_asset_built_ddsx() already builds textures
+// directly (via texExp), not through IDaBuildInterface - so this fast path needs no daBuild.dll crossing.
+
+// Minimal read-only subset of texExport.cpp's DDSxTexPack2Serv (also duplicated in dxpUtil/dxpRepack.cpp) -
+// just enough to open an already-built .dxp.bin and read one texture's packed DDSx bytes back out.
+struct DxpReadOnlyPack
+{
+  struct Rec
+  {
+    int texId, ofs, packedDataSize;
+  };
+
+  IGenLoad *crd = nullptr;
+  int ver = 2;
+  // Maps each stored name stripped at its '*' (the marker every packed texture name carries, to tell it
+  // apart from a loose-file texture with the same name - never part of the name itself) back to its record
+  // index, dropping the TextureMetaData-encoded suffix that follows it too. Built once in make(). Safe
+  // because saveTextures() dedups by full encoded name before packing (Pack2TexGatherHelper), so at most
+  // one record can ever map to a given stripped key - callers look up by the bare asset name alone and
+  // never need to replicate the tmd encoding themselves.
+  OAHashNameMap<true> strippedNames;
+  //-- dump start
+  RoNameMap texNames;
+  PatchableTab<ddsx::Header> hdr;
+  PatchableTab<Rec> rec;
+  //-- dump end; no members allowed after this point
+
+  static DxpReadOnlyPack *make(BinDumpReader &crd)
+  {
+    if (crd.readFourCC() != _MAKE4C('DxP2'))
+      return nullptr;
+    int ver = crd.readInt32e();
+    if (ver != 2 && ver != 3)
+      return nullptr;
+    crd.readInt32e(); // tex_num, unused here
+
+    crd.beginBlock();
+    int dump_sz = crd.getBlockRest();
+    DxpReadOnlyPack *pack = new (memalloc(offsetof(DxpReadOnlyPack, texNames) + dump_sz, tmpmem), _NEW_INPLACE) DxpReadOnlyPack;
+    pack->ver = ver;
+    void *dump_ptr = &pack->texNames;
+    crd.getRawReader().read(dump_ptr, dump_sz);
+    crd.endBlock();
+
+    crd.convert32(dump_ptr, sizeof(*pack) - offsetof(DxpReadOnlyPack, texNames));
+
+    PatchableTab<PatchablePtr<const char>> map;
+    memcpy(&map, &pack->texNames.map, sizeof(map)); //-V780
+    map.patch(dump_ptr);
+    crd.convert32(map.data(), data_size(map));
+
+    pack->texNames.patchData(dump_ptr);
+
+    pack->hdr.patch(dump_ptr);
+    pack->rec.patch(dump_ptr);
+    if (ver == 3)
+      crd.convert32(pack->rec.data(), data_size(pack->rec));
+    else // if (ver == 2)
+    {
+      struct RecV2
+      {
+        int64_t texPtr;
+        int texId, ofs, packedDataSize, _resv;
+      };
+      const RecV2 *src = reinterpret_cast<RecV2 *>(pack->rec.data());
+      for (auto *dst = pack->rec.data(), *dst_e = pack->rec.end(); dst < dst_e; dst++, src++)
+        dst->texId = 0, dst->ofs = src->ofs, dst->packedDataSize = src->packedDataSize;
+    }
+
+    pack->crd = &crd.getRawReader();
+
+    for (int i = 0; i < pack->texNames.map.size(); i++)
+    {
+      const char *nm = pack->texNames.map[i];
+      const char *star = strchr(nm, '*');
+      int id = pack->strippedNames.addNameId(nm, star ? (size_t)(star - nm) : strlen(nm));
+      G_ASSERT(id == i);
+      G_UNUSED(id);
+    }
+
+    return pack;
+  }
+
+  bool getDDSx(const char *name, ddsx::Buffer &b)
+  {
+    int id = strippedNames.getNameId(name);
+    if (id < 0 || rec[id].packedDataSize < 0)
+      return false;
+
+    b.len = rec[id].packedDataSize + sizeof(ddsx::Header);
+    b.ptr = memalloc(b.len, tmpmem);
+    memcpy(b.ptr, &hdr[id], sizeof(ddsx::Header));
+
+    crd->seekto(rec[id].ofs);
+    crd->read((char *)b.ptr + sizeof(ddsx::Header), rec[id].packedDataSize);
+    return true;
+  }
+};
+
+// Resolves the same tex-pack/cache paths a batch export would use, mirroring assetExport.cpp's
+// resolveRespackCacheFname()/make_cache_fname() for GRP packs. dabuild_collapse_packs is only ever set by
+// the standalone batch tool, so it's always false for any on-demand caller here, same as the GRP path.
+//
+// Base pack only, no patch-build variant: assetBuildCache.cpp's isPatchBuildActive() sits alongside
+// game-resource-hook machinery (TextureFactory/D3dResetQueue/gamereshooks) that daBuild.dll doesn't link -
+// calling it here pulled that whole translation unit into daBuild.dll's link (a real link failure, not
+// hypothetical). Falls back to a full rebuild when current data only lives in a patch respack - never
+// stale, just a missed reuse opportunity.
+static bool resolve_tex_respack_fname(DagorAsset &a, const char *pkname, const char *target_str, const char *profile,
+  String &out_pack_fname, String &out_cache_fname)
+{
+  if (texExportBlk.isEmpty())
+    return false;
+
+  String destBase, packFnamePrefix;
+  assethlp::build_package_dest_strings(destBase, packFnamePrefix, texExportBlk, pkname, "%appDir", target_str, profile,
+    /*patch_build*/ false);
+
+  String packName = a.getDestPackName(/*dabuild_collapse_packs*/ false, false, true);
+  if (packName.empty())
+    return false;
+
+  const char *addTexPfx = texExportBlk.getStr("addTexPrefix", "");
+  out_pack_fname.printf(260, "%s%s/%s%s", destBase.str(), addTexPfx, packFnamePrefix.str(), packName.str());
+  simplify_fname(out_pack_fname);
+
+  String cacheBaseEff = make_eff_app_relative_path(texExportBlk.getStr("cache", "develop/.cache"), true);
+
+  if (profile && !*profile)
+    profile = nullptr;
+  if (!pkname)
+  {
+    if (!profile)
+      out_cache_fname.printf(260, "%s%s.%s.bin", cacheBaseEff.str(), packName.str(), target_str);
+    else
+      out_cache_fname.printf(260, "%s~%s/%s.%s.bin", cacheBaseEff.str(), profile, packName.str(), target_str);
+  }
+  else
+  {
+    if (!profile)
+      out_cache_fname.printf(260, "%s%s~%s.%s.bin", cacheBaseEff.str(), pkname, packName.str(), target_str);
+    else
+      out_cache_fname.printf(260, "%s~%s/%s~%s.%s.bin", cacheBaseEff.str(), profile, pkname, packName.str(), target_str);
+  }
+  simplify_fname(out_cache_fname);
+  return true;
+}
+
+// Matches the version-check texExport.cpp's checkDdsxTexPackUpToDate()/quickCheckDdsxTexPackReady() use to
+// gate opening the previous pack (its DDSX_EXP_VER=2 is a dedicated .dxp.bin format version, distinct from
+// the per-texture cache's own getGameResClassId()/getGameResVersion() pairing).
+static const int TEXPACK_DDSX_EXP_VER = 2;
+
+// Caller must hold texRespackCacheCs: mutates the shared texRespackCacheFnames/texRespackCaches
+// statics and, on a cache-miss reload, the returned entry's AssetExportCache.
+static TexRespackCache &get_tex_respack_cache(const char *cache_fname, const char *pack_fname, int asset_type, unsigned gameres_ver)
+{
+  int id = texRespackCacheFnames.addNameId(cache_fname);
+  if (id == texRespackCaches.size())
+    texRespackCaches.push_back();
+  TexRespackCache &e = texRespackCaches[id];
+
+  unsigned sz = 0, mt = AssetExportCache::getFileTime(cache_fname, sz);
+  if (mt && mt == e.cacheMTime && sz == e.cacheSize && e.packFname == pack_fname)
+    return e;
+
+  e.cache.reset();
+  e.packFname = pack_fname;
+  e.cacheMTime = mt;
+  e.cacheSize = sz;
+  e.anyAssetChanged = false;
+  e.upToDate = mt && e.cache.load(cache_fname, *assetMgr) &&
+               !e.cache.checkAssetExpVerChanged(asset_type, gameres_ver, TEXPACK_DDSX_EXP_VER) &&
+               !e.cache.checkTargetFileChanged(pack_fname);
+  return e;
+}
+
+// Mirrors checkDdsxTexPackUpToDate()'s per-asset loop body - the pack's own cache was populated by that
+// exact code during the batch build, so validation here must match it precisely (unlike the per-texture
+// cache, this uses raw a.props, not the per-texture-cache-specific filtered copy).
+static bool tex_pack_asset_changed(AssetExportCache &c4, DagorAsset &a, IDagorAssetExporter *exp)
+{
+  if (c4.checkDataBlockChanged(a.getNameTypified(), a.props))
+    return true;
+  if (AssetExportCache::sharedDataIsAssetInForceRebuildList(a))
+    return true;
+
+  String texname = a.getTargetFilePath();
+  if (c4.checkFileChanged(texname))
+    return true;
+
+  if (exp)
+  {
+    Tab<SimpleString> a_files(tmpmem);
+    exp->gatherSrcDataFiles(a, a_files);
+    bool target_file_checked = a_files.size() && a_files[0].operator==(texname);
+    for (int j = target_file_checked ? 1 : 0; j < a_files.size(); j++)
+      if (c4.checkFileChanged(a_files[j]))
+        return true;
+  }
+  return false;
+}
+
+// Checks (and, unless out_dest is null, serves) an asset's DDSx bytes from an already-built .dxp.bin
+// respack. out_dest is null for a readiness-only check (see is_tex_built_and_actual() below). Returns
+// false (without touching *out_dest) on any miss.
+static bool try_get_ddsx_from_respack(DagorAsset &a, unsigned target, const char *profile, ddsx::Buffer *out_dest)
+{
+  if (texExportBlk.isEmpty())
+    return false;
+
+  uint64_t tc_storage = 0;
+  const char *target_str = mkbindump::get_target_str(target, tc_storage);
+
+  const char *pkname = a.getCustomPackageName(target_str, profile);
+  if (pkname && strcmp(pkname, "*") == 0)
+    pkname = nullptr;
+
+  String packFname, cacheFname;
+  if (!resolve_tex_respack_fname(a, pkname, target_str, profile, packFname, cacheFname))
+    return false;
+
+  // build_on_demand_tex_factory runs several worker threads, and many textures can share one
+  // respack, so the pack-cache lookup/validation (shared mutable state) must be serialized; the
+  // actual pack read below only touches thread-local objects and runs unlocked for concurrency.
+  unsigned gameres_ver = texExp ? texExp->getGameResVersion() : 0;
+  {
+    WinAutoLock lock(texRespackCacheCs);
+    TexRespackCache &pc = get_tex_respack_cache(cacheFname, packFname, a.getType(), gameres_ver);
+    if (!pc.upToDate)
+      return false;
+
+    if (tex_pack_asset_changed(pc.cache, a, texExp))
+    {
+      pc.anyAssetChanged = true;
+      return false;
+    }
+  }
+
+  if (!out_dest)
+    return true;
+  ddsx::Buffer &dest = *out_dest;
+
+  // DxpReadOnlyPack::strippedNames is keyed by the bare asset name (the '*' marker and any
+  // TextureMetaData-encoded suffix already stripped off), so this needs no encoding to match it.
+  String key(a.getName());
+  dd_strlwr(key);
+
+  FullFileLoadCB crd(packFname);
+  if (!crd.fileHandle)
+    return false;
+
+  BinDumpReader bcrd(&crd, target, dagor_target_code_be(target));
+  DxpReadOnlyPack *pack = DxpReadOnlyPack::make(bcrd);
+  bool ok = pack && pack->getDDSx(key, dest);
+  del_it(pack);
+  crd.close();
+  if (!ok)
+    return false;
+
+  // Persist a corrected mtime so a future process start skips rehashing this pack's files.
+  // Re-fetch (cheap: mtime/size unchanged since the check above) rather than holding a reference
+  // to the Tab entry across the unlocked read - a concurrent lookup for another pack can reallocate it.
+  {
+    WinAutoLock lock(texRespackCacheCs);
+    TexRespackCache &pc = get_tex_respack_cache(cacheFname, packFname, a.getType(), gameres_ver);
+    if (pc.cache.isTimeChanged() && !pc.anyAssetChanged)
+    {
+      pc.cache.save(cacheFname, *assetMgr);
+      pc.cache.clearTimeChanged();
+    }
+  }
+
+  // Uncomment to trace texpack reuse decisions; disabled by default to avoid log spam.
+  // debug("get_tex_asset_built_ddsx(%s): reused texpack %s", a.getName(), packFname.str());
+  return true;
+}
+
 static bool get_tex_asset_built_ddsx_internal(DagorAsset &a, ddsx::Buffer &dest, unsigned target, const char *profile, ILogWriter *log,
   bool ddsx_hdr_only, const char *use_prebuilt_file = nullptr)
 {
@@ -473,6 +787,27 @@ static bool get_tex_asset_built_ddsx_internal(DagorAsset &a, ddsx::Buffer &dest,
   float gamma = eff_props.getReal("gamma", a.props.getReal("gamma", 2.2));
   fix_gamma_for_fmt(gamma, fmt);
   bool gamma1 = is_equal_float(gamma, 1.0f);
+
+  if (!use_prebuilt_file && !ddsx_hdr_only && try_get_ddsx_from_respack(a, target, profile, &dest))
+  {
+    // Same gamma consistency check as the read_from_cache path below, but on a mismatch just fall through
+    // to a normal rebuild - there's no cache file of ours to erase here, only the shared respack.
+    bool gamma_ok = true;
+    if (target == _MAKE4C('PC'))
+    {
+      bool dump_gamma1 = (((ddsx::Header *)dest.ptr)->flags & ddsx::Header::FLG_GAMMA_EQ_1) ? true : false;
+      if (dump_gamma1 != gamma1 && ((ddsx::Header *)dest.ptr)->levels)
+        gamma_ok = false;
+    }
+    if (gamma_ok)
+    {
+      remove_fast_cache_when_final_ready(a, eff_target);
+      return true;
+    }
+    logwarn("%s: inconsistent respack asset.gamma1=%d, falling back to normal cache/rebuild", a.getName(), gamma1);
+    tmpmem->free(dest.ptr);
+    dest.zero();
+  }
 
   texconvcache::BuildMutexAutoAcquire bmaa(cacheFname);
   if (c4.load(cacheFname, a.getMgr(), &cacheEndPos) && !checkCacheChanged(c4, a, eff_props, texExp, false) && !use_prebuilt_file)
@@ -588,6 +923,14 @@ bool texconvcache::is_tex_built_and_actual(DagorAsset &a, unsigned target, const
     return false;
   if (!texconvcache::is_tex_asset_convertible(a))
     return false;
+
+  // A texture served from an already-built .dxp.bin respack is always production quality - it never goes
+  // through the FAST/on-demand conversion path get_tex_asset_built_ddsx() falls back to.
+  if (try_get_ddsx_from_respack(a, target, profile, nullptr))
+  {
+    is_prod_ready = true;
+    return true;
+  }
 
   uint64_t tc_storage = 0;
   const char *tc_str = mkbindump::get_target_str(target, tc_storage);
@@ -1244,6 +1587,13 @@ bool texconvcache::convert_dds(ddsx::Buffer &b, const char *tex_path, const Dago
         b.zero();
         goto rebuild;
       }
+    }
+
+    if (b.len >= sizeof(ddsx::Header) && !is_srgb_config_valid(*(ddsx::Header *)b.ptr))
+    {
+      tmpmem->free(b.ptr);
+      b.zero();
+      goto rebuild;
     }
 
     if (c4.isTimeChanged() && !dryRun)

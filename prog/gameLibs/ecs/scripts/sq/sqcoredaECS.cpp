@@ -1109,7 +1109,7 @@ template <typename AddEvent>
 inline void get_event_mask(const char *es, HSQUIRRELVM vm, EventSet &evtMask, const Sqrat::Table &on_event, AddEvent add_event)
 {
   G_UNUSED(es);
-  Sqrat::RootTable rootT(vm);
+  Sqrat::Object nullEnv(vm);
   Sqrat::Object::iterator it;
   while (on_event.Next(it))
   {
@@ -1136,7 +1136,7 @@ inline void get_event_mask(const char *es, HSQUIRRELVM vm, EventSet &evtMask, co
         continue;
       ecs::event_type_t evType = evtClassType != 0 ? evtClassType : ECS_HASH_SLOW(evClassName).hash;
       evtMask.insert(evType);
-      add_event(evType, Sqrat::Function(vm, rootT, it.getValue()));
+      add_event(evType, Sqrat::Function(vm, nullEnv, it.getValue()));
 #if DAGOR_DBGLEVEL > 0
       if (!squirrelEvents.count(evType) && !eventTypeNative2Sq.count(evType))
         logerr("event <%s> used in <%s> is not regiresterd as Squirrel or Core event in squirrel", evClassName, es);

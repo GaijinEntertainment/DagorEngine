@@ -16,6 +16,8 @@ AddIncludes =
 UseProgLibs = 3rdPartyLibs/arc/zlib-$(UseZlibVer) ;
 CPPopt += -DCRASHPAD_ZLIB_SOURCE_EXTERNAL ;
 
+if $(Sanitize) = address { CPPopt += -DADDRESS_SANITIZER ; }
+
 Sources =
   client/annotation.cc
   client/annotation_list.cc

@@ -1907,29 +1907,30 @@ LZ4_decompress_unsafe_generic(
  *
  * @ip : input pointer
  * @ilimit : position after which if length is not decoded, the input is necessarily corrupted.
- * @initial_check - check ip >= ipmax before start of loop.  Returns initial_error if so.
- * @error (output) - error code.  Must be set to 0 before call.
 **/
 typedef size_t Rvl_t;
 static const Rvl_t rvl_error = (Rvl_t)(-1);
 LZ4_FORCE_INLINE Rvl_t
-read_variable_length(const BYTE** ip, const BYTE* ilimit,
-                     int initial_check)
+read_variable_length(const BYTE** ip, const BYTE* ilimit)
 {
     Rvl_t s, length = 0;
     assert(ip != NULL);
     assert(*ip !=  NULL);
     assert(ilimit != NULL);
-    if (initial_check && unlikely((*ip) >= ilimit)) {    /* read limit reached */
+    if (unlikely((*ip) >= ilimit)) {    /* read limit reached */
         return rvl_error;
     }
+    s = **ip;
+    (*ip)++;
+    length += s;
+    if (likely(s != 255)) return length;
     do {
+        if (unlikely((*ip) >= ilimit)) {    /* read limit reached */
+            return rvl_error;
+        }
         s = **ip;
         (*ip)++;
         length += s;
-        if (unlikely((*ip) > ilimit)) {    /* read limit reached */
-            return rvl_error;
-        }
         /* accumulator overflow detection (32-bit mode only) */
         if ((sizeof(length)<8) && unlikely(length > ((Rvl_t)(-1)/2)) ) {
             return rvl_error;
@@ -2015,7 +2016,9 @@ LZ4_decompress_generic(
 
             /* decode literal length */
             if (length == RUN_MASK) {
-                size_t const addl = read_variable_length(&ip, iend-RUN_MASK, 1);
+                /* literal length >= RUN_MASK means >= RUN_MASK literal bytes follow the extension bytes,
+                 * so extension bytes cannot reach the last RUN_MASK bytes of input */
+                size_t const addl = read_variable_length(&ip, iend-RUN_MASK);
                 if (addl == rvl_error) {
                     DEBUGLOG(6, "error reading long literal length");
                     goto _output_error;
@@ -2050,7 +2053,8 @@ LZ4_decompress_generic(
             length = token & ML_MASK;
 
             if (length == ML_MASK) {
-                size_t const addl = read_variable_length(&ip, iend - LASTLITERALS + 1, 0);
+                /* after match length extension bytes, at least 1 token + LASTLITERALS literals must remain */
+                size_t const addl = read_variable_length(&ip, iend - (1 + LASTLITERALS));
                 if (addl == rvl_error) {
                     DEBUGLOG(6, "error reading long match length");
                     goto _output_error;
@@ -2187,7 +2191,9 @@ LZ4_decompress_generic(
 
             /* decode literal length */
             if (length == RUN_MASK) {
-                size_t const addl = read_variable_length(&ip, iend-RUN_MASK, 1);
+                /* literal length >= RUN_MASK means >= RUN_MASK literal bytes follow the extension bytes,
+                 * so extension bytes cannot reach the last RUN_MASK bytes of input */
+                size_t const addl = read_variable_length(&ip, iend-RUN_MASK);
                 if (addl == rvl_error) { goto _output_error; }
                 length += addl;
                 if (unlikely((uptrval)(op)+length<(uptrval)(op))) { goto _output_error; } /* overflow detection */
@@ -2265,7 +2271,8 @@ LZ4_decompress_generic(
 
     _copy_match:
             if (length == ML_MASK) {
-                size_t const addl = read_variable_length(&ip, iend - LASTLITERALS + 1, 0);
+                /* after match length extension bytes, at least 1 token + LASTLITERALS literals must remain */
+                size_t const addl = read_variable_length(&ip, iend - (1 + LASTLITERALS));
                 if (addl == rvl_error) { goto _output_error; }
                 length += addl;
                 if (unlikely((uptrval)(op)+length<(uptrval)op)) goto _output_error;   /* overflow detection */

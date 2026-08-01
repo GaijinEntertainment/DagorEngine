@@ -86,9 +86,7 @@ namespace Catch {
                     auto analysis = Detail::analyse(*cfg, samples.data(), samples.data() + samples.size());
                     BenchmarkStats<> stats{ CATCH_MOVE(info), CATCH_MOVE(analysis.samples), analysis.mean, analysis.standard_deviation, analysis.outliers, analysis.outlier_variance };
                     getResultCapture().benchmarkEnded(stats);
-                } CATCH_CATCH_ANON (TestFailureException const&) {
-                    getResultCapture().benchmarkFailed("Benchmark failed due to failed assertion"_sr);
-                } CATCH_CATCH_ALL{
+                } CATCH_CATCH_ALL {
                     getResultCapture().benchmarkFailed(translateActiveException());
                     // We let the exception go further up so that the
                     // test case is marked as failed.

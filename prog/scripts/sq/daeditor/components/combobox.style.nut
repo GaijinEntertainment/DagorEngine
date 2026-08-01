@@ -52,12 +52,12 @@ function boxCtor(params=null) {
   let color = params?.disabled ? Color(160,160,160,255) : Color(255,255,255,255)
 
   let labelText = {
-    group = params.group
+    group = params?.group
     rendObj = ROBJ_TEXT
     behavior = Behaviors.Marquee
     margin = sh(0.5)
-    text = params.text
-    key = params.text
+    text = params?.text
+    key = params?.text
     color = color
     size = FLEX_H
   }

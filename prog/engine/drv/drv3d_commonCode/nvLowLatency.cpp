@@ -6,6 +6,7 @@
 #include <debug/dag_debug.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <generic/dag_staticTab.h>
 #include <perfMon/dag_statDrv.h>
@@ -24,6 +25,20 @@ static bool CheckOnce(bool cond, const char *msg, const Args &...args)
     firstError = false;
   }
   return false;
+}
+
+static bool is_device_lost_suppressed()
+{
+  if (!d3d::device_lost(nullptr))
+    return false;
+
+  static bool firstTime = true;
+  if (firstTime)
+  {
+    logdbg("[Reflex] device lost, suppressing Streamline calls");
+    firstTime = false;
+  }
+  return true;
 }
 
 static bool is_report_valid(const Reflex::Stats &report)
@@ -87,7 +102,7 @@ public:
 
   void startFrame(uint32_t frame_id) override
   {
-    if (reflex)
+    if (reflex && !is_device_lost_suppressed())
       reflex->startFrame(frame_id);
   }
 
@@ -96,13 +111,16 @@ public:
     if (!reflex)
       return;
 
+    if (is_device_lost_suppressed())
+      return;
+
     CheckOnce<__LINE__>(reflex->setMarker(frame_id, marker_type), "Reflex: setMarker has failed with frame_id: %d, and marker: %d",
       frame_id, uint32_t(marker_type));
   }
 
   void setOptions(Mode mode, uint32_t frame_limit_us) override
   {
-    if (reflex)
+    if (reflex && !is_device_lost_suppressed())
     {
       debug("[Reflex] Set latency mode: latency mode: %d, interval: %dus", eastl::to_underlying(mode), frame_limit_us);
       CheckOnce<__LINE__>(reflex->setOptions(mode, frame_limit_us), "[Reflex] setReflexOptions has failed");
@@ -114,6 +132,9 @@ public:
     if (!reflex)
       return;
 
+    if (is_device_lost_suppressed())
+      return;
+
     TIME_PROFILE(nv_low_latency_sleep);
     CheckOnce<__LINE__>(reflex->sleep(frame_id), "[Reflex] sleep has failed");
   }
@@ -123,6 +144,9 @@ public:
     lowlatency::LatencyData ret;
 
     if (!reflex)
+      return ret;
+
+    if (is_device_lost_suppressed())
       return ret;
 
     auto state = reflex->getState();

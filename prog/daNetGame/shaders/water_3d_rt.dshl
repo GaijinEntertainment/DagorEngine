@@ -109,8 +109,10 @@ shader raytraced_water_reflections
   else
   {
     (cs) {
-      clouds_panorama_mip@smp2d = clouds_panorama_mip;
+      clouds_panorama_mip@tex2d = clouds_panorama_mip;
     }
+    INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(cs)
+    hlsl(cs) { #define clouds_panorama_mip_samplerstate global_linear_wrap_u_clamp_v_sampler }
     INIT_CLOUDS_PANORAMA_UV_BASE(cs)
     USE_CLOUDS_PANORAMA_UV_BASE(cs)
   }
@@ -286,33 +288,14 @@ shader raytraced_water_reflections
       float3 cameraToPoint = w * viewVec;
 
       float isWater = 0;
-      ##if water_rt_output_mode == regular
-        float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(water_normal_dir, dtId), isWater);
-      ##else
-        float4 NRx = water_normal_dir.GatherRed(water_normal_dir_samplerstate, uv).wzxy;
-        float4 NRy = water_normal_dir.GatherGreen(water_normal_dir_samplerstate, uv).wzxy;
-        float4 NRz = water_normal_dir.GatherBlue(water_normal_dir_samplerstate, uv).wzxy;
-        float4 NRa = water_normal_dir.GatherAlpha(water_normal_dir_samplerstate, uv).wzxy;
-
-        float2 pixelCoords = uv * world_normal_dir_resolution.xy - 0.5;
-        float4 bil = float4(frac(pixelCoords), 1 - frac(pixelCoords));
-
-        float4 isWaterWeight = NRa * 3.0;
-        float4 weights = float4(bil.zx * bil.w, bil.zx * bil.y) * isWaterWeight + 1e-4;
-        weights /= dot(weights, 1);
-
-        float4 surfaceNormal_roughness =
-          NRD_FrontEnd_UnpackNormalAndRoughness(float4(NRx.x, NRy.x, NRz.x, NRa.x)) * weights.x +
-          NRD_FrontEnd_UnpackNormalAndRoughness(float4(NRx.y, NRy.y, NRz.y, NRa.y)) * weights.y +
-          NRD_FrontEnd_UnpackNormalAndRoughness(float4(NRx.z, NRy.z, NRz.z, NRa.z)) * weights.z +
-          NRD_FrontEnd_UnpackNormalAndRoughness(float4(NRx.w, NRy.w, NRz.w, NRa.w)) * weights.w;
-        isWater = max4(isWaterWeight.x, isWaterWeight.y, isWaterWeight.z, isWaterWeight.w);
-      ##endif
+      float4 surfaceNormal_roughness = NRD_FrontEnd_UnpackNormalAndRoughness(texture2DAt(water_normal_dir, dtId), isWater);
+      isWater = round(isWater);
+      isWater = WATER_MERGE_OCEAN_PLANE_MATERIAL(isWater);
       float3 normal = surfaceNormal_roughness.xyz;
       float roughness = surfaceNormal_roughness.w;
 
       BRANCH
-      if (isWater > 0)
+      if (isWater != WATER_MATERIAL_ID_NONE)
       {
         ml::Rng::Hash::Initialize(dtId, frame_index);
         float3 V = -normalize(cameraToPoint);
@@ -323,7 +306,7 @@ shader raytraced_water_reflections
         float3 localRay = ml::ImportanceSampling::VNDF::GetRay(rnd, roughness, localVector, PT_SPEC_LOBE_ENERGY);
         localRay = reflect(-localVector, localRay);
         float3 sampleDir = ml::Geometry::RotateVectorInverse(localBasis, localRay);
-        bool isAboveWater = isWater < 1.5;
+        bool isAboveWater = isWater == WATER_MATERIAL_ID_ABOVE_WATER;
         float hitDistance = 0;
         half4 currentReflection = water_rt(cameraToPoint, sampleDir, isAboveWater, hitDistance);
 
@@ -360,5 +343,6 @@ shader raytraced_water_reflections
       }
     }
   }
+
   compile("cs_6_5", "main");
 }

@@ -98,15 +98,19 @@ bool DaEditor3Engine::initAssetBase(const char *app_dir, const DataBlock &app_bl
   assetMgr.setMsgPipe(&msgPipe);
   DataBlock::setRootIncludeResolver(app_dir);
 
-  // load asset base
   DataBlock appblk(app_blk);
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
-  int base_nid = blk.getNameId("base");
 
-  assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
-  for (int i = 0; srcAssetsScanAllowed && i < blk.paramCount(); i++)
-    if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-      assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
+  { // load asset base
+    const int base_nid = blk.getNameId("base");
+    eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> loadContext = assetMgr.makeLoadAssetsBaseContext();
+
+    assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
+    for (int i = 0; srcAssetsScanAllowed && i < blk.paramCount(); i++)
+      if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
+        assetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global", *loadContext);
+  }
+
   if (!minimizeDabuildUsage) // prefer real texture assets to gameres loaded from *.dxp.bin
   {
     dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();

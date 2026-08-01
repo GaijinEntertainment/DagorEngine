@@ -145,17 +145,19 @@ public:
 
   // Zero mass makes body static.
   void setMassMatrix(real mass, real ixx, real iyy, real izz);
+
+  void setLockedStatic(bool locked, real mass, const Point3 &momj);
   real getMass() const
   {
     JPH::BodyLockRead lock(jolt_api::body_lock(), bodyId);
-    if (lock.Succeeded() && !lock.GetBody().IsStatic())
+    if (lock.Succeeded() && lock.GetBody().IsDynamic())
       return safeinv(lock.GetBody().GetMotionProperties()->GetInverseMass());
     return 0;
   }
   real getInvMass() const
   {
     JPH::BodyLockRead lock(jolt_api::body_lock(), bodyId);
-    if (lock.Succeeded() && !lock.GetBody().IsStatic())
+    if (lock.Succeeded() && lock.GetBody().IsDynamic())
       return lock.GetBody().GetMotionProperties()->GetInverseMass();
     return 0;
   }

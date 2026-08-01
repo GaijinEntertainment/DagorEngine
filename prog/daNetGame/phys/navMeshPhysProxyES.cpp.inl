@@ -11,15 +11,11 @@
 template <typename Callable>
 static bool navphys_collision_data_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
-void *NavMeshPhysProxy::vtblPtr = nullptr;
-
 // Just one. This means that NavMeshPhysProxy to NavMeshPhysProxy collision isn't going to work as both will use the same object.
 static CollisionObject nvmphys_capsule_coll;
 
 NavMeshPhysProxy::NavMeshPhysProxy(ecs::EntityId eid, float dt)
 {
-  if (!vtblPtr)
-    vtblPtr = ((void **)this)[0];
   timeStep = dt;
   pseudoVelDelta = ZERO<Point3>();
 

@@ -1,0 +1,57 @@
+include "node_based_common.dshl"
+
+texture clouds_weather_texture always_referenced;
+texture gen_cloud_shape always_referenced;
+texture gen_cloud_detail always_referenced;
+texture clouds_curl_2d always_referenced;
+texture clouds_types_lut always_referenced;
+
+float clouds_weather_size always_referenced;
+float4 clouds_layers_types always_referenced;
+float4 clouds_height_fractions always_referenced;
+float clouds_first_layer_density always_referenced;
+float clouds_second_layer_density always_referenced;
+int clouds_shape_scale always_referenced;
+int clouds_cumulonimbus_shape_scale always_referenced;
+int clouds_turbulence_freq always_referenced;
+float clouds_turbulence_scale always_referenced;
+float clouds_thickness2 always_referenced;
+float clouds_start_altitude2 always_referenced;
+sampler global_linear_wrap_sampler always_referenced;
+
+float4 clouds_field_res always_referenced;
+float clouds_average_weight always_referenced;
+
+int clouds_shader_type always_referenced;
+interval clouds_shader_type: field < 1, field_compressed always_referenced;
+
+
+macro NBS_CLOUDS_BLOCK()
+  NBS_COMMON_BLOCK()
+
+  (cs) {
+    global_linear_wrap_sampler@sampler = global_linear_wrap_sampler;
+    clouds_weather_texture@tex2d = clouds_weather_texture;
+    gen_cloud_shape@tex3d = gen_cloud_shape;
+    gen_cloud_detail@tex3d = gen_cloud_detail;
+    clouds_curl_2d@tex2d = clouds_curl_2d;
+    clouds_types_lut@smp2d = clouds_types_lut;
+
+    clouds_layers_types@f4 = clouds_layers_types;
+    clouds_height_fractions@f4 = clouds_height_fractions;
+    clouds_first_layer_density@f1 = clouds_first_layer_density;
+    clouds_second_layer_density@f1 = clouds_second_layer_density;
+    clouds_turbulence_freq@i1 = clouds_turbulence_freq;
+    clouds_turbulence_scale@f1 = clouds_turbulence_scale;
+    clouds_thickness2@f1 = clouds_thickness2;
+    clouds_start_altitude2@f1 = clouds_start_altitude2;
+
+    clouds_field_res@f4 = clouds_field_res;
+    clouds_average_weight@f1 = clouds_average_weight;
+    weather_size@f1 = clouds_weather_size;
+    inv_weather_size@f1 = 1. / clouds_weather_size;
+    cloud_shape_meter_scale@f1 = clouds_shape_scale / clouds_weather_size;
+    cloud_cumulonimbus_shape_meter_scale@f1 = clouds_cumulonimbus_shape_scale / clouds_weather_size;
+    clouds_turbulence_amplitude@f1 = clouds_turbulence_scale / clouds_turbulence_freq;
+  }
+endmacro

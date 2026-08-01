@@ -226,6 +226,7 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
                 ft.requiredArgs = nparamscheck_to_required_args(f->_nparamscheck);
                 ft.pure = f->_purefunction;
                 ft.nodiscard = f->_nodiscard;
+                ft.fastcall = f->_isfastcall;
 
                 int cnt = (ft.requiredArgs > f->_typecheck.size()) ? ft.requiredArgs : f->_typecheck.size();
 
@@ -269,6 +270,7 @@ static SQInteger debug_get_function_info_table(HSQUIRRELVM v)
     SET_SLOT("native", native);
     SET_SLOT("pure", ft.pure);
     SET_SLOT("nodiscard", ft.nodiscard);
+    SET_SLOT("fastcall", ft.fastcall);
     SET_SLOT("doc", docObject);
 
     SQObjectPtr argNames(SQArray::Create(_ss(v), ft.argNames.size()));
@@ -347,6 +349,7 @@ static SQInteger debug_get_function_decl_string(HSQUIRRELVM v)
                 ft.requiredArgs = nparamscheck_to_required_args(f->_nparamscheck);
                 ft.pure = f->_purefunction;
                 ft.nodiscard = f->_nodiscard;
+                ft.fastcall = f->_isfastcall;
 
                 int nArgsFromMask = f->_typecheck.size() ? f->_typecheck.size()-1 : 0; // Exclude `this`
                 int nArgsDisplayed = f->_nparamscheck >= 0 ? ft.requiredArgs : // for fixed args count ignore mask length

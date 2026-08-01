@@ -2,6 +2,7 @@
 
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
+#include <dag/dag_vector.h>
 #include <animChar/dag_animCharacter2.h>
 #include <ioSys/dag_genIo.h>
 #include <ioSys/dag_roDataBlock.h>
@@ -285,6 +286,7 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(animChars, resId, refCount)
 };
+DAG_DECLARE_RELOCATABLE(CharacterGameResFactory::AnimChar);
 
 
 static InitOnDemand<CharacterGameResFactory> animchar_factory;

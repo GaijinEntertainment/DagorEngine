@@ -5,12 +5,15 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/updateStage.h>
 #include <EASTL/hash_map.h>
+#include <EASTL/unique_ptr.h>
 #include <ecs/render/updateStageRender.h>
 #include <ecs/render/updateStageRender.h>
 #include <math/integer/dag_IPoint2.h>
 #include <render/renderEvent.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <sqrat.h>
+#include <gui/dag_stdGuiRender.h>
+#include <shaders/dag_shaders.h>
 
 namespace darg
 {
@@ -60,12 +63,6 @@ using TilesHashMap = eastl::hash_map<QuadKey, TileHandle>;
  *
  * The tiles are stored in two hash maps:
  * - tiles: the tiles for the map itself
- * - fogTiles: the tiles for the fog of war
- *
- * Both tilesets trying to keep tiles of the current zoom level. If required tile is not loaded yet, then it requested to load.
- * Load could be done sync or async. In case of async load, the requested tile trying to be substituted by the parent or children
- * tiles. When callback of async load is called, the children tiles is checked if it still required. If not, then it is removed from
- * the hash map.
  *
  * There are several coordinate systems involved in the tiled map rendering:
  * - The world coordinate system is in meters, origin and the axes fully correspond to the scene of the level.
@@ -130,7 +127,7 @@ class TiledMapContext
 public:
   TiledMapContext();
   ~TiledMapContext();
-  TiledMapContext &operator=(TiledMapContext &&other) = default;
+  TiledMapContext &operator=(TiledMapContext &&other);
 
   static void freeAllPictures();
 
@@ -183,12 +180,15 @@ public:
   static TiledMapContext *get_from_element(const darg::Element *elem);
 
   eastl::string getFogOfWarBase64() const;
+  eastl::string getFogOfWarBase64Compressed() const;
+  void requestFogOfWarBase64Compressed(const char *save_path) const;
   inline void toggleFogOfWar() { fogOfWarEnabled = !fogOfWarEnabled; }
 
 private:
   void dispatchTiles(const eastl::vector<QuadKey> &requiredTiles,
     TilesHashMap &tilesHashMap,
-    eastl::string prefix,
+    const eastl::string &prefix,
+    int tileZLevel,
     PictureManager::async_load_done_cb_t cb);
 
   void updateVisibleTiles();
@@ -250,11 +250,11 @@ public:
   bool zoomToFitMapEdges = false;
   bool zoomToFitBorderEdges = false;
 
-  TilesHashMap fogTiles;
   UniqueTex fogOfWarTex;
   d3d::SamplerHandle fogOfWarSampler;
   UniqueBuf fogOfWarBitsetSb;
   PostFxRenderer fogOfWarShader = PostFxRenderer("fog_of_war");
+  StdGuiRender::StdGuiShader fogOfWarTileShader;
   bool fogOfWarEnabled = false;
   bool fogOfWarTexInited = false;
   float fogOfWarResolution = 0.0f;
@@ -273,7 +273,7 @@ public:
 void tiled_map_on_render_ui(const RenderEventUI &evt);
 void tiled_map_fog_of_war_update_data(
   const UpdateStageInfoBeforeRender &evt, const ecs::IntList &fog_of_war__data, const int fog_of_war__dataGen);
-void tiled_map_fog_of_war_before_render(const UpdateStageInfoBeforeRender &evt);
+void tiled_map_fog_of_war_render_ui(const RenderEventUI &evt);
 void tiled_map_fog_of_war_after_reset();
 
 eastl::vector<uint32_t> tiled_map_fog_of_war_get_data();

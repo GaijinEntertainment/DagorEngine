@@ -68,11 +68,16 @@ UseProgLibs =
   gameLibs/soundOcclusionGPU
 ;
 
-if $(UseSteamAudio) = yes {
+if $(UseSteamAudio) = yes && $(Platform)-$(PlatformArch) in windows-x86 windows-x86_64 {
   AddIncludes += $(_DEVTOOL)/steamaudio-4.8.1/include ;
-  Sources += steamAudio.cpp ;
-  if $(Platform) = windows {
-    AddLibs = $(_DEVTOOL)/steamaudio-4.8.1/lib/windows-x64/phonon.lib ;
+  Sources +=
+    steamAudio/steamAudio.cpp
+    steamAudio/steamAudioSpatializer.cpp
+  ;
+  if $(Platform)-$(PlatformArch) = windows-x86_64 {
+    AddLibs += $(_DEVTOOL)/steamaudio-4.8.1/lib/windows-x64/phonon.lib ;
+  } else {
+    AddLibs += $(_DEVTOOL)/steamaudio-4.8.1/lib/windows-x86/phonon.lib ;
   }
 } else {
   Sources += stub/steamAudioStub.cpp ;

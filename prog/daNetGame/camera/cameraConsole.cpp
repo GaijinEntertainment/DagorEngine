@@ -14,6 +14,7 @@
 #include "camera/camTrack.h"
 #include "camera/sceneCam.h"
 #include "game/player.h"
+#include <util/dag_delayedAction.h>
 
 using namespace console;
 
@@ -93,12 +94,19 @@ static bool camera_console_handler(const char *argv[], int argc)
   }
   CONSOLE_CHECK_NAME("camera", "free", 1, 2)
   {
-    if (argc == 1)
-      toggle_free_camera();
-    else if (to_bool(argv[1]))
-      enable_free_camera();
-    else
-      disable_free_camera();
+    const bool toggleFreeCamera = argc == 1;
+    const bool enableFreeCamera = toggleFreeCamera ? false : to_bool(argv[1]);
+    auto cameraFreeCmd = [=] {
+      if (toggleFreeCamera)
+        toggle_free_camera();
+      else if (enableFreeCamera)
+        enable_free_camera();
+      else
+        disable_free_camera();
+    };
+    // Additional game job may own the entity manager when the camera.free is executed.
+    // Defer this call so that it is executed on main thread after the additional game job has finished.
+    delayed_call(cameraFreeCmd);
   }
   CONSOLE_CHECK_NAME("camera", "record_track", 2, 2) { camtrack::record(argv[1]); }
   CONSOLE_CHECK_NAME("camera", "stop_record", 1, 1) { camtrack::stop_record(); }

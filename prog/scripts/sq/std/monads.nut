@@ -15,7 +15,7 @@ local Foo = class {get = @(_) null}
 checkInterface(Foo, [{name = "get", params = ["v"]}])
 
 */
-function checkInterface(klass, methods){
+function checkInterface(klass, methods): bool {
   let failedMethods = []
   foreach (method in methods){
     if (type(method) == "string") {
@@ -57,7 +57,7 @@ function checkInterface(klass, methods){
   monad has interface with
   of, flatMap, map
 */
-let class Monad {
+class Monad {
   //of, pure : a -> M a
   static function of(_){
     throw("pure method needs to be implemented")

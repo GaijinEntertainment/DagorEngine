@@ -16,7 +16,7 @@ function nameFilter(watched_text, params) {
     }
   }
 
-  function canClear() {
+  function canClear(): bool {
     if (params?.onClear == null)
       return false
     if (stateFlags.get() & S_KB_FOCUS)

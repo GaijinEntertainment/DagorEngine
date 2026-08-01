@@ -266,6 +266,12 @@ struct DispatchMeshIndirectArgs
   uint32_t threadGroupCountZ;
 };
 
+struct DispatchMeshIndirectArgsWithId
+{
+  uint32_t drawcallId;
+  DispatchMeshIndirectArgs args;
+};
+
 #define INDIRECT_BUFFER_ELEMENT_SIZE        sizeof(uint32_t)
 #define DRAW_INDIRECT_NUM_ARGS              static_cast<uint32_t>(sizeof(::DrawIndirectArgs) / INDIRECT_BUFFER_ELEMENT_SIZE)
 #define DRAW_INDEXED_INDIRECT_NUM_ARGS      static_cast<uint32_t>(sizeof(::DrawIndexedIndirectArgs) / INDIRECT_BUFFER_ELEMENT_SIZE)
@@ -278,7 +284,9 @@ struct DispatchMeshIndirectArgs
 #define DRAW_INDEXED_INDIRECT_BUFFER_SIZE    static_cast<uint32_t>(sizeof(::DrawIndexedIndirectArgs))
 #define DISPATCH_INDIRECT_NUM_ARGS           3
 #define DISPATCH_INDIRECT_BUFFER_SIZE        (DISPATCH_INDIRECT_NUM_ARGS * INDIRECT_BUFFER_ELEMENT_SIZE)
-#define DISPATCH_MESH_NUM_ARGS               static_cast<uint32_t>(sizeof(::DispatchMeshIndirectArgs) / INDIRECT_BUFFER_ELEMENT_SIZE)
+#define DISPATCH_MESH_INDIRECT_NUM_ARGS      static_cast<uint32_t>(sizeof(::DispatchMeshIndirectArgs) / INDIRECT_BUFFER_ELEMENT_SIZE)
+#define DISPATCH_MESH_INDIRECT_WITH_DRAW_ID_NUM_ARGS \
+  static_cast<uint32_t>(sizeof(::DispatchMeshIndirectArgsWithId) / INDIRECT_BUFFER_ELEMENT_SIZE)
 
 #define INPUT_VERTEX_STREAM_COUNT 4
 
@@ -357,25 +365,6 @@ struct XessFgParams
   bool inReset;
 };
 
-struct Fsr2Params
-{
-  BaseTexture *color;
-  BaseTexture *depth;
-  BaseTexture *motionVectors;
-  BaseTexture *output;
-  float frameTimeDelta;
-  float sharpness;
-  float jitterOffsetX;
-  float jitterOffsetY;
-  float motionVectorScaleX;
-  float motionVectorScaleY;
-  float cameraNear;
-  float cameraFar;
-  float cameraFovAngleVertical;
-  uint32_t renderSizeX;
-  uint32_t renderSizeY;
-};
-
 enum class MtlfxColorMode
 {
   PERCEPTUAL = 0,
@@ -384,9 +373,16 @@ enum class MtlfxColorMode
 };
 struct MtlFxUpscaleParams
 {
-  BaseTexture *color;
-  BaseTexture *output;
-  MtlfxColorMode colorMode;
+  BaseTexture *color = nullptr;
+  BaseTexture *output = nullptr;
+  bool temporal = false;
+  // only for spatial
+  MtlfxColorMode colorMode = MtlfxColorMode::LINEAR;
+  // only for temporal
+  BaseTexture *motion = nullptr;
+  BaseTexture *depth = nullptr;
+  float jitterX = 0.f, jitterY = 0.f;
+  float motionScaleX = 0.f, motionScaleY = 0.f;
 };
 
 #define STATE_GUARD_IMPL(ClassName, obj_name, func_call, val, default_value)                                              \

@@ -31,6 +31,7 @@
 #include "acl/core/time_utils.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/impl/variable_bit_rates.h"
+#include "acl/math/quatf.h"
 #include "acl/math/quat_packing.h"
 #include "acl/math/vector4_packing.h"
 #include "acl/compression/impl/track_stream.h"
@@ -103,6 +104,7 @@ namespace acl
 			}
 		}
 
+		// Returns a normalized rotation quaternion
 		inline rtm::quatf RTM_SIMD_CALL rotation_to_quat_32(rtm::vector4f_arg0 rotation, rotation_format8 format)
 		{
 			switch (format)
@@ -113,7 +115,7 @@ namespace acl
 			case rotation_format8::quatf_drop_w_variable:
 				// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 				// isn't very accurate on small inputs, we need to normalize
-				return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
+				return quat_normalize_stable(quat_from_positive_w_stable(rotation));
 			default:
 				ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(format));
 				return rtm::quat_identity();

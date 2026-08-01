@@ -14,6 +14,10 @@
 #include <id/idIndexedFlags.h>
 #include <id/idIndexedMapping.h>
 #include <id/idHierarchicalNameMap.h>
+#include <id/idNameMap.h>
+
+#include <shaders/dag_refinedBlock.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
 
 
 inline bool operator==(const dafg::ExternalResourceProvider &, const dafg::ExternalResourceProvider &) { return false; }
@@ -228,6 +232,11 @@ struct IndexSource
 
 using BindingsMap = dag::FixedVectorMap<int, Binding, 8>;
 
+enum class RefinedBlockNameId : uint32_t
+{
+  Invalid = static_cast<uint32_t>(-1)
+};
+
 inline constexpr uint32_t MAX_VERTEX_STREAMS = 4;
 
 struct NodeData
@@ -274,6 +283,11 @@ struct NodeData
   eastl::array<eastl::optional<VertexSource>, MAX_VERTEX_STREAMS> vertexSources;
   BindingsMap bindings;
   ShaderBlockLayersInfo shaderBlockLayers;
+
+  // Refined block integration: registration, var binding and usage.
+  dag::VectorMap<RefinedBlockNameId, RefinedBlockProvider> registeredRefinedBlocks;
+  dag::VectorMap<RefinedBlockNameId, BindingsMap> refinedBlockBindings;
+  eastl::optional<RefinedBlockNameId> usedRefinedBlock;
 
   // For debug purposes only. Source location where this node was defined.
   eastl::string nodeSource;
@@ -349,7 +363,7 @@ struct InternalRegistry
   // Keeps track of all name space, node, resource and auto resolution
   // type names and their IDs ever known to FG in a hierarchical manner.
   // The name <-> id mapping is persistent.
-  IdHierarchicalNameMap<NameSpaceNameId, ResNameId, NodeNameId, AutoResTypeNameId> knownNames{};
+  IdHierarchicalNameMap<NameSpaceNameId, ResNameId, NodeNameId, AutoResTypeNameId, RefinedBlockNameId> knownNames{};
   IdNameMap<ShaderNameId> knownShaders{};
 
   multiplexing::Mode defaultMultiplexingMode = multiplexing::Mode::FullMultiplex;

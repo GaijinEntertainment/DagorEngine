@@ -1,9 +1,6 @@
 include "clouds2/cloudsShadowVolume.dshl"
 include "clouds2/clouds_alt_fraction.dshl"
-
-int skies_use_2d_shadows;
-
-texture clouds_shadows_2d;
+include "clouds2/clouds_bsm.dshl"
 
 int clouds_disable_own_shadow = 0;
 interval clouds_disable_own_shadow: no < 1, yes;
@@ -23,11 +20,53 @@ macro INIT_CLOUDS_SHADOW_BASE_COMMON(light_dir_x, light_dir_y, light_dir_z, code
   }
 endmacro
 
-//reference shadow implementation uses volume texture for shadowing, so it is correct for planes, mountains, etc
-//it is teeny tiny bit slower, and just a bit less beatiful though (we can actually improve visuals, by additionally blurring just the lowest slice of volume texture)
+//the hole displaces the RENDERED clouds only when the project defines
+//ALLOW_CLOUD_HOLE (see clouds_hole_pos.dshl); the hole finder still runs and
+//publishes a nonzero position - adding it unconditionally shifts the shadows
+//away from clouds that were never displaced
+macro USE_CLOUDS_HOLE_SHADOW_UV(code)
+  hlsl(code) {
+    #ifndef CLOUDS_HOLE_SHADOW_UV
+      #if ALLOW_CLOUD_HOLE
+        #define CLOUDS_HOLE_SHADOW_UV clouds_hole_pos.zw
+      #else
+        #define CLOUDS_HOLE_SHADOW_UV float2(0, 0)
+      #endif
+    #endif
+  }
+endmacro
+
+//volume-only transmittance: true 3D in-layer shadow structure, valid while the wrap
+//content matches (within the cascade near radius); expanded by the ref path in the
+//bsm-off variant and by the sky/godray path in both (shafts want in-layer structure)
+macro CLOUDS_VOL_TRANSMITTANCE(code)
+  USE_CLOUDS_HOLE_SHADOW_UV(code)
+  hlsl(code) {
+    half base_clouds_transmittance_vol(float3 worldPos)
+    {
+      #if DISABLE_CLOUDS_SHADOW
+        return 1.0h;
+      #else
+        float alt = world_pos_to_clouds_alt.x*worldPos.y + world_pos_to_clouds_alt.y;
+        worldPos.xz = clouds_weather_inv_size__alt_scale.yz*min(0, alt) + worldPos.xz;
+        //that should be actually calculated with correct lighting attenuation and then blurred.
+        //we can do that for 2d
+        return half(getCloudsShadows3d(float3(worldPos.xz*clouds_weather_inv_size__alt_scale.x + world_pos_to_clouds_alt.zw + CLOUDS_HOLE_SHADOW_UV, max(0, alt))).x);
+      #endif
+    }
+  }
+endmacro
+
+//reference shadow implementation: the Beer shadow map, valid at any receiver
+//altitude - a mountain in clouds gets the correct partial-column shadow. The map
+//REPLACES the wrap shadow volume for receivers (register-neutral: one texture
+//swaps for one texture - big project shaders sit at the SM5 limits, and bindings
+//often live in shared blocks where interval branching cannot follow the shader
+//variant). A closed or never-baked map is simply not bound - the null texture
+//reads zero, which decodes to unshadowed - so no on/off flag exists
 macro INIT_CLOUDS_SHADOW_BASE_REF(light_dir_x, light_dir_y, light_dir_z, code)
-  INIT_CLOUDS_SHADOWS_VOLUME(code)
   INIT_CLOUDS_SHADOW_BASE_COMMON(light_dir_x, light_dir_y, light_dir_z, code)
+  INIT_CLOUDS_BSM(code)
 endmacro
 
 macro USE_CLOUDS_SHADOW_BASE_REF(code)
@@ -41,42 +80,27 @@ macro USE_CLOUDS_SHADOW_BASE_REF(code)
       ##endif
     #endif
   }
-  USE_CLOUDS_SHADOWS_VOLUME(code)
+  USE_CLOUDS_BSM(code)
   hlsl(code) {
     half base_clouds_transmittance(float3 worldPos)
     {
       #if DISABLE_CLOUDS_SHADOW
         return 1.0h;
       #else
-        float alt = world_pos_to_clouds_alt.x*worldPos.y + world_pos_to_clouds_alt.y;
-        //#define ACCURATE_SHADOW_INTERSECTION 1//correct is not making much better quality
-        #if ACCURATE_SHADOW_INTERSECTION
-          if (alt < 0)
-          {
-            float planet_radius_meters = clouds_weather_inv_size__alt_scale.w;
-            float clouds_start_radius_meters_sq = clouds_shadow_light_dir.w;
-            //float r = length(worldPos.xyz-float3(0,planet_radius_meters,0));
-            float r = worldPos.y+planet_radius_meters;
-            Area discriminant = r * r * (clouds_shadow_light_dir.y * clouds_shadow_light_dir.y - 1.0) + clouds_start_radius_meters_sq;
-            worldPos += clouds_shadow_light_dir.xyz*max(0, -r * clouds_shadow_light_dir.y + sqrt(max(0, discriminant)));
-          }
-        #else
-          worldPos.xz = clouds_weather_inv_size__alt_scale.yz*min(0, alt) + worldPos.xz;
-        #endif
-        //that should be actually calculated with correct lighting attenuation and then blurred.
-        //we can do that for 2d
-        return half(getCloudsShadows3d(float3(worldPos.xz*clouds_weather_inv_size__alt_scale.x + world_pos_to_clouds_alt.zw + clouds_hole_pos.zw, max(0, alt))).x);
+        //outside the map window the lookup falls back to the statistical mean (never
+        //to the volume: its slant-displaced bottom slice wraps the tile at grazing
+        //sun and decorrelates from the clouds actually overhead)
+        return clouds_bsm_transmittance_soft(worldPos);
       #endif
     }
+  }
+  hlsl(code) {
     half clouds_shadow_from_extinction(half extinction)
     {
       #if DISABLE_CLOUDS_SHADOW
         return 1.0h;
       #else
-        //to avoid 2 pow, we use hardcoded Multiple Scattering attenuation and contribution
-        extinction*=extinction;
-        half extinction3 = extinction*extinction*extinction;
-        return half(extinction*(0.4h + extinction3*0.6h));
+        return clouds_bsm_shadow_curve(extinction);
       #endif
     }
     half clouds_shadow(float3 worldPos)
@@ -90,73 +114,49 @@ macro USE_CLOUDS_SHADOW_BASE_REF(code)
   }
 endmacro
 
-//2d clouds shadow is a fraction faster and since we blur shadows it is looking better
-//however, if something is ABOVE lower level clouds, then it is incorrect - it can't know if we are within shadows or not
-// while it is possible to implement ESM to try to address it, actually we have reference implementation above
-// if your project is flightsim - use reference implementation
+//legacy 2D-map interface: the blurred ground-only 2D texture is replaced by the Beer
+//shadow map, valid at any receiver altitude. Macro names and signatures are kept so
+//project shaders that chose the 2D path keep compiling. The _TEX/_SMP pair keeps its
+//contract too: the map is sampled through the caller-provided sampler and no BSM
+//sampler is bound - the heavy receiver shaders that chose it (RT lighting) sit at
+//the SM5 sampler limit
 macro INIT_CLOUDS_SHADOW_BASE_2D(light_dir_x, light_dir_y, light_dir_z, code)
-  INIT_CLOUDS_SHADOW_BASE_COMMON(light_dir_x, light_dir_y, light_dir_z, code)
-  (code) {
-    clouds_shadows_2d@smp2d = clouds_shadows_2d;
-  }
+  INIT_CLOUDS_BSM(code)
 endmacro
 
 macro INIT_CLOUDS_SHADOW_BASE_2D_TEX(light_dir_x, light_dir_y, light_dir_z, code)
-  INIT_CLOUDS_SHADOW_BASE_COMMON(light_dir_x, light_dir_y, light_dir_z, code)
-  (code) {
-    clouds_shadows_2d@tex2d = clouds_shadows_2d;
-  }
+  INIT_CLOUDS_BSM_TEX(code)
 endmacro
 
 macro USE_CLOUDS_SHADOW_BASE_2D_SMP(code, smpl)
+  USE_CLOUDS_BSM_SMP(code, smpl)
   hlsl(code) {
+    #ifndef DISABLE_CLOUDS_SHADOW
+      #define DISABLE_CLOUDS_SHADOW 0
+    #endif
     half clouds_shadow(float3 worldPos)
     {
       #if DISABLE_CLOUDS_SHADOW
-        return 1.0;
+        return 1.0h;
       #else
-        float alt = world_pos_to_clouds_alt.x*worldPos.y + world_pos_to_clouds_alt.y;
-        worldPos.xz = clouds_weather_inv_size__alt_scale.yz*alt + worldPos.xz;
-        //that should be actually calculated with correct lighting attenuation and then blurred.
-        //we can do that for 2d
-        float shadow = clouds_shadows_2d.SampleLevel(smpl, worldPos.xz*clouds_weather_inv_size__alt_scale.x + world_pos_to_clouds_alt.zw + clouds_hole_pos.zw, 0).x;
-        return lerp(shadow,1, max(alt,0));
+        //the soft receiver footprint, same gate and ms curve as the ref path
+        return get_clouds_shadow_soft(worldPos);
       #endif
     }
   }
 endmacro
 
 macro USE_CLOUDS_SHADOW_BASE_2D(code)
-  USE_CLOUDS_SHADOW_BASE_2D_SMP(code, clouds_shadows_2d_samplerstate)
+  USE_CLOUDS_SHADOW_BASE_2D_SMP(code, clouds_bsm_samplerstate)
 endmacro
 
-//this auto is for SAMPLES ONLY!!
-//in your project choose either ref or 2d!
+//kept for source compatibility: both paths are the ref one now
 macro INIT_CLOUDS_SHADOW_BASE_AUTO(light_dir_x, light_dir_y, light_dir_z, code)
-  INIT_CLOUDS_SHADOW_BASE_2D(light_dir_x, light_dir_y, light_dir_z, code)
-  INIT_CLOUDS_SHADOWS_VOLUME(code)
-  (code) {skies_use_2d_shadows@f1 = (skies_use_2d_shadows);}
+  INIT_CLOUDS_SHADOW_BASE_REF(light_dir_x, light_dir_y, light_dir_z, code)
 endmacro
 
 macro USE_CLOUDS_SHADOW_BASE_AUTO(code)
-  hlsl(code) {
-    #define clouds_shadow clouds_shadow_ref
-  }
   USE_CLOUDS_SHADOW_BASE_REF(code)
-  hlsl(code) {
-    #undef clouds_shadow
-    #define clouds_shadow clouds_shadow_2d
-  }
-  USE_CLOUDS_SHADOW_BASE_2D(code)
-  hlsl(code) {
-    #undef clouds_shadow
-    half clouds_shadow(float3 worldPos)
-    {
-      if (skies_use_2d_shadows)
-        return clouds_shadow_2d(worldPos);
-      return clouds_shadow_ref(worldPos);
-    }
-  }
 endmacro
 
 //by default use volume shadows, as they don't need any flags

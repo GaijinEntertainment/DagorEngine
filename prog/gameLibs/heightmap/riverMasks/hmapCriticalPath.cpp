@@ -11,10 +11,9 @@ static const int8_t dy8[] = {0, 1, 1, 1, 0, -1, -1, -1};
 
 // --- 2x2 block thinning ---
 
-static int hmap_sdf_thin_2x2(dag::Span<uint32_t> bits, dag::ConstSpan<float> dist, int w)
+static int hmap_sdf_thin_2x2(dag::Span<uint32_t> bits, const sdf::DistField &dist, int w)
 {
   uint32_t *__restrict bdata = bits.data();
-  const float *__restrict ddata = dist.data();
   int total_removed = 0;
   int grid_w = w - 1;
 
@@ -49,19 +48,21 @@ static int hmap_sdf_thin_2x2(dag::Span<uint32_t> bits, dag::ConstSpan<float> dis
           ((bdata[i11 >> 5] >> (i11 & 31)) & 1)))
       continue;
 
+    // The 2x2 block spans rows by and by+1; index those directly to avoid per-sample div/mod.
+    const float *r0 = dist.row(by), *r1 = dist.row(by + 1);
     int widx = i00;
-    float wval = ddata[i00];
-    if (ddata[i10] < wval)
+    float wval = r0[bx];
+    if (r0[bx + 1] < wval)
     {
       widx = i10;
-      wval = ddata[i10];
+      wval = r0[bx + 1];
     }
-    if (ddata[i01] < wval)
+    if (r1[bx] < wval)
     {
       widx = i01;
-      wval = ddata[i01];
+      wval = r1[bx];
     }
-    if (ddata[i11] < wval)
+    if (r1[bx + 1] < wval)
     {
       widx = i11;
     }
@@ -244,7 +245,7 @@ static int hmap_sdf_prune_short_branches(dag::Span<uint32_t> ridge_bits, int w, 
 
 // --- Line-of-sight to contour check ---
 
-static bool hmap_sdf_has_los_to_contour(const float *__restrict ddata, const uint32_t *__restrict wmdata, int w, float contour_dist,
+static bool hmap_sdf_has_los_to_contour(const sdf::DistField &dist, const uint32_t *__restrict wmdata, int w, float contour_dist,
   int x, int y)
 {
   static const float dir_x[] = {1.0f, 0.9239f, 0.7071f, 0.3827f, 0.0f, -0.3827f, -0.7071f, -0.9239f, -1.0f, -0.9239f, -0.7071f,
@@ -273,7 +274,7 @@ static bool hmap_sdf_has_los_to_contour(const float *__restrict ddata, const uin
       int pidx = py * w + px;
       if (!((wmdata[pidx >> 5] >> (pidx & 31)) & 1))
         break;
-      if (ddata[pidx] >= contour_dist)
+      if (dist.row(py)[px] >= contour_dist)
         return true;
     }
   }
@@ -325,7 +326,7 @@ static bool hmap_sdf_classify_ridge(float d, float n_l, float n_r, float n_t, fl
 
 // --- Critical path extraction ---
 
-int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<uint32_t> water_mask, int w, float contour_dist,
+int hmap_sdf_extract_critical_path(const sdf::DistField &dist, dag::ConstSpan<uint32_t> water_mask, int w, float contour_dist,
   int min_branch_len, int min_comp_size, dag::Vector<uint32_t> &out_path)
 {
 
@@ -338,30 +339,28 @@ int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<ui
   // Contour boundary pixels (d >= contour_dist with a neighbor < contour_dist)
   // are written directly to out_path, avoiding a separate combine pass.
   {
-    const float *__restrict ddata = dist.data();
     const uint32_t *__restrict wmdata = water_mask.data();
     uint32_t *__restrict rbdata = ridge_bits.data();
     uint32_t *__restrict opdata = out_path.data();
 
-    // Interior loop: no bounds checking on neighbor reads
+    // Interior loop: no bounds checking on neighbor reads. Neighbors stay within the
+    // rows y-1..y+1, so cache those row pointers instead of flat-indexing the grid.
     for (int y = 1; y < w - 1; y++)
     {
       int row = y * w;
+      const float *rt = dist.row(y - 1), *rc = dist.row(y), *rb = dist.row(y + 1);
       for (int x = 1; x < w - 1; x++)
       {
         int idx = row + x;
         if (!((wmdata[idx >> 5] >> (idx & 31)) & 1))
           continue;
-        float d = ddata[idx];
+        float d = rc[x];
 
         if (d >= contour_dist)
         {
           // Contour boundary: water pixel at contour_dist with a neighbor below contour_dist
-          float n_l = ddata[idx - 1], n_r = ddata[idx + 1];
-          float n_t = ddata[idx - w], n_b = ddata[idx + w];
-          if (n_l < contour_dist || n_r < contour_dist || n_t < contour_dist || n_b < contour_dist ||
-              ddata[idx - w - 1] < contour_dist || ddata[idx + w + 1] < contour_dist || ddata[idx - w + 1] < contour_dist ||
-              ddata[idx + w - 1] < contour_dist)
+          if (rc[x - 1] < contour_dist || rc[x + 1] < contour_dist || rt[x] < contour_dist || rb[x] < contour_dist ||
+              rt[x - 1] < contour_dist || rb[x + 1] < contour_dist || rt[x + 1] < contour_dist || rb[x - 1] < contour_dist)
             opdata[idx >> 5] |= 1u << (idx & 31);
           continue;
         }
@@ -369,10 +368,10 @@ int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<ui
         if (d <= 1.0f)
           continue;
 
-        float n_l = ddata[idx - 1], n_r = ddata[idx + 1];
-        float n_t = ddata[idx - w], n_b = ddata[idx + w];
-        float n_tl = ddata[idx - w - 1], n_br = ddata[idx + w + 1];
-        float n_tr = ddata[idx - w + 1], n_bl = ddata[idx + w - 1];
+        float n_l = rc[x - 1], n_r = rc[x + 1];
+        float n_t = rt[x], n_b = rb[x];
+        float n_tl = rt[x - 1], n_br = rb[x + 1];
+        float n_tr = rt[x + 1], n_bl = rb[x - 1];
 
         if (hmap_sdf_classify_ridge(d, n_l, n_r, n_t, n_b, n_tl, n_br, n_tr, n_bl, n_r - n_l, n_b - n_t))
           rbdata[idx >> 5] |= 1u << (idx & 31);
@@ -385,14 +384,14 @@ int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<ui
       int idx = y * w + x;
       if (!((wmdata[idx >> 5] >> (idx & 31)) & 1))
         return;
-      float d = ddata[idx];
+      float d = dist.row(y)[x];
 
       if (d >= contour_dist)
       {
         for (int n = 0; n < 8; n++)
         {
           int nx = mirror(x + dx8[n]), ny = mirror(y + dy8[n]);
-          if (ddata[ny * w + nx] < contour_dist)
+          if (dist.row(ny)[nx] < contour_dist)
           {
             opdata[idx >> 5] |= 1u << (idx & 31);
             break;
@@ -406,10 +405,11 @@ int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<ui
 
       int mx_l = mirror(x - 1), mx_r = mirror(x + 1);
       int my_t = mirror(y - 1), my_b = mirror(y + 1);
-      float n_l = ddata[y * w + mx_l], n_r = ddata[y * w + mx_r];
-      float n_t = ddata[my_t * w + x], n_b = ddata[my_b * w + x];
-      float n_tl = ddata[my_t * w + mx_l], n_br = ddata[my_b * w + mx_r];
-      float n_tr = ddata[my_t * w + mx_r], n_bl = ddata[my_b * w + mx_l];
+      const float *rt = dist.row(my_t), *rc = dist.row(y), *rb = dist.row(my_b);
+      float n_l = rc[mx_l], n_r = rc[mx_r];
+      float n_t = rt[x], n_b = rb[x];
+      float n_tl = rt[mx_l], n_br = rb[mx_r];
+      float n_tr = rt[mx_r], n_bl = rb[mx_l];
 
       if (hmap_sdf_classify_ridge(d, n_l, n_r, n_t, n_b, n_tl, n_br, n_tr, n_bl, n_r - n_l, n_b - n_t))
         rbdata[idx >> 5] |= 1u << (idx & 31);
@@ -433,7 +433,6 @@ int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<ui
 
   // Step 4: filter ridge pixels by LOS to contour.
   {
-    const float *__restrict ddata = dist.data();
     const uint32_t *__restrict wmdata = water_mask.data();
     uint32_t *__restrict rbdata = ridge_bits.data();
     for (int wi = 0; wi < bitmask_words; wi++)
@@ -449,7 +448,7 @@ int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<ui
         if (idx >= w * w)
           break;
         int x = idx % w, y = idx / w;
-        if (hmap_sdf_has_los_to_contour(ddata, wmdata, w, contour_dist, x, y))
+        if (hmap_sdf_has_los_to_contour(dist, wmdata, w, contour_dist, x, y))
           rbdata[wi] &= ~(1u << bit);
       }
     }

@@ -30,6 +30,8 @@ void capsules_collision_on_appear_es(const ecs::Event &,
   ecs::EntityId &animchar_attach__attachedTo,
   ecs::IntList &capsule_approximation_collisions_ids)
 {
+  // ids index the current attach target's capsuleDatas, so rebuild the list from scratch each run
+  capsule_approximation_collisions_ids.clear();
   eastl::vector_set<uint32_t, eastl::less<uint32_t>, framemem_allocator> capsuleNodes;
   capsuleNodes.reserve(capsule_approximation_collisions_names.size());
   for (auto &name : capsule_approximation_collisions_names)

@@ -87,23 +87,31 @@ void Templates::remap(const template_t *map, uint32_t used_count, bool defrag_na
   newTemplateReplData.push_back(0);
   dag::Vector<component_index_t> newReplicatedComponents;
   newReplicatedComponents.reserve(replicatedComponents.size());
+  eastl::bitvector<> newReplicatingTemplates;
+  newReplicatingTemplates.resize(used_count);
   for (uint32_t i = 0, e = size(); i != e; ++i)
   {
     const template_t newId = map[i];
     if (newId == INVALID_TEMPLATE_INDEX)
       continue;
+    // the sequential appends below index implicitly by newId, which is only
+    // correct for a monotonic (ordered removals) map
+    G_ASSERTF(newId + 1 == newTemplateReplData.size(), "%d: map=%d, should be %d", i, newId, newTemplateReplData.size() - 1);
     templatesNew[newId] = eastl::move(templates[i]);
     newTemplateDbId[newId] = templateDbId[i];
     uint32_t riCnt = 0;
     const component_index_t *ri = replicatedComponentsList(i, riCnt);
     newReplicatedComponents.insert(newReplicatedComponents.end(), ri, ri + riCnt);
     newTemplateReplData.push_back((uint32_t)newReplicatedComponents.size());
+    if (replicatingTemplates.test(i, false))
+      newReplicatingTemplates.set(newId, true);
   }
   newReplicatedComponents.shrink_to_fit();
   eastl::swap(templates, templatesNew);
   eastl::swap(newTemplateDbId, templateDbId);
   eastl::swap(templateReplData, newTemplateReplData);
   eastl::swap(replicatedComponents, newReplicatedComponents);
+  eastl::swap(replicatingTemplates, newReplicatingTemplates);
   for (auto &t : templatesNew)
     t.clear(archetypes, dataComponents, componentTypes); // destructor
 #endif
@@ -194,13 +202,19 @@ template_t Templates::createTemplate(ecs::EntityManager &mgr, Archetypes &archet
   ComponentTypes &componentTypes)
 
 {
-  uint32_t archetype = archetypes.addArchetype(componentIndices, componentIndicesSize, dataComponents, componentTypes);
-  G_ASSERT_RETURN(archetype < archetypes.size(), INVALID_TEMPLATE_INDEX);
-
   size_t templ = templates.size();
   DAECS_EXT_ASSERT(templateReplData.size() == templ + 1);
   DAECS_EXT_ASSERTF(templ == templateDbId.size(), "%d != %d", templ, templateDbId.size());
-  DAECS_EXT_ASSERT(templ < INVALID_TEMPLATE_INDEX);
+  if (DAGOR_UNLIKELY(templ >= INVALID_TEMPLATE_INDEX)) // template_t is uint16; a wrap would alias an existing template
+  {
+    // checked before addArchetype so a refused template can't orphan a fresh archetype
+    logerr("can't create template: limit of %d instantiated templates reached", INVALID_TEMPLATE_INDEX);
+    return INVALID_TEMPLATE_INDEX;
+  }
+
+  uint32_t archetype = archetypes.addArchetype(componentIndices, componentIndicesSize, dataComponents, componentTypes);
+  if (DAGOR_UNLIKELY(archetype >= archetypes.size())) // addArchetype refused (id width or entity size), already logged
+    return INVALID_TEMPLATE_INDEX;
 
   templates.emplace_back(mgr, archetypes, archetype, initializers, dataComponents, componentTypes);
   templateDbId.push_back(db_id);

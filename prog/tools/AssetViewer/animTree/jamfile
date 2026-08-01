@@ -27,6 +27,7 @@ Sources =
   animStates/rootProps.cpp
   animStates/initFifo3.cpp
   animStates/postBlendCtrlOrder.cpp
+  animStates/morph.cpp
   controllers/ctrlTreeEventHandler.cpp
   controllers/ctrlListSettingsEventHandler.cpp
   controllers/ctrlType.cpp

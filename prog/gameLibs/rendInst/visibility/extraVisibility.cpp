@@ -996,7 +996,8 @@ static void sortTransparentRiExtraInstancesByDistance_detail(RiGenVisibility *vb
       for (int i = 0; i < poolCnt; i++)
       {
         mat44f tm;
-        v_mat43_transpose_to_mat44(tm, *(mat43f *)data);
+        // each record is RIEXTRA_VECS_COUNT vec4s, so the ld4 overread stays inside the record
+        v_mat44_load_from_mat43_overread_unsafe(tm, *(const mat43f *)data);
 
         uint32_t partitionFlagDist2;
         if constexpr (partition_by_sphere)
@@ -1138,7 +1139,7 @@ void rendinst::requestRiExtraLodsByDistance(const Point3 &camera_pos)
       unsigned lod = find_lod<rendinst::RiExtraPool::MAX_LODS>(riPool.distSqLOD, distSqScaledNormalized);
       lod = clamp(lod, min_lod, max_lod);
 
-      if (DAGOR_LIKELY(poolId < riExtra.size() && riExtra[poolId].res))
+      if (DAGOR_LIKELY(riExtra.isValid(poolId) && riExtra[poolId].res))
       {
         riExtra[poolId].res->updateReqLod(min<int>(lod, riExtra[poolId].res->lods.size() - 1));
       }
@@ -1306,8 +1307,8 @@ void rendinst::filterVisibility(RiGenVisibility &from, RiGenVisibility &to, cons
   // NOTE: read riExtra => requires ccExtra
   auto storeVisibleRiexData = [&](const vec4f *data, uint32_t poolId, int lod) DAG_TS_REQUIRES_SHARED(ccExtra) -> bool {
     mat44f riTm44f;
-    v_mat43_transpose_to_mat44(riTm44f, *(const mat43f *)data);
-    // riTm44f.col3[3] = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
+    // each record is RIEXTRA_VECS_COUNT vec4s, so the ld4 overread stays inside the record
+    v_mat44_load_from_mat43_overread_unsafe(riTm44f, *(const mat43f *)data);
 
     bbox3f box;
     v_bbox3_init_empty(box);
@@ -1394,10 +1395,8 @@ void rendinst::filterRIGenExtraVisibilityById(const RiGenVisibility *from, RiGen
   int maxLodUsed = 0;
   int newVisCnt = 0;
   auto storeVisibleRiexData = [&](const vec4f *data, uint32_t poolId, int lod, const RangeType &range) -> bool {
-    mat44f riTm44f;
     TMatrix tm;
-    v_mat43_transpose_to_mat44(riTm44f, *(const mat43f *)data);
-    v_mat_43cu_from_mat44((float *)tm.m, riTm44f);
+    v_mat_43cu_from_mat43((float *)tm.m, *(const mat43f *)data);
 
     for (auto it = range.first; it != range.second; ++it)
       if (id_filter(it->second, tm))
@@ -1446,7 +1445,7 @@ static PerInstanceDrawStats gather_per_instance_draw_stats(int poolI, int lod, i
   if (poolI < 0 || lod < 0 || lod >= (int)rendinst::RiExtraPool::MAX_LODS)
     return agg;
   const int extraSize = (int)rendinst::riExtra.size();
-  if (poolI >= extraSize)
+  if (!rendinst::riExtra.isValid(poolI))
     return agg;
   if (allElemsIndex.size() < (((size_t)lod * extraSize + poolI + 1) * ShaderMesh::STG_COUNT + 1))
     return agg;

@@ -397,31 +397,48 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
   }
 
   eastl::wstring sharedPath;
-  size_t basePathLenght = 0;
-  if ((settings.pdbMode != PDBMode::NONE) && !settings.PDBBasePath.empty())
+  eastl::wstring pdbPathStorage;
+  size_t basePathLength = 0;
+  if ((settings.pdbMode != PDBMode::NONE) && !settings.PDBBasePath.empty() && !settings.xboxPhaseOne)
   {
-    auto &hlslPath = sharedPath;
-    hlslPath.reserve(settings.PDBBasePath.length() + 70); // 64 for hashes 5 for extensions and +1 should be enough for anything
-    hlslPath.assign(begin(settings.PDBBasePath), end(settings.PDBBasePath));
-    if (auto lastChar = hlslPath.back(); lastChar != L'\\' && lastChar != L'/')
-      hlslPath.push_back(L'\\');
-    basePathLenght = hlslPath.length();
+    sharedPath.reserve(settings.PDBBasePath.length() + 70); // 64 for hashes 5 for extensions and +1 should be enough for anything
+    sharedPath.assign(begin(settings.PDBBasePath), end(settings.PDBBasePath));
+    if (auto lastChar = sharedPath.back(); lastChar != L'\\' && lastChar != L'/')
+      sharedPath.push_back(L'\\');
 
-    static constexpr char hexChars[] = "0123456789ABCDEF";
-    unsigned char hash[20];
-    sha1_csum(static_cast<unsigned char *>(blob.GetBufferPointer()), blob.GetBufferSize(), hash);
+    basePathLength = sharedPath.length();
 
-    for (unsigned char byte : hash)
+    if (!settings.PDBNameOverride.empty())
     {
-      hlslPath.push_back(hexChars[byte >> 4]);
-      hlslPath.push_back(hexChars[byte & 15]);
+      sharedPath.append(settings.PDBNameOverride.data());
     }
-    hlslPath.append(L".hlsl");
+    else
+    {
 
+      static constexpr char hexChars[] = "0123456789ABCDEF";
+      unsigned char hash[20];
+      sha1_csum(static_cast<unsigned char *>(blob.GetBufferPointer()), blob.GetBufferSize(), hash);
+
+      for (unsigned char byte : hash)
+      {
+        sharedPath.push_back(hexChars[byte >> 4]);
+        sharedPath.push_back(hexChars[byte & 15]);
+      }
+    }
+
+    pdbPathStorage = sharedPath;
+
+    auto &hlslPath = sharedPath;
+    hlslPath.append(L".hlsl");
     if (write_to_text_file(&blob, hlslPath))
     {
-      compilerParams.emplace_back(hlslPath.begin() + basePathLenght);
+      compilerParams.emplace_back(hlslPath.begin() + basePathLength);
     }
+
+    pdbPathStorage.append(L".pdb");
+
+    compilerParams.emplace_back(L"-Fd");
+    compilerParams.emplace_back(pdbPathStorage.begin() + basePathLength);
   }
 
   CompileResult result;
@@ -489,7 +506,7 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
         compileResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName);
         if (pdb && pdbName)
         {
-          sharedPath.resize(basePathLenght);
+          sharedPath.resize(basePathLength);
           auto &pdbPath = sharedPath;
           pdbPath.append(pdbName->GetStringPointer(), pdbName->GetStringPointer() + pdbName->GetStringLength());
           if (!write_to_file(pdb, pdbPath))
@@ -511,7 +528,7 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
         // note: for some reason csoName is nullptr here, so pdb name is used instead
         if (cso && pdbName)
         {
-          sharedPath.resize(basePathLenght);
+          sharedPath.resize(basePathLength);
           auto &csoPath = sharedPath;
           csoPath.append(pdbName->GetStringPointer(), pdbName->GetStringPointer() + pdbName->GetStringLength() - 4);
           csoPath.append(L".cso");

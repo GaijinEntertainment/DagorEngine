@@ -31,7 +31,7 @@ macro USE_OOF_LIGHTS_GRID(code)
       if (all(omniIndex < uint3(OOF_GRID_W, OOF_GRID_W, OOF_GRID_VERT)) && omni_lights_count.x)
       {
         #if 0
-        for (uint omni_light_index = 0, omni_count = min(omni_lights_count.x, MAX_OMNI_LIGHTS); omni_light_index < omni_count; omni_light_index++)
+        for (uint omni_light_index = 0, omni_count = min(omni_lights_count.x, MAX_CLUSTERED_OMNI_LIGHTS); omni_light_index < omni_count; omni_light_index++)
         {
           RenderOmniLight ol = omni_lights_cb[omni_light_index];
           float4 pos_and_radius = ol.posRadius;
@@ -91,7 +91,7 @@ macro USE_OOF_LIGHTS_GRID(code)
       if (all(spotIndex < uint3(OOF_GRID_W, OOF_GRID_W, OOF_GRID_VERT)) && spot_lights_count.x)
       {
         #if 0
-        for (uint spot_light_index = 0, spot_count = min(spot_lights_count.x, MAX_SPOT_LIGHTS); spot_light_index < spot_count; spot_light_index++)
+        for (uint spot_light_index = 0, spot_count = min(spot_lights_count.x, MAX_CLUSTERED_SPOT_LIGHTS); spot_light_index < spot_count; spot_light_index++)
         {
           RenderSpotLight sl = spot_lights_cb[spot_light_index];
           float4 lightPosRadius = decode_spot_light_pos_radius(sl);
@@ -128,8 +128,6 @@ macro USE_OOF_LIGHTS_GRID(code)
             float4 lightDirection = sl.lightDirectionAngleOffset;
             float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
             float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_packedDataBits.z;
-            uint shadowDataBits = asuint(sl.texId_scale_illuminatingplane_packedDataBits.w);
-            uint shadowAtlasRectBits = (shadowDataBits >> SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET) & SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK;
             float lightRollAngle = decode_light_roll_angle(sl);
             #include "clustered/oneSpotLight.hlsl"
             ambientLight += lightBRDF;

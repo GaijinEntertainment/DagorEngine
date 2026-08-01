@@ -497,12 +497,6 @@ void VolumeLight::initFroxelFog()
 
   resultInscatter = dag::create_voltex(froxelResolution.x, froxelResolution.y, froxelResolution.z + reservedSliceCnt,
     TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "view_result_inscatter", RESTAG_VOLFOG);
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.filter_mode = d3d::FilterMode::Linear;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-    vars.view_result_inscatter_samplerstate.set_sampler(d3d::request_sampler(smpInfo));
-  }
   resultInscatter.setVar();
 
   for (int i = 0; i < volfogOcclusion.size(); ++i)

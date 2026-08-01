@@ -77,7 +77,7 @@ def mk_page_desc(name, brief=None):
 def mk_class_desc(name, brief=None, parent=None):
   return {"type":"class", "name":name, "brief":brief, "doc":[], "members":[], "extras":{}, "extends":None, "parent":parent, "members_set":{}}
 
-def mk_func_desc(name, brief=None, paramsnum=None, typemask = None, static=False, typ="function", parent=None, docstring=None, params=None, retdesc=None, is_pure=False, kwarged=False, vargved=False, members=None, extras=None):
+def mk_func_desc(name, brief=None, paramsnum=None, typemask = None, static=False, typ="function", parent=None, docstring=None, params=None, retdesc=None, is_pure=False, is_fastcall=False, is_nodiscard=False, kwarged=False, vargved=False, vargtype=None, members=None, extras=None):
   return {
     "type":typ,
     "static":static,
@@ -93,6 +93,9 @@ def mk_func_desc(name, brief=None, paramsnum=None, typemask = None, static=False
     "typemask":typemask,
     "kwarged":kwarged,
     "is_pure":is_pure,
+    "is_fastcall":is_fastcall,
+    "is_nodiscard":is_nodiscard,
+    "vargtype":vargtype,
   }
 
 def mk_fieldmember_desc(name, typ="value", parent=None, brief = None, writeable=None):
@@ -396,6 +399,10 @@ def parse(file_path, data, parsed_result = None, print_res=False):
     params = None
     retdesc = None
     is_pure = False
+    is_fastcall = False
+    is_nodiscard = False
+    vargved = False
+    vargtype = None
     t="function"
     members = None
     if docstringfunc:
@@ -405,10 +412,13 @@ def parse(file_path, data, parsed_result = None, print_res=False):
       typemask = parsed["typemask"]
       paramsnum = parsed["paramsnum"]
       vargved = parsed["vargved"]
+      vargtype = parsed.get("vargtype")
       members = parsed["members"]
       params = parsed["args"]
       retdesc = {"rtype": parsed["rtype"], "description": None}
       is_pure = parsed.get("is_pure", False)
+      is_fastcall = parsed.get("is_fastcall", False)
+      is_nodiscard = parsed.get("is_nodiscard", False)
 
     elif mfull:
       t, name, cpp_name, paramsnum, typemask = mfull.groups()
@@ -433,7 +443,11 @@ def parse(file_path, data, parsed_result = None, print_res=False):
       if name.startswith("_") and name[1:] in ["get","set", "add","newslot","delslot","div","mul","sub","modulo","unm","tostring","nexti","call","cmp","typeof","cloned"]:
         typ = "operator"
 
-    desc = mk_func_desc(name, brief=None, paramsnum=paramsnum, typemask=typemask, static = t=="StaticFunc", typ = typ, parent=parent, docstring=docstring, params=params, retdesc=retdesc, is_pure=is_pure, members=members)
+    desc = mk_func_desc(name, brief=None, paramsnum=paramsnum, typemask=typemask,
+      static=t=="StaticFunc", typ=typ, parent=parent, docstring=docstring,
+      params=params, retdesc=retdesc, is_pure=is_pure, is_fastcall=is_fastcall,
+      is_nodiscard=is_nodiscard, vargved=vargved, vargtype=vargtype,
+      members=members)
     if s:= simple_func_re.search(line):
       _, cpp_func_name = s.groups()
       if cpp_func_name in cpp_functions:

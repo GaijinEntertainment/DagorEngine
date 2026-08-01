@@ -33,7 +33,6 @@
   VAR(dof_focus_near_mode)             \
   VAR(simplified_dof)                  \
   VAR(dof_coc_history)                 \
-  VAR(dof_coc_history_samplerstate)    \
   VAR(dof_blend_depth_tex_samplerstate)
 
 #define VAR(a) static int a##VarId = -1;
@@ -127,10 +126,6 @@ void DepthOfFieldPS::initNear()
   if (useCoCAccumulation && !useSimplifiedRendering)
   {
     dof_coc_history = dag::create_tex(NULL, originalWidth, originalHeight, flg | TEXFMT_R8, 1, "dof_coc_history", RESTAG_DOF);
-    d3d::SamplerInfo smpInfo;
-    smpInfo.filter_mode = d3d::FilterMode::Linear;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-    ShaderGlobal::set_sampler(dof_coc_history_samplerstateVarId, d3d::request_sampler(smpInfo));
   }
   else
   {

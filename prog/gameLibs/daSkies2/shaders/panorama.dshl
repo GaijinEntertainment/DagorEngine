@@ -126,13 +126,15 @@ macro USE_CLOUDS_PANORAMA_UV()
 endmacro
 
 macro INIT_CLOUDS_ALPHA_PANORAMA()
-  (ps) { clouds_alpha_panorama_tex@smp2d = clouds_alpha_panorama_tex; }
+  (ps) { clouds_alpha_panorama_tex@tex2d = clouds_alpha_panorama_tex; }
+  INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(ps)
   INIT_CLOUDS_PANORAMA_UV()
 endmacro
 
 macro USE_CLOUDS_ALPHA_PANORAMA()
   USE_CLOUDS_PANORAMA_UV()
   hlsl(ps) {
+    #define clouds_alpha_panorama_tex_samplerstate global_linear_wrap_u_clamp_v_sampler
     float get_clouds_alpha_panorama_uv(float2 sky_uv)
     {
       return tex2Dlod(clouds_alpha_panorama_tex, float4(sky_uv,0,0)).x;

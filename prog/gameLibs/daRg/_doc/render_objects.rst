@@ -26,7 +26,9 @@ Renders a picture.
 Properties:
 
 * ``image`` — Picture, main image.
-* ``fallbackImage`` — Picture, used when ``image`` fails/empty.
+* ``fallbackImage`` — Picture, used when ``image`` fails/empty. For a placeholder *while*
+  loading, or one that is a component rather than a picture, see the ``ImageLoadState``
+  behavior and the ``mkAsyncImage`` helper.
 * ``color`` — Color, tint (default 0xFFFFFFFF).
 * ``keepAspect`` — bool or enum ``KEEP_ASPECT_*``; default ``KEEP_ASPECT_NONE``.
 * ``imageHalign`` / ``imageValign`` — enum ``ALIGN_*`` (default center).
@@ -120,9 +122,11 @@ Note: Text rendering differs slightly in size compared to ``ROBJ_TEXT`` for the 
 
 ROBJ_TEXTAREA
 -------------
-Multi-line editable text area with scrolling and cursor rendering. Uses the same properties as ``ROBJ_TEXT`` plus the following.
-
-Properties:
+Multi-line editable text area with scrolling and cursor rendering. Shares the
+``ROBJ_TEXT`` font, color, effect, spacing and ``monoWidth`` properties, but not
+its horizontal-overflow controls: ``overflowX`` and ``ellipsis`` have no effect
+here. The ellipsis is shown by default on vertical overflow and hidden via
+``preformatted = FMT_HIDE_ELLIPSIS``. Additional properties:
 
 * ``overflowY`` — enum TOVERFLOW_* for vertical overflow (default ``TOVERFLOW_CLIP``).
 * ``lowLineCount`` — int, minimum line count for alignment (default 0).

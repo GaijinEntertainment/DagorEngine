@@ -2015,10 +2015,15 @@ void shutdown_tex_pack2_data()
   RMGR.performAsyncTextureReplacementCompletions();
   d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
 
+  int64_t refTicks = ref_time_ticks();
   bool has_alive_refs = false;
+  texmgr_internal::defer_managed_tex_map_erase = true;
+  texmgr_internal::deferred_freed_tex_names.reserve(texmgr_internal::managed_tex_map_by_name.strCount());
   for (int i = 0; i < tex_packs.size(); i++)
     if (!tex_packs[i].pack->termTex())
       has_alive_refs = true;
+  texmgr_internal::compact_managed_tex_map();
+  debug("Texture termination took %lld usec", ref_time_delta_to_usec(ref_time_ticks() - refTicks));
   G_ASSERTF(!has_alive_refs, "texture packs are released while some textures are still referenced, crash is expected later");
 
   for (int i = 0; i < tex_packs.size(); i++)
@@ -2561,6 +2566,15 @@ struct DDSxArrayTextureFactory final : public TextureFactory
 
           if (ldRet == TexLoadRes::ERR_RUB)
           {
+            // pending device reset waits for this job to stop and RUB shortage cannot
+            // resolve until the reset completes, so bail out instead of retrying
+            if (interlocked_acquire_load(texmgr_internal::texq_load_disabled) || d3d::is_in_device_reset_now())
+            {
+              debug("arrTex: stop loading 0x%x (%s) due to texq_load_disabled/device reset", r.tid, texname);
+              del_d3dres(t);
+              RMGR.cancelReading(RMGR.toIndex(r.tid));
+              return true;
+            }
             if (!is_main_thread())
             {
               while (dagor_frame_no() < fe && (unsigned)interlocked_acquire_load(texmgr_internal::drv_res_updates_flush_count) < rfe &&
@@ -2580,6 +2594,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
           }
 
           logAddManagedArrayTextureFailure(texname, s, false, ldRet, attempt, fs, reft0, rfs);
+          del_d3dres(t);
           RMGR.cancelReading(RMGR.toIndex(r.tid));
           return false;
         }
@@ -2602,6 +2617,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
           {
             if (ldRet == TexLoadRes::ERR)
               FATALERR("add_managed_array_texture(%s): d3d_load_ddsx_to_slice(%d) failed", texname, s);
+            del_d3dres(t);
             RMGR.cancelReading(RMGR.toIndex(r.tid));
             return false;
           }
@@ -2609,6 +2625,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
         else
         {
           FATALERR("add_managed_array_texture(%s): getTextureDDSx(%d) failed", texname, s);
+          del_d3dres(t);
           RMGR.cancelReading(RMGR.toIndex(r.tid));
           return false;
         }
@@ -2624,6 +2641,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
         {
           if (ldRet == TexLoadRes::ERR)
             FATALERR("add_managed_array_texture(%s): d3d_load_ddsx_to_slice(%d) failed", texname, s);
+          del_d3dres(t);
           RMGR.cancelReading(RMGR.toIndex(r.tid));
           return false;
         }
@@ -2650,6 +2668,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
         {
           if (ldRet == TexLoadRes::ERR)
             FATALERR("add_managed_array_texture(%s): d3d_load_ddsx_to_slice(%d) failed", texname, s);
+          del_d3dres(t);
           RMGR.cancelReading(RMGR.toIndex(r.tid));
           return false;
         }
@@ -2695,6 +2714,15 @@ struct DDSxArrayTextureFactory final : public TextureFactory
 
           if (ldRet == TexLoadRes::ERR_RUB)
           {
+            // pending device reset waits for this job to stop and RUB shortage cannot
+            // resolve until the reset completes, so bail out instead of retrying
+            if (interlocked_acquire_load(texmgr_internal::texq_load_disabled) || d3d::is_in_device_reset_now())
+            {
+              debug("arrTex: stop loading 0x%x (%s) due to texq_load_disabled/device reset", r.tid, texname);
+              del_d3dres(t);
+              RMGR.cancelReading(RMGR.toIndex(r.tid));
+              return true;
+            }
             if (!is_main_thread())
             {
               while (dagor_frame_no() < fe && (unsigned)interlocked_acquire_load(texmgr_internal::drv_res_updates_flush_count) < rfe &&
@@ -2714,6 +2742,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
           }
 
           logAddManagedArrayTextureFailure(texname, s, true, ldRet, attempt, fs, reft0, rfs);
+          del_d3dres(t);
           RMGR.cancelReading(RMGR.toIndex(r.tid));
           return false;
         }
@@ -2736,6 +2765,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
           {
             if (ldRet == TexLoadRes::ERR)
               FATALERR("add_managed_array_texture(%s): d3d_load_ddsx_to_slice(%d) failed", texname, s);
+            del_d3dres(t);
             RMGR.cancelReading(RMGR.toIndex(r.tid));
             return false;
           }
@@ -2743,6 +2773,7 @@ struct DDSxArrayTextureFactory final : public TextureFactory
         else
         {
           FATALERR("add_managed_array_texture(%s): getTextureDDSx(%d) failed", texname, s);
+          del_d3dres(t);
           RMGR.cancelReading(RMGR.toIndex(r.tid));
           return false;
         }

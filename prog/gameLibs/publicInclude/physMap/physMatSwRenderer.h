@@ -7,6 +7,7 @@
 #include <math/dag_scanLineRasterizer.h>
 #include <memory/dag_framemem.h>
 #include <physMap/physMap.h> // for PhysMap::BitmapPhysTex<>
+#include <physMap/physMapCompactDecals.h>
 
 template <int Width, int Height>
 class RenderDecalMaterials
@@ -69,6 +70,18 @@ public:
   }
 
   bool checkPixel(int x, int y) const { return materials[y * WIDTH + x] < 255; }
+
+  // one per-tri projection+cull pipeline shared by renderDecalMesh and
+  // renderCompactEntry, so the two rasterization paths cannot drift
+  VECTORCALL static inline bool projectTriCull(vec4f v01, vec4f v2, vec4f v_scale, vec4f v_ofs, vec4f v_region, IPoint2 *out_verts)
+  {
+    vec4f vMMinax = v_perm_xyab(v_min(v_min(v01, v2), v_perm_zwxy(v01)), v_neg(v_max(v_max(v01, v2), v_perm_zwxy(v01))));
+    if (v_check_xyzw_any_true(v_cmp_gt(vMMinax, v_region)))
+      return false;
+    v_sti(&out_verts[0].x, v_cvt_vec4i(v_madd(v01, v_scale, v_ofs)));
+    v_stui_half(&out_verts[2].x, v_cvt_vec4i(v_madd(v2, v_scale, v_ofs)));
+    return true;
+  }
 #define SW_RASTER_PREPROCESS_VERTICES 0
 
   inline void renderDecalMesh(const PhysMap &phys_map, const BBox2 &region, const PhysMap::DecalMesh &mesh)
@@ -123,12 +136,9 @@ public:
 #else
         vec4f v01 = v_perm_xyab(v_ldu_half(&mesh.vertices[inds[0]].x), v_ldu_half(&mesh.vertices[inds[1]].x));
         vec4f v2 = v_ldu_half(&mesh.vertices[inds[2]].x);
-        vec4f vMMinax = v_perm_xyab(v_min(v_min(v01, v2), v_perm_zwxy(v01)), v_neg(v_max(v_max(v01, v2), v_perm_zwxy(v01))));
-        if (v_check_xyzw_any_true(v_cmp_gt(vMMinax, vRegion)))
-          continue;
         alignas(16) carray<IPoint2, 3> verts;
-        v_sti(&verts[0].x, v_cvt_vec4i(v_madd(v01, vScale, vOfs)));
-        v_stui_half(&verts[2].x, v_cvt_vec4i(v_madd(v2, vScale, vOfs)));
+        if (!projectTriCull(v01, v2, vScale, vOfs, vRegion, verts.data()))
+          continue;
 #endif
 
         carray<Point2, 3> texCoords;
@@ -167,17 +177,83 @@ public:
       renderDecalMesh(phys_map, region, mesh);
 
     // Then render grid decals
+    const PhysMapCompactDecals *cd = phys_map.compactDecals;
+    if (!cd)
+      return; // no grid (never built or encoder rejected); decals rendered above
+    // the cell range below uses the PhysMap grid fields, the traversal uses
+    // the compact ones; make_grid_decals sets both from one size
+    G_ASSERT(phys_map.gridSz == cd->gridSz);
     Point2 leftTop = (region.lim[0] - phys_map.worldOffset) * phys_map.invGridScale;
     Point2 rightBottom = (region.lim[1] - phys_map.worldOffset) * phys_map.invGridScale;
     IPoint2 leftTopCell = max(IPoint2(0, 0), IPoint2::xy(leftTop));
     IPoint2 rightBottomCell = min(IPoint2(phys_map.gridSz - 1, phys_map.gridSz - 1), IPoint2::xy(floor(rightBottom)));
-    for (int y = leftTopCell.y, i = y * phys_map.gridSz + leftTopCell.x,
-             strideOfs = phys_map.gridSz - (rightBottomCell.x - leftTopCell.x + 1);
-         y <= rightBottomCell.y; ++y, i += strideOfs)
-      for (int x = leftTopCell.x; x <= rightBottomCell.x; ++x, ++i)
-        for (const PhysMap::DecalMesh &mesh : phys_map.gridDecals[i])
-          renderDecalMesh(phys_map, region, mesh);
+    PhysMapCompactDecals::DecodeCtx *ctx =
+      new (framemem_ptr()->alloc(sizeof(PhysMapCompactDecals::DecodeCtx)), _NEW_INPLACE) PhysMapCompactDecals::DecodeCtx;
+    for (int y = leftTopCell.y; y <= rightBottomCell.y; ++y)
+      for (int x = leftTopCell.x; x <= rightBottomCell.x; ++x)
+      {
+        int cellId = y * cd->gridSz + x;
+        for (uint32_t ei = cd->cellStart[cellId], eie = cd->cellStart[cellId + 1]; ei < eie; ++ei)
+          renderCompactEntry(phys_map, *cd, cd->cellEntries[ei], region, *ctx);
+      }
+    framemem_ptr()->free(ctx);
   }
+
+  inline void renderCompactEntry(const PhysMap &phys_map, const PhysMapCompactDecals &cd, const PhysMapCompactDecals::CellEntry &e,
+    const BBox2 &region, PhysMapCompactDecals::DecodeCtx &ctx)
+  {
+    const PhysMapCompactDecals::Chunk &chunk = cd.chunks[e.chunkId];
+    BBox2 cbox = cd.chunkBox(chunk);
+    if (region[0].x > cbox[1].x || region[0].y > cbox[1].y || region[1].x < cbox[0].x || region[1].y < cbox[0].y)
+      return;
+
+    Point2 regOrigin = region.lim[0];
+    Point2 regWidth = region.width();
+    Point2 scale((WIDTH << SR_PRECISE_BITS) / regWidth.x, (HEIGHT << SR_PRECISE_BITS) / regWidth.y);
+    Point2 relOriginHalfOfs = mul(-regOrigin, scale) + Point2(0.5f, 0.5f);
+    vec4f vScale = v_make_vec4f(scale.x, scale.y, scale.x, scale.y),
+          vOfs = v_make_vec4f(relOriginHalfOfs.x, relOriginHalfOfs.y, relOriginHalfOfs.x, relOriginHalfOfs.y);
+    vec4f vRegion = v_make_vec4f(region[1].x, region[1].y, -region[0].x, -region[0].y);
+
+    rasterizer.pixels.fixedMat = chunk.matId;
+    rasterizer.pixels.currentPhysTex = (chunk.bitmapTexId != 0xff && chunk.bitmapTexId < phys_map.physTextures.size())
+                                         ? phys_map.physTextures.data() + chunk.bitmapTexId
+                                         : NULL;
+
+    int lastTri = 0;
+    for (uint32_t ri = e.runStart, rie = e.runStart + e.runCount; ri < rie; ++ri)
+      lastTri = max(lastTri, int(cd.runs[ri].first + cd.runs[ri].count));
+    // without a live mask texcoord values never affect output, skip uv decode
+    const bool hasMask = rasterizer.pixels.currentPhysTex != NULL;
+    cd.decodeChunk(ctx, e.chunkId, lastTri, hasMask);
+
+    // shares projectTriCull with renderDecalMesh; only vert dequantization differs
+    const Point2 *verts = ctx.verts;
+    carray<Point2, 3> texCoords;
+    mem_set_0(texCoords);
+    for (uint32_t ri = e.runStart, rie = e.runStart + e.runCount; ri < rie; ++ri)
+    {
+      const PhysMapCompactDecals::TriRun &run = cd.runs[ri];
+      for (int t = run.first, te = run.first + run.count; t < te; ++t)
+      {
+        int inds[3] = {ctx.topo[t * 3 + 0], ctx.topo[t * 3 + 1], ctx.topo[t * 3 + 2]};
+        vec4f v01 = v_perm_xyab(v_ldu_half(&verts[inds[0]].x), v_ldu_half(&verts[inds[1]].x));
+        vec4f v2 = v_ldu_half(&verts[inds[2]].x);
+        alignas(16) carray<IPoint2, 3> tverts;
+        if (!projectTriCull(v01, v2, vScale, vOfs, vRegion, tverts.data()))
+          continue;
+
+        if (hasMask)
+        {
+          texCoords[0] = ctx.uv[inds[0]];
+          texCoords[1] = ctx.uv[inds[1]];
+          texCoords[2] = ctx.uv[inds[2]];
+        }
+        rasterizer.template draw_indexed_trianglei<true, IPoint2>(tverts.data(), texCoords.data(), 0, 1, 2);
+      }
+    }
+  }
+
   dag::ConstSpan<MatType> getMaterials() const { return materials; }
 
 protected:

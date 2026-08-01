@@ -22,7 +22,7 @@ struct CSGNode
 
 void remove_inside_faces(StaticGeometryContainer &cont, RemoverNotificationCB *cb)
 {
-  BaseCSGRemoval *csg = make_new_csg();
+  BaseCSGRemoval *csg = make_new_csg_removal();
   Tab<CSGNode> polys(tmpmem);
   polys.reserve(cont.nodes.size());
   if (cb)

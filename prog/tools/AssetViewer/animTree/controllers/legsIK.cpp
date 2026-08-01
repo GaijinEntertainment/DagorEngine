@@ -2,6 +2,7 @@
 
 #include "legsIK.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
@@ -92,7 +93,6 @@ void legs_ik_init_block_settings(PropPanel::ContainerPropertyControl *panel, con
 void legs_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
   const SimpleString listName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int selectedIdx = panel->getInt(PID_CTRLS_NODES_LIST);
   if (listName.empty())
     return;
 
@@ -225,13 +225,31 @@ void legs_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyControl
 
 void legs_ik_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  if (removeName == "def")
-    settings->removeBlock("def");
-  else
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const char *names[] = {"leg", "def"};
+  dag::Vector<int> positions = collect_block_positions_by_names(*settings, make_span_const(names));
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
+}
+
+class LegsIKReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  LegsIKReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers, PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
   {
-    for (int i = 0; i < settings->blockCount(); ++i)
-      if (removeName == settings->getBlock(i)->getStr("leg", nullptr))
-        settings->removeBlock(i);
+    const char *names[] = {"leg", "def"};
+    dag::Vector<int> positions = collect_block_positions_by_names(settings, make_span_const(names));
+    move_block_at_positions(settings, positions, from, to);
   }
+};
+
+IListReorderHandler *legs_ik_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new LegsIKReorderHandler(plugin, controllers, panel);
 }

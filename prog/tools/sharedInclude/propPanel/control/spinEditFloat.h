@@ -41,6 +41,8 @@ public:
 
   unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_FLOAT; }
 
+  unsigned getWidth() const override { return mW > 0 ? mW : ImguiHelper::getDefaultRightSideEditWidth(); }
+
   float getFloatValue() const override { return spinEdit.getValue(); }
   void setFloatValue(float value) override { spinEdit.setValue(value); }
   void setMinMaxStepValue(float min, float max, float step) override { spinEdit.setMinMaxStepValue(min, max, step); }

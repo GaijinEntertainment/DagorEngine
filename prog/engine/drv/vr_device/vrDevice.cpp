@@ -693,5 +693,34 @@ const ManagedTex *VRDevice::getVrsMask(StereoIndex stereo_index, bool combined) 
   return &vrs_mask_textures[combined ? 2 : (stereo_index == StereoIndex::Left ? 0 : 1)];
 }
 
+namespace vr
+{
+static StereoIndex stereo_index = StereoIndex::Mono;
+
+void set_stereo_index(StereoIndex index, bool update_driver)
+{
+  stereo_index = index;
+  if (update_driver)
+    if (VRDevice *vrDevice = VRDevice::getInstance())
+      vrDevice->setStereoIndex(index);
+}
+
+
+StereoIndex get_stereo_index() { return stereo_index; }
+
+NonLinearRenderingScope::~NonLinearRenderingScope()
+{
+  if (VRDevice *vrDevice = VRDevice::getInstance())
+    vrDevice->setStereoIndex(index);
+}
+
+NonLinearRenderingScope suppress_non_linear_rendering()
+{
+  if (VRDevice *vrDevice = VRDevice::getInstance())
+    vrDevice->setStereoIndex(StereoIndex::Mono);
+  return {stereo_index};
+}
+} // namespace vr
+
 REGISTER_D3D_BEFORE_RESET_FUNC(vr_before_reset);
 REGISTER_D3D_AFTER_RESET_FUNC(vr_after_reset);

@@ -33,6 +33,9 @@ public:
   // Returns number of rgba and norm blocks released.
   eastl::array<uint32_t, 2> releaseAtlas();
 
+  // Returns atlas memory used in bytes, or 0 if not allocated in atlas.
+  uint32_t getAtlasMemoryUsed() const;
+
   bool isLoadedToAtlas() const { return loadedToTex; }
   bool loadToAtlas();
 

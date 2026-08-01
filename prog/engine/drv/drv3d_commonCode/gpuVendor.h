@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <drv/3d/dag_gpuDesc.h>
 #include <EASTL/span.h>
 #include <osApiWrappers/dag_miscApi.h>
 
@@ -12,11 +13,19 @@ namespace gpu
 {
 void update_device_attributes(uint32_t vendor_id, uint32_t device_id, DeviceAttributesBase &device_attributes);
 
+/**
+ * \brief Returns false on GPUs that advertise opacity micro maps but only emulate them in the driver, so that the caps are reported
+ * as unsupported instead of luring the renderer onto a slow path.
+ */
+bool is_omm_hardware_accelerated(const DeviceAttributes &device_attributes);
+
 bool is_preferred_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
   eastl::span<const uint32_t> other_discrete);
 
 bool is_blacklisted_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
   eastl::span<const uint32_t> other_discrete);
+
+bool is_nvidia_turing_without_tensor_cores(uint32_t vendor_id, uint32_t device_id);
 
 DagorDateTime get_driver_date(uint32_t vendor_id, uint32_t device_id);
 

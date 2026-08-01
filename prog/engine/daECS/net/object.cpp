@@ -17,6 +17,7 @@
 #include <util/dag_simpleString.h>
 #include <daECS/net/serialize.h>
 #include "component_replication_filters.h"
+#include "componentListsCache.h"
 
 #define REPL_BSREAD(x) \
   if (!bs.Read(x))     \
@@ -91,22 +92,9 @@ void dump_and_clear_components_profiler_stats() {}
 bool Object::do_not_verify_destruction = false;
 eastl::vector_set<ecs::EntityId> Object::pending_destroys;
 static uint32_t objectsCreationOrderSequence = 0;
-static const ecs::component_index_t NO_COMPONENTS_STUB = 0;
-typedef eastl::vector<const ecs::component_index_t *> components_list_type_t;
-static components_list_type_t replicated_components, ignored_components; // cached list per template, begins with num components in 0th
-                                                                         // element)
+static dag::Vector<TemplateCachedCompLists> template_comp_list_cache;
 
-void clear_cached_replicated_components()
-{
-  auto clear = [&](components_list_type_t &components) {
-    for (const ecs::component_index_t *cptr : components)
-      if (cptr != &NO_COMPONENTS_STUB)
-        EASTLFree(EASTLAllocatorType(), cptr, 0);
-    components_list_type_t().swap(components); // clear
-  };
-  clear(replicated_components);
-  clear(ignored_components);
-}
+void clear_cached_replicated_components() { clear_and_shrink(template_comp_list_cache); }
 
 // list of replicated components is unique for each template.
 // instead of getting slow iteration over hash_sets or even regexps - just initialize once (cache)
@@ -128,44 +116,51 @@ static inline void gather_ignored(const ecs::Template *templ, eastl::vector_set<
     gather_ignored(g_entity_mgr->getTemplateDB().getTemplateById(p), ignored);
 };
 
-template <typename T>
-static inline void insert_0th_base_cast(T &vec, typename T::value_type v)
+const TemplateCachedCompLists &get_template_cached_comp_lists(ecs::template_t tid)
 {
-  using icbt_t = typename eastl::remove_cvref_t<decltype(vec)>::base_type;
-  static_cast<icbt_t &>(vec).insert(vec.begin(), v);
-}
-template <typename T>
-static inline void insert_0th_get_cont(T &vec, typename T::value_type v)
-{
-  vec.getContainer().insert(vec.begin(), v);
-}
+  const ecs::EntityManager &mgr = *g_entity_mgr;
+  static TemplateCachedCompLists EMPTY_STUB;
+  G_ASSERT_RETURN(tid != ecs::INVALID_TEMPLATE_INDEX, EMPTY_STUB);
+  if (const TemplateCachedCompLists *ret = (tid < template_comp_list_cache.size()) ? &template_comp_list_cache[tid] : nullptr;
+      ret && ret->valid)
+    return *ret;
+  const char *templateName = mgr.getTemplateName(tid);
 
-const ecs::component_index_t *get_template_ignored_initial_components(ecs::template_t tid)
-{
-  if (const ecs::component_index_t *ret = (tid < ignored_components.size()) ? ignored_components[tid] : nullptr)
-    return (ret == &NO_COMPONENTS_STUB) ? nullptr : ret;
-  const char *templateName = g_entity_mgr->getTemplateName(tid);
-  const ecs::Template *templ = templateName ? g_entity_mgr->getTemplateDB().getTemplateByName(templateName) : nullptr;
-  if (!templ)
-    return nullptr;
-  eastl::vector_set<ecs::component_index_t> ignoredComponents;
-  gather_ignored(templ, ignoredComponents);
-  if (tid >= ignored_components.size())
-    ignored_components.resize(tid + 1);
-  if (ignoredComponents.size() == 0)
+  const ecs::archetype_t archetypeId = mgr.getArchetypeByTemplateId(tid);
+  G_ASSERT_RETURN(archetypeId != ecs::INVALID_ARCHETYPE, EMPTY_STUB);
+
+  if (template_comp_list_cache.size() <= tid)
+    template_comp_list_cache.resize(tid + 1);
+  auto &lists = template_comp_list_cache[tid];
+
+  eastl::vector_set<ecs::component_index_t> ignoredCompsSet;
+  if (const ecs::Template *templ = templateName ? mgr.getTemplateDB().getTemplateByName(templateName) : nullptr)
+    gather_ignored(templ, ignoredCompsSet);
+  eastl::vector<ecs::component_index_t> allCompsList = eastl::move(ignoredCompsSet);
+  lists.ignoredCnt = allCompsList.size();
+
+  dag::Vector<ecs::component_index_t, framemem_allocator> filteredComps;
+  int componentCount = mgr.getArchetypeNumComponents(archetypeId);
+  for (int i = 0; i < componentCount; i++)
   {
-    ignored_components[tid] = &NO_COMPONENTS_STUB;
-    return nullptr;
+    const ecs::component_index_t cidx = mgr.getArchetypeComponentIndex(archetypeId, i);
+    if (ecs::should_replicate(cidx, mgr))
+    {
+      if (net::get_replicate_component_filter_index(cidx) == replicate_everywhere_filter_id)
+        allCompsList.push_back(i);
+      else
+        filteredComps.push_back(i);
+    }
   }
-  // Note: 0th slot = size
-  if constexpr (eastl::is_base_of_v<typename decltype(ignoredComponents)::base_type, decltype(ignoredComponents)>)
-    insert_0th_base_cast(ignoredComponents, ignoredComponents.size());
-  else
-    insert_0th_get_cont(ignoredComponents, ignoredComponents.size());
-  ignoredComponents.shrink_to_fit();
-  ignored_components[tid] = ignoredComponents.data();
-  ignoredComponents.reset_lose_memory();
-  return ignored_components[tid];
+  lists.replicatedLocalCnt = allCompsList.size() - lists.ignoredCnt;
+  lists.replicatedFilteredLocalCnt = filteredComps.size();
+  allCompsList.insert(allCompsList.end(), filteredComps.begin(), filteredComps.end());
+  allCompsList.shrink_to_fit();
+
+  lists.allComps.reset(allCompsList.data());
+  allCompsList.reset_lose_memory();
+  lists.valid = true;
+  return lists;
 }
 
 
@@ -246,14 +241,21 @@ void Object::initCompVers()
     repl->debugVerifyRemoteCompVers(compVers);
 }
 
-void Object::forceReplicaVersion(CompVersMap::const_iterator cit, ecs::component_index_t cidx, ObjectReplica *replica) const
+int Object::forceReplicaVersion(CompVersMap::const_iterator cit, ecs::component_index_t cidx, ObjectReplica *replica,
+  int to_version) const
 {
   if (cit != compVers.end() && cit->first == cidx) // just force correct remoteCompVer
   {
     size_t at = eastl::distance(compVers.begin(), cit);
     G_FAST_ASSERT(replica->remoteCompVers.data()[at].first == cit->first);
-    replica->remoteCompVers.data()[at].second = cit->second; // now it is already replicated
+    return replica->remoteCompVers.data()[at].second = to_version >= 0 ? compver_t(to_version) : cit->second;
   }
+  return -1;
+}
+
+int Object::forceReplicaVersion(ecs::component_index_t cidx, ObjectReplica *replica, int to_version) const
+{
+  return forceReplicaVersion(compVers.lower_bound(cidx), cidx, replica, to_version);
 }
 
 bool Object::skipInitialReplication(ecs::component_index_t cidx, Connection *conn, ObjectReplica *replica)

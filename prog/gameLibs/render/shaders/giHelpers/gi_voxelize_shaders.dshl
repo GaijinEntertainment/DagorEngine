@@ -365,18 +365,12 @@ shader voxelize_collision_cs
       uint firstIndex, uint vbOffset,
       inout float3 va, inout float3 vb, inout float3 vc)
     {
-      uint ibAt = firstIndex>>1;
-      uint2 a = uint2(loadBuffer(gi_voxelization_ibuffer, ibAt*4), loadBuffer(gi_voxelization_ibuffer, ibAt*4+4));
-      int ia = a.x&0xFFFF, ib = a.x>>16, ic = a.y&0xFFFF, id = a.y>>16;
+      uint ibAt = firstIndex*4; // 32-bit indices (SBCF_INDEX32): one dword per index
+      int ia = loadBuffer(gi_voxelization_ibuffer, ibAt);
+      int ib = loadBuffer(gi_voxelization_ibuffer, ibAt+4);
+      int ic = loadBuffer(gi_voxelization_ibuffer, ibAt+8);
       if (ib == ic)
         return false;
-      FLATTEN
-      if (firstIndex&1)
-      {
-        ia = ib;
-        ib = ic;
-        ic = id;
-      }
 
       va = getVertex(ia, vbOffset);
       vb = getVertex(ib, vbOffset);

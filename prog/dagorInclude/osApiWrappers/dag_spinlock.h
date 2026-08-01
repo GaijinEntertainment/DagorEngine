@@ -98,7 +98,7 @@ public:
     OSSpinlockScopedLock(mtx.spinlock, token)
   {}
   OSSpinlockScopedLock(OSSpinlock *mtx, da_profiler::desc_id_t token = da_profiler::DescSpinlock) DAG_TS_ACQUIRE(mtx) :
-    OSSpinlockScopedLock(&mtx->spinlock, token)
+    OSSpinlockScopedLock(mtx ? &mtx->spinlock : nullptr, token)
   {}
   ~OSSpinlockScopedLock() DAG_TS_RELEASE()
   {

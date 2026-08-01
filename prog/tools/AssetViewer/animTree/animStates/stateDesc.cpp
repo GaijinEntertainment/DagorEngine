@@ -2,7 +2,6 @@
 
 #include "stateDesc.h"
 #include "../animTreeUtils.h"
-#include "../animTreePanelPids.h"
 #include "../animParamData.h"
 
 static const float DEFAULT_DEF_MORPH_TIME = 0.15f;

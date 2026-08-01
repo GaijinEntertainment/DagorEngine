@@ -1,0 +1,18 @@
+if $(VRDeviceSupport) != yes { echo don't include engine/vr_device/bundle.jam when VRDeviceSupport=$(VRDeviceSupport:E=no) ; return ; }
+
+if $(Platform) in windows {
+  BundleCopy +=
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.dll openxr_loader.dll
+    @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/openxr_loader.pdb openxr_loader.pdb
+  ;
+  if $(PlatformArch) in arm64 { # add forwarder DLLs since openxr is built as UWP for arm64
+    BundleCopy +=
+      @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/msvcp140_app.dll     msvcp140_app.dll
+      @$(OpenXrSdkPath)/$(LegacyPlatformSuffix)/bin/vcruntime140_app.dll vcruntime140_app.dll
+    ;
+  }
+} else if $(Platform) = android {
+  BundleCopy +=
+    @$(OpenXrSdkPath)/$(Platform)/$(PlatformArch)/Release/libopenxr_loader.so libs/$(PlatformArch)/libopenxr_loader.so
+  ;
+}

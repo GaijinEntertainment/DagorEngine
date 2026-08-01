@@ -5,6 +5,7 @@
 
 #include <render/daFrameGraph/detail/blob.h>
 #include <dag/dag_vectorSet.h>
+#include <EASTL/optional.h>
 #include <backend/intermediateRepresentation.h>
 #include <backend/passColoring.h>
 
@@ -21,6 +22,7 @@ public:
     {
       ResourceActivationAction action;
       eastl::variant<ResourceClearValue, intermediate::DynamicParameter> clearValue;
+      intermediate::EnhancedBarrier enhancedBarrier;
     };
 
     struct CpuActivation
@@ -38,8 +40,20 @@ public:
       ResourceBarrier barrier;
     };
 
+    struct EnhancedBufferBarrier
+    {
+      d3d::BufferBarrier barrier;
+    };
+
+    struct EnhancedTextureBarrier
+    {
+      d3d::TextureBarrier barrier;
+    };
+
     struct Deactivation
-    {};
+    {
+      intermediate::EnhancedBarrier release;
+    };
 
     intermediate::ResourceIndex resource;
     uint32_t frameResourceProducedOn;
@@ -47,7 +61,8 @@ public:
     // NOTE: at each timepoint events are executed in order of their
     // type, from last one to first one. Meaning deactivations happen
     // before barriers, barriers before activations.
-    using Payload = eastl::variant<CpuActivation, Activation, Barrier, Deactivation, CpuDeactivation>;
+    using Payload =
+      eastl::variant<CpuActivation, Activation, Barrier, EnhancedBufferBarrier, EnhancedTextureBarrier, Deactivation, CpuDeactivation>;
     Payload data;
   };
 

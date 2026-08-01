@@ -22,7 +22,8 @@ enum WatchdogOptions
   WATCHDOG_OPTION_TRIG_THRESHOLD,       // if 0 - disable watchdog, return old value on set
   WATCHDOG_OPTION_CALLSTACKS_THRESHOLD, // set callstacks dump threshold, return old value on set
   WATCHDOG_OPTION_SLEEP,                // set watchdog thread sleep duration, return old value on set
-  WATCHDOG_OPTION_DUMP_THREADS // if p1 is 1 then add p0 as interested thread id, if p1 is 0 remove the p0 from interested list
+  WATCHDOG_OPTION_DUMP_THREADS, // if p1 is 1 then add p0 as interested thread id, if p1 is 0 remove the p0 from interested list
+  WATCHDOG_OPTION_FREEZE_CB     // set on_freeze_cb to p0 (cast of WatchdogConfig::on_freeze_cb type), return old callback on set
 };
 
 static constexpr int WATCHDOG_DISABLE = 0;
@@ -86,8 +87,31 @@ public:
 class ScopeSetWatchdogTimeout
 {
   int prevTmt;
+  bool verbose;
 
 public:
-  ScopeSetWatchdogTimeout(int newtm) { prevTmt = watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, newtm); }
-  ~ScopeSetWatchdogTimeout() { watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, prevTmt); }
+  ScopeSetWatchdogTimeout(int newtm, bool verbose_ = true)
+  {
+    prevTmt = watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, newtm, (int)(!verbose_));
+    verbose = verbose_;
+  }
+  ~ScopeSetWatchdogTimeout() { watchdog_set_option(WATCHDOG_OPTION_TRIG_THRESHOLD, prevTmt, (int)(!verbose)); }
+};
+
+class ScopeSetWatchdogFreezeCb
+{
+  intptr_t prevCb;
+  bool verbose;
+
+public:
+  ScopeSetWatchdogFreezeCb(void (*cb)(unsigned time, int64_t user_data), bool verbose_ = true)
+  {
+    prevCb = watchdog_set_option(WATCHDOG_OPTION_FREEZE_CB, (intptr_t)cb, (int)(!verbose_));
+    verbose = verbose_;
+  }
+  ~ScopeSetWatchdogFreezeCb()
+  {
+    if (prevCb != -1) // -1 means watchdog wasn't initialized, nothing to restore
+      watchdog_set_option(WATCHDOG_OPTION_FREEZE_CB, prevCb, (int)(!verbose));
+  }
 };

@@ -344,6 +344,8 @@ def describeCppTypeEx(typeDecl : TypeDeclPtr;
                 ._fold()) |> join(",")
             if (cfg.cross_platform) {
                 write(writer, "AutoTuple<{types}>")
+            } elif (types |> empty()) {
+                write(writer, "TTuple<{typeDecl.tupleSize}>")
             } else {
                 write(writer, "TTuple<{typeDecl.tupleSize},{types}>")
             }

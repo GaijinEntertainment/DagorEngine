@@ -5,6 +5,7 @@
 #include <render/daFrameGraph/history.h>
 #include <id/idIndexedMapping.h>
 #include <render/daFrameGraph/detail/resNameId.h>
+#include "frontend/internalRegistry.h"
 
 namespace dafg
 {

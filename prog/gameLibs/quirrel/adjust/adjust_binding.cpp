@@ -19,6 +19,7 @@ void register_adjust_module(SqModules *module_mgr)
     .Func("setEnableAdjust", adjust::setEnable)
     .Func("setOnlineAdjust", adjust::setOnline)
     .Func("getAdjustAdId", adjust::getAdjustAdId)
+    .Func("setAdjustThirdPartySharing", adjust::setThirdPartySharing)
     /**/;
   module_mgr->addNativeModule("adjust", adjust);
   ///@resetscope

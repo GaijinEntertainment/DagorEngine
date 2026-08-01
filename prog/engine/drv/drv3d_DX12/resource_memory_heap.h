@@ -62,7 +62,8 @@ protected:
     Image *original);
 
 public:
-  ImageCreateResult createTexture(DXGIAdapter *adapter, Device &device, const ImageInfo &ii, const char *name);
+  dag::Expected<ImageCreateResult, MemoryAllocationError> createTexture(DXGIAdapter *adapter, Device &device, const ImageInfo &ii,
+    const char *name);
   Image *adoptTexture(ID3D12Resource *texture, const char *name);
 #if _TARGET_PC_WIN
   Image *cloneRenderTarget(DXGIAdapter *adapter, Device &device, Image *original,
@@ -1287,6 +1288,9 @@ public:
 
   using BaseType::completeFrameExecution;
 
+  using BaseType::recordCommittedResourceAllocated;
+  using BaseType::recordCommittedResourceFreed;
+
   using BaseType::beginFrameRecording;
 
 #if D3D_HAS_RAY_TRACING
@@ -1301,6 +1305,7 @@ public:
   using BaseType::getRaytraceAccelerationStructuresGpuMemoryUsage;
   using BaseType::newRaytraceBottomAccelerationStructure;
   using BaseType::newRaytraceTopAccelerationStructure;
+  using BaseType::visitRaytraceAccelerationStructurePools;
 #endif
 
   using BaseType::getSwapchainColorGlobalId;

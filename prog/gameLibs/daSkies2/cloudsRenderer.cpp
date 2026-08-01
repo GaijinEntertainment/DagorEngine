@@ -13,7 +13,6 @@
 
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_shaderVarsUtils.h>
-#include <shaders/dag_dynamicResolutionStcode.h>
 
 #include <math/dag_frustum.h>
 
@@ -26,6 +25,15 @@
 #include <osApiWrappers/dag_miscApi.h>
 
 CONSOLE_BOOL_VAL("clouds", use_compute, true);
+// parallax rate (rad/s) at which the checker history clamp is fully collapsed to
+// the classic neighborhood box
+CONSOLE_FLOAT_VAL("clouds", checker_clamp_rate, 0.08f);
+
+// scales the erosion scroll term of the TAA history advection: the cloud envelope
+// moves at the origin rate only, so 1 (full advection) matches interior erosion
+// detail but makes cloud edges lead under wind; 0 advects at the envelope rate
+// and softens interior erosion detail under the EMA instead
+CONSOLE_FLOAT_VAL_MINMAX("clouds", taa_erosion_advect, 0.f, 0.0f, 1.0f);
 
 void CloudsRenderer::renderTiledDist(CloudsRendererData &data)
 {
@@ -94,21 +102,6 @@ void CloudsRenderer::init()
 #undef INIT
   {
     d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
-    smpInfo.filter_mode = d3d::FilterMode::Point;
-    smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
-    ShaderGlobal::set_sampler(clouds_depth_gbuf_samplerstateVarId, d3d::request_sampler(smpInfo));
-  }
-  {
-    d3d::SamplerInfo smpInfo;
-    // Maybe it's a bug and border address mode should be used instead of wrap, but before the refactor sampler that was used by the
-    // texture had wrap address mode
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-    smpInfo.filter_mode = d3d::FilterMode::Point;
-    ShaderGlobal::set_sampler(clouds_prev_depth_gbuf_samplerstateVarId, d3d::request_sampler(smpInfo));
-  }
-  {
-    d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
     ShaderGlobal::set_sampler(clouds_target_depth_gbuf_samplerstateVarId, d3d::request_sampler(smpInfo));
   }
@@ -163,7 +156,7 @@ void CloudsRenderer::setCloudsOffsetVars(float current_clouds_offset, float worl
 
 void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *depth, BaseTexture *prev_depth,
   const Point2 &wind_change_ofs, float world_size, const TMatrix &view_tm, const TMatrix4 &proj_tm,
-  const DPoint3 *world_pos /*= nullptr*/, const CloudsRenderFlags flags, const DynRes *dynamic_resolution)
+  const DPoint3 *world_pos /*= nullptr*/, const CloudsRenderFlags flags)
 {
   if (!data.cloudsColorPoolRT)
     return;
@@ -198,8 +191,59 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
   STATE_GUARD_0(ShaderGlobal::set_int(clouds_invalidate_taa_framesVarId, VALUE), changedInfinite);
 
   ShaderGlobal::set_int(clouds2_current_frameVarId, data.frameNo & 0xFFFF);
+  // one inverse per prepare: the clamp collapse and the reprojection both need the
+  // camera world position
+  const DPoint3 camWorldPos = world_pos ? *world_pos : dpoint3(orthonormalized_inverse(view_tm).getcol(3));
+  // the deltas below are main-view temporal inputs: a sub view (camera-in-camera)
+  // sharing this data would clobber them with its own timing
+  if (isMainView)
+  {
+    // the checker accumulation weight is calibrated at 60Hz: dt-true (w ~ dt) above
+    // 60fps keeps the wall-clock time constant; below 60 each rippled state persists
+    // longer on screen, so the tolerable weight falls instead (w ~ dt^-1/3)
+    unsigned nowMs = get_time_msec();
+    float dtSec = data.lastPrepareMs ? (nowMs - data.lastPrepareMs) * 0.001f : 0.f;
+    float dtScale = data.lastPrepareMs ? clamp(dtSec * 60.f, 0.25f, 4.f) : 1.f;
+    data.lastPrepareMs = nowMs;
+    ShaderGlobal::set_float(clouds_checker_dt_scaleVarId, dtScale <= 1.f ? dtScale : powf(dtScale, -1.f / 3.f));
+
+    // ghosting exists only where parallax does: the clamp collapse follows the
+    // PARALLAX RATE - lateral-weighted camera speed over the distance to the
+    // nearest potential ray intersection (the cloud layer, this or previous
+    // frame). Speed scaling makes the onset distance grow with speed by itself.
+    // Rises instantly, decays over ~1/6 s of wall clock so dt noise cannot flicker
+    // the box
+    {
+      DPoint3 vel = dtSec > 1e-5f ? (camWorldPos - data.prevCamPosForClamp) * (1.0 / dtSec) : DPoint3(0, 0, 0);
+      data.prevCamPosForClamp = camWorldPos;
+      float layerBottom = ShaderGlobal::get_float(clouds_start_altitude2VarId) * 1000.f;
+      float layerTop = layerBottom + ShaderGlobal::get_float(clouds_thickness2VarId) * 1000.f;
+      float distOut = max(max(layerBottom - (float)camWorldPos.y, (float)camWorldPos.y - layerTop), 0.f);
+      // ghosts need parallax that existed recently or can exist shortly: take the
+      // worst distance of the previous frame, this frame, and a pessimistic future
+      // (same speed magnitude, turned straight at the layer) over the time ghosts
+      // take to develop - roughly the accumulation window
+      float speedMag = (float)sqrt(lengthSq(vel));
+      // wind is a virtual camera translation at the layer distance: the origin motion
+      // mis-reprojects through any depth error, and the erosion scroll moves content
+      // relative to history at any taa_erosion_advect - both feed the ghost potential.
+      // Lateral only, so it stays out of the distFuture approach estimate
+      float windSpeed = 0.f;
+      if (dtSec > 1e-5f)
+        windSpeed = (float)sqrt(sqr(cloudsOfs.x - currentCloudsOfs.x + wind_change_ofs.x) +
+                                sqr(cloudsOfs.y - currentCloudsOfs.y + wind_change_ofs.y)) /
+                    dtSec;
+      float distFuture = max(distOut - speedMag * 0.5f, 0.f);
+      float dSafe = max(min(min(distOut, data.prevLayerDist), distFuture), 100.f);
+      data.prevLayerDist = distOut;
+      float collapse = clamp((speedMag + windSpeed) / (dSafe * max(checker_clamp_rate.get(), 1e-3f)), 0.f, 1.f);
+      data.clampCollapseSmooth = max(collapse, lerp(data.clampCollapseSmooth, collapse, 1.f - powf(0.9f, dtSec * 60.f)));
+    }
+    ShaderGlobal::set_float(clouds_checker_clamp_collapseVarId, data.clampCollapseSmooth);
+  }
   setCloudsOffsetVars(data, world_size);
   const bool canBeInsideClouds = bool(data.clouds_color_close) && depth;
+  data.closeLayerWasActive = canBeInsideClouds; // the apply must agree with what was traced, not with texture existence
 
   ShaderGlobal::set_int(clouds_infinite_skiesVarId, isInfinite ? 1 : 0);
   ShaderGlobal::set_int(clouds_has_close_sequenceVarId, canBeInsideClouds ? 1 : 0);
@@ -233,35 +277,117 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
   if ((!useCompute || !taaUseCompute) && isMainView)
     rtScope.emplace();
 
+  const bool checkerCompiled = clouds_checkerboard_compiled();
+
   if (isMainView)
   {
     data.prevCloudsColor = eastl::move(data.cloudsTextureColor);
-    data.nextCloudsColor = data.cloudsColorBlurPoolRT->acquire();
     data.cloudsTextureColor = data.cloudsColorPoolRT->acquire();
 
     data.prevCloudsWeight = eastl::move(data.cloudsTextureWeight);
     data.cloudsTextureWeight = data.cloudsWeightPoolRT->acquire();
+
+    // checkerboard trace: packed quarter-res target - every packed texel is traced
+    // every frame (the full-res position it maps to walks the quincunx), so the
+    // target never holds garbage and no fill frame exists. Configs that assume the
+    // interval off (WTM) ship no checker shader variants, the flag must stay inert
+    data.ensureCheckerColor(useCompute && traceCheckerboard && checkerCompiled);
+    // the full-res target serves only the classic trace and the blur ping: do not
+    // lease it under the packed checker trace (with checkerboard default the blur
+    // pool then never even allocates)
+    if (!data.cloudsCheckerColor || data.useBlurredClouds)
+      data.nextCloudsColor = data.cloudsColorBlurPoolRT->acquire();
+    else
+      data.nextCloudsColor = nullptr;
   }
-  G_ASSERT(data.nextCloudsColor != nullptr);
+  // mode is per-data, not per-render: a sub-view prepare (camera-in-camera lens)
+  // must keep the main view's packed target and age/phase weight encoding, or its
+  // classic TAA would overwrite checker history with scalar weights
+  const bool checkerActive = bool(data.cloudsCheckerColor);
+  G_ASSERT(checkerActive || data.nextCloudsColor != nullptr);
   G_ASSERT(data.prevCloudsColor != nullptr);
   G_ASSERT(data.prevCloudsWeight != nullptr);
+  BaseTexture *traceCloudsColor = checkerActive ? data.cloudsCheckerColor.getTex2D() : data.nextCloudsColor->getTex2D();
+  if (checkerCompiled)
+    ShaderGlobal::set_int(clouds_checkerboardVarId, checkerActive ? 1 : 0);
+  // the trace target size: consumers must not derive it from the clouds res (the
+  // packed checker target is quarter size; classic equals the clouds res)
+  ShaderGlobal::set_int4(traced_clouds_resVarId, checkerActive ? (data.cloudTexRes.x + 1) / 2 : data.cloudTexRes.x,
+    checkerActive ? (data.cloudTexRes.y + 1) / 2 : data.cloudTexRes.y, 0, 0);
+
+  if (useCompute)
+  {
+    // one transition batch for this frame's compute targets and history: everything here
+    // was last used a frame ago, so this sync point is free and the binds below need none
+    BaseTexture *texs[8];
+    ResourceBarrier rbs[8];
+    unsigned zeros[8] = {};
+    unsigned cnt = 0;
+    auto add = [&](BaseTexture *t, ResourceBarrier rb) {
+      texs[cnt] = t;
+      rbs[cnt] = rb;
+      cnt++;
+    };
+    if (data.nextCloudsColor)
+      add(data.nextCloudsColor->getTex2D(), RB_RW_UAV | RB_STAGE_COMPUTE);
+    if (!data.nextCloudsColor || traceCloudsColor != data.nextCloudsColor->getTex2D())
+      add(traceCloudsColor, RB_RW_UAV | RB_STAGE_COMPUTE);
+    add(data.cloudsTextureDepth.getTex2D(), RB_RW_UAV | RB_STAGE_COMPUTE);
+    if (canBeInsideClouds)
+      add(data.clouds_color_close.getTex2D(), RB_RW_UAV | RB_STAGE_COMPUTE);
+    if (taaUseCompute)
+    {
+      add(data.cloudsTextureColor->getTex2D(), RB_RW_UAV | RB_STAGE_COMPUTE);
+      add(data.cloudsTextureWeight->getTex2D(), RB_RW_UAV | RB_STAGE_COMPUTE);
+      add(data.prevCloudsColor->getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE);
+      add(data.prevCloudsWeight->getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE);
+    }
+    d3d::resource_barrier(ResourceBarrierDesc(texs, rbs, zeros, zeros, cnt));
+  }
 
   renderTiledDist(data);
   int depthLevels = 1;
   int level = getNotLesserDepthLevel(data, depthLevels, depth);
 
+  // the TAA depth texel math needs each texture's really sampled mip size: under
+  // dynamic resolution the depth pair follows the current scale while the clouds
+  // res stays at the stable maximum, and current vs prev differ on a step frame
+  if (depth)
+  {
+    TextureInfo dti;
+    depth->getinfo(dti, level);
+    IPoint2 depthDims(dti.w, dti.h), prevDepthDims = depthDims;
+    if (prev_depth)
+    {
+      prev_depth->getinfo(dti, level);
+      prevDepthDims = IPoint2(dti.w, dti.h);
+    }
+    ShaderGlobal::set_float4(clouds_depth_gbuf_dimsVarId, depthDims.x, depthDims.y, 1.f / depthDims.x, 1.f / depthDims.y);
+    ShaderGlobal::set_float4(clouds_prev_depth_gbuf_dimsVarId, prevDepthDims.x, prevDepthDims.y, 1.f / prevDepthDims.x,
+      1.f / prevDepthDims.y);
+  }
+  else
+  {
+    // no scene depth bound: zeros make the shader derive the legacy clouds-based
+    // unit itself (halved under fullres clouds), exactly the pre-change fallback
+    ShaderGlobal::set_float4(clouds_depth_gbuf_dimsVarId, 0, 0, 0, 0);
+    ShaderGlobal::set_float4(clouds_prev_depth_gbuf_dimsVarId, 0, 0, 0, 0);
+  }
+
   int w = data.cloudTexRes.x;
   int h = data.cloudTexRes.y;
-  if (dynamic_resolution)
-  {
-    auto dd = calc_and_set_dynamic_resolution_stcode(data.cloudTexRes.x, data.cloudTexRes.y, *dynamic_resolution,
-      data.prevDynRes.value_or(*dynamic_resolution));
-    w = dd.x;
-    h = dd.y;
-  }
 
   ShaderGlobal::set_texture_unsafe(clouds_depth_gbufVarId, depth);
   DispatchGroups2D dg = set_dispatch_groups(w, h, CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, data.lowresCloseClouds);
+  if (clouds_create_indirect.get() && data.cloudsIndirectBuffer)
+  {
+    // runs before the far trace (it only reads the tile counters) so that consuming
+    // its args later does not force a sync against the trace
+    TIME_D3D_PROFILE(create_indirect);
+    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), data.cloudsIndirectBuffer.getBuf());
+    clouds_create_indirect->dispatch(1, 1, 1);
+  }
+
   {
     if (level != 0 && depthLevels != 1 && depth)
       depth->texmiplevel(level, level);
@@ -271,9 +397,11 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     STATE_GUARD(ShaderGlobal::set_int(clouds_ignore_close_objectsVarId, VALUE), data.useBlurredClouds, false);
     if (useCompute)
     {
-      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.nextCloudsColor->getTex2D());
+      STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), traceCloudsColor);
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 1, VALUE, 0, 0), data.cloudsTextureDepth.getTex2D());
-      clouds2_temporal_cs->dispatch(dg.x, dg.y, 1); // todo: measure optimal warp size
+      const int gx = checkerActive ? ((w + 1) / 2 + CLOUD_TRACE_WARP_X - 1) / CLOUD_TRACE_WARP_X : dg.x;
+      const int gy = checkerActive ? ((h + 1) / 2 + CLOUD_TRACE_WARP_Y - 1) / CLOUD_TRACE_WARP_Y : dg.y;
+      clouds2_temporal_cs->dispatch(gx, gy, 1); // todo: measure optimal warp size
     }
     else
     {
@@ -283,11 +411,18 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     }
   }
 
-  if (clouds_create_indirect.get() && data.cloudsIndirectBuffer)
+  if (useCompute)
   {
-    TIME_D3D_PROFILE(create_indirect);
-    STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), data.cloudsIndirectBuffer.getBuf());
-    clouds_create_indirect->dispatch(1, 1, 1);
+    // TAA depends only on the far trace; transitioning its inputs right after the
+    // producer lets the close layer trace below and the TAA overlap on the GPU,
+    // instead of the TAA binds draining the whole pipe
+    ResourceBarrier taaStage = taaUseCompute ? RB_STAGE_COMPUTE : RB_STAGE_PIXEL;
+    BaseTexture *texs[] = {traceCloudsColor, data.cloudsTextureDepth.getTex2D()};
+    ResourceBarrier rbs[] = {RB_RO_SRV | taaStage, RB_RO_SRV | RB_STAGE_PIXEL | taaStage};
+    unsigned zeros[] = {0, 0};
+    d3d::resource_barrier(ResourceBarrierDesc(texs, rbs, zeros, zeros, 2));
+    if (clouds_create_indirect.get() && data.cloudsIndirectBuffer)
+      d3d::resource_barrier({data.cloudsIndirectBuffer.getBuf(), RB_RO_INDIRECT_BUFFER});
   }
   if (canBeInsideClouds)
   {
@@ -319,7 +454,8 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
       else
         clouds2_close_temporal_ps.render();
     }
-    d3d::resource_barrier({data.clouds_color_close.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    // no barrier here: only the apply reads this texture, and it is transitioned there;
+    // a barrier at this spot would flush at the TAA binds and serialize close vs TAA
   }
 
   {
@@ -335,14 +471,16 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     }
     TIME_D3D_PROFILE(taa_clouds);
     ShaderGlobal::set_texture_unsafe(clouds_prev_depth_gbufVarId, prev_depth);
-    data.prevWorldPos.x -= cloudsOfs.x + wind_change_ofs.x - currentCloudsOfs.x;
-    data.prevWorldPos.z -= cloudsOfs.y + wind_change_ofs.y - currentCloudsOfs.y;
-    G_UNUSED(world_pos);
+    data.prevWorldPos.x -= cloudsOfs.x + wind_change_ofs.x * taa_erosion_advect.get() - currentCloudsOfs.x;
+    data.prevWorldPos.z -= cloudsOfs.y + wind_change_ofs.y * taa_erosion_advect.get() - currentCloudsOfs.y;
     if (setCameraVars)
       set_reprojection(view_tm, proj_tm, data.prevProjTm, data.prevWorldPos, data.prevGlobTm, data.prevViewVecLT, data.prevViewVecRT,
-        data.prevViewVecLB, data.prevViewVecRB, world_pos);
+        data.prevViewVecLB, data.prevViewVecRB, &camWorldPos);
     ShaderGlobal::set_texture(clouds_color_prevVarId, data.prevCloudsColor->getTexId());
-    ShaderGlobal::set_texture(clouds_colorVarId, *data.nextCloudsColor);
+    if (checkerActive)
+      ShaderGlobal::set_texture(clouds_colorVarId, data.cloudsCheckerColor);
+    else
+      ShaderGlobal::set_texture(clouds_colorVarId, *data.nextCloudsColor);
     ShaderGlobal::set_texture(clouds_prev_taa_weightVarId, data.prevCloudsWeight->getTexId());
     if (taaUseCompute)
     {
@@ -352,6 +490,8 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
       {
         clouds2_taa_cs_has_empty->dispatch_indirect(data.cloudsIndirectBuffer.getBuf(),
           4 * 4 * (CLOUDS_HAS_EMPTY + CLOUDS_APPLY_COUNT_PS));
+        d3d::resource_barrier({data.cloudsTextureColor->getTex2D(), RB_NONE, 0, 0});
+        d3d::resource_barrier({data.cloudsTextureWeight->getTex2D(), RB_NONE, 0, 0});
         clouds2_taa_cs_no_empty->dispatch_indirect(data.cloudsIndirectBuffer.getBuf(),
           4 * 4 * (CLOUDS_NO_EMPTY + CLOUDS_APPLY_COUNT_PS));
       }
@@ -377,6 +517,8 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
         clouds2_taa_ps.render();
 
       d3d::resource_barrier({data.cloudsTextureColor->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+      // the weight is read by the next frame's taa; make the read state explicit
+      d3d::resource_barrier({data.cloudsTextureWeight->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
     if (depthLevels != 1)
     {
@@ -390,6 +532,9 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
   if (data.useBlurredClouds)
   {
     ShaderGlobal::set_texture(clouds_colorVarId, *data.cloudsTextureColor);
+    // reads need explicit transitions; the blur depends on the TAA anyway, so this
+    // sync point costs no overlap
+    d3d::resource_barrier({data.cloudsTextureColor->getTex2D(), RB_RO_SRV | (useCompute ? RB_STAGE_COMPUTE : RB_STAGE_PIXEL), 0, 0});
     if (useCompute)
     {
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), data.nextCloudsColor->getTex2D());
@@ -411,9 +556,6 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
 
   ShaderGlobal::set_texture_unsafe(clouds_depth_gbufVarId, nullptr);
   ShaderGlobal::set_texture_unsafe(clouds_prev_depth_gbufVarId, nullptr);
-
-  if (dynamic_resolution)
-    data.prevDynRes = *dynamic_resolution;
 }
 
 void CloudsRenderer::renderDirect(CloudsRendererData &data)
@@ -462,7 +604,7 @@ void CloudsRenderer::renderCloudsApply(CloudsRendererData &data, BaseTexture *do
   ShaderGlobal::set_int(clouds_use_fullresVarId, (data.cloudResolution == CloudsResolution::ForceFullresClouds));
   ShaderGlobal::set_texture_unsafe(clouds_target_depth_gbufVarId, target_depth);
   ShaderGlobal::set_float4(clouds_target_depth_gbuf_transformVarId, target_depth_transform);
-  ShaderGlobal::set_int(clouds_has_close_sequenceVarId, data.clouds_color_close.getTex2D() ? 1 : 0);
+  ShaderGlobal::set_int(clouds_has_close_sequenceVarId, (data.closeLayerWasActive && data.clouds_color_close.getTex2D()) ? 1 : 0);
   ShaderGlobal::set_texture_unsafe(clouds_depth_gbufVarId, downsampled_depth);
   if (!data.cloudsColorPoolRT)
   {
@@ -474,8 +616,16 @@ void CloudsRenderer::renderCloudsApply(CloudsRendererData &data, BaseTexture *do
   TIME_D3D_PROFILE(apply_bilateral);
   const bool isMainView = check_clouds_render_flag(flags, CloudsRenderFlags::MainView);
   data.setVars(isMainView);
+  // close layer transition deferred to here (the only consumer), batching with the taa
+  // output transitions into a single sync point right before the apply
+  if (data.closeLayerWasActive && data.clouds_color_close.getTex2D())
+    d3d::resource_barrier({data.clouds_color_close.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   ShaderGlobal::set_int(clouds_use_blur_applyVarId, data.useBlurredClouds);
-  ShaderGlobal::set_texture(clouds_colorVarId, data.useBlurredClouds ? *data.cloudsBlurTextureColor : *data.cloudsTextureColor);
+  auto &appliedColor = data.useBlurredClouds ? *data.cloudsBlurTextureColor : *data.cloudsTextureColor;
+  ShaderGlobal::set_texture(clouds_colorVarId, appliedColor);
+  // compute written clouds color becomes readable here, at its consumer, so the work
+  // between prepare and apply keeps overlapping the taa dispatches
+  d3d::resource_barrier({appliedColor.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   int depthLevels;
   int level = getNotLesserDepthLevel(data, depthLevels, downsampled_depth);
   if (level != 0)

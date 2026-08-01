@@ -28,15 +28,6 @@ bindings_checks = [
   {"wdir":"../../active_matter/prog","cmds":
     ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
   },
-  {"wdir":"../../cuisine_royale/prog","cmds":
-    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
-  },
-  {"wdir":"../../modern_conflict/prog","cmds":
-    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
-  },
-  {"wdir":"../../to_the_sky/prog","cmds":
-    ("jam  -sPlatformArch=x86_64 -sRoot=../.. -f aot/jamfile", "genDasevents.bat")
-  },
 ]
 
 def main():

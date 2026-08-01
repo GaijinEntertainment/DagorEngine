@@ -77,7 +77,7 @@ namespace das {
     inline float3 float3x4_mul_vec3p(const float3x4 &a, float3 b) {
         mat44f va;
         v_mat44_make_from_43cu_unsafe(va, &a.m[0].x);
-        return v_mat44_mul_vec3p(va, v_ldu(&b.x));
+        return v_mat44_mul_vec3p(va, vec_loadu3(&b.x));
     }
 
     inline float4 float4x4_mul_vec4(const float4x4 &a, float4 b) {
@@ -94,7 +94,7 @@ namespace das {
     inline float3 rotate(const float3x4 &a, float3 b) {
         mat44f va;
         v_mat44_make_from_43cu_unsafe(va, &a.m[0].x);
-        return v_mat44_mul_vec3v(va, v_ldu(&b.x));
+        return v_mat44_mul_vec3v(va, vec_loadu3(&b.x));
     }
 
     __forceinline bool float4x4_equ ( const float4x4 & a, const float4x4 & b ) {

@@ -4,6 +4,8 @@
 #include <render/daFrameGraph/multiplexing.h>
 #include <backend/intermediateRepresentation.h>
 
+#include <cstdio>
+
 
 namespace dafg
 {
@@ -12,6 +14,7 @@ namespace dafg
 intermediate::MultiplexingIndex multiplexing_index_to_ir(multiplexing::Index idx, multiplexing::Extents extents);
 uint32_t multiplexing_extents_to_ir(multiplexing::Extents extents);
 multiplexing::Index multiplexing_index_from_ir(intermediate::MultiplexingIndex idx, multiplexing::Extents extents);
+
 namespace multiplexing
 {
 bool mode_has_flag(Mode mode, Mode flag);

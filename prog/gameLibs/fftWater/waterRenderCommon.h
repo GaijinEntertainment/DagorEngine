@@ -27,7 +27,7 @@ struct WaterRenderCommon
   void setWakeHtTex(TEXTUREID wake_ht_tex) { wakeHtTexId = wake_ht_tex; }
   void setWaterLevel(float water_level) { waterLevel = water_level; }
   void setWind(float wind_dir_x, float wind_dir_y, float wind_speed);
-  void setMaxWave(float max_wave_height);
+  void setMaxWaveHeight(float max_wave_height);
 
   float getShoreWaveThreshold() const { return shoreWaveThreshold; }
   void setShoreWaveThreshold(float value);

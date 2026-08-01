@@ -1022,7 +1022,7 @@ void rendinst::render::rebuildAllElemsInternal()
     toUpdate.reserve(toRebuild);
     {
       int j = 0, r = toRebuild;
-      for (auto v : riExtraPoolWasNotSavedToElems.get_container())
+      for (auto v : riExtra.poolWasNotSavedToElems.get_container())
       {
         auto procNonZeroValue = [&](auto v) {
           for (auto bi : LsbVisitor{v})
@@ -1031,7 +1031,7 @@ void rendinst::render::rebuildAllElemsInternal()
             if (i < newPoolsCount)
             {
               toUpdate.push_back(i);
-              riExtraPoolWasNotSavedToElems[i] = false;
+              riExtra.poolWasNotSavedToElems[i] = false;
               if (--r)
                 continue;
             }
@@ -1041,7 +1041,7 @@ void rendinst::render::rebuildAllElemsInternal()
         };
         if (v && !procNonZeroValue(v))
           break;
-        j += riExtraPoolWasNotSavedToElems.kBitCount;
+        j += riExtra.poolWasNotSavedToElems.kBitCount;
         if (j >= newPoolsCount)
           break;
       }
@@ -1132,7 +1132,7 @@ void rendinst::render::reinitOnShadersReload()
   int riExtraCount = 0;
   iterateRIExtra([&](int i, const auto &) {
     updateShaderElems(i);
-    riExtraPoolWasNotSavedToElems[i] = true;
+    riExtra.poolWasNotSavedToElems[i] = true;
     ++riExtraCount;
   });
   interlocked_release_store(pendingRebuildCnt, riExtraCount);

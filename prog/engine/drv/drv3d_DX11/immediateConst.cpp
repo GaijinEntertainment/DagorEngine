@@ -54,10 +54,9 @@ bool d3d::set_immediate_const(unsigned stage, const uint32_t *data, unsigned num
     {
       g_render_state.constants.customBuffers[stage][slot] = vb->buffer;
       g_render_state.constants.constantsBufferChanged[stage] |= 1 << slot;
-      g_render_state.constants.buffersFirstConstants[stage][slot] = 0;
-      g_render_state.constants.buffersNumConstants[stage][slot] = 16;
       if (g_render_state.constants.customBuffersMaxSlotUsed[stage] < slot)
         g_render_state.constants.customBuffersMaxSlotUsed[stage] = slot;
+      g_render_state.modified = true; // flush_states() early-outs on !modified, skipping this bind
     }
     ContextAutoLock contextLock;
     D3D11_MAPPED_SUBRESOURCE lockMsr;

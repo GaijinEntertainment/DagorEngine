@@ -115,6 +115,10 @@ public:
   virtual void endUAVFeedback() const = 0;
   virtual void copyUAVFeedback() const = 0;
 
+  virtual void beforeD3DReset(bool full_reset) = 0;
+  virtual void afterD3DReset(bool full_reset) = 0;
+  virtual void afterD3DResetLandMesh(LandMeshManager &p, LandMeshRenderer *r, bool full_reset) = 0;
+
   virtual void invalidatePhysMatHtTex() = 0;
   virtual void setShouldShowPhysMatColors(bool val) = 0;
 
@@ -123,6 +127,12 @@ public:
   virtual void updatePropertiesFromLevelBlk(const DataBlock &level_blk) = 0;
 
   virtual void resetTexturesLandMesh(LandMeshRenderer &r) const = 0;
+
+  // land detail weights: the plugin reads the painted map into page-sized
+  // legacy texels (see landMesh/lmeshWeightAtlas.h), the atlas packs them
+  virtual int getLandWeightCellTexSize(LandMeshManager &p) const = 0;
+  virtual void setLandWeights(LandMeshManager &p, int cell_idx, const uint32_t *argb4, const uint32_t *rg8, int num_tex) const = 0;
+  virtual void uploadLandWeights(LandMeshManager &p) const = 0;
 
   virtual bool exportToGameLandMesh(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<landmesh::Cell> cells,
     dag::ConstSpan<MaterialData> materials, int lod1TrisDensity, bool tools_internal) const = 0;
@@ -174,6 +184,9 @@ public:
   virtual void beforeRender() = 0;
 
   virtual const char *getGlobalPaintDetailsTexName() const = 0;
+
+  using DecalsCb = void (*)(const BBox3 &);
+  virtual DecalsCb getDecalsRenderCb() const = 0;
 };
 
 struct HmapBitLayerDesc

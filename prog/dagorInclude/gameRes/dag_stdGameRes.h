@@ -6,6 +6,7 @@
 
 #include <gameRes/dag_stdGameResId.h>
 #include <generic/dag_tabFwd.h>
+#include <generic/dag_span.h>
 class DataBlock;
 
 
@@ -35,7 +36,8 @@ extern DataBlock gameres_dynmodel_desc;
 
 void gameres_append_desc(DataBlock &desc, const char *desc_fn, const char *pkg_folder, bool allow_override = false);
 void gameres_patch_desc(DataBlock &desc, const char *patch_desc_fn, const char *pkg_folder, const char *desc_fn);
-void gameres_final_optimize_desc(DataBlock &desc, const char *label);
+// strip_sub_blocks lists sub-block names to drop from every desc block before optimizing
+void gameres_final_optimize_desc(DataBlock &desc, const char *label, dag::ConstSpan<const char *> strip_sub_blocks = {});
 
 void register_stub_gameres_factories(dag::ConstSpan<unsigned> stubbed_types, bool report_stubs_as_loaded);
 void terminate_stub_gameres_factories();

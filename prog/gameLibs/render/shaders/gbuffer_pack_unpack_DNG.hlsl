@@ -52,6 +52,7 @@ struct UnpackedGbuffer
   bool isGrass;
   bool isFoliage;
   bool isFacingSun;
+  bool isCamoNet;
   bool isSnow;
 };
 
@@ -152,9 +153,10 @@ half4 packGbufMotionReactive(half3 motion_vecs, half reactive)
 uint packGbufBvhFlags(UnpackedGbuffer gbuffer)
 {
   return (gbuffer.isGlass ? BVH_GLASS : 0)
-        | (gbuffer.isGrass ? BVH_GRASS : 0)
-        | (gbuffer.isFoliage ? BVH_FOLIAGE : 0)
-        | (gbuffer.isFacingSun ? BVH_FACING_SUN : 0);
+       | (gbuffer.isGrass ? BVH_GRASS : 0)
+       | (gbuffer.isFoliage ? BVH_FOLIAGE : 0)
+       | (gbuffer.isFacingSun ? BVH_FACING_SUN : 0)
+       | (gbuffer.isCamoNet ? BVH_CAMO_NET : 0);
 }
 
 PackedGbuffer pack_gbuffer(UnpackedGbuffer gbuffer)
@@ -305,6 +307,7 @@ void unpackBvhFlags(PackedGbuffer gbuf, inout UnpackedGbuffer gbuffer)
     gbuffer.isGrass = (bvh_flags & BVH_GRASS) != 0;
     gbuffer.isFoliage = (bvh_flags & BVH_FOLIAGE) != 0;
     gbuffer.isFacingSun = (bvh_flags & BVH_FACING_SUN) != 0;
+    gbuffer.isCamoNet = (bvh_flags & BVH_CAMO_NET) != 0;
     if (gbuffer.isGlass)
       gbuffer.smoothness = 1;
   #endif

@@ -21,6 +21,8 @@
 #include <fx/dag_leavesWind.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shStateBlockBindless.h>
+#include <startup/dag_globalSettings.h>
+#include <debug/dag_debug.h>
 #include <EASTL/array.h>
 
 
@@ -1218,6 +1220,35 @@ void rendinst::resetRiGenImpostors()
     mgr->afterDeviceReset();
 }
 
+bool rendinst::render::areImpostorsUpToDate()
+{
+  if (!RendInstGenData::renderResRequired || RendInstGenData::isLoading)
+    return false;
+  if (rendinst::render::impostorPreshadowNeedUpdate)
+    return false;
+  FOR_EACH_RG_LAYER_DO (rgl)
+  {
+    if (!rgl->rtData)
+      continue;
+    ScopedLockRead lock(rgl->rtData->riRwCs);
+    if (rgl->rtData->dynamicImpostorToUpdateNo < rgl->rtData->rtPoolData.size())
+      return false;
+  }
+  return true;
+}
+
+static void log_impostors_convergence()
+{
+  static const bool enabled = ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("logRenderConvergence", false);
+  if (!enabled)
+    return;
+  static bool logged = false;
+  const bool upToDate = rendinst::render::areImpostorsUpToDate();
+  if (upToDate && !logged)
+    debug("[convergence] impostors");
+  logged = upToDate;
+}
+
 void rendinst::updateRIGenImpostors(float shadowDistance, const Point3 &sunDir0, const TMatrix &view_itm, const mat44f &proj_tm)
 {
   if (!RendInstGenData::renderResRequired || RendInstGenData::isLoading)
@@ -1234,6 +1265,7 @@ void rendinst::updateRIGenImpostors(float shadowDistance, const Point3 &sunDir0,
 
   FOR_EACH_RG_LAYER_DO (rgl)
   {
+    d3d::GpuAutoLock gpuLock;
     ScopedLockRead lock(rgl->rtData->riRwCs);
     float shadowDistOfs = (rendinst::render::per_instance_visibility ? 0 : (0.5f * rgl->grid2world * rgl->cellSz * subCellDistMul));
 
@@ -1250,4 +1282,5 @@ void rendinst::updateRIGenImpostors(float shadowDistance, const Point3 &sunDir0,
   }
 
   rendinst::render::impostorPreshadowNeedUpdate = false;
+  log_impostors_convergence();
 }

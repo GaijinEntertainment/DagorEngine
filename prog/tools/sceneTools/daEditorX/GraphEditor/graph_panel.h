@@ -3,6 +3,7 @@
 
 #include "canvas_clipboard.h"
 #include "graph_edge_reconnect.h"
+#include "graph_undo.h" // GraphSelection
 
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/control/panelWindow.h>
@@ -58,6 +59,16 @@ public:
   bool removeEdgeById(int edge_id);
   bool removeNodeById(int node_id);
 
+  // Queue a SetNodePosition push for existing nodes whose graphData x/y was changed out of frame
+  // (move undo/redo): inserts the ids into pendingPositionIds and marks the cull cache dirty so the
+  // next render pushes graphData.x/y to the node editor.
+  void markPositionsPending(const eastl::vector<int> &node_ids);
+
+  // Queue a SetGroupSize push for existing block nodes whose graphData blockWidth/blockHeight changed
+  // out of frame (resize undo/redo): inserts the ids into pendingBlockSizeIds and marks the cull cache
+  // dirty. ne stores group bounds, so the size must be pushed explicitly (drawBlockNode does it).
+  void markBlockSizesPending(const eastl::vector<int> &node_ids);
+
   // Per-tick hook driven by the plugin's actObjects. Runs between ImGui frames -- the right
   // place for anything that needs to be done outside WithinFrameScope (modal dialogs in
   // particular: PropPanel::DialogWindow::showDialog aborts inside an ImGui frame).
@@ -77,6 +88,15 @@ public:
   // transitive set. Public so the canvas Copy/Cut helpers (in canvas_clipboard.cpp) can
   // build the selection closure for block nodes.
   void collectNodesInsideBlock(int block_node_id, eastl::vector<int> &out_child_ids) const;
+
+  // Selection undo support (used by GraphEditorPlg). getRecordedSelection returns the selection (nodes
+  // + links, sorted) as of frame start -- the "old" set a graph op folds into its undo entry.
+  // suppressSelectionUndoThisFrame tells the frame-end detector that this frame's selection change is
+  // already accounted for (folded into an edit, or undo-driven), so it resyncs instead of recording.
+  // setPendingSelection queues a set for the next render pass to push to ne (UndoSelection apply).
+  const GraphSelection &getRecordedSelection() const { return lastSelection; }
+  void suppressSelectionUndoThisFrame() { suppressSelectionRecord = true; }
+  void setPendingSelection(const GraphSelection &selection);
 
   static uint64_t makePinId(int node_id, int pin_index)
   {
@@ -108,8 +128,26 @@ private:
   // (each drag-drop insert). Drained per-id during the render loop; cleared on graph reload.
   eastl::hash_set<int> pendingPositionIds;
 
+  // Block node ids that need ne::SetGroupSize pushed this frame (their graphData size changed out of
+  // frame via resize undo/redo). Drained in drawBlockNode before BeginNode.
+  eastl::hash_set<int> pendingBlockSizeIds;
+
   CanvasClipboard canvasClipboard;
   GraphEdgeReconnect edgeReconnect;
+  GraphData::Edge reconnectRemovedEdge; // edge dropped when a reconnect (A) begins; recorded for undo on resolve
+
+  // Selection undo. lastSelection is the selection (nodes + links, sorted) as of the last settled
+  // frame -- the diff basis for recording deliberate changes and the "old" set graph ops fold into
+  // their entry. pendingSelection is a set an undo/redo queued; it is pushed to ne on the next render
+  // pass. suppressSelectionRecord marks a frame whose selection change is undo-driven or folded into
+  // an edit, so the frame-end detector resyncs lastSelection instead of recording a new entry.
+  GraphSelection lastSelection;
+  GraphSelection pendingSelection;
+  bool hasPendingSelection = false;
+  bool suppressSelectionRecord = false;
+
+  // Reads the current ne selection (nodes + links) into out, as sorted original ids.
+  void readSelection(GraphSelection &out) const;
 
   eastl::string lastSelectedNodeName;
   int selectedNodeId = -1;
@@ -121,6 +159,15 @@ private:
   int pendingCommentPinIndex = -1;
 
   eastl::vector<PendingNodeDelete> pendingNodeDeletes;
+
+  // True once a left-drag has started; gates the post-frame move-detection scan to drag releases
+  // (so plain clicks don't pay for it). Reset when the drag's release is processed.
+  bool nodeDragInProgress = false;
+
+  // Pre-drag sizes of the block (group) nodes resized during the current drag, captured lazily by
+  // syncBlockSizes on each block's first size change -- the "old" sizes the resize-undo records on
+  // release. Avoids scanning all nodes on every mouse-press. Drained when the release is processed.
+  eastl::vector<BlockSize> blockResizeOld;
 
   struct NodeCull
   {

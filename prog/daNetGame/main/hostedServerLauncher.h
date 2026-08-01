@@ -18,6 +18,8 @@ void bind_hosting_internal_server(Sqrat::Table &ns);
 void shutdown_internal_server_on_host_exit();
 void schedule_new_internal_server_with_args(int external_argc, char **external_argv);
 void kill_internal_server(bool wait);
+// Drops pending relaunch. Pair with kill_internal_server() on app-stopped paths.
+void cancel_scheduled_internal_server_start();
 void prelaunch_internal_server_if_needed();
 
 bool is_hosted_internal_server_active();

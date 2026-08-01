@@ -8,6 +8,7 @@ import sys
 import subprocess
 import pathlib
 import os
+import re
 import urllib
 import ssl
 import ctypes
@@ -484,18 +485,123 @@ else:
     pathlib.Path(fmod_dest_folder+'/studio/win-arm64/inc').mkdir(parents=True, exist_ok=True)
 
 
-# OpenXR 1.0.27
-openxr_dest_folder = dest_dir+'/openxr-1.0.27'
+# helper code do build forwarding DLL
+def _run_tool(args):
+  proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  return (proc.returncode, proc.stdout.decode('mbcs', 'replace'), proc.stderr.decode('mbcs', 'replace'))
+
+def _dumpbin(msvc_bin, *args):
+  code, out, err = _run_tool([str(pathlib.Path(msvc_bin) / 'dumpbin.exe'), '/nologo'] + list(args))
+  if code != 0:
+    raise RuntimeError("dumpbin {0} failed ({1}):\n{2}".format(args, code, out))
+  return out.splitlines()
+
+def _dump_imports(input_dll, msvc_bin):
+  """Return {module.dll: [imported symbol, ...]} for a PE image."""
+  _JUNK = {
+    'Import Address Table',
+    'Import Name Table',
+    'time date stamp',
+    'Index of first forwarder reference',
+  }
+  _RE_MODULE = re.compile(r'^ {4}(\S+\.dll)\s*$', re.IGNORECASE)
+  _RE_SYMBOL = re.compile(r'^\s+[0-9A-Fa-f]+\s+(\S.*\S)\s*$')
+
+  imports = {}
+  current = None
+  for line in _dumpbin(msvc_bin, '/imports', str(input_dll)):
+    if line.strip() == 'Summary':  # trailing section table, not imports
+      break
+    m = _RE_MODULE.match(line)
+    if m:
+      current = imports.setdefault(m.group(1), [])
+      continue
+    if current is None:
+      continue
+    m = _RE_SYMBOL.match(line)
+    if m and m.group(1) not in _JUNK:
+      current.append(m.group(1))
+  return imports
+
+def _dump_machine(input_dll, msvc_bin):
+  """Return a /MACHINE: value ('ARM64', 'X64', ...) for a PE image."""
+  _RE_MACHINE = re.compile(r'^\s+([0-9A-F]+) machine \((\w+)\)')
+  _MACHINES = {'AA64': 'ARM64', '8664': 'X64', '14C': 'X86', '1C4': 'ARM'}
+
+  for line in _dumpbin(msvc_bin, '/headers', str(input_dll)):
+    m = _RE_MACHINE.match(line)
+    if m:
+      code = m.group(1).upper()
+      if code not in _MACHINES:
+        raise RuntimeError("unsupported machine {0} ({1})".format(code, m.group(2)))
+      return _MACHINES[code]
+  raise RuntimeError("no machine field in {0}".format(input_dll))
+
+
+def _build_forwarder(input_dll, ref_dll, output_dll, msvc_bin):
+  """Build `output_dll`: a stub forwarding to `ref_dll`.
+
+  input_dll   PE image whose imports drive the export list.
+  ref_dll     DLL holding the real implementations, e.g. "msvcp140.dll".
+  output_dll  stub to create; its file name must equal the imported module
+              name, since that is how the loader resolves it.
+  msvc_bin    directory containing dumpbin.exe and link.exe.
+  """
+  input_dll, output_dll = pathlib.Path(input_dll), pathlib.Path(output_dll)
+  msvc_bin = pathlib.Path(msvc_bin)
+  # forwarder syntax uses the module name without extension
+  ref = pathlib.Path(ref_dll).stem
+  if ref.lower() == output_dll.stem.lower():
+    raise ValueError("{0} would forward to itself".format(output_dll.name))
+
+  imports = _dump_imports(input_dll, msvc_bin)
+  symbols = None
+  for module in imports:
+    if module.lower() == output_dll.name.lower():
+      symbols = imports[module]
+      break
+  if not symbols:
+    raise ValueError("{0} imports nothing from {1}; it imports from: {2}".format(
+      input_dll.name, output_dll.name, ', '.join(sorted(imports))))
+
+  def_path = output_dll.with_suffix('.def')
+  def_path.parent.mkdir(parents=True, exist_ok=True)
+  def_lines = ['LIBRARY ' + output_dll.stem.upper(), 'EXPORTS']
+  for s in sorted(symbols):
+    def_lines.append('  {0}={1}.{0}'.format(s, ref))
+  def_path.write_text('\n'.join(def_lines) + '\n', encoding='ascii')
+
+  code, out, err = _run_tool([str(msvc_bin / 'link.exe'), '/nologo', '/DLL', '/NOENTRY',
+    '/MACHINE:' + _dump_machine(input_dll, msvc_bin), '/DEF:' + str(def_path), '/OUT:' + str(output_dll)])
+  if code != 0:
+    raise RuntimeError("link failed ({0}):\n{1}\n{2}".format(code, out, err))
+  for junk in (output_dll.with_suffix('.lib'), output_dll.with_suffix('.exp'), def_path):
+    if junk.exists():
+      junk.unlink()
+
+  #print("{0}: {1} forwarders -> {2}.dll".format(output_dll, len(symbols), ref))
+  code, out, err = _run_tool([str(ducible_dest_file), str(output_dll)])
+  if code != 0:
+    raise RuntimeError("ducible failed ({0}):\n{1}\n{2}".format(code, out, err))
+  return output_dll
+
+# OpenXR 1.1.54
+openxr_dest_folder = dest_dir+'/openxr-1.1.54'
 if pathlib.Path(openxr_dest_folder).exists():
   print('=== OpenXR symlink found at {0}, skipping setup'.format(openxr_dest_folder))
 else:
-  download_url('https://github.com/KhronosGroup/OpenXR-SDK-Source/releases/download/release-1.0.27/openxr_loader_windows-1.0.27.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/openxr_loader_windows-1.0.27.zip'), 'r') as zip_file:
-    zip_file.extractall(openxr_dest_folder)
+  download_url('https://github.com/KhronosGroup/OpenXR-SDK-Source/releases/download/release-1.1.54/openxr_loader_windows-1.1.54.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/openxr_loader_windows-1.1.54.zip'), 'r') as zip_file:
+    zip_file.extractall(openxr_dest_folder+'/openxr_loader_windows')
     make_directory_symlink(openxr_dest_folder+'/openxr_loader_windows/include', openxr_dest_folder+'/include')
     make_directory_symlink(openxr_dest_folder+'/openxr_loader_windows/Win32', openxr_dest_folder+'/win32')
     make_directory_symlink(openxr_dest_folder+'/openxr_loader_windows/x64', openxr_dest_folder+'/win64')
-    print('+++ OpenXR 1.0.27 installed at {0}'.format(openxr_dest_folder))
+    make_directory_symlink(openxr_dest_folder+'/openxr_loader_windows/ARM64_uwp', openxr_dest_folder+'/win-arm64')
+    msvc_dir = dest_dir + '/vc2022_17.14.4/bin/Hostx64/x64'
+    openxr_loader = openxr_dest_folder+'/win-arm64/bin/openxr_loader.dll'
+    _build_forwarder(openxr_loader, 'msvcp140.dll', openxr_dest_folder+'/win-arm64/bin/msvcp140_app.dll', msvc_dir)
+    _build_forwarder(openxr_loader, 'vcruntime140.dll', openxr_dest_folder+'/win-arm64/bin/vcruntime140_app.dll', msvc_dir)
+    print('+++ OpenXR 1.1.54 installed at {0}'.format(openxr_dest_folder))
 
 
 # FidelityFX-FSR2 compiler
@@ -530,8 +636,8 @@ else:
       shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2505.1/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
       print('+++ DXC May 2025 - Patch 1 -- 1.8.2505.1 installed at {0}'.format(dxc_dest_folder))
 
-# Agility.SDK.1.619.0
-asdk_ver = '1.619.0'
+# Agility.SDK.1.619.3
+asdk_ver = '1.619.3'
 asdk_dest_folder = dest_dir+'/Agility.SDK.'+asdk_ver
 if pathlib.Path(asdk_dest_folder).exists():
   print('=== Agility.SDK.{1} symlink found at {0}, skipping setup'.format(asdk_dest_folder, asdk_ver))
@@ -584,20 +690,20 @@ else:
     zip_file.extractall(dest_dir)
   print('+++ FidelityFX SDK {1} installed at {0}'.format(fidelityfx_sdk_dest_folder, fidelityfx_sdk_ver))
 
-# nvapi-R590
-nvapi_dest_folder = dest_dir+'/nvapi-R590'
+# nvapi-R610
+nvapi_dest_folder = dest_dir+'/nvapi-R610'
 if pathlib.Path(nvapi_dest_folder).exists():
   print('=== nvapi symlink found at {0}, skipping setup'.format(nvapi_dest_folder))
 else:
-  download_url2('https://github.com/NVIDIA/nvapi/archive/refs/heads/main.zip', 'nvapi-R590.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/nvapi-R590.zip'), 'r') as zip_file:
+  download_url2('https://github.com/NVIDIA/nvapi/archive/refs/heads/main.zip', 'nvapi-R610.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/nvapi-R610.zip'), 'r') as zip_file:
     members = [
         m for m in zip_file.namelist()
         if not (m.startswith('nvapi-main/docs/') or m.startswith('nvapi-main/Sample_Code/'))
     ]
     zip_file.extractall(dest_dir, members)
   os.rename(os.path.normpath(dest_dir+'/nvapi-main'), os.path.normpath(nvapi_dest_folder));
-  print('+++ nvapi-R590 installed at {0}'.format(nvapi_dest_folder))
+  print('+++ nvapi-R610 installed at {0}'.format(nvapi_dest_folder))
 
 # AGS v6.3.0
 ags_sdk_dest_folder = dest_dir+'/AGS.SDK.6.3.0'

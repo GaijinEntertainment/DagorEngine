@@ -502,11 +502,6 @@ NSString *appName;
                                         selector:@selector(keyboardWillShow:)
                                         name:UIKeyboardWillShowNotification
                                         object:nil];
-
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                        selector:@selector(keyboardDidHide:)
-                                        name:UIKeyboardDidHideNotification
-                                        object:nil];
 }
 
 - (void)doneClicked
@@ -558,15 +553,8 @@ NSString *appName;
   }
 }
 
-- (void)keyboardDidHide:(NSNotification *)notification
-{
-  [UIView setAnimationsEnabled:YES];
-}
-
 - (void)keyboardWillShow:(NSNotification *)notification
 {
-  [UIView setAnimationsEnabled:NO];
-
   UIViewController *root = getMainController();
   if (root != nil && editField != nil)
   {
@@ -582,11 +570,14 @@ NSString *appName;
     editFieldFrame.origin.y = root.view.bounds.size.height - keyboardFrame.size.height - editFieldFrame.size.height;
     editFieldFrame.origin.x = ((root.view.bounds.size.width - editFieldFrame.size.width) / 2);
     editFieldFrame.size.width = screenSize.width * EDIT_FIELD_WIDTH_SCALE - safeArea.origin.x * 2;
-    editField.frame = editFieldFrame;
 
-    editFieldFrame = editToolbar.frame;
-    editFieldFrame.origin.y = root.view.bounds.size.height - keyboardFrame.size.height - editFieldFrame.size.height;
-    editToolbar.frame = editFieldFrame;
+    CGRect editToolbarFrame = editToolbar.frame;
+    editToolbarFrame.origin.y = root.view.bounds.size.height - keyboardFrame.size.height - editToolbarFrame.size.height;
+
+    [UIView performWithoutAnimation:^{
+      editField.frame = editFieldFrame;
+      editToolbar.frame = editToolbarFrame;
+    }];
   }
 }
 
@@ -600,6 +591,12 @@ NSString *appName;
     [root.view addSubview:editField];
     [editField becomeFirstResponder];
     kbdVisible = YES;
+
+    // On ProMotion (120Hz) devices the display link callback saturates the main thread,
+    // starving UIKit of time to render system keyboard key press/release animations
+    // (keys look visually stuck). Cap the frame rate while the keyboard is visible.
+    if (g_displayLink && g_ios_fps_limit > 30)
+      g_displayLink.preferredFramesPerSecond = 30;
   }
 }
 
@@ -613,6 +610,10 @@ NSString *appName;
     [editField removeFromSuperview];
     [editToolbar removeFromSuperview];
     [editBG removeFromSuperview];
+
+    // restore frame rate capped in showKeyboard
+    if (g_displayLink)
+      g_displayLink.preferredFramesPerSecond = g_ios_fps_limit;
   }
 }
 

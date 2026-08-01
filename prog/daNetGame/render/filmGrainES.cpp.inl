@@ -19,6 +19,23 @@
 #include "filmGrain.h"
 #include "renderSettings.h"
 
+FilmGrainMode get_film_grain_mode()
+{
+  static const bool film_grain_mode_var_exists = VariableMap::isVariablePresent(VariableMap::getVariableId("film_grain_mode"));
+  if (!film_grain_mode_var_exists)
+    return FilmGrainMode::DISABLED;
+
+  static const auto film_grain_modeVarId = ::get_shader_glob_var_id("film_grain_mode");
+  G_ASSERT_RETURN(ShaderGlobal::is_var_assumed(film_grain_modeVarId), FilmGrainMode::NOISE_BASED);
+  const int value = ShaderGlobal::get_interval_assumed_value(film_grain_modeVarId);
+  switch (value)
+  {
+    case 0: return FilmGrainMode::NOISE_BASED;
+    case 1: return FilmGrainMode::LUT_BASED;
+    default: G_ASSERT_RETURN(false, FilmGrainMode::NOISE_BASED);
+  }
+}
+
 static ShaderVariableInfo film_grain_lut_paramsVarId("film_grain_lut_params", true);
 static ShaderVariableInfo film_grain_gen_paramsVarId("film_grain_gen_params", true);
 static ShaderVariableInfo film_grain_gen_sizeVarId("film_grain_gen_size", true);
@@ -29,10 +46,18 @@ FilmGrainLutHolder::~FilmGrainLutHolder() { setFilmGrainReady(false); }
 
 void FilmGrainLutHolder::setFilmGrainReady(bool is_ready)
 {
+  if (get_film_grain_mode() != FilmGrainMode::LUT_BASED)
+    return;
   if (is_ready)
     PriorityShadervar::clear((int)film_grain_lut_paramsVarId, GEN_PRIORITY);
   else
     PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, GEN_PRIORITY, Point4(0, 0, 0, 0));
+}
+
+bool FilmGrainLutHolder::isLutNeeded() const
+{
+  return (enabledFromSettings || enabledFromExternalModifier) && lutWH > 0 && lutD > 0 &&
+         get_film_grain_mode() == FilmGrainMode::LUT_BASED;
 }
 
 void FilmGrainLutHolder::requestRebuild()
@@ -46,14 +71,18 @@ void FilmGrainLutHolder::requestRebuild()
 
 void FilmGrainLutHolder::setParamsFromSettings(const Point4 &value)
 {
+  if (get_film_grain_mode() != FilmGrainMode::LUT_BASED)
+    return;
   PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, SETTINGS_PRIORITY, value);
   enabledFromSettings = true;
-  if (lut.getBaseTex() == nullptr)
+  if (lut.getBaseTex() == nullptr && isLutNeeded())
     requestRebuild();
 }
 
 void FilmGrainLutHolder::resetParamsFromSettings()
 {
+  if (get_film_grain_mode() != FilmGrainMode::LUT_BASED)
+    return;
   PriorityShadervar::clear((int)film_grain_lut_paramsVarId, SETTINGS_PRIORITY);
   enabledFromSettings = false;
   if (!isLutNeeded())
@@ -62,14 +91,18 @@ void FilmGrainLutHolder::resetParamsFromSettings()
 
 void FilmGrainLutHolder::setExternalParams(const Point4 &value)
 {
+  if (get_film_grain_mode() != FilmGrainMode::LUT_BASED)
+    return;
   PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, EXTERNAL_PRIORITY, value);
   enabledFromExternalModifier = true;
-  if (lut.getBaseTex() == nullptr)
+  if (lut.getBaseTex() == nullptr && isLutNeeded())
     requestRebuild();
 }
 
 void FilmGrainLutHolder::resetExternalParams()
 {
+  if (get_film_grain_mode() != FilmGrainMode::LUT_BASED)
+    return;
   PriorityShadervar::clear((int)film_grain_lut_paramsVarId, EXTERNAL_PRIORITY);
   enabledFromExternalModifier = false;
   if (!isLutNeeded())
@@ -187,7 +220,7 @@ static void film_grain_lut_settings_change_es_event_handler(const ecs::Event &ev
   film_grain_lut.setLutResolution(filmGrainRes.x, filmGrainRes.y);
   if (needsFilmGrain)
   {
-    Point4 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint4("filmGrain", Point4(0.2, 0.1, 1, 0));
+    Point4 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint4("filmGrainLut", Point4(0.2, 0.1, 1, 0));
     film_grain_lut.setParamsFromSettings(value);
   }
   else

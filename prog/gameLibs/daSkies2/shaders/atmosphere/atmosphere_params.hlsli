@@ -99,6 +99,13 @@ struct AtmosphereParameters {
   // full moon lux brighntess is way darker
   DimensionlessSpectrum moon_color;//(0.5764705882352941,0.6274509803921569, 1)*.25 by default. That affects sky and moon
   Number sunBrightness;//this is 10 by default. that affects everything, sky and sun
+
+  //cloud droplet aerosol (mie3): auto-derived from the cloud layers, additive to the
+  //mie density, shares mie color/phase. Asymmetric lobe per layer centered on the
+  //cloud base (wide sub-cloud haze, thin overshoot above) + a ground slab when raining
+  float4 cloud_aerosol0;//x - amplitude, y - layer base km, z - 1/km below, w - 1/km above
+  float4 cloud_aerosol1;
+  float4 cloud_aerosol_rain;//x - amplitude, y - 1/km height scale, zw - unused
 };
 
 #endif

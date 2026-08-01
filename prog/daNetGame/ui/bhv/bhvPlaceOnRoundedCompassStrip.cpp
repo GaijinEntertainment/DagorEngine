@@ -66,7 +66,7 @@ int BhvPlaceRoundCompassOnCompassStrip::update(UpdateStage /*stage*/, darg::Elem
     }
     else
     {
-      float relativeAngle = data.RawGetSlotValue("relativeAngle", VERY_BIG_NUMBER);
+      float relativeAngle = data.RawGetSlotValue(strings->relativeAngle, VERY_BIG_NUMBER);
       if (relativeAngle != VERY_BIG_NUMBER)
       {
         d = relativeAngle;
@@ -145,7 +145,7 @@ int BhvPlaceRoundCompassOnCompassStrip::update(UpdateStage /*stage*/, darg::Elem
     float y = (childRadius * s) + radius + fixedPosY;
 
     child->transform->translate = Point2(x, y);
-    if (data.RawGetSlotValue("doNotRotate", false))
+    if (data.RawGetSlotValue(strings->doNotRotate, false))
       continue;
 
     child->transform->rotate = rad + (90 * DEG_TO_RAD);

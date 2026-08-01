@@ -4,11 +4,13 @@
 
 #include "userGraphVisualizer.h"
 
+#include <debug/backendDebug.h>
 #include <debug/textureVisualization.h>
 
 #include <runtime/runtime.h>
 #include <frontend/nodeTracker.h>
 #include <frontend/nameResolver.h>
+#include <frontend/multiplexingInternal.h>
 #include <backend/simdBitVector.h>
 #include <backend/simdBitMatrix.h>
 
@@ -74,6 +76,9 @@ constexpr ImU32 RES_INSPECT_COLOR = IM_COL32(255, 128, 0, 255); // rgb(255, 128,
 constexpr ImU32 CYCLED_DEP_COLOR = IM_COL32(255, 0, 0, 255);    // rgb(255, 0, 0)
 constexpr ImU32 DISABLED_DEP_COLOR = CYCLED_DEP_COLOR;
 
+constexpr ImU32 CAPTURE_START_COLOR = IM_COL32(64, 220, 64, 255); // rgb(64, 220, 64)
+constexpr ImU32 CAPTURE_END_COLOR = IM_COL32(255, 96, 64, 255);   // rgb(255, 96, 64)
+
 
 constexpr ImU32 OPT_POPUP_POS_COLOR = IM_COL32(64, 196, 64, 255);  // rgb(64, 196, 64)
 constexpr ImU32 OPT_POPUP_WAR_COLOR = IM_COL32(196, 196, 64, 255); // rgb(196, 196, 64)
@@ -88,6 +93,7 @@ constexpr auto NODE_RENDER_REQ_POPUP = "node_render_reqs";
 constexpr auto NODE_BINDINGS_POPUP = "node_bindings";
 constexpr auto NODE_IDX_VTX_POPUP = "node_iv_bufs";
 constexpr auto EDGE_RESOURCES_POPUP = "edge_resources";
+constexpr auto NODE_CAPTURE_POPUP = "node_capture_range";
 
 
 template <class T, class... Ts>
@@ -152,6 +158,7 @@ Visualizer::Visualizer(InternalRegistry &int_registry, const DependencyData &dep
   registry(int_registry), depData(dep_data), intermediateGraph(ir_graph), intermediatePassColoring(coloring)
 {
   REGISTER_IMGUI_WINDOW(IMGUI_WINDOW_GROUP_FG2, IMGUI_USG_WIN_NAME, [&]() { this->draw(); });
+  REGISTER_IMGUI_WINDOW(IMGUI_WINDOW_GROUP_FG2, IMGUI_GPU_CAPTURE_WIN_NAME, [&]() { this->drawGpuCaptureWindow(); });
 }
 
 void Visualizer::draw()
@@ -184,6 +191,7 @@ void Visualizer::draw()
 
 
   hoverState.reset();
+  gpuCapture.nodeRowPopupOpenedThisFrame = false;
   hoverState.window = ImGui::IsWindowHovered();
 
 
@@ -303,6 +311,14 @@ void Visualizer::drawUI()
 
     ImGui::SameLine();
     overlay_checkbox("Overlay mode");
+  }
+
+  {
+    if (ImGui::Button("GPU capture"))
+    {
+      imgui_window_set_visible(IMGUI_WINDOW_GROUP_FG2, IMGUI_GPU_CAPTURE_WIN_NAME, true);
+      gpuCapture.focusGpuCaptureWindow = true;
+    }
   }
 
   {
@@ -461,6 +477,16 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
         draw_list->AddRect(leftTopPos - ImVec2{NODE_FOCUS_BORDER_WIDTH, NODE_FOCUS_BORDER_WIDTH},
           rightBottomPos + ImVec2{NODE_FOCUS_BORDER_WIDTH, NODE_FOCUS_BORDER_WIDTH}, FOCUS_COLOR, 4.0f, 0, NODE_FOCUS_BORDER_WIDTH);
 
+      if (nodeNameId == gpuCapture.captureStart.nameId)
+        draw_list->AddRect(leftTopPos - ImVec2{NODE_FOCUS_BORDER_WIDTH, NODE_FOCUS_BORDER_WIDTH},
+          rightBottomPos + ImVec2{NODE_FOCUS_BORDER_WIDTH, NODE_FOCUS_BORDER_WIDTH}, CAPTURE_START_COLOR, 4.0f, 0,
+          NODE_FOCUS_BORDER_WIDTH);
+
+      if (nodeNameId == gpuCapture.captureEnd.nameId)
+        draw_list->AddRect(leftTopPos - ImVec2{NODE_FOCUS_BORDER_WIDTH, NODE_FOCUS_BORDER_WIDTH},
+          rightBottomPos + ImVec2{NODE_FOCUS_BORDER_WIDTH, NODE_FOCUS_BORDER_WIDTH}, CAPTURE_END_COLOR, 4.0f, 0,
+          NODE_FOCUS_BORDER_WIDTH);
+
       if (node.cycled)
         draw_list->AddRect(leftTopPos - ImVec2{DISABLED_DEP_WIDTH, DISABLED_DEP_WIDTH},
           rightBottomPos + ImVec2{DISABLED_DEP_WIDTH, DISABLED_DEP_WIDTH}, CYCLED_DEP_COLOR, 4.0f, 0, DISABLED_DEP_WIDTH);
@@ -532,6 +558,7 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
               draw_list->ChannelsSetCurrent(CanvasChannels::SUSPEND);
               canvas.Suspend();
               ImGui::OpenPopup(popup_name);
+              gpuCapture.nodeRowPopupOpenedThisFrame = true;
               canvas.Resume();
               draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
             }
@@ -601,7 +628,10 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
 #endif
             hoverState.tooltip.aprintf(0, "  R-click to copy\n");
             if (mouseRclick)
+            {
               ImGui::SetClipboardText(nodeData.nodeSource.c_str());
+              gpuCapture.nodeRowPopupOpenedThisFrame = true;
+            }
           }
         }
         else
@@ -826,6 +856,13 @@ void Visualizer::processInput()
       ImGui::OpenPopup(EDGE_RESOURCES_POPUP);
     }
   }
+
+  if (hoverState.node != NodeId::Invalid && hoverState.resource == ResourceId::Invalid && !gpuCapture.nodeRowPopupOpenedThisFrame &&
+      ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+  {
+    popupNode = hoverState.node;
+    ImGui::OpenPopup(NODE_CAPTURE_POPUP);
+  }
 }
 
 void Visualizer::processPopup()
@@ -988,6 +1025,23 @@ void Visualizer::processPopup()
         ImGui::Text("  %d: NONE", i);
       }
 
+    ImGui::EndPopup();
+  }
+
+  if (ImGui::BeginPopup(NODE_CAPTURE_POPUP))
+  {
+    if (ImGui::Selectable("Set as GPU capture START"))
+    {
+      setCaptureBoundary(gpuCapture.captureStart, userNodes[popupNode].regId);
+      imgui_window_set_visible(IMGUI_WINDOW_GROUP_FG2, IMGUI_GPU_CAPTURE_WIN_NAME, true);
+      gpuCapture.focusGpuCaptureWindow = true;
+    }
+    if (ImGui::Selectable("Set as GPU capture END"))
+    {
+      setCaptureBoundary(gpuCapture.captureEnd, userNodes[popupNode].regId);
+      imgui_window_set_visible(IMGUI_WINDOW_GROUP_FG2, IMGUI_GPU_CAPTURE_WIN_NAME, true);
+      gpuCapture.focusGpuCaptureWindow = true;
+    }
     ImGui::EndPopup();
   }
 
@@ -1360,6 +1414,13 @@ void Visualizer::updateVisualization(const IdIndexedFlags<NodeNameId, framemem_a
   updateIRInfo();
   updateNameSpaces();
   updateDependencies();
+
+  gpuCapture.distinctExtents.clear();
+  for (const auto &irNode : intermediateGraph.nodes.values())
+    if (irNode.multiplexingIndex != intermediate::MultiplexingIndex::Invalid &&
+        eastl::find(gpuCapture.distinctExtents.begin(), gpuCapture.distinctExtents.end(), irNode.multiplexingIndex) ==
+          gpuCapture.distinctExtents.end())
+      gpuCapture.distinctExtents.push_back(irNode.multiplexingIndex);
 
   calculateNodesColors();
   checkCycles();

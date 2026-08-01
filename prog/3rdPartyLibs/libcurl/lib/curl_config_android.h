@@ -853,3 +853,11 @@
 
 /* to make the compiler know the prototypes of Windows IDN APIs */
 /* #undef WANT_IDN_PROTOTYPES */
+
+/* Define to 1 if you have the socketpair function.
+   Without it curl emulates socketpair for the multi-handle wakeup pair via a
+   TCP loopback connect (lib/socketpair.c). On Android every connect() goes
+   through libnetd_client to the netd daemon and can block indefinitely if
+   netd is busy, freezing the thread inside curl_multi_init and causing ANRs.
+   Native socketpair(AF_UNIX) is a pure kernel syscall and cannot block. */
+#define HAVE_SOCKETPAIR 1

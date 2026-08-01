@@ -4,7 +4,7 @@
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/imguiHelper.h>
 #include "../scopedImguiBeginDisabled.h"
-#include "filteredComboBoxStandalone.h"
+#include <propPanel/control/filteredComboBoxStandalone.h>
 #include <EASTL/sort.h>
 #include <EASTL/optional.h>
 

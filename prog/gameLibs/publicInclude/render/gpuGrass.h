@@ -81,6 +81,7 @@ struct GPUGrassGenerationCtx
 
   int maxInstanceCount = 0;
   int allocatedInstances = 0;
+  int generatedInstanceCount = 0;
 
   bool init(const GrassView _view)
   {
@@ -110,6 +111,7 @@ struct GPUGrassGenerationCtx
     grassIsSorted = false;
     maxInstanceCount = 0;
     allocatedInstances = 0;
+    generatedInstanceCount = 0;
 
     inited = grassInstancesIndirect && grassInstancesIndirectColorAfterVisibility && grassInstancesCountRB;
     if (!inited)

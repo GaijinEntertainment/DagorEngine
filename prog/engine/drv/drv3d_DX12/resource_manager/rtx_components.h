@@ -152,6 +152,15 @@ public:
   RaytraceAccelerationStructure *createAccelerationStructure(::raytrace::AccelerationStructurePool pool,
     const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &info);
 
+  template <typename T>
+  void visitRaytraceAccelerationStructurePools(T clb)
+  {
+    clb.beginVisit();
+    iterateRayTraceAccelerationStructurePools(
+      [&clb](RayTraceAccelerationStructurePool &pool) { clb.visitAccelerationStructurePool(pool); });
+    clb.endVisit();
+  }
+
   void destroyAccelerationStructurePoolOnFrameCompletion(::raytrace::AccelerationStructurePool pool)
   {
     accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>([=](auto &data) {

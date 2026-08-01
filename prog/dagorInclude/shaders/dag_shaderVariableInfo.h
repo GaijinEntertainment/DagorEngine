@@ -13,6 +13,7 @@
 #include <vecmath/dag_vecMathDecl.h>
 
 class IPoint4;
+class TMatrix;
 class TMatrix4;
 struct Color4;
 class Point2;
@@ -164,6 +165,12 @@ struct ShaderVariableInfo : public IShaderBindumpReloadListener
     memcpy(data, &v, sizeof(float) * 16); // sizeof(TMatrix4) without including
     return true;
   }
+  bool set_float4x3(const TMatrix &v) const
+  {
+    CHECK_SET_VAR(SHVT_FLOAT4x3);
+    memcpy(data, &v, sizeof(float) * 12); // sizeof(TMatrix) without including
+    return true;
+  }
 #undef CHECK_SET_VAR
 
 #define CHECK_GET_VAR_TYPE(tp, ret) \
@@ -211,6 +218,11 @@ struct ShaderVariableInfo : public IShaderBindumpReloadListener
   {
     CHECK_GET_VAR_TYPE(SHVT_FLOAT4X4, *(const TMatrix4 *)zero);
     return *(const TMatrix4 *)data;
+  }
+  const TMatrix &get_float4x3() const
+  {
+    CHECK_GET_VAR_TYPE(SHVT_FLOAT4x3, *(const TMatrix *)zero); // -V641
+    return *(const TMatrix *)data;
   }
 #undef CHECK_GET_VAR_TYPE
   void type_error(int required, const char *fun) const
@@ -285,6 +297,7 @@ inline D3DRESID get_buffer(const ShaderVariableInfo &v) { return v.get_buffer();
 inline const Color4 &get_float4(const ShaderVariableInfo &v) { return v.get_float4(); }
 inline const IPoint4 &get_int4(const ShaderVariableInfo &v) { return v.get_int4(); }
 inline const TMatrix4 &get_float4x4(const ShaderVariableInfo &v) { return v.get_float4x4(); }
+inline const TMatrix &get_float4x3(const ShaderVariableInfo &v) { return v.get_float4x3(); }
 
 inline bool set_int(const ShaderVariableInfo &v, int val) { return v.set_int(val); }
 inline bool set_float(const ShaderVariableInfo &v, float val) { return v.set_float(val); }
@@ -303,6 +316,7 @@ inline bool set_buffer(const ShaderVariableInfo &v, D3DRESID val) { return v.set
 inline bool set_buffer(const ShaderVariableInfo &v, Sbuffer *ptr) { return v.set_buffer(ptr); }
 inline bool set_sampler(const ShaderVariableInfo &v, d3d::SamplerHandle val) { return v.set_sampler(val); }
 inline bool set_float4x4(const ShaderVariableInfo &v, const TMatrix4 &val) { return v.set_float4x4(val); }
+inline bool set_float4x3(const ShaderVariableInfo &v, const TMatrix &val) { return v.set_float4x3(val); }
 inline bool set_float4(const ShaderVariableInfo &v, float r, float g, float b = 0, float a = 0) { return v.set_float4(r, g, b, a); }
 inline bool set_float4(const ShaderVariableInfo &v, const Point4 &c) { return v.set_float4((const Color4 &)c); }          // -V1027
 inline bool set_float4(const ShaderVariableInfo &v, const vec4f &c) { return v.set_float4_array((const Color4 *)&c, 1); } // -V1027

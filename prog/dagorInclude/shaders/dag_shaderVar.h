@@ -134,6 +134,9 @@ bool set_float4(int variable_id, FXMVECTOR v);
 bool set_float4x4(int variable_id, const TMatrix4 &mat);
 bool set_float4x4(int variable_id, const XMFLOAT4X4 &mat);
 bool set_float4x4(int variable_id, FXMMATRIX mat);
+bool set_float4x3(int variable_id, const TMatrix &mat);
+bool set_float4x3(int variable_id, const XMFLOAT4X3 &mat);
+bool set_float4x3(int variable_id, FXMMATRIX mat);
 bool set_int4(int variable_id, const IPoint4 &v);
 bool set_int4_array(int variable_id, const IPoint4 *data, int count);
 bool set_texture(int variable_id, TEXTUREID texture_id);
@@ -224,6 +227,7 @@ inline void set_texture_fast(int glob_var_id, TEXTUREID tex_id) { set_texture(gl
 
 inline int get_int(int glob_var_id) { return get_int_fast(glob_var_id); }
 TMatrix4 get_float4x4(int glob_var_id);
+TMatrix get_float4x3(int glob_var_id);
 IPoint4 get_int4(int glob_var_id);
 inline TEXTUREID get_tex(int glob_var_id) { return get_tex_fast(glob_var_id); }
 inline BaseTexture *get_tex_ptr(int glob_var_id) { return get_tex_ptr_fast(glob_var_id); }

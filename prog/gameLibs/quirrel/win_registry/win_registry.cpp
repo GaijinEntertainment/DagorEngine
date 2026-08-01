@@ -18,7 +18,7 @@ static String retBuf;
 static bool regKeyExists(int root, const char *path)
 {
   HKEY key;
-  if (::RegOpenKeyEx((HKEY)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
+  if (::RegOpenKeyEx((HKEY)(intptr_t)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
   {
     ::RegCloseKey(key);
     return true;
@@ -34,7 +34,7 @@ bool reg_value_exists(int root, const char *path, const char *name)
   bool ret = false;
   HKEY key;
 
-  if (!::RegOpenKeyEx((HKEY)root, path, 0, KEY_QUERY_VALUE, &key))
+  if (!::RegOpenKeyEx((HKEY)(intptr_t)root, path, 0, KEY_QUERY_VALUE, &key))
   {
     ret = !::RegQueryValueEx(key, name, 0, NULL, NULL, NULL);
 
@@ -50,7 +50,7 @@ const char *get_reg_string(int root, const char *path, const char *name, const c
   HKEY key;
   bool doRetBuf = false;
 
-  if (::RegOpenKeyEx((HKEY)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
+  if (::RegOpenKeyEx((HKEY)(intptr_t)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
   {
     DWORD type = 0;
     DWORD size = 0;
@@ -78,7 +78,7 @@ bool set_reg_string(int root, const char *path, const char *name, const char *va
 {
   HKEY key;
 
-  if (::RegCreateKeyEx((HKEY)root, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL) == ERROR_SUCCESS)
+  if (::RegCreateKeyEx((HKEY)(intptr_t)root, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL) == ERROR_SUCCESS)
     return !::RegSetValueEx(key, name, 0, REG_SZ, (const BYTE *)val, ::strlen(val) + 1);
 
   return false;
@@ -91,7 +91,7 @@ bool set_reg_int(int root, const char *path, const char *name, int val)
   HKEY key;
 
   G_STATIC_ASSERT(sizeof(val) == sizeof(DWORD)); // we are writing REG_DWORD, so binary sizes should match
-  if (::RegCreateKeyEx((HKEY)root, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL) == ERROR_SUCCESS)
+  if (::RegCreateKeyEx((HKEY)(intptr_t)root, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL) == ERROR_SUCCESS)
     return !::RegSetValueEx(key, name, 0, REG_DWORD, (BYTE *)&val, sizeof(val));
 
   return false;
@@ -106,7 +106,7 @@ int get_reg_int(int root, const char *path, const char *name, int def)
   HKEY key;
   DWORD ret = def;
 
-  if (::RegOpenKeyEx((HKEY)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
+  if (::RegOpenKeyEx((HKEY)(intptr_t)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
   {
     DWORD type = 0, size = 0;
     if (::RegQueryValueEx(key, name, 0, &type, NULL, NULL) == ERROR_SUCCESS && type == REG_DWORD)
@@ -128,7 +128,7 @@ bool set_reg_int64(int root, const char *path, const char *name, __int64 val)
 {
   HKEY key;
 
-  if (::RegCreateKeyEx((HKEY)root, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL) == ERROR_SUCCESS)
+  if (::RegCreateKeyEx((HKEY)(intptr_t)root, path, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &key, NULL) == ERROR_SUCCESS)
     return !::RegSetValueEx(key, name, 0, REG_QWORD, (BYTE *)&val, sizeof(val));
 
   return false;
@@ -143,7 +143,7 @@ __int64 get_reg_int64(int root, const char *path, const char *name, __int64 def)
   HKEY key;
   __int64 ret = def;
 
-  if (::RegOpenKeyEx((HKEY)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
+  if (::RegOpenKeyEx((HKEY)(intptr_t)root, path, 0, KEY_QUERY_VALUE, &key) == ERROR_SUCCESS)
   {
     DWORD type = 0;
     DWORD size = 0;
@@ -181,7 +181,7 @@ static bool deleteRegKey(int root, const char *path)
 
   *(keyName++) = 0;
 
-  if (::RegOpenKeyEx((HKEY)root, keyPath, 0, KEY_SET_VALUE, &key) == ERROR_SUCCESS)
+  if (::RegOpenKeyEx((HKEY)(intptr_t)root, keyPath, 0, KEY_SET_VALUE, &key) == ERROR_SUCCESS)
   {
     if (::SHDeleteKey(key, keyName) == ERROR_SUCCESS)
       ret = true;
@@ -199,7 +199,7 @@ bool delete_reg_value(int root, const char *path, const char *name)
   bool ret = false;
   HKEY key;
 
-  if (::RegOpenKeyEx((HKEY)root, path, 0, KEY_SET_VALUE, &key) == ERROR_SUCCESS)
+  if (::RegOpenKeyEx((HKEY)(intptr_t)root, path, 0, KEY_SET_VALUE, &key) == ERROR_SUCCESS)
   {
     if (::RegDeleteValue(key, name) == ERROR_SUCCESS)
       ret = true;

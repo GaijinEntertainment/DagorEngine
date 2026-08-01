@@ -23,6 +23,7 @@
 #include <daECS/net/netEvents.h>
 #include <daECS/net/msgDispatch.h>
 #include "compression.h"
+#include "sharedReplicationCache.h"
 #include <daECS/net/encryption.h>
 #include <stdlib.h> // alloca
 
@@ -341,6 +342,10 @@ void CNetwork::syncStateUpdates(int cur_time, uint8_t replication_channel)
     return;
   Connection::collapseDirtyObjects(mgr);
   danet::BitStream bs(2 << 10, framemem_ptr()), bsCompressed(framemem_ptr()), tmpBs(framemem_ptr());
+
+  SharedReplicationCache cache;
+  auto *cachePtr = &cache;
+
   for (auto &conn : clientConnections)
   {
     if (!conn || !conn->connected || !conn->isResponsive())
@@ -377,7 +382,7 @@ void CNetwork::syncStateUpdates(int cur_time, uint8_t replication_channel)
       const uint8_t ptype = ID_ENTITY_CREATION_COMPRESSED;
       auto sendContructionPacket = [&]() {
         bs.SetWriteOffset(CHAR_BIT);
-        if (!conn->writeConstructionPacket(bs, tmpBs, limitConstBytes))
+        if (!conn->writeConstructionPacket(bs, tmpBs, limitConstBytes, cachePtr))
           return 0;
         const danet::BitStream &bsToSend = bitstream_compress(bs, sizeof(char), ptype, bsCompressed, threshold);
         TRACE_NET_STAT(tx, str_msg_ids[ID_ENTITY_CREATION - ID_MSG_BASE], bs, bsToSend, conn);
@@ -797,7 +802,7 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
     {
       GET_CONN_OR_LEAVE(pkt->systemIndex);
       if (isServer())
-        ;  // fallthrough
+        ;  // destruction is server->client only; ignore stale sends from clients
       else // client
       {
         auto destroyCb = [this, &numEntitiesDestroyed](Connection &, ecs::entity_id_t serverEid) {
@@ -808,12 +813,15 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
         TRACE_NET_STAT(rx, str_msg_ids[ID_ENTITY_DESTRUCTION - ID_MSG_BASE], bs, bs, conn);
         if (!conn->readDestructionPacket(bs, destroyCb))
           logerr("Failed to read destruction packet of %d bytes from conn #%d", bs.GetNumberOfBytesUsed(), pkt->systemIndex);
-        break;
       }
     }
+    break;
     case ID_STUN_INFO:
     {
       auto ctrlIface = static_cast<DaNetPeerInterface *>(drv->getControlIface());
+      // STUN replies come only from the trusted relay peer; a game client must not clobber the relay address.
+      if (!ctrlIface || !ctrlIface->IsRelayConnection(pkt->systemIndex))
+        break;
       bs.Read(stunSystemAddress.host);
       bs.Read(stunSystemAddress.port);
       debug("Received stun reply with address %s", stunSystemAddress.ToString());
@@ -858,6 +866,7 @@ bool CNetwork::debugVerifyNetConnectionPtr(void *conn) const
 void CNetwork::addConnection(Connection *conn, unsigned idx)
 {
   G_ASSERT(conn);
+  G_ASSERTF(&conn->getEntityManager() == &mgr, "conn #%d bound to different EntityManager", (int)conn->getId());
   net::TopologyLock::WriteScope topoWrite(mgr);
   auto ctrlIface = static_cast<DaNetPeerInterface *>(drv->getControlIface());
   if (auto ectx = encryptionCtx.get())
@@ -881,6 +890,7 @@ void CNetwork::addConnection(Connection *conn, unsigned idx)
     {
       clientConnections[idx].reset(conn);
       conn->setReplicatingFrom();
+      conn->objectKeysRepl.shared = &objectKeysShared;
     }
     else
     {
@@ -924,7 +934,7 @@ void CNetwork::destroyConnection(unsigned idx, DisconnectionCause cause)
   }
 }
 
-extern void mark_all_objects_as_dirty();
+extern void mark_all_objects_as_dirty(ecs::EntityManager &mgr);
 void CNetwork::enableComponentFiltering(ConnectionId id, bool on)
 {
   auto enable = [](IConnection *c, bool on) {
@@ -939,7 +949,7 @@ void CNetwork::enableComponentFiltering(ConnectionId id, bool on)
   else if (size_t(id) < getClientConnections().size())
     enable(getClientConnections()[id].get(), on);
   if (!on)
-    mark_all_objects_as_dirty();
+    mark_all_objects_as_dirty(mgr);
 }
 
 bool CNetwork::isComponentFilteringEnabled(ConnectionId id)

@@ -8,6 +8,7 @@ require soundSystem
 require soundEvent
 require DagorSystem
 require strings
+require sound_utils_net.modules.sound_desc_common
 
 
 def raise_sound_tag(tag : string; var tags : Object&)
@@ -40,12 +41,12 @@ def test_tags(opt : Object; all_tags : Object) : bool
   return true
 
 
-def get_option_path_string(obj : Object const; is_watched : bool; var result : string&; watched_key = "hero"; unwatched_key = "enemy") : bool
+def get_option_path_string(obj : Object const; is_watched : bool; var result : string&; watched_key = get_watched_sound_key(); other_key = get_watched_sound_key(false)) : bool
   if is_watched && has(obj, watched_key)
     result = obj[watched_key] ?? "error"
     return true
-  elif !is_watched && has(obj, unwatched_key)
-    result = obj[unwatched_key] ?? "error"
+  elif !is_watched && has(obj, other_key)
+    result = obj[other_key] ?? "error"
     return true
   elif has(obj, "path")
     result = obj.path ?? "error"
@@ -53,31 +54,31 @@ def get_option_path_string(obj : Object const; is_watched : bool; var result : s
   return false
 
 
-def get_option_path(path : Object; path_id : int; is_watched : bool; var result : string&; watched_key = "hero"; unwatched_key = "enemy") : bool
+def get_option_path(path : Object; path_id : int; is_watched : bool; var result : string&; watched_key = get_watched_sound_key(); other_key = get_watched_sound_key(false)) : bool
   if !has(path, "options")
     if path_id == 0
-      return get_option_path_string(path, is_watched, result, watched_key, unwatched_key)
+      return get_option_path_string(path, is_watched, result, watched_key, other_key)
     return false
   let opts = *(path["options"]) as Array
   if opts != null
     if path_id >= 0 && path_id < length(*opts)
       let opt = (*opts)[path_id] as Object
       if opt != null
-        return get_option_path_string(*opt, is_watched, result, watched_key, unwatched_key)
+        return get_option_path_string(*opt, is_watched, result, watched_key, other_key)
   return false
 
 
-def get_option_path(path : Object; tags : Object; is_watched : bool; var result : string&; watched_key = "hero"; unwatched_key = "enemy") : bool
+def get_option_path(path : Object; tags : Object; is_watched : bool; var result : string&; watched_key = get_watched_sound_key(); other_key = get_watched_sound_key(false)) : bool
   if !has(path, "options")
     if test_tags(path, tags)
-      return get_option_path_string(path, is_watched, result, watched_key, unwatched_key)
+      return get_option_path_string(path, is_watched, result, watched_key, other_key)
     return false
   let opts = *(path["options"]) as Array
   if opts != null
     for it in *opts
       let opt = it as Object
       if opt != null && test_tags(*opt, tags)
-        return get_option_path_string(*opt, is_watched, result, watched_key, unwatched_key)
+        return get_option_path_string(*opt, is_watched, result, watched_key, other_key)
   return false
 
 
@@ -110,7 +111,7 @@ def get_path_by_desc_nullable(desc : Object; paths : Object)
   return get_path_by_name(paths, desc.path ?? "")
 
 def is_valid(obj : Object)
-  return has(obj, "name") || has(obj, "hero") || has(obj, "enemy") || has(obj, "path")
+  return has(obj, "name") || has(obj, WATCHED_SOUND_KEY) || has(obj, OTHER_SOUND_KEY) || has(obj, "path")
 
 def is_valid(obj : Object; all_tags : Object)
   return is_valid(obj) && test_tags(obj, all_tags)
@@ -153,7 +154,7 @@ def play_name_path(name : string;
 
 
 def get_name(desc : Object; is_watched_sound : bool)
-  return is_watched_sound ? (desc.hero ?? desc.name ?? "") : (desc.enemy ?? desc.name ?? "")
+  return desc[get_watched_sound_key(is_watched_sound)] ?? desc.name ?? ""
 
 
 def play_desc_path(desc : Object;
@@ -189,13 +190,13 @@ def should_apply_watched_prefix(path : string) : bool
 def private apply_watched_prefix_name_path(var path : string&; is_watched_sound : bool) : string
   if should_apply_watched_prefix(path)
     let name = path
-    path = is_watched_sound ? "player" : "enemy"
+    path = get_watched_sound_event_folder(is_watched_sound)
     return name
   return ""
 
 def apply_watched_prefix(path : string; is_watched_sound : bool) : string
   if should_apply_watched_prefix(path)
-    return is_watched_sound ? "player{path}" : "enemy{path}"
+    return "{get_watched_sound_event_folder(is_watched_sound)}{path}"
   return path
 
 
@@ -204,7 +205,7 @@ def make_final_path_str(paths, tags : Object; is_watched : bool; name = "") : st
     var path = ""
     if get_option_path(paths, tags, is_watched, path)
       if should_apply_watched_prefix(path)
-        str |> write(is_watched ? "player" : "enemy")
+        str |> write(get_watched_sound_event_folder(is_watched))
       str |> write(path)
       if !empty(name)
         str |> write("/")
@@ -216,7 +217,7 @@ def make_final_path_str(paths : Object; path_id : int; is_watched : bool; name =
     var path = ""
     if get_option_path(paths, path_id, is_watched, path)
       if should_apply_watched_prefix(path)
-        str |> write(is_watched ? "player" : "enemy")
+        str |> write(get_watched_sound_event_folder(is_watched))
       str |> write(path)
       if !empty(name)
         str |> write("/")

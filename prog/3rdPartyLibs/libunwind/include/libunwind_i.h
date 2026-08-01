@@ -305,6 +305,9 @@ extern pthread_mutex_t _U_dyn_info_list_lock;
 #define unw_address_is_valid UNWI_ARCH_OBJ(address_is_valid)
 HIDDEN bool unw_address_is_valid(unw_word_t, size_t);
 
+#define unw_mem_read_safe UNWI_ARCH_OBJ(mem_read_safe)
+HIDDEN bool unw_mem_read_safe(unw_word_t addr, void *dst, size_t len);
+
 
 #if defined(UNW_DEBUG)
 # define unwi_debug_level                UNWI_ARCH_OBJ(debug_level)

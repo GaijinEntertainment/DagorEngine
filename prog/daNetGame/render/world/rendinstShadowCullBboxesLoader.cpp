@@ -53,10 +53,26 @@ void RiShadowCullBboxesLoaderJob::doJob()
     currentTestsToPerform.swap(waitingTestsToPerform);
   }
 
-  for (auto &testData : currentTestsToPerform)
+  // addTest can append to waitingTestsToPerform while this job runs; late arrivals
+  // must stay queued for the next run.
+  size_t leftoversCount = 0;
+  for (size_t i = 0; i < currentTestsToPerform.size(); ++i)
   {
+    const ShadowsOcclusionTestData &testData = currentTestsToPerform[i];
     int riLeftCount = shadowsManager.gatherAndTryAddRiForShadowsVisibilityTest(testData.cullMatrix, testData.transform);
     if (riLeftCount > 0)
-      addTest(testData.cullMatrix, testData.transform);
+      currentTestsToPerform[leftoversCount++] = testData;
   }
+  currentTestsToPerform.resize(leftoversCount);
+
+  WinAutoLock lock(testsQueueMutex);
+  if (leftoversCount == 0 && waitingTestsToPerform.empty())
+  {
+    waitingTestsToPerform.swap(currentTestsToPerform); // nothing pending: hand back the emptied buffer
+    return;
+  }
+  // merge leftovers and any late arrivals into the reused buffer, then swap it back so
+  // waitingTestsToPerform keeps the larger capacity across runs
+  currentTestsToPerform.insert(currentTestsToPerform.end(), waitingTestsToPerform.begin(), waitingTestsToPerform.end());
+  waitingTestsToPerform.swap(currentTestsToPerform);
 }

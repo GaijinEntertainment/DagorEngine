@@ -65,6 +65,7 @@ terminal
          "channel" (SHTOK_channel),
          "int4" (SHTOK_int4),
          "float4x4" (SHTOK_float4x4),
+         "float4x3" (SHTOK_float4x3),
          "color8" (SHTOK_color8),
          "cull_mode" (SHTOK_cull_mode),
          "alpha_to_coverage" (SHTOK_alpha_to_coverage),
@@ -141,6 +142,8 @@ terminal
          "const_buffer" (SHTOK_const_buffer),
          "tlas" (SHTOK_tlas),
          "render_stage" (SHTOK_render_stage),
+         "max_recursion" (SHTOK_max_recursion),
+         "allow_opacity_micromaps" (SHTOK_allow_opacity_micromaps),
          "render_trans" (SHTOK_render_trans),
          "true" (SHTOK__true),
          "ubyte4" (SHTOK_ubyte4),
@@ -273,6 +276,7 @@ shader-stat(shader_stat) ->
   immediate-const-block = imm_const_block |
   supports-stat=supports |
   render-stage-stat=render_stage |
+  raytrace-pipeline-stat=rt_pipeline |
   assume-stat=assume |
   assume-if-not-assumed-stat=assume_if_not_assumed |
   error-stat=error |
@@ -291,7 +295,7 @@ block-stat(block_stat) ->
 
 
 local-var-type(local_var_type) ->
-  ("float4"|"float"|"int4"|"float4x4")=type;
+  ("float4"|"float"|"int4"|"float4x4"|"float4x3")=type;
 
 local-decl(local_var_decl) ->
   "local"=nothing local-var-type=type ident=name
@@ -332,7 +336,7 @@ arithmetic-color(arithmetic_color) ->
   ")"=nothing;
 
 static-var-type(static_var_type) ->
-  ("const_buffer"|"tlas"|"buffer"|"texture"|"float4"|"int4"|"float4x4"|"float"|"int")=type;
+  ("const_buffer"|"tlas"|"buffer"|"texture"|"float4"|"int4"|"float4x4"|"float4x3"|"float"|"int")=type;
 
 static-var-mode(static_var_mode) -> ("static"|"dynamic")=mode;
 
@@ -564,6 +568,10 @@ shader-directive(shader_directive) ->
 
 render-stage-stat(render_stage_stat) ->
   "render_stage"=nothing (ident=name | string=name_s) ";"=nothing ;
+
+raytrace-pipeline-stat(raytrace_pipeline_stat) ->
+  ("max_recursion"=max_recursion "="=nothing int-number=recursion_value ";"=nothing) |
+  ("allow_opacity_micromaps"=allow_opacity_micromaps ";"=nothing) ;
 
 assume-stat(assume_stat) ->
   ("assume"=nothing ident=interval "="=nothing ident=value ";"=nothing) |

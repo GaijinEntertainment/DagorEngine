@@ -1,19 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <cstdarg>
 
 #include "common.h"
+#include "dagor.h"
 #include "layout.h"
 #include "resource.h"
 
-extern TCHAR *GetString(int id);
+namespace fs = std::filesystem;
 
 HWND add_rollup_page(Interface *ip, int resource_id, DLGPROC proc, const TCHAR *title, LPARAM param, DWORD flags)
 {
   const WCHAR *tpl = MAKEINTRESOURCE(resource_id);
   HWND hw = ip->AddRollupPage(hInstance, tpl, proc, title, 0, flags);
-  // attach_layout_to_rollup(hw, tpl);
   return hw;
 }
 
@@ -30,78 +32,41 @@ void delete_rollup_page(Interface *ip, HWND *hw)
 
 float get_master_scale()
 {
-  float k = 1.0f;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  k = (float)GetSystemUnitScale(UNITS_METERS);
-#else
-  k = (float)GetMasterScale(UNITS_METERS);
-#endif
+  float k = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
   return k ? (1.f / k) : 1.f;
 }
 
 
-TSTR extract_directory(const TSTR &path)
+bool is_dag_file(const fs::path &filename)
 {
-  TSTR dir;
-  SplitFilename(path, &dir, 0, 0);
-  return dir;
+  std::wstring ext = filename.extension().wstring();
+  std::transform(ext.begin(), ext.end(), ext.begin(), ::towlower);
+  return ext == L".dag";
 }
 
-TSTR extract_filename(const TSTR &path)
+std::vector<fs::path> glob(const fs::path &dir, bool recursive)
 {
-  TSTR filename;
-  SplitFilename(path, 0, &filename, 0);
-  return filename;
-}
-
-TSTR extract_basename(const TSTR &path)
-{
-  TSTR filename, ext;
-  SplitFilename(path, 0, &filename, &ext);
-  filename.Append(ext);
-  return filename;
-}
-
-bool is_dag_file(const TSTR &path)
-{
-  TSTR ext;
-  SplitFilename(path, 0, 0, &ext);
-  ext.toLower();
-  return ext == _T(".dag");
-}
-
-static bool do_glob(std::vector<TSTR> &files, const TSTR &dir, bool recursive)
-{
-  WIN32_FIND_DATA file;
-  HANDLE findhandle = FindFirstFile((dir + _T("\\*")).data(), &file);
-  if (findhandle == INVALID_HANDLE_VALUE)
-    return false;
-
-  do
-  {
-    TSTR fullpath = dir + _T("\\") + file.cFileName;
-    if (file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-    {
-      if (recursive && _tcscmp(file.cFileName, _T(".")) != 0 && _tcscmp(file.cFileName, _T("..")) != 0)
-        do_glob(files, fullpath, recursive);
-    }
-    else
-    {
-      if (is_dag_file(file.cFileName))
-        files.push_back(fullpath);
-    }
-
-  } while (FindNextFile(findhandle, &file) != 0);
-
-  FindClose(findhandle);
-  return true;
-}
-
-std::vector<TSTR> glob(const TSTR &dir, bool recursive)
-{
-  std::vector<TSTR> files;
+  std::vector<fs::path> files;
   files.reserve(32);
-  do_glob(files, dir, recursive);
+
+  std::error_code ec;
+  auto collect = [&](const fs::directory_entry &entry) {
+    if (entry.is_regular_file(ec) && is_dag_file(entry.path().filename()))
+      files.push_back(entry.path());
+  };
+
+  if (recursive)
+  {
+    for (const auto &entry : fs::recursive_directory_iterator(dir,
+           fs::directory_options::skip_permission_denied | fs::directory_options::follow_directory_symlink, ec))
+      collect(entry);
+  }
+  else
+  {
+    for (const auto &entry : fs::directory_iterator(dir, fs::directory_options::skip_permission_denied, ec))
+      collect(entry);
+  }
+
   return files;
 }
 
@@ -126,28 +91,78 @@ std::string wideToStr(const wchar_t *sw)
 }
 
 
-TSTR drop_quotation_marks(const TSTR &s)
+std::wstring strToWide(std::string_view sv)
 {
-  if (s.Length() >= 2 && s[0] == _T('"') && s[s.Length() - 1] == _T('"'))
-    return s.Substr(1, s.Length() - 2);
-
-  return s;
+  if (sv.empty())
+    return std::wstring();
+  int len = MultiByteToWideChar(CP_UTF8, 0, sv.data(), (int)sv.size(), NULL, 0);
+  if (len <= 0)
+    return std::wstring();
+  std::wstring res(len, 0);
+  MultiByteToWideChar(CP_UTF8, 0, sv.data(), (int)sv.size(), &res[0], len);
+  return res;
 }
 
 
-void update_path_edit_control(HWND hw, int id, const TSTR &path)
+std::string wideToStr(std::wstring_view sv)
 {
-  SetDlgItemText(hw, id, path.data());
-  SendMessage(GetDlgItem(hw, id), EM_SETSEL, (WPARAM)path.Length(), (LPARAM)path.Length());
+  if (sv.empty())
+    return std::string();
+  int len = WideCharToMultiByte(CP_UTF8, 0, sv.data(), (int)sv.size(), NULL, 0, NULL, NULL);
+  if (len <= 0)
+    return std::string();
+  std::string res(len, 0);
+  WideCharToMultiByte(CP_UTF8, 0, sv.data(), (int)sv.size(), &res[0], len, NULL, NULL);
+  return res;
 }
 
 
-int get_save_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, TSTR &exp_fname,
+std::wstring format_str(const TCHAR *fmt, ...)
+{
+  va_list args;
+  va_start(args, fmt);
+  TSTR res;
+  res.vprintf(fmt, args);
+  va_end(args);
+  return std::wstring(res.data());
+}
+
+
+std::wstring drop_quotation_marks(std::wstring_view s)
+{
+  if (s.length() >= 2 && s.front() == L'"' && s.back() == L'"')
+    return std::wstring(s.substr(1, s.length() - 2));
+
+  return std::wstring(s);
+}
+
+
+std::wstring get_window_text(HWND hw)
+{
+  const int length = GetWindowTextLength(hw);
+  if (length <= 0)
+    return std::wstring();
+
+  std::wstring text(size_t(length) + 1, L'\0');
+  const int copied = GetWindowText(hw, text.data(), length + 1);
+  text.resize(copied);
+  return text;
+}
+
+
+void update_path_edit_control(HWND hw, int id, const fs::path &path)
+{
+  SetDlgItemText(hw, id, path.c_str());
+  SendMessage(GetDlgItem(hw, id), EM_SETSEL, (WPARAM)path.native().length(), (LPARAM)path.native().length());
+}
+
+
+int get_save_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, fs::path &exp_fname,
   bool init_with_previous)
 {
   static TCHAR fname[MAX_PATH];
   if (init_with_previous)
-    _tcscpy_s(fname, MAX_PATH, exp_fname.data());
+    _tcscpy_s(fname, MAX_PATH, exp_fname.c_str());
 
   OPENFILENAME ofn;
   memset(&ofn, 0, sizeof(ofn));
@@ -177,11 +192,7 @@ tryAgain:
     if (exp_fname != fname)
     {
       exp_fname = fname;
-#if MAX_RELEASE >= 3000
       SetSaveRequiredFlag();
-#else
-      SetSaveRequired();
-#endif
     }
     return 1;
   }
@@ -189,11 +200,11 @@ tryAgain:
 }
 
 
-bool get_open_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, TSTR &imp_fname)
+bool get_open_filename(HWND owner, const TCHAR *title, FilterList &filter, const TCHAR *def_ext, fs::path &imp_fname)
 {
   static TCHAR path[MAX_PATH];
 
-  _tcscpy_s(path, MAX_PATH, imp_fname.data());
+  _tcscpy_s(path, MAX_PATH, imp_fname.c_str());
 
   OPENFILENAME ofn;
   memset(&ofn, 0, sizeof(ofn));
@@ -215,7 +226,7 @@ bool get_open_filename(HWND owner, const TCHAR *title, FilterList &filter, const
   return result;
 }
 
-bool get_open_filename(HWND owner, TSTR &imp_fname)
+bool get_open_filename(HWND owner, fs::path &imp_fname)
 {
   FilterList fl;
   fl.Append(GetString(IDS_SCENE_FILES));
@@ -223,49 +234,50 @@ bool get_open_filename(HWND owner, TSTR &imp_fname)
   return get_open_filename(owner, GetString(IDS_OPEN_SCENE_TITLE), fl, L"dag", imp_fname);
 }
 
-std::wstring get_cfg_filename(const TCHAR *blk)
+fs::path get_cfg_filename(const TCHAR *cfg)
 {
-  static TCHAR filename[MAX_PATH];
-  static TCHAR drive[_MAX_DRIVE];
-  static TCHAR dir[_MAX_DIR];
-  static TCHAR fName[_MAX_FNAME];
-  static TCHAR ext[_MAX_EXT];
+  TCHAR modulePath[MAX_PATH];
+  GetModuleFileName(hInstance, modulePath, MAX_PATH);
+  fs::path moduleDir = fs::path(modulePath).parent_path();
 
-  GetModuleFileName(hInstance, filename, MAX_PATH);
-  _tsplitpath(filename, drive, dir, fName, ext);
-  _tcscpy(filename, drive);
-  _tcscat(filename, dir);
-  _tcscat(filename, _T("../")); // search one dir up first
-  _tcscat(filename, blk);
-  if (FILE *fp = _tfopen(filename, _T("rb")))
-    fclose(fp);
-  else
-  {
-    // if not found then get in module dir
-    _tcscpy(filename, drive);
-    _tcscat(filename, dir);
-    _tcscat(filename, blk);
-  }
-  return filename;
+  fs::path cfgPath = moduleDir / L".." / cfg; // search one dir up first
+  if (!fs::exists(cfgPath))
+    cfgPath = moduleDir / cfg; // if not found then get in module dir
+
+  return cfgPath;
 }
 
 
-std::vector<std::wstring> split(const std::wstring &text, const wchar_t delim)
+std::vector<std::wstring> split(std::wstring_view text, const wchar_t delim)
 {
   std::vector<std::wstring> tokens;
-  std::wistringstream iss(text + delim);
+  std::wistringstream iss(std::wstring(text) + delim);
   std::wstring tok;
   while (std::getline(iss, tok, delim))
     tokens.push_back(tok);
   return tokens;
 }
 
-std::wstring replace_all(std::wstring str, const std::wstring &from, const std::wstring &to)
+std::wstring replace_all(std::wstring str, std::wstring_view from, std::wstring_view to)
 {
   if (from.empty())
     return str;
   for (size_t pos = 0; (pos = str.find(from, pos)) != std::wstring::npos; pos += to.size())
     str.replace(pos, from.size(), to);
+  return str;
+}
+
+std::wstring collapse_repeats(std::wstring str, std::wstring_view seq)
+{
+  if (seq.empty())
+    return str;
+  for (size_t pos = 0; (pos = str.find(seq, pos)) != std::wstring::npos; pos += seq.size())
+  {
+    size_t run_end = pos + seq.size();
+    while (str.find(seq, run_end) == run_end)
+      run_end += seq.size();
+    str.erase(pos + seq.size(), run_end - pos - seq.size());
+  }
   return str;
 }
 
@@ -275,56 +287,58 @@ void trim(std::wstring &str)
   str.erase(0, str.find_first_not_of(L' '));
 }
 
-bool isProxymatName(const TCHAR *mat_name)
+bool isProxymatName(std::wstring_view mat_name)
 {
-#define PROXYMAT (L":proxymat")
-  static const size_t proxymat_len = sizeof(PROXYMAT) / sizeof(TCHAR) - 1;
-
-  if (!mat_name || !*mat_name)
+  static const std::wstring proxymat = L":proxymat";
+  if (mat_name.size() < proxymat.size())
     return false;
-
-  size_t len = _tcslen(mat_name);
-
-  if (len < proxymat_len)
-    return false;
-
-  return !_tcscmp(mat_name + len - proxymat_len, PROXYMAT);
-#undef PROXYMAT
+  return mat_name.compare(mat_name.size() - proxymat.size(), proxymat.size(), proxymat) == 0;
 }
 
-std::wstring simplifyRN(const std::wstring &from)
+std::wstring simplifyRN(std::wstring_view from)
 {
-  std::wstring s = from;
+  std::wstring s(from);
   size_t pos = 0;
   while ((pos = s.find(_T("\r\n"), pos)) != std::wstring::npos)
     s.replace(pos, 2, _T("\n"));
   return s;
 }
 
-std::wstring trim_params(const std::wstring &from)
+std::wstring trim_params(std::wstring_view from)
 {
   std::wstring s;
   std::vector<std::wstring> lines = split(simplifyRN(from), L'\n');
 
   for (const std::wstring &line : lines)
   {
-    std::vector<std::wstring> tokens = split(line, L'=');
-    if (tokens.size() != 2)
+    const size_t eq = line.find(L'=');
+
+    std::wstring name = line.substr(0, eq);
+    trim(name);
+
+    if (eq == std::wstring::npos)
+    {
+      if (name.empty())
+        continue;
+
+      s += name;
+      s += L"\r\n";
       continue;
+    }
 
-    trim(tokens[0]);
-    trim(tokens[1]);
+    std::wstring value = line.substr(eq + 1);
+    trim(value);
 
-    s += tokens[0];
+    s += name;
     s += L'=';
-    s += tokens[1];
+    s += value;
     s += L"\r\n";
   }
 
   return s;
 }
 
-std::string escape_string(const std::string &input)
+std::string escape_string(std::string_view input)
 {
   std::ostringstream escaped;
   for (unsigned char ch : input)

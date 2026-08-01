@@ -28,6 +28,9 @@ void setDirFromSun(const Point3 &d);
 extern RiGenVisibility *createRIGenVisibility(IMemAlloc *mem);
 extern void setRIGenVisibilityDistMul(RiGenVisibility *visibility, float dist_mul);
 extern void destroyRIGenVisibility(RiGenVisibility *visibility);
+// releases buffer capacity retained from the last prepare (e.g. on level unload);
+// the visibility stays valid and is regrown by the next prepare
+extern void shrinkRIGenVisibility(RiGenVisibility *visibility);
 extern void setRIGenVisibilityMinLod(RiGenVisibility *visibility, int ri_lod, int ri_extra_lod);
 extern void setRIForcedLocalPoolOrder(RiGenVisibility *visibility, bool forced_local_pool_order);
 extern void setRIGenVisibilityAtestSkip(RiGenVisibility *visibility, bool skip_atest, bool skip_noatest);

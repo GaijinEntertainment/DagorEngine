@@ -19,6 +19,7 @@
 #include <landMesh/lmeshManager.h>
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/lastClip.h>
+#include <heightmap/heightmapHandler.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -42,7 +43,9 @@ void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texe
   pos.y = landBBox[1].y + 10;
   LandMeshRenderer &renderer = *data.lmeshRenderer;
   LandMeshManager &provider = *data.lmeshMgr;
-  renderer.prepare(provider, pos, 0.f);
+  // origins sit inside hmap coverage, so the hmap-vs-cells gate holds for any real multiplier;
+  // the whole-map bake deliberately ignores the per-level camera-distance tuning (default mul)
+  renderer.prepare(provider, HmapOrigin(pos));
   TMatrix vtm = TMatrix::IDENT;
   vtm.setcol(0, 1, 0, 0);
   vtm.setcol(1, 0, 0, 1);
@@ -59,7 +62,8 @@ void render_last_clip_in_box(const BBox3 &land_box_part, const Point2 &half_texe
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(true);//since we don't render with depth anyway
   TMatrix4_vec4 globTm = TMatrix4_vec4(vtm) * proj;
-  renderer.render(reinterpret_cast<mat44f_cref>(globTm), proj, Frustum{globTm}, provider, renderer.RENDER_CLIPMAP, view_pos);
+  renderer.render(reinterpret_cast<mat44f_cref>(globTm), proj, Frustum{globTm}, provider, renderer.RENDER_CLIPMAP, view_pos,
+    HmapOrigin(pos));
   // if (::app->renderer->isCompatibilityMode())
   //   renderer.setRenderClipmapWithPosition(false);
   renderer.setRenderInBBox(BBox3());
@@ -88,7 +92,7 @@ void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_
   pos.y = landBBox[1].y + 10;
   LandMeshRenderer &renderer = *data.lmeshRenderer;
   LandMeshManager &provider = *data.lmeshMgr;
-  renderer.prepare(provider, pos, 0.f);
+  renderer.prepare(provider, HmapOrigin(pos));
 
   ToroidalGatherCallback::RegionTab regions;
   float texelSize = data.texelSize;
@@ -119,16 +123,17 @@ void render_last_clip_in_box_tor(const BBox3 &land_box_part, const Point2 &half_
     d3d::settm(TM_PROJ, &proj);
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
 
-    TMatrix4 viewProj = TMatrix4(view) * proj;
+    TMatrix4_vec4 viewProj = TMatrix4_vec4(view) * proj;
 
     Point3 posT = box3.center();
     posT.y = landBBox[1].y + 10;
-    renderer.prepare(provider, posT, 0.f);
+    renderer.prepare(provider, HmapOrigin(posT));
     ShaderGlobal::setBlock(data.global_frame_id, ShaderGlobal::LAYER_FRAME);
     renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
 
     renderer.setRenderInBBox(box3);
-    renderer.render(provider, renderer.RENDER_CLIPMAP, view_pos);
+    renderer.render(reinterpret_cast<mat44f_cref>(viewProj), proj, Frustum{viewProj}, provider, renderer.RENDER_CLIPMAP, view_pos,
+      HmapOrigin(posT));
 
     renderer.setRenderInBBox(BBox3());
 
@@ -321,6 +326,10 @@ void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &las
 
   // debug("total last clip time = %dus",get_time_usec(reft));
   d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
+
+  // flush pending hmap texture uploads/edits so the bake below includes them; prepare() no longer does this bookkeeping
+  if (HeightmapHandler *hmap = data.lmeshMgr->getHmapHandler())
+    hmap->makeBookKeeping();
 
   if (compression != LastClipComp::NONE)
   {

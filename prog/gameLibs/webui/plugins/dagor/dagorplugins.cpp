@@ -27,6 +27,8 @@
 #include <perfMon/dag_statDrv.h>
 #include <debug/dag_debug.h>
 
+#include <startup/dag_globalSettings.h>
+
 using namespace webui;
 
 #if _TARGET_PC || _TARGET_TVOS
@@ -182,6 +184,21 @@ public:
   virtual const char *getEditTextBeforeModify() const override { return nullptr; }
   virtual void set_progress_indicator(const char *, const char *) override {}
 };
+
+static struct ConsoleGenState
+{
+  dag::Vector<eastl::string> cmdQ{};
+  bool registered = false;
+} console_gen_state{};
+
+static void console_gen_process_one_queue_elem(void *)
+{
+  if (console_gen_state.cmdQ.empty())
+    return;
+  const char *cmd = console_gen_state.cmdQ.front().c_str();
+  console::command(cmd); // Don't clog history with autopushed commands
+  console_gen_state.cmdQ.erase(console_gen_state.cmdQ.begin());
+}
 
 void console_gen(RequestInfo *params)
 {
@@ -429,16 +446,47 @@ void console_gen(RequestInfo *params)
       const int footerLen = 100;
       PrintfDriver drv(save.mem + save.offset, save.bufSize - save.offset - footerLen);
 
-      console::IVisualConsoleDriver *old_drv = console::get_visual_driver();
-      console::set_visual_driver_raw(&drv);
+      char *str = *(params->params + 1);
+      if (!strchr(str, '\n'))
+      {
 
-      const char *str = *(params->params + 1);
-      console::command(str);
+        console::IVisualConsoleDriver *old_drv = console::get_visual_driver();
+        console::set_visual_driver_raw(&drv);
+
+        console::command(str);
 #if _TARGET_PC
-      console::add_history_command(str);
+        console::add_history_command(str);
 #endif
 
-      console::set_visual_driver_raw(old_drv);
+        console::set_visual_driver_raw(old_drv);
+      }
+      else
+      {
+        char *p = str;
+        size_t len = strlen(str);
+        for (;;)
+        {
+          char *end = strchr(p, '\n');
+          if (!end)
+            end = str + len;
+
+          console_gen_state.cmdQ.emplace_back(eastl::string{p, size_t(end - p)});
+
+          if (!*end)
+            break;
+
+          p = end + 1;
+        }
+
+        if (!console_gen_state.registered)
+        {
+          register_regular_action_to_idle_cycle(&console_gen_process_one_queue_elem, nullptr);
+          console_gen_state.registered = true;
+        }
+
+        // Always succeed on buffered commands, as they are deferred and we don't want complex ping pong.
+        drv.puts("true", console::CONSOLE_DEFAULT);
+      }
 
       if (*(save.mem + save.offset)) // was something written?
       {

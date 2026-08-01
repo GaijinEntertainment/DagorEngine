@@ -8,18 +8,22 @@
 #include "riGen/riUtil.h"
 #include "riGen/riRotationPalette.h"
 
+#include <EASTL/atomic.h>
 #include <drv/3d/dag_lock.h>
 #include <3d/dag_texPackMgr2.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <math/dag_Point4.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <gameRes/dag_stdGameResId.h>
+#include <util/dag_parallelFor.h>
 
 
 static constexpr const unsigned riPoolBits = 16u;
 static constexpr const unsigned riPoolBitsMask = (1u << riPoolBits) - 1u;
-static bool rigenNeedSyncPrepare = true, pendingReinit = false;
+static eastl::atomic<bool> rigenNeedSyncPrepare = true;
+static bool pendingReinit = false;
 static unsigned ri_future_pregen_cnt[16] = {0};
 static struct RiGenLastSetSweepMask
 {
@@ -419,9 +423,10 @@ void rendinst::enable_rigen_mask_generated(bool en) { RendInstGenData::maskGener
 
 void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &view_itm, const mat44f &proj_tm)
 {
+  bool needSyncPrepare = rigenNeedSyncPrepare.exchange(false);
   if (pendingReinit)
   {
-    rigenNeedSyncPrepare = true;
+    needSyncPrepare = true;
     FOR_EACH_RG_LAYER_DO (rgl)
       clearRigenRtdataAndReinitPregenEnt(rgl, ri_future_pregen_cnt[_layer]);
 
@@ -431,7 +436,7 @@ void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &vi
     rendinst_alloc_coll_props(0);
     pendingReinit = false;
   }
-  if (rigenNeedSyncPrepare)
+  if (needSyncPrepare)
   {
     FOR_EACH_RG_LAYER_DO (rgl)
       if (rgl->rtData)
@@ -451,7 +456,7 @@ void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &vi
     dist = 1000;
   }
   rendinst::updateRIGenImpostors(dist, sunDir, view_itm, proj_tm);
-  if (rigenNeedSyncPrepare)
+  if (needSyncPrepare)
   {
     int64_t reft = ref_time_ticks();
     while (!rendinst::isRIGenPrepareFinished())
@@ -461,7 +466,6 @@ void rendinst::prepare_rt_rigen_data_render(const Point3 &pos, const TMatrix &vi
     if (riGenPreparePools)
       riGenPreparePools(false);
   }
-  rigenNeedSyncPrepare = false;
   rendinst::updateHeapVb();
 }
 bool rendinst::compute_rt_rigen_tight_ht_limits(int layer_idx, int cx, int cz, float &out_hmin, float &out_hdelta)
@@ -489,34 +493,72 @@ bool rendinst::compute_rt_rigen_tight_ht_limits(int layer_idx, int cx, int cz, f
 
 static void gen_rt_rigen_cells(RendInstGenData *rgl, const BBox3 &area)
 {
-  DEBUG_CP();
   float csz = rgl->grid2world * rgl->cellSz;
   float ox = rgl->world0x();
   float oz = rgl->world0z();
 
   int cx0 = max((int)floorf((area[0].x - ox) / csz), 0), cx1 = min((int)ceilf((area[1].x - ox) / csz), rgl->cellNumW);
   int cz0 = max((int)floorf((area[0].z - oz) / csz), 0), cz1 = min((int)ceilf((area[1].z - oz) / csz), rgl->cellNumH);
+
+  Tab<int> indicesToLoad(tmpmem);
   for (int cz = cz0; cz < cz1; cz++)
     for (int cx = cx0; cx < cx1; cx++)
     {
       int idx = cx + cz * rgl->cellNumW;
-      if (rgl->cells[idx].isLoaded())
-        continue;
+      if (!rgl->cells[idx].isLoaded())
+        indicesToLoad.push_back(idx);
+    }
+  if (indicesToLoad.empty())
+    return;
 
-      debug("generate %d,%d", cx, cz);
+  int64_t reft = ref_time_ticks();
+  bool need_init_threadpool = threadpool::get_num_workers() == 0;
+  if (need_init_threadpool)
+    threadpool::init(min(cpujobs::get_physical_core_count(), 16), 1024, 128 << 10);
+
+  Tab<RendInstGenData::CellRtData *> generatedCells(indicesToLoad.size(), nullptr, tmpmem);
+  struct GenCellsData
+  {
+    RendInstGenData *rgl;
+    Tab<int> &indicesToLoad;
+    Tab<RendInstGenData::CellRtData *> &generatedCells;
+    int stride;
+  } data{rgl, indicesToLoad, generatedCells, rgl->cellNumW};
+
+  threadpool::parallel_for(0, (uint32_t)indicesToLoad.size(), 1, [&data](uint32_t begin, uint32_t end, uint32_t) {
+    RendInstGenData *rgl = data.rgl;
+    for (uint32_t i = begin; i < end; i++)
+    {
+      int idx = data.indicesToLoad[i];
+      int cx = idx % data.stride, cz = idx / data.stride;
+      // debug("generate %d,%d", cx, cz);
       RendInstGenData::CellRtData *crt = rgl->generateCell(cx, cz);
       if (RendInstGenData::riGenValidateGeneratedCell && crt && crt->bbox.size())
         crt = RendInstGenData::riGenValidateGeneratedCell(rgl, crt, idx, cx, cz);
-
-      rgl->updateVb(*crt, idx);
-      ScopedLockWrite lock(rgl->rtData->riRwCs);
-      rgl->rtData->loaded.addInt(idx);
-      rgl->rtData->toLoad.delInt(idx);
-      if (crt->sysMemData) // if is ready
-        rgl->rtData->loadedCellsBBox += IPoint2(cx, cz);
-      interlocked_release_store_ptr(rgl->cells[idx].cellRtData, crt); // This makes cell "ready"
+      data.generatedCells[i] = crt;
     }
-  DEBUG_CP();
+  });
+
+  for (size_t i = 0; i < indicesToLoad.size(); i++)
+  {
+    int idx = indicesToLoad[i];
+    int cx = idx % rgl->cellNumW, cz = idx / rgl->cellNumW;
+    RendInstGenData::CellRtData *crt = generatedCells[i];
+    if (!crt)
+      continue;
+
+    rgl->updateVb(*crt, idx);
+    ScopedLockWrite lock(rgl->rtData->riRwCs);
+    rgl->rtData->loaded.addInt(idx);
+    rgl->rtData->toLoad.delInt(idx);
+    if (crt->sysMemData) // if is ready
+      rgl->rtData->loadedCellsBBox += IPoint2(cx, cz);
+    interlocked_release_store_ptr(rgl->cells[idx].cellRtData, crt); // This makes cell "ready"
+  }
+  DEBUG_CTX(" generated %d cells for %d msec (using %d threads)", //
+    indicesToLoad.size(), get_time_usec(reft) / 1000, threadpool::get_num_workers());
+  if (need_init_threadpool)
+    threadpool::shutdown();
 }
 void rendinst::generate_rt_rigen_main_cells(const BBox3 &area)
 {
@@ -555,7 +597,7 @@ static rendinst::rigen_gather_tm_t riGenGatherTmCB = nullptr;
 static rendinst::rigen_calculate_mapping_t riGenCalculateIndicesCB = nullptr;
 
 static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, int per_inst_data_dwords, float ox, float oy, float oz,
-  float cell_xz_sz, float cell_y_sz)
+  float cell_xz_sz, float cell_y_sz, bbox3f &bbox)
 {
   static constexpr int SUBCELL_DIV = RendInstGenData::SUBCELL_DIV;
 
@@ -663,15 +705,15 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
             float y = posScale.y, q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
+              inplace_max(as_point3(&bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
             rendinst::gen::pack_entity_pos_inst_16(packData, Point3::xyz(posScale), posScale.w, palette_id,
               &crt.pregenAdd->dataStor[id]);
@@ -690,15 +732,15 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
             float y = p.y, q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
+              inplace_max(as_point3(&bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
             rendinst::gen::pack_entity_pos_inst_16(packData, Point3(p.x, p.y, p.z), p.w, -1, &crt.pregenAdd->dataStor[id]);
             if (per_inst_data_dwords && !zeroInstSeeds)
@@ -716,15 +758,15 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
             float y = tm.m[3][1], q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
+              inplace_max(as_point3(&bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
 
             int id = append_items(crt.pregenAdd->dataStor, size / sizeof(int16_t));
             rendinst::gen::pack_entity_tm_16(packData, tm, &crt.pregenAdd->dataStor[id]);
@@ -744,15 +786,15 @@ static void prepare_add_pregen(RendInstGenData::CellRtData &crt, int layer_idx, 
             float y = tm.m[3][1], q_y = (y - oy) / cell_y_sz;
             if (q_y < -32000.0 / 32767.0 || q_y > 1)
             {
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
-              inplace_max(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmax).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
+              inplace_max(as_point3(&bbox.bmax).y, y);
               if (y > -11e3 && y < 10e3)
                 need_one_more_pass = true;
               else
                 continue;
             }
             else if (y < oy)
-              inplace_min(as_point3(&rendinst::gen::SingleEntityPool::bbox.bmin).y, y);
+              inplace_min(as_point3(&bbox.bmin).y, y);
 
             int id = append_items(crt.pregenAdd->dataStor, 24);
             rendinst::gen::pack_entity_tm_32(packData, tm, &crt.pregenAdd->dataStor[id]);

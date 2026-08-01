@@ -9,7 +9,7 @@
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
 #include <math/integer/dag_IBBox2.h>
-#include "heightmapRenderer.h"
+#include "simpleHeightmapRenderer.h"
 #include "heightmapCulling.h"
 #include "heightmapPhysHandler.h"
 #include "lodGrid.h"
@@ -55,7 +55,7 @@ public:
   static constexpr int BASE_HMAP_LOD_COUNT = 8;
 
   ~HeightmapHandler() { close(); }
-  HeightmapHandler() : preparedOriginPos(0.f, 0.f, 0.f), hmapDimBits(0) {}
+  HeightmapHandler() : hmapDimBits(0) {}
 
   bool init(int dim_bits = 0);
   void afterDeviceReset();
@@ -68,13 +68,21 @@ public:
   bool isEnabledMipsUpdating() const { return enabledMipsUpdating; }
   void setEnableMipsUpdating(bool enable) { enabledMipsUpdating = enable; }
 
-  // Returns true if we should render it
-  bool prepare(const Point3 &world_pos);
-  void prepareHmapModificaton(); // called from prepare, unless pushHmapModificationOnPrepare is off
-  void frustumCulling(LodGridCullData &data, const HeightmapFrustumCullingInfo &fi); // Independent from prepare for multithreading.
-  void renderCulled(const LodGridCullData &);
+  // Pure distance check, no side effects: true when world_pos is close enough to render the
+  // tessellated heightmap. hmap_distance_mul scales the switch distance; it is the caller's
+  // (per-level) config, not handler state, so every caller of one level must pass the same value.
+  bool shouldRenderTessellatedHmap(const Point3 &world_pos, float hmap_distance_mul) const;
+  // Binds the heightmap shader vars (setVars) and returns shouldRenderTessellatedHmap();
+  // call before rendering terrain. const = mutates no member state; run makeBookKeeping() once per
+  // frame for the per-frame upkeep.
+  bool prepare(const Point3 &world_pos, float hmap_distance_mul) const;
+  // Both const: pure functions of (metrics, fi) -> caller-owned cull data / draw calls. metrics and
+  // metricsRenderer only change inside makeBookKeeping()/initRender(), never during cull or render,
+  // so any number of culls may run concurrently between bookkeeping points.
+  void frustumCulling(LodGridCullData &data, const HeightmapFrustumCullingInfo &fi) const;
+  void renderCulled(const LodGridCullData &) const;
 
-  void renderOnePatch(); // no tesselation, render whole area
+  void renderOnePatch(const Frustum &frustum); // no tesselation, render whole area; culled against the caller's frustum
   void invalidateCulling(const IBBox2 &);
   void setMaxUpwardDisplacement(float v);
   void setMaxDownwardDisplacement(float v);
@@ -103,32 +111,29 @@ public:
     heightChangesIndex.insert(changesIndex);
   }
 
-  void setHmapDistanceMul(float hmap_distance_mul) { hmapDistanceMul = hmap_distance_mul; }
-  Point3 getPreparedOriginPos() const { return preparedOriginPos; }
   // incremented when terrain changes
   int getTerrainStateVersion() const { return terrainStateVersion; }
 
   eastl::unique_ptr<HeightmapHeightCulling> heightmapHeightCulling;
-  bool pushHmapModificationOnPrepare = true;
   void initRender(bool clamp = true, float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL, float shore_error = 2.0f);
   const UniqueTex *getTexture() const { return renderData ? &renderData->heightmap : nullptr; }
   void setTexture(UniqueTex &&);
   void setSampler(d3d::SamplerHandle &&);
-  void setVars();
+  void setVars() const;
   void makeBookKeeping();
-  const HeightmapRenderer &getRenderer() const { return renderer; }
   bool isMirror() const { return mirror; }
   const MetricsErrors *getMetricsRaw() const { return metrics; }
+  void initMetrics(float water_level, float shore_error_meters = 2.0f);
 
 protected:
+  // applies one pending visual-height-modified region per call; only makeBookKeeping() should call this
+  void prepareHmapModificaton();
   void fillHmapRegionDetailed(IPoint2 region_pivot, IPoint2 region_width, bool updateMips, BaseTexture *upload_tex,
     LockedImageRawBytes upload_texlock, eastl::span<uint16_t> temp_mem, bool NVworkaround_applyOnNextFrame = false);
-  HeightmapRenderer renderer;
-  Point3 preparedOriginPos;
+  SimpleHeightmapRenderer renderer;
   eastl::unique_ptr<HeightmapRenderData> renderData;
   bool fillHmapTexturesNeeded = false;
   int hmapDimBits;
-  float hmapDistanceMul = 1.0f;
   // These hardcoded displacements are required to account for additional GPU displacements which can be both up and downwards
   float maxUpwardDisplacement = 0.5f;
   float maxDownwardDisplacement = 0.5f;
@@ -137,10 +142,10 @@ protected:
   UniqueTex hmapUploadTex;
   int lastRegionUpdated_NVworkaround = -1;
   float shoreErrorMeters = 2.0f;
-  bool needUpdate = true;
   bool enabledMipsUpdating = true;
-  bool forceCsRegionCopy = false;
   int terrainStateVersion = 0;
+  // Stable between bookkeeping points: written by initRender()/makeBookKeeping() only, read-only
+  // for frustumCulling()/renderCulled().
   MetricsErrors *metrics = nullptr;
   SimpleHeightmapRenderer *metricsRenderer = nullptr;
 };

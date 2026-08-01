@@ -34,6 +34,7 @@ struct CameraParams
   TMatrix4_vec4 jitterGlobtm = TMatrix4::IDENT;
 
   TMatrix4 jitteredCamPosToUnjitteredHistoryClip = TMatrix4::IDENT;
+  Point2 jitterOffset;
   Point2 jitterOffsetUv;
 
   Frustum noJitterFrustum;
@@ -45,6 +46,12 @@ struct CameraParams
 
   CameraViewVisibilityMgr *jobsMgr = nullptr;
 };
+
+inline bool is_teleporting(const CameraParams &cur, const CameraParams &prev)
+{
+  const double teleportDistanceThreshold = 100.0;
+  return (cur.cameraWorldPos - prev.cameraWorldPos).length() > teleportDistanceThreshold;
+}
 
 inline TMatrix4_vec4 get_prev_proj_tm_with_cur_jitter(const CameraParams &prev, const CameraParams &cur)
 {

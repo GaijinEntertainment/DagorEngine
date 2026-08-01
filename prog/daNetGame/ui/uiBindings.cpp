@@ -43,6 +43,8 @@ void bind_ui_behaviors(SqModules *module_mgr)
   REG_BHV_DATA(ElementEditorState)
   REG_BHV_DATA(BhvUiStateControlData)
   REG_BHV_DATA(BhvDistToEntityData)
+  REG_BHV_DATA(BhvRotateByComponentData)
+  REG_BHV_DATA(BhvOpacityByComponentData)
 #undef REG_BHV_DATA
 
   Sqrat::Table tblBhv(vm);

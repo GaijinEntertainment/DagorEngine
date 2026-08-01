@@ -71,7 +71,6 @@ void GroundDisplacementCPU::init(int tex_size, float heightmap_texel_size, float
   GPUgroundPhysDetailsTex.set(
     d3d::create_tex(NULL, 2 * bufferSize, 2 * bufferSize, TEXCF_RTARGET | TEXFMT_R32F, 1, "GPUground_physdetails_tex", RESTAG_LAND),
     "GPUground_physdetails_tex");
-  ShaderGlobal::set_sampler(::get_shader_variable_id("GPUground_physdetails_tex_samplerstate"), d3d::request_sampler({}));
 
   loadedDisplacement.resize(bufferSize * bufferSize);
   mem_set_0(loadedDisplacement);
@@ -111,8 +110,9 @@ void GroundDisplacementCPU::updateGroundPhysdetails(IRenderGroundPhysdetailsCB *
 
   d3d::settm(TM_PROJ, &proj);
 
-  mat44f culling_view_proj;
-  d3d::getglobtm(culling_view_proj);
+  TMatrix4_vec4 cullingViewProj;
+  d3d::calcglobtm(vtm, proj, cullingViewProj);
+  mat44f culling_view_proj = (mat44f_cref)cullingViewProj;
 
   d3d::setview(0, 0, 4 * bufferSize, 4 * bufferSize, 0, 1);
   d3d::clearview(CLEAR_ZBUFFER, 0, 0.0f, 0);

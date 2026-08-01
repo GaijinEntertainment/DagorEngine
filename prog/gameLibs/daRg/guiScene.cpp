@@ -36,6 +36,8 @@
 #include <gui/dag_visualLog.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <drv/hid/dag_hiXInputMappings.h>
 
 #include "joystickAxisObservable.h"
@@ -155,6 +157,37 @@ struct ScreensPanelsIterationGuard
   ScreensPanelsIterationGuard &operator=(const ScreensPanelsIterationGuard &) = delete;
 };
 
+BuilderEvalGuard::BuilderEvalGuard(HSQUIRRELVM vm) : scene(GuiScene::get_from_sqvm(vm)), prev(scene && scene->isEvaluatingBuilder)
+{
+  if (scene)
+    scene->isEvaluatingBuilder = true;
+}
+
+BuilderEvalGuard::~BuilderEvalGuard()
+{
+  if (scene)
+    scene->isEvaluatingBuilder = prev;
+}
+
+#define DARG_DENY_IN_BUILDER(scene, vm, api_name)                                          \
+  do                                                                                       \
+  {                                                                                        \
+    if ((scene)->isEvaluatingBuilder)                                                      \
+      return sq_throwerror((vm), api_name " must not be called from a component builder"); \
+  } while (0)
+
+static void report_builder_mutation(HSQUIRRELVM vm, const char *api_name)
+{
+  if (SQ_SUCCEEDED(sqstd_formatcallstackstring(vm)))
+  {
+    const char *callstack = nullptr;
+    G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, -1, &callstack)));
+    LOGERR_CTX(callstack);
+    sq_pop(vm, 1);
+  }
+  darg_immediate_error(vm, String(0, "%s must not be called from a component builder", api_name));
+}
+
 #if DAGOR_DBGLEVEL > 0
 
 #define THREAD_CHECK_COLLECT_CALL_STACK 0
@@ -215,8 +248,20 @@ IGuiScene *create_gui_scene()
 }
 
 
+// Registry of live scenes for diagnostics. The lock guards only the list;
+// scene state is only touched by the owning scene (see requestPerfStatsDump).
+static Tab<GuiScene *> all_gui_scenes;
+static OSSpinlock all_gui_scenes_lock;
+static constexpr int PERF_DUMP_REQUESTED = 1, PERF_DUMP_RESET = 2;
+
+
 GuiScene::GuiScene() : config(this), gamepadCursor(config), kbFocus(this)
 {
+  {
+    OSSpinlockScopedLock lock(all_gui_scenes_lock);
+    all_gui_scenes.push_back(this);
+  }
+
   yuvRenderer.init();
 
   const int numQuads = ::dgs_get_game_params()->getBlockByNameEx("guiLimits")->getInt("drggs_gui_quads", 64 << 10);
@@ -240,6 +285,11 @@ GuiScene::GuiScene() : config(this), gamepadCursor(config), kbFocus(this)
 
 GuiScene::~GuiScene()
 {
+  {
+    OSSpinlockScopedLock lock(all_gui_scenes_lock);
+    erase_item_by_value(all_gui_scenes, this);
+  }
+
   del_wnd_proc_component(this);
 
   clear(true);
@@ -427,7 +477,6 @@ void GuiScene::clear(bool exiting)
   keptXmbFocus.clear();
 
   clear_all_ptr_items_and_shrink(timers);
-  clear_all_ptr_items_and_shrink(scriptHandlersQueue);
 
   if (!sceneScriptHandlers.onShutdown.IsNull())
     sceneScriptHandlers.onShutdown();
@@ -439,6 +488,15 @@ void GuiScene::clear(bool exiting)
 
   lastCameraTransform = TMatrix::IDENT;
   lastCameraFrustum = {};
+
+  // Ensure panels/screens/cursors detach handlers are called
+  callScriptHandlers(true);
+
+  activeCursor = nullptr;
+  forcedCursor.Release();
+  config.defaultCursor.Release();
+
+  clear_all_ptr_items_and_shrink(scriptHandlersQueue);
 
   clear_all_ptr_items_and_shrink(timers);
 
@@ -639,18 +697,40 @@ void GuiScene::update(float dt)
 {
   ApiThreadCheck atc(this);
 
+  if (interlocked_acquire_load(pendingProfilerActivation) >= 0)
+    activateProfiler(interlocked_exchange(pendingProfilerActivation, -1) > 0);
+
+  if (interlocked_acquire_load(pendingPerfDumpFlags))
+  {
+    int dumpFlags = interlocked_exchange(pendingPerfDumpFlags, 0);
+    dumpPerfStatsToLog();
+    if (dumpFlags & PERF_DUMP_RESET)
+      perfStats.reset();
+  }
+
+  if (profilerOffPending)
+  {
+    profilerOffPending = false;
+    profiler.reset();
+  }
+
   if (status.isShowingFullErrorDetails)
     return;
 
   AutoProfileScope profile(profiler, M_UPDATE_TOTAL);
   SqStackChecker stackCheck(sqvm);
 
+  perfStats.updates++;
+
   // need to do this before any element may change
   applyPendingHoverUpdate();
 
   applyDeferredRecalLayout();
 
-  frpGraph->updateDeferred();
+  {
+    AutoProfileScope frpProfile(profiler, M_FRP_UPDATE);
+    frpGraph->updateDeferred();
+  }
 
   actsCount++;
   updateCounter.setValue(Sqrat::Object(actsCount, sqvm));
@@ -1581,6 +1661,14 @@ int GuiScene::onMouseEvent(InputEvent event, int data, short mx, short my, int b
   int accumRes = prev_result;
   {
     ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+
+    if ((event == INP_EV_PRESS || event == INP_EV_RELEASE) && data != HumanInput::DBUTTON_SCROLLUP &&
+        data != HumanInput::DBUTTON_SCROLLDOWN && !status.isShowingFullErrorDetails && isInputActive())
+    {
+      if (updateHotkeys())
+        accumRes |= R_PROCESSED;
+    }
+
     for (auto &[id, screen] : screens)
     {
       if (!doesScreenAcceptInput(screen.get()) && event != INP_EV_POINTER_MOVE)
@@ -1635,9 +1723,6 @@ int GuiScene::onMouseEventInternal(Screen *screen, InputEvent event, InputDevice
 
   if (event == INP_EV_PRESS || event == INP_EV_RELEASE)
   {
-    if (updateHotkeys())
-      summaryRes |= R_PROCESSED;
-
     summaryRes |= handleMouseClick(screen, event, device, data, pos, summaryRes);
   }
   else if (event == INP_EV_MOUSE_WHEEL)
@@ -2168,7 +2253,8 @@ void GuiScene::dirPadNavigate(Direction dir)
 
 void GuiScene::trySetXmbFocus(Element *target)
 {
-  G_ASSERT(!isClearing);
+  if (isClearing)
+    return;
   G_ASSERT(!target || target->etree);
 
   Element *newFocus = nullptr;
@@ -2873,6 +2959,9 @@ void GuiScene::rebuildInvalidatedParts()
   }
 
   TIME_PROFILE(rebuildInvalidatedParts);
+  AutoProfileScope rebuildProfile(profiler, M_REBUILD);
+
+  perfStats.rebuildBatches++;
 
   // Start all element trees rebuild
 
@@ -2912,6 +3001,8 @@ void GuiScene::rebuildInvalidatedParts()
     Element *elem = invalidatedElements.back();
     invalidatedElements.pop_back();
 
+    perfStats.invalidations++;
+
     if (elem->props.scriptBuilder.IsNull())
     {
       darg_report_unrebuildable_element(elem, "Trying to rebuild component not defined by function");
@@ -2921,6 +3012,7 @@ void GuiScene::rebuildInvalidatedParts()
       int rebuildResult = 0;
       {
         TIME_PROFILE(etree_rebuild);
+        AutoProfileScope etreeRebuildProfile(profiler, M_ETREE_REBUILD);
         Element *res = elem->etree->rebuild(sqvm, elem, comp, elem->parent, comp.scriptBuilder, 0, rebuildResult);
         G_UNUSED(res);
         G_ASSERT(res == elem);
@@ -3023,6 +3115,10 @@ void GuiScene::recalcLayoutFromRoots(dag::Span<Element *> fixed_size_roots, dag:
 {
   AutoProfileScope profile(getProfiler(), M_RECALC_LAYOUT);
   TIME_PROFILE(elem_recalcLayoutFromRoots);
+
+  perfStats.layoutFixedSizeRoots += fixed_size_roots.size();
+  perfStats.layoutSizeRoots += size_roots.size();
+  perfStats.layoutFlowRoots += flow_roots.size();
 
   for (Element *fixedSizeRoot : fixed_size_roots)
   {
@@ -3318,6 +3414,9 @@ void GuiScene::scriptSetSceneInputActive(bool active)
 {
   ApiThreadCheck atc(this);
 
+  if (isEvaluatingBuilder)
+    return report_builder_mutation(sqvm, "enableInput");
+
   bool inputWasActive = isInputActive();
 
   isInputEnabledByScript = active;
@@ -3580,11 +3679,185 @@ void GuiScene::activateProfiler(bool on)
 
   if (on)
   {
+    profilerOffPending = false;
     if (!profiler.get())
       profiler.reset(new Profiler());
   }
-  else
-    profiler.reset();
+  else if (profiler.get())
+    profilerOffPending = true;
+}
+
+
+namespace
+{
+struct ElemTreeGauges
+{
+  int elemCount = 0;
+  int64_t descTableSlots = 0;
+  int64_t storageTableSlots = 0;
+  int64_t watchRefs = 0;
+};
+} // namespace
+
+
+// Sums the script-heap objects each live element pins (description and
+// per-element storage tables) - the "UI-pinned script heap" gauge.
+// Slot counts are used instead of bytes: the sq API exposes no capacity.
+static void accum_elem_gauges(const Element *elem, ElemTreeGauges &g)
+{
+  if (!elem)
+    return;
+
+  g.elemCount++;
+  if (!elem->props.scriptDesc.IsNull())
+    g.descTableSlots += max<SQInteger>(elem->props.scriptDesc.GetSize(), 0);
+  if (!elem->props.storage.IsNull())
+    g.storageTableSlots += max<SQInteger>(elem->props.storage.GetSize(), 0);
+  g.watchRefs += elem->watch.size();
+
+  for (const Element *child : elem->children)
+    accum_elem_gauges(child, g);
+  for (const Element *child : elem->fadeOutChildren)
+    accum_elem_gauges(child, g);
+}
+
+
+SQInteger GuiScene::get_perf_stats(HSQUIRRELVM vm)
+{
+  GuiScene *self = get_from_sqvm(vm);
+  if (!self)
+    return sq_throwerror(vm, "No GuiScene is bound to this VM");
+
+  const PerfStats &ps = self->perfStats;
+
+  Sqrat::Table res(vm);
+  res.SetValue("updates", SQInteger(ps.updates));
+  res.SetValue("rebuildBatches", SQInteger(ps.rebuildBatches));
+  res.SetValue("invalidations", SQInteger(ps.invalidations));
+  res.SetValue("builderEvals", SQInteger(ps.builderEvals));
+  res.SetValue("elemsSetupInitial", SQInteger(ps.elemsSetupInitial));
+  res.SetValue("elemsSetupRebuild", SQInteger(ps.elemsSetupRebuild));
+  res.SetValue("elemsSetupRealtime", SQInteger(ps.elemsSetupRealtime));
+  res.SetValue("elemsCreated", SQInteger(ps.elemsCreated));
+  res.SetValue("elemsFreed", SQInteger(ps.elemsFreed));
+  res.SetValue("layoutFixedSizeRoots", SQInteger(ps.layoutFixedSizeRoots));
+  res.SetValue("layoutSizeRoots", SQInteger(ps.layoutSizeRoots));
+  res.SetValue("layoutFlowRoots", SQInteger(ps.layoutFlowRoots));
+  res.SetValue("stacksRebuilds", SQInteger(ps.stacksRebuilds));
+
+  ElemTreeGauges gauges;
+  int renderListSize = 0;
+  for (auto &[id, sc] : self->screens)
+  {
+    accum_elem_gauges(sc->etree.root, gauges);
+    renderListSize += sc->renderList.list.size();
+  }
+  for (const Cursor *c : self->allCursors)
+  {
+    accum_elem_gauges(c->etree.root, gauges);
+    renderListSize += c->renderList.list.size();
+  }
+  res.SetValue("elemCount", SQInteger(gauges.elemCount));
+  res.SetValue("descTableSlots", SQInteger(gauges.descTableSlots));
+  res.SetValue("storageTableSlots", SQInteger(gauges.storageTableSlots));
+  res.SetValue("watchRefs", SQInteger(gauges.watchRefs));
+  res.SetValue("renderListSize", SQInteger(renderListSize));
+
+#if ENABLE_SQ_MEM_STAT
+  res.SetValue("sqMemUsedKb", SQInteger(sqmemtrace::mem_used >> 10)); // process-wide, not per-scene
+#endif
+
+  if (self->profiler)
+  {
+    Sqrat::Table metrics(vm);
+    for (int i = 0; i < NUM_PROFILER_METRICS; ++i)
+    {
+      float avg = 0, stdDev = 0, minVal = 0, maxVal = 0;
+      if (self->profiler->getStats(ProfilerMetricId(i), avg, stdDev, minVal, maxVal))
+      {
+        Sqrat::Table m(vm);
+        m.SetValue("avg", avg);
+        m.SetValue("min", minVal);
+        m.SetValue("max", maxVal);
+        m.SetValue("stddev", stdDev);
+        metrics.SetValue(profiler_metric_names[i], m);
+      }
+    }
+    res.SetValue("metrics", metrics);
+  }
+
+  sq_pushobject(vm, res.GetObject());
+  return 1;
+}
+
+
+void GuiScene::dumpPerfStatsToLog()
+{
+  ApiThreadCheck atc(this);
+
+  const PerfStats &ps = perfStats;
+
+  ElemTreeGauges gauges;
+  int renderListSize = 0;
+  for (auto &[id, sc] : screens)
+  {
+    accum_elem_gauges(sc->etree.root, gauges);
+    renderListSize += sc->renderList.list.size();
+  }
+  for (const Cursor *c : allCursors)
+  {
+    accum_elem_gauges(c->etree.root, gauges);
+    renderListSize += c->renderList.list.size();
+  }
+
+  debug("daRg perf_stats scene=%p: {\"updates\":%u,\"rebuildBatches\":%u,\"invalidations\":%u,\"builderEvals\":%u,"
+        "\"elemsSetupInitial\":%u,\"elemsSetupRebuild\":%u,\"elemsSetupRealtime\":%u,\"elemsCreated\":%u,\"elemsFreed\":%u,"
+        "\"layoutFixedSizeRoots\":%u,\"layoutSizeRoots\":%u,\"layoutFlowRoots\":%u,\"stacksRebuilds\":%u,"
+        "\"elemCount\":%d,\"descTableSlots\":%lld,\"storageTableSlots\":%lld,\"watchRefs\":%lld,\"renderListSize\":%d}",
+    this, ps.updates, ps.rebuildBatches, ps.invalidations, ps.builderEvals, ps.elemsSetupInitial, ps.elemsSetupRebuild,
+    ps.elemsSetupRealtime, ps.elemsCreated, ps.elemsFreed, ps.layoutFixedSizeRoots, ps.layoutSizeRoots, ps.layoutFlowRoots,
+    ps.stacksRebuilds, gauges.elemCount, (long long)gauges.descTableSlots, (long long)gauges.storageTableSlots,
+    (long long)gauges.watchRefs, renderListSize);
+
+#if ENABLE_SQ_MEM_STAT
+  debug("daRg perf_stats scene=%p: sqMemUsed=%uK (max %uK)", this, sqmemtrace::mem_used >> 10, sqmemtrace::mem_used_max >> 10);
+#endif
+
+  if (profiler)
+  {
+    for (int i = 0; i < NUM_PROFILER_METRICS; ++i)
+    {
+      float avg = 0, stdDev = 0, minVal = 0, maxVal = 0;
+      if (profiler->getStats(ProfilerMetricId(i), avg, stdDev, minVal, maxVal))
+        debug("daRg perf_stats scene=%p: metric \"%s\" avg=%.3f ms min=%.3f max=%.3f stddev=%.3f", this, profiler_metric_names[i], avg,
+          minVal, maxVal, stdDev);
+    }
+  }
+}
+
+
+void GuiScene::requestPerfStatsDump(bool reset)
+{
+  interlocked_or(pendingPerfDumpFlags, PERF_DUMP_REQUESTED | (reset ? PERF_DUMP_RESET : 0));
+}
+
+
+void GuiScene::requestProfilerActivation(bool on) { interlocked_release_store(pendingProfilerActivation, on ? 1 : 0); }
+
+
+void dump_all_gui_scenes_perf_stats(bool reset_counters)
+{
+  OSSpinlockScopedLock lock(all_gui_scenes_lock);
+  for (GuiScene *scene : all_gui_scenes)
+    scene->requestPerfStatsDump(reset_counters);
+}
+
+
+void set_all_gui_scenes_profiler(bool on)
+{
+  OSSpinlockScopedLock lock(all_gui_scenes_lock);
+  for (GuiScene *scene : all_gui_scenes)
+    scene->requestProfilerActivation(on);
 }
 
 template <void (ElementTree::*method)(const Sqrat::Object &)>
@@ -3657,6 +3930,13 @@ SQInteger GuiScene::set_kb_focus_impl(HSQUIRRELVM vm, bool capture)
   SQObjectType tp = sq_type(obj);
 
   GuiScene *self = get_from_sqvm(vm);
+  DARG_DENY_IN_BUILDER(self, vm, "set_kb_focus");
+
+  if (self->isClearing)
+  {
+    sq_pushbool(vm, SQFalse);
+    return 1;
+  }
 
   if (tp == OT_NULL)
   {
@@ -3724,6 +4004,7 @@ SQInteger GuiScene::capture_kb_focus(HSQUIRRELVM vm) { return set_kb_focus_impl(
 SQInteger GuiScene::move_mouse_cursor(HSQUIRRELVM vm)
 {
   GuiScene *self = get_from_sqvm(vm);
+  DARG_DENY_IN_BUILDER(self, vm, "move_mouse_cursor");
 
   HSQOBJECT obj;
   G_VERIFY(SQ_SUCCEEDED(sq_getstackobj(vm, 2, &obj)));
@@ -3827,6 +4108,11 @@ SQInteger GuiScene::add_panel(HSQUIRRELVM vm)
   Sqrat::Var<GuiScene *> varSelf(vm, 1);
   GuiScene *scene = varSelf.value;
 
+  if (scene->isClearing)
+    return sq_throwerror(vm, "Can't add panels while clearing the scene");
+
+  DARG_DENY_IN_BUILDER(scene, vm, "addPanel");
+
   if (scene->isRebuildingInvalidatedParts)
     return sq_throwerror(vm, "Can't add panels during scene rebuild (probably incorrect side-effect in component builder?)");
 
@@ -3857,6 +4143,8 @@ SQInteger GuiScene::remove_panel(HSQUIRRELVM vm)
 
   Sqrat::Var<GuiScene *> varSelf(vm, 1);
   GuiScene *scene = varSelf.value;
+
+  DARG_DENY_IN_BUILDER(scene, vm, "removePanel");
 
   if (scene->isRebuildingInvalidatedParts)
     return sq_throwerror(vm, "Can't remove panels during scene rebuild (probably incorrect side-effect in component builder?)");
@@ -4133,6 +4421,7 @@ static SQInteger resolve_button_id(HSQUIRRELVM vm)
 static SQInteger set_xmb_focus(HSQUIRRELVM vm)
 {
   GuiScene *self = (GuiScene *)get_scene_from_sqvm(vm);
+  DARG_DENY_IN_BUILDER(self, vm, "setXmbFocus");
   Sqrat::Var<Sqrat::Table> node(vm, 2);
   SQObjectType ot = node.value.GetType();
   if (ot == OT_NULL)
@@ -4701,6 +4990,7 @@ bool GuiScene::isCursorForcefullyDisabled() const
 SQInteger GuiScene::force_cursor_active(HSQUIRRELVM vm)
 {
   GuiScene *scene = GuiScene::get_from_sqvm(vm);
+  DARG_DENY_IN_BUILDER(scene, vm, "forceCursorActive");
   Sqrat::Object newVal = Sqrat::Var<Sqrat::Object>(vm, 2).value;
 
   if (newVal.GetType() == OT_INSTANCE && !Sqrat::ClassType<Cursor>::IsClassInstance(newVal))
@@ -4803,7 +5093,15 @@ bool GuiScene::setFocusedScreen(Screen *screen)
 
 bool GuiScene::destroyGuiScreen(Screen *screen) { return destroyGuiScreen(getGuiScreenId(screen)); }
 
-bool GuiScene::setFocusedScreenById(int id) { return setFocusedScreen(getGuiScreen(id)); }
+bool GuiScene::setFocusedScreenById(int id)
+{
+  if (isEvaluatingBuilder)
+  {
+    report_builder_mutation(sqvm, "setFocusedScreen");
+    return false;
+  }
+  return setFocusedScreen(getGuiScreen(id));
+}
 
 SQInteger GuiScene::sqGetFocusedScreen(HSQUIRRELVM vm)
 {
@@ -4894,6 +5192,8 @@ void GuiScene::bindScriptClasses()
     .Prop("circleButtonAsAction", &GuiScene::useCircleAsActionButton)
     .Prop("xmbMode", &GuiScene::getIsXmbModeOn)
     .Func("getJoystickAxis", &GuiScene::getJoystickAxis)
+    .Func("enableProfiler", &GuiScene::activateProfiler)
+    .SquirrelFunc("getPerfStats", get_perf_stats, 1, "x")
     .Func("enableInput", &GuiScene::scriptSetSceneInputActive)
     .SquirrelFunc("forceCursorActive", &GuiScene::force_cursor_active, 2, "x b|o|x")
     /**/;

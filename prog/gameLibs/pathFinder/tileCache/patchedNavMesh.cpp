@@ -33,62 +33,65 @@
 namespace pathfinder
 {
 
-uint32_t patchedNavMesh_getFileSizeAndNumTiles(const char *file_name, int &num_tiles)
+PatchedNavMeshFileInfo patchedNavMesh_getFileInfo(const char *file_name)
 {
+  PatchedNavMeshFileInfo info;
+
   eastl::unique_ptr<void, decltype(&df_close)> h(df_open(file_name, DF_READ | DF_IGNORE_MISSING), &df_close);
 
   if (!h)
-    return 0u;
+    return info;
 
   int fileSize = df_length(h.get());
   if (fileSize < sizeof(uint32_t))
-    return 0u;
+    return info;
 
   uint32_t totalSize = 0u;
   if (df_read(h.get(), &totalSize, sizeof(uint32_t)) != sizeof(uint32_t))
-    return 0u;
+    return info;
 
   if (totalSize != fileSize - sizeof(uint32_t))
-    return 0u;
+    return info;
 
-  num_tiles = 0;
-  const uint32_t failSize = totalSize;
+  // the payload size is known from here on; a malformed body below still reports it
+  // so the loader reserves the patch storage the load attempt needs
+  info.fileSize = totalSize;
 
   // skip removed obstacles
   {
     uint32_t count = 0u;
     if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
+      return info;
     if (df_seek_rel(h.get(), count * sizeof(uint32_t)) != 0)
-      return failSize;
+      return info;
   }
 
   // skip added obstacles
   {
     uint32_t count = 0u;
     if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
+      return info;
     if (df_seek_rel(h.get(), count * sizeof(uint32_t)) != 0)
-      return failSize;
+      return info;
   }
 
   // read tilecache tiles
   {
     uint32_t count = 0u;
     if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
+      return info;
 
-    num_tiles = count;
-    if (num_tiles < 0)
-      num_tiles = 0;
+    info.numTcTiles = count;
+    if (info.numTcTiles < 0)
+      info.numTcTiles = 0;
 
     for (uint32_t i = 0u; i < count; ++i)
     {
       uint32_t dataSize = 0u;
       if (df_read(h.get(), &dataSize, sizeof(uint32_t)) != sizeof(uint32_t))
-        return failSize;
+        return info;
       if (df_seek_rel(h.get(), dataSize) != 0)
-        return failSize;
+        return info;
     }
   }
 
@@ -96,17 +99,32 @@ uint32_t patchedNavMesh_getFileSizeAndNumTiles(const char *file_name, int &num_t
   {
     uint32_t count = 0u;
     if (df_read(h.get(), &count, sizeof(uint32_t)) != sizeof(uint32_t))
-      return failSize;
+      return info;
 
-    if ((uint32_t)num_tiles < count)
-      num_tiles = count;
-    if (num_tiles < 0)
-      num_tiles = 0;
+    info.numNavTiles = count;
+    if (info.numNavTiles < 0)
+      info.numNavTiles = 0;
 
-    // and ignore the rest
+    // These tiles restore into fixed tile array slots (see patchedNavMesh_loadFromFile),
+    // so report the highest pinned index for the loader to size the tile array by.
+    for (uint32_t i = 0u; i < count; ++i)
+    {
+      dtTileRef tileRef = 0;
+      uint32_t dataSize = 0u;
+      if (df_read(h.get(), &tileRef, sizeof(tileRef)) != sizeof(tileRef))
+        return info;
+      if (df_read(h.get(), &dataSize, sizeof(uint32_t)) != sizeof(uint32_t))
+        return info;
+      if (df_seek_rel(h.get(), dataSize) != 0)
+        return info;
+#ifdef DT_POLYREF64
+      const int tileIndex = (int)((tileRef >> DT_POLY_BITS) & (((dtPolyRef)1 << DT_TILE_BITS) - 1));
+      info.maxNavTileIndex = max(info.maxNavTileIndex, tileIndex);
+#endif
+    }
   }
 
-  return totalSize;
+  return info;
 }
 
 bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uint8_t *storageData,
@@ -275,7 +293,13 @@ bool patchedNavMesh_loadFromFile(const char *fileName, dtTileCache *tlCache, uin
       navData += dataSize;
       sizeLeft -= dataSize;
 
-      navMesh->addTile(data, dataSize, 0, tileToSave, 0);
+      // pinned restore fails when the tile array was sized below the saved index or
+      // the slot is taken; a partially applied patch must not pass as a loaded one
+      if (dtStatusFailed(navMesh->addTile(data, dataSize, 0, tileToSave, 0)))
+      {
+        logerr("patched navmesh: failed to restore nav tile into slot %d", (int)navMesh->decodePolyIdTile(tileToSave));
+        return false;
+      }
     }
   }
 

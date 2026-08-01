@@ -47,7 +47,7 @@ function initWorkModes(modes, defMode=null) {
   de4workMode.set(mode_to_set)
 }
 
-function canChangeGizmoBasisType() {
+function canChangeGizmoBasisType(): bool {
   local m = getEditMode()
   return m == DE4_MODE_MOVE || m == DE4_MODE_MOVE_SURF || m == DE4_MODE_ROTATE || m == DE4_MODE_SCALE
 }

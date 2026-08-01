@@ -18,7 +18,10 @@ void teardown_ex();
 
 static constexpr float bvh_ri_lod_range_exception_threshold = 10000.0f;
 
-static eastl::unordered_set<ContextId> relem_changed_contexts;
+using RelemChangedContextsReadLock = ScopedLockReadTemplate<NoWritersSpinLockReadWriteLock>;
+using RelemChangedContextsWriteLock = ScopedLockWriteTemplate<NoWritersSpinLockReadWriteLock>;
+static NoWritersSpinLockReadWriteLock relem_changed_contexts_lock;
+static eastl::unordered_set<ContextId> relem_changed_contexts DAG_TS_GUARDED_BY(relem_changed_contexts_lock);
 static CallbackToken relem_changed_token;
 static CallbackToken relem_prechanged_token;
 static float ri_lod_dist_bias = 0.0f;
@@ -101,8 +104,9 @@ static void impostor_callback(const RenderableInstanceLodsResource *resource)
   auto lodIx = resource->lods.size() - 1;
   auto &lod = resource->lods[lodIx];
 
+  RelemChangedContextsReadLock contextsGuard(relem_changed_contexts_lock);
   for (auto context_id : relem_changed_contexts)
-    if (context_id->has(Features::RIFull))
+    if (context_id->hasAny(Features::RIFull))
     {
       auto bounding = BSphere3(resource->bsphCenter, resource->bsphRad);
       auto elems = lod.scene->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
@@ -204,6 +208,7 @@ static void on_relem_changed(ContextId context_id, const RenderableInstanceLodsR
 
 static void on_relem_changed_all(const RenderableInstanceLodsResource *resource, bool deleted, int upper_lod, bool pre_change_event)
 {
+  RelemChangedContextsReadLock contextsGuard(relem_changed_contexts_lock);
   for (auto &contextId : relem_changed_contexts)
     on_relem_changed(contextId, resource, deleted, upper_lod, pre_change_event);
 }
@@ -251,9 +256,12 @@ void teardown(bool device_reset)
 
 void init(ContextId context_id)
 {
-  if (context_id->has(Features::AnyRI))
+  if (context_id->hasAny(Features::AnyRI))
   {
-    relem_changed_contexts.insert(context_id);
+    {
+      RelemChangedContextsWriteLock contextsGuard(relem_changed_contexts_lock);
+      relem_changed_contexts.insert(context_id);
+    }
     unitedvdata::riUnitedVdata.availableRElemsAccessor([](dag::Span<RenderableInstanceLodsResource *> resources) {
       for (RenderableInstanceLodsResource *resource : resources)
         on_relem_changed_all(resource, false, 0, false);
@@ -274,7 +282,7 @@ void on_scene_loaded(ContextId context_id) { on_scene_loaded_ri_ex(context_id); 
 
 void on_unload_scene(ContextId context_id)
 {
-  if (!context_id->has(Features::AnyRI))
+  if (!context_id->hasAny(Features::AnyRI))
     return;
   wait_ri_extra_instances_update(context_id);
   wait_ri_gen_instances_update(context_id);
@@ -317,6 +325,7 @@ void on_unload_scene(ContextId context_id)
 void teardown(ContextId context_id)
 {
   bvh::ri::on_unload_scene(context_id);
+  RelemChangedContextsWriteLock contextsGuard(relem_changed_contexts_lock);
   relem_changed_contexts.erase(context_id);
 }
 

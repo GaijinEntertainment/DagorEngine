@@ -86,7 +86,7 @@ struct VkAnyDescriptorInfo
   VkAnyDescriptorInfo &operator+=(VulkanBufferViewHandle i)
   {
     texelBuffer = i;
-    type = TYPE_BUF_VIEW;
+    type = is_null(i) ? TYPE_NULL : TYPE_BUF_VIEW;
     return *this;
   };
 

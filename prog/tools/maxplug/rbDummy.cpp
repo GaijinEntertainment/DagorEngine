@@ -6,8 +6,6 @@
 #include "dagor.h"
 #include "resource.h"
 
-// SimpleObject *SimpleObject::editOb=NULL;
-
 class RBHelper : public SimpleObject
 {
 public:
@@ -31,27 +29,12 @@ public:
   int DoOwnSelectHilite() override { return 1; }
 
   CreateMouseCallBack *GetCreateMouseCallBack() override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  const MCHAR *GetObjectName(bool localized = true) { return GetString(IDS_Dummy); }
-#else
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
-  const
-#endif
-    MCHAR *
-    GetObjectName()
-  {
-    return GetString(IDS_RBHelper);
-  }
-#endif
+  const MCHAR *GetObjectName(bool localized = true) { return GetString(IDS_RBHelper); }
   RefTargetHandle Clone(RemapDir &remap) override;
 
   BOOL OKtoDisplay(TimeValue t) override;
   ParamDimension *GetParameterDim(int pbIndex) override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   MSTR GetParameterName(int pbIndex, bool localized) override { return MSTR(_T("???")); }
-#else
-  TSTR GetParameterName(int pbIndex) override { return TSTR(_T("???")); }
-#endif
 
   void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev) override;
   void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) override;
@@ -117,8 +100,6 @@ int RBHelper::Display(TimeValue t, INode *inode, ViewExp *vpt, int flags)
   GraphicsWindow *gw = vpt->getGW();
   DWORD rlim = gw->getRndLimits();
 
-  //	gw->setRndLimits(GW_WIREFRAME|GW_BACKCULL| (rlim&GW_Z_BUFFER?GW_Z_BUFFER:0) );
-
   gw->setTransform(ident);
   DrawIt(gw, t, inode, inode->Selected(), flags, vpt);
 
@@ -140,11 +121,7 @@ public:
   int IsPublic() override { return TRUE; }
   void *Create(BOOL loading = FALSE) override { return new RBHelper(); }
   const TCHAR *ClassName() override { return GetString(IDS_RBHelper); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return HELPER_CLASS_ID; }
   Class_ID ClassID() override { return RBDummy_CID; }
   const TCHAR *Category() override { return GetString(IDS_DAGOR_CAT); }
@@ -284,9 +261,7 @@ RefTargetHandle RBHelper::Clone(RemapDir &remap)
   RBHelper *newob = new RBHelper();
   newob->ReplaceReference(0, pblock->Clone(remap));
   newob->ivalid.SetEmpty();
-#if MAX_RELEASE >= 4000
   BaseClone(this, newob, remap);
-#endif
   return (newob);
 }
 

@@ -15,9 +15,7 @@ let colored_text = "\n".concat(
 function sText(txt, params={}) {
   return {
     rendObj = ROBJ_INSCRIPTION
-    ellipsis = true
     color = Color(198,198,128)
-    textOverflowX = TOVERFLOW_CHAR
     text=txt
   }.__update(params, {rendObj = ROBJ_INSCRIPTION})
 }

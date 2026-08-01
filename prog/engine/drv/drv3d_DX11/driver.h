@@ -69,7 +69,7 @@ extern ID3D11_DEVCTX4 *dx_context4;
 extern ID3D11Fence *fence_progress;
 extern dag::AtomicInteger<uint64_t> global_frame_progress;
 
-extern os_spinlock_t dx_context_cs;
+extern OSSpinlock dx_context_cs;
 extern WinCritSec dx_res_cs;
 extern SmartReadWriteFifoLock reset_rw_lock; // Read-lock for loading resources, write-lock for reset.
 extern BaseTexture *secondary_backbuffer_color_tex;
@@ -97,7 +97,6 @@ extern int max_pending_frames;
 extern bool use_gpu_dt;
 extern bool hdr_enabled;
 extern bool int10_hdr_buffer;
-extern bool command_list_wa;
 extern eastl::optional<MemoryMetrics> memory_metrics;
 
 extern bool window_occlusion_check_enabled;
@@ -122,9 +121,7 @@ extern DriverDesc g_device_desc;
 
 struct ContextAutoLock
 {
-  ContextAutoLock() { os_spinlock_lock(&dx_context_cs); }
-
-  ~ContextAutoLock() { os_spinlock_unlock(&dx_context_cs); }
+  OSSpinlockScopedLock lock{dx_context_cs};
 };
 
 struct ResAutoLock // Guard the streamable texture data access.

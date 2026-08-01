@@ -33,12 +33,17 @@ intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 
 bool tools3d::inited = false;
 
+void tools3d::load_settings()
+{
+  if (inited)
+    return;
+  dgs_load_settings_blk(true, String(260, "%s/startup_editors.blk", sgg::get_common_data_dir()), nullptr);
+}
+
 bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming, const char *caption, void *icon)
 {
   if (inited)
     return true;
-
-  dgs_load_settings_blk(true, String(260, "%s/startup_editors.blk", sgg::get_common_data_dir()), nullptr);
 
   DataBlock *global_settings_blk = const_cast<DataBlock *>(::dgs_get_settings());
 

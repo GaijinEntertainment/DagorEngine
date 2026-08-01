@@ -4,14 +4,14 @@ require soundSystem
 require strings
 
 
-def toggle(game_effect_sound__hero : string;
-           game_effect_sound__enemy : string;
+def toggle(game_effect_sound__watched : string;
+           game_effect_sound__other : string;
            var game_effect_sound__event : SoundEvent&;
            game_effect__attachedTo : EntityId)
   abandon(game_effect_sound__event)
   if sound_banks_is_master_preset_loaded()
     query(game_effect__attachedTo) <| $ [es] (transform : float3x4; is_watched_sound = false)
-      let path = is_watched_sound ? game_effect_sound__hero : game_effect_sound__enemy
+      let path = is_watched_sound ? game_effect_sound__watched : game_effect_sound__other
       if !empty(path)
         game_effect_sound__event |> play(path, transform[3])
         game_effect_sound__event.abandonOnReset = true
@@ -21,11 +21,11 @@ def toggle(game_effect_sound__hero : string;
 
 [es(tag=sound, on_appear, on_event=EventOnMasterSoundPresetLoaded)]
 def game_effect_sound_appear(evt : Event;
-                             game_effect_sound__hero : string;
-                             game_effect_sound__enemy : string;
+                             game_effect_sound__watched : string;
+                             game_effect_sound__other : string;
                              var game_effect_sound__event : SoundEvent&;
                              game_effect__attachedTo : EntityId)
-  toggle(game_effect_sound__hero, game_effect_sound__enemy, game_effect_sound__event, game_effect__attachedTo)
+  toggle(game_effect_sound__watched, game_effect_sound__other, game_effect_sound__event, game_effect__attachedTo)
 
 
 [es(tag=sound, on_event=ParallelUpdateFrameDelayed, after=sound_begin_update_es, before=sound_end_update_es)]
@@ -39,9 +39,9 @@ def game_effect_sound_update(evt : Event;
 
 [es(tag=sound, track=is_watched_sound, REQUIRE=is_watched_sound)]
 def entity_with_attached_game_effect__track_watched_sound(evt : Event; eid : EntityId)
-  query() <| $ [es] (game_effect_sound__hero : string;
-                     game_effect_sound__enemy : string;
+  query() <| $ [es] (game_effect_sound__watched : string;
+                     game_effect_sound__other : string;
                      var game_effect_sound__event : SoundEvent&;
                      game_effect__attachedTo : EntityId)
     if eid == game_effect__attachedTo && is_playing(game_effect_sound__event) && !is_oneshot(game_effect_sound__event)
-      toggle(game_effect_sound__hero, game_effect_sound__enemy, game_effect_sound__event, game_effect__attachedTo)
+      toggle(game_effect_sound__watched, game_effect_sound__other, game_effect_sound__event, game_effect__attachedTo)

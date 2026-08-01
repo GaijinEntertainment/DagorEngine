@@ -96,6 +96,35 @@ void get_states_mem_used(String &str)
   //   str.aprintf(128, "texture_fetch_state_cache[%d] = %d\n", i, texture_fetch_state_cache.table[i].size());
 }
 
+static drv3d_generic::COMProxyPtr<ID3D11Buffer> empty_drawindirect_args_buffer;
+static void flush_internal_graphics_pipeline_state()
+{
+  if (empty_drawindirect_args_buffer.obj == NULL)
+  {
+    D3D11_BUFFER_DESC bufferDesc;
+    bufferDesc.ByteWidth = sizeof(uint32_t) * 3; // X, Y, Z
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+    bufferDesc.CPUAccessFlags = 0;
+    bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+    bufferDesc.StructureByteStride = 0;
+
+    uint32_t initData[3] = {0, 0, 0};
+    D3D11_SUBRESOURCE_DATA subData{initData, 0, 0};
+
+    HRESULT hr = dx_device->CreateBuffer(&bufferDesc, &subData, &empty_drawindirect_args_buffer.obj);
+    G_ASSERT(hr == S_OK);
+  }
+
+  if (empty_drawindirect_args_buffer.obj != NULL)
+  {
+    ContextAutoLock lock;
+
+    // emit dummy Dispatch command, which cannot be optimized out on CPU side
+    dx_context->DispatchIndirect(empty_drawindirect_args_buffer.obj, 0);
+  }
+}
+
 bool get_render_state_target_size(int &w, int &h)
 {
   RenderState &rs = g_render_state;
@@ -264,10 +293,7 @@ void flush_states(RenderState &rs)
           ablendUsed = sourceState.blendParams[i].ablend;
       }
       if (ablendUsed)
-      {
-        ContextAutoLock lock;
-        dx_context->Dispatch(0, 0, 0);
-      }
+        flush_internal_graphics_pipeline_state();
     }
   }
 
@@ -332,6 +358,7 @@ void close_states()
   rasterizer_state_cacheCount = 0;
   depth_stencil_state_cache.clear();
   texture_fetch_state_cache.clear();
+  empty_drawindirect_args_buffer.destroyObject();
 }
 
 ID3D11RasterizerState *RasterizerState::getStateObject()
@@ -1220,7 +1247,7 @@ bool d3d::set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex)
   {
     if (bt->needs_clear)
       bt->clear();
-    if (bt->cflg & TEXCF_UNORDERED)
+    if ((bt->cflg & TEXCF_UNORDERED) && bt->hasUavViews)
       for (uint32_t mip = bt->maxMipLevel; mip <= bt->minMipLevel; ++mip)
         for (bool asUint : {false, true})
           remove_view_from_uav(bt->getExistingUaView(0, mip, asUint));
@@ -1368,8 +1395,9 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
     return false;
 
   BaseTex *base = (BaseTex *)rt.tex;
-  ID3D11View *view = base->getRtView(rt.layer, rt.mip_level, 1, g_render_state.srgb_bb_write);
-  if (is_depth_format_flg(base->cflg))
+  const bool isDepth = is_depth_format_flg(base->cflg);
+  ID3D11View *view = base->getRtView(rt.layer, rt.mip_level, 1, isDepth ? false : g_render_state.srgb_bb_write);
+  if (isDepth)
   {
     ContextAutoLock contextLock;
     dx_context->ClearDepthStencilView((ID3D11DepthStencilView *)view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, clear_val.asDepth,
@@ -1390,7 +1418,7 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
       MiniRenderStateUnsafe savedRs;
       savedRs.store();
 
-      d3d::set_render_target({}, DepthAccess::RW, {{base, rt.mip_level, 0}});
+      d3d::set_render_target({}, DepthAccess::RW, {{base, rt.mip_level, rt.layer}});
       d3d::setview(0, 0, base->width, base->height, 0, 1);
       clear_slow(CLEAR_TARGET, clear_val.asFloat, 0.0f, 0u);
 

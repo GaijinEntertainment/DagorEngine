@@ -43,12 +43,12 @@ __forceinline const Plane3 &as_plane3(const vec4f *v) { return *(const Plane3 *)
 
 VECMATH_FINLINE Point3 operator*(mat44f_cref tm, const Point3 &p)
 {
-  alignas(16) vec4f r = v_mat44_mul_vec3p(tm, v_ldu_p3(&p.x));
+  alignas(16) vec4f r = v_mat44_mul_vec3p(tm, v_ldu_p3_safe(&p.x));
   return as_point3(&r);
 }
 
 VECMATH_FINLINE Point3 operator%(mat44f_cref tm, const Point3 &p)
 {
-  alignas(16) vec4f r = v_mat44_mul_vec3v(tm, v_ldu_p3(&p.x));
+  alignas(16) vec4f r = v_mat44_mul_vec3v(tm, v_ldu_p3_safe(&p.x));
   return as_point3(&r);
 }

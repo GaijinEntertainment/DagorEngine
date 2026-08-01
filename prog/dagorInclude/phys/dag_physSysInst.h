@@ -6,6 +6,7 @@
 
 #include <math/dag_TMatrix.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_functionRef.h>
 #include <phys/dag_physResource.h>
 #include <phys/dag_physDecl.h>
 #include <EASTL/unique_ptr.h>
@@ -21,16 +22,17 @@ public:
   PhysSystemInstance(const PhysSystemInstance &) = delete;
   ~PhysSystemInstance();
 
-  TMatrix *getTmHelper(const char *name);
+  TMatrix *getTmHelper(const char *name, int *out_body_id = nullptr);
 
   PhysBody *getBody(const char *name) const;
 
   SimpleString getBodyMaterialName(PhysBody *body) const;
 
-  void updateTms();
+  void updateTms(dag::FunctionRef<TMatrix(int)> get_body_tm = {});
 
   void driveBodiesToAnimcharPose(const dag::Span<mat44f *> &skeletonWtms);
   void setJointsMotorSettings(float twistFrequeny, float twistDamping, float swingFrequeny, float swingDamping);
+  void disableJointsMotors();
 
   bool setBodyTmByTmHelper(const char *helper_name, const TMatrix &wtm);
   bool setBodyTmAndVelByTmHelper(const char *helper_name, const TMatrix &wtm_prev, const TMatrix &wtm, real dt);
@@ -69,7 +71,7 @@ protected:
     Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup, uint16_t fmask,
       bool has_joints, float scale = 1.f);
 
-    void updateTms(const PhysicsResource::Body &res_body, const TMatrix &scale_tm);
+    void updateTms(const PhysicsResource::Body &res_body, const TMatrix &wtm);
   };
 
 

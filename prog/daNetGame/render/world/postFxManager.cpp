@@ -153,9 +153,11 @@ static void update_damage_indicator(const ecs::Object &postFx)
 {
   const Point4 damage_indicator__color = postFx.getMemberOr(ECS_HASH("damage_indicator__color"), Point4(1, 0.3, 0.3, 0));
   const float damage_indicator__size = postFx.getMemberOr(ECS_HASH("damage_indicator__size"), 1.f);
-  ShaderGlobal::set_float4(::get_shader_variable_id("damage_indicator_color", true), damage_indicator__color.x,
-    damage_indicator__color.y, damage_indicator__color.z, damage_indicator__color.w);
-  ShaderGlobal::set_float(::get_shader_variable_id("damage_indicator_size", true), damage_indicator__size);
+  static const ShaderVariableInfo damageIndicatorColorVarId("damage_indicator_color", true);
+  static const ShaderVariableInfo damageIndicatorSizeVarId("damage_indicator_size", true);
+  damageIndicatorColorVarId.set_float4(damage_indicator__color.x, damage_indicator__color.y, damage_indicator__color.z,
+    damage_indicator__color.w);
+  damageIndicatorSizeVarId.set_float(damage_indicator__size);
 }
 
 void PostFxManager::set(const ecs::Object &postFx)
@@ -177,11 +179,16 @@ void PostFxManager::set(const ecs::Object &postFx)
     const float decreaseTime = postFx.getMemberOr("smoke_blackout_effect__decreaseDuration", 1.0f);
     const float maxIntensity = postFx.getMemberOr("smoke_blackout_effect__maxIntensity", 1.0f);
     const float minIntensity = postFx.getMemberOr("smoke_blackout_effect__minIntensity", 1.0f);
-    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_increase_duration", true), increaseTime);
-    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_decrease_duration", true), decreaseTime);
-    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_max_intensity", true), maxIntensity);
-    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_min_intensity", true), minIntensity);
-    ShaderGlobal::set_int(::get_shader_variable_id("smoke_blackout_active", true), 0);
+    static const ShaderVariableInfo smokeBlackoutIncreaseDurationVarId("smoke_blackout_effect_increase_duration", true);
+    static const ShaderVariableInfo smokeBlackoutDecreaseDurationVarId("smoke_blackout_effect_decrease_duration", true);
+    static const ShaderVariableInfo smokeBlackoutMaxIntensityVarId("smoke_blackout_effect_max_intensity", true);
+    static const ShaderVariableInfo smokeBlackoutMinIntensityVarId("smoke_blackout_effect_min_intensity", true);
+    static const ShaderVariableInfo smokeBlackoutActiveVarId("smoke_blackout_active", true);
+    smokeBlackoutIncreaseDurationVarId.set_float(increaseTime);
+    smokeBlackoutDecreaseDurationVarId.set_float(decreaseTime);
+    smokeBlackoutMaxIntensityVarId.set_float(maxIntensity);
+    smokeBlackoutMinIntensityVarId.set_float(minIntensity);
+    smokeBlackoutActiveVarId.set_int(0);
   }
 
   update_damage_indicator(postFx);

@@ -163,6 +163,7 @@ inline Register StcodeVMRegisterAllocator::add_reg(int type)
     case SHVT_COLOR4: return add_vec_reg();
     case SHVT_INT: return add_reg();
     case SHVT_FLOAT4X4: return add_vec_reg(4);
+    case SHVT_FLOAT4x3: return add_vec_reg(3);
     default: G_ASSERT(0);
   }
   return {};

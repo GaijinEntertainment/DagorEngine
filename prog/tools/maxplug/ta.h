@@ -11,7 +11,6 @@ public:
   //-- Constructors/Destructors
 
   BitmapIO_TA();
-  // BitmapIO_IFL       ( BitmapStorage *s,BitmapIO *previous,int frame );
   ~BitmapIO_TA() override;
 
   //-- Number of extemsions supported
@@ -38,22 +37,11 @@ public:
 
   //-- Driver capabilities
 
-  int Capability() override
-  {
-    return BMMIO_READER | BMMIO_EXTENSION |
-           // BMMIO_INFODLG    |
-           // BMMIO_OWN_VIEWER |
-           // BMMIO_CONTROLREAD |
-           BMMIO_IFL;
-  }
+  int Capability() override { return BMMIO_READER | BMMIO_EXTENSION | BMMIO_IFL; }
 
   //-- Driver Configuration
 
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
   BOOL LoadConfigure(void *ptr, DWORD piDataSize) override { return 1; }
-#else
-  BOOL LoadConfigure(void *ptr) { return 1; }
-#endif
   BOOL SaveConfigure(void *ptr) override { return 1; }
   DWORD EvaluateConfigure() override { return 0; }
 
@@ -67,7 +55,6 @@ public:
 
   //-- Return info about image
 
-  // BMMRES         GetImageInfoDlg    ( HWND hWnd, BitmapInfo *fbi, const TCHAR *filename);
   BMMRES GetImageInfo(BitmapInfo *bi) override;
 
   //-- I/O Interface

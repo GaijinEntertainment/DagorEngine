@@ -184,6 +184,14 @@ The regexp class
 
     The first element of the returned array(index 0) always contains the complete match.
 
+    Throws an error ("regexp match aborted: pattern too complex for this input")
+    when the match exceeds the engine's backtracking budget or its repetition
+    state memory cap. This happens for patterns with catastrophic backtracking
+    (e.g. nested unbounded quantifiers or overlapping alternation under a
+    quantifier), or when a capturing/composite group is repeated more than
+    about a million times in one match; it never happens for a plain
+    non-matching string of ordinary size.
+
     ::
 
         local ex = regexp(@"(\d+) ([a-zA-Z]+)(\p)");
@@ -204,14 +212,16 @@ The regexp class
 
 .. sq:function:: regexp.match(str)
 
-    returns a true if the regular expression matches the string
+    returns a true if the regular expression matches the whole string
     `str`, otherwise returns false.
+    Can throw on backtracking budget exhaustion, see `regexp.capture`.
 
 .. sq:function:: regexp.search(str [, start])
 
     returns a table containing two indexes ("begin" and "end") of the first match of the regular expression in
     the string `str`, otherwise if no match occurs returns null. The search starts from the index `start`
     of the string; if `start` is omitted the search starts from the beginning of the string.
+    Can throw on backtracking budget exhaustion, see `regexp.capture`.
 
     ::
 
@@ -281,6 +291,9 @@ Regular Expessions
 
     returns SQTrue if the string specified in the parameter text is an
     exact match of the expression, otherwise returns SQFalse.
+    SQFalse is also returned when the match was aborted (backtracking budget
+    or memory exhausted); check sqstd_rex_matchaborted() to tell the cases
+    apart.
 
 .. c:function:: SQBool sqstd_rex_search(SQRex * exp, const char * text, const char ** out_begin, const char ** out_end)
 
@@ -293,6 +306,8 @@ Regular Expessions
     searches the first match of the expression in the string specified in the parameter text.
     if the match is found returns SQTrue and the sets out_begin to the beginning of the
     match and out_end at the end of the match; otherwise returns SQFalse.
+    SQFalse is also returned when the search was aborted, see
+    sqstd_rex_matchaborted().
 
 .. c:function:: SQBool sqstd_rex_searchrange(SQRex * exp, const char * text_begin, const char * text_end, const char ** out_begin, const char ** out_end)
 
@@ -307,6 +322,18 @@ Regular Expessions
     by the parameter text_begin and text_end.
     if the match is found returns SQTrue and sets out_begin to the beginning of the
     match and out_end at the end of the match; otherwise returns SQFalse.
+    SQFalse is also returned when the search was aborted, see
+    sqstd_rex_matchaborted().
+
+.. c:function:: SQBool sqstd_rex_matchaborted(SQRex * exp)
+
+    :param SQRex* exp: a compiled expression
+    :returns: SQTrue if the last match/search on this expression was aborted
+
+    returns SQTrue when the most recent sqstd_rex_match/sqstd_rex_search/
+    sqstd_rex_searchrange call on this expression was aborted because the
+    backtracking step budget or memory was exhausted. In that case the
+    negative result of that call does not mean the text cannot match.
 
 .. c:function:: SQInteger sqstd_rex_getsubexpcount(SQRex * exp)
 

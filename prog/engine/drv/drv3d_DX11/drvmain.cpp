@@ -131,6 +131,12 @@ struct DX11Query
 static TabWithLock<DX11Query> all_queries;
 
 // Do not use it if dx11.4 is not available
+enum FenceBasedEventQueryState : uint64_t
+{
+  AcquiredAndNotUsed = uint64_t(0),
+  // The range between AcquiredAndNotUsed and Released is used for real frame progress
+  Released = eastl::numeric_limits<uint64_t>::max(),
+};
 static TabWithLock<uint64_t> fence_based_event_queries;
 
 // Call it under context lock
@@ -470,6 +476,24 @@ static bool is_swapchain_window_occluded()
 
 static bool occluded_window = false;
 
+// Templates the RenderDoc capture output to <CWD>\GpuCaptures\<name>, matching drv3d_DX12.
+static void set_capture_path(RENDERDOC_API_1_5_0 *api, const wchar_t *name)
+{
+  if (!name)
+    return;
+  char path[MAX_PATH];
+  GetCurrentDirectoryA(sizeof(path), path);
+  strcat_s(path, "\\GpuCaptures\\");
+  CreateDirectoryA(path, nullptr);
+  size_t pathLen = strlen(path);
+  if (!WideCharToMultiByte(CP_UTF8, 0, name, -1, path + pathLen, sizeof(path) - (int)pathLen, nullptr, nullptr))
+  {
+    D3D_ERROR("DX11: RenderDoc capture path name conversion failed");
+    return;
+  }
+  api->SetCaptureFilePathTemplate(path);
+}
+
 // NOTE: our driver lockage logic is insanely complicated, no chance for thread safety analysis to help us here.
 int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_unused]] void *par3) DAG_TS_NO_THREAD_SAFETY_ANALYSIS
 {
@@ -773,13 +797,13 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 
     case Drv3dCommand::BEGIN_EXTERNAL_ACCESS:
     {
-      os_spinlock_lock(&dx_context_cs);
+      dx_context_cs.lock();
       return 1;
     }
 
     case Drv3dCommand::END_EXTERNAL_ACCESS:
     {
-      os_spinlock_unlock(&dx_context_cs);
+      dx_context_cs.unlock();
       return 1;
     }
 
@@ -957,7 +981,10 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::PIX_GPU_BEGIN_CAPTURE:
     {
       if (docAPI)
+      {
+        set_capture_path(docAPI, reinterpret_cast<const wchar_t *>(par2));
         docAPI->StartFrameCapture(nullptr, nullptr);
+      }
       return 0;
     }
 
@@ -972,16 +999,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     {
       if (docAPI)
       {
-        if (const wchar_t *name = reinterpret_cast<const wchar_t *>(par2))
-        {
-          char path[MAX_PATH];
-          GetCurrentDirectoryA(sizeof(path), path);
-          strcat_s(path, "\\GpuCaptures\\");
-          CreateDirectoryA(path, nullptr);
-          size_t pathLen = strlen(path);
-          WideCharToMultiByte(CP_UTF8, 0, name, -1, path + pathLen, sizeof(path) - (int)pathLen, nullptr, nullptr);
-          docAPI->SetCaptureFilePathTemplate(path);
-        }
+        set_capture_path(docAPI, reinterpret_cast<const wchar_t *>(par2));
         docAPI->TriggerMultiFrameCapture(reinterpret_cast<uintptr_t>(par3));
       }
       return 0;
@@ -1598,16 +1616,19 @@ d3d::EventQuery *d3d::create_event_query()
   if (fence_progress)
   {
     fence_based_event_queries.lock();
-    constexpr uint64_t AVAILABLE_QUERY = UINT64_MAX;
+
     // first query is placeholder for backward compatibility (index 0 means invalid query)
     if (fence_based_event_queries.empty())
-      fence_based_event_queries.push_back(0ull);
-    auto it = eastl::find(fence_based_event_queries.begin() + 1, fence_based_event_queries.end(), AVAILABLE_QUERY);
+      fence_based_event_queries.push_back(FenceBasedEventQueryState::AcquiredAndNotUsed);
+
+    auto it = eastl::find(fence_based_event_queries.begin() + 1, fence_based_event_queries.end(), FenceBasedEventQueryState::Released);
     if (it == fence_based_event_queries.end())
     {
-      fence_based_event_queries.push_back(0ull);
+      fence_based_event_queries.push_back(FenceBasedEventQueryState::AcquiredAndNotUsed);
       it = fence_based_event_queries.end() - 1;
     }
+    *it = FenceBasedEventQueryState::AcquiredAndNotUsed;
+
     auto result = (d3d::EventQuery *)eastl::distance(fence_based_event_queries.begin(), it);
     fence_based_event_queries.unlock();
     return result;
@@ -1624,7 +1645,7 @@ void d3d::release_event_query(EventQuery *q)
     size_t index = (size_t)q;
     fence_based_event_queries.lock();
     if (index < fence_based_event_queries.size())
-      fence_based_event_queries[index] = UINT64_MAX;
+      fence_based_event_queries[index] = FenceBasedEventQueryState::Released;
     fence_based_event_queries.unlock();
     return;
   }
@@ -1640,7 +1661,7 @@ bool d3d::issue_event_query(EventQuery *query)
 
     fence_based_event_queries.lock();
     auto idx = (size_t)query;
-    if (idx >= fence_based_event_queries.size())
+    if (idx >= fence_based_event_queries.size() || fence_based_event_queries[idx] == FenceBasedEventQueryState::Released)
     {
       fence_based_event_queries.unlock();
       return false;
@@ -1678,15 +1699,19 @@ bool d3d::get_event_query_status(d3d::EventQuery *query, bool flush)
     if (value > progress)
       return true; // bad query
 
-    if (flush)
+    bool ready = false;
+    ContextAutoLock contextLock;
+    uint64_t fenceProgress = fence_progress->GetCompletedValue();
+    ready = value <= fenceProgress;
+
+    if (!ready && flush)
     {
-      // Flush the command buffer analogous to the behavior of GetData
-      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+      update_frame_progress_unsafe();
+      dx_context->Flush();
+      ready = value <= fence_progress->GetCompletedValue();
     }
 
-    ContextAutoLock contextLock; // guard fence_progress
-    uint64_t fenceProgress = fence_progress->GetCompletedValue();
-    return value <= fenceProgress;
+    return ready;
   }
   int pQuery = (int)(intptr_t)query;
   if (pQuery <= 0 || !all_queries[pQuery].query)

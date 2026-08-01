@@ -17,10 +17,12 @@ struct PreparedSkies
   float froxelsMaxDist = 32000.f; // current
   float skiesLastTcZ = 1;
   Color4 precomputedTcDist = {1. / 80000, 0, 0, 0};
+  bool multiStageScattering = false;
 
   UniqueTex preparedLoss;
 
   carray<UniqueTex, 2> scatteringVolume; //-V730_NOINIT
+  UniqueTex scatteringPrecomputedShadow; //-V730_NOINIT
   d3d::SamplerHandle scatteringVolumeSampler = d3d::INVALID_SAMPLER_HANDLE;
   carray<UniqueTex, 2> skiesLutTex, skiesLutMieTex; //-V730_NOINIT
   uint32_t frame = 0;

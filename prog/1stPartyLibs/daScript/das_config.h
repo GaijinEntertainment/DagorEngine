@@ -81,8 +81,13 @@ using std::chrono::milliseconds;
 #endif
 #endif
 
-#define DAS_ASSERT    G_ASSERT
-#define DAS_ASSERTF   G_ASSERTF
+#if defined(_DEBUG_TAB_) || DAGOR_DBGLEVEL > 1
+#define DAS_ASSERT G_ASSERT
+#define DAS_ASSERTF G_ASSERTF
+#else
+#define DAS_ASSERT G_FAST_ASSERT
+#define DAS_ASSERTF(cond, ...) DAS_ASSERT(cond)
+#endif
 #define DAS_FATAL_LOG logerr
 #define DAS_FATAL_ERROR(...) \
   {                          \

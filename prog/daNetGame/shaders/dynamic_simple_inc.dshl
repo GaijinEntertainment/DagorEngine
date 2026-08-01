@@ -119,6 +119,15 @@ macro DYNAMIC_SIMPLE_VS_INPUT()
   channel color8 norm=norm unsigned_pack;
   channel short2 tc[0]=tc[0] mul_4k;
 
+  // Optional second UV for vertex-deformation features (see INIT_MORPH_VSINPUT).
+  // Declared here, not by the caller, because cooked vdata is matched against the
+  // shader channel list positionally (ScriptedShaderMaterial::checkChannels), so
+  // the order must stay pos/norm/tc0/tc1/bones.
+  if (maybe(need_morph_uv_channel))
+  {
+    channel float2 tc[1] = tc[1];
+  }
+
   if (num_bones != no_bones)
   {
     channel color8 tc[4] = extra[0];
@@ -129,6 +138,11 @@ macro DYNAMIC_SIMPLE_VS_INPUT()
   }
 
   hlsl(vs) {
+    // Empty unless a vertex-deformation feature needs a second UV in VsInput.
+    #ifndef INIT_MORPH_VSINPUT
+    #define INIT_MORPH_VSINPUT(t)
+    #endif
+
     struct VsInput
     {
       float3 pos                  : POSITION;   // W defaults to 1.
@@ -143,6 +157,7 @@ macro DYNAMIC_SIMPLE_VS_INPUT()
       float4 packedDu             : TEXCOORD2;
       float4 packedDv             : TEXCOORD3;
       #endif
+      INIT_MORPH_VSINPUT(TEXCOORD1)
       INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
     };
   }
@@ -240,8 +255,8 @@ macro DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
         float2 windNormalBlendParams            : TEXCOORD13;
         #endif
         #ifdef MOTION_VECTORS_ENABLED
-        float4 out_pos                          : TEXCOORD4;
-        float4 out_pos_prev                     : TEXCOORD5;
+        float3 out_pos                          : TEXCOORD4;
+        float3 out_pos_prev                     : TEXCOORD5;
         #endif
         #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
         float4 destr_params                     : TEXCOORD14;
@@ -296,6 +311,13 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
       #endif
       // unpack positions using dynmodel bbox
       input.pos.xyz = unpack_pos(input.pos);
+
+      // Vertex-deformation entry point. Runs on the unpacked local position before
+      // skinning and before vs_prev_function, whose wound tests read the final
+      // local pos, so deformation and wounds compose in that order.
+      #if HAS_VS_MORPH_FUNCTION
+      vs_morph_function(input);
+      #endif
 
       // unpack texcoord0
       #if NEED_TC
@@ -369,8 +391,8 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
     #ifdef MOTION_VECTORS_ENABLED
       prevPos = get_prevframe_output_pos(input, input.pos);
       // Initialize out_pos, out_pos_prev to make compiler happy. Proper values are set after vs_post_function.
-      output.out_pos = float4(0, 0, 0, 0);
-      output.out_pos_prev = float4(0, 0, 0, 0);
+      output.out_pos = float3(0, 0, 0);
+      output.out_pos_prev = float3(0, 0, 0);
     #endif
 ##endif
 
@@ -382,8 +404,8 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
 
 ##if dyn_model_render_pass == render_pass_normal
     #ifdef MOTION_VECTORS_ENABLED
-      output.out_pos = output.pos;
-      output.out_pos_prev = prevPos;
+      output.out_pos = output.pos.xyw;
+      output.out_pos_prev = prevPos.xyw;
     #endif
 ##endif
 

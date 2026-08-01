@@ -1,0 +1,262 @@
+include "sky_shader_global.dshl"
+include "cloudsDensity.dshl"
+include "clouds_bsm.dshl"
+include "writeToTex.dshl"
+
+//generation side of the Beer shadow map (see clouds_bsm.dshl for the format);
+//kept separate so consumers of clouds_bsm.dshl do not pull the density chain
+float4 clouds_bsm_gen;//x,y - window origin XZ, z - span, w - map resolution
+//an amortized bake spreads strips over N frames: every strip must trace the SAME
+//frozen state (sun, wind offset, hole) captured at attempt start, not the live globals
+float4 clouds_bsm_gen_sun;//sun dir toward the sun, (worldX, worldY up, worldZ)
+float4 clouds_bsm_gen_ofs;//clouds_origin_offset frozen at attempt start
+float4 clouds_bsm_gen_hole;//clouds_hole_pos displacement frozen at attempt start
+
+macro GEN_CLOUDS_BSM(code)
+  local float4 offseted_view_pos = (skies_world_view_pos.x+clouds_origin_offset.x, max(skies_world_view_pos.y, 10.), skies_world_view_pos.z+clouds_origin_offset.y,0);
+  hlsl(code) {
+    #define SIMPLIFIED_ALT_FRACTION 1
+  }
+  SAMPLE_CLOUDS_DENSITY_TEXTURE(code, offseted_view_pos)
+  (code) {
+    bsm_gen@f4 = clouds_bsm_gen;
+    //global sigma is natural log already (only shader-side bindings scale it by
+    //log2(e) for exp2 marches); negated positive, scaled by ms attenuation^2 so the
+    //map stores LAST-OCTAVE extinction - the same units the shadow volume feeds to
+    //clouds_shadow_from_extinction (physical units double-darken receivers)
+    //w: march steps - the slanted path grows as 1/sin(elevation), keep steps bounded
+    bsm_gen_consts@f4 = ((clouds_start_altitude2+clouds_thickness2)*1000, clouds_thickness2*1000,
+                         -global_clouds_sigma*clouds_bsm_ms_attn_sq,
+                         min(192., 64./max(0.34, clouds_bsm_gen_sun.y)));
+    //keep xy = world XZ, z = world Y (up)
+    bsm_light@f4 = (clouds_bsm_gen_sun.x, clouds_bsm_gen_sun.z, clouds_bsm_gen_sun.y,
+                    1./max(0.02, clouds_bsm_gen_sun.y));
+    clouds_origin_offset_bsm@f2 = clouds_bsm_gen_ofs;
+    clouds_hole_ofs_bsm@f2 = clouds_bsm_gen_hole;
+  }
+  hlsl(code) {
+    #define CLOUDS_BSM_DEPTH_RANGE 32000.
+    float3 gen_bsm(float2 tc)
+    {
+      //the texel indexes the sun ray by its layer-BOTTOM plane crossing (see
+      //clouds_bsm.dshl); march that ray from its layer-top entry - up-sun by the
+      //full slant drift - down along the sun, ending at the texel's crossing
+      float2 worldXZ = bsm_gen.xy + (tc - 0.5)*bsm_gen.z;
+      int steps = int(bsm_gen_consts.w);
+      float invSteps = 1./float(steps);//from the truncated count, so steps*stepLen covers the full path
+      float pathLen = bsm_gen_consts.y*bsm_light.w;//sun-axis length through the layer, meters
+      float stepLen = pathLen*invSteps;
+      //bsm_light.xyz = sun dir in world (x,z components in .xy, world y in .z), pointing at the sun
+      float3 stepVec = float3(-bsm_light.x*bsm_light.w, -1., -bsm_light.y*bsm_light.w)*(bsm_gen_consts.y*invSteps);
+      //field space includes clouds_origin_offset and the hole displacement: the
+      //renderer offsets density sampling by both, shadows must track the same field
+      float3 p = float3(worldXZ.x + clouds_origin_offset_bsm.x, bsm_gen_consts.x, worldXZ.y + clouds_origin_offset_bsm.y);
+      #if ALLOW_CLOUD_HOLE //same gate as the renderer: without it clouds are never displaced
+        p.xz += clouds_hole_ofs_bsm;
+      #endif
+      p.xz += float2(bsm_light.x, bsm_light.y)*(bsm_light.w*bsm_gen_consts.y);
+      p += stepVec*0.5;
+      float frontDepth = 1e9;
+      float totalOd = 0;
+      float occupied = 0;
+      LOOP
+      for (int i = 0; i < steps; ++i, p += stepVec)
+      {
+        float heightFraction = saturate(1. - (i + 0.5)*invSteps);
+        //the erosion-aware density the renderer shows: the raw field keeps the matter
+        //erosion erased, casting darker/wider shadows. Level 1 = the renderer's
+        //near-field level (the receiver-to-overhead-cloud match that reads); the live
+        //erosion phase drifting within an attempt is sub-texel, the filter averages it
+        float dens = sampleCloudDensity(p, 1., 0, heightFraction);
+        FLATTEN
+        if (dens > 0)
+        {
+          FLATTEN
+          if (frontDepth > 1e8)
+            frontDepth = (i + 0.5)*stepLen;
+          totalOd += dens;
+          occupied += 1.;
+        }
+      }
+      float sigmaStep = bsm_gen_consts.z*stepLen;
+      totalOd *= sigmaStep;
+      //od per CLOUDS_BSM_DEPTH_RANGE of depth, not per meter (units in clouds_bsm.dshl)
+      float meanExt = occupied > 0 ? totalOd/(occupied*stepLen)*CLOUDS_BSM_DEPTH_RANGE : 0;
+      FLATTEN
+      if (frontDepth > 1e8)
+        frontDepth = pathLen;
+      return float3(frontDepth*(1./CLOUDS_BSM_DEPTH_RANGE), meanExt, totalOd);
+    }
+  }
+endmacro
+
+//raw trace store: 8 bytes per texel, f16 triplet (front depth, mean ext, total od).
+//A raw byte-address UAV avoids the typed-UAV-store driver minefield entirely, and
+//f16 keeps more front-depth precision than the final R11G11B10 (the channel
+//Hillaire (SIGGRAPH 2020) reports as the temporal troublemaker)
+buffer clouds_bsm_raw;
+//no-compute fallback stores the same payload through an R11G11B10F RT instead of a UAV
+texture clouds_bsm_raw_tex;
+int clouds_bsm_gen_from_tex = 0;
+interval clouds_bsm_gen_from_tex: no < 1, yes;
+
+shader gen_clouds_bsm
+{
+  GEN_CLOUDS_BSM(cs)
+  (cs) {
+    clouds_bsm_raw_uav@uav = clouds_bsm_raw hlsl {
+      RWByteAddressBuffer clouds_bsm_raw_uav@uav;
+    }
+    bsm_bayer@f2 = (clouds_bsm_gen_ofs.z, clouds_bsm_gen_ofs.w, 0, 0);//frame index, slots per quad
+  }
+  hlsl(cs) {
+    //8x8 ordered-dither positions sorted by threshold (packed x | y<<3): frame k of
+    //an N-frame amortized bake traces slots [k*64/N .. (k+1)*64/N) of every quad, so
+    //frame ages interleave at texel frequency and the 3x3 filter blurs them away -
+    //contiguous strips would leave coherent age seams instead
+    static const uint BAYER_ORDER[64] = {
+      0, 36, 4, 32, 18, 54, 22, 50, 2, 38, 6, 34, 16, 52, 20, 48,
+      9, 45, 13, 41, 27, 63, 31, 59, 11, 47, 15, 43, 25, 61, 29, 57,
+      1, 37, 5, 33, 19, 55, 23, 51, 3, 39, 7, 35, 17, 53, 21, 49,
+      8, 44, 12, 40, 26, 62, 30, 58, 10, 46, 14, 42, 24, 60, 28, 56};
+    //compact dispatch: only the traced texels get threads. A full dispatch with an
+    //early-out would save nothing - the survivors are evenly scattered, so every
+    //wave would still carry full-length traces
+    [numthreads(64, 1, 1)]
+    void cs_main(uint tid : SV_DispatchThreadID)
+    {
+      uint res = uint(bsm_gen.w);
+      uint quadsRow = res >> 3;
+      uint perQuad = uint(bsm_bayer.y);//64/N slots per 8x8 quad this frame
+      uint quad = tid/perQuad, slot = tid - quad*perQuad;
+      if (quad >= quadsRow*quadsRow)
+        return;
+      uint packedPos = BAYER_ORDER[uint(bsm_bayer.x)*perQuad + slot];
+      uint2 texel = uint2(quad%quadsRow, quad/quadsRow)*8 + uint2(packedPos & 7, packedPos >> 3);
+      float3 v = gen_bsm((texel + 0.5)/float(res));
+      storeBuffer2(clouds_bsm_raw_uav, (texel.y*res + texel.x)*8,
+        uint2(f32tof16(v.x) | (f32tof16(v.y) << 16), f32tof16(v.z)));
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader gen_clouds_bsm_ps
+{
+  //no-compute fallback: a pixel shader cannot scatter to Bayer slots, so the bake
+  //amortizes in rects instead - frame k of N draws one viewport rect of the raw RT
+  //(coherent age seams between rects; the frozen attempt state keeps them small)
+  GEN_CLOUDS_BSM(ps)
+  WRITE_TO_TEX2D_TC()
+  hlsl(ps) {
+    float4 ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      float4 screenPos = GET_SCREEN_POS(input.pos);
+      return float4(gen_bsm(screenPos.xy/bsm_gen.w), 0);
+    }
+  }
+  compile("target_ps", "ps_main")
+}
+
+shader clouds_bsm_filter_ps
+{
+  (ps) { bsm_gen_res@f1 = (clouds_bsm_gen.w); }
+  hlsl(ps) {
+    int bsm_raw_res() { return int(bsm_gen_res); }
+  }
+  if (clouds_bsm_gen_from_tex == no)
+  {
+    (ps) {
+      clouds_bsm_raw@buf = clouds_bsm_raw hlsl {
+        ByteAddressBuffer clouds_bsm_raw@buf;
+      }
+    }
+    hlsl(ps) {
+      float3 loadRaw(int2 c, int res)
+      {
+        uint2 v = loadBuffer2(clouds_bsm_raw, (c.y*res + c.x)*8);
+        return float3(f16tof32(v.x & 0xFFFF), f16tof32(v.x >> 16), f16tof32(v.y));
+      }
+    }
+  }
+  else
+  {
+    (ps) {
+      clouds_bsm_raw_tex@tex2d = clouds_bsm_raw_tex;
+    }
+    hlsl(ps) {
+      float3 loadRaw(int2 c, int res) { return texelFetch(clouds_bsm_raw_tex, c, 0).xyz; }
+    }
+  }
+  WRITE_TO_TEX2D_TC()
+  hlsl(ps) {
+    //shadow map filter per Hillaire (SIGGRAPH 2020), same-res 3x3: raw per-texel
+    //marches disagree hard between neighbors and bilinear on the hard Beer curve
+    //reads as blocks.
+    //Mean extinction averages over OCCUPIED texels only (gen semantics) - a plain
+    //box mean dilutes it with empty air until in-cloud self-shadow disappears.
+    //Front depth is dilated (occupied mean minus mean-abs-deviation); the optical
+    //depth ceiling is box-averaged so shadow edges still soften.
+    float4 ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      float4 screenPos = GET_SCREEN_POS(input.pos);
+      int2 c = int2(screenPos.xy);
+      int res = bsm_raw_res();
+      float3 d[9];
+      float extSum = 0, odSum = 0, depthSum = 0, occ = 0;
+      UNROLL
+      for (int i = 0; i < 9; ++i)
+      {
+        d[i] = loadRaw(clamp(c + int2(i%3 - 1, i/3 - 1), int2(0,0), int2(res-1,res-1)), res);
+        bool o = d[i].y > 0;
+        extSum += d[i].y; odSum += d[i].z;
+        depthSum += o ? d[i].x : 0;
+        occ += o ? 1 : 0;
+      }
+      BRANCH
+      if (occ == 0)
+        return float4(1, 0, 0, 0);//empty: no matter the depth, transmittance is 1
+      float depthMean = depthSum/occ;
+      float depthDev = 0;
+      UNROLL
+      for (int j = 0; j < 9; ++j)
+        depthDev += d[j].y > 0 ? abs(d[j].x - depthMean) : 0;
+      return float4(max(depthMean - depthDev/occ, 0.), extSum/occ, odSum*(1./9.), 0);
+    }
+  }
+  compile("target_ps", "ps_main")
+}
+
+texture clouds_bsm_blend_src;
+texture clouds_bsm_blend_hist;
+float4 clouds_bsm_blend;//x - weight toward src, yz - history uv offset (window rebase)
+
+shader clouds_bsm_blend_ps
+{
+  (ps) {
+    clouds_bsm_blend_src@tex2d = clouds_bsm_blend_src;
+    clouds_bsm_blend_hist@smp2d = clouds_bsm_blend_hist;
+    clouds_bsm_blend@f4 = clouds_bsm_blend;
+  }
+  WRITE_TO_TEX2D_TC()
+  hlsl(ps) {
+    //linear convergence toward the finished attempt: frame k of N blends with
+    //weight 1/(N-k), so every attempt frame contributes equally and the last write
+    //(w = 1) makes live bit-exact - no EMA precision tail, nothing left to swap.
+    //History is sampled at a uv shifted by the window origin delta (texel-snapped,
+    //so exact): a re-center rebases smoothly instead of popping
+    float4 ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      float4 screenPos = GET_SCREEN_POS(input.pos);
+      float3 srcV = texelFetch(clouds_bsm_blend_src, int2(screenPos.xy), 0).xyz;
+      float2 histUv = input.texcoord + clouds_bsm_blend.yz;
+      float w = clouds_bsm_blend.x;
+      FLATTEN
+      if (max(abs(histUv.x - 0.5), abs(histUv.y - 0.5)) >= 0.5)
+        w = 1.;//newly exposed area: no history, take the attempt directly
+      float3 histV = tex2Dlod(clouds_bsm_blend_hist, float4(histUv, 0, 0)).xyz;
+      return float4(lerp(histV, srcV, w), 0);
+    }
+  }
+  compile("target_ps", "ps_main")
+}

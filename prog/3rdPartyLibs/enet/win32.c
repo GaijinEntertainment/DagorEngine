@@ -387,13 +387,16 @@ enet_socket_receive_impl (ENetSocket socket,
        case WSAEWOULDBLOCK:
        case WSAECONNRESET:
           return 0;
+       case WSAEINTR:
+       case WSAEMSGSIZE:
+          return -2;
+       default:
+          return -1;
        }
-
-       return -1;
     }
 
     if (flags & MSG_PARTIAL)
-      return -1;
+      return -2;
 
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC // dagor - debug statistics
     enet_rx_bytes += recvLength + UDP_HEADER_SIZE;

@@ -786,7 +786,7 @@ public:
   virtual void init(FastPhysSystem &, GeomNodeTree &nodeTree)
   {
     nodeWtm = resolve_node_wtm(nodeTree, nodeName);
-    nodeWofs = nodeTree.getWtmOfsPersistentPtr();
+    nodeWofs = nodeTree.getWtmOfsPtr();
   }
 
 
@@ -969,7 +969,7 @@ public:
   virtual void init(FastPhysSystem &, GeomNodeTree &nodeTree)
   {
     nodeWtm = resolve_node_wtm(nodeTree, nodeName);
-    nodeWofs = nodeTree.getWtmOfsPersistentPtr();
+    nodeWofs = nodeTree.getWtmOfsPtr();
   }
 
 

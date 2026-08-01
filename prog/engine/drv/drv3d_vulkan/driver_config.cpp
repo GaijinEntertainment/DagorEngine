@@ -197,6 +197,15 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
+    const DataBlock *uniformBufferProp = getPerDriverPropertyBlock("uniformBuffers");
+    dynamicUniformBufferTotal = Globals::VK::phy.maxDynamicUniformBuffersInLayout();
+    // override may only lower the per-stage count (e.g. to work around a driver overreporting limits)
+    dynamicUniformBufferSlotsCap =
+      min((uint32_t)uniformBufferProp->getInt("dynamicSlots", spirv::B_REGISTER_INDEX_MAX), (uint32_t)spirv::B_REGISTER_INDEX_MAX);
+    debug("vulkan: dynamic uniform buffer total %u, per-stage cap %u", dynamicUniformBufferTotal, dynamicUniformBufferSlotsCap);
+  }
+
+  {
     const DataBlock *pipelineCacheProp = getPerDriverPropertyBlock("pipelineCache");
     pipelineCacheBlockingSaveMaxSizeMb = pipelineCacheProp->getInt("blockingSaveMaxSizeMb", 256);
     pipelineCacheMaxSizeMb = pipelineCacheProp->getInt("maxSizeMb", 1920);
@@ -396,6 +405,14 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     getPerDriverPropertyBlock("brokenClearsOnNonLinearUAVRT")->getBool("affected", Globals::VK::phy.vendor == GpuVendor::AMD);
   if (bits.brokenClearsOnNonLinearUAVRT)
     debug("vulkan: applying workaround for broken clears on non-linear UAV render targets");
+
+  bits.sampledDepthReadOnlyLayout = getPerDriverPropertyBlock("sampledDepthReadOnlyLayout")->getBool("affected", true);
+  if (bits.sampledDepthReadOnlyLayout)
+    debug("vulkan: sampling depth textures in read-only depth layout");
+
+  bits.delayCompactionSizeCopy = getPerDriverPropertyBlock("delayCompactionSizeCopy")->getBool("affected", false);
+  if (bits.delayCompactionSizeCopy)
+    debug("vulkan: using delayed compaction copies");
 }
 
 const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
@@ -507,8 +524,9 @@ void DriverConfig::extCapsFillPCWinOnly(DriverDesc &caps)
   caps.caps.hasVolMipMap = true;
   caps.caps.hasAsyncCompute = false;
   caps.caps.hasOcclusionQuery = true;
-  caps.caps.hasConstBufferOffset = false;
   caps.caps.hasResourceCopyConversion = true;
+  // no depth format conversion via blit/copy on vulkan, requires an explicit shader-based depth copy
+  caps.caps.hasDepthConversionByTransfer = false;
   caps.caps.hasReadMultisampledDepth = true;
   caps.caps.hasGather4 = true;
   caps.caps.hasNVApi = false;
@@ -535,6 +553,8 @@ void DriverConfig::extCapsFillPCWinOnly(DriverDesc &caps)
   caps.caps.hasGeometryIndexInRayAccelerationStructure = false;
   caps.caps.hasSkipPrimitiveTypeInRayTracingShaders = false;
   caps.caps.hasNativeRayTracePipelineExpansion = false;
+  caps.caps.hasRayTraceOpacityMicroMapTriangleArrays = false;
+  caps.caps.hasRayTraceForce2StateOpacityMicroMap = false;
   caps.caps.hasProperUAVSupport = true;
   caps.caps.hasBarrierNone = false;
   caps.caps.hasPipelineStatisticsQuery = false; // TODO: add support for this
@@ -640,6 +660,25 @@ void DriverConfig::extCapsFillMultiplatform(DriverDesc &caps)
   // Only offer AS support when we can actually use it with anything
   // -V:caps.caps.hasRayAccelerationStructure:1048 not true
   caps.caps.hasRayAccelerationStructure = caps.caps.hasRayAccelerationStructure && caps.caps.hasRayQuery;
+
+// cap is compile time false on other platforms
+#if VK_EXT_opacity_micromap && (_TARGET_PC_WIN || _TARGET_PC_LINUX)
+  // Drop the flag the driver itself validates against instead of only hiding the caps, so that OMM api use keeps being rejected as it
+  // would be on hardware without OMM at all.
+  if (Globals::VK::phy.hasOpacityMicromap && !gpu::is_omm_hardware_accelerated(caps.info) &&
+      !::dgs_get_settings()->getBlockByNameEx("vulkan")->getBool("allowSoftwareOmm", false))
+  {
+    debug("vulkan: opacity micro maps are only emulated by the driver on this GPU, reporting them as unsupported");
+    Globals::VK::phy.hasOpacityMicromap = false;
+  }
+
+  caps.caps.hasRayTraceOpacityMicroMapTriangleArrays = Globals::VK::phy.hasOpacityMicromap && caps.caps.hasRayAccelerationStructure;
+  caps.caps.hasRayTraceForce2StateOpacityMicroMap = Globals::VK::phy.hasOpacityMicromap && caps.caps.hasRayAccelerationStructure;
+  // VK spec: micromap build input data device address must be 256 byte aligned
+  caps.raytrace.opacityMicroMapInputBufferAlignment = 256;
+  debug("vulkan: hasRayTraceOpacityMicroMapTriangleArrays=%d", (int)caps.caps.hasRayTraceOpacityMicroMapTriangleArrays);
+  debug("vulkan: hasRayTraceForce2StateOpacityMicroMap=%d", (int)caps.caps.hasRayTraceForce2StateOpacityMicroMap);
+#endif
 
   // don't allow tiled resources without timeline semaphores, for code simplicity around sparse binding sync logic
   bool allowTiledResources = Globals::VK::phy.features.sparseBinding && Globals::VK::phy.hasTimelineSemaphore;
@@ -852,9 +891,43 @@ void DriverConfig::extCapsFillUniversal(DriverDesc &caps)
 #undef GJN_DEPTH_RESOLVE_MODE_VK
 #undef GJN_DEPTH_RESOLVE_MODES
 
-  caps.shaderModel = has.sixteenBitStorage ? 6.2_sm : 6.0_sm;
+  caps.shaderModel = 6.9_sm;
+
+  auto dropShaderModel = [&caps](d3d::shadermodel::Version fallback) { caps.shaderModel = fallback; };
+
   VkShaderStageFlags requiredWaveStages = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT;
-  if ((has.waveOperationsStageMask & requiredWaveStages) != requiredWaveStages)
+  bool hasRequiredWaveOps = (has.waveOperationsStageMask & requiredWaveStages) == requiredWaveStages;
+
+  // Missing opacity micro maps cap the shader model at 6.7. Asks what the device implements rather than whether OMM may be used, so
+  // that refusing to use OMM does not cap the shader model as well.
+  if (!Globals::VK::phy.deviceReportsOpacityMicromap)
+    dropShaderModel(6.7_sm);
+
+  // SM 6.7: QuadAny/QuadAll (VK_KHR_shader_quad_control) - this extends existing quad
+  // subgroup operations, it doesn't provide them on its own
+  if (!(Globals::VK::phy.hasShaderQuadControl && hasRequiredWaveOps))
+    dropShaderModel(6.6_sm);
+
+  // dynamic/bindless resource indexing
+  if (!Globals::VK::phy.hasBindless)
+    dropShaderModel(6.5_sm);
+
+  // DXR 1.1 style inline raytracing (RayQuery).
+  if (!(Globals::VK::phy.hasAccelerationStructure && Globals::VK::phy.hasRayQuery && Globals::VK::phy.hasRayTracingPipeline))
+    dropShaderModel(6.3_sm);
+
+  // DXR 1.0 style pipeline raytracing
+  if (!(Globals::VK::phy.hasAccelerationStructure && Globals::VK::phy.hasRayTracingPipeline))
+    dropShaderModel(6.2_sm);
+
+  if (!has.sixteenBitStorage)
+    dropShaderModel(6.1_sm);
+
+  // SV_Barycentrics
+  if (!Globals::VK::phy.hasFragmentShaderBarycentric)
+    dropShaderModel(6.0_sm);
+
+  if (!hasRequiredWaveOps)
   {
     caps.shaderModel = 5.0_sm;
     caps.caps.hasWaveOps = false;
@@ -868,28 +941,38 @@ void DriverConfig::extCapsFillUniversal(DriverDesc &caps)
     caps.shaderModel = 4.1_sm;
   }
 
+  debug("vulkan: shaderModel=%u.%u", (unsigned)caps.shaderModel.major, (unsigned)caps.shaderModel.minor);
+
+  VkPhysicalDeviceLimits &limits = properties.limits;
+  auto clampToInt = [](uint32_t val) {
+    constexpr uint32_t INT_NO_LIMIT = 0x7FFFFFFF;
+    if (val > INT_NO_LIMIT)
+      return (int)INT_NO_LIMIT;
+    else
+      return (int)val;
+  };
+
   caps.caps.hasShaderFloat16Support = Globals::VK::phy.hasShaderFloat16;
-  caps.maxtexw = min(caps.maxtexw, (int)properties.limits.maxImageDimension2D);
-  caps.maxtexh = min(caps.maxtexh, (int)properties.limits.maxImageDimension2D);
-  caps.maxcubesize = min(caps.maxcubesize, (int)properties.limits.maxImageDimensionCube);
-  caps.maxvolsize = min(caps.maxvolsize, (int)properties.limits.maxImageDimension3D);
+  caps.maxtexw = min(caps.maxtexw, clampToInt(limits.maxImageDimension2D));
+  caps.maxtexh = min(caps.maxtexh, clampToInt(limits.maxImageDimension2D));
+  caps.maxcubesize = min(caps.maxcubesize, clampToInt(limits.maxImageDimensionCube));
+  caps.maxvolsize = min(caps.maxvolsize, clampToInt(limits.maxImageDimension3D));
   caps.maxtexaspect = max(caps.maxtexaspect, 0);
-  caps.maxtexcoord = min(caps.maxtexcoord, (int)properties.limits.maxVertexInputAttributes);
-  caps.maxsimtex = min(caps.maxsimtex, (int)properties.limits.maxDescriptorSetSampledImages);
-  caps.maxvertexsamplers = min(caps.maxvertexsamplers, (int)properties.limits.maxPerStageDescriptorSampledImages);
-  caps.maxclipplanes = min(caps.maxclipplanes, (int)properties.limits.maxClipDistances);
-  caps.maxstreams = min(caps.maxstreams, (int)properties.limits.maxVertexInputBindings);
-  caps.maxstreamstr = min(caps.maxstreamstr, (int)properties.limits.maxVertexInputBindingStride);
-  caps.maxvpconsts = min(caps.maxvpconsts, (int)(properties.limits.maxUniformBufferRange / (sizeof(float) * 4)));
-  caps.maxprims = min(caps.maxprims, (int)properties.limits.maxDrawIndexedIndexValue);
-  caps.maxvertind = min(caps.maxvertind, (int)properties.limits.maxDrawIndexedIndexValue);
-  caps.maxSimRT = min(caps.maxSimRT, (int)properties.limits.maxColorAttachments);
+  caps.maxtexcoord = min(caps.maxtexcoord, clampToInt(limits.maxVertexInputAttributes));
+  caps.maxsimtex = min(caps.maxsimtex, clampToInt(limits.maxDescriptorSetSampledImages));
+  caps.maxvertexsamplers = min(caps.maxvertexsamplers, clampToInt(limits.maxPerStageDescriptorSampledImages));
+  caps.maxclipplanes = min(caps.maxclipplanes, clampToInt(limits.maxClipDistances));
+  caps.maxstreams = min(caps.maxstreams, clampToInt(limits.maxVertexInputBindings));
+  caps.maxstreamstr = min(caps.maxstreamstr, clampToInt(limits.maxVertexInputBindingStride));
+  caps.maxvpconsts = min(caps.maxvpconsts, clampToInt(limits.maxUniformBufferRange / (sizeof(float) * 4)));
+  caps.maxprims = min(caps.maxprims, clampToInt(limits.maxDrawIndexedIndexValue));
+  caps.maxvertind = min(caps.maxvertind, clampToInt(limits.maxDrawIndexedIndexValue));
+  caps.maxSimRT = min(caps.maxSimRT, clampToInt(limits.maxColorAttachments));
   caps.minWarpSize = Globals::VK::phy.warpSize;
   caps.maxWarpSize = Globals::VK::phy.warpSize;
 
 #if _TARGET_ANDROID
-  caps.caps.hasDualSourceBlending =
-    Globals::VK::phy.features.dualSrcBlend && Globals::VK::phy.properties.limits.maxFragmentDualSrcAttachments >= 1;
+  caps.caps.hasDualSourceBlending = Globals::VK::phy.features.dualSrcBlend && limits.maxFragmentDualSrcAttachments >= 1;
 #endif
 }
 

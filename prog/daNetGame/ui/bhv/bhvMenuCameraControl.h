@@ -14,7 +14,10 @@ struct MenuCameraControlData;
 class BhvMenuCameraControl : public darg::Behavior
 {
 public:
-  SQ_PRECACHED_STRINGS_DECLARE(CachedStrings, cstr, panMouseButton);
+  SQ_PRECACHED_STRINGS_DECLARE(CachedStrings,
+    cstr, //
+    panMouseButton,
+    menuCameraControlData);
 
   BhvMenuCameraControl(int flags = F_HANDLE_MOUSE | F_HANDLE_TOUCH | F_INTERNALLY_HANDLE_GAMEPAD_R_STICK);
   virtual void onAttach(darg::Element *) override;

@@ -67,6 +67,11 @@ private:
   inline intermediate::NodeIndex irIndexByNodeId(const NodeId node_id) const { return nodes[node_id].irIndex; };
   inline intermediate::ResourceIndex irIndexByResId(const ResourceId resource_id) const { return resources[resource_id].irIndex; }
 
+  dag::Vector<intermediate::NodeIndex> presIrNodeIndices;
+  dag::Vector<intermediate::ResourceIndex> presIrResIndices;
+  dag::Vector<eastl::string_view> presIrNodeNames;
+  dag::Vector<eastl::string_view> presIrResNames;
+
   IdIndexedMapping<OrderingId, Ordering> orderings;
   IdIndexedMapping<UsageId, Usage> usages;
 
@@ -120,7 +125,12 @@ private:
   // focusing
   const struct
   {
+    mutable eastl::string nodeSearchInput;
+    mutable int nodeIndex = UNKNOWN_INDEX;
     mutable NodeId node = NodeId::Invalid;
+
+    mutable eastl::string resourceSearchInput;
+    mutable int resourceIndex = UNKNOWN_INDEX;
     mutable ResourceId resource = ResourceId::Invalid;
 
 
@@ -129,20 +139,34 @@ private:
 
     inline void set(NodeId id) const
     {
-      node = id;
+      resourceSearchInput.clear();
+      resourceIndex = UNKNOWN_INDEX;
       resource = ResourceId::Invalid;
+
+      node = id;
     }
     inline void set(ResourceId id) const
     {
+      nodeSearchInput.clear();
+      nodeIndex = UNKNOWN_INDEX;
       node = NodeId::Invalid;
+
       resource = id;
     }
     inline void reset() const
     {
+      nodeSearchInput.clear();
+      nodeIndex = UNKNOWN_INDEX;
       node = NodeId::Invalid;
+
+      resourceSearchInput.clear();
+      resourceIndex = UNKNOWN_INDEX;
       resource = ResourceId::Invalid;
     };
   } focusState;
+
+  void centerOnFocusedNode();
+  void centerOnFocusedResource();
 };
 
 } // namespace dafg::visualization::irgraph

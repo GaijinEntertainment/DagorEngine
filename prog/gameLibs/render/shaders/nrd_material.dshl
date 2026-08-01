@@ -1,0 +1,18 @@
+include_optional "denoiser_material.dshl"
+
+define_macro_if_not_defined INIT_DENOISER_MATERIAL(code)
+endmacro
+
+define_macro_if_not_defined USE_DENOISER_MATERIAL(code)
+  hlsl(code){
+    uint getNRDMaterialID(float w, bool is_hero_cockpit, bool is_grass, bool is_foliage)
+    {
+      return 0;
+    }
+  }
+endmacro
+
+define_macro_if_not_defined INIT_AND_USE_DENOISER_MATERIAL(code)
+  INIT_DENOISER_MATERIAL(code)
+  USE_DENOISER_MATERIAL(code)
+endmacro

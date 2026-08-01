@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <string_view>
+#include <filesystem>
+
 #define FontUtil_CID       Class_ID(0x3409613e, 0x754e4800)
 #define DagorMat_CID       Class_ID(0x70a066e2, 0x18a04e07)
 #define DagorMat2_CID      Class_ID(0x72fcfac4, 0xddfb36f0)
@@ -45,9 +48,9 @@ TCHAR *GetString(int id);
 
 const TCHAR *make_path_rel(const TCHAR *);
 
-void set_dagor_path(const std::wstring &p);
+void set_dagor_path(std::wstring_view p);
 
-extern std::wstring dagor_path;
+extern std::filesystem::path dagor_path;
 
 extern HINSTANCE hInstance;
 

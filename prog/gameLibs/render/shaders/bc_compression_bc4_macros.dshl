@@ -1,0 +1,124 @@
+//Need this file seperated and clean of shader var definitions for cloud NBS
+
+macro USE_X8_3BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    #ifndef bc4_type
+      #define bc4_type half4
+    #endif
+    // pack 8 texels for pack_x8_3bpp_block
+    int pack_3bpp_8_texels( bc4_type texels[16], int component, int offset, half min_color, float inv_color_len )
+    {
+      uint res = 0;
+      // cmp res - bin output
+      // c0 = max_color, c1 = min_color
+      // 0000/000 - 0|0|1 (0x01)
+      // 1000/000 - 1|1|1 (0x07)
+      // 1100/000 - 1|1|0 (0x06)
+      // 1110/000 - 1|0|1 (0x05)
+      // 1111/000 - 1|0|0 (0x04)
+      // 1111/100 - 0|1|1 (0x03)
+      // 1111/110 - 0|1|0 (0x02)
+      // 1111/111 - 0|0|0 (0x00)
+      #define ONE_TEXEL(i)\
+        {\
+          float progr = ( texels[i + offset][component] - min_color ) *inv_color_len;  /*value progress on color line*/\
+          int4 cmp1 = progr.xxxx > float4( 1.f / 14.f, 3.f / 14.f, 5.f / 14.f, 7.f / 14.f );\
+          int3 cmp2 = progr.xxx > float3( 9.f / 14.f, 11.f / 14.f, 13.f / 14.f );\
+          int val = 1.0 + dot( cmp1, int4( 6, -1, -1, -1 ) ) + dot( cmp2, int3( -1, -1, -2 ) );  /*convert cmp to bin pack*/\
+          res |= uint(val) << (3*i); /* bit offset*/\
+        }
+      ONE_TEXEL(0)ONE_TEXEL(1)ONE_TEXEL(2)ONE_TEXEL(3)
+      ONE_TEXEL(4)ONE_TEXEL(5)ONE_TEXEL(6)ONE_TEXEL(7)
+      #undef ONE_TEXEL
+
+      return res;
+    }
+
+    // prepare values for x8_3bpp (x:packed colors, yz:texels)
+    int3 prepare_x8_3bpp_block( bc4_type texels[16], int component, bc4_type min_color, bc4_type max_color )
+    {
+      const int color_convert = 0xff; // x8 normalization
+      const int2 packing_convert = int2( 0x01, 0x0100 ); // x8x8 bit offset
+      half2 colors = half2( max_color[component], min_color[component] ); // c0 > c1
+
+      int2 colors_int = colors * color_convert;
+      int packed_colors = colors_int.x + (colors_int.y << 8);//dot( colors_int, packing_convert );
+
+      if ( colors_int.x == colors_int.y ) // early out
+        return int3( colors_int.x, 0x00, 0x00 );
+
+      float inv_color_len = rcp(max_color[component] - min_color[component]);
+
+      int3 values;
+      values.x = packed_colors;
+      values.y = pack_3bpp_8_texels( texels, component, 0, min_color[component], inv_color_len );
+      values.z = pack_3bpp_8_texels( texels, component, 8, min_color[component], inv_color_len );
+
+      return values;
+    }
+
+    // 64 bits block (4x16)
+    int4 pack_x8_3bpp_block_4x16( bc4_type texels[16], int component, bc4_type min_color, bc4_type max_color )
+    {
+      int3 values = prepare_x8_3bpp_block( texels, component, min_color, max_color );
+
+      int2 repacked_x_values;
+      repacked_x_values.x = values.y >> 16; // bits tail
+      repacked_x_values.y = values.y - ( repacked_x_values.x << 16 ); // bits head
+
+      int2 repacked_y_values;
+      repacked_y_values.x = values.z >> 8; // bits tail
+      repacked_y_values.y = values.z - ( repacked_y_values.x << 8 ); // bits head
+
+      // x - x8x8 colors
+      // y - first block head (16)
+      // z - first block tail (8) and second block head (8)
+      // w - second block tail (8)
+      int4 packed_block;
+      packed_block.x = values.x;
+      packed_block.y = repacked_x_values.y;
+      packed_block.z = repacked_x_values.x + ( repacked_y_values.y << 8 );
+      packed_block.w = repacked_y_values.x;
+
+      return packed_block;
+    }
+
+    // 64 bits block (2x32)
+    int2 pack_x8_3bpp_block_2x32( bc4_type texels[16], int component, bc4_type min_color, bc4_type max_color )
+    {
+      int3 values = prepare_x8_3bpp_block( texels, component, min_color, max_color );
+
+      int2 repacked_x_values;
+      repacked_x_values.x = values.y >> 16; // bits tail
+      repacked_x_values.y = values.y - (repacked_x_values.x << 16); // bits head
+
+      // x - x8x8 colors and values first block head (16 bits)
+      // y - values first block tail (8 bits) and full second block (24 bits)
+      int2 packed_block;
+      packed_block.x = values.x + (repacked_x_values.y << 16);
+      packed_block.y = repacked_x_values.x + (values.z << 8);
+
+      return packed_block;
+    }
+  }
+
+endmacro // USE_X8_3BPP_COMPRESSION
+
+//
+// BC4 (ATI1N) ready-to-use func
+//
+macro USE_BC4_COMPRESSION(code)
+
+  USE_X8_3BPP_COMPRESSION(code)
+
+  hlsl(code)
+  {
+    int4 pack_bc4_block( bc4_type texels[16], bc4_type min_color, bc4_type max_color )
+    {
+      int4 res16 = pack_x8_3bpp_block_4x16( texels, 0, min_color, max_color );
+      return int4(res16.r + (res16.g << 16), res16.b + (res16.a << 16), 0, 0);
+    }
+  }
+endmacro // USE_BC4_COMPRESSION

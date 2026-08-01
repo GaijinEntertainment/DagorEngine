@@ -10,9 +10,6 @@
 #include <signal.h>
 #include <vromfsPacker/vromfsPacker.h>
 
-size_t dagormem_first_pool_sz = 512 << 20;
-size_t dagormem_next_pool_sz = 256 << 20;
-
 
 static void __cdecl ctrl_break_handler(int) { quit_game(0); }
 

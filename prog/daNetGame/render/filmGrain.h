@@ -6,6 +6,15 @@
 #include <EASTL/unique_ptr.h>
 #include <math/dag_Point4.h>
 
+enum class FilmGrainMode : uint8_t
+{
+  NOISE_BASED = 0,
+  LUT_BASED = 1,
+  DISABLED = 2,
+};
+
+FilmGrainMode get_film_grain_mode();
+
 class FilmGrainLutHolder
 {
 public:
@@ -48,7 +57,7 @@ private:
   int genSlice = -1;
   bool rebuildRequested = false;
 
-  [[nodiscard]] bool isLutNeeded() const { return (enabledFromSettings || enabledFromExternalModifier) && lutWH > 0 && lutD > 0; }
+  [[nodiscard]] bool isLutNeeded() const;
   void requestRebuild();
   void resetLut();
   void setFilmGrainReady(bool is_ready);

@@ -1,2 +1,2 @@
-let f = function foo() {}
+let f = function f() {}
 let c = class {}

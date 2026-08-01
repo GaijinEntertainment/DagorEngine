@@ -1,9 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <osApiWrappers/dag_clipboard.h>
+#include <osApiWrappers/dag_unicode.h>
 #include <supp/dag_android_native_app_glue.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <startup/dag_globalSettings.h>
+#include <string.h>
 
 namespace clipboard
 {
@@ -16,6 +18,8 @@ bool set_clipboard_ansi_text(const char *) { return false; }
 
 bool get_clipboard_utf8_text(char *dest, int buf_size)
 {
+  if (!dest || buf_size < 1)
+    return false;
   android_app *app = (android_app *)win32_get_instance();
   JavaVM *vm = app->activity->vm;
   JNIEnv *env;
@@ -82,15 +86,56 @@ bool get_clipboard_utf8_text(char *dest, int buf_size)
   }
 
   jstring text_string = static_cast<jstring>(text);
-  const char *utf8_text = env->GetStringUTFChars(text_string, nullptr);
-  if (!utf8_text)
+  // GetStringUTFChars gives JNI modified UTF-8 (non-BMP as CESU-8 pairs), not standard UTF-8;
+  // getBytes does. Convert only the dest-sized prefix, not a whole huge clipboard.
+  jint str_len = env->GetStringLength(text_string);
+  jint want = buf_size - 1 < str_len ? buf_size - 1 : str_len; // >= 1 UTF-8 byte per UTF-16 unit
+  if (want > 0 && want < str_len)
   {
+    jchar last = 0;
+    env->GetStringRegion(text_string, want - 1, 1, &last);
+    if (last >= 0xD800 && last <= 0xDBFF) // don't split a surrogate pair; getBytes would emit '?'
+      --want;
+  }
+
+  if (want <= 0) // nothing to copy
+  {
+    dest[0] = '\0';
+    env->DeleteLocalRef(text);
+    DETACH_VM(vm);
+    return true;
+  }
+
+  jclass string_class = env->GetObjectClass(text_string);
+  jmethodID substring_method = env->GetMethodID(string_class, "substring", "(II)Ljava/lang/String;");
+  jmethodID getBytes_method = env->GetMethodID(string_class, "getBytes", "(Ljava/lang/String;)[B");
+  env->DeleteLocalRef(string_class);
+  jstring prefix = (jstring)env->CallObjectMethod(text_string, substring_method, 0, want);
+  jstring charset = env->NewStringUTF("UTF-8");
+  jbyteArray byte_array = (jbyteArray)env->CallObjectMethod(prefix, getBytes_method, charset);
+  env->DeleteLocalRef(charset);
+  env->DeleteLocalRef(prefix);
+  if (!byte_array)
+  {
+    env->DeleteLocalRef(text);
     DETACH_VM(vm);
     return false;
   }
 
-  strncpy(dest, utf8_text, buf_size);
-  env->ReleaseStringUTFChars(text_string, utf8_text);
+  jsize len = env->GetArrayLength(byte_array);
+  jbyte *bytes = env->GetByteArrayElements(byte_array, nullptr);
+  if (!bytes)
+  {
+    env->DeleteLocalRef(byte_array);
+    env->DeleteLocalRef(text);
+    DETACH_VM(vm);
+    return false;
+  }
+  int n = utf8_truncate_len((const char *)bytes, len < buf_size - 1 ? (int)len : buf_size - 1);
+  memcpy(dest, bytes, n);
+  dest[n] = '\0';
+  env->ReleaseByteArrayElements(byte_array, bytes, JNI_ABORT);
+  env->DeleteLocalRef(byte_array);
   env->DeleteLocalRef(text);
   DETACH_VM(vm);
 

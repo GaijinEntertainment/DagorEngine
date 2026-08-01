@@ -30,6 +30,7 @@
 #include "acl/core/memory_utils.h"
 #include "acl/core/track_formats.h"
 #include "acl/core/track_types.h"
+#include "acl/math/quatf.h"
 #include "acl/math/scalar_packing.h"
 #include "acl/math/vector4_packing.h"
 
@@ -65,7 +66,7 @@ namespace acl
 	inline rtm::quatf RTM_SIMD_CALL unpack_quat_96_unsafe(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_96_unsafe(data_ptr);
-		return rtm::quat_from_positive_w(rotation_xyz);
+		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
 	}
 
 	inline void RTM_SIMD_CALL pack_quat_48(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
@@ -77,7 +78,7 @@ namespace acl
 	inline rtm::quatf RTM_SIMD_CALL unpack_quat_48(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_s48_unsafe(data_ptr);
-		return rtm::quat_from_positive_w(rotation_xyz);
+		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
 	}
 
 	inline void RTM_SIMD_CALL pack_quat_32(rtm::quatf_arg0 rotation, uint8_t* out_rotation_data)
@@ -89,7 +90,7 @@ namespace acl
 	inline rtm::quatf RTM_SIMD_CALL unpack_quat_32(const uint8_t* data_ptr)
 	{
 		rtm::vector4f rotation_xyz = unpack_vector3_32(11, 11, 10, false, data_ptr);
-		return rtm::quat_from_positive_w(rotation_xyz);
+		return acl_impl::quat_from_positive_w_stable(rotation_xyz);
 	}
 
 	//////////////////////////////////////////////////////////////////////////

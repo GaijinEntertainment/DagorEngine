@@ -20,7 +20,7 @@ def private get_phys_obj_controls_impl(var phys_obj_net_phys : PhysObjActor&; ge
   return ct
 
 def get_phys_obj_produced_controls(var phys_obj_net_phys : PhysObjActor&) : SpaceShipControlsState?
-  return get_phys_obj_controls_impl(phys_obj_net_phys, $(var p:PhysObj&; sz : int) : auto => getProducedCustomControls(p, sz) )
+  return get_phys_obj_controls_impl(phys_obj_net_phys, $(var p : PhysObj&; sz : int) : auto => getProducedCustomControls(p, sz))
 
 def get_phys_obj_applied_controls(var phys_obj_net_phys : PhysObjActor&) : SpaceShipControlsState?
-  return get_phys_obj_controls_impl(phys_obj_net_phys, $(var p:PhysObj&; sz : int) : auto => getAppliedCustomControls(p, sz) )
+  return get_phys_obj_controls_impl(phys_obj_net_phys, $(var p : PhysObj&; sz : int) : auto => getAppliedCustomControls(p, sz))

@@ -168,6 +168,7 @@ public:
   virtual void addTriangleToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 p[3], E3DCOLOR color) const = 0;
   virtual bool isLinesVbufferValid(DebugPrimitivesVbuffer &vbuf) const = 0;
   virtual void setVbufferTm(DebugPrimitivesVbuffer &vbuf, const TMatrix &tm) const = 0;
+  virtual void setVbufferZBias(DebugPrimitivesVbuffer &vbuf, float z_bias, float slope_z_bias) const = 0;
 
   // DynamicShadersBuffer
   virtual DynamicShadersBuffer *newDynamicShadersBuffer(IMemAlloc *alloc = NULL) const = 0;
@@ -458,7 +459,7 @@ public:
 
   // This is just a helper method that makes console::collector_cmp() accesible to DLLs.
   virtual int conCollectorCmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description = "",
-    const char *argsDescription = "", const char *varValue = "", eastl::vector<console::CommandOptions> &&cmdOptions = {}) = 0;
+    const char *argsDescription = "", const char *varValue = "", eastl::vector<console::CommandOptions> *cmdOptions = nullptr) = 0;
 
 /// void addMessage(CoolConsole& con, MessageType type, const char *fmt, typesafe-var-args...)
 #define DSA_OVERLOADS_PARAM_DECL CoolConsole &con, ILogWriter::MessageType t,

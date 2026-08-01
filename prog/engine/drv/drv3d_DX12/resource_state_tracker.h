@@ -1136,6 +1136,32 @@ class BarrierBatcher
 #endif
   }
 
+  void transitionInternal(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to,
+    bool skip_exact_match)
+  {
+    G_ASSERT_RETURN(nullptr != res, );
+    if (tryUpdateTransition(res, sub_res, from, to, skip_exact_match))
+    {
+      return;
+    }
+    D3D12_RESOURCE_BARRIER newBarrier{
+      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+      .Transition =
+        {
+          .pResource = res,
+          .Subresource = sub_res.index(),
+          .StateBefore = from,
+          .StateAfter = to,
+        },
+    };
+    VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
+    dataSet.push_back(newBarrier);
+
+    fromStateMask |= from;
+    toStateMask |= to;
+  }
+
 public:
   void purgeAll()
   {
@@ -1184,23 +1210,12 @@ public:
 
   void transition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
-    G_ASSERT_RETURN(nullptr != res, );
-    if (tryUpdateTransition(res, sub_res, from, to))
-    {
-      return;
-    }
-    D3D12_RESOURCE_BARRIER newBarrier;
-    newBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    newBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    newBarrier.Transition.pResource = res;
-    newBarrier.Transition.Subresource = sub_res.index();
-    newBarrier.Transition.StateBefore = from;
-    newBarrier.Transition.StateAfter = to;
-    VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
-    dataSet.push_back(newBarrier);
+    transitionInternal(res, sub_res, from, to, false);
+  }
 
-    fromStateMask |= from;
-    toStateMask |= to;
+  void transitionUnique(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
+  {
+    transitionInternal(res, sub_res, from, to, true);
   }
 
   bool tryEraseTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
@@ -1232,7 +1247,8 @@ public:
     return true;
   }
 
-  bool tryUpdateTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
+  bool tryUpdateTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to,
+    bool skip_exact_match)
   {
     G_ASSERT_RETURN(nullptr != res, false);
     auto ref = eastl::find_if(rbegin(dataSet), rend(dataSet),
@@ -1248,6 +1264,14 @@ public:
     if (rend(dataSet) == ref)
     {
       return false;
+    }
+
+    if (skip_exact_match)
+    {
+      if ((ref->Transition.StateBefore == from) && (ref->Transition.StateAfter == to))
+      {
+        return true;
+      }
     }
 
     if (DAGOR_UNLIKELY(ref->Transition.StateAfter != from))
@@ -1955,7 +1979,7 @@ public:
               // try to find a barrier that already tries to transition this resource
               // The list if barriers is usually less than 10 elements, so this is usually not a
               // problem.
-              if (barriers.tryUpdateTransition(res, i, currentState, state))
+              if (barriers.tryUpdateTransition(res, i, currentState, state, false))
               {
                 reportStateTransition(res, global_base, i, currentState, state, TransitionResult::Merged);
                 currentState.transition(state);
@@ -2015,7 +2039,7 @@ public:
           // try to find a barrier that already tries to transition this resource
           // The list if barriers is usually less than 10 elements, so this is usually not a
           // problem.
-          if (barriers.tryUpdateTransition(res, i, currentState, state))
+          if (barriers.tryUpdateTransition(res, i, currentState, state, false))
           {
             reportStateTransition(res, global_base, i, currentState, state, TransitionResult::Merged);
             currentState.transition(state);
@@ -2090,7 +2114,15 @@ public:
 
     if (removeFromUav)
     {
-      UnorderedAccessTracker::flushAccess(res);
+      // outgoingUAVResources is whole-resource granularity: a transition barrier on one
+      // subresource does not synchronize UAV access on the others, so only drop the pending
+      // UAV barrier once no subresource of the resource is left in UAV state.
+      bool anyStillUav = eastl::any_of(eastl::begin(image->getSubresourceRange()), eastl::end(image->getSubresourceRange()),
+        [&](auto subRes) { return D3D12_RESOURCE_STATE_UNORDERED_ACCESS == textureStates[global_base + subRes]; });
+      if (!anyStillUav)
+      {
+        UnorderedAccessTracker::flushAccess(res);
+      }
     }
   }
 
@@ -2154,7 +2186,7 @@ public:
       // if merge able we want to transition to a state that includes the current state
       state = currentState.makeMergedState(state);
 
-      if (barriers.tryUpdateTransition(res, {}, currentState, state))
+      if (barriers.tryUpdateTransition(res, {}, currentState, state, false))
       {
         reportStateTransition(res, global_base, static_cast<D3D12_RESOURCE_STATES>(currentState), state, TransitionResult::Merged);
 
@@ -2438,7 +2470,17 @@ public:
     scratchBuffer = nullptr;
   }
 
-  bool beginImplicitUAVAccess(ID3D12Resource *res) { return UnorderedAccessTracker::beginImplicitAccess(res); }
+  void beginImplicitUAVAccess(Image *image)
+  {
+    if (image->hasTrackedState())
+      UnorderedAccessTracker::beginImplicitAccess(image->getHandle());
+  }
+
+  void beginImplicitUAVAccess(BufferResourceReference buffer)
+  {
+    if (!buffer.resourceId.isExcludedFromStateTracking())
+      UnorderedAccessTracker::beginImplicitAccess(buffer.buffer);
+  }
 
   void implicitUAVFlushAll(const char *where, bool report_user_barriers)
   {
@@ -4080,13 +4122,12 @@ class ResourceUsageManagerWithHistory : protected ResourceUsageManager
   }
 
 public:
+  using BaseType::beginImplicitUAVAccess;
   using BaseType::currentTextureState;
   using BaseType::flushPendingUAVActions;
   using BaseType::setTextureState;
   using BaseType::useScratchAsCopyDestination;
   using BaseType::useScratchAsCopySource;
-
-  bool beginImplicitUAVAccess(ID3D12Resource *res) { return BaseType::beginImplicitUAVAccess(res); }
 
   void implicitUAVFlushAll(const char *where, bool report_user_barriers)
   {

@@ -39,6 +39,7 @@ class AboutDlg;
 class IWaterService;
 class StartupDlg;
 class AssetTagManager;
+class CameraPresetsManager;
 class KeyboardShortcutsPanel;
 
 enum
@@ -317,6 +318,7 @@ public:
 
   void showTagManager(bool show);
   void showShortcutsEditor(bool show);
+  void showCameraPresets(bool show);
 
   bool isProjectLoaded() const override { return projectLoaded; };
   bool getPendingTextureLoadTotalCount(unsigned int &total_count) override;
@@ -435,6 +437,7 @@ protected:
   int findPlugin(IGenEditorPlugin *p);
   void sortPlugins();
   void switchToPlugin(int plgId);
+  void switchToUndoOpOwner(void *owner);
 
   void initPlugins(const DataBlock &global_settings, const DataBlock &per_app_settings);
   void fillPluginSettings();
@@ -566,6 +569,7 @@ private:
   PropPanel::ContainerPropertyControl *mTabWindow;
   PropPanel::ContainerPropertyControl *mTabPanel;
   AssetTagManager *mTagManager;
+  CameraPresetsManager *mCameraPresets = nullptr;
   KeyboardShortcutsPanel *mShortcutsPanel = nullptr;
 
   bool mNeedSuppress;
@@ -591,6 +595,7 @@ private:
   bool consoleCommandsAndVariableWindowsVisible = false;
   bool consoleWindowVisible = false;
   bool imguiDebugWindowsVisible = false;
+  bool testRuntimeWindowVisible = false;
   int toolbarScalePercent = 100;
 
   bool skipRenderObjects = false;

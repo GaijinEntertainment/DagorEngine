@@ -22,5 +22,5 @@ private:
   dag::Vector<BlendNodeData> &blendNodes;
   dag::Vector<String> &paths;
 
-  const char *getA2dName();
+  String getA2dName();
 };

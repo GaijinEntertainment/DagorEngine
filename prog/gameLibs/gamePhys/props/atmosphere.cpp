@@ -23,6 +23,7 @@ float atmosphere::_ro0 = 1.225f;    // Density [kg/m3] t=15`C, p=760 mm/1013 gPa
 float atmosphere::_Mu0 = 1.825e-6f; // Viscosity [Pa*sec]
 float atmosphere::_hMax = 18300.0f; // Maximal altitude
 float atmosphere::_water_density = 1000.0f;
+float atmosphere::_humidity = 0.0f; // Absolute air humidity at sea level, g/m3
 
 /** Set atmosphere conditions at sea level.
   @param pressure    - mm of Mercury column,
@@ -45,6 +46,21 @@ void atmosphere::reset()
   _P0 = stdP0;
   _T0 = stdT0;
   _ro0 = stdRo0;
+  _humidity = 0.0f;
+}
+
+/** Absolute humidity [g/m3] from relative humidity [0..1] via Magnus saturation vapor pressure. */
+float atmosphere::relativeToAbsoluteHumidity(float relative_humidity, float temperature_k)
+{
+  constexpr float kelvinAtZeroCelsius = 273.15f;
+  constexpr float saturationPressureAt0C = 6.112f; // saturation vapor pressure at 0 C, hPa
+  constexpr float magnusCoeff = 17.67f;            // Magnus fit coefficient, dimensionless
+  constexpr float magnusTempOffset = 243.5f;       // Magnus fit temperature offset, C
+  constexpr float vaporGasFactor = 216.7f;         // water vapor molar mass / gas constant, hPa->g/m3
+
+  float tempCelsius = temperature_k - kelvinAtZeroCelsius;
+  float saturationHPa = saturationPressureAt0C * expf(magnusCoeff * tempCelsius / (tempCelsius + magnusTempOffset));
+  return vaporGasFactor * clamp(relative_humidity, 0.0f, 1.0f) * saturationHPa / max(temperature_k, 1.0f);
 }
 
 /** Get Pressure( H [meters] ) , [ Pa ] */

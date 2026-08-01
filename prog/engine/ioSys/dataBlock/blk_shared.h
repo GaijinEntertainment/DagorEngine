@@ -273,6 +273,8 @@ enum FormatHeaderByte
   BBF_binary_with_shared_nm_z = '\4',  // BLK (using shared namemap) in ZSTD compressed binary stream follows to the end of the file
   BBF_binary_with_shared_nm_zd = '\5', // BLK (using shared namemap) in ZSTD compressed (with dict) binary stream follows to the end of
                                        // the file
+  BBF_full_binary_in_stream_dedup = '\6', // like \1, but blocks with identical param runs share params storage
+                                          // (each block descriptor is followed by explicit param data offset)
 };
 
 bool check_shared_name_map_valid(const VirtualRomFsData *fs, const char **out_err_desc);

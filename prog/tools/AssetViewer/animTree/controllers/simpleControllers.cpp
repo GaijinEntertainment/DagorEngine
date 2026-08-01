@@ -134,8 +134,8 @@ void compound_rotate_shift_prepare_params(dag::Vector<AnimParamData> &params, Pr
   remove_param_if_default_float(params, panel, "ofsZ_mul", CompoundRotateShift::DEFAULT_MUL);
   remove_param_if_default_point3(params, panel, "preRotEuler");
   remove_param_if_default_point3(params, panel, "preScale", CompoundRotateShift::DEFAULT_SCALE);
-  remove_param_if_default_point3(params, panel, "preRotEuler");
-  remove_param_if_default_point3(params, panel, "preScale", CompoundRotateShift::DEFAULT_SCALE);
+  remove_param_if_default_point3(params, panel, "postRotEuler");
+  remove_param_if_default_point3(params, panel, "postScale", CompoundRotateShift::DEFAULT_SCALE);
 }
 
 namespace DeltaAnglesCalc
@@ -270,7 +270,7 @@ void fifo3_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPr
 void fifo3_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
 {
   remove_param_if_default_str(params, panel, "name");
-  remove_param_if_default_str(params, panel, "varname");
+  remove_param_if_default_str(params, panel, "varname", get_default_varname_from_name(params, panel));
 }
 
 void has_attachment_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx)

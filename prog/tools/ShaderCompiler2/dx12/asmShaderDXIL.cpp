@@ -92,12 +92,17 @@ static struct MiMalloc : public IMalloc
   void STDMETHODCALLTYPE HeapMinimize() override { mi_collect(true); }
 } mi_malloc_callback;
 
-eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dxil::ShaderContainerType type)
+eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dag::ConstSpan<uint8_t> bytecode,
+  dxil::ShaderContainerType type)
 {
   bindump::ReservingMemoryWriter writer;
   bindump::Master<dxil::ShaderContainer> container;
   container.type = type;
-  container.dataHash = dxil::HashValue::calculate(data.data(), data.size());
+  {
+    dxil::HashValue::CalculateContext hashContext{container.dataHash};
+    hashContext(data.data(), data.size());
+    hashContext(bytecode.data(), bytecode.size());
+  }
   container.data = eastl::move(data);
 
   bindump::streamWrite(container, writer);
@@ -147,7 +152,7 @@ eastl::vector<uint8_t> pack_shader_without_stream_output(const eastl::vector<uin
   bindump::Master<dxil::Shader> shader = pack_shader_layout(dxil_blob, shader_source, header);
   bindump::ReservingMemoryWriter writer;
   bindump::streamWrite(shader, writer);
-  return create_shader_container(eastl::move(writer.mData), {dxil::StoredShaderType::singleShader, false});
+  return create_shader_container(eastl::move(writer.mData), dxil_blob, {dxil::StoredShaderType::singleShader, false});
 }
 
 eastl::vector<uint8_t> pack_shader_with_stream_output(const eastl::vector<uint8_t> &dxil_blob,
@@ -159,7 +164,7 @@ eastl::vector<uint8_t> pack_shader_with_stream_output(const eastl::vector<uint8_
   bindump::streamWrite(shader, writer);
 
   auto shaderWithStreamOutput = create_shader_with_stream_output(eastl::move(writer.mData), stream_output_components);
-  return create_shader_container(eastl::move(shaderWithStreamOutput), {dxil::StoredShaderType::singleShader, true});
+  return create_shader_container(eastl::move(shaderWithStreamOutput), dxil_blob, {dxil::StoredShaderType::singleShader, true});
 }
 
 eastl::vector<uint8_t> pack_shader(const eastl::vector<uint8_t> &dxil_blob, const eastl::vector<char> &shader_source,
@@ -1089,7 +1094,7 @@ eastl::wstring get_module_path()
 bool is_mesh_profile(const char *profile) { return ('m' == profile[0]) || ('a' == profile[0]); }
 
 ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool hlsl2021, bool enableFp16,
-  bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, ::dx12::dxil::Platform platform,
+  bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, wchar_t *pdb_name, ::dx12::dxil::Platform platform,
   eastl::wstring_view root_signature_def, unsigned phase, bool pipeline_has_ts, bool pipeline_has_gs, bool scarlett_w32,
   bool warnings_as_errors, DebugLevel debug_level, bool embed_source, bool pipeline_has_stream_output)
 {
@@ -1114,6 +1119,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   // Those files act as pdb for shaders, shaders know the name of the file and tools like PIX will
   // pick them up if configured correctly.
   compileConfig.PDBBasePath = pdb_dir;
+  compileConfig.PDBNameOverride = pdb_name;
   if ((debug_level == DebugLevel::FULL_DEBUG_INFO) || (debug_level == DebugLevel::AFTERMATH) || embed_source)
     compileConfig.pdbMode = ::dxil::PDBMode::FULL;
   else if (debug_level == DebugLevel::BASIC)
@@ -1278,7 +1284,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
 eastl::tuple<eastl::vector<uint8_t>, eastl::vector<uint8_t>> recompile_shader(const char *encoded_shader_source,
   const ::dxil::ShaderHeader &header, dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_desc,
   const eastl::wstring &root_signature_def, ::dx12::dxil::Platform platform, bool pipeline_has_ts, bool pipeline_has_gs,
-  wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source, bool pipeline_has_stream_output)
+  wchar_t *pdb_dir, wchar_t *pdb_name, DebugLevel debug_level, bool embed_source, bool pipeline_has_stream_output)
 {
   bool skipValidation = encoded_shader_source[encoded_bits::SkipValidation] > '0';
   bool optimize = encoded_shader_source[encoded_bits::Optimize] > '0';
@@ -1293,8 +1299,8 @@ eastl::tuple<eastl::vector<uint8_t>, eastl::vector<uint8_t>> recompile_shader(co
   auto sourceStart = entryStart + strlen(entryStart) + 1;
   // TODO could avoid strlen when encoded_shader_source would be a slice
   auto compileResult = ::compileShader(make_span(sourceStart, strlen(sourceStart)), profileBuf, entryStart, hlsl2021, enableFp16,
-    skipValidation, optimize, debugInfo, pdb_dir, platform, root_signature_def, 2, pipeline_has_ts, pipeline_has_gs, scarlettW32,
-    false, debug_level, embed_source, pipeline_has_stream_output);
+    skipValidation, optimize, debugInfo, pdb_dir, pdb_name, platform, root_signature_def, 2, pipeline_has_ts, pipeline_has_gs,
+    scarlettW32, false, debug_level, embed_source, pipeline_has_stream_output);
   if (compileResult.dxil.empty() && compileResult.dxbc.empty())
   {
     debug("recompile_shader failed: %s", compileResult.errorLog.c_str());
@@ -1333,12 +1339,32 @@ bool uses_sampler_descriptor_heap_indexing(const dxil::ShaderHeader &header)
   return 0 != (D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING & featureFlags);
 }
 
-CompileResult build_shader_libray_as_shader([[maybe_unused]] const dx12::dxil::CompileInputs &inputs,
-  const ShaderCompileResult &compile_result)
+CompileResult build_shader_libray_as_shader(const dx12::dxil::CompileInputs &inputs, const ShaderCompileResult &compile_result)
 {
+  // The RT pipeline config (max recursion + flags) is authored via the DSHL max_recursion /
+  // allow_opacity_micromaps statements and carried in the bindump, not DXIL, so the driver builds the
+  // pipeline-config subobject CPU-side: it
+  // can pick the OMM flag per-pipeline and only when the device supports OMM. Feed these per-shader
+  // properties through the reflection query, which is the single place that populates
+  // LibraryShaderProperties.
+  uint32_t rtPipelineFlags = ::dxil::RT_PIPELINE_FLAG_NONE;
+  if (inputs.compilationOptions.hasExplicitRtPipelineConfig)
+  {
+    rtPipelineFlags |= ::dxil::RT_PIPELINE_FLAG_HAS_EXPLICIT_CONFIG;
+    if (inputs.compilationOptions.allowOpacityMicroMaps)
+      rtPipelineFlags |= ::dxil::RT_PIPELINE_FLAG_ALLOW_OMM;
+  }
+  else if (inputs.compilationOptions.hasDxilRtPipelineConfig)
+    rtPipelineFlags |= ::dxil::RT_PIPELINE_FLAG_HAS_DXIL_CONFIG;
+  // Only an explicit DSHL block authors the recursion depth; otherwise leave the reflection default.
+  const uint32_t rtMaxRecursion = inputs.compilationOptions.hasExplicitRtPipelineConfig ? inputs.compilationOptions.rtMaxRecursion : 0;
+
   auto libHeaderCompileResult = ::dxil::compileLibraryShaderPropertiesFromReflectionData(
-    0, [](::dxil::ShaderStage, const eastl::string &) -> ::dxil::FunctionExtraInfo { return {}; }, compile_result.reflectionData,
-    pinDxcLib.get());
+    0,
+    [rtPipelineFlags, rtMaxRecursion](::dxil::ShaderStage, const eastl::string &) -> ::dxil::FunctionExtraInfo {
+      return {.recursionDepth = rtMaxRecursion, .rtPipelineFlags = rtPipelineFlags};
+    },
+    compile_result.reflectionData, pinDxcLib.get());
 
   CompileResult result;
 
@@ -1535,7 +1561,7 @@ CompileResult build_shader_libray_as_shader([[maybe_unused]] const dx12::dxil::C
   bindump::ReservingMemoryWriter wrappedShaderWriter;
   bindump::streamWrite(wrappedShader, wrappedShaderWriter);
 
-  result.metadata = create_shader_container(eastl::move(wrappedShaderWriter.mData),
+  result.metadata = create_shader_container(eastl::move(wrappedShaderWriter.mData), shaderLibAsShaderWriter.mData,
     {
       .shaderType = ::dxil::StoredShaderType::shaderLibraryContainerAsShader,
       .hasStreamOutput = 0,
@@ -1552,8 +1578,9 @@ CompileResult dx12::dxil::compileShader(const CompileInputs &inputs)
 {
   auto compileResult = ::compileShader(inputs.source, inputs.profile, inputs.entry, inputs.compilationOptions.hlsl2021,
     inputs.compilationOptions.enableFp16, inputs.compilationOptions.skipValidation, inputs.compilationOptions.optimize,
-    inputs.compilationOptions.debugInfo, inputs.PDBDir, inputs.platform, {}, 1, true, true, inputs.compilationOptions.scarlettW32,
-    inputs.warningsAsErrors, inputs.debugLevel, inputs.embedSource, !inputs.streamOutputComponents.empty());
+    inputs.compilationOptions.debugInfo, inputs.PDBDir, inputs.PDBName, inputs.platform, {}, 1, true, true,
+    inputs.compilationOptions.scarlettW32, inputs.warningsAsErrors, inputs.debugLevel, inputs.embedSource,
+    !inputs.streamOutputComponents.empty());
 
   CompileResult result;
   result.logs = eastl::move(compileResult.messageLog);
@@ -1653,7 +1680,7 @@ CompileResult dx12::dxil::compileShader(const CompileInputs &inputs)
 
       compileResult = ::compileShader(inputs.source, inputs.profile, inputs.entry, inputs.compilationOptions.hlsl2021,
         inputs.compilationOptions.enableFp16, inputs.compilationOptions.skipValidation, inputs.compilationOptions.optimize,
-        inputs.compilationOptions.debugInfo, inputs.PDBDir, inputs.platform, rootSignatureDefine, 2, false, false,
+        inputs.compilationOptions.debugInfo, inputs.PDBDir, inputs.PDBName, inputs.platform, rootSignatureDefine, 2, false, false,
         inputs.compilationOptions.scarlettW32, inputs.warningsAsErrors, inputs.debugLevel, inputs.embedSource,
         !inputs.streamOutputComponents.empty());
       result.logs += compileResult.messageLog;
@@ -1715,6 +1742,8 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &meta, SmallTab<
     uint32_t ms_size = dag::align_up(data_size(vs.bytecode), sizeof(unsigned));
     uint32_t as_size = dag::align_up(data_size(gs.bytecode), sizeof(unsigned));
     bytecode.resize((ms_size + as_size) / sizeof(unsigned));
+    // alignment gaps between stages must be deterministic, they end up in the dump and the data hash
+    mem_set_0(bytecode);
 
     bindump::Master<::dxil::MeshShaderPipeline> layout;
     *layout.meshShader = vertex_shader.shader;
@@ -1741,6 +1770,8 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &meta, SmallTab<
 
     uint32_t offset = 0;
     bytecode.resize((vs_size + hs_size + ds_size + gs_size) / sizeof(unsigned));
+    // alignment gaps between stages must be deterministic, they end up in the dump and the data hash
+    mem_set_0(bytecode);
 
     bindump::Master<::dxil::VertexShaderPipeline> layout;
     *layout.vertexShader = vertex_shader.shader;
@@ -1790,12 +1821,13 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &meta, SmallTab<
   }
 
   eastl::vector<uint8_t> packed;
+  const auto bytecodeSpan = make_span_const(reinterpret_cast<const uint8_t *>(bytecode.data()), data_size(bytecode));
   if (streamOutputComponents.empty())
-    packed = create_shader_container(eastl::move(writer.mData), {type, false});
+    packed = create_shader_container(eastl::move(writer.mData), bytecodeSpan, {type, false});
   else
   {
     auto programWithStreamOutput = create_shader_with_stream_output(eastl::move(writer.mData), streamOutputComponents);
-    packed = create_shader_container(eastl::move(programWithStreamOutput), {type, true});
+    packed = create_shader_container(eastl::move(programWithStreamOutput), bytecodeSpan, {type, true});
   }
 
   const size_t dwordsToFitPacked = (packed.size() - 1) / elem_size(meta) + 1;
@@ -1924,8 +1956,10 @@ bool operator==(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootS
 {
   return l.vsResources == r.vsResources && l.hsResources == r.hsResources && l.dsResources == r.dsResources &&
          l.gsResources == r.gsResources && l.psResources == r.psResources && l.hasVertexInput == r.hasVertexInput &&
-         l.hasAmplificationStage == r.hasAmplificationStage && l.hasAccelerationStructure == r.hasAccelerationStructure &&
-         l.hasStreamOutput == r.hasStreamOutput;
+         l.isMesh == r.isMesh && l.hasAmplificationStage == r.hasAmplificationStage &&
+         l.hasAccelerationStructure == r.hasAccelerationStructure && l.hasStreamOutput == r.hasStreamOutput &&
+         l.useResourceDescriptorHeapIndexing == r.useResourceDescriptorHeapIndexing &&
+         l.useSamplerDescriptorHeapIndexing == r.useSamplerDescriptorHeapIndexing;
 }
 
 bool operator!=(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootSignatureStore &r) { return !(l == r); }
@@ -2111,8 +2145,8 @@ auto dx12::dxil::combinePhaseOnePixelShader(const ShaderStageData &ps, const Roo
   return result;
 }
 
-auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir, DebugLevel debug_level,
-  bool embed_source) -> eastl::optional<CombinedShaderStorage>
+auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir, wchar_t *pdb_name,
+  DebugLevel debug_level, bool embed_source) -> eastl::optional<CombinedShaderStorage>
 {
   auto *metadata = bindump::map<VertexProgramPhaseOneMetadata>((const uint8_t *)source.data());
   if (!metadata)
@@ -2159,7 +2193,7 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   auto [rebuildVSMetadata, rebuildVSBytecode] =
     recompile_shader(vsDecodedMetadata.source.data(), vsDecodedMetadata.shader.shaderHeader, vsDecodedMetadata.streamOutputComponents,
       progSignature, platform, hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), gsDecodedMetadata.source.size(),
-      pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
+      pdb_dir, pdb_name, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
 
   if (rebuildVSMetadata.empty() || rebuildVSBytecode.empty())
   {
@@ -2171,7 +2205,7 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   {
     eastl::tie(rebuildHSMetadata, rebuildHSBytecode) = recompile_shader(hsDecodedMetadata.source.data(),
       hsDecodedMetadata.shader.shaderHeader, hsDecodedMetadata.streamOutputComponents, progSignature, platform, true,
-      gsDecodedMetadata.source.size(), pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
+      gsDecodedMetadata.source.size(), pdb_dir, pdb_name, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
     if (rebuildHSMetadata.empty() || rebuildHSBytecode.empty())
     {
       return eastl::nullopt;
@@ -2183,7 +2217,7 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   {
     eastl::tie(rebuildDSMetadata, rebuildDSBytecode) =
       recompile_shader(dsDecodedMetadata.source.data(), dsDecodedMetadata.shader.shaderHeader, {}, progSignature, platform, true,
-        gsDecodedMetadata.source.size(), pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
+        gsDecodedMetadata.source.size(), pdb_dir, pdb_name, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
     if (rebuildDSMetadata.empty() || rebuildDSBytecode.empty())
     {
       return eastl::nullopt;
@@ -2195,7 +2229,7 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   {
     eastl::tie(rebuildGSMetadata, rebuildGSBytecode) = recompile_shader(gsDecodedMetadata.source.data(),
       gsDecodedMetadata.shader.shaderHeader, gsDecodedMetadata.streamOutputComponents, progSignature, platform,
-      hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), true, pdb_dir, debug_level, embed_source,
+      hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), true, pdb_dir, pdb_name, debug_level, embed_source,
       metadata->rootSignature.hasStreamOutput);
     if (rebuildGSMetadata.empty() || rebuildGSBytecode.empty())
     {
@@ -2236,8 +2270,8 @@ auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform
   return newProg;
 }
 
-auto dx12::dxil::recompilePixelShader(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir, DebugLevel debug_level,
-  bool embed_source) -> eastl::optional<CombinedShaderStorage>
+auto dx12::dxil::recompilePixelShader(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir, wchar_t *pdb_name,
+  DebugLevel debug_level, bool embed_source) -> eastl::optional<CombinedShaderStorage>
 {
   auto *metadata = bindump::map<PixelShaderPhaseOneMetadata>((const uint8_t *)source.data());
   if (!metadata)
@@ -2299,7 +2333,7 @@ auto dx12::dxil::recompilePixelShader(dag::ConstSpan<uint8_t> source, Platform p
   bool hasTS = 0 != (metadata->compilationFlags & COMPILATION_FLAG_HAS_HD_DS);
   bool hasGS = 0 != (metadata->compilationFlags & COMPILATION_FLAG_HAS_GS);
   auto [rebuildPSMetadata, rebuildPSBytecode] = recompile_shader(psDecoded.source.data(), psDecoded.shader.shaderHeader, {},
-    progSignature, platform, hasTS, hasGS, pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
+    progSignature, platform, hasTS, hasGS, pdb_dir, pdb_name, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
 
   if (rebuildPSMetadata.empty() || rebuildPSBytecode.empty())
   {

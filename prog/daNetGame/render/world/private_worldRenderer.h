@@ -25,6 +25,7 @@
 #include <landMesh/lmeshCulling.h>
 #include <render/gpuDeformObjects.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/vector_map.h>
 #include <scene/dag_occlusion.h>
 #include <shaders/dag_overrideStateId.h>
 #include <render/world/fomShadowsManager.h>
@@ -183,6 +184,8 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
 
   friend dafg::NodeHandle makeReprojectedHzbImportNode(); // remove when non-multiplexed camera-view params will be added to fg
 
+  friend void clipmap_prepare_render_callback(dag::ConstSpan<Texture *> bufferTex, dag::ConstSpan<Texture *> compressorTex);
+
   // platform/game specific default initialized once
   FeatureRenderFlagMask defaultFeatureRenderFlags;
 
@@ -202,6 +205,13 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
 
   bool hasPendingHeroTeleportation = false;
   void processHeroTeleportation();
+
+  struct NodesRegistratorSlot
+  {
+    ecs::EntityId eid;
+    uint32_t mainOffset = 0, mainCount = 0;
+    uint32_t lensOffset = 0, lensCount = 0;
+  };
 
 public:
   void onHeroTeleportation() { hasPendingHeroTeleportation = true; };
@@ -248,6 +258,9 @@ public:
   // to be called from loading thread
   virtual void onLandmeshLoaded(const DataBlock &level_blk, const char *bin_scene, LandMeshManager *lmesh);
   void onUIFinished();
+  virtual void setLandmesh(
+    LandMeshManager *lmesh_mgr, LandMeshRenderer *lmesh_renderer, void (*decals_cb)(const BBox3 &landPart)) override;
+  void invalidateClipmap(bool force) override;
 
   virtual void unloadLevel();
   virtual void closeNBSShaders();
@@ -364,6 +377,11 @@ public:
   // just other public
   void init();
   void createNodes();
+  void toggleCameraInCamera(bool active);
+  void registerCameraViewNodes(const char *name, ecs::EntityId eid);
+  void unregisterCameraViewNodes(const char *name, ecs::EntityId eid);
+  void reCreateCameraViewNodes(const char *name);
+  void clearCameraSlot(const NodesRegistratorSlot &);
   // Recreates nodes right before rendering the frame, causing a lag
   // spike. SHould only be used for debug (e.g. pulling convars)
   void debugRecreateNodes();
@@ -426,6 +444,7 @@ public:
   bool haveVolumeLights() { return volumeLight != nullptr; }
   void enableVolumeFogOptionalShader(const String &shader_name, bool enable);
   void enableEnviCoverOptionalShader(const String &shader_name, bool enable);
+  void enableCloudsOptionalShader(const String &shader_name, bool enable);
   // void initGIWalls(eastl::unique_ptr<scene::TiledScene> &&walls);
   void initGIWindows(eastl::unique_ptr<scene::TiledScene> &&windows);
   void initRestrictionBoxes(eastl::unique_ptr<scene::TiledScene> &&walls);
@@ -488,12 +507,14 @@ public:
 
   void loadFogNodes(const String &graph_name, float low_range, float high_range, float low_height, float high_height);
   void loadEnviCoverNodes(const String &graph_name);
+  void loadCloudsNodes(const String &graph_name);
 
   void changePreset();
   FeatureRenderFlagMask getOverridenRenderFeatures();
   FeatureRenderFlagMask getPresetFeatures();
   void setFeatureFromSettings(const FeatureRenderFlags f);
   void setChromaticAberrationFromSettings();
+  void setFilmGrainFromSettings();
 
   void toggleFeatures(const FeatureRenderFlagMask &f, bool turn_on);
   void changeFeatures(const FeatureRenderFlagMask &f);
@@ -530,8 +551,7 @@ protected:
   friend class RandomGrassRenderHelper;
   friend class LandmeshCMRenderer;
   friend struct HmapPatchesCallback;
-  friend bool fog_shader_compiler(
-    uint32_t variant_id, const String &name, const String &code, const DataBlock &shader_blk, String &out_errors);
+  friend bool fog_shader_compiler(const String &name, const DataBlock &shader_blk, String &out_errors);
 
   void setDirToSun();
   void updateSky(float realDt);
@@ -544,13 +564,13 @@ protected:
 
   void closeClipmap();
   void initClipmap();
-  void invalidateClipmap(bool force);
   void dumpClipmap();
   void prepareLastClip();
   bool useClipmapFeedbackOversampling();
 
   void initRendinstVisibility();
   void closeRendinstVisibility();
+  void shrinkRendinstVisibilities();
   friend struct VisibilityPrepareJob;
   friend struct GroundCullingJob;
   friend struct GroundReflectionCullingJob;
@@ -643,7 +663,7 @@ protected:
   void updateTransformations(const DPoint3 &move,
     const TMatrix4_vec4 &jittered_cam_pos_to_unjittered_history_clip,
     const TMatrix4_vec4 &prev_origo_relative_view_proj_tm);
-  void prepareClipmap(const Point3 &origin, const TMatrix &view_itm, const TMatrix4 &globtm, float wk, int minimum_zoom);
+  void prepareClipmapState(const Point3 &origin, const TMatrix &view_itm, const TMatrix4 &globtm, float wk, int minimum_zoom);
   void prepareDeformHmap();
   enum class DistantWater : bool
   {
@@ -651,7 +671,7 @@ protected:
     Yes
   };
   void renderWater(const CameraParams &camera, DistantWater render_distant_water, bool render_ssr);
-  void renderWaterSSR(const TMatrix &itm, const Driver3dPerspective &persp);
+  void renderWaterNormals(const TMatrix &itm, const Driver3dPerspective &persp);
 
   void generatePaintingTexture();
   void prefetchPartsOfPaintingTexture();
@@ -775,6 +795,7 @@ protected:
   TEXTUREID lightmapTexId = BAD_TEXTUREID;
   LandMeshManager *lmeshMgr = nullptr; // not owned!
   LandMeshRenderer *lmeshRenderer = nullptr;
+  bool editorHeightmapActive = false;
   int displacementSubDiv = 2;
   int subdivSettings = 0;
   void initSubDivSettings();
@@ -918,7 +939,8 @@ protected:
   {
     LOW,
     MEDIUM,
-    HIGH
+    HIGH,
+    ULTRA
   };
   AoQuality aoQuality = AoQuality::MEDIUM;
   void resetSSAOImpl();
@@ -954,7 +976,7 @@ protected:
   void recreateCloudsVolume();
 
 public:
-  CollisionResource *getStaticSceneCollisionResource() const { return staticSceneCollisionResource.get(); }
+  const CollisionResource *getStaticSceneCollisionResource() const { return staticSceneCollisionResource.get(); }
   eastl::unique_ptr<DeferredRT> target;
   void setupSkyPanoramaAndReflectionFromSetting();
   float daGdpRangeScale = 1;
@@ -977,6 +999,7 @@ private:
   float cameraSpeed = 0;
 
   Clipmap *clipmap = nullptr;
+  dafg::NodeHandle clipmapPrepareRenderNode;
   int clipmapCutoffZoom = -1, clipmapCutoffMipsCnt = -1;
 
   eastl::unique_ptr<MultiFramePGF> preIntegratedGF;
@@ -1175,6 +1198,8 @@ private:
 
   bool shouldToggleVRS(const AimRenderingData &aim_data);
 
+  // Whole static scene as one owning collision resource (addMeshNode + collapseAndOptimize, 32-bit
+  // index buffer), like any loaded collision asset. Addressed by RIEX_HANDLE_NULL in the LRU voxelizer.
   eastl::unique_ptr<CollisionResource> staticSceneCollisionResource;
 
   BBox3 worldBBox;
@@ -1183,6 +1208,13 @@ private:
   SatelliteRenderer satelliteRenderer;
 
   eastl::vector<dafg::NodeHandle> fgNodeHandles;
+  dafg::NodeHandle mainViewCameraProviderNode, lensViewCameraProviderNode;
+  eastl::vector<dafg::NodeHandle> mainViewNodes;
+  eastl::vector<dafg::NodeHandle> lensViewNodes;
+  bool lensViewNodesActive = false;
+
+  eastl::vector_map<eastl::string, NodesRegistratorSlot> nodesRegistrators;
+  void dispatchCameraViewNodes(NodesRegistratorSlot &slot, bool is_main_view);
   eastl::fixed_vector<dafg::NodeHandle, 4> vrsNodeHandles;
   eastl::vector<resource_slot::NodeHandleWithSlotsAccess> resSlotHandles;
   dafg::NodeHandle prepareGbufferDepthFGNode;

@@ -301,7 +301,13 @@ void AnimV20::MultiChainFABRIKCtrl::process(AnimGraphStateHolder &st, real wt, G
       const AnimGraphStateHolder::EffectorVar &eff = st.getParamEffector(effectorVarId[i].eff);
       float w = wt * getWeightMul(st, effectorVarId[i].wScale, effectorVarId[i].wScaleInverted);
       effType[targets_cnt] = eff.type;
-      if (eff.type == eff.T_useEffector)
+      if (w < 1e-4f)
+      {
+        // weight fully modulated out: the target would be the current end pos, no need to solve/apply
+        targets[targets_cnt] = v_zero();
+        effType[targets_cnt] = AnimGraphStateHolder::EffectorVar::T_looseEnd;
+      }
+      else if (eff.type == eff.T_useEffector)
         targets[targets_cnt] =
           v_lerp_vec4f(v_splats(w), n0_wtm.col3, v_sub(v_ldu(&eff.x), v_and(ctx.worldTranslate, v_bool_to_mask(!eff.isLocalEff()))));
       else if (eff.type == eff.T_useGeomNode && eff.nodeId)

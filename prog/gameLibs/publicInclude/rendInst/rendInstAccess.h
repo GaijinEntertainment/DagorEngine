@@ -118,7 +118,7 @@ RenderableInstanceLodsResource *getRIGenRes(RendInstGenData *rgl, const RendInst
 RenderableInstanceLodsResource *getRIGenRes(int layer_ix, int pool_ix);
 
 using RiGenIterator = void (*)(int layer_ix, int pool_ix, int lod_ix, int last_lod_ix, bool impostor, mat44f_cref tm,
-  const E3DCOLOR *colors, uint32_t bvh_id, void *user_data, uint32_t palette_id);
+  const E3DCOLOR *colors, uint32_t bvh_id, uint64_t unique_id, void *user_data, uint32_t palette_id);
 void foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator callback, void *user_data, const dag::Vector<uint32_t> &accel1,
   const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2, bool simplified_impostor_matrix,
   bool &early_termination);

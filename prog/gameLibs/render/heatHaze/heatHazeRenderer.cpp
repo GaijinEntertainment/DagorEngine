@@ -89,7 +89,6 @@ void HeatHazeRenderer::setUp(int haze_resolution_divisor)
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
   smpInfo.filter_mode = d3d::FilterMode::Point;
   ShaderGlobal::set_sampler(get_shader_variable_id("haze_scene_depth_tex_samplerstate", true), d3d::request_sampler(smpInfo));
-  ShaderGlobal::set_sampler(get_shader_variable_id("haze_noise_tex_samplerstate", true), d3d::request_sampler({}));
 
   {
     d3d::SamplerInfo smpInfo;

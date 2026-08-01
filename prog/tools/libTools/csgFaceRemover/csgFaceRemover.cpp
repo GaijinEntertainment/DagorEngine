@@ -575,6 +575,6 @@ protected:
   }
 };
 
-BaseCSGRemoval *make_new_csg() { return new PerformCSG(); }
+BaseCSGRemoval *make_new_csg_removal() { return new PerformCSG(); }
 
 void delete_csg(BaseCSGRemoval *csg) { delete ((PerformCSG *)csg); }

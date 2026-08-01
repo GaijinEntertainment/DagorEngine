@@ -2,6 +2,7 @@
 
 #include <memory/dag_framemem.h>
 #include <perfMon/dag_statDrv.h>
+#include <generic/dag_span.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dag_renderStateId.h>
 #include <EASTL/hash_map.h>
@@ -52,7 +53,7 @@ static struct DynModelRendering
 static void fill_node_collapser_data(const DynamicRenderableSceneInstance *scene,
   const eastl::span<Point4, ADDITIONAL_BONE_MTX_OFFSET> node_collapser_data)
 {
-  const DynamicRenderableSceneInstance::NodeCollapserBits &ncBits = scene->getNodeCollapserBits();
+  const DynamicRenderableSceneInstance::NodeCollapserBits::Data &ncBits = scene->getNodeCollapserBits().data;
   node_collapser_data[0] = Point4(bitwise_cast<float>(ncBits[0]), bitwise_cast<float>(ncBits[1]), bitwise_cast<float>(ncBits[2]),
     bitwise_cast<float>(ncBits[3]));
   node_collapser_data[1] = Point4(bitwise_cast<float>(ncBits[4]), bitwise_cast<float>(ncBits[5]), bitwise_cast<float>(ncBits[6]),
@@ -564,6 +565,19 @@ void init_dynmodel_rendering(int csm_num_cascades)
 }
 
 void close_dynmodel_rendering() { dynmodel_rendering.clear(); }
+
+void shrink_states()
+{
+  for (auto &kv : dynmodel_rendering.map)
+  {
+    DynModelRenderingState &s = kv.second;
+    clear_and_shrink(s.list);
+    clear_and_shrink(s.multidrawList);
+    clear_and_shrink(s.instanceData);
+    clear_and_shrink(s.drawcallRanges);
+    s.bindlessStatesToUpdateTexLevels = decltype(s.bindlessStatesToUpdateTexLevels)();
+  }
+}
 
 DynModelRenderingState *create_state(const char *name)
 {

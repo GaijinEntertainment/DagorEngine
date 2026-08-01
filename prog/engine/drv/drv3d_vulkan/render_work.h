@@ -134,10 +134,47 @@ struct RaytraceStructureBuildData
     {
       uint32_t geometryCount;
       uint32_t firstGeometry;
+      // range in raytraceBLASOmmLinkageStore, count 0 when no geometry links OMMs
+      uint32_t firstOmmLinkage;
+      uint32_t ommLinkageCount;
       BufferRef compactionSizeBuffer;
     } blas;
   };
 };
+
+#if VK_EXT_opacity_micromap
+struct RaytraceMicromapBuildData
+{
+  VkBuildMicromapFlagsEXT flags;
+  RaytraceAccelerationStructure *dst;
+  BufferRef inputBuffer;
+  uint32_t inputOffset;
+  BufferRef triangleArrayBuffer;
+  uint32_t triangleArrayOffset;
+  uint32_t triangleArrayStride;
+  BufferRef scratchBuf;
+  BufferRef compactionSizeBuffer;
+  // range in raytraceMicromapUsageStore
+  uint32_t firstUsage;
+  uint32_t usageCount;
+};
+
+struct RaytraceBLASOmmLinkageData
+{
+  // pUsageCounts is repointed into raytraceMicromapUsageStore at backend execution
+  VkAccelerationStructureTrianglesOpacityMicromapEXT desc;
+  // index into raytraceGeometryKHRStore of the triangles geometry this linkage extends
+  uint32_t geometryIndex;
+  // range in raytraceMicromapUsageStore
+  uint32_t firstUsage;
+  uint32_t usageCount;
+  // sync accumulation data, both may be null
+  Buffer *indexBuffer;
+  uint32_t indexOffset;
+  uint32_t indexSize;
+  RaytraceAccelerationStructure *micromap;
+};
+#endif
 #endif
 
 struct RenderWork
@@ -180,6 +217,11 @@ struct RenderWork
   dag::Vector<VkAccelerationStructureGeometryKHR> raytraceGeometryKHRStore;
   dag::Vector<RaytraceBLASBufferRefs> raytraceBLASBufferRefsStore;
   dag::Vector<RaytraceStructureBuildData> raytraceStructureBuildStore;
+#if VK_EXT_opacity_micromap
+  dag::Vector<VkMicromapUsageEXT> raytraceMicromapUsageStore;
+  dag::Vector<RaytraceMicromapBuildData> raytraceMicromapBuildStore;
+  dag::Vector<RaytraceBLASOmmLinkageData> raytraceBLASOmmLinkageStore;
+#endif
 #endif
   dag::Vector<ShaderModuleUse> shaderModuleUses;
   BECmdBuffer cmds;
@@ -224,6 +266,11 @@ struct RenderWork
     size += CALC_VEC_BYTES(raytraceGeometryKHRStore);
     size += CALC_VEC_BYTES(raytraceBLASBufferRefsStore);
     size += CALC_VEC_BYTES(raytraceStructureBuildStore);
+#if VK_EXT_opacity_micromap
+    size += CALC_VEC_BYTES(raytraceMicromapUsageStore);
+    size += CALC_VEC_BYTES(raytraceMicromapBuildStore);
+    size += CALC_VEC_BYTES(raytraceBLASOmmLinkageStore);
+#endif
 #endif
     size += CALC_VEC_BYTES(shaderModuleUses);
 #undef CALC_VEC_BYTES

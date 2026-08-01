@@ -16,8 +16,6 @@
 namespace HumanInput
 {
 
-MouseEmuDriver::~MouseEmuDriver() { destroy(); }
-
 void MouseEmuDriver::enable(bool en)
 {
   emuDriverEnabled = en;
@@ -28,6 +26,7 @@ void MouseEmuDriver::destroy()
 {
   enable(false);
   setClient(nullptr);
+  gameinput::shutdown();
 }
 
 void MouseEmuDriver::updateDevices()
@@ -208,7 +207,7 @@ void MouseEmuDriver::updateMouseState(MouseState &state, IGameInputDevice *devic
   if (!device)
     return;
 
-  gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindMouse, device);
+  gameinput::Reading reading = gameinput::get_current_reading(GameInputKindMouse, device);
   if (reading)
   {
     GameInputMouseState mouseState;
@@ -257,10 +256,10 @@ void MouseEmuDriver::updateMouseState(MouseState &state, IGameInputDevice *devic
 
 void MouseEmuDriver::updateHWMouse()
 {
-  gdk::gameinput::DevicesList mouses;
-  gdk::gameinput::get_devices(GameInputKindMouse, mouses);
+  gameinput::DevicesList mouses;
+  gameinput::get_devices(GameInputKindMouse, mouses);
 
-  G_ASSERT(mouses.size() <= gdk::gameinput::MAX_DEVICES_PER_TYPE);
+  G_ASSERT(mouses.size() <= gameinput::MAX_DEVICES_PER_TYPE);
 
   for (size_t mouseNo = 0; mouseNo < mouses.size(); ++mouseNo)
     updateMouseState(mouse_states[mouseNo], mouses[mouseNo]);

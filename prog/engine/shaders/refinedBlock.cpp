@@ -20,8 +20,6 @@
 namespace refined_block
 {
 
-static constexpr uint32_t invalid_block_id = static_cast<uint32_t>(-1);
-
 static int get_internal_id(int var_id)
 {
   G_ASSERTF_RETURN(var_id >= 0, -1, "RefinedBlock: invalid var_id=%d", var_id);
@@ -136,7 +134,7 @@ template <typename T>
 BlockHandle BaseBlockHandle<BlockHandle>::set(int var_id, const T &val)
 {
   using BlockType = typename BlockHandle::BlockType;
-  G_ASSERT_RETURN(is_valid_id<BlockType>(getId()), BlockHandle::invalid);
+  G_ASSERT_RETURN(is_valid_id<BlockType>(getId()), {});
   const int gid = get_internal_id(var_id);
   if (DAGOR_LIKELY(gid >= 0))
   {
@@ -198,7 +196,7 @@ typename ParentHandle::ChildHandle refine_block(const char *name, ParentHandle p
   using ParentBlockType = typename ParentHandle::BlockType;
   using ChildHandle = typename ParentHandle::ChildHandle;
 
-  G_ASSERT_RETURN(is_valid_id<ParentBlockType>(parent.getId()), ParentHandle::ChildHandle::invalid);
+  G_ASSERT_RETURN(is_valid_id<ParentBlockType>(parent.getId()), {});
   auto &b = get_blocks<ParentBlockType>()[parent.getId()];
 
   const int nameId = b.childNameMap.getNameId(name);
@@ -230,6 +228,7 @@ GlobalBlockHandle get_global()
   template HandleType BaseBlockHandle<HandleType>::set(int, const Point4 &);                                        \
   template HandleType BaseBlockHandle<HandleType>::set(int, const IPoint4 &);                                       \
   template HandleType BaseBlockHandle<HandleType>::set(int, const TMatrix4 &);                                      \
+  template HandleType BaseBlockHandle<HandleType>::set(int, const TMatrix &);                                       \
   template HandleType BaseBlockHandle<HandleType>::set(int, BaseTexture *const &);                                  \
   template HandleType BaseBlockHandle<HandleType>::set(int, Sbuffer *const &);                                      \
   template HandleType BaseBlockHandle<HandleType>::set(int, const d3d::SamplerHandle &);                            \
@@ -240,6 +239,7 @@ GlobalBlockHandle get_global()
   template dag::Expected<Point4, GetError> BaseBlockHandle<HandleType>::get(int) const;                             \
   template dag::Expected<IPoint4, GetError> BaseBlockHandle<HandleType>::get(int) const;                            \
   template dag::Expected<TMatrix4, GetError> BaseBlockHandle<HandleType>::get(int) const;                           \
+  template dag::Expected<TMatrix, GetError> BaseBlockHandle<HandleType>::get(int) const;                            \
   template dag::Expected<BaseTexture *, GetError> BaseBlockHandle<HandleType>::get(int) const;                      \
   template dag::Expected<d3d::SamplerHandle, GetError> BaseBlockHandle<HandleType>::get(int) const;                 \
   template dag::Expected<RaytraceTopAccelerationStructure *, GetError> BaseBlockHandle<HandleType>::get(int) const; \
@@ -249,6 +249,7 @@ GlobalBlockHandle get_global()
   template dag::Expected<Color4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                        \
   template dag::Expected<IPoint4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                       \
   template dag::Expected<TMatrix4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                      \
+  template dag::Expected<TMatrix, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                       \
   template dag::Expected<BaseTexture *, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                 \
   template dag::Expected<Sbuffer *, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                     \
   template dag::Expected<d3d::SamplerHandle, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;            \
@@ -259,10 +260,6 @@ INSTANTIATE_HANDLE_ACCESSORS(ViewBlockHandle)
 INSTANTIATE_HANDLE_ACCESSORS(PassBlockHandle)
 
 #undef INSTANTIATE_HANDLE_ACCESSORS
-
-ViewBlockHandle ViewBlockHandle::invalid = ViewBlockHandle(invalid_block_id);
-PassBlockHandle PassBlockHandle::invalid = PassBlockHandle(invalid_block_id);
-GlobalBlockHandle GlobalBlockHandle::invalid = GlobalBlockHandle(invalid_block_id);
 
 PassBlockHandle::PassBlockHandle(uint32_t id) : BaseBlockHandle<PassBlockHandle>(id) {}
 
@@ -290,13 +287,9 @@ static dag::Expected<dag::ConstSpan<int>, FlushError> get_stcode()
 
   const int32_t stcodeId = dumpV5->refinedBlockStcodeId;
   if (DAGOR_UNLIKELY(stcodeId < 0))
-    return dag::Unexpected(FlushError::InvalidStcodeId);
+    return {};
 
-  const auto &stcode = shBinDump().stcode[stcodeId];
-  if (DAGOR_UNLIKELY(stcode.empty()))
-    return dag::Unexpected(FlushError::EmptyStcode);
-
-  return stcode;
+  return shBinDump().stcode[stcodeId];
 }
 
 static dag::Expected<Sbuffer *, FlushError> flush(PassBlockHandle block_handle, dag::ConstSpan<int> stcode)
@@ -307,7 +300,8 @@ static dag::Expected<Sbuffer *, FlushError> flush(PassBlockHandle block_handle, 
   UniqueBuf &cbuf = block.cbufRing[block.currentCbufIdx];
   if (!cbuf.getBuf())
   {
-    String bufName(64, "refined_block_%s_cb%d", block.name, block.currentCbufIdx);
+    const char *viewName = get_blocks<ViewBlock>()[block.parentId.getId()].name.c_str();
+    String bufName(64, "refined_block_%s_%s_cb%d", viewName, block.name, block.currentCbufIdx);
     cbuf = dag::buffers::create_persistent_cb(block.CBUF_REGS, bufName.c_str(), RESTAG_REFINED_BLOCK);
   }
 
@@ -332,8 +326,8 @@ static dag::Expected<Sbuffer *, FlushError> flush(PassBlockHandle block_handle, 
       return dag::Unexpected(FlushError::NoDump);
 
     const int32_t cppId = dumpV5->cppRefinedBlockStcodeId;
-    if (cppId < 0)
-      return dag::Unexpected(FlushError::InvalidStcodeId);
+    if (DAGOR_UNLIKELY(cppId < 0))
+      return cbuf.getBuf();
 
     RawBufferConstSetter rawBufSetter(bufData);
     ScopedRefinedBlock blockScope(block_handle);

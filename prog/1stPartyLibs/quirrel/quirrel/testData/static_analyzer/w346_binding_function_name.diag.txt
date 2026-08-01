@@ -1,0 +1,24 @@
+WARNING: w346 (binding-and-function-name) Binding and function name are not the same ('letMismatch' and 'letFunction').
+testData/static_analyzer/w346_binding_function_name.nut:1:18
+
+let letMismatch = function letFunction() { //expect:w346
+                  ^
+  return 1
+
+
+WARNING: w346 (binding-and-function-name) Binding and function name are not the same ('localMismatch' and 'localFunction').
+testData/static_analyzer/w346_binding_function_name.nut:6:22
+
+local localMismatch = function localFunction() { //expect:w346
+                      ^
+  return 2
+
+
+WARNING: w346 (binding-and-function-name) Binding and function name are not the same ('lmb' and 'fn').
+testData/static_analyzer/w346_binding_function_name.nut:29:10
+
+let lmb = @fn() 7 //expect:w346
+          ^------
+let _lmb = lmb;
+
+

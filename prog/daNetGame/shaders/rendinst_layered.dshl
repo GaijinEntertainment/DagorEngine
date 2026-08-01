@@ -80,7 +80,7 @@ shader rendinst_layered
     compile("target_vs", "simple_vs");
     compile("ps_null", "rendinst_render_depth_black_ps");
   } else {
-    if (paint_details_tex != NULL)
+    if (paint_details_tex != NULL || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
     {
       hlsl{
         #define COLOR_NEEDED 1
@@ -225,7 +225,7 @@ shader rendinst_layered
       }
       USE_NORMAL_DETAIL()
 
-      LAYERED_PS(rendinst_render_pass == rendinst_render_pass_normal)
+      LAYERED_PS(rendinst_render_pass == rendinst_render_pass_normal, use_parallax_shadows_or_ao)
     }
 
     if (rendinst_render_pass == rendinst_render_pass_depth)
@@ -311,7 +311,7 @@ shader rendinst_mask_layered
     compile("target_vs", "simple_vs");
     compile("ps_null", "rendinst_render_depth_black_ps");
   } else {
-    if (paint_details_tex != NULL)
+    if (paint_details_tex != NULL || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
     {
       hlsl{
         #define COLOR_NEEDED 1

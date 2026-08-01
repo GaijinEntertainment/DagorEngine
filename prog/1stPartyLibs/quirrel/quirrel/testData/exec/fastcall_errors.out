@@ -1,0 +1,4 @@
+caught: parameter 1 of 'abs' has an invalid type 'string' ; expected: 'integer|float'
+locals intact: 111 222
+caught2: parameter 1 of 'abs' has an invalid type 'table' ; expected: 'integer|float'
+OK

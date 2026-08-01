@@ -13,7 +13,7 @@ void teardown() {}
 bool is_ray_reconstruction_enabled() { return false; }
 bool is_ptgi_ray_reconstruction_enabled() { return false; }
 
-void get_required_persistent_texture_descriptors(TexInfoMap &, bool) {}
+void get_required_persistent_texture_descriptors(TexInfoMap &, bool, bool, bool) {}
 
 void get_required_persistent_texture_descriptors_for_ao(TexInfoMap &) {}
 void get_required_transient_texture_descriptors_for_ao(TexInfoMap &) {}

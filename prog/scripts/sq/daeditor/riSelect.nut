@@ -81,7 +81,7 @@ function riAddFavoritesGroup() {
   })
 }
 
-function riCalcNameInGroup(name, group) {
+function riCalcNameInGroup(name, group): int {
   let isFavorites = group.mode == GRPMODE_FAVORITES
   if (!isFavorites && group.mode != GRPMODE_USER)
     return -1
@@ -91,7 +91,7 @@ function riCalcNameInGroup(name, group) {
   return 0
 }
 
-function riCalcNameInGroups(name) {
+function riCalcNameInGroups(name): int {
   local result = 0
   foreach (group in riGroupsData)
     result = math.max(result, riCalcNameInGroup(name, group))
@@ -107,14 +107,14 @@ function riBuildNamesGroups() {
   }
 }
 
-function riIsUserGroup(name) {
+function riIsUserGroup(name): bool {
   let groupID = riGroupGetID(name)
   if (groupID == null || groupID < 0 || groupID >= riGroupsData.len())
     return false
   return riGroupsData[groupID].mode == GRPMODE_USER
 }
 
-function riIsEmptyGroup(name) {
+function riIsEmptyGroup(name): bool {
   let groupID = riGroupGetID(name)
   if (groupID == null || groupID < 0 || groupID >= riGroupsData.len())
     return false
@@ -122,7 +122,7 @@ function riIsEmptyGroup(name) {
   return list != null && list.len() == 0
 }
 
-function riHasUserGroups() {
+function riHasUserGroups(): bool {
   foreach (group in riGroupsData)
     if (group.mode == GRPMODE_USER)
       return true
@@ -172,7 +172,7 @@ function riSortUserGroups() {
   })
 }
 
-function riHasTag(name, tag) {
+function riHasTag(name, tag): bool {
   let tagLen = tag.len()
   let nameLen = name.len()
   let lastPos = nameLen - tagLen
@@ -187,7 +187,7 @@ function riHasTag(name, tag) {
   return false
 }
 
-function riGroupListName(name, count) {
+function riGroupListName(name, count): string {
   return $"{name} ({count})"
 }
 
@@ -403,7 +403,7 @@ function riIsValidGroupName(name) {
   return validRIGroupNameRegExp.match(name)
 }
 
-function riGroupNameUsed(name) {
+function riGroupNameUsed(name): bool {
   foreach(group in riGroupsData)
     if (group.mode == GRPMODE_USER && group.name == name)
       return true
@@ -504,14 +504,14 @@ function riGroupNewFinish() {
 }
 
 
-function riAddWithExludes(out_filtered, name, excludes) {
+function riAddWithExludes(out_filtered: array, name, excludes) {
   foreach (idx, exclude in excludes)
     if (idx > 0 && exclude != "" && name.contains(exclude))
       return
   out_filtered.append(name)
 }
 
-function riFilterNames(out_filtered, names, by_filter) {
+function riFilterNames(out_filtered: array, names, by_filter: string) {
   let excludes = by_filter.split("-")
   let filter = excludes[0]
 
@@ -722,7 +722,7 @@ function riNavLast() {
     riTagScroll(riTags.len())
 }
 
-function riNavBy() {
+function riNavBy(): string {
   if (riTagsShown.get())
     return "Tags"
   return "Page"

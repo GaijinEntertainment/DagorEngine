@@ -199,11 +199,11 @@ void SphHarmCalc::processFaceData(uint8_t *buf, int face, int width, int stride,
       if (!isLinearTarget)
         col = Color4(powf(max(0.f, col.r), gamma), powf(max(0.f, col.g), gamma), powf(max(0.f, col.b), gamma), 1);
 
-      // Harmonics are an approximation, be tolerant.
-      if (col.r < -0.1f || col.g < -0.1f || col.b < -0.1f || col.r > 100.f || col.g > 100.f || col.b > 100.f || !check_finite(col.r) ||
-          !check_finite(col.g) || !check_finite(col.b))
+      // Discard only inf/negative values, bright HDR values are accepted by the shader too
+      if (!check_finite(col.r) || !check_finite(col.g) || !check_finite(col.b) || col.r < -0.1f || col.g < -0.1f || col.b < -0.1f)
       {
-        LOGERR_ONCE("Invalid SPH sample col=%@", col);
+        LOGERR_ONCE("Invalid SPH sample col=%@ (face=%d texel=%d,%d of %dx%d dir=%@ fmt=0x%X gamma=%g)", col, face, x, y, width, width,
+          normalize(ivtm % Point3(x1 + step_2, -yc, 1)), fmt, gamma);
         col = Color4(0.1f, 0.2f, 0.4f); // Neutral day color.
       }
       col.clamp0();

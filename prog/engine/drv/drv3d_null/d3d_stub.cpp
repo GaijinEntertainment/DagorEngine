@@ -194,7 +194,7 @@ void d3d::dispatch_mesh_indirect_count(Sbuffer *args, uint32_t args_stride_bytes
   G_UNUSED(count_byte_offset);
   G_UNUSED(max_count);
 }
-bool d3d::set_const_buffer(uint32_t, uint32_t, Sbuffer *, uint32_t, uint32_t) { return false; }
+bool d3d::set_const_buffer(uint32_t, uint32_t, Sbuffer *) { return false; }
 bool d3d::set_const_buffer(unsigned stage, unsigned slot, const float *data, unsigned num_regs) { return false; }
 
 GPUFENCEHANDLE d3d::insert_fence(GpuPipeline /*gpu_pipeline*/) { return BAD_GPUFENCEHANDLE; }
@@ -208,6 +208,7 @@ bool d3d::set_render_target(int, BaseTexture *, int fc, uint8_t level) { return 
 
 void d3d::get_render_target(Driver3dRenderTarget &out_rt) {}
 bool d3d::set_render_target(const Driver3dRenderTarget &rt) { return false; }
+void d3d::set_render_target(RenderTarget, DepthAccess, dag::ConstSpan<RenderTarget>) {}
 bool d3d::get_target_size(int &w, int &h) { return false; }
 bool d3d::get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level) { return false; }
 

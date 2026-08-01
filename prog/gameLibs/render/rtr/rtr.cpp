@@ -508,7 +508,7 @@ void do_trace(const TMatrix4 &proj_tm)
   d3d::resource_barrier(ResourceBarrierDesc(rtr_basetex, RB_NONE, 0, 0));
 }
 
-void denoise(const denoiser::TexMap &textures)
+void denoise(const denoiser::TexMap &textures, bool use_smart_depth)
 {
   TIME_D3D_PROFILE(rtr::denoise);
 
@@ -524,6 +524,7 @@ void denoise(const denoiser::TexMap &textures)
   denoiser_params.performanceMode = performance_mode;
   denoiser_params.checkerboard = is_checkerboard;
   denoiser_params.textures = textures;
+  denoiser_params.useSmartDepth = use_smart_depth;
 
   denoiser::denoise_reflection(denoiser_params);
 }
@@ -545,7 +546,7 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, 
   }
   unbind_params();
 
-  denoise(textures);
+  denoise(textures, false);
 }
 
 bool is_validation_layer_enabled() { return show_validation; }

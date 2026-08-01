@@ -791,16 +791,13 @@ inline const char *as_ps_string(d3d::shadermodel::Version v)
 inline const char *as_ps_string(d3d::shadermodel::VersionWithName v) { return v.psName; }
 } // namespace d3d
 //! User literal operator for \p _sm to generate shader model versions.
-//! This is a raw operator, valid input is <digit>.<digit>, any other literals will result in undefined behavior.
-//! \p text Literal text to process. Format has to be <digit>.<digit>
-//! \returns A valid version value should the input match the format. Otherwise undefined behavior.
+//! Supports <number>.<number>, where dot and after dot number is optional. Number is parsed as a base 10 value. After dot value is not
+//! a decimal value, but a full integer number value, so a 10 after the dot will be correctly parsed as 10 and not, unlike with
+//! fractions, shortened to 1 (as fractions work the other way around with leading 0, trailing 0 has no meaning). \p text Literal text
+//! to process. Format has to be <number>.<number> \returns A valid version value should the input match the format. Otherwise
+//! undefined behavior.
 constexpr d3d::shadermodel::Version operator""_sm(const char *text)
 {
-#if 1
-  // only works if <digit>.<digit>
-  unsigned major = text[0] - '0';
-  unsigned minor = text[2] - '0';
-#else
   unsigned major = 0;
   unsigned minor = 0;
   unsigned i = 0;
@@ -815,9 +812,15 @@ constexpr d3d::shadermodel::Version operator""_sm(const char *text)
       minor = minor * 10 + text[i] - '0';
     }
   }
-#endif
   return {major, minor};
 }
+
+// test if dot is optional and minor defaults to 0
+static_assert((6_sm).major == 6 && (6_sm).minor == 0);
+// test if signle digit values are correctly handled
+static_assert((6.7_sm).major == 6 && (6.7_sm).minor == 7);
+// test if multi digit values are correctly handled
+static_assert((12.10_sm).major == 12 && (12.10_sm).minor == 10);
 
 template <typename T>
 struct DebugConverter;

@@ -13,9 +13,8 @@
 #include <walkerAi/coverComponent.h>
 #include <osApiWrappers/dag_files.h>
 
-using CoverSlots = eastl::fixed_vector<CoverSlot, 8, false>;
-using CoverDescs = eastl::vector<CoverDesc>;
-using CoverExtras = eastl::vector<CoverExtra>;
+using CoverDescs = dag::Vector<CoverDesc>;
+using CoverExtras = dag::Vector<CoverExtra>;
 using CoversTab = Tab<covers::Cover>;
 
 MAKE_TYPE_FACTORY(Cover, covers::Cover);
@@ -25,7 +24,6 @@ MAKE_TYPE_FACTORY(CoverExtra, CoverExtra);
 MAKE_TYPE_FACTORY(CoversComponent, CoversComponent);
 MAKE_TYPE_FACTORY(GlobalVisibleCoversMap, GlobalVisibleCoversMap)
 
-DAS_BIND_VECTOR(CoverSlots, CoverSlots, CoverSlot, " ::CoverSlots")
 DAS_BIND_VECTOR(CoverDescs, CoverDescs, CoverDesc, " ::CoverDescs")
 DAS_BIND_VECTOR(CoverExtras, CoverExtras, CoverExtra, " ::CoverExtras")
 
@@ -33,6 +31,15 @@ DAS_BIND_VECTOR(CoversTab, CoversTab, covers::Cover, " ::CoversTab")
 
 namespace bind_dascript
 {
+// the slot pool layout is private to C++; das reads slots only through this accessor
+inline const CoverSlot &cover_slot(const CoversComponent &covers, const CoverDesc &desc, int slot_idx, das::Context *context,
+  das::LineInfoArg *at)
+{
+  if (DAGOR_UNLIKELY(uint32_t(slot_idx) >= uint32_t(desc.slots.cnt)))
+    context->throw_error_at(at, "cover slot index %d out of range %d", slot_idx, desc.slots.cnt);
+  return covers.coverSlots(desc)[slot_idx];
+}
+
 inline void covers_box_cull(CoversComponent &covers, const bbox3f &box,
   const das::TBlock<void, int, const das::TTemporary<mat44f>> &block, das::Context *context, das::LineInfoArg *at)
 {
@@ -160,7 +167,7 @@ inline bool load_covers_extra_from_file(CoversComponent &covers, const char *fil
       }
       else if (load_cvex_mode == LOAD_CVEX_TRY_TO_NEAREST)
       {
-        eastl::vector<CoverExtra> tmpExtra;
+        dag::Vector<CoverExtra> tmpExtra;
         tmpExtra.resize(numExtra);
         const uint32_t dataSize = numExtra * 16;
         if (df_read(h.get(), &tmpExtra[0], dataSize) != dataSize)

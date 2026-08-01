@@ -399,8 +399,8 @@ macro DYNAMIC_SPLINE_GEN_VS_COMMON()
       float emissiveIntensity : TEXCOORD8;
       ##endif
       #ifdef MOTION_VECTORS_ENABLED
-      float4 out_pos : TEXCOORD3;
-      float4 out_prev_pos : TEXCOORD4;
+      float3 out_pos : TEXCOORD3;
+      float3 out_pos_prev : TEXCOORD4;
       #endif
       ##if shader == dynamic_spline_gen || shader == dynamic_emissive_spline_gen || shader == dynamic_skin_spline_gen || shader == dynamic_refractive_spline_gen
       float3 tangent : TEXCOORD5;
@@ -505,7 +505,7 @@ macro DYNAMIC_SPLINE_GEN_PS_COMMON()
       ##endif
 
       #ifdef MOTION_VECTORS_ENABLED
-        float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_prev_pos.xyw );
+        float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
         init_motion_vector(gbuffer, motion);
       #endif
       return encode_gbuffer(gbuffer, input.pointToEye, screenpos);

@@ -478,12 +478,11 @@ shader object_motion_blur
       // loopCount is always divisible by sampleCountFactor / 2 (which is 2 in this case)
       for(i = 0; i < loopCount / 2; i++)
       {
-        float2 jitteredStepIndex = (step + 0.5) + sampleJitter; // [0->loopCount]
-        float2 sampleOffset = jitteredStepIndex * stepSizeUV;
+        float2 jitteredStepIndex = (step + 0.5) + sampleJitter; // [0->loopCount], .x forward ray, .y backward ray
 
         float2 sampleUVs[2];
-        sampleUVs[0] = centerUV + sampleOffset;
-        sampleUVs[1] = centerUV - sampleOffset;
+        sampleUVs[0] = centerUV + jitteredStepIndex.x * stepSizeUV;
+        sampleUVs[1] = centerUV - jitteredStepIndex.y * stepSizeUV;
 
         UNROLL
         for(int j = 0; j < 2; j++)
@@ -491,7 +490,7 @@ shader object_motion_blur
           // Odd-numbered sample: sample along center velocity.
           float2 sampleUv = sampleUVs[j];
           float weight = getWeightForSample(centerVelNorm, centerVelLength, centerDepth,
-            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongCenterVel, linearTranslucentDepth, centerIsSky);
+            (j == 0 ? jitteredStepIndex.x : jitteredStepIndex.y) * stepIndexToPixel, sampleUv, sampleAlongCenterVel, linearTranslucentDepth, centerIsSky);
 
           result += tex2Dlod(input_tex, float4(sampleUv, 0, 0)).rgb * weight;
           totalWeight += weight;
@@ -509,19 +508,18 @@ shader object_motion_blur
 
       for(i = 0; i < loopCount / 2; i++)
       {
-        float2 jitteredStepIndex = (step + 0.5) + sampleJitter; // [0->loopCount]
-        float2 sampleOffset = jitteredStepIndex * stepSizeUV;
+        float2 jitteredStepIndex = (step + 0.5) + sampleJitter; // [0->loopCount], .x forward ray, .y backward ray
 
         float2 sampleUVs[2];
-        sampleUVs[0] = centerUV + sampleOffset;
-        sampleUVs[1] = centerUV - sampleOffset;
+        sampleUVs[0] = centerUV + jitteredStepIndex.x * stepSizeUV;
+        sampleUVs[1] = centerUV - jitteredStepIndex.y * stepSizeUV;
 
         UNROLL
         for(int j = 0; j < 2; j++)
         {
           float2 sampleUv = sampleUVs[j];
           float weight = getWeightForSample(maxNeighborVel_Norm_Len.xy, centerVelLength, centerDepth,
-            jitteredStepIndex.x * stepIndexToPixel, sampleUv, sampleAlongDominantVel, linearTranslucentDepth, centerIsSky);
+            (j == 0 ? jitteredStepIndex.x : jitteredStepIndex.y) * stepIndexToPixel, sampleUv, sampleAlongDominantVel, linearTranslucentDepth, centerIsSky);
 
           result += tex2Dlod(input_tex, float4(sampleUv, 0, 0)).rgb * weight;
           totalWeight += weight;

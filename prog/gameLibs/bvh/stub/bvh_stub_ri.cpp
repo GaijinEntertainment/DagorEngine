@@ -16,7 +16,9 @@ void prepare_ri_extra_instances() {}
 void update_ri_gen_instances(ContextId, const dag::Vector<RiGenVisibility *> &, const Point3 &, const Point3 &, const Frustum &,
   threadpool::JobPriority)
 {}
-void update_ri_extra_instances(ContextId, const Point3 &, const Frustum &, const Frustum &, const Point3 &, threadpool::JobPriority) {}
+void update_ri_extra_instances(ContextId, const Point3 &, const Point3 &, const Frustum &, const Frustum &, const Point3 &,
+  threadpool::JobPriority)
+{}
 void wait_ri_gen_instances_update(ContextId) {}
 void wait_ri_extra_instances_update(ContextId) {}
 void tidy_up_trees(ContextId) {}

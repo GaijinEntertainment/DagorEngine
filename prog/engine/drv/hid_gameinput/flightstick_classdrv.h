@@ -44,14 +44,13 @@ protected:
   using DeviceList = eastl::vector<eastl::unique_ptr<Device>>;
 
   bool isEnabled = false;
-  bool isDevicesNeedsRefresh = true;
   bool isAutoDefaultJoystick = true;
 
   int64_t prevUpdateRefTime = 0;
   int nextFlightStickUid = 0;
 
   DeviceList devices;
-  size_t devicesChangeCallbackIdx = size_t(-1);
+  unsigned devicesConfigGen = unsigned(-1);
 
   IGenJoystickClient *defaultClient = nullptr;
   IGenJoystickClassDrv *secondaryDriver = nullptr;

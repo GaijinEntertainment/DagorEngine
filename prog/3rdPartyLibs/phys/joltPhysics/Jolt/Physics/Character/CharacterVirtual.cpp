@@ -621,19 +621,22 @@ bool CharacterVirtual::GetFirstContactForSweep(RVec3Arg inPosition, Vec3Arg inDi
 		ts = mSystem->GetBodyInterface().GetTransformedShape(outContact.mBodyB);
 	}
 
-	// Fetch the face we're colliding with
-	Shape::SupportingFace face;
-	ts.GetSupportingFace(outContact.mSubShapeIDB, -outContact.mContactNormal, base_offset, face);
-
 	bool corrected = false;
-	if (face.size() >= 2)
+	if (ts.mShape != nullptr) // If body B has been removed between CastShape and GetTransformedShape, TransformedShape will be empty
 	{
-		// Inflate the colliding face by the character padding
-		PolygonConvexSupport polygon(face);
-		AddConvexRadius add_cvx(polygon, character_padding);
+		// Fetch the face we're colliding with
+		Shape::SupportingFace face;
+		ts.GetSupportingFace(outContact.mSubShapeIDB, -outContact.mContactNormal, base_offset, face);
 
-		// Correct fraction to hit this inflated face instead of the inner shape
-		corrected = sCorrectFractionForCharacterPadding(mShape, start.GetRotation(), inDisplacement, Vec3::sOne(), add_cvx, outContact.mFraction);
+		if (face.size() >= 2)
+		{
+			// Inflate the colliding face by the character padding
+			PolygonConvexSupport polygon(face);
+			AddConvexRadius add_cvx(polygon, character_padding);
+
+			// Correct fraction to hit this inflated face instead of the inner shape
+			corrected = sCorrectFractionForCharacterPadding(mShape, start.GetRotation(), inDisplacement, Vec3::sOne(), add_cvx, outContact.mFraction);
+		}
 	}
 	if (!corrected)
 	{

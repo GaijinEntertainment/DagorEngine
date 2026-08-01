@@ -11,8 +11,6 @@ include "clipmap_common_inc.dshl"
 int prefab_render_pass_is_depth = 0;
 interval prefab_render_pass_is_depth : no < 1, yes;
 
-float4 camera_base_offset = (0, 0, 0, 0);
-
 // land_mesh_clipmap is a fixed name, it is filtered out in many places
 shader land_mesh_clipmap // aka prefab_clipmap
 {

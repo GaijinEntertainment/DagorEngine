@@ -6,16 +6,16 @@
 #include <EASTL/string.h>
 
 #include "shStateBlock.h"
-#include "concurrentElementPool.h"
-#include "concurrentRangePool.h"
+#include <generic/dag_concurrentElementPool.h>
+#include <generic/dag_concurrentRangePool.h>
 
 using namespace shaders;
 
 struct SBSamplerState
 {
-  using TexDataCont = ConcurrentRangePool<TEXTUREID, 12>;
+  using TexDataCont = dag::ConcurrentRangePool<TEXTUREID, 12>;
   static TexDataCont data;
-  static ConcurrentElementPool<TexStateIdx, SBSamplerState, 10> all; // first one is default
+  static dag::ConcurrentElementPool<TexStateIdx, SBSamplerState, 10> all; // first one is default
   static OSSpinlock mutex;
 
   static_assert(DEFAULT_TEX_STATE_ID == decltype(all)::FIRST_ID);
@@ -112,10 +112,10 @@ decltype(SBSamplerState::mutex) SBSamplerState::mutex;
 
 struct ConstState
 {
-  using ConstsDataCont = ConcurrentRangePool<Point4, 13>;
+  using ConstsDataCont = dag::ConcurrentRangePool<Point4, 13>;
   static ConstsDataCont dataConsts;
-  static ConcurrentElementPool<ConstStateIdx, ConstState, 11> all;        // first one is default
-  static ConcurrentElementPool<ConstStateIdx, Sbuffer *, 11> allConstBuf; // parallel to all
+  static dag::ConcurrentElementPool<ConstStateIdx, ConstState, 11> all;        // first one is default
+  static dag::ConcurrentElementPool<ConstStateIdx, Sbuffer *, 11> allConstBuf; // parallel to all
   static OSSpinlock mutex;
 
   static_assert(DEFAULT_CONST_STATE_ID == decltype(all)::FIRST_ID);

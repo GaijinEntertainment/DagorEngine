@@ -1,6 +1,7 @@
 include "paint_details_inc.dshl"
 include "const_color_inc.dshl"
 include "sheen_common_inc.dshl"
+include "voxel_baking.dshl"
 
 macro INIT_SIMPLE_PAINTED()
   static float paint_details = 1.0; // paint_strength
@@ -46,6 +47,7 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
   }
 
   USE_CONST_COLOR_OVERRIDES()
+  USE_VOXEL_BAKING()
 
   hlsl(ps) {
     #ifndef handle_if_two_sided
@@ -53,12 +55,7 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
     #endif
 
 #if RENDINST_IMPOSTOR_VOXEL
-    void simple_painted_ps(VsOutput input,
-      out float4 out_0 : SV_Target0,
-      out float4 out_1 : SV_Target1,
-      out float4 out_2 : SV_Target2,
-      out float  out_3 : SV_Target3
-      INPUT_VFACE HW_USE_SCREEN_POS)
+    VOXEL_BAKER_OUTPUT simple_painted_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
 #else
     #if VOXELIZE_ALBEDO_PASS
       void simple_painted_ps(VsOutput input)
@@ -85,7 +82,13 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
       ##endif
 
       // note: paint_const_color overrides overlay map color too!
-      float3 colorMul = get_color_mul(input, get_paint_const_color());
+      #if RENDINST_IMPOSTOR_VOXEL
+        half4 overcolor = get_paint_const_color();
+        uint palRow = input.colorMul.x;
+        uint palIndex = input.colorMul.y;
+      #else
+        float3 colorMul = get_color_mul(input, get_paint_const_color());
+      #endif
 
       half mask = luminance(diffuseColor.rgb);
       if (get_use_alpha_as_mask())
@@ -95,8 +98,8 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
 
       half details = get_paint_scale_bias_mult_details().w * saturate(mask * get_paint_scale_bias_mult_details().x + get_paint_scale_bias_mult_details().y);
       #if RENDINST_IMPOSTOR_VOXEL
-        half3 coloringMul = diffuseColor.rgb * get_paint_scale_bias_mult_details().z * details / COLOR_CORRECTION_MULTIPLIER;
-        diffuseColor.rgb = lerp(diffuseColor.rgb, 0, details);
+        half3 coloringMul = diffuseColor.rgb * overcolor.rgb * (1 - overcolor.a) * get_paint_scale_bias_mult_details().z * details;
+        diffuseColor.rgb = diffuseColor.rgb * lerp(1, overcolor.rgb * overcolor.a * get_paint_scale_bias_mult_details().z, details);
       #else
         diffuseColor.rgb = lerp(diffuseColor.rgb, diffuseColor.rgb * colorMul * get_paint_scale_bias_mult_details().z, details);
       #endif
@@ -180,7 +183,7 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
         init_dynamic(gbuffer,IS_DYNAMIC);
         init_order(gbuffer, order);
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
           init_motion_vector(gbuffer, motion);
         #endif
         #ifdef PLOD_PS_GEN
@@ -192,21 +195,9 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
           alpha = diffuseColor.a;
         ##endif
 
-        half coloring = luminance(coloringMul);
-
-        float depth = dot(impostor_depth_proj, float4(worldPos, 1));
-        float sliceDepth = texelFetch(impostor_depth_slice, int2(GET_SCREEN_POS(input.pos).xy), 0).r;
-        if (depth < sliceDepth + 1) discard;
-
-        out_0.a = alpha;
-        out_0.rgb = gbuffer.albedo.rgb;
-        out_1.rgb = normalize(gbuffer.normal.xyz)*0.5+0.5;
-        out_1.a = coloring;
-        out_2.r = gbuffer.smoothness;
-        out_2.g = gbuffer.reflectance;
-        out_2.b = gbuffer.metalness;
-        out_2.a = gbuffer.translucency;
-        out_3 = depth;
+        const float depth = voxel_baker_depth(worldPos, GET_SCREEN_POS(input.pos).xy);
+        return baker_output_from_gbuffer(gbuffer, depth, alpha,
+          coloringMul, palRow, palIndex);
 #else
         return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
 #endif

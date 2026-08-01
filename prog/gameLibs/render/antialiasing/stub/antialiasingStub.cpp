@@ -42,7 +42,9 @@ void before_render_frame() {}
 
 void before_render_view(int) {}
 
-Point2 get_jitter(const RenderView &, bool) { return Point2::ZERO; }
+bool before_render_view(const RenderView &) { return false; }
+Point2 get_jitter_offset(uint32_t) { return Point2::ZERO; }
+int get_jitter_sequence_length() { return 1; }
 
 RTarget::CPtr apply(const ApplyContext &, bool) { return nullptr; }
 void apply_fxaa(AntialiasingMethod, TEXTUREID, TEXTUREID, const Point4 &) {}
@@ -61,6 +63,7 @@ void suppress_frame_generation(bool) {}
 void enable_frame_generation(bool) {}
 void schedule_generated_frames(const FrameGenContext &) {}
 int get_supported_generated_frames(const char *, bool) { return 0; }
+bool is_dynamic_mfg_supported(const char *, bool) { return false; }
 const char *get_frame_generation_unsupported_reason(const char *, bool) { return nullptr; }
 int get_presented_frame_count() { return 1; }
 bool is_frame_generation_enabled() { return false; }

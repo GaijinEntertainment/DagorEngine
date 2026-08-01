@@ -32,6 +32,8 @@
 #include <libTools/util/makeBindump.h>
 #include <rendInst/rendInstGen.h>
 #include <libTools/util/setupTexStreaming.h>
+#include <libTools/util/setupNamedMounts.h>
+#include <libTools/util/appDirRelativePath.h>
 #include <assets/assetPlugin.h>
 #include <assets/texAssetBuilderTextureFactory.h>
 
@@ -160,16 +162,21 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   char app_dir[512];
   dd_get_fname_location(app_dir, options.appBlk.c_str());
   set_canonical_app_dir_mount(app_dir);
-  if (!app_dir[0])
+  if (const char *path = dd_get_named_mount_path("appDir", 6))
+  {
+    strncpy(app_dir, path, sizeof(app_dir));
+    app_dir[sizeof(app_dir) - 1] = '\0';
+  }
+  else if (!app_dir[0])
     strcpy(app_dir, "./");
 
-  DataBlock appblk;
-  if (!appblk.load(options.appBlk.c_str()))
+  DataBlock appBlk;
+  if (!appBlk.load(options.appBlk.c_str()))
   {
     logerr("cannot load %s", options.appBlk.c_str());
     return 1;
   }
-  setup_named_mount_points(*appblk.getBlockByNameEx("mountPoints"));
+  setup_named_mount_points(*appBlk.getBlockByNameEx("mountPoints"));
 
   engine.demandInit();
 

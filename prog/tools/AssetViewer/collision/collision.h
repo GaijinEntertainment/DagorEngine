@@ -9,10 +9,12 @@
 #include <propPanel/control/menu.h>
 #include <propPanel/control/treeInterface.h>
 #include <3d/dag_resPtr.h>
+#include <math/dag_geomTree.h>
 
 class CollisionResource;
-class GeomNodeTree;
 class IObjEntity;
+class TMatrix;
+class TMatrix4;
 
 
 class CollisionPlugin : public IGenEditorPlugin,
@@ -68,7 +70,7 @@ public:
 
 protected:
   CollisionResource *collisionRes;
-  GeomNodeTree *nodeTree;
+  GeomNodeTreeUniquePtr nodeTree;
   NodesProcessing nodesProcessing;
   UniqueTex faceOrientationRenderDepth;
   int selectedNodeId;
@@ -96,9 +98,10 @@ protected:
   void updateModel();
 };
 
-void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree);
-void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **node_tree);
-void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_bbox = false,
-  bool show_phys_collidable = false, bool show_traceable = false, bool draw_solid = false, bool show_face_orientation = false,
-  bool show_degenerate_triangles = false, const dag::Vector<DegenerativeNodeData> &degenerative_nodes = {}, int selected_node_id = -1,
-  bool edit_mode = false, const dag::Vector<bool> &hidden_nodes = {});
+void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTreeUniquePtr &node_tree);
+void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTreeUniquePtr &node_tree);
+void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, const TMatrix &view_tm,
+  const TMatrix4 &proj_tm, bool show_bbox = false, bool show_phys_collidable = false, bool show_traceable = false,
+  bool draw_solid = false, bool show_face_orientation = false, bool show_degenerate_triangles = false,
+  const dag::Vector<DegenerativeNodeData> &degenerative_nodes = {}, int selected_node_id = -1, bool edit_mode = false,
+  const dag::Vector<bool> &hidden_nodes = {});

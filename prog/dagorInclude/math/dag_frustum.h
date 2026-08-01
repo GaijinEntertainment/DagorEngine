@@ -61,11 +61,9 @@ struct Frustum
   inline int testSphereB(vec3f c, vec4f rad) const;
   inline int testSphere(vec3f c, vec4f rad) const;
 
-  __forceinline int testSphereB(const Point3 &c, real rad) const { return testSphereB(v_ldu(&c.x), v_splats(rad)); }
+  __forceinline int testSphereB(const Point3 &c, real rad) const { return testSphereB(v_ldu_p3_safe(&c.x), v_splats(rad)); }
 
-  __forceinline int testSphere(const Point3 &c, real rad) const { return testSphere(v_ldu(&c.x), v_splats(rad)); }
-
-  int testSphere(const Point3 &center, float radius, unsigned int &last_plane, unsigned int in_mask, unsigned int &out_mask) const;
+  __forceinline int testSphere(const Point3 &c, real rad) const { return testSphere(v_ldu_p3_safe(&c.x), v_splats(rad)); }
 
   bool testSweptSphere(const BSphere3 &sphere, const Point3 &sweep_dir) const
   {
@@ -95,16 +93,28 @@ struct Frustum
   __forceinline int testBoxB(const BBox3 &box) const
   {
     vec3f bmin = v_ldu(&box[0].x);
-    vec3f bmax = v_ldu(&box[1].x);
+    vec3f bmax = v_ldu_p3_safe(&box[1].x);
     return testBoxB(bmin, bmax);
   }
 
   int testBoxCorrect(const BBox3 &box, const vec3f *frustumPoints, const bbox3f &frustumBox) const;
 
+  // Precomputed separating axes for testBoxCorrect. All 24 SAT axes (6 frustum plane normals
+  // + 18 world-axis x normal crosses) and the frustum-side projection intervals depend only on
+  // the frustum, so build once per cull and reuse across every cell (see testBoxCorrectPrepared).
+  struct BoxCorrectSAT
+  {
+    vec4f axisX[6], axisY[6], axisZ[6]; // 24 axes packed SoA as 6 groups of 4 lanes
+    vec4f absX[6], absY[6], absZ[6];    // per-lane |axis|, for the box projection radius
+    bbox3f fInterval[6];                // frustum-point projection interval per axis (bmin..bmax)
+  };
+  void prepareBoxCorrectSAT(const vec3f *frustumPoints, BoxCorrectSAT &sat) const;
+  int testBoxCorrectPrepared(const BBox3 &box, const bbox3f &frustumBox, const BoxCorrectSAT &sat) const;
+
   __forceinline int testBox(const BBox3 &box) const
   {
     vec3f bmin = v_ldu(&box[0].x);
-    vec3f bmax = v_ldu(&box[1].x);
+    vec3f bmax = v_ldu_p3_safe(&box[1].x);
     return testBox(bmin, bmax);
   }
 
@@ -114,7 +124,7 @@ struct Frustum
   __forceinline int testBox(const BBox3 &box, unsigned int &last_start_plane, unsigned int in_mask, unsigned int &out_mask) const
   {
     vec3f bmin = v_ldu(&box[0].x);
-    vec3f bmax = v_ldu(&box[1].x);
+    vec3f bmax = v_ldu_p3_safe(&box[1].x);
     return testBox(bmin, bmax, last_start_plane, in_mask, out_mask);
   }
 

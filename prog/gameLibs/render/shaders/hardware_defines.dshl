@@ -878,6 +878,9 @@ hlsl {
   #define CHECK_TEXTURE3D_EXPR(a, tc)                          \
     a.GetDimensions(bounds_check_3dim.x, bounds_check_3dim.y, bounds_check_3dim.z), \
     checkTexture3DBounds(tc, bounds_check_3dim.xyz, 0, _FILE_, __LINE__, -1)
+  #define CHECK_TEXTURE2DARRAY_EXPR(a, tc)                     \
+    a.GetDimensions(bounds_check_3dim.x, bounds_check_3dim.y, bounds_check_3dim.z), \
+    checkTexture2DArrayBounds(tc, bounds_check_3dim.xyz, 0, _FILE_, __LINE__, -1)
 
   ##if hardware.metal
     #define CHECK_BUFFER(buf, tc, file, ln, name)
@@ -917,6 +920,7 @@ hlsl {
   #define CHECK_TEXTURE2D
   #define CHECK_TEXTURE2D_EXPR(a, tc) 0
   #define CHECK_TEXTURE2DARRAY
+  #define CHECK_TEXTURE2DARRAY_EXPR(a, tc) 0
   #define CHECK_TEXTURE3D
   #define CHECK_TEXTURE3D_EXPR(a, tc) 0
   #define CHECK_BUFFER(buf, tc, file, ln, name)
@@ -1025,12 +1029,14 @@ hlsl {
   #define structuredBufferAt(a, tc) a[uint((CHECK_STRUCTURED_BUFFER_EXPR(a, tc), tc))]
   #define bufferAt(a, tc) a[uint((CHECK_BUFFER_EXPR(a, tc), tc))]
   #define texture2DAt(a, tc) a[int2((CHECK_TEXTURE2D_EXPR(a, tc), tc))]
+  #define texture2DArrayAt(a, tc) a[int3((CHECK_TEXTURE2DARRAY_EXPR(a, tc), tc))]
   #define texture3DAt(a, tc) a[int3((CHECK_TEXTURE3D_EXPR(a, tc), tc))]
 ##else
   //to supress warning 'comma separated initialization'
   #define structuredBufferAt(a, tc) a[tc]
   #define bufferAt(a, tc) a[tc]
   #define texture2DAt(a, tc) a[tc]
+  #define texture2DArrayAt(a, tc) a[tc]
   #define texture3DAt(a, tc) a[tc]
 ##endif
 #endif
@@ -1180,6 +1186,37 @@ sampler global_point_clamp_sampler
 macro INIT_GLOBAL_POINT_CLAMP_SAMPLER(stage)
   BEGIN_ONCE_STAGE(init_global_point_clamp_sampler, stage)
     (stage) { global_point_clamp_sampler@sampler = global_point_clamp_sampler; }
+  END_ONCE()
+endmacro
+
+sampler global_point_wrap_sampler
+{
+  mipmap_mode = point;
+  filter = point;
+  address_u = wrap;
+  address_v = wrap;
+  address_w = wrap;
+};
+
+macro INIT_GLOBAL_POINT_WRAP_SAMPLER(stage)
+  BEGIN_ONCE_STAGE(init_global_point_wrap_sampler, stage)
+    (stage) { global_point_wrap_sampler@sampler = global_point_wrap_sampler; }
+  END_ONCE()
+endmacro
+
+// panorama-style: wrap longitude (u), clamp latitude (v)
+sampler global_linear_wrap_u_clamp_v_sampler
+{
+  mipmap_mode = linear;
+  filter = linear;
+  address_u = wrap;
+  address_v = clamp;
+  address_w = wrap;
+};
+
+macro INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(stage)
+  BEGIN_ONCE_STAGE(init_global_linear_wrap_u_clamp_v_sampler, stage)
+    (stage) { global_linear_wrap_u_clamp_v_sampler@sampler = global_linear_wrap_u_clamp_v_sampler; }
   END_ONCE()
 endmacro
 

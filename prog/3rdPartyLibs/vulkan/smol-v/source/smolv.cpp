@@ -1228,12 +1228,18 @@ static uint32_t smolv_DecodeLen(SpvOp op, uint32_t len)
 // 0x LLLL OOOO is how SPIR-V encodes it (L=length, O=op), we shuffle into:
 // 0x LLLO OOLO, so that common case (op<16, len<8) is encoded into one byte.
 
-static void smolv_WriteLengthOp(smolv::ByteArray& arr, uint32_t len, SpvOp op)
+static bool smolv_WriteLengthOp(smolv::ByteArray& arr, uint32_t len, SpvOp op)
 {
 	len = smolv_EncodeLen(op, len);
+	// SPIR-V length field is 16 bits; if we get a larger value that means something
+	// was wrong, e.g. a vector shuffle instruction with less than 4 words (and our
+	// adjustment to common lengths in smolv_EncodeLen wrapped around)
+	if (len > 0xFFFF)
+		return false;
 	op = smolv_RemapOp(op);
 	uint32_t oplen = ((len >> 4) << 20) | ((op >> 4) << 8) | ((len & 0xF) << 4) | (op & 0xF);
 	smolv_WriteVarint(arr, oplen);
+	return true;
 }
 
 static bool smolv_ReadLengthOp(const uint8_t*& data, const uint8_t* dataEnd, uint32_t& outLen, SpvOp& outOp)
@@ -1261,6 +1267,8 @@ static bool smolv_ReadLengthOp(const uint8_t*& data, const uint8_t* dataEnd, uin
 bool smolv::Encode(const void* spirvData, size_t spirvSize, ByteArray& outSmolv, uint32_t flags)
 {
 	const size_t wordCount = spirvSize / 4;
+	if (wordCount * 4 != spirvSize)
+		return false;
 	const uint32_t* words = (const uint32_t*)spirvData;
 	const uint32_t* wordsEnd = words + wordCount;
 	if (!smolv_CheckSpirVHeader(words, wordCount))
@@ -1313,18 +1321,23 @@ bool smolv::Encode(const void* spirvData, size_t spirvSize, ByteArray& outSmolv,
 		}
 
 		// length + opcode
-		smolv_WriteLengthOp(outSmolv, instrLen, op);
+		if (!smolv_WriteLengthOp(outSmolv, instrLen, op))
+			return false;
 
 		size_t ioffs = 1;
 		// write type as varint, if we have it
 		if (smolv_OpHasType(op))
 		{
+			if (ioffs >= instrLen)
+				return false;
 			smolv_WriteVarint(outSmolv, words[ioffs]);
 			ioffs++;
 		}
 		// write result as delta+zig+varint, if we have it
 		if (smolv_OpHasResult(op))
 		{
+			if (ioffs >= instrLen)
+				return false;
 			uint32_t v = words[ioffs];
 			smolv_WriteVarint(outSmolv, smolv_ZigEncode(v - prevResult)); // some deltas are negative, use zig
 			prevResult = v;
@@ -1334,6 +1347,8 @@ bool smolv::Encode(const void* spirvData, size_t spirvSize, ByteArray& outSmolv,
 		// Decorate & MemberDecorate: IDs relative to previous decorate
 		if (op == SpvOpDecorate || op == SpvOpMemberDecorate)
 		{
+			if (ioffs >= instrLen)
+				return false;
 			uint32_t v = words[ioffs];
 			smolv_WriteVarint(outSmolv, smolv_ZigEncode(v - prevDecorate)); // spirv-remapped deltas often negative, use zig
 			prevDecorate = v;
@@ -1405,6 +1420,8 @@ bool smolv::Encode(const void* spirvData, size_t spirvSize, ByteArray& outSmolv,
 		int relativeCount = smolv_OpDeltaFromResult(op);
 		for (int i = 0; i < relativeCount && ioffs < instrLen; ++i, ++ioffs)
 		{
+			if (ioffs >= instrLen)
+				return false;
 			uint32_t delta = prevResult - words[ioffs];
 			// some deltas are negative (often on branches, or if program was processed by spirv-remap),
 			// so use zig encoding
@@ -1664,6 +1681,8 @@ bool smolv::StatsCalculate(smolv::Stats* stats, const void* spirvData, size_t sp
 		return false;
 
 	const size_t wordCount = spirvSize / 4;
+	if (wordCount * 4 != spirvSize)
+		return false;
 	const uint32_t* words = (const uint32_t*)spirvData;
 	const uint32_t* wordsEnd = words + wordCount;
 	if (!smolv_CheckSpirVHeader(words, wordCount))

@@ -193,6 +193,7 @@ struct Wayland
 
     bool fullscreen;
     bool outputsChanged;
+    bool reportedMaximized = false;
     Output *fullscreenOnOutput;
     uint32_t onOutputs;
     int32_t boundsWidth;

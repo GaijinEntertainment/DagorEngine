@@ -14,8 +14,7 @@ DAG_DECLARE_RELOCATABLE(::ecs::ArchetypesQuery);
 namespace ecs
 {
 
-constexpr uint32_t MAX_RESERVED_EID_IDX_CONST = USHRT_MAX; // To consider: unsatisfied/weak link time dep in order be able configure it
-                                                           // per game?
+extern const uint32_t MAX_RESERVED_EID_IDX_CONST;
 
 struct ScheduledArchetypeComponentTrack // sizeof == 4, can be effectively hashed
 {

@@ -6,9 +6,11 @@
 #include <daRg/dag_element.h>
 #include <daRg/dag_inputIds.h>
 #include <daRg/dag_properties.h>
+#include <daRg/dag_scriptHandlers.h>
 #include <daRg/dag_stringKeys.h>
 
 #include "elementTree.h"
+#include "guiScene.h"
 #include "inputStack.h"
 #include "scriptUtil.h"
 
@@ -82,11 +84,12 @@ int BhvInspectPicker::pointingEvent(ElementTree *etree, Element *elem, InputDevi
           item.SetValue("elem", it->getRef(vm));
           data.Append(item);
         }
-        onChange(data);
+        etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<Sqrat::Array>(onChange, data));
       }
       else
       {
-        onChange(Sqrat::Object(vm));
+        Sqrat::Object nullData(vm);
+        etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<Sqrat::Object>(onChange, nullData));
       }
     }
   }
@@ -114,11 +117,12 @@ int BhvInspectPicker::pointingEvent(ElementTree *etree, Element *elem, InputDevi
             Sqrat::Table item = it->getElementInfo(vm);
             data.Append(item);
           }
-          onClick(data);
+          etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<Sqrat::Array>(onClick, data));
         }
         else
         {
-          onClick(Sqrat::Object(vm));
+          Sqrat::Object nullData(vm);
+          etree->guiScene->queueScriptHandler(new ScriptHandlerSqFunc<Sqrat::Object>(onClick, nullData));
         }
       }
     }

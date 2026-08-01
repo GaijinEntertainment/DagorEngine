@@ -39,6 +39,7 @@ extern bool window_initing;
 static IWndManagerEventHandler *editor_main_window_event_handler = nullptr;
 static void (*old_shutdown_handler)() = nullptr;
 static ImguiWndManagerBase::WindowPositionAndSize last_windw_position_and_size;
+static bool exit_requested = false;
 
 class WindowsDpiHelper
 {
@@ -96,7 +97,12 @@ class EditorCoreGeneralGuiManager : public IGeneralGuiManager
 public:
   void beforeRender(int) override {}
 
-  bool canCloseNow() override { return !editor_main_window_event_handler || editor_main_window_event_handler->onClose(); }
+  bool canCloseNow() override
+  {
+    if (!editor_main_window_event_handler || editor_main_window_event_handler->onClose())
+      exit_requested = true;
+    return false;
+  }
 
   void drawFps(float, float, float) override {}
 };
@@ -194,7 +200,7 @@ class ImguiWndManagerWindows : public ImguiWndManagerBase
 public:
   explicit ImguiWndManagerWindows(void *main_hwnd) : mainHwnd(main_hwnd) {}
 
-  void close() override { quit_game(); }
+  void close() override { general_gui_manager.canCloseNow(); }
 
   void loadMainWindowPositionAndSize(const DataBlock &blk) override
   {
@@ -214,7 +220,7 @@ public:
 
     blk.addIPoint2("position", IPoint2(last_windw_position_and_size.rectangle.l, last_windw_position_and_size.rectangle.t));
     blk.addIPoint2("size", IPoint2(last_windw_position_and_size.rectangle.width(), last_windw_position_and_size.rectangle.height()));
-    blk.addBool("maximized", IsZoomed((HWND)mainHwnd) != 0);
+    blk.addBool("maximized", last_windw_position_and_size.maximized);
   }
 
   void *getMainWindow() const override { return mainHwnd; }
@@ -238,6 +244,8 @@ public:
 
   bool init3d(const char *drv_name, const DataBlock *blkTexStreaming, const char *caption, const char *icon) override
   {
+    tools3d::load_settings();
+
     void *hicon = (icon && *icon) ? LoadIcon((HINSTANCE)win32_get_instance(), icon) : nullptr;
     const bool succeeded = tools3d::init(drv_name, blkTexStreaming, caption, hicon);
     mainHwnd = win32_get_main_wnd();
@@ -426,7 +434,7 @@ void EditorMainWindow::run(FileDropHandler file_drop_handler)
   onMainWindowCreated();
 
   ::dagor_reset_spent_work_time();
-  for (;;) // infinite loop!
+  while (!exit_requested)
     if (d3d::is_inited())
       ::dagor_work_cycle();
     else

@@ -30,7 +30,7 @@ shader rendinst_refraction
     z_write = false;
   }
 
-  INIT_GLASS_USE_TILED_LIGHTS()
+  INIT_GLASS_USE_DYNAMIC_LIGHTS()
 
   if (gi_quality != off)
   {

@@ -5,6 +5,8 @@
 
 #include <assert.h>
 #include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 float avifRoundf(float v)
@@ -89,6 +91,11 @@ avifBool avifArrayCreate(void * arrayStruct, uint32_t elementSize, uint32_t init
     arr->elementSize = elementSize ? elementSize : 1;
     arr->count = 0;
     arr->capacity = initialCapacity;
+    if (arr->capacity > SIZE_MAX / arr->elementSize) {
+        arr->ptr = NULL;
+        arr->capacity = 0;
+        return AVIF_FALSE;
+    }
     size_t byteCount = (size_t)arr->elementSize * arr->capacity;
     arr->ptr = (uint8_t *)avifAlloc(byteCount);
     if (!arr->ptr) {
@@ -105,6 +112,11 @@ uint32_t avifArrayPushIndex(void * arrayStruct)
     if (arr->count == arr->capacity) {
         uint8_t * oldPtr = arr->ptr;
         size_t oldByteCount = (size_t)arr->elementSize * arr->capacity;
+        if (oldByteCount > SIZE_MAX / 2 || arr->capacity > UINT32_MAX / 2) {
+            // Cannot grow without overflowing the allocation size; this API has no
+            // failure path, so treat it like the OOM policy of avifAlloc().
+            abort();
+        }
         arr->ptr = (uint8_t *)avifAlloc(oldByteCount * 2);
         memset(arr->ptr + oldByteCount, 0, oldByteCount);
         memcpy(arr->ptr, oldPtr, oldByteCount);

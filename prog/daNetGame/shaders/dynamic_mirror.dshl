@@ -28,8 +28,8 @@ shader dynamic_mirror
         float2 diffuseTexcoord        : TEXCOORD0;
         float3 pointToEye             : TEXCOORD1;
         float3 normal                 : TEXCOORD2;
-        float4 out_pos                : TEXCOORD3;
-        float4 out_pos_prev           : TEXCOORD4;
+        float3 out_pos                : TEXCOORD3;
+        float3 out_pos_prev           : TEXCOORD4;
       };
     }
   }
@@ -92,7 +92,7 @@ shader dynamic_mirror
         init_dynamic(gbuffer, 1);
         init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
           init_motion_vector(gbuffer, motion);
         #endif
         return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));

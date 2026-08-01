@@ -132,8 +132,14 @@ void flush_rendertargets(RenderState &rs)
     for (int i = 0; i < countof(color); i++)
     {
       // TODO: reset aliased bind points
-      if (rt.isColorUsed(i) && !(dualSourceMask && i > 0))
+      if (rt.isColorUsed(i))
       {
+        if (dualSourceMask && i > 0)
+        {
+          D3D_CONTRACT_ERROR("Can't use dual source blending with MRT, please set only one render target");
+          color[i] = NULL;
+          continue;
+        }
         color[i] = getRenderTargetView(rt, i);
         maxTarget = i;
 
@@ -540,7 +546,7 @@ bool d3d::set_render_target(int rt_index, BaseTexture *tex, int fc, uint8_t leve
   if (bt->maxMipLevel <= level && level <= bt->minMipLevel)
   {
     remove_texture_from_samplers(tex);
-    if (bt->cflg & TEXCF_UNORDERED)
+    if ((bt->cflg & TEXCF_UNORDERED) && bt->hasUavViews)
       for (uint32_t mip = bt->maxMipLevel; mip <= bt->minMipLevel; ++mip)
         for (bool asUint : {false, true})
           remove_view_from_uav(bt->getExistingUaView(0, mip, asUint));
@@ -722,7 +728,7 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
     int writeMask;
     if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
     {
-      d3d::set_render_target({target.resource.tex, 0, 0}, DepthAccess::RW, {});
+      d3d::set_render_target({target.resource.tex, target.resource.mip_level, target.resource.layer}, DepthAccess::RW, {});
       writeMask = 0;
       if (bind.action & RP_TA_LOAD_CLEAR)
         writeMask |= (CLEAR_ZBUFFER | CLEAR_STENCIL);
@@ -733,7 +739,7 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
     }
     else
     {
-      d3d::set_render_target({}, DepthAccess::RW, {{target.resource.tex, 0, 0}});
+      d3d::set_render_target({}, DepthAccess::RW, {{target.resource.tex, target.resource.mip_level, target.resource.layer}});
       writeMask = CLEAR_TARGET;
     }
     d3d::setview(area.left, area.top, area.width, area.height, area.minZ, area.maxZ);

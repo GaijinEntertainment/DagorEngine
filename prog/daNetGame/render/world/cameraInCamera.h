@@ -51,6 +51,7 @@ class ApplyMasterState
 {
 public:
   explicit ApplyMasterState(const dafg::multiplexing::Index &index, const OpaqueFlags flags = OpaqueFlags::Default);
+  explicit ApplyMasterState(bool is_main_view, const OpaqueFlags flags = OpaqueFlags::Default);
   ~ApplyMasterState();
 
 private:
@@ -69,6 +70,8 @@ public:
   ApplyPostfxState(const dafg::multiplexing::Index &, const CameraParams &, bool use_stencil = false);
   ApplyPostfxState(
     const dafg::multiplexing::Index &, const CameraParams &cur_view, const CameraParams &prev_view, bool use_stencil = false);
+  ApplyPostfxState(bool is_main_view, const CameraParams &, bool use_stencil = false);
+  ApplyPostfxState(bool is_main_view, const CameraParams &cur_view, const CameraParams &prev_view, bool use_stencil = false);
   ~ApplyPostfxState();
 
 private:

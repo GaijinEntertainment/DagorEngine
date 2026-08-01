@@ -474,6 +474,43 @@ function Element()
         txt.setAttributeNS(null, "id", this.desc.pins[i].name);
         txt.textContent = this.desc.pins[i].name;
       }
+      else if (this.desc.pins[i].separator)
+      {
+        // section divider pin: line segments around a centered label, not connectable;
+        // final segment lengths are set in updatePinCaptions() once the label is measured
+        var sepLine1 = document.createElementNS(xmlns, "line");
+        group.appendChild(sepLine1);
+        sepLine1.setAttributeNS(null, "x1", 6);
+        sepLine1.setAttributeNS(null, "y1", pos[1]);
+        sepLine1.setAttributeNS(null, "x2", 6);
+        sepLine1.setAttributeNS(null, "y2", pos[1]);
+        sepLine1.setAttributeNS(null, "stroke", "#555");
+        sepLine1.setAttributeNS(null, "stroke-width", "1");
+        group.__pinsList.push(sepLine1); // keep __pinsList aligned with visible pin indices
+
+        var sepLine2 = document.createElementNS(xmlns, "line");
+        group.appendChild(sepLine2);
+        sepLine2.setAttributeNS(null, "x1", this.width - 6);
+        sepLine2.setAttributeNS(null, "y1", pos[1]);
+        sepLine2.setAttributeNS(null, "x2", this.width - 6);
+        sepLine2.setAttributeNS(null, "y2", pos[1]);
+        sepLine2.setAttributeNS(null, "stroke", "#555");
+        sepLine2.setAttributeNS(null, "stroke-width", "1");
+
+        var txt = document.createElementNS(xmlns, "text");
+        group.appendChild(txt);
+        this.lodTexts.push(txt);
+        txt.setAttributeNS(null, "x", this.width / 2);
+        txt.setAttributeNS(null, "y", pos[1] - 16 / 2);
+        txt.setAttributeNS(null, "text-anchor", "middle");
+        txt.setAttributeNS(null, "class", "elemTextClass");
+        txt.setAttributeNS(null, "id", this.desc.pins[i].name);
+        txt.textContent = this.desc.pins[i].name;
+
+        if (!this.sepPinElems)
+          this.sepPinElems = [];
+        this.sepPinElems.push({line1: sepLine1, line2: sepLine2, txt: txt});
+      }
       else
       {
         var pin = document.createElementNS(xmlns, "rect");
@@ -523,6 +560,18 @@ function Element()
 
     if (this.desc.name !== "comment" && this.desc.name !== "block")
       txt.textContent = this.desc.name;
+
+    if (this.desc.separatorMarker)
+    {
+      // label showing the user-authored section name, kept in sync by updatePinCaptions()
+      this.svgSeparatorLabel = document.createElementNS(xmlns, "text");
+      group.appendChild(this.svgSeparatorLabel);
+      this.lodTexts.push(this.svgSeparatorLabel);
+      this.svgSeparatorLabel.setAttributeNS(null, "x", this.width / 2);
+      this.svgSeparatorLabel.setAttributeNS(null, "y", this.height - 26); // text-before-edge: text extends ~14px below y
+      this.svgSeparatorLabel.setAttributeNS(null, "text-anchor", "middle");
+      this.svgSeparatorLabel.setAttributeNS(null, "class", "elemTextClass");
+    }
 
     this.leftPins = leftPins;
     this.rightPins = rightPins;
@@ -684,6 +733,15 @@ function Element()
     if (!this.svgElem || globalLockGraphics || !renderEnabled)
       return;
 
+    if (this.svgSeparatorLabel)
+    {
+      var sepLabel = "";
+      for (var i = 0; i < this.desc.properties.length; i++)
+        if (this.desc.properties[i].name === "name")
+          sepLabel = "" + this.propValues[i];
+      this.svgSeparatorLabel.textContent = "(" + sepLabel + ")";
+    }
+
     if (this.svgComment)
     {
       var text = "";
@@ -795,6 +853,23 @@ function Element()
         this.svgRect.setAttributeNS(null, "x", -this.leftOffset);
       }
       this.width = maxSize;
+    }
+
+    if (this.sepPinElems)
+    {
+      // divider pins: fit the line segments around the measured label
+      for (var i = 0; i < this.sepPinElems.length; i++)
+      {
+        var s = this.sepPinElems[i];
+        var textWidth = 0;
+        try { textWidth = s.txt.getBBox().width; } catch (err) { textWidth = s.txt.textContent.length * 7; }
+        var half = textWidth > 0 ? textWidth / 2 + 8 : 0;
+        var cx = this.width / 2;
+        s.txt.setAttributeNS(null, "x", cx);
+        s.line1.setAttributeNS(null, "x2", Math.max(6, cx - half));
+        s.line2.setAttributeNS(null, "x1", Math.min(this.width - 6, cx + half));
+        s.line2.setAttributeNS(null, "x2", this.width - 6);
+      }
     }
   }
 
@@ -930,6 +1005,9 @@ function GraphEditor()
 
   this.graphElem = null;
   this.additionalIncludes = [];
+  this.additionalIncludesPermTable = [];
+  this.rootGraphJson = null;
+  this.editedPermutationIdx = -1;
   this.permSubGroups = [];
   this.branchDescs = []
 
@@ -1013,7 +1091,7 @@ function GraphEditor()
         for (var i = 0; i < this.elems.length; i++)
         {
           var e = this.elems[i];
-          if (!e)
+          if (!e || !e.lodTexts) // elems built while globalLockGraphics is held have no SVG state; nothing to lay out
             continue;
 
           for (var j = 0; j < e.lodTexts.length; j++)
@@ -1029,7 +1107,7 @@ function GraphEditor()
         for (var i = 0; i < this.elems.length; i++)
         {
           var e = this.elems[i];
-          if (!e)
+          if (!e || !e.lodTexts) // elems built while globalLockGraphics is held have no SVG state; nothing to lay out
             continue;
 
           var vis = ((e.x - e.leftOffset) + e.width + 300 < this.viewPosX - diff || (e.x - e.leftOffset) - 200 > this.viewPosX + testW ||
@@ -1126,6 +1204,7 @@ function GraphEditor()
       this._explodedSubgraphs = [];
       this._explodedDepths = [];
       this.permSubGroups = [];
+      globalPermutationGroupCount = 0;
 
       for (var i = 0; i < this.additionalIncludes.length; i++)
         this._pasteInternal(this.additionalIncludes[i], false, true);
@@ -1230,7 +1309,7 @@ function GraphEditor()
             var dx = pos[0] - worldX;
             var dy = pos[1] - worldY;
             var lenSq = dx * dx + dy * dy;
-            if (lenSq < bestLenSq && !e.desc.pins[j].hidden)
+            if (lenSq < bestLenSq && !e.desc.pins[j].hidden && !e.desc.pins[j].separator)
             {
               bestLenSq = lenSq;
               res = [i, j, pos[0], pos[1]];
@@ -1851,6 +1930,9 @@ function GraphEditor()
 
     var pin1 = from.desc.pins[pinFrom];
     var pin2 = to.desc.pins[pinTo];
+
+    if (pin1.separator || pin2.separator) // section dividers are not connectable
+      return false;
 
     var inOutOk = (pin1.role == "any" || pin2.role == "any" || pin1.role != pin2.role);
     if (!inOutOk)
@@ -2605,6 +2687,50 @@ function GraphEditor()
 
     if (overElem < 0)
       return;
+
+    // Reroute node navigation: jump to partner reroute node by name match.
+    var elem = this.elems[overElem];
+    if (elem && elem.desc)
+    {
+      var dn = elem.descName || elem.desc.name || "";
+      var isRerouteIn = dn === "reroute in: texture2D";
+      var isRerouteOut = dn === "reroute out: texture2D";
+      if (isRerouteIn || isRerouteOut)
+      {
+        var myName = "";
+        for (var pi = 0; pi < elem.desc.properties.length; pi++)
+          if (elem.desc.properties[pi].name === "name") { myName = "" + elem.propValues[pi]; break; }
+        if (myName)
+        {
+          var partnerDesc = isRerouteIn ? "reroute out: texture2D" : "reroute in: texture2D";
+          for (var t = 0; t < this.elems.length; t++)
+          {
+            var e = this.elems[t];
+            if (!e || !e.desc) continue;
+            var edn = e.descName || e.desc.name || "";
+            if (edn !== partnerDesc) continue;
+            for (var pi = 0; pi < e.desc.properties.length; pi++)
+            {
+              if (e.desc.properties[pi].name === "name" && ("" + e.propValues[pi]) === myName)
+              {
+                var fromPos = elem.getRelativePinPos(overPin);
+                fromPos[0] += elem.x - elem.leftOffset;
+                fromPos[1] += elem.y;
+                var toPos = e.getRelativePinPos(0);
+                toPos[0] += e.x - e.leftOffset;
+                toPos[1] += e.y;
+                this.viewPosX += toPos[0] - fromPos[0];
+                this.viewPosY += toPos[1] - fromPos[1];
+                this.applyView();
+                this.onMouseMoveInternal(null, toPos);
+                return;
+              }
+            }
+          }
+        }
+        return;
+      }
+    }
 
     for (var i = 0; i < editor.edges.length; i++)
     {
@@ -4209,6 +4335,24 @@ function GraphEditor()
         }
       }
 
+      // separator boundary node: exposed as a non-connectable labeled divider pin
+      if (e.desc.separatorMarker && exportInOutPins)
+      {
+        var sepName = e.propValues.length > 0 ? ("" + e.propValues[0]).trim() : "";
+        externals.push({
+          name: sepName,
+          yPos: e.y,
+          uid: "in-out-sep--" + sepName + "-" + i,
+          types: [],
+          role: "in",
+          separator: true,
+          singleConnect: true,
+          subgraphElem: i,
+          subgraphPin: 0,
+          data: {},
+        });
+      }
+
       // subgraph in/out will be converted to external pins
       if (!e.desc.inOutMarker)
       {
@@ -4410,7 +4554,15 @@ function GraphEditor()
       }
 
 
-      externals.sort(function(a, b){ return a.yPos - b.yPos; });
+      // tie-break on element/pin index: duktape sort is unstable (randomized
+      // qsort), equal yPos must not reorder pins between runs
+      externals.sort(function(a, b){
+        if (a.yPos !== b.yPos)
+          return a.yPos - b.yPos;
+        if (a.subgraphElem !== b.subgraphElem)
+          return a.subgraphElem - b.subgraphElem;
+        return a.subgraphPin - b.subgraphPin;
+      });
 
       graph.description = {
         name: "[[description-name]]",
@@ -5486,6 +5638,24 @@ function GraphEditor()
     this.additionalIncludesPermTable = permTable;
   }
 
+  // For live compilation
+  this.receiveAdditionalIncludes = function(text)
+  {
+    var msg;
+    try {
+      msg = JSON.parse(text);
+    } catch (e) {
+      alert("ERROR: cannot parse additional includes message");
+      throw e;
+    }
+
+    this.setAdditionalIncludesPermutationTable(msg.permTable);
+    this.rootGraphJson = (msg.rootGraph && msg.rootGraph.elems) ? msg.rootGraph : null;
+    this.additionalIncludes = msg.includeGraphs || [];
+    this.editedPermutationIdx = (typeof msg.editedPermutation === "number") ? msg.editedPermutation : -1;
+  }
+
+  // For offline compilation
   this.parseAdditionalIncludes = function(text)
   {
     this.additionalIncludes = []; // array of strings that can be used as clipboard content
@@ -5596,6 +5766,17 @@ function GraphEditor()
     return cnt;
   }
 
+  this.rollBackAndEndCodegen = function()
+  {
+    globalLockGraphics = false;
+
+    if (this.historyIndex >= 0 && this.historyList[this.historyIndex])
+      this.parseGraph(this.historyList[this.historyIndex], true);
+
+    globalLockChange = false;
+    if (renderEnabled)
+      this.backgroundDiv.style.cursor = 'default';
+  }
 
   this.onChanged = function(undoOrRedo, forceChanged, inessential)
   {
@@ -5630,7 +5811,7 @@ function GraphEditor()
               obj.description = editor.lastDesc;
             var buf = JSON.stringify(obj, null, "  ");
             buf = buf.replace("[[generated_graph_hint]]", "/*__INESSENTIAL_CHANGE*/");
-            query("graph&" + clientId, null, buf);
+            query("save_graph&" + clientId, null, buf);
           }
           else
           {
@@ -5640,50 +5821,10 @@ function GraphEditor()
             if (renderEnabled)
               editor.backgroundDiv.style.cursor = 'wait';
 
-            var obj = editor.stringifyGraph(S_FULL_INFO | S_RETURN_AS_OBJECT | S_INOUT_PINS);
-            editor.explodeAllSubgraphs(0, function (ok)
-              {
-                if (ok)
-                {
-                  editor.removeAllBypassNodes();
-                  editor.keepOnlySingleExternals_();
-                }
-
-                function rollback()
-                {
-                  if (editor.historyIndex >= 0 && editor.historyList[editor.historyIndex])
-                    editor.parseGraph(editor.historyList[editor.historyIndex], true);
-                }
-
-                if (!ok)
-                {
-                  globalLockGraphics = false;
-                  rollback();
-                  if (renderEnabled)
-                    editor.backgroundDiv.style.cursor = 'default';
-                  globalLockChange = false;
-                  return;
-                }
-
-
-                var objWithCode = editor.stringifyGraph(S_FULL_INFO | S_RETURN_AS_OBJECT | S_INOUT_PINS);
-                obj.code = objWithCode.code;
-                editor.lastCode = obj.code;
-                editor.lastDesc = JSON.parse(JSON.stringify(obj.description));
-                var buf = JSON.stringify(obj, null, "  ");
-
-                globalLockGraphics = false;
-
-                rollback();
-
-                globalLockChange = false;
-                if (renderEnabled)
-                  editor.backgroundDiv.style.cursor = 'default';
-
-                query("graph&" + clientId, null, buf);
-              }
-            );
-
+            if (editor.editedPermutationIdx >= 0 && editor.rootGraphJson)
+              editor.compilePermutationWithRoot();
+            else
+              editor.compileRoot();
           }
 
         }, 10);
@@ -5691,6 +5832,81 @@ function GraphEditor()
 
     if (renderEnabled)
       this.statusElemCount.innerText = this.countElems();
+  }
+
+  this.compileRoot = function()
+  {
+    var rootGraph = this.stringifyGraph(S_FULL_INFO | S_RETURN_AS_OBJECT | S_INOUT_PINS);
+    this.explodeAllSubgraphs(0, function (ok)
+      {
+        if (ok)
+        {
+          editor.removeAllBypassNodes();
+          editor.keepOnlySingleExternals_();
+        }
+
+        if (!ok)
+        {
+          editor.rollBackAndEndCodegen();
+          return;
+        }
+
+        var explodedGraph = editor.stringifyGraph(S_FULL_INFO | S_RETURN_AS_OBJECT | S_INOUT_PINS);
+        rootGraph.code = explodedGraph.code; // For offline compilation we need to have full code saved
+        editor.lastCode = explodedGraph.code;
+        editor.lastDesc = JSON.parse(JSON.stringify(rootGraph.description));
+        var rootBuf = JSON.stringify(rootGraph, null, "  ");
+        var explodedBuf = JSON.stringify(explodedGraph, null, "  ")
+
+        editor.rollBackAndEndCodegen();
+
+        query("save_graph&" + clientId, null, rootBuf);
+        query("compile_graph&" + clientId, null, explodedBuf)
+      }
+    );
+  }
+
+  this.compilePermutationWithRoot = function()
+  {
+    var k = this.editedPermutationIdx;
+
+    var permGraph = this.stringifyGraph(S_FULL_INFO | S_RETURN_AS_OBJECT | S_INOUT_PINS);
+    var permBuf = JSON.stringify(permGraph, null, "  ");
+
+    var savedInclude = this.additionalIncludes[k];
+    this.additionalIncludes[k] = permGraph;
+    this.parseGraph(JSON.stringify(this.rootGraphJson), true);
+
+    this.explodeAllSubgraphs(0, function (ok)
+      {
+        function restore()
+        {
+          editor.additionalIncludes[k] = savedInclude;
+          editor.rollBackAndEndCodegen();
+        }
+
+        if (!ok)
+        {
+          restore();
+          return;
+        }
+
+        editor.removeAllBypassNodes();
+        editor.keepOnlySingleExternals_();
+
+        var explodedGraph = editor.stringifyGraph(S_FULL_INFO | S_RETURN_AS_OBJECT | S_INOUT_PINS);
+        var compileBuf = JSON.stringify(explodedGraph, null, "  ");
+
+        editor.lastCode = permGraph.code;
+        if (permGraph.description)
+          editor.lastDesc = JSON.parse(JSON.stringify(permGraph.description));
+
+        restore();
+
+        query("save_graph&" + clientId, null, permBuf);
+        query("compile_graph&" + clientId, null, compileBuf);
+      }
+    );
   }
 }
 

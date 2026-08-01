@@ -1,2 +1,2 @@
 cd ..\..\..\..\samples\skiesSample\game
-start skiesSample-win32-dev.exe
+start skiesSample-windows-x86_64-dev.exe

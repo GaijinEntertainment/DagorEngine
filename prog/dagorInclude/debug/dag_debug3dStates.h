@@ -41,10 +41,12 @@ class CachedStates
   shaders::RenderStateId renderStateId = shaders::RenderStateId::Invalid;
   carray<shaders::UniqueOverrideStateId, StateKey::VARIANTS_COUNT> stateOverrides = {};
   shaders::OverrideStateId savedOverride;
+  float zBias = 0.f, slopeZBias = 0.f;
   void makeState(const StateKey &key);
   shaders::UniqueOverrideStateId &getState(const StateKey &key);
 
 public:
+  void setZBias(float z_bias, float slope_z_bias);
   void setState(const StateKey &key);
   void resetState();
   void clearStateOverrides() { stateOverrides = {}; }

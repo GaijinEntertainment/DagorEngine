@@ -32,9 +32,19 @@ namespace daSWRT
 struct BuiltBLAS
 {
   bbox3f box = {};
-  dag::Vector<uint8_t> data; // FP16-encoded tree bytes followed by FP32 vertex payload
-  uint32_t treeBytes = 0;    // size of the tree portion; 0 iff data is empty (pure box)
+  // FP16 tree bytes, then the GPU vertex payload (12 B float3 or 8 B fp16 per `vertsFp16`). Verts are
+  // reached through each leaf's relative base, NOT at data+treeBytes: a padded producer (the collision
+  // grid fast path) 8-aligns the pool, so padding can sit between the tree and the vertex payload.
+  dag::Vector<uint8_t> data;
+  uint32_t treeBytes = 0; // tree-walk span in bytes (GPU traversal bound), not the vertex offset; 0 iff pure box
   float dimAsBoxDist = 0;
+  // Vertex format of `data` (true = 8 B fp16, false = 12 B float3). addBuiltModel asserts it matches the
+  // target RenderSWRT::blasVertsFp16, so a build made for one format cannot be registered into the other.
+  bool vertsFp16 = true;
+  // Every source face was degenerate: nothing traceable. Distinct from isBox() (empty data is the
+  // genuine-box sentinel) -- addBuiltModel returns -1 (no model) instead of registering the AABB,
+  // which would cast phantom occlusion.
+  bool noGeometry = false;
   bool isBox() const { return data.empty(); }
 };
 } // namespace daSWRT
@@ -45,6 +55,17 @@ struct RenderSWRT
   void close();
   ~RenderSWRT();
 
+  // GPU BLAS vertex format for the models this instance serializes: true = 8 B (x float, y/z fp16),
+  // false = 12 B float3. Must match BLAS_VERT_FP16 in the shaders that read bottomBuf. Runtime, not a
+  // compile constant, so one build can serve shaders of either format. Set before adding models.
+  bool blasVertsFp16 = true;
+
+  // Opt-in: buildBottomLevelStructures also derives the flat BLAS leaf table
+  // (bvh_blas_leaf_table / bvh_blas_leaf_ranges) needed by geometry-driven consumers
+  // (SDF leaf raster). Costs an O(tree bytes) walk per build plus two GPU buffers, so
+  // callers without such a consumer leave it off. Set before buildBottomLevelStructures.
+  bool buildBlasLeafTables = false;
+
   int addBoxModel(vec4f bmin, vec4f bmax);
 
   // Builds a BuiltBLAS from a raw index/vertex mesh. Detects pure axis-aligned boxes
@@ -52,23 +73,31 @@ struct RenderSWRT
   // touch any RenderSWRT state, safe to invoke from threadpool workers. For threshold
   // semantics of `dim_as_box_dist` see addBoxModel / addBuiltModel. Returns an empty
   // (isBox(), zero box) BuiltBLAS for invalid input (which, if passed to addBuiltModel,
-  // registers a zero-volume box).
+  // registers a zero-volume box), and a noGeometry one when every face is degenerate.
   static daSWRT::BuiltBLAS buildBLAS(const uint16_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
-    float dim_as_box_dist = 0);
+    float dim_as_box_dist = 0, bool fp16_verts = true);
+  // 32-bit index entry: uint16 indices cannot address >65535 verts, so meshes above that
+  // threshold must use this one (below it, prefer the 16-bit entry). Same contract as above
+  // (thread-safe; empty BuiltBLAS on invalid input, noGeometry when every face is degenerate -
+  // both share the build tail), except box detection is skipped: a wide mesh cannot be an
+  // 8-vert box.
+  static daSWRT::BuiltBLAS buildBLAS(const uint32_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
+    float dim_as_box_dist = 0, bool fp16_verts = true);
 
   // Registers a BuiltBLAS into SWRT. Small, fast: appends bytes into the internal concat
   // buffer and pushes to the tracking arrays. Not thread-safe; parallel callers must
   // serialize with their own mutex. Moves `built` in.
   int addBuiltModel(daSWRT::BuiltBLAS &&built);
 
-  // Convenience wrapper: buildBLAS + addBuiltModel. For parallel add, prefer calling
+  // uint16-index convenience wrapper: buildBLAS + addBuiltModel (wide meshes pair the
+  // uint32 buildBLAS with addBuiltModel directly). For parallel add, prefer calling
   // buildBLAS from worker threads and addBuiltModel under a mutex so the heavy build
   // stays outside the critical section.
   int addModel(const uint16_t *indices, int index_count, const Point3_vec4 *vertices, int vertex_count,
     float threshold_to_dim_as_box = 0);
 
   // Legacy entry for callers that still produce externally-serialized uint16-quantized BLAS
-  // bytes (see build_bvh::writeQuadBLAS). Re-encodes to FP16 and registers. New code should
+  // bytes (see build_bvh::writeDoubleQuadBLAS). Re-encodes to FP16 and registers. New code should
   // build a BuiltBLAS directly and use addBuiltModel. Validation runs before any side
   // effects; rejected input leaves SWRT state unchanged.
   int addPreBuiltModel(bbox3f box, dag::Vector<uint8_t> &&blas_data, int verts_count, int tree_nodes_count, int prims_count,
@@ -81,7 +110,7 @@ struct RenderSWRT
     matrices.push_back(tm);
   }
 
-  build_bvh::BLASData *buildBottomLevelStructures(uint32_t workers);
+  build_bvh::BLASData *buildBottomLevelStructures();
   build_bvh::TLASData *buildTopLevelStructures();
   build_bvh::TLASData *buildTopLevelStructures(build_bvh::TLASData *d); // reuses TLAS, no log messages
   void copyToGPU(build_bvh::BLASData *);
@@ -124,6 +153,10 @@ protected:
   UniqueBufWithShaderVar bottomBuf;
   UniqueBufWithShaderVar topBuf;
   UniqueBufWithShaderVar topLeavesBuf;
+  // flat per-model BLAS leaf table (1 dword/leaf): random access to leaf bodies for
+  // geometry-driven consumers (SDF leaf raster) - the skip-tree has no O(1) enumeration
+  UniqueBufWithShaderVar blasLeafTableBuf;
+  UniqueBufWithShaderVar blasLeafRangesBuf;
 
   // Per-registered-model tracking, pushed from addBuiltModel/addBoxModel. Sizes stay in
   // lockstep; `blasDataInfo[i]` encodes {byte offset into blasBytes, tree byte count}, or
@@ -139,6 +172,10 @@ protected:
   // clearBLASSourceData. buildBottomLevelStructures copies this into a BLASData* for GPU
   // upload; callers who want to resume adding and rebuild simply keep addBuiltModel'ing.
   dag::Vector<uint8_t> blasBytes;
+  // Vertex format (blasVertsFp16 as 0/1) the current blasBytes were appended with; -1 when empty. Locks on
+  // the first non-box addBuiltModel so a later blasVertsFp16 flip cannot mix 8 B and 12 B payloads in one
+  // bottomBuf. Reset by clearBLASSourceData.
+  int8_t blasBytesVertsFp16 = -1;
 
   dag::Vector<int> tlasLeavesOffsets;
   dag::Vector<mat43f> matrices;

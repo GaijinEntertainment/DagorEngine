@@ -136,14 +136,23 @@ access_mem (unw_addr_space_t as, unw_word_t addr, unw_word_t *val, int write,
     }
   else
     {
-      /* validate address */
       const struct cursor *c = (const struct cursor *)arg;
-      if (likely (c != NULL) && unlikely (c->validate)
-          && unlikely (!unw_address_is_valid (addr, sizeof(unw_word_t)))) {
-        Debug (16, "mem[%016lx] -> invalid\n", addr);
-        return -1;
-      }
-      memcpy (val, (void *) addr, sizeof(unw_word_t));
+      if (likely (c != NULL) && unlikely (c->validate))
+        {
+          /* Validation must be atomic with the read: the page can be
+             unmapped concurrently (e.g. ART discarding JIT code), and
+             unw_address_is_valid() caches once-valid pages forever, so a
+             separate probe-then-load still crashes on a stale entry.
+             Reading through the kernel returns an error where a direct
+             load would SIGSEGV.  */
+          if (unlikely (!unw_mem_read_safe (addr, val, sizeof(unw_word_t))))
+            {
+              Debug (16, "mem[%016lx] -> invalid\n", addr);
+              return -1;
+            }
+        }
+      else
+        memcpy (val, (void *) addr, sizeof(unw_word_t));
       Debug (16, "mem[%lx] -> %lx\n", addr, *val);
     }
   return 0;

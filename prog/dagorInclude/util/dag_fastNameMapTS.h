@@ -33,75 +33,15 @@ public:
   int addNameId(const char *name, size_t name_len, typename BaseNameMap::hash_t hash) // optimized version. addNameId doesn't call for
                                                                                       // getNameId
   {
-    lockRd();
-    int it = -1;
-    bool foundCollision = false;
-    if (DAGOR_LIKELY(BaseNameMap::noCollisions()))
-    {
-      it = BaseNameMap::hashToStringId.findOr(hash, -1);
-      if (DAGOR_UNLIKELY(it != -1 && !BaseNameMap::string_equal(name, name_len, it)))
-      {
-        foundCollision = true;
-        it = -1;
-      }
-    }
-    else
-      it =
-        BaseNameMap::hashToStringId.findOr(hash, -1, [&, this](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
-    unlockRd();
-
-    if (it == -1)
-    {
-      lockWr();
-      if (foundCollision)
-        BaseNameMap::hasCollisions() = 1;
-      uint32_t id = BaseNameMap::addString(name, name_len);
-      BaseNameMap::hashToStringId.emplace(hash, eastl::move(id));
-      interlocked_increment(namesCount);
-      unlockWr();
-      return (int)id;
-    }
-    return it;
+    return addNameIdImpl(name, name_len, hash, nullptr);
   }
   int addNameId(const char *name, size_t name_len) { return addNameId(name, name_len, BaseNameMap::string_hash(name, name_len)); }
   int addNameId(const char *name) { return name ? addNameId(name, strlen(name)) : -1; }
 
-  // almost full copy paste of addNameId
-  // it is same as getName(addNameId(name)), but saves one lock (which can be expensive, especially in case of contention)
-  const char *internName(const char *name, size_t name_len, typename BaseNameMap::hash_t hash) // optimized version. addNameId doesn't
-                                                                                               // call for getNameId
+  // same as getName(addNameId(name)), but saves one lock (which can be expensive, especially in case of contention)
+  const char *internName(const char *name, size_t name_len, typename BaseNameMap::hash_t hash)
   {
-    lockRd();
-    int it = -1;
-    bool foundCollision = false;
-    if (DAGOR_LIKELY(BaseNameMap::noCollisions()))
-    {
-      it = BaseNameMap::hashToStringId.findOr(hash, -1);
-      if (DAGOR_UNLIKELY(it != -1 && !BaseNameMap::string_equal(name, name_len, it)))
-      {
-        foundCollision = true;
-        it = -1;
-      }
-    }
-    else
-      it =
-        BaseNameMap::hashToStringId.findOr(hash, -1, [&, this](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
-    if (it != -1)
-      name = BaseNameMap::getName(it);
-    unlockRd();
-
-    if (it == -1)
-    {
-      lockWr();
-      if (foundCollision)
-        BaseNameMap::hasCollisions() = 1;
-      uint32_t id = BaseNameMap::addString(name, name_len);
-      BaseNameMap::hashToStringId.emplace(hash, eastl::move(id));
-      name = BaseNameMap::getName(id);
-      interlocked_increment(namesCount);
-      unlockWr();
-      return name;
-    }
+    addNameIdImpl(name, name_len, hash, &name);
     return name;
   }
   const char *internName(const char *name)
@@ -152,6 +92,53 @@ public:
   }
 
 private:
+  // shared probe+insert of addNameId/internName; out_name, when non-null,
+  // receives the canonical stored pointer, fetched under whichever lock
+  // found or created the entry (the base map internals are being read)
+  int addNameIdImpl(const char *name, size_t name_len, typename BaseNameMap::hash_t hash, const char **out_name)
+  {
+    lockRd();
+    int it = -1;
+    bool foundCollision = false;
+    if (DAGOR_LIKELY(BaseNameMap::noCollisions()))
+    {
+      it = BaseNameMap::hashToStringId.findOr(hash, -1);
+      if (DAGOR_UNLIKELY(it != -1 && !BaseNameMap::string_equal(name, name_len, it)))
+      {
+        foundCollision = true;
+        it = -1;
+      }
+    }
+    else
+      it =
+        BaseNameMap::hashToStringId.findOr(hash, -1, [&, this](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
+    if (it != -1 && out_name)
+      *out_name = BaseNameMap::getName(it);
+    unlockRd();
+
+    if (it == -1)
+    {
+      lockWr();
+      // recheck under the write lock: another writer may have interned the
+      // same name between the read unlock and here (addString never dedups)
+      it =
+        BaseNameMap::hashToStringId.findOr(hash, -1, [&, this](uint32_t id) { return BaseNameMap::string_equal(name, name_len, id); });
+      if (it == -1)
+      {
+        if (foundCollision)
+          BaseNameMap::hasCollisions() = 1;
+        uint32_t id = BaseNameMap::addString(name, name_len);
+        BaseNameMap::hashToStringId.emplace(hash, eastl::move(id));
+        interlocked_increment(namesCount);
+        it = (int)id;
+      }
+      if (out_name)
+        *out_name = BaseNameMap::getName(it);
+      unlockWr();
+    }
+    return it;
+  }
+
   void lockRd() const DAG_TS_ACQUIRE_SHARED(lock) { lock.lockRead(); }
   void unlockRd() const DAG_TS_RELEASE_SHARED(lock) { lock.unlockRead(); }
   void lockWr() const DAG_TS_ACQUIRE(lock) { lock.lockWrite(); }

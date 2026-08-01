@@ -92,6 +92,8 @@ bool __forceinline is_bc_texformat(unsigned flags)
     return true;
   if (flags >= TEXFMT_ATI1N && flags <= TEXFMT_ATI2N)
     return true;
+  if (flags == TEXFMT_BC5S)
+    return true;
   return false;
 }
 
@@ -249,8 +251,10 @@ public:
     {
       for (int s = 0; s < selfInfo.a; s++)
       {
+        // copy depth is the source mip depth: 1 for the layered types (each slice is a separate
+        // subresource iterated by s), the per-mip depth for volumes
         rep->updateSubRegion(this, calcSubResIdx(sourceLevel, s, selfInfo.mipLevels), 0, 0, 0, max<int>(selfInfo.w >> sourceLevel, 1),
-          max<int>(selfInfo.h >> sourceLevel, 1), max<int>(selfInfo.d >> sourceLevel, selfInfo.a),
+          max<int>(selfInfo.h >> sourceLevel, 1), max<int>(selfInfo.d >> sourceLevel, 1),
           calcSubResIdx(sourceLevel - level_offset, s, mips), 0, 0, 0);
       }
     }
@@ -280,9 +284,11 @@ public:
     {
       for (int s = 0; s < selfInfo.a; s++)
       {
+        // copy depth is the source mip depth: 1 for the layered types (each slice is a separate
+        // subresource iterated by s), the per-mip depth for volumes
         rep->updateSubRegion(this, calcSubResIdx(destinationLevel - level_offset, s, selfInfo.mipLevels), 0, 0, 0,
           max<int>(width >> destinationLevel, 1), max<int>(height >> destinationLevel, 1),
-          max<int>(depth >> destinationLevel, selfInfo.a), calcSubResIdx(destinationLevel, s, mips), 0, 0, 0);
+          max<int>(selfInfo.d >> (destinationLevel - level_offset), 1), calcSubResIdx(destinationLevel, s, mips), 0, 0, 0);
       }
     }
 

@@ -115,7 +115,8 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, int skip_mips)
   SNPRINTF(sm_ptr_name, sizeof(sm_ptr_name), "%s:%X", loadCb.getTargetName(), loadCb.tell());
 
   int t0_msec = 0;
-  if (sm && (hmap_data = sm->findPtr(sm_ptr_name, HeightmapPhysHandler::SM_DATA_TAG)) != NULL)
+  bool smNew = false;
+  if (sm && (hmap_data = sm->findOrAlloc(sm_ptr_name, HeightmapPhysHandler::SM_DATA_TAG, allocatedDataSize, smNew)) != NULL && !smNew)
   {
     int dump_sz = (int)sm->getPtrSize(hmap_data);
     G_ASSERT(allocatedDataSize <= dump_sz);
@@ -126,7 +127,6 @@ bool HeightmapPhysHandler::loadDump(IGenLoad &loadCb, int skip_mips)
   {
     if (sm)
     {
-      hmap_data = sm->allocPtr(sm_ptr_name, HeightmapPhysHandler::SM_DATA_TAG, allocatedDataSize);
       if (hmap_data)
         logmessage(_MAKE4C('SHMM'), "allocated HMAP dump in shared mem: %p, %dK, '%s' (mem %lluK/%lluK, rec=%d)", hmap_data,
           allocatedDataSize >> 10, sm_ptr_name, ((uint64_t)sm->getMemUsed()) >> 10, ((uint64_t)sm->getMemSize()) >> 10,

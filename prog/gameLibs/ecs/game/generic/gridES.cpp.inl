@@ -252,6 +252,15 @@ void grid_obj_init_tm_scale_es_event_handler(const ecs::Event &, GridObjComponen
   grid_obj.wbsph = v_insert_w(grid_obj.wbsph, 0.f);
 }
 
+bool is_valid_bounding_radius(const GridObjComponent &grid_obj, float radius, bool is_big_object)
+{
+  constexpr float MAX_VALID_BOUNDING_RADIUS_MIN = 64.f;
+  constexpr float MAX_VALID_BOUNDING_RADIUS_REL = 2.f;
+  return !isnan(radius) &&
+         (is_big_object || radius <= max(MAX_VALID_BOUNDING_RADIUS_MIN,
+                                       grid_obj.ownerGrid ? grid_obj.ownerGrid->getCellSize() * MAX_VALID_BOUNDING_RADIUS_REL : 0.f));
+}
+
 ECS_TRACK(transform)
 ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(EventOnEntityTeleported)
@@ -286,7 +295,7 @@ void grid_obj_update_es_event_handler(const ecs::Event &, ecs::EntityManager &ma
       G_UNUSED(grid_obj__bigObject);
       G_UNUSED(manager);
 #if DAGOR_DBGLEVEL > 0
-      if (DAGOR_UNLIKELY(isnan(boundingRad) || (boundingRad > MAX_VALID_BOUNDING_RADIUS && !grid_obj__bigObject)))
+      if (!is_valid_bounding_radius(grid_obj, boundingRad, grid_obj__bigObject != nullptr))
       {
         const char *resName = nullptr;
         if (ri_extra)
@@ -325,7 +334,7 @@ void grid_obj_update_with_animchar(GridObjComponent &grid_obj, const TMatrix &tr
       if (DAGOR_UNLIKELY(boundingScale < 0.f))
         boundingScale = v_extract_x(v_mat44_max_scale43_x(tm));
       float boundingRad = sqrtf(v_extract_w(collres.vBoundingSphere));
-      if (DAGOR_UNLIKELY(isnan(boundingRad) || (boundingRad > MAX_VALID_BOUNDING_RADIUS && !grid_obj__bigObject)))
+      if (DAGOR_UNLIKELY(!is_valid_bounding_radius(grid_obj, boundingRad, grid_obj__bigObject != nullptr)))
       {
         grid_logerr("Grid entity %i (%s) update error: bounding radius %f is too big or NaN", ecs::entity_id_t(grid_obj.eid),
           g_entity_mgr->getEntityTemplateName(grid_obj.eid), boundingRad);

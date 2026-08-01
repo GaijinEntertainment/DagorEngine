@@ -968,6 +968,9 @@ int CrashReportDatabaseWin::CleanDatabase(time_t lockfile_ttl) {
   time_t now = time(nullptr);
 
   std::unique_ptr<Metadata> metadata(AcquireMetadata());
+  if (!metadata) {
+    return removed;
+  }
 
   // Remove old reports without metadata.
   while ((result = reader.NextFile(&filename)) ==
@@ -1024,9 +1027,9 @@ void CrashReportDatabaseWin::CleanOrphanedAttachments() {
         continue;
       }
 
-      // Remove attachments if corresponding report doen't exist.
-      base::FilePath report_path =
-          reports_dir.Append(uuid.ToWString() + kCrashReportFileExtension);
+      // Remove attachments if corresponding report doesn't exist.
+      base::FilePath report_path = reports_dir.Append(
+          uuid.ToWString() + L"." + kCrashReportFileExtension);
       if (!IsRegularFile(report_path)) {
         RemoveAttachmentsByUUID(uuid);
       }

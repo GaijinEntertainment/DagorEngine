@@ -20,6 +20,7 @@ struct CollisionContactData;
 namespace rendinst
 {
 uint32_t getRiGenExtraResCount() { G_ASSERT_RETURN(false, 0); }
+bool isRiGenExtraResIdValid(int) { G_ASSERT_RETURN(false, false); }
 bbox3f riex_get_lbb(int) { G_ASSERT_RETURN(false, bbox3f()); }
 int getRIGenExtraResIdx(const char *) { G_ASSERT_RETURN(false, 0); }
 TMatrix getRIGenMatrix(const RendInstDesc &) { G_ASSERT_RETURN(false, TMatrix::IDENT); }

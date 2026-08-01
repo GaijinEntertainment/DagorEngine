@@ -48,7 +48,7 @@ local Point2_manual = class {
 
 let pp = @(...) print(" ".join(vargv.append("\n")))
 
-function unpackfield(field){
+function unpackfield(field): array {
   local def = null
   if (type(field) == "array") {
     def = field[1]
@@ -56,14 +56,14 @@ function unpackfield(field){
   }
   return [field, def]
 }
-function _cfield(fieldname, def){
+function _cfield(fieldname, def): string {
   return $"{fieldname} = {def}"
 }
-function mkAddNewline(indent=""){
+function mkAddNewline(indent=""): function {
   return @(a,b) $"{a}\n{indent}{b}"
 }
 
-let addComma = @(a,b) ", ".concat(a,b)
+let addComma = @(a,b): string ", ".concat(a,b)
 //local addSemiCol = @(a,b) a+"; "+b
 //local addNewline0 = mkAddNewline()
 let addNewline1 = mkAddNewline("  ")
@@ -81,20 +81,20 @@ function mkClassFields(fields){
   return fields.map(@(v) _cfield(v[0], valToStr(v[1]))).reduce(addNewline1)
 }
 
-let mkPosFieldInit = @(fieldname, _def) $"this.{fieldname} = {fieldname}"
+let mkPosFieldInit = @(fieldname, _def): string $"this.{fieldname} = {fieldname}"
 
-function mkTableFieldInit(fieldname, firstarg, def){
+function mkTableFieldInit(fieldname, firstarg, def): string {
   def = valToStr(def)
   def = (def != null)
     ? $" ?? {def}"
     : ""
   return $"this.{fieldname} = {firstarg}?.{fieldname}{def}"
 }
-function mkArg(name, def){
+function mkArg(name, def): string {
   return $"{name} = {def}"
 }
 
-function mkCtor(fields, args){
+function mkCtor(fields, args): string {
   let firstarg = fields[0][0]
   let kwargs_inits = fields.map(@(v) mkTableFieldInit(v[0], firstarg, v[1])).reduce(addNewline3)
   let pargs_inits = fields.map(@(v) mkPosFieldInit(v[0], v[1])).reduce(addNewline3) ?? ""

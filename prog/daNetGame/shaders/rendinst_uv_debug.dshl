@@ -161,7 +161,7 @@ shader rendinst_uv_debug
           init_dynamic(gbuffer,IS_DYNAMIC);
           init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
           #ifdef MOTION_VECTORS_ENABLED
-            float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+            float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
             init_motion_vector(gbuffer, motion);
           #endif
 

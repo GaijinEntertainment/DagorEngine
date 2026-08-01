@@ -94,29 +94,23 @@ void render_debug_text_marks()
 
   float fh = StdGuiRender::get_font_cell_size().y;
   E3DCOLOR bgColor = E3DCOLOR_MAKE(0, 0, 0, 160);
-  for (int i = 0; i < text_marks.size(); i++)
-  {
-    const TextMarkRec &r = text_marks[i];
-    if (r.frameColor == bgColor)
-      continue;
-    Point2 htsz = StdGuiRender::get_str_bbox(r.str).width() * 0.5f;
-    StdGuiRender::set_color(r.frameColor);
-    StdGuiRender::render_box(r.cx - htsz.x - 4, r.cy - htsz.y - 4 + (r.lofs - 0.8) * fh, r.cx + htsz.x + 4,
-      r.cy + htsz.y + 4 + (r.lofs - 0.8) * fh);
-  }
-  StdGuiRender::set_color(bgColor);
+  E3DCOLOR txtColor = E3DCOLOR(255, 255, 255, 255);
   for (int i = 0; i < text_marks.size(); i++)
   {
     const TextMarkRec &r = text_marks[i];
     Point2 htsz = StdGuiRender::get_str_bbox(r.str).width() * 0.5f;
+    if (r.frameColor != bgColor)
+    {
+      StdGuiRender::set_color(r.frameColor);
+      StdGuiRender::render_box(r.cx - htsz.x - 4, r.cy - htsz.y - 4 + (r.lofs - 0.8) * fh, r.cx + htsz.x + 4,
+        r.cy + htsz.y + 4 + (r.lofs - 0.8) * fh);
+    }
+
+    StdGuiRender::set_color(bgColor);
     StdGuiRender::render_box(r.cx - htsz.x - 2, r.cy - htsz.y - 2 + (r.lofs - 0.8) * fh, r.cx + htsz.x + 2,
       r.cy + htsz.y + 2 + (r.lofs - 0.8) * fh);
-  }
-  StdGuiRender::set_color(E3DCOLOR(255, 255, 255, 255));
-  for (int i = 0; i < text_marks.size(); i++)
-  {
-    const TextMarkRec &r = text_marks[i];
-    Point2 htsz = StdGuiRender::get_str_bbox(r.str).width() * 0.5f;
+
+    StdGuiRender::set_color(txtColor);
     StdGuiRender::goto_xy(floorf(r.cx - htsz.x), floorf(r.cy - htsz.y + r.lofs * fh));
     StdGuiRender::draw_str(r.str);
   }

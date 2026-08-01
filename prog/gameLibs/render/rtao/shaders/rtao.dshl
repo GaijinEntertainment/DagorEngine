@@ -6,7 +6,6 @@ include "blue_noise.dshl"
 include "rtsm_sun_dir.dshl"
 include "bvh_common_includes.dshl"
 include "camera_in_camera.dshl"
-include "dynamic_resolution.dshl"
 
 float4x4 inv_proj_tm;
 
@@ -37,7 +36,7 @@ shader rt_ao
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtao_resolutionI.xy;
-    inv_aligned_resolution@f2 = (rtao_res_mul * screen_pos_to_texcoord.xy / (current_dynamic_resolution.xy / current_dynamic_resolution.zw));
+    inv_aligned_resolution@f2 = rtao_res_mul * screen_pos_to_texcoord.xy;
     hit_dist_params@f3 = rtao_hit_dist_params;
     rtao_checkerboard@i1 = rtao_checkerboard;
     output@uav = rtao_target hlsl { RWTexture2D<float> output@uav; };
@@ -154,6 +153,7 @@ shader rt_ao
       bool isImpostor = gbuffer.impostorMask > 0.5;
       bool isGrass = processGbuffer(gbuffer).isGrass;
       bool isFoliage = gbuffer.material == SHADING_FOLIAGE;
+      bool isCamoNet = gbuffer.isCamoNet;
 
       float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
       relPos += impostor_shadow_offset * gbuffer.impostorMask * sun_dir_for_shadows;
@@ -172,6 +172,8 @@ shader rt_ao
 
       float minT = 0;
       uint groupMask = bvhGroupAO;
+      if (isCamoNet)
+        groupMask &= ~bvhGroupCamoNet;
       if (isImpostor)
         groupMask &= ~bvhGroupImpostor;
       else if (isGrass)

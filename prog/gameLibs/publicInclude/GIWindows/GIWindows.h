@@ -5,9 +5,12 @@
 #pragma once
 
 #include <EASTL/vector.h>
+#include <EASTL/unique_ptr.h>
 #include <math/dag_Point3.h>
 #include <3d/dag_resPtr.h>
 #include <scene/dag_tiledScene.h>
+
+class ComputeShaderElement;
 
 class GIWindows
 {

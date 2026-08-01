@@ -36,7 +36,7 @@ extern void phys_bullet_create_phys_world(DynamicPhysObjectData *base_obj);
 extern void *phys_bullet_get_phys_world();
 extern void phys_bullet_set_phys_body(void *phbody);
 extern void phys_bullet_clear_phys_world();
-extern void phys_bullet_before_render();
+extern void phys_bullet_before_render(const Point3 &cam_pos);
 extern void phys_bullet_render_trans();
 extern void phys_bullet_render();
 extern bool phys_bullet_get_phys_tm(int body_id, TMatrix &phys_tm, bool &obj_active);
@@ -272,10 +272,10 @@ void end()
 
 void close() { phys_bullet_close(); }
 
-void beforeRender()
+void beforeRender(const Point3 &cam_pos)
 {
   if (physType == PHYS_BULLET)
-    phys_bullet_before_render();
+    phys_bullet_before_render(cam_pos);
 }
 
 void renderTrans(bool render_collision, bool render_geom, bool draw_cmass)

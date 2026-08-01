@@ -60,7 +60,6 @@ float static_shadow_compatibility_bias = 1.0;
 
 texture perlin_noise3d;
 
-float4 camera_base_offset = (0, 0, 0, 0);
 macro DECODE_WORLD_POS_SELECT(code)
   hlsl(code) {
     #ifndef HAS_BASE_HEIGHT
@@ -410,6 +409,18 @@ shader heightmap
         INIT_AND_USE_AND_CALCULATE_PUDDLES()
         (ps) { wetness_above_rcp@f1 = (1.0 / wetness_above, 0, 0, 0); }
       }
+      if (in_editor == yes || use_editor_render)
+      {
+        INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+        (ps) {
+          heightmap_gradient_land_tex@tex2d = heightmap_gradient_land_tex;
+          heightmap_gradient_land_params@f4 = heightmap_gradient_land_params;
+          heightmap_show_gradient_land@i1 = heightmap_show_gradient_land;
+        }
+        hlsl(ps) {
+          #define heightmap_gradient_land_tex_samplerstate global_linear_wrap_sampler
+        }
+      }
 
       hlsl(ps) {
 
@@ -477,9 +488,9 @@ shader heightmap
             UvWithDerivates uvDeriv = microdetails_get_uv_and_derivates(input.tcWorldPos);
             calculateHeightmapDetails(result, detailNo, worldPos, verticalNormal, pointToEyeNorm,
                                       clipNormalXY, clipmapColor, porosity, sparkles, normalWetness, wetness, waterLevel);
-            computeSnowSparkle(worldPos, world_view_pos, sparkles, result.normal, result.smoothness);
             calculateHeightmapMicrodetails_no_grad(result, detailNo, uvDeriv, worldPos, verticalNormal, clipNormalXY,
                                           porosity, normalWetness, wetness, waterLevel);
+            computeSnowSparkle(worldPos, world_view_pos, sparkles, result.normal, result.smoothness);
             ##if hmap_puddle_enabled == no
               half puddle = 0;
             ##else
@@ -512,6 +523,18 @@ shader heightmap
                 result.albedo.rgb = float3(1, 0, 0);
               else
                 result.albedo.rgb = RemoveSRGBCurve(float3(0, noise_Value2D(float2(index, 42)), noise_Value2D(float2(index, 315))));
+            ##endif
+
+            ##if in_editor == yes || use_editor_render
+              BRANCH
+              if (heightmap_show_gradient_land != 0)
+              {
+                float gradientT = saturate((worldPos.y - heightmap_gradient_land_params.x) * heightmap_gradient_land_params.y);
+                // To make edge colors flat remap to texel centers, so bilinear filtering never reaches past the first/last texel.
+                const float gradientLandTexWidth = 256.0; // HeightmapDebugShading::TEXTURE_WIDTH
+                float gradientU = (gradientT * (gradientLandTexWidth - 1.0f) + 0.5) / gradientLandTexWidth;
+                result.albedo.rgb = tex2Dlod(heightmap_gradient_land_tex, float4(gradientU, 0.5, 0, 0)).rgb;
+              }
             ##endif
           ##else
             half3 microDetail = 1;
@@ -667,21 +690,17 @@ shader biome_query_cs
   hlsl(cs) {
     #include "landMesh/biome_query.hlsli"
     #include "hammersley.hlsl"
-    struct Vtex
+
+    half3 sample_clipmaps_diffuse(float3 worldPos)
     {
       half3 diffuse;
-      half2 normal_xy;
-      half reflectance, smoothness, ao, emission;
-      DetailDesc detailNo;
-    };
-
-    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip)
-    {
-      Vtex vtex = (Vtex)0;
-      sample_clipmaps(worldPos.xz, world_pos_xz_gradients,
-        vtex.diffuse, vtex.normal_xy, vtex.smoothness, vtex.ao,
-        vtex.reflectance, vtex.emission, vtex.detailNo, smooth_mip);
-      return vtex;
+      half2 _normal;
+      half _smoothness, _ao, _reflectance, _emission;
+      DetailDesc _micro_detail;
+      sample_clipmaps(worldPos.xz, float4(0, 0, 0, 0),
+        diffuse, _normal, _smoothness, _ao,
+        _reflectance, _emission, _micro_detail, 0);
+      return diffuse;
     }
 
     uint numBiomeGroups : register(c15);
@@ -752,8 +771,8 @@ shader biome_query_cs
       result.mostFrequentBiomeGroupWeight = float(mostFrequentBiomeCount) / sumSamples;
       result.secondMostFrequentBiomeGroupIndex = secondMostFrequentBiomeGroupIndex;
       result.secondMostFrequentBiomeGroupWeight = float(secondMostFrequentBiomeCount) / sumSamples;
-      Vtex textures = sample_clipmaps(input.worldPos, 0, 0);
-      result.averageBiomeColor = half4(textures.diffuse.rgb, 1.0f);
+      half3 clipmapDiffuse = sample_clipmaps_diffuse(input.worldPos);
+      result.averageBiomeColor = half4(clipmapDiffuse, 1.0f);
       structuredBufferAt(resultsBuffer, dataIndex) = result;
     }
   }

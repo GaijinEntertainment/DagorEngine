@@ -962,10 +962,10 @@ bool MinidumpGenerator::WriteThreadStream(mach_port_t thread_id,
     if (!WriteStack(state, &thread->stack))
       return false;
 
-    memory_blocks_.push_back(thread->stack);
-
     if (!WriteContext(state, &thread->thread_context))
       return false;
+
+    memory_blocks_.push_back(thread->stack);
 
     thread->thread_id = thread_id;
   } else {
@@ -1006,8 +1006,12 @@ bool MinidumpGenerator::WriteThreadListStream(
     memset(&thread, 0, sizeof(MDRawThread));
 
     if (threads_for_task[i] != handler_thread_) {
-      if (!WriteThreadStream(threads_for_task[i], &thread))
-        return false;
+      // Local deviation: upstream aborts the whole dump here;
+      // keep an id-only entry instead.
+      if (!WriteThreadStream(threads_for_task[i], &thread)) {
+        memset(&thread, 0, sizeof(MDRawThread));
+        thread.thread_id = threads_for_task[i];
+      }
 
       list.CopyIndexAfterObject(thread_idx++, &thread, sizeof(MDRawThread));
     }

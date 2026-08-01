@@ -55,6 +55,7 @@ static uint32_t get_texformat(D3DFORMAT f)
     case D3DFMT_R16F: return TEXFMT_R16F;
     case FOURCC_ATI1N: return TEXFMT_ATI1N;
     case FOURCC_ATI2N: return TEXFMT_ATI2N;
+    case FOURCC_BC5S: return TEXFMT_BC5S;
     case D3DFMT_L8: return TEXFMT_R8;
     case D3DFMT_A8: return TEXFMT_A8;
     case D3DFMT_A8L8: return TEXFMT_R8G8;
@@ -82,6 +83,7 @@ static uint32_t get_texformat_bits(D3DFORMAT f)
     case D3DFMT_R16F: return 16;
     case FOURCC_ATI1N: return 4;
     case FOURCC_ATI2N: return 8;
+    case FOURCC_BC5S: return 8;
     default: return 0;
   }
 
@@ -160,6 +162,7 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
 
       case DXGI_FORMAT_BC4_UNORM: out_fmt = _MAKE4C('ATI1'); break;
       case DXGI_FORMAT_BC5_UNORM: out_fmt = _MAKE4C('ATI2'); break;
+      case DXGI_FORMAT_BC5_SNORM: out_fmt = FOURCC_BC5S; break;
       case DXGI_FORMAT_BC6H_UF16: out_fmt = _MAKE4C('BC6H'); break;
 
       case DXGI_FORMAT_BC7_UNORM_SRGB:
@@ -190,7 +193,7 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
   int imglev = 1;
   bool dxt = (dsc.ddpfPixelFormat.dwFlags & DDPF_FOURCC) &&
              ((dsc.ddpfPixelFormat.dwFourCC & 0xFFFFFF) == (FOURCC_DXT1 & 0xFFFFFF) || (dsc.ddpfPixelFormat.dwFourCC & FOURCC_ATI1N) ||
-               (dsc.ddpfPixelFormat.dwFourCC & FOURCC_ATI2N));
+               (dsc.ddpfPixelFormat.dwFourCC & FOURCC_ATI2N) || dsc.ddpfPixelFormat.dwFourCC == FOURCC_BC5S);
 
   if ((dsc.dwFlags & DDSD_MIPMAPCOUNT) || (!(dsc.dwFlags & (DDSD_REFRESHRATE | DDSD_SRCVBHANDLE)) && dsc.dwMipMapCount > 0))
     imglev = dsc.dwMipMapCount;
@@ -198,6 +201,14 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
   if (imglev <= 0)
   {
     logerr("invalid number of mipmaps in DDS");
+    return false;
+  }
+
+  // 16 levels already cover 32768x32768, so anything above the array size is
+  // a malformed header rather than a texture we could load.
+  if (imglev > (int)(sizeof(image_info.pixels) / sizeof(image_info.pixels[0])))
+  {
+    logerr("too many mipmaps in DDS: %d", imglev);
     return false;
   }
 
@@ -257,7 +268,8 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
       case FOURCC_DXT3:
       case FOURCC_DXT4:
       case FOURCC_DXT5:
-      case FOURCC_ATI2N: shift = 4; break;
+      case FOURCC_ATI2N:
+      case FOURCC_BC5S: shift = 4; break;
       default: shift = bitCount / 8; break;
     }
   }
@@ -317,7 +329,9 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
     uint32_t hs = h >> 2;
     if (hs < 1)
       hs = 1;
-    sp += ((ws * hs) << shift) * (dxt ? 1 : shift);
+    int skipped = int(((ws * hs) << shift) * (dxt ? 1 : shift));
+    sp += skipped;
+    len -= skipped;
     w >>= 1;
     if (w < 1)
       w = 1;
@@ -361,7 +375,9 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
       sz = h * pitch;
     }
 
-    if (len < sz)
+    // len is signed and the skip loop above may have run it negative; compare
+    // as int first, otherwise the promotion to uint32_t hides the shortfall.
+    if (len < 0 || (uint32_t)len < sz)
     {
       DEBUG_CTX("invalid DDS data2 (%i < %i)", len, sz);
       logerr("invalid DDS data");
@@ -374,6 +390,7 @@ bool load_dds(void *ptr, int len, int levels, int topmipmap, ImageInfoDDS &image
     image_info.pixels[lev] = sp;
 
     sp += sz;
+    len -= int(sz);
     w >>= 1;
     if (w < 1)
       w = 1;

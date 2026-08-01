@@ -18,8 +18,11 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
     return;
 
   applierNode = dafg::register_node("xess", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::Viewport);
     auto opaqueFinalTargetHndl =
       registry.readTexture("target_for_transparency").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+    // Run after the AA benchmark consumed target_for_transparency (no-op when the benchmark is off).
+    (registry.root() / "aa_benchmark").readBlob("accumulate_ordering_token").optional();
     auto depthHndl =
       registry.readTexture("depth_after_transparency").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
     auto motionVecsHndl = registry.readTexture("motion_vecs_after_transparency")
@@ -32,21 +35,26 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
         .atStage(dafg::Stage::CS)
         .useAs(dafg::Usage::SHADER_RESOURCE)
         .handle();
-    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl] {
+
+    auto camera = registry.readBlob<CameraParams>("current_camera").handle();
+    auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
+
+    return [this, depthHndl, motionVecsHndl, opaqueFinalTargetHndl, antialiasedHndl, camera, cameraHistory] {
       Point2 mvScale = inputResolution;
       d3d::driver_command(Drv3dCommand::SET_XESS_VELOCITY_SCALE, &mvScale.x, &mvScale.y);
       render::antialiasing::ApplyContext ctx;
       ctx.depthTexture = depthHndl.get();
       ctx.motionTexture = motionVecsHndl.get();
-      ctx.jitterPixelOffset = jitterOffset;
-      ctx.resetHistory = frameCounter == 0;
-      apply_xess(opaqueFinalTargetHndl.get(), ctx, antialiasedHndl.get());
+      ctx.jitterPixelOffset = camera.ref().jitterOffset;
+      ctx.resetHistory = is_teleporting(camera.ref(), cameraHistory.ref());
+      render::antialiasing::apply_xess(opaqueFinalTargetHndl.get(), ctx, antialiasedHndl.get());
     };
   });
 
   if (render::antialiasing::is_frame_generation_enabled())
   {
-    frameGenerationNode = dafg::register_node("xess_fg", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+    frameGenerationNode = dafg::register_node("xess_fg", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::Viewport);
       registry.executionHas(dafg::SideEffects::External);
       auto beforeUINs = registry.root() / "before_ui";
       auto finalFrameHandle =
@@ -61,7 +69,7 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
       auto camera = registry.readBlob<CameraParams>("current_camera").handle();
       auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
-      return [this, finalFrameHandle, uiHandle, motionVectorsHandle, depthHandle, camera, cameraHistory] {
+      return [finalFrameHandle, uiHandle, motionVectorsHandle, depthHandle, camera, cameraHistory] {
         render::antialiasing::FrameGenContext frameGenContext = {.viewItm = camera.ref().viewItm,
           .noJitterProjTm = camera.ref().noJitterProjTm,
           .noJitterGlobTm = camera.ref().noJitterGlobtm,
@@ -72,8 +80,8 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
           .motionVectorTexture = motionVectorsHandle.get(),
           .uiTexture = uiHandle.get(),
           .timeElapsed = 0.0f,
-          .jitterPixelOffset = jitterOffset,
-          .resetHistory = frameCounter == 0};
+          .jitterPixelOffset = camera.ref().jitterOffset,
+          .resetHistory = is_teleporting(camera.ref(), cameraHistory.ref())};
         render::antialiasing::schedule_generated_frames(frameGenContext);
       };
     });
@@ -81,6 +89,7 @@ XeSuperSampling::XeSuperSampling(const IPoint2 &outputResolution) : AntiAliasing
     // the sole purpose of this node is to reference history of the resources used by fsr_fg node in order to make these resources
     // "survive" until present()
     lifetimeExtenderNode = dafg::register_node("xess_fg_lifetime_extender", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::Viewport);
       registry.executionHas(dafg::SideEffects::External);
       // ordering before setup_world_rendering_node makes lifetimes as short as possible while making sure the resources are still
       // alive during present()

@@ -145,6 +145,29 @@ public:
   }
 
   /**
+   * \brief Requests for this resource to be set into a named refined_block
+   * pass block shader variable. The value is pushed into the block after the
+   * frame graph is compiled and before refined_block::flush(), so it is
+   * available when the block's constant buffer is flushed.
+   *
+   * The usage stage MUST have been set beforehand for GPU resources.
+   *
+   * \param block_name The name of a pass block registered via registerBlock.
+   * \param shader_var_name The name of the shader variable within the block.
+   *   If not specified, the name of the resource will be used.
+   */
+  template <typename = void>
+    requires(is_gpu && hasPolicy(RRP::HasUsageStage, "ERROR: Please call .atStage(usage stage) before .forBlock(...)!") &&
+             (!hasPolicy(RRP::HasUsageType, "ERROR: Please don't call .useAs(usage type) before .forBlock(...)!") ||
+               hasPolicy(RRP::HasShaderVarBinding)))
+  VirtualResourceRequest<Res, setPolicy(RRP::HasShaderVarBinding | RRP::HasUsageType)> forBlock(const char *block_name,
+    const char *shader_var_name = nullptr) &&
+  {
+    Base::forBlock(block_name, shader_var_name, tag_for<Res>());
+    return {resUid, nodeId, registry};
+  }
+
+  /**
    * \brief Requests for this resource to be registered in a bindless
    * descriptor range and for its bindless index to be set to the int
    * shader variable with the specified name via ShaderGlobals::set_int().

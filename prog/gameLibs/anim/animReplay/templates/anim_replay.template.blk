@@ -1,5 +1,6 @@
 anim_replay_params_config{
   "anim_replay__ignoredAnimParams:list<t>"{}
+  "anim_replay__preciseAnimParams:list<t>"{}
 }
 
 anim_replay_save_context{
@@ -54,7 +55,6 @@ anim_replay_save_context{
   anim_replay__prevTime:r=0
   anim_replay__sampleRate:i=30
   anim_replay__animcharsRecordingFilter:i=0
-  "anim_replay__preciseAnimParams:list<t>"{}
 }
 
 anim_replay_load_context{

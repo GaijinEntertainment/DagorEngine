@@ -154,6 +154,30 @@ static ecs::EntitySystemDesc fast_grass_on_render_settings_change_es_es_desc
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
 ,"render","render_settings__grassRendInstRangeMul","*");
+static constexpr ecs::ComponentDesc reinit_grass_on_settings_appear_es_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("grass_types"), ecs::ComponentTypeInfo<ecs::Array>()}
+};
+static void reinit_grass_on_settings_appear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  reinit_grass_on_settings_appear_es(evt
+        , components.manager()
+    );
+}
+static ecs::EntitySystemDesc reinit_grass_on_settings_appear_es_es_desc
+(
+  "reinit_grass_on_settings_appear_es",
+  "prog/daNetGame/render/grass/grassRenderES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, reinit_grass_on_settings_appear_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(reinit_grass_on_settings_appear_es_comps+0, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc init_grass_ri_clipmap_es_comps[] =
 {
 //start of 1 rw components at [0]

@@ -16,6 +16,7 @@ Sources =
   shaderEditors.cpp
   enviCoverShaderEditor.cpp
   fogShaderEditor.cpp
+  cloudsShaderEditor.cpp
 ;
 
 if $(NodeBasedCompiler) = yes {

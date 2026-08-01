@@ -1,4 +1,5 @@
 include "get_mix_weight_inc.dshl"
+include "parallax_shadow.dshl"
 
 macro WEIGHT_BLENDING(stage)
 hlsl(stage) {
@@ -16,6 +17,14 @@ hlsl(stage) {
   {
     half3 height14 = get_blending_weights_for_height(weights, initialHeight);
     height14 = pow16_vec4(height14.xyzz).xyz;
+    height14 = saturate(height14 - 0.0000000002f);//0.25^16/2 is maximum!
+    return normalize_blending_weights(height14);
+  }
+
+  half3 get_blending_weights_for_parallax(half3 weights, half3 initialHeight)
+  {
+    half3 height14 = get_blending_weights_for_height(weights, initialHeight);
+    height14 = pow8_vec4(height14.xyzz).xyz;
     height14 = saturate(height14 - 0.0000000002f);//0.25^16/2 is maximum!
     return normalize_blending_weights(height14);
   }
@@ -107,12 +116,23 @@ macro INIT_LAYERED_FULL(always_use_normal_details)
   static float4 paint_details = (0, 0, 0, 0);
   static int palette_index = 1;
   static int gpu_object_id = -1 no_warnings;
+  static float4 parallax_height_influence_meters = (0.0, 0.0, 0.0, 0.0);
+  static float parallax_shadow_ray_length_meters = 0.0;
+  static float parallax_shadow_tolerance_meters = 0.0;
+  static float parallax_ao_ray_length_meters = 0.0;
 
   (vs) {
     maskGamma__detail2Colored@f4 = ((mask_gamma_end - mask_gamma_start-0.001), mask_gamma_start+0.001, detail2_colored,0);
     maskTile__detail2Scroll@f4 = (mask_tile_u, mask_tile_v, detail2_scroll_u, detail2_scroll_v);
     detailTile@f4 = (detail1_tile_u, detail1_tile_v, detail2_tile_u, detail2_tile_v);
     atlas_tileSize__interval@f4 = (atlas_tile_u, atlas_tile_v, atlas_first_tile, (atlas_last_tile-atlas_first_tile+1));
+  }
+  (ps) {
+    detailTile@f4 = (detail1_tile_u, detail1_tile_v, detail2_tile_u, detail2_tile_v);
+    parallax_height_influence_meters@f2 = parallax_height_influence_meters;
+    parallax_shadow_ray_length_meters@f1 = parallax_shadow_ray_length_meters;
+    parallax_shadow_tolerance_meters@f1 = parallax_shadow_tolerance_meters;
+    parallax_ao_ray_length_meters@f1 = parallax_ao_ray_length_meters;
   }
 endmacro
 
@@ -183,7 +203,32 @@ macro LAYERED_HEIGHTMAP_PS()
   }
 endmacro
 
-macro LAYERED_PS(is_normal_pass)
+macro LAYERED_PS(is_normal_pass, use_parallax_shadow)
+  if (compatibility_mode == compatibility_mode_off && use_parallax_shadow && rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    hlsl(ps) {
+      #define PARALLAX_SHADOW
+      #define PARALLAX_SECOND_TC
+      struct ParallaxData
+      {
+        half weight;
+        half2 influence;
+      };
+
+      float sample_height_tex(float2 tc, float2 tc2, ParallaxData userData)
+      {
+        const float mipLevel = 2;
+        SamplerState smp = get_diffuse_tex().smp;
+        float detail1 = get_diffuse_tex1().SampleLevel(smp, tc, mipLevel).a;
+        float detail2 = get_diffuse_tex2().SampleLevel(smp, tc2, mipLevel).a;
+
+        float2 initialHeight = float2(detail1, detail2);
+        half2 weights = half2(1 - userData.weight, userData.weight);
+        return dot(initialHeight, weights * userData.influence);
+      }
+    }
+    USE_PARALLAX_SHADOW(sample_height_tex, ParallaxData, use_parallax_shadow)
+  }
   hlsl(ps) {
     #ifndef SAMPLE_TEX
       #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
@@ -226,6 +271,25 @@ macro LAYERED_PS(is_normal_pass)
 
       half weight = pow(mask.g, input.pointToEye.w)*baseColor.a;
       half weight2 = get_mix_weight(detailColor1.a, detailColor2.a, weight);
+
+      half shadow = 1.h;
+      half ao = 1;
+      #ifdef PARALLAX_SHADOW
+        float2 influence = get_parallax_height_influence_meters();
+        influence *= get_parallax_vignette(input.pointToEye.xyz);
+        BRANCH
+        if (any(abs(influence) > 0.0))
+        {
+          ParallaxData userData;
+          userData.weight = weight;
+          userData.influence = influence;
+          ParallaxCommonParams commonParams = make_parallax_common_params(input.pointToEye.xyz, worldVertexNormal, input.uv_detail.xy, input.uv_detail.zw, userData);
+          BRANCH if (parallax_shadow_enabled)
+            shadow *= calc_parallax_shadow(commonParams, from_sun_direction.xyz, get_parallax_shadow_ray_length_meters(), get_parallax_shadow_tolerance_meters());
+          BRANCH if (parallax_ao_enabled)
+            ao *= calc_parallax_ao(commonParams, get_parallax_ao_ray_length_meters());
+        }
+      #endif
 
       //modulate detail2 color (fade modulation according to detail2.a)
       float detail2a_weight = lerp(modulation_detail2_alpha_inv_weight, 1.0, detailColor2.a);
@@ -280,7 +344,6 @@ macro LAYERED_PS(is_normal_pass)
       half specularStr = lerp(detailNormal1.r, detailNormal2.r, weight2);
       half smoothness = specularStr;
       half metalness = lerp(detailNormal1.b, detailNormal2.b, weight2);
-      half ao = 1;
       float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
       half reflectance = 0.5;
 
@@ -298,6 +361,7 @@ macro LAYERED_PS(is_normal_pass)
         init_metalness(gbuffer, metalness);
         init_normal(gbuffer, worldNormal);
         init_ao(gbuffer, ao);
+        init_shadow(gbuffer, shadow);
 
         init_albedo(gbuffer, diffuseColor.rgb);
         init_dynamic(gbuffer, IS_DYNAMIC);

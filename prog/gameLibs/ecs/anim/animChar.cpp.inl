@@ -27,6 +27,7 @@
 #include <anim/dag_animBlend.h>
 #include "render/animCharTexReplace.h"
 #include <ecs/anim/animcharUpdateEvent.h>
+#include <ecs/render/nodeCollapserBitsType.h>
 #include <daECS/core/componentType.h>
 #include <ecs/anim/animchar_visbits.h>
 #include <ecs/anim/animCharRefHolder.h>
@@ -147,7 +148,7 @@ public:
     }
   }
 
-  bool onLoaded() const { return nodeTree.nodeCount() != 0; }
+  bool onLoaded() const { return nodeTree->nodeCount() != 0; }
 };
 
 struct AnimcharRendConstruct final : public AnimV20::AnimcharRendComponent
@@ -206,6 +207,7 @@ ECS_REGISTER_MANAGED_TYPE(AnimV20::AnimcharBaseComponent, nullptr,
 ECS_REGISTER_MANAGED_TYPE(AnimV20::AnimcharRendComponent, nullptr,
   typename ecs::CreatorSelector<AnimV20::AnimcharRendComponent ECS_COMMA AnimcharRendConstruct>::type);
 ECS_REGISTER_RELOCATABLE_TYPE(AnimcharNodesMat44, nullptr);
+ECS_REGISTER_RELOCATABLE_TYPE(DynamicRenderableSceneInstance::NodeCollapserBits, nullptr);
 
 ECS_REGISTER_RELOCATABLE_TYPE(AnimcharResourceReferenceHolder, nullptr);
 ECS_AUTO_REGISTER_COMPONENT_DEPS(AnimcharResourceReferenceHolder, "animchar__resRefHolder", nullptr, 0, "animchar__res")

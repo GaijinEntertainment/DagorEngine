@@ -125,7 +125,8 @@ BufferState BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, Buff
     }
 
     result = allocateBuffer(adapter, device, to_discared.size, struct_size, nextDiscardRange, memory_class, flags, cflags, name,
-      disable_sub_alloc);
+      disable_sub_alloc)
+               .value_or({});
     if (result)
     {
       result.resourceId.inerhitStatusBits(to_discared.resourceId);
@@ -187,9 +188,9 @@ BufferState BufferHeap::discardBuffer(DXGIAdapter *adapter, Device &device, Buff
   return result;
 }
 
-BufferState BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size,
-  uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name,
-  bool disable_sub_alloc)
+BufferHeap::BufferAllocationResult BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size,
+  uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
+  const char *name, bool disable_sub_alloc)
 {
   auto heapProperties = getProperties(flags, memory_class, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
   AllocationFlags allocationFlags{};
@@ -217,8 +218,7 @@ BufferState BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uin
         result.resourceId.markExcludedFromStateTracking();
       }
       return result;
-    })
-    .value_or({});
+    });
 }
 
 BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, Device &device,
@@ -230,7 +230,6 @@ BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentat
 
   Heap *selectedHeap = nullptr;
   ValueRange<uint64_t> allocationRange;
-  size_t memoryAllocatedSize = 0;
   G_ASSERTF(discard_count > 0, "discard count has to be at least one");
   uint64_t payloadSize = size;
   auto offsetAlignment =
@@ -265,7 +264,6 @@ BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentat
       if (heapIndex < bufferHeapStateAccess->getHeapCount())
       {
         selectedHeap = &bufferHeapStateAccess->getHeap(heapIndex);
-        memoryAllocatedSize = selectedHeap->getBufferMemorySize();
         allocationRange = make_value_range<uint64_t>(0, payloadSize);
         selectedHeap->applyFirstAllocation(payloadSize);
 
@@ -347,7 +345,6 @@ BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentat
       if (heapIndex < bufferHeapStateAccess->getHeapCount())
       {
         selectedHeap = &bufferHeapStateAccess->getHeap(heapIndex);
-        memoryAllocatedSize = selectedHeap->getBufferMemorySize();
         allocationRange = make_value_range<uint64_t>(0, totalSize);
 
         selectedHeap->applyFirstAllocation(totalSize);
@@ -371,13 +368,6 @@ BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentat
     }
   }
 
-  // has to be reported outside of the locked region, otherwise we may deadlock when the manager
-  // decides to shuffle things around
-  if (memoryAllocatedSize > 0)
-  {
-    notifyBufferMemoryAllocate(memoryAllocatedSize, true);
-  }
-
   G_ASSERT((cflags & SBCF_BIND_CONSTANT) == 0 || result.size % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
   G_ASSERT(
     (cflags & SBCF_BIND_CONSTANT) == 0 || result.memoryLocation.gpuAddress % D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT == 0);
@@ -392,11 +382,7 @@ void BufferHeap::notifyBufferMemoryRelease(size_t sz)
   tql::on_persistent_changed(false, -tql::sizeInKb(sz));
 }
 
-void BufferHeap::notifyBufferMemoryAllocate(size_t sz, bool /*kick_off_shuffle*/)
-{
-  auto kbz = tql::sizeInKb(sz);
-  tql::on_persistent_changed(true, kbz);
-}
+void BufferHeap::notifyBufferMemoryAllocate(size_t sz) { tql::on_persistent_changed(true, tql::sizeInKb(sz)); }
 
 BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
   BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size)
@@ -448,26 +434,14 @@ BufferState BufferHeap::moveBuffer(const BufferState &current_buffer, BufferGlob
 
 void BufferHeap::shutdown()
 {
-  size_t totalMemoryFreed = 0;
-  {
-    auto bufferHeapStateAccess = bufferHeapState.access();
-    totalMemoryFreed = bufferHeapStateAccess->clear(this);
-  }
-
-  notifyBufferMemoryRelease(totalMemoryFreed);
+  bufferHeapState.access()->clear(this);
 
   BaseType::shutdown();
 }
 
 void BufferHeap::preRecovery()
 {
-  size_t totalMemoryFreed = 0;
-  {
-    auto bufferHeapStateAccess = bufferHeapState.access();
-    totalMemoryFreed = bufferHeapStateAccess->clear(this);
-  }
-
-  notifyBufferMemoryRelease(totalMemoryFreed);
+  bufferHeapState.access()->clear(this);
 
   BaseType::preRecovery();
 }
@@ -476,7 +450,6 @@ void BufferHeap::completeFrameExecution(const CompletedFrameExecutionInfo &info,
 {
   // do the free of old discard ready stuff before we free buffers that possibly increase the list
   // but are not removed because they can not be old enough to be removed.
-  size_t memoryFreedSize = 0;
   {
     auto bufferHeapStateAccess = bufferHeapState.access();
 
@@ -502,16 +475,10 @@ void BufferHeap::completeFrameExecution(const CompletedFrameExecutionInfo &info,
       {
         freeBufferSRVDescriptors({buffer.uavForClear.get(), buffer.uavForClear.get() + buffer.discardCount});
       }
-      memoryFreedSize +=
-        bufferHeapStateAccess->freeBuffer(this, buffer, freeInfo.freeReason, get_resource_name(buffer.buffer, strBuf));
+      bufferHeapStateAccess->freeBuffer(this, buffer, freeInfo.freeReason, get_resource_name(buffer.buffer, strBuf));
     }
   }
   data.deletedBuffers.clear();
-
-  if (memoryFreedSize > 0)
-  {
-    notifyBufferMemoryRelease(memoryFreedSize);
-  }
 
   BaseType::completeFrameExecution(info, data);
 }

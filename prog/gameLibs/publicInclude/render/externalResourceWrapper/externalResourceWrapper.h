@@ -34,12 +34,12 @@ protected:
       daframegraph_name = (*this)->getName();
     const eastl::string node_name{eastl::string::CtorSprintf{}, "register_%s", daframegraph_name};
     registerResourceNode = ns.registerNode(node_name.c_str(), DAFG_PP_NODE_SRC,
-      [view = ResViewType{*this}, daframegraph_name, multiplexing_mode](dafg::Registry registry) {
+      [view = ResViewType{*this}, resName = eastl::string(daframegraph_name), multiplexing_mode](dafg::Registry registry) {
         registry.multiplex(multiplexing_mode);
         if constexpr (eastl::is_same_v<ResViewType, ManagedTexView>)
-          registry.registerTexture(daframegraph_name, [=](const dafg::multiplexing::Index &) { return view; });
+          registry.registerTexture(resName.c_str(), [=](const dafg::multiplexing::Index &) { return view; });
         else
-          registry.registerBuffer(daframegraph_name, [=](const dafg::multiplexing::Index &) { return view; });
+          registry.registerBuffer(resName.c_str(), [=](const dafg::multiplexing::Index &) { return view; });
       });
   }
 

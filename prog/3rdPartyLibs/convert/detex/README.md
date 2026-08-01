@@ -9,3 +9,7 @@ Included is a simple texture file viewer program as well as a command line utili
 
 It has been developed using Linux, but is probably usable on other platforms without too much effort.
 
+---- Upstream ----
+
+Upstream: detex, https://github.com/hglm/detex
+

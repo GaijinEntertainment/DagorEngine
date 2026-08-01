@@ -19,6 +19,13 @@ class DagorAssetMgr;
 class DagorAsset;
 class AssetExportCache;
 
+// Internal to the dabuild dll/tool - passes quickCheckUpToDate() stats between functions and up to
+// assetExport.cpp's IDaBuildInterface wrapper, which unpacks it into that interface's plain out-params.
+struct DabuildQuickCheckStats
+{
+  int readyPacks = 0, totalPacks = 0, removedCacheFiles = 0, workerThreads = 0;
+};
+
 struct GrpAndTexPackId
 {
   short respackId, texPackId;
@@ -53,6 +60,10 @@ bool checkUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode,
   dag::ConstSpan<const char *> packs_to_check, dag::ConstSpan<bool> exp_types_mask, const DataBlock &appblk,
   IGenericProgressIndicator &pbar, ILogWriter &log);
 
+// Fast, approximate counterpart to checkUpToDate() - see IDaBuildInterface::quickCheckUpToDate() doc comment.
+bool quickCheckUpToDate(DagorAssetMgr &mgr, const char *app_dir, unsigned targetCode, const char *profile, int tc_flags,
+  dag::ConstSpan<const char *> packs_to_check, dag::ConstSpan<bool> exp_types_mask, const DataBlock &appblk, ILogWriter &log,
+  DabuildQuickCheckStats *out_stats = nullptr);
 
 bool buildGameResPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4, const char *pack_fname,
   ILogWriter &log, IGenericProgressIndicator &pbar, bool &up_to_date, const DataBlock &blk_export_props);
@@ -64,6 +75,12 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
   const char *pack_fname, int ch_bit);
 
 bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4, const char *pack_fname, int ch_bit);
+
+// Fast, gatherSrcDataFiles()-free sweep for a UI indicator only - not suitable for a real build decision.
+// See the doc comments on the definitions in resExport.cpp/texExport.cpp.
+bool quickCheckGameResPackReady(dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4, const char *pack_fname);
+bool quickCheckDdsxTexPackReady(unsigned tc, bool be, dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4,
+  const char *pack_fname);
 
 bool isAssetExportable(DagorAssetMgr &mgr, DagorAsset *asset, dag::ConstSpan<bool> exp_types_mask);
 bool detect_valid_patch(const DataBlock &expblk, const char *pkg_name, const char *app_dir, const char *target_str,

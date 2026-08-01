@@ -185,7 +185,13 @@ void PhysRagdoll::setOverrideOmega(const Point3 &omega)
   shouldOverrideOmega = true;
 }
 
-void PhysRagdoll::setDriveBodiesToAnimchar(bool doDrive) { driveBodiesToAnimchar = doDrive; }
+void PhysRagdoll::setDriveBodiesToAnimchar(bool doDrive)
+{
+  driveBodiesToAnimchar = doDrive;
+  // Motors keep holding the last driven pose until they are explicitly turned off
+  if (!doDrive && physSys)
+    physSys->disableJointsMotors();
+}
 
 void PhysRagdoll::startRagdoll(int interact_layer, int interact_mask, const GeomNodeTree *tree, float scale)
 {

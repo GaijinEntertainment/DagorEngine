@@ -204,9 +204,12 @@ macro USE_VEGETATION_INTERACTIONS_FOR_BUSHES()
       {
         uint index = obstacle_indices[i];
         float3 center = float3(obstacles.obstacles[index].dir_x.w, obstacles.obstacles[index].dir_y.w, obstacles.obstacles[index].dir_z.w);
-        float radius_sq = dot(obstacles.obstacles[index].dir_x.xyz, obstacles.obstacles[index].dir_x.xyz) +
-                          dot(obstacles.obstacles[index].dir_z.xyz, obstacles.obstacles[index].dir_z.xyz);
-        float obst_height_sq = dot(obstacles.obstacles[index].dir_y.xyz, obstacles.obstacles[index].dir_y.xyz);
+
+        float3 half_box = obstacles.obstacles[index].box.xyz * 0.5;
+        float radius = max(half_box.x, half_box.z);
+        float radius_sq = radius * radius;
+        float obst_height = half_box.y;
+        float obst_height_sq = half_box.y * half_box.y;
 
         float3 initial = worldPos + result_delta;
         float3 delta = initial - center;
@@ -215,8 +218,6 @@ macro USE_VEGETATION_INTERACTIONS_FOR_BUSHES()
         if (delta_sq > radius_sq)
           continue;
 
-        float obst_height = sqrt(obst_height_sq);
-        float radius = sqrt(radius_sq);
         float delta_len = sqrt(delta_sq);
         float init_len = length(initial - worldPivot);
         float diff = radius - delta_len;

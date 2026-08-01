@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/daFracture/core ;
+StrictCompile = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/daFracture/core.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  meshCommon.cpp
+  meshSlicing.cpp
+  cutFaceGraphPrepare.cpp
+  cutFaceBoundarySearch.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -33,11 +33,11 @@ struct VarScope
 
   void intersectScopes(const VarScope *other);
 
-  void merge(const VarScope *other);
+  void merge(const VarScope *other, bool joinFlags = true);
   VarScope *copy(Arena *a, bool forClosure = false) const;
   void copyFrom(const VarScope *other);
 
-  void mergeUnbalanced(const VarScope *other);
+  void mergeUnbalanced(const VarScope *other, bool joinFlags = true);
 
   VarScope *findScope(const FunctionExpr *own);
   void checkUnusedSymbols(CheckerVisitor *v);

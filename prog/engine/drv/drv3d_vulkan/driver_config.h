@@ -30,6 +30,17 @@ struct DriverConfig
   uint32_t debugLevel;
   // time to wait when temp buffers allocated over limit (wrongly configured or used too much)
   uint32_t tempBufferOverAllocWaitMs;
+  // dynamic uniform buffers are a per pipeline layout total shared across all its stages. b register
+  // slots beyond the per-stage share fall back to plain uniform buffers. the budget is decided per
+  // layout (from its actual stage count) so a 2-stage graphics layout keeps far more dynamic slots
+  // than the worst case, while still fitting the device total.
+  uint32_t dynamicUniformBufferTotal;
+  uint32_t dynamicUniformBufferSlotsCap;
+  uint32_t dynamicUniformBufferSlotsForLayout(uint32_t active_stage_count) const
+  {
+    const uint32_t perStage = dynamicUniformBufferTotal / (active_stage_count ? active_stage_count : 1);
+    return perStage < dynamicUniformBufferSlotsCap ? perStage : dynamicUniformBufferSlotsCap;
+  }
 
   // minimal time of wait observed to trigger predicted latency wait logic
   int64_t latencyWaitThresholdUs;
@@ -175,6 +186,10 @@ struct DriverConfig
     bool allowXess : 1;
     // AMD GPUs have broken clears on non-linear (SRGB) views of linear UAV render targets
     bool brokenClearsOnNonLinearUAVRT : 1;
+    // sample depth textures via DEPTH_STENCIL_READ_ONLY_OPTIMAL to save time on layout transitions
+    bool sampledDepthReadOnlyLayout : 1;
+    // delay copy to destination buffer for compaction queries
+    bool delayCompactionSizeCopy : 1;
   };
 
   struct DeviceBits

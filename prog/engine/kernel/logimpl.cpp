@@ -93,7 +93,13 @@ static CryptLog cryptLog;
 void crypt_debug_setup(const unsigned char *nkey, unsigned)
 {
   if (nkey && *nkey)
+  {
     memcpy(cryptLog.key.data(), nkey, cryptLog.key.size());
+#if _TARGET_IOS | _TARGET_TVOS
+    // on iOS the console handle is the log file itself
+    set_debug_console_crypted(true);
+#endif
+  }
 }
 
 static void crypt_out_str(unsigned char *buf, size_t sz)
@@ -339,7 +345,6 @@ static void log_write(char *data, size_t len)
   if (xbox_debug_file)
   {
     fwrite(data, 1, len, xbox_debug_file);
-    fflush(xbox_debug_file);
   }
   out_debug_str(data); // There is no XR-008 anymore.
 

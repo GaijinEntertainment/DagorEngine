@@ -1,6 +1,6 @@
 include "glass_hole_mask.dshl"
 include "glass_gbuffer_inc.dshl"
-include "use_tiled_lights.dshl"
+include "clusteredViewLights.dshl"
 include "glass_dual_source_blending_inc.dshl"
 
 int glass_dynamic_light = 0;
@@ -174,12 +174,14 @@ macro INIT_REFRACTION_GLASS_BASE(generate_transparent_gbuffer_pass)
   static float max_thickness = 0.2;
   static float isShell = 1;
   static float glassIoR = 1.5;
+  static float diffuse_is_tint = 0;
 
   if(rendinst_transparent_gbuffer_pass != generate)
   {
     (ps) {
       mediumTintColor@f4 = (mediumTintColor.r, mediumTintColor.g, mediumTintColor.b, isShell);
       mediumThickness@f4 = (min_thickness, max_thickness, 1./glassIoR, ((1-glassIoR)*(1-glassIoR))/((1+glassIoR)*(1+glassIoR)));
+      diffuse_is_tint@f1 = diffuse_is_tint;
     }
     hlsl(ps) {
       #define isRefractionGlass 1
@@ -187,16 +189,12 @@ macro INIT_REFRACTION_GLASS_BASE(generate_transparent_gbuffer_pass)
   }
 endmacro
 
-macro INIT_GLASS_USE_TILED_LIGHTS()
+macro INIT_GLASS_USE_DYNAMIC_LIGHTS()
   if (glass_dynamic_light == yes && compatibility_mode == compatibility_mode_off)
   {
     WRITE_GBUFFER()
-    INIT_AND_USE_TILED_LIGHTS_WITHOUT_SSSS(ps)
-    (ps)
-    {
-      screen_size@f2 = (1./screen_pos_to_texcoord.x, 1./screen_pos_to_texcoord.y,0,0);
-    }
-    hlsl(ps){#define GLASS_USE_TILED_LIGHTS 1}
+    INIT_AND_USE_CLUSTERED_VIEW_LIGHTS(ps)
+    hlsl(ps){#define GLASS_USE_DYNAMIC_LIGHTS 1}
   }
 endmacro
 
@@ -245,6 +243,16 @@ hlsl(ps)
   #endif
 
   #include "glassEnviProbeSample.hlsl"
+
+##if shader == dynamic_refraction
+  float get_refraction_mip(float roughnessMip, float dist)
+  {
+    const float refractionMipCompensationStrength = 1.2;
+    const float refractionMipCompensationStartDist = 4.0;
+    return roughnessMip - (NUM_PROBE_MIPS - get_refraction_tex_mip_count())
+         - refractionMipCompensationStrength * log2(max(dist / refractionMipCompensationStartDist, 1.0));
+  }
+##endif
 
 #if OVERWRITE_GLASS_PROPERTIES_WITH_FUNCTION_ARGS
   GlassOutput apply_glass_base(VsOutput input, float4 screenpos, half4 diffuseColor, half3 worldNormal, half thickness,
@@ -322,17 +330,22 @@ hlsl(ps)
       #endif
     #else
       #if OVERWRITE_GLASS_PROPERTIES_WITH_FUNCTION_ARGS
-        half3 mediumColor = diffuseColor.rgb*mediumTintColor.rgb;//doesn't have to be same as diffuseColor!
+        half3 mediumColor = mediumTintColor.rgb;
         half isShell = mediumTintColor.a;
       #else
-        half3 mediumColor = diffuseColor.rgb*get_mediumTintColor().rgb;//doesn't have to be same as diffuseColor!
+        half3 mediumColor = lerp(get_mediumTintColor().rgb, diffuseColor.rgb, get_diffuse_is_tint());
         half isShell = get_mediumTintColor().a;
       #endif
       float3 refractWorldDir = refract(-view, worldNormal, airToGlassIoR);
       float rayLengthSolid = thickness * (0.5 + 0.5*NoV);
       float rayLengthShell = thickness / max(NoV, 0.25);
       float rayLength = lerp(rayLengthSolid, rayLengthShell, isShell);
-      float3 refractionLight = mediumColor.rgb*fetchRefractedPixel(screenUV, cameraToPoint, refractWorldDir, rayLength, roughnessMip).rgb;
+      ##if shader == dynamic_refraction
+        float refractionMip = get_refraction_mip(roughnessMip, dist);
+      ##else
+        float refractionMip = roughnessMip;
+      ##endif
+      float3 refractionLight = mediumColor.rgb*fetchRefractedPixel(screenUV, cameraToPoint, refractWorldDir, rayLength, refractionMip).rgb;
 
       refractionLight *= 1 - fresnel;
       diffuseTerm = lerp(refractionLight, diffuseTerm, surfaceOpaqueness);
@@ -347,7 +360,7 @@ hlsl(ps)
       litColor *= (is_back_face ? get_backface_specular_multiplier() : 1.f);
     #endif
 
-    #if GLASS_USE_TILED_LIGHTS
+    #if GLASS_USE_DYNAMIC_LIGHTS
       UnpackedGbuffer gbuffer;
       init_gbuffer(gbuffer);
       init_material(gbuffer, SHADING_NORMAL);
@@ -362,7 +375,7 @@ hlsl(ps)
       packedGbuffer.smoothness_reflectance_metallTranslucency_shadow = fakeOutput.smoothness_reflectance_metallTranslucency_shadow;
       ProcessedGbuffer processedGbuffer = processGbuffer(unpackGbuffer(packedGbuffer));
       packedGbuffer.motion_reactive = 0;
-      litColor += get_dynamic_lighting(processedGbuffer, worldPos, view, input.clipPos.w, input.clipPos.xy, NoV, diffuseColor.rgb, screenUV, 1);
+      litColor += get_dynamic_lighting(processedGbuffer, worldPos, view, input.clipPos.w, screenpos.xy, NoV, glassSpecular, screenUV, 1);
     #endif
 
     float blendW = dstAmount;

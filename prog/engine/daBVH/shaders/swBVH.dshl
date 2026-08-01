@@ -8,12 +8,12 @@ macro INIT_SW_BVH_RAYTRACING(code)
   {
     bvh_bottom_structures@buf = bvh_bottom_structures hlsl
     {
-      #include "swBVHDefine.hlsli"
+      #include <swBVHDefine.hlsli>
       ByteAddressBuffer bvh_bottom_structures@buf;
     }
     bvh_top_structures@buf = bvh_top_structures hlsl
     {
-      #include "swBVHDefine.hlsli"
+      #include <swBVHDefine.hlsli>
       ByteAddressBuffer bvh_top_structures@buf;
     }
   }
@@ -38,6 +38,18 @@ hlsl(code) {
     )
   {
     return rayShadowTLAS(bvh_top_structures, bvh_bottom_structures, rayOrigin, rayDir, rayDirInv, at
+    #if LIMIT_AT_END
+      , endAt
+    #endif
+      );
+  }
+  bool rayShadowTLASEst(float3 rayOrigin, float3 rayDir, float3 rayDirInv, float rayMaxT, uint at = 0
+  #if LIMIT_AT_END
+    , uint endAt = 0
+  #endif
+    )
+  {
+    return rayShadowTLASEst(bvh_top_structures, bvh_bottom_structures, rayOrigin, rayDir, rayDirInv, rayMaxT, at
     #if LIMIT_AT_END
       , endAt
     #endif

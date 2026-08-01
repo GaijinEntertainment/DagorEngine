@@ -24,50 +24,59 @@ static Tab<const char *> ecs_tools_get_global_tags_context()
   return globalTags;
 }
 
+static void setup_components_and_types_ignores(const DataBlock &ecs_blk, const DataBlock &app_blk, ecs::TemplateRefs &trefs,
+  ecs::TemplateRefs::NameMap &ignoreTypeNm, ecs::TemplateRefs::NameMap &ignoreCompNm)
+{
+  bool ignore_all_bad_types = ecs_blk.getBool("ignoreAllBadComponentTypes", false);
+  bool ignore_all_bad_comps = ecs_blk.getBool("ignoreAllBadComponents", false);
+  if (const DataBlock *ignore_types_blk = ignore_all_bad_types ? nullptr : ecs_blk.getBlockByName("ignoreComponentTypes"))
+    dblk::iterate_params_by_name_and_type(*ignore_types_blk, "type", DataBlock::TYPE_STRING,
+      [ignore_types_blk, &ignoreTypeNm](int idx) { ignoreTypeNm.addNameId(ignore_types_blk->getStr(idx)); });
+  if (const DataBlock *ignore_comps_blk = ignore_all_bad_comps ? nullptr : ecs_blk.getBlockByName("ignoreComponents"))
+    dblk::iterate_params_by_name_and_type(*ignore_comps_blk, "comp", DataBlock::TYPE_STRING,
+      [ignore_comps_blk, &ignoreCompNm](int idx) { ignoreCompNm.addNameId(ignore_comps_blk->getStr(idx)); });
+  trefs.setIgnoreNames((ignore_all_bad_types || ignoreTypeNm.nameCount()) ? &ignoreTypeNm : nullptr,
+    (ignore_all_bad_comps || ignoreCompNm.nameCount()) ? &ignoreCompNm : nullptr);
+
+  if (ignore_all_bad_types)
+    debug("ecs will ignore all unknown types");
+  else if (ignoreTypeNm.nameCount())
+    debug("ecs will ignore %d types specified in %s", ignoreTypeNm.nameCount(), app_blk.resolveFilename(true));
+  if (ignore_all_bad_comps)
+    debug("ecs will ignore all components with unknown type");
+  else if (ignoreCompNm.nameCount())
+    debug("ecs will ignore %d component names specified in %s", ignoreCompNm.nameCount(), app_blk.resolveFilename(true));
+}
+
+static void load_ecs_templates(const char *entities_path, const DataBlock &app_blk)
+{
+  ecs::TemplateRefs trefs(*g_entity_mgr);
+  ecs::TemplateRefs::NameMap ignoreTypeNm, ignoreCompNm;
+  if (const DataBlock *ecs_blk = app_blk.getBlockByName("ecs"))
+    setup_components_and_types_ignores(*ecs_blk, app_blk, trefs, ignoreTypeNm, ignoreCompNm);
+
+  g_entity_mgr.demandInit();
+  G_ASSERT(g_entity_mgr.get());
+  g_entity_mgr->setFilterTags(ecs_tools_get_global_tags_context());
+  g_entity_mgr->setEsTags(ecs_tools_get_global_tags_context());
+  g_entity_mgr->getMutableTemplateDBInfo().resetMetaInfo();
+  g_entity_mgr->resetEsOrder();
+  DataBlock entities;
+  if (entities_path && entities.load(entities_path))
+  {
+    ecs::load_templates_blk_file(*g_entity_mgr, entities_path, entities, trefs, &g_entity_mgr->getMutableTemplateDBInfo());
+    g_entity_mgr->addTemplates(trefs);
+  }
+  else if (entities_path)
+    DAEDITOR3.conError("failed to read ECS templates from %s", entities_path);
+}
+
 class EcsAdapter : public IEditorService, public IRenderingService
 {
 public:
   EcsAdapter(const char *entities_path, const char *scene_path, const DataBlock &app_blk)
   {
-    ecs::TemplateRefs trefs(*g_entity_mgr);
-    ecs::TemplateRefs::NameMap ignoreTypeNm, ignoreCompNm;
-    if (const DataBlock *ecs_blk = app_blk.getBlockByName("ecs"))
-    {
-      bool ignore_all_bad_types = ecs_blk->getBool("ignoreAllBadComponentTypes", false);
-      bool ignore_all_bad_comps = ecs_blk->getBool("ignoreAllBadComponents", false);
-      if (const DataBlock *ignore_types_blk = ignore_all_bad_types ? nullptr : ecs_blk->getBlockByName("ignoreComponentTypes"))
-        dblk::iterate_params_by_name_and_type(*ignore_types_blk, "type", DataBlock::TYPE_STRING,
-          [ignore_types_blk, &ignoreTypeNm](int idx) { ignoreTypeNm.addNameId(ignore_types_blk->getStr(idx)); });
-      if (const DataBlock *ignore_comps_blk = ignore_all_bad_comps ? nullptr : ecs_blk->getBlockByName("ignoreComponents"))
-        dblk::iterate_params_by_name_and_type(*ignore_comps_blk, "comp", DataBlock::TYPE_STRING,
-          [ignore_comps_blk, &ignoreCompNm](int idx) { ignoreCompNm.addNameId(ignore_comps_blk->getStr(idx)); });
-      trefs.setIgnoreNames((ignore_all_bad_types || ignoreTypeNm.nameCount()) ? &ignoreTypeNm : nullptr,
-        (ignore_all_bad_comps || ignoreCompNm.nameCount()) ? &ignoreCompNm : nullptr);
-
-      if (ignore_all_bad_types)
-        debug("ecs will ignore all unknown types");
-      else if (ignoreTypeNm.nameCount())
-        debug("ecs will ignore %d types specified in %s", ignoreTypeNm.nameCount(), app_blk.resolveFilename(true));
-      if (ignore_all_bad_comps)
-        debug("ecs will ignore all components with unknown type");
-      else if (ignoreCompNm.nameCount())
-        debug("ecs will ignore %d component names specified in %s", ignoreCompNm.nameCount(), app_blk.resolveFilename(true));
-    }
-
-    g_entity_mgr.demandInit();
-    G_ASSERT(g_entity_mgr.get());
-    g_entity_mgr->setFilterTags(ecs_tools_get_global_tags_context());
-    g_entity_mgr->setEsTags(ecs_tools_get_global_tags_context());
-    g_entity_mgr->getMutableTemplateDBInfo().resetMetaInfo();
-    g_entity_mgr->resetEsOrder();
-    DataBlock entities;
-    if (entities_path && entities.load(entities_path))
-    {
-      ecs::load_templates_blk_file(*g_entity_mgr, entities_path, entities, trefs, &g_entity_mgr->getMutableTemplateDBInfo());
-      g_entity_mgr->addTemplates(trefs);
-    }
-    else if (entities_path)
-      DAEDITOR3.conError("failed to read ECS tempates from %s", entities_path);
+    load_ecs_templates(entities_path, app_blk);
 
     DataBlock scene;
     if (scene_path && scene.load(scene_path))
@@ -151,6 +160,12 @@ void init_ecs_mgr_service(const DataBlock &app_blk, const char *app_dir)
     scenePath ? make_eff_app_relative_path(scenePath).c_str() : nullptr, app_blk);
   if (!IDaEditor3Engine::get().registerService(ecsAdapter))
     logerr("Failed to register ECS Manager service.");
+}
+
+void preload_ecs_templates_without_mgr(const DataBlock &app_blk, const char *app_dir)
+{
+  if (const char *entitiesPath = app_blk.getBlockByNameEx("game")->getStr("entities", nullptr))
+    load_ecs_templates(make_eff_app_relative_path(entitiesPath).c_str(), app_blk);
 }
 
 #include <assets/assetMgr.h>

@@ -189,7 +189,7 @@ int BhvTextInput::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, 
               int cmasklen = (int)strlen(cmask);
 
               Tab<wchar_t> w_inp;
-              char utf8_buf[4];
+              char utf8_buf[8];
 
               String text;
               bool isAllCharsPassed = true;
@@ -199,7 +199,9 @@ int BhvTextInput::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, 
                 convert_utf8_to_u16_buf(w_inp, buf, -1);
                 for (int i = 0; i < w_inp.size(); i++)
                 {
-                  if (strstr(cmask, wchar_to_utf8(w_inp[i], utf8_buf, sizeof(utf8_buf))))
+                  // wchar_to_utf8 returns NULL on failure (lone surrogate)
+                  const char *u = wchar_to_utf8(w_inp[i], utf8_buf, sizeof(utf8_buf));
+                  if (u && *u && strstr(cmask, u))
                     text.append(utf8_buf);
                   else
                     isAllCharsPassed = false;
@@ -501,13 +503,15 @@ void BhvTextInput::on_ime_finish(void *ud, const char *str, int cursor, int stat
       if (strlen(cmask) > 0)
       {
         Tab<wchar_t> w_inp;
-        char utf8_buf[4];
+        char utf8_buf[8];
 
         bool isAllCharsPassed = true;
         convert_utf8_to_u16_buf(w_inp, str, -1);
         for (int i = 0; i < w_inp.size(); i++)
         {
-          if (strstr(cmask, wchar_to_utf8(w_inp[i], utf8_buf, sizeof(utf8_buf))))
+          // wchar_to_utf8 returns NULL on failure (lone surrogate)
+          const char *u = wchar_to_utf8(w_inp[i], utf8_buf, sizeof(utf8_buf));
+          if (u && *u && strstr(cmask, u))
             text.append(utf8_buf);
           else
             isAllCharsPassed = false;

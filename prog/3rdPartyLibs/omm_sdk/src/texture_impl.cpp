@@ -13,9 +13,9 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include "defines.h"
 #include "std_containers.h"
 
-#include <shared/math.h>
-#include <shared/bit_tricks.h>
-#include <shared/texture.h>
+#include "util/math.h"
+#include "util/bit_tricks.h"
+#include "util/texture.h"
 
 #include <cstring>
 
@@ -26,6 +26,7 @@ namespace omm
         m_log(log),
         m_mips(stdAllocator),
         m_textureFormat(ommCpuTextureFormat_MAX_NUM),
+        m_textureFlags(ommCpuTextureFlags_None),
         m_tilingMode(TilingMode::MAX_NUM),
         m_alphaCutoff(-1.f),
         m_data(nullptr),
@@ -63,6 +64,16 @@ namespace omm
         return ommResult_SUCCESS;
     }
 
+    static size_t GetSizePerPixel(ommCpuTextureFormat format)
+    {
+        if (format == ommCpuTextureFormat_UNORM8)
+            return sizeof(uint8_t);
+        else if (format == ommCpuTextureFormat_FP32)
+            return sizeof(float);
+        OMM_ASSERT(false);
+        return 0;
+    }
+
     ommResult TextureImpl::Create(const ommCpuTextureDesc& desc)
     {
         RETURN_STATUS_IF_FAILED(Validate(desc));
@@ -73,16 +84,7 @@ namespace omm
         m_tilingMode = !!((uint32_t)desc.flags & (uint32_t)ommCpuTextureFlags_DisableZOrder) ? TilingMode::Linear : TilingMode::MortonZ;
         m_textureFormat = desc.format;
         m_alphaCutoff = desc.alphaCutoff;
-
-        auto GetSizePerPixel = [](ommCpuTextureFormat format)->size_t
-        {
-            if (format == ommCpuTextureFormat_UNORM8)
-                return sizeof(uint8_t);
-            else if (format == ommCpuTextureFormat_FP32)
-                return sizeof(float);
-            OMM_ASSERT(false);
-            return 0;
-        };
+        m_textureFlags = desc.flags;
 
         const size_t sizePerPixel = GetSizePerPixel(m_textureFormat);
 
@@ -93,18 +95,24 @@ namespace omm
         for (uint32_t mipIt = 0; mipIt < desc.mipCount; ++mipIt)
         {
             m_mips[mipIt].size = { desc.mips[mipIt].width, desc.mips[mipIt].height };
+            m_mips[mipIt].sizeLog2.x = ctz(m_mips[mipIt].size.x);
+            m_mips[mipIt].sizeLog2.y = ctz(m_mips[mipIt].size.y);
+            m_mips[mipIt].sizef = (float2)m_mips[mipIt].size;
             m_mips[mipIt].sizeMinusOne = m_mips[mipIt].size - 1;
             m_mips[mipIt].rcpSize = 1.f / (float2)m_mips[mipIt].size;
+            m_mips[mipIt].sizeIsPow2 = omm::isPow2(m_mips[mipIt].size.x) && omm::isPow2(m_mips[mipIt].size.y);
             m_mips[mipIt].dataOffset = m_dataSize;
             m_mips[mipIt].dataOffsetSAT = m_dataSATSize;
 
             if (m_tilingMode == TilingMode::Linear)
             {
+              //  m_mips[mipIt].rowPitch = sizePerPixel * size_t(m_mips[mipIt].size.x);
                 m_mips[mipIt].numElements = size_t(m_mips[mipIt].size.x) * m_mips[mipIt].size.y;
             }
             else if (m_tilingMode == TilingMode::MortonZ)
             {
                 size_t maxDim = nextPow2(std::max(m_mips[mipIt].size.x, m_mips[mipIt].size.y));
+             //   m_mips[mipIt].rowPitch = sizePerPixel * maxDim;
                 m_mips[mipIt].numElements = maxDim * maxDim;
             }
             else
@@ -130,7 +138,7 @@ namespace omm
         {
             if (m_tilingMode == TilingMode::Linear)
             {
-                const size_t kDefaultRowPitch = sizePerPixel * desc.mips[mipIt].width;
+                const size_t kDefaultRowPitch = desc.mips[mipIt].width;
                 const size_t srcRowPitch = desc.mips[mipIt].rowPitch == 0 ? kDefaultRowPitch : desc.mips[mipIt].rowPitch;
 
                 if (kDefaultRowPitch == srcRowPitch)
@@ -148,7 +156,7 @@ namespace omm
                     for (uint32_t rowIt = 0; rowIt < desc.mips[mipIt].height; rowIt++)
                     {
                         uint8_t* dst = dstBegin + rowIt * dstRowPitch;
-                        const uint8_t* src = srcBegin + rowIt * srcRowPitch;
+                        const uint8_t* src = srcBegin + rowIt * (sizePerPixel * srcRowPitch);
                         std::memcpy(dst, src, dstRowPitch);
                     }
                 }
@@ -173,9 +181,6 @@ namespace omm
                         memcpy(cpyDst, cpySrc, sizePerPixel);
                     }
                 }
-
-                size_t maxDim = nextPow2(std::max(m_mips[mipIt].size.x, m_mips[mipIt].size.y));
-                m_mips[mipIt].numElements = maxDim * maxDim;
             }
             else
             {
@@ -258,7 +263,7 @@ namespace omm
         float2 pixel = p * (float2)(m_mips[mip].size)-0.5f;
         float2 pixelFloor = glm::floor(pixel);
         int2 coords[omm::TexelOffset::MAX_NUM];
-        omm::GatherTexCoord4(mode, int2(pixelFloor), m_mips[mip].size, coords);
+        omm::GatherTexCoord4(mode, m_mips[mip].sizeIsPow2, int2(pixelFloor), m_mips[mip].size, m_mips[mip].sizeLog2, coords);
 
         float a = (float)Load(coords[omm::TexelOffset::I0x0], mip);
         float b = (float)Load(coords[omm::TexelOffset::I0x1], mip);
@@ -272,14 +277,61 @@ namespace omm
         return bilinearValue;
     }
 
-    template<>
-    uint64_t TextureImpl::From2Dto1D<TilingMode::Linear>(const int2& idx, const int2& size) 
+    ommResult TextureImpl::GetTextureDesc(ommCpuTextureDesc& desc) const
     {
-        return idx.x + idx.y * uint64_t(size.x);
+        desc.format = m_textureFormat;
+        desc.flags = m_textureFlags;
+        desc.alphaCutoff = m_alphaCutoff;
+        desc.mipCount = (uint32_t)m_mips.size();
+
+        if (desc.mips == nullptr)
+            return ommResult_SUCCESS;
+
+        for (uint32_t mipIt = 0; mipIt < desc.mipCount; ++mipIt)
+        {
+            ommCpuTextureMipDesc& mip = const_cast<ommCpuTextureMipDesc&>(desc.mips[mipIt]);
+            mip.width = m_mips[mipIt].size.x;
+            mip.height = m_mips[mipIt].size.y;
+            mip.rowPitch = m_mips[mipIt].size.x;
+            if (mip.textureData != nullptr)
+            {
+                const size_t sizePerPixel = GetSizePerPixel(m_textureFormat);
+
+                if (m_tilingMode == TilingMode::MortonZ)
+                {
+                    const uint8_t* src = (uint8_t*)(m_data + m_mips[mipIt].dataOffset);
+                    uint8_t* dst = (uint8_t*)(desc.mips[mipIt].textureData);
+
+                    for (int i = 0; i < m_mips[mipIt].numElements; ++i)
+                    {
+                        const int2 pos = From1Dto2D<TilingMode::MortonZ>(i, m_mips[mipIt].size);
+
+                        const uint8_t* cpySrc = src + i * sizePerPixel;
+                        uint8_t* cpyDst = dst + (pos.x + pos.y * desc.mips[mipIt].rowPitch) * sizePerPixel;
+
+                        memcpy(cpyDst, cpySrc, sizePerPixel);
+                    }
+                }
+                else // if (m_tilingMode == TilingMode::Linear)
+                {
+                    const uint8_t* src = (uint8_t*)(m_data + m_mips[mipIt].dataOffset);
+                    uint8_t* dst = (uint8_t*)(desc.mips[mipIt].textureData);
+                    size_t numTexels = mip.width * mip.height;
+                    memcpy(dst, src, numTexels * sizePerPixel);
+                }
+            }
+        }
+        return ommResult_SUCCESS;
     }
 
     template<>
-    uint64_t TextureImpl::From2Dto1D<TilingMode::MortonZ>(const int2& idx, const int2& size) 
+    uint32_t TextureImpl::From2Dto1D<TilingMode::Linear>(const int2& idx, const int2& size)
+    {
+        return idx.x + idx.y * uint32_t(size.x);
+    }
+
+    template<>
+    uint32_t TextureImpl::From2Dto1D<TilingMode::MortonZ>(const int2& idx, const int2& size)
     {
         // Based on
         // "Optimizing Memory Access on GPUs using Morton Order Indexing"
@@ -289,4 +341,20 @@ namespace omm
         // https://www.forceflow.be/2013/10/07/morton-encodingdecoding-through-bit-interleaving-implementations/
         return xy_to_morton(idx.x, idx.y);
     }
+
+    template<> uint2 TextureImpl::From1Dto2D<TilingMode::Linear>(const uint32_t idx, const int2& size)
+    {
+        uint2 pos;
+        pos.x = idx % size.x;
+        pos.y = idx / size.x;
+        return pos;
+    }
+
+    template<> uint2 TextureImpl::From1Dto2D<TilingMode::MortonZ>(const uint32_t idx, const int2& size)
+    {
+        uint2 res;
+        morton_to_xy(idx, res.x, res.y);
+        return res;
+    }
+
 }

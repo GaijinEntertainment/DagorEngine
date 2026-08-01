@@ -451,11 +451,10 @@ public:
 namespace net
 {
 
-Connection *create_replay_connection(ConnectionId id, char *write_fname, uint16_t version, get_replay_footer_data_cb_t get_footer_cb,
-  scope_query_cb_t &&scope_query, dump_replay_key_frame_cb_t dump_replay_key_frame_cb)
+Connection *create_replay_connection(ecs::EntityManager &mgr, ConnectionId id, char *write_fname, uint16_t version,
+  get_replay_footer_data_cb_t get_footer_cb, scope_query_cb_t &&scope_query, dump_replay_key_frame_cb_t dump_replay_key_frame_cb)
 {
-  auto conn =
-    eastl::make_unique<ReplayWriterConnection>(*g_entity_mgr, id, get_footer_cb, eastl::move(scope_query), dump_replay_key_frame_cb);
+  auto conn = eastl::make_unique<ReplayWriterConnection>(mgr, id, get_footer_cb, eastl::move(scope_query), dump_replay_key_frame_cb);
   return conn->openForWriteTemp(write_fname, version) ? conn.release() : NULL;
 }
 

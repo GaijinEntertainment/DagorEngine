@@ -1,0 +1,95 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+// Packs one weight atlas page straight from a cell's legacy weight textures
+// (see landMesh/lmeshWeightAtlas.h). Used where DXT1 does not exist, so the
+// atlas is an uncompressed render target and the source - ASTC on mobile -
+// never has to be decoded on the CPU. The page border is the clamped cell
+// edge here, not the neighbors' weights: those live in other textures, and
+// this is the path that keeps the legacy look anyway. A cell with up to four
+// landclasses has no second texture; unbound reads as 0, and those channels
+// are overwritten by the derivation below anyway.
+int land_weight_src_const_no = 10 always_referenced;  // clear of the global_frame block (t0..t4)
+int land_weight_src2_const_no = 11 always_referenced;
+
+// the page border is the clamped cell edge, so the source is read clamped
+sampler land_weight_src_sampler
+{
+  mipmap_mode = point;
+  filter = linear;
+  address_u = clamp;
+  address_v = clamp;
+};
+float4 land_weight_pack_tc = (1, 0, 0, 0);
+float4 land_weight_pack_ch = (0, 1, 2, 0);
+int land_weight_pack_num_tex = 1 always_referenced;
+
+shader land_weight_pack
+{
+  supports global_frame;
+  supports none;
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  (ps) {
+    weight_src@tex2d : register(land_weight_src_const_no);
+    weight_src_samplerstate@sampler = land_weight_src_sampler;
+    weight_src2@tex2d : register(land_weight_src2_const_no);
+    weight_src2_samplerstate@sampler = land_weight_src_sampler;
+    pack_tc@f4 = land_weight_pack_tc;
+    pack_ch@f4 = land_weight_pack_ch;
+    pack_num_tex@i1 = land_weight_pack_num_tex;
+  }
+
+  hlsl(ps) {
+    float4 land_weight_pack_ps(VsOutput input) : SV_Target0
+    {
+      // page uv -> cell uv; the sampler clamp extends the edge into the border
+      float2 tc = input.tc * pack_tc.xy + pack_tc.zw;
+      float4 a = tex2Dlod(weight_src, float4(tc, 0, 0));
+      float2 b = tex2Dlod(weight_src2, float4(tc, 0, 0)).rg;
+      float w0 = a.r, w1 = a.g, w2 = a.b, w3 = a.a, w4 = b.r, w5 = b.g, w6 = 0;
+
+      // the derivation the legacy per-cell textures were decoded with
+      uint n = (uint)pack_num_tex;
+      if (n <= 1)
+      {
+        w0 = 1;
+        w1 = w2 = w3 = w4 = w5 = 0;
+      }
+      else if (n == 2)
+      {
+        w0 = saturate(1 - w1);
+        w2 = w3 = w4 = w5 = 0;
+      }
+      else if (n == 3)
+      {
+        w2 = saturate(1 - (w0 + w1));
+        w3 = w4 = w5 = 0;
+      }
+      else if (n == 4)
+      {
+        w2 = saturate(1 - (w0 + w1 + w3));
+        w4 = w5 = 0;
+      }
+      else if (n == 5)
+      {
+        w4 = saturate(1 - (w0 + w1 + w2 + w3));
+        w5 = 0;
+      }
+      else if (n == 6)
+        w4 = saturate(1 - (w0 + w1 + w2 + w3 + w5));
+      else
+        w6 = saturate(1 - (w0 + w1 + w2 + w3 + w4 + w5));
+
+      // the page holds three of the seven, picked without indexing into an array
+      #define PICK(i) (w0 * (i == 0) + w1 * (i == 1) + w2 * (i == 2) + w3 * (i == 3) + w4 * (i == 4) + w5 * (i == 5) + w6 * (i == 6))
+      return float4(PICK(pack_ch.x), PICK(pack_ch.y), PICK(pack_ch.z), 1);
+      #undef PICK
+    }
+  }
+  compile("target_ps", "land_weight_pack_ps");
+}

@@ -34,4 +34,4 @@ dafg::NameSpace::NameSpace() { G_ASSERT(false); }
 dafg::NameSpace dafg::root() { G_ASSERT_RETURN(false, {}); }
 
 void try_register_builtins(const das::ModuleLibrary &) {}
-void dafg::detail::register_das_interop_type(const char *, dafg::ResourceSubtypeTag, RTTI &&rtti) {}
+void dafg::detail::register_das_interop_type(const char *, RTTI::TaggerRef, RTTI::MakerRef, RTTI::RecursiveMakerRef) {}

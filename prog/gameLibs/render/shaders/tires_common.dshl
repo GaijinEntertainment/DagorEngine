@@ -1,0 +1,14 @@
+macro TIRES_COMMON()
+  hlsl(vs) {
+    static const int TIRE_TRACK_NODE_SIZE = 2; // See `TireTrackNode` struct
+
+    float2 decode_side_vector(uint side_vector)
+    {
+      return float2(f16tof32(side_vector >> 16), f16tof32(side_vector));
+    }
+    float2 decode_side_vector(float side_vector)
+    {
+      return decode_side_vector(asuint(side_vector));
+    }
+  }
+endmacro

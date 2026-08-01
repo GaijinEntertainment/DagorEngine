@@ -20,6 +20,9 @@
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_threadPool.h>
 #include <vecmath/dag_vecMathDecl.h>
+// SoA4 BLAS root handle for the RenderBlasSOA4 mode-2 path: only the dependency-free RootRef type,
+// so consumers of this header do not parse the SoA4 storage format.
+#include <daBVH/dag_swBLASRootRef.h>
 
 class Occlusion;
 
@@ -33,14 +36,16 @@ public:
     vec3f bmax;
     // Two modes, picked at job time:
     //   1) Legacy verts/faces: caller supplies a vertex array + uint16 index buffer for the slice
-    //      (callers that already have a raw triangle soup).
-    //   2) BLAS: caller supplies a pointer to vert21-packed BLAS data and a tree slice (treeStart,
-    //      treeEnd). The job calls RenderBLAS, which walks the subtree, frustum-culls per BVH node,
-    //      and emits triangle indices into a job-local cache RenderVert21TriList consumes. Used by
-    //      the CollisionResource BLAS feeder. blasData must outlive rasterizeMeshes -- safe because
-    //      CollisionResource grids are persistent.
-    //   verts != nullptr selects mode 1; verts == nullptr && blasData != nullptr selects mode 2.
-    // tri_count is the exact triangle count for the slice in both modes; in mode 2 it is RenderBLAS's
+    //      (raw triangle soup; the landmesh occluder). Rendered via RenderTriangles.
+    //   2) BLAS: caller supplies a pointer to vert21-packed BLAS data (vertOffset locates the vert21
+    //      stream within blasData) plus the tree to walk -- soa4Root or (treeStart, treeEnd), see
+    //      soa4Root below. The walker frustum-culls per BVH node and emits triangle indices into a
+    //      job-local cache RenderVert21TriList consumes. Used by the CollisionResource feeder for the
+    //      whole combined-per-behavior grid BLAS and for an individual node's per-node chunk BLAS.
+    //      blasData must outlive rasterizeMeshes -- safe because CollisionResource grids and chunks are
+    //      resource-persistent.
+    //   verts != nullptr selects mode 1; else (blasData != nullptr) mode 2.
+    // tri_count is the exact triangle count for the slice in mode 1; in mode 2 it is the BLAS walker's
     // triLimit cap. triSkip is the BLAS-order triangle offset for mode 2, non-zero only for the 2nd+
     // slice of a BLAS partitioned by triangles_partition. doJob also uses tri_count to decide between
     // the per-job static index cache and a framemem-backed buffer.
@@ -52,7 +57,29 @@ public:
     uint32_t treeStart = 0;
     uint32_t treeEnd = 0;
     uint32_t triSkip = 0;
+    // Mode 2 walker select: a valid root walks the SoA4 tree (RenderBlasSOA4) over blasData/
+    // vertOffset and treeStart/treeEnd go unused; invalid (default) walks the stackless slice
+    // (treeStart, treeEnd) via RenderBlasStackless. The collision occluder feeder sets it for every
+    // grid/chunk task (CollisionResource CPU trees are SoA4); stackless remains for non-collision feeds.
+    soa4::RootRef soa4Root;
   };
+
+  // Mode-2 BLAS walker dispatch, shared by doJob and callable by tests (testMocBLAS gates that each
+  // task shape reaches its own walker): a valid SoA4 root selects the SoA4 walk, otherwise the
+  // stackless treeStart/treeEnd walk. CACHE_INSUFFICIENT matches the job usage: walk-and-emit per call.
+  static void renderBlasTask(MaskedOcclusionCulling *occlusion, const RasterizationTaskData &task, uint32_t *index_cache,
+    uint32_t index_cache_capacity, uint32_t &tri_count, MaskedOcclusionCulling::BackfaceWinding bf_winding,
+    MaskedOcclusionCulling::ClipPlanes clip_planes)
+  {
+    if (task.soa4Root.valid())
+      occlusion->RenderBlasSOA4(task.blasData, (int)task.vertOffset, task.soa4Root, (float *)&task.viewproj, index_cache,
+        index_cache_capacity, tri_count, MaskedOcclusionCulling::CACHE_INSUFFICIENT, bf_winding, clip_planes, task.triSkip,
+        task.tri_count);
+    else
+      occlusion->RenderBlasStackless(task.blasData, (int)task.vertOffset, (int)task.treeStart, (int)task.treeEnd,
+        (float *)&task.viewproj, index_cache, index_cache_capacity, tri_count, MaskedOcclusionCulling::CACHE_INSUFFICIENT, bf_winding,
+        clip_planes, task.triSkip, task.tri_count);
+  }
 
 private:
   static constexpr int MAX_JOBS_COUNT = 6;
@@ -106,18 +133,19 @@ private:
             (ret == Frustum::INTERSECT) ? MaskedOcclusionCulling::CLIP_PLANE_ALL : MaskedOcclusionCulling::CLIP_PLANE_NONE;
           if (task.verts)
           {
-            // Legacy verts/faces path (raw triangle soup).
+            // Legacy verts/faces path (raw triangle soup; landmesh occluder).
             occlusion->RenderTriangles(task.verts, task.faces, task.tri_count, (float *)&task.viewproj, context->backfaceWinding,
               clipPlanes);
             trianglesCount += task.tri_count;
           }
           else if (task.blasData)
           {
-            // BLAS-walk path (combined-per-behavior CollisionResource BLAS). RenderBLAS frustum-culls
-            // and emits triangles directly to RenderVert21TriList -- no caller-side vert/face arrays,
-            // and blasData is persistent so it satisfies the async task lifetime a decoded scratch
-            // could not. CACHE_INSUFFICIENT = walk-and-emit on this call; triSkip/tri_count select
-            // this slice of the partitioned BLAS triangle range.
+            // BLAS-walk path: the whole combined-per-behavior CollisionResource grid BLAS, or an
+            // individual node's per-node chunk BLAS. Either walker frustum-culls and emits triangles
+            // directly to RenderVert21TriList -- no caller-side vert/face arrays, and blasData is
+            // persistent so it satisfies the async task lifetime a decoded scratch could not.
+            // CACHE_INSUFFICIENT = walk-and-emit on this call; triSkip/tri_count select this slice of
+            // the partitioned BLAS triangle range.
             uint32_t triCount = 0;
             uint32_t *indexCache = blasTriCache;
             uint32_t indexCacheCap = (uint32_t)BLAS_TRI_CACHE_MAX;
@@ -128,9 +156,8 @@ private:
               indexCache = spillCache.data();
               indexCacheCap = task.tri_count;
             }
-            occlusion->RenderBLAS(task.blasData, (int)task.vertOffset, (int)task.treeStart, (int)task.treeEnd, (float *)&task.viewproj,
-              indexCache, indexCacheCap, triCount, MaskedOcclusionCulling::CACHE_INSUFFICIENT, context->backfaceWinding, clipPlanes,
-              task.triSkip, task.tri_count);
+            // SoA4-vs-stackless dispatch lives in renderBlasTask (shared with the testMocBLAS gate).
+            renderBlasTask(occlusion, task, indexCache, indexCacheCap, triCount, context->backfaceWinding, clipPlanes);
             trianglesCount += triCount;
           }
         }

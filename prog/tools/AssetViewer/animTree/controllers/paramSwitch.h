@@ -2,6 +2,7 @@
 #pragma once
 
 #include <dag/dag_vector.h>
+#include <generic/dag_span.h>
 #include <util/dag_string.h>
 
 namespace PropPanel
@@ -13,6 +14,8 @@ struct AnimParamData;
 struct AnimCtrlData;
 struct BlendNodeData;
 class DataBlock;
+class IListReorderHandler;
+class AnimTreePlugin;
 
 inline const Tab<String> param_switch_type({String("Generated from enum"), String("Enum list")});
 enum ParamSwitchType
@@ -33,3 +36,5 @@ void param_switch_update_child_name(DataBlock &settings, const char *name, const
 void param_switch_update_enum_gen_child_name(DataBlock &enum_props, const char *controller_name, const char *name,
   const String &old_name, dag::Vector<int> &dependent_items);
 void validate_param_switch_morph_times_names(const Tab<String> &nodeNames, const DataBlock &morph_times_blk, const char *ctrl_name);
+IListReorderHandler *param_switch_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data);

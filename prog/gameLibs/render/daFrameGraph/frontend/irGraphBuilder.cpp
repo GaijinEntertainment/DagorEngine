@@ -29,7 +29,7 @@ extern ConVarT<bool, false> verbose;
 void IrGraphBuilder::fixupFlagsAndActivation(ResNameId id, ResourceType type, intermediate::ClearStage &clear_stage,
   ResourceDescription &desc) const
 {
-  auto [firstUsage, updatedFlags, resourceUsageInfo] = findFirstUsageAndUpdatedCreationFlags(id, desc.asBasicRes.cFlags);
+  auto [firstUsage, updatedFlags, resourceUsageInfo] = findFirstUsageAndUpdatedCreationFlags(id, desc.asBasicRes.cFlags, desc.type);
 
   const bool clearedOnActivation = clear_stage != intermediate::ClearStage::None && !resourceUsageInfo.clearedInRenderPass;
 
@@ -39,8 +39,12 @@ void IrGraphBuilder::fixupFlagsAndActivation(ResNameId id, ResourceType type, in
                                                                                                  : DesiredActivationBehaviour::Discard;
   if (clearedOnActivation)
     clear_stage = intermediate::ClearStage::Activation;
-  const auto channels = get_tex_format_desc(desc.asBasicRes.cFlags & TEXFMT_MASK).mainChannelsType;
-  const bool is_int = channels == ChannelDType::UINT || channels == ChannelDType::SINT;
+  bool is_int = false;
+  if (type == ResourceType::Texture)
+  {
+    const auto channels = get_tex_format_desc(desc.asBasicRes.cFlags & TEXFMT_MASK).mainChannelsType;
+    is_int = channels == ChannelDType::UINT || channels == ChannelDType::SINT;
+  }
   auto activation = get_activation_from_usage(desiredBehavior, firstUsage, type, is_int);
 
   desc.asBasicRes.cFlags = updatedFlags;
@@ -87,23 +91,6 @@ void IrGraphBuilder::fixupFlagsAndActivation(ResNameId id, ResourceType type, in
     }
     else if (type == ResourceType::Buffer)
       desc.asBasicRes.activation = ResourceActivationAction::DISCARD_AS_UAV;
-  }
-
-  if (type == ResourceType::Texture)
-  {
-    bool valid = true;
-    switch (desc.type)
-    {
-      case D3DResourceType::TEX:
-      case D3DResourceType::ARRTEX: valid = d3d::check_texformat(desc.asBasicRes.cFlags); break;
-      case D3DResourceType::CUBETEX:
-      case D3DResourceType::CUBEARRTEX: valid = d3d::check_cubetexformat(desc.asBasicRes.cFlags); break;
-      case D3DResourceType::VOLTEX: valid = d3d::check_voltexformat(desc.asBasicRes.cFlags); break;
-      default: break;
-    }
-    if (!valid)
-      logerr("daFG: Resource %s has an invalid texture format specified by its creation flags (0x%X).",
-        registry.knownNames.getName(id), desc.asBasicRes.cFlags);
   }
 }
 
@@ -392,8 +379,8 @@ void IrGraphBuilder::scanPhysicalResourceUsages(ResNameId res_id, const F &proce
   }
 }
 
-auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id,
-  uint32_t initial_flags) const -> FirstUsageUpdatedFlagsAndUsageInfo
+auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uint32_t initial_flags,
+  D3DResourceType d3d_type) const -> FirstUsageUpdatedFlagsAndUsageInfo
 {
   enum class ModifierType
   {
@@ -430,31 +417,57 @@ auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id,
     firstModifiedResId = res_id;
   }
 
+  auto updateCreationFlagsFromUsageSafe = [d3dType = d3d_type, prevFlags = uint32_t(0)](uint32_t &flags, ResourceUsage usage, // -V788
+                                            ResourceType res_type) mutable {
+    update_creation_flags_from_usage(flags, usage, res_type);
+    bool valid = true;
+    if (prevFlags != flags)
+    {
+      if (res_type == ResourceType::Texture)
+      {
+        switch (d3dType)
+        {
+          case D3DResourceType::TEX:
+          case D3DResourceType::ARRTEX: valid = d3d::check_texformat(flags); break;
+          case D3DResourceType::CUBETEX:
+          case D3DResourceType::CUBEARRTEX: valid = d3d::check_cubetexformat(flags); break;
+          case D3DResourceType::VOLTEX: valid = d3d::check_voltexformat(flags); break;
+          default: break;
+        }
+      }
+      prevFlags = flags;
+    }
+    return valid;
+  };
+
   bool hasReaders = false;
-  const auto processReaders = [this, resourceType, &firstUsage, &initial_flags, &hasReaders](NodeNameId node_id,
-                                ResNameId unresolved_res_id) {
+  const auto processReaders = [this, resourceType, &firstUsage, &initial_flags, &hasReaders, &updateCreationFlagsFromUsageSafe](
+                                NodeNameId node_id, ResNameId unresolved_res_id) {
     hasReaders = true;
     const auto &node = registry.nodes[node_id];
 
     const auto res = node.resourceRequests.find(unresolved_res_id);
     G_ASSERTF(res != node.resourceRequests.cend(), "daFG: Node %s does not contain resource %d", registry.knownNames.getName(node_id),
       registry.knownNames.getName(nameResolver.resolve(unresolved_res_id)));
-    update_creation_flags_from_usage(initial_flags, res->second.usage, resourceType);
+    if (!updateCreationFlagsFromUsageSafe(initial_flags, res->second.usage, resourceType))
+      logerr("daFG: Reader %s has incompatible creation flags for resource %s", registry.knownNames.getName(node_id),
+        registry.knownNames.getName(unresolved_res_id));
 
     if (firstUsage.type == Usage::UNKNOWN)
       logerr("daFG: Resource %s is read by %s before first modify usage",
         registry.knownNames.getName(nameResolver.resolve(unresolved_res_id)), registry.knownNames.getName(node_id));
   };
 
-  const auto processHistoryReaders = [this, resourceType, &firstUsage, &initial_flags](NodeNameId node_id,
-                                       ResNameId unresolved_res_id) {
+  const auto processHistoryReaders = [this, resourceType, &firstUsage, &initial_flags, &updateCreationFlagsFromUsageSafe](
+                                       NodeNameId node_id, ResNameId unresolved_res_id) {
     const auto &node = registry.nodes[node_id];
 
     const auto res = node.historyResourceReadRequests.find(unresolved_res_id);
     G_ASSERTF(res != node.historyResourceReadRequests.cend(), "daFG: Node %s does not contain resource %d",
       registry.knownNames.getName(node_id), registry.knownNames.getName(nameResolver.resolve(unresolved_res_id)));
-    update_creation_flags_from_usage(initial_flags, res->second.usage, resourceType);
-
+    if (!updateCreationFlagsFromUsageSafe(initial_flags, res->second.usage, resourceType))
+      logerr("daFG: History reader %s has incompatible creation flags for resource %s", registry.knownNames.getName(node_id),
+        registry.knownNames.getName(unresolved_res_id));
     if (firstUsage.type == Usage::UNKNOWN)
       logerr("daFG: Resource %s is read by %s before first modify usage",
         registry.knownNames.getName(nameResolver.resolve(unresolved_res_id)), registry.knownNames.getName(node_id));
@@ -464,10 +477,12 @@ auto IrGraphBuilder::findFirstUsageAndUpdatedCreationFlags(ResNameId res_id,
   bool hasModifiers = producerUsesInRenderPass;
   const auto processModifiers = [this, resourceType, &firstUsage, &initial_flags, &modifierType, &modifiersConflictReported,
                                   &firstModifiedResId, &isModifiedByRp, producerUsesInRenderPass, &hasModifiers,
-                                  producerNodeId](NodeNameId node_id, ResNameId unresolved_res_id) {
+                                  &updateCreationFlagsFromUsageSafe, producerNodeId](NodeNameId node_id, ResNameId unresolved_res_id) {
     const auto &node = registry.nodes[node_id];
     const auto usage = node.resourceRequests.find(unresolved_res_id)->second.usage;
-    update_creation_flags_from_usage(initial_flags, usage, resourceType);
+    if (!updateCreationFlagsFromUsageSafe(initial_flags, usage, resourceType))
+      logerr("daFG: Modifier %s has incompatible creation flags for resource %s", registry.knownNames.getName(node_id),
+        registry.knownNames.getName(unresolved_res_id));
 
     // the code below is useless in this case
     if (node_id == producerNodeId)
@@ -1133,6 +1148,43 @@ void IrGraphBuilder::addEdgesToIrGraph(intermediate::Graph &graph, const interme
            " See above for details and full graph dump.");
   }
 
+  // Refined block ordering: a node that forBlock's a resource into block B must
+  // run before any node that useBlock's B, so the block var is populated (and
+  // flushed) before the consumer binds it. Build block id -> forBlock producers.
+  {
+    dag::VectorMap<RefinedBlockNameId, dag::RelocatableFixedVector<NodeNameId, 4>> forBlockProducers;
+    for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+    {
+      if (!nodeValid[nodeId])
+        continue;
+      for (const auto &[blockId, bindings] : nodeData.refinedBlockBindings)
+        forBlockProducers[blockId].push_back(nodeId);
+    }
+
+    for (auto [nodeId, nodeData] : registry.nodes.enumerate())
+    {
+      if (!nodeValid[nodeId])
+        continue;
+      if (!nodeData.usedRefinedBlock.has_value())
+        continue;
+      const auto it = forBlockProducers.find(*nodeData.usedRefinedBlock);
+      if (it == forBlockProducers.end())
+        continue;
+      for (NodeNameId producer : it->second)
+      {
+        if (producer == nodeId)
+          continue;
+        for (auto midx : IdRange<intermediate::MultiplexingIndex>(mapping.multiplexingExtent()))
+        {
+          const auto producerIdx = mapping.mapNode(producer, midx);
+          const auto consumerIdx = mapping.mapNode(nodeId, midx);
+          if (producerIdx != intermediate::NODE_NOT_MAPPED && consumerIdx != intermediate::NODE_NOT_MAPPED)
+            graph.nodes[consumerIdx].predecessors.insert(producerIdx);
+        }
+      }
+    }
+  }
+
   // Build bipartite graphs induced by resource lifetimes:
   // introductor before all modifiers, every modifier before every reader,
   // every reader before the consumer
@@ -1360,9 +1412,11 @@ eastl::pair<IrGraphBuilder::DisplacementFmem, IrGraphBuilder::EdgesToBreakFmem> 
         // add nodes responsible for their production to the wave.
         if (currNode.frontendNode)
           for (const auto &[resId, req] : registry.nodes[*currNode.frontendNode].historyResourceReadRequests)
-            if (validityInfo.resourceValid[resId])
+          {
+            const auto resolvedResId = nameResolver.resolve(resId);
+            if (validityInfo.resourceValid[resolvedResId])
             {
-              const auto &lifetime = depData.resourceLifetimes[resId];
+              const auto &lifetime = depData.resourceLifetimes[resolvedResId];
 
               for (const auto modifierId : lifetime.modificationChain)
               {
@@ -1376,6 +1430,7 @@ eastl::pair<IrGraphBuilder::DisplacementFmem, IrGraphBuilder::EdgesToBreakFmem> 
               if (colors[introducedByIndex] == Color::WHITE)
                 wave.push_back(introducedByIndex);
             }
+          }
 
         continue;
       }

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <oldEditor/de_cm.h>
+#include <de3_hmapDebugShadingService.h>
 #include "GPUGrassTypePID.h"
 #include "GPUGrassDecalPID.h"
 
@@ -109,6 +110,7 @@ enum
   CM_MOVE_TO_LAYER,
   CM_MOVE_TO_LAYER_FIRST,
   CM_MOVE_TO_LAYER_LAST = CM_MOVE_TO_LAYER_FIRST + 100,
+  CM_BUILD_NAVMESH,
 };
 
 namespace EditorCommandIds
@@ -161,6 +163,7 @@ static constexpr const char *MOVE_OBJECTS = "Plugin.Landscape.MoveObjects";
 static constexpr const char *BUILD_COLORMAP = "Plugin.Landscape.BuildColormap";
 static constexpr const char *BUILD_LIGHTMAP = "Plugin.Landscape.RebuildLighting";
 static constexpr const char *REBUILD_RIVERS = "Plugin.Landscape.RebuildRivers";
+static constexpr const char *BUILD_NAVMESH = "Plugin.Landscape.BuildNavMesh";
 static constexpr const char *EXPORT_AS_COMPOSIT = "Plugin.Landscape.ExportAsComposit";
 static constexpr const char *SPLIT_COMPOSIT = "Plugin.Landscape.SplitComposit";
 static constexpr const char *INSTANTIATE_GENOBJ_INTO_ENTITIES = "Plugin.Landscape.InstantiateGenObjectsIntoEntities";
@@ -590,6 +593,14 @@ enum
   PID_DEBUG_CELLS,
   PID_MONOLAND,
   PID_MONOLAND_COL,
+
+  PID_RENDERER_LANDSCAPE_DEBUG_SHADING_GROUP,
+  PID_RENDERER_LANDSCAPE_DEBUG_SHADING_MONOCHROME_GROUP,
+  PID_RENDERER_LANDSCAPE_DEBUG_SHADING_START,
+  PID_RENDERER_LANDSCAPE_DEBUG_SHADING_END =
+    PID_RENDERER_LANDSCAPE_DEBUG_SHADING_START + IHmapDebugShadingService::REQUIRED_PROPERTY_IDS,
+  PID_RENDERER_LANDSCAPE_DEBUG_SHADING_HEIGHT_LEVEL_CURVES_GROUP,
+
   PID_GROUND_OBJECTS_COL,
   PID_HTLEVELS,
   PID_HTLEVELS_STEP,

@@ -37,7 +37,7 @@ public:
 
 eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str);
 
-#define PRESHADER_VARIABLE_TYPE_LIST_FLOAT() TYPE(f1) TYPE(f2) TYPE(f3) TYPE(f4) TYPE(f44)
+#define PRESHADER_VARIABLE_TYPE_LIST_FLOAT() TYPE(f1) TYPE(f2) TYPE(f3) TYPE(f4) TYPE(f44) TYPE(f43)
 #define PRESHADER_VARIABLE_TYPE_LIST_INT()   TYPE(i1) TYPE(i2) TYPE(i3) TYPE(i4)
 #define PRESHADER_VARIABLE_TYPE_LIST_UINT()  TYPE(u1) TYPE(u2) TYPE(u3) TYPE(u4)
 #define PRESHADER_VARIABLE_TYPE_LIST_BUF()   TYPE(buf) TYPE(cbuf)
@@ -73,7 +73,8 @@ eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str);
 // @NOTE: disallowing partial vectors due to packing, smpXXX and shdXXX because they are are 2 bindings each, and static textures
 #define ARRAY_ELIGIBLE_PRESHADER_VARIABLE_TYPE_LIST \
   TYPE(f4)                                          \
-  TYPE(f44) TYPE(i4) TYPE(u4) PRESHADER_VARIABLE_TYPE_LIST_BUF() PRESHADER_VARIABLE_TYPE_LIST_TEX() TYPE(sampler) TYPE(uav) TYPE(tlas)
+  TYPE(f44)                                         \
+  TYPE(f43) TYPE(i4) TYPE(u4) PRESHADER_VARIABLE_TYPE_LIST_BUF() PRESHADER_VARIABLE_TYPE_LIST_TEX() TYPE(sampler) TYPE(uav) TYPE(tlas)
 
 enum class VariableType
 {
@@ -302,6 +303,7 @@ inline constexpr int vt_float_size(VariableType vt)
     case VariableType::f4:
     case VariableType::i4:
     case VariableType::u4: return 4;
+    case VariableType::f43: return 12;
     case VariableType::f44: return 16;
 
     default: G_ASSERT_RETURN(0, 0);

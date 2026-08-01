@@ -89,9 +89,15 @@ float4 dafx_frnd_vec4( rnd_seed_ref seed )
 DAFX_INLINE
 rnd_seed_t dafx_calc_instance_rnd_seed( uint gid, uint dispatch_seed )
 {
-  rnd_seed_t base = gid;
-  dafx_fastrnd( base );
-  return dispatch_seed + base;
+  // avalanche hash (lowbias32): an affine seed (A*gid+c) makes every LCG draw
+  // affine in gid too, collapsing spawn positions to a ~3-step lattice per axis
+  rnd_seed_t h = gid * 0x9E3779B9u + dispatch_seed;
+  h ^= h >> 16;
+  h *= 0x7feb352d;
+  h ^= h >> 15;
+  h *= 0x846ca68b;
+  h ^= h >> 16;
+  return h;
 }
 
 #endif

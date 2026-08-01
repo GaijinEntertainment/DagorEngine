@@ -482,6 +482,15 @@ namespace das {
     static DAS_THREAD_LOCAL(int64_t) totOpt;
     static DAS_THREAD_LOCAL(int64_t) totM;
 
+    // deserialization may have left the active gc root pointing at (or the old program
+    // owning) a module root that dies with the old program - repoint around the swap so
+    // fallback parsing doesn't allocate through a stale root
+    static void replaceProgramKeepGcRootValid ( ProgramPtr & program ) {
+        gc_root::gc_get_active_root() = &gc_root::gc_get_thread_root();
+        program = make_smart<Program>();
+        gc_root::gc_get_active_root() = program->thisModule->module_gc_root.get();
+    }
+
     bool trySerializeProgramModule (
             ProgramPtr          & program,
             const FileAccessPtr & access,
@@ -496,28 +505,44 @@ namespace das {
         }
 
         int64_t file_mtime = access->getFileMtime(fileName.c_str());
-        int64_t saved_mtime = 0; *serializer_read << saved_mtime;
-        string saved_filename{}; *serializer_read << saved_filename;
-
-        if ( saved_filename != fileName || file_mtime != saved_mtime ) {
+        // The serializer module owns the exception boundary. This parser module is
+        // also built in configurations where exception handling is disabled.
+        int64_t saved_mtime = 0;
+        string saved_filename{};
+        bool header_mismatch = false;
+        if ( !serializer_read->trySerialize([&](AstSerializer & serializer) {
+            serializer << saved_mtime;
+            serializer << saved_filename;
+            header_mismatch = saved_filename != fileName || file_mtime != saved_mtime;
+            if ( header_mismatch ) {
+                return;
+            }
+            LOG(LogLevel::debug) << "das: serialize: read program '" << fileName << "' epoch " << (unsigned long long)(serializer.epoch + 1) << "\n";
+            serializer.thisModuleGroup = &libGroup;
+            serializer.serializeProgram(program, libGroup);
+        }) ) {
             serializer_read->seenNewModule = true;
+            replaceProgramKeepGcRootValid(program);
+            logs << "ser: read failed '" << fileName << "'\n";
+            return false;
+        }
+
+        if ( header_mismatch ) {
+            serializer_read->seenNewModule = true;
+            serializer_read->failed = true;
             if (saved_filename != fileName) {
                 logs << "ser: file name mismatch. Expected '" << saved_filename << "', got '" << fileName << "'\n";
             }
             if (file_mtime != saved_mtime) {
                 logs << "ser: file mtime mismatch. Expected " << saved_mtime << ", got " << file_mtime << "\n";
             }
-            serializer_read->failed = true;
             return false;
         }
-
-        serializer_read->thisModuleGroup = &libGroup;
-        serializer_read->serializeProgram(program, libGroup);
 
         if ( program->failed()) {
             serializer_read->seenNewModule = true;
             serializer_read->failed = true;
-            program = make_smart<Program>();
+            replaceProgramKeepGcRootValid(program);
             logs << "ser: program failed '" << fileName << "'\n";
             return false;
         }
@@ -526,7 +551,7 @@ namespace das {
 
         if ( serializer_read->failed ) {
             serializer_read->seenNewModule = true;
-            program = make_smart<Program>();
+            replaceProgramKeepGcRootValid(program);
             logs << "ser: serialization failed. Internal issue.\n";
             return false;
         }
@@ -770,6 +795,13 @@ namespace das {
             program->library.addModule(pm);
             return true;
         },"*");
+        if ( !isDep ) {
+            for ( const auto & modName : access->getAutoRequiredModules() ) {
+                if ( auto m = program->library.findModule(modName) ) {
+                    program->thisModule->addDependency(m, false);
+                }
+            }
+        }
         DasParserState parserState;
         parserState.g_Access = access;
         parserState.g_Program = program;
@@ -1097,6 +1129,7 @@ namespace das {
         auto & serializer_write = daScriptEnvironment::getBound()->serializer_write;
         for ( auto & parsedModule : serializer_write->parsedModules ) {
             auto & [fileName, fileMtime, program, thisModule] = parsedModule; // parsedModule is tuple<string, int64_t, ProgramPtr, Module *>
+            LOG(LogLevel::debug) << "das: serialize: writeback program '" << fileName << "' epoch " << (unsigned long long)(serializer_write->epoch + 1) << "\n";
             *serializer_write << fileMtime;
             *serializer_write << const_cast<string &>(fileName);
             if ( program->thisModule && program->thisModule->name.empty() )  {
@@ -1241,12 +1274,23 @@ namespace das {
     }
 
     void disableSerializationOnDebugger ( vector<ModuleInfo> & req ) {
-        if ( daScriptEnvironment::getBound()->serializer_read == nullptr )
+        auto & serializer_read = daScriptEnvironment::getBound()->serializer_read;
+        auto & serializer_write = daScriptEnvironment::getBound()->serializer_write;
+        if ( serializer_read == nullptr && serializer_write == nullptr )
             return;
+        // the debugger installs into the environment: once daslib/debug is promoted
+        // (first debugger compile), later programs don't list it in req - every compile
+        // in this environment is under the debugger, so keep serialization off
+        if ( auto dbg = Module::requireEx("debug", true) ) {
+            if ( dbg->fileName.find("daslib/debug.das") != string::npos ) {
+                LOG(LogLevel::warning) << "das: serialize: disabled, the debugger is installed in this environment ('" << dbg->fileName << "')\n";
+                serializer_read = serializer_write = nullptr;
+                return;
+            }
+        }
         for ( auto & mod : req ) {
-            if ( mod.fileName.find("daslib/debug") != string::npos ) {
-                auto & serializer_read = daScriptEnvironment::getBound()->serializer_read;
-                auto & serializer_write = daScriptEnvironment::getBound()->serializer_read;
+            if ( mod.fileName.find("daslib/debug.das") != string::npos ) {
+                LOG(LogLevel::warning) << "das: serialize: disabled, program requires the debugger ('" << mod.fileName << "')\n";
                 serializer_read = serializer_write = nullptr;
                 break;
             }

@@ -14,6 +14,10 @@ namespace das
     #define DAS_BIND_MANAGED_FIELD(FIELDNAME)   DAS_BIND_FIELD(ManagedType,FIELDNAME)
     #define DAS_BIND_MANAGED_PROP(FIELDNAME)    DAS_BIND_PROP(ManagedType,FIELDNAME)
 
+    // shared lock for lazy handle type-info build; recursive since makeTypeInfo re-enters
+    // for nested types. sti/ati are published atomically only after the build completes.
+    inline recursive_mutex g_handleTypeInfoMutex;
+
     struct DummyTypeAnnotation : TypeAnnotation {
         DummyTypeAnnotation(const string & name, const string & cppName, size_t sz, size_t al)
             : TypeAnnotation(name,cppName), dummySize(sz), dummyAlignment(al) {
@@ -127,12 +131,11 @@ namespace das
         das_map<string,StructureField> fields;
         vector<string>                 fieldsInOrder;
         mutable DebugInfoHelper    helpA;
-        mutable StructInfo *       sti = nullptr;
+        mutable atomic<StructInfo*> sti { nullptr };
         mutable StructInfo *       sti_gc = nullptr;
         ModuleLibrary *            mlib = nullptr;
         vector<TypeAnnotation*> parents;
         bool validationNeverFails = false;
-        mutable recursive_mutex walkMutex;
     };
 
     template <typename TT, bool canCopy = isCloneable<TT>::value>
@@ -499,9 +502,9 @@ namespace das
             return context.code->makeNode<SimNode_AnyIterator<VectorType,StdVectorIterator<VectorType>>>(at, rv);
         }
         virtual void walk ( DataWalker & walker, void * vec ) override {
-            {
-                lock_guard<recursive_mutex> guard(walkMutex);
-                if ( !ati ) {
+            if ( !ati.load() ) {
+                lock_guard<recursive_mutex> guard(g_handleTypeInfoMutex);
+                if ( !ati.load() ) {
                     // gc_local: scratch TypeDecls just to drive makeTypeInfo —
                     // read once, never stored on the result. RAII unlinks from
                     // the thread gc_root immediately and deletes at scope exit.
@@ -510,14 +513,16 @@ namespace das
                     gc_local<TypeDecl> elemGuard(elemType);
                     elemType->ref = 0;
                     gc_local<TypeDecl> dimType(makeFixedArrayTypeDecl(1, elemType));
-                    ati = helpA.makeTypeInfo(nullptr, dimType);
-                    ati->flags |= TypeInfo::flag_isHandled;
+                    TypeInfo * tinfo = helpA.makeTypeInfo(nullptr, dimType);
+                    tinfo->flags |= TypeInfo::flag_isHandled;
+                    this->ati.store(tinfo);
                 }
             }
             auto pVec = (VectorType *)vec;
-            auto atit = *ati;
+            auto tinfo = this->ati.load();
+            auto atit = *tinfo;
             atit.dim[atit.dimSize - 1] = uint32_t(pVec->size());
-            atit.size = int(ati->size * pVec->size());
+            atit.size = int(tinfo->size * pVec->size());
             walker.walk_dim((char *)pVec->data(), &atit);
         }
         virtual bool isYetAnotherVectorTemplate() const override { return true; }
@@ -535,8 +540,7 @@ namespace das
         }
         TypeDeclPtr                vecType = nullptr;
         DebugInfoHelper            helpA;
-        TypeInfo *                 ati = nullptr;
-        recursive_mutex            walkMutex;
+        atomic<TypeInfo*>          ati { nullptr };
     };
 
     template <typename TT>

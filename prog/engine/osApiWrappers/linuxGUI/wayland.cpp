@@ -14,6 +14,7 @@
 
 #include <debug/dag_fatal.h>
 #include <osApiWrappers/dag_wndProcCompMsg.h>
+#include <osApiWrappers/dag_unicode.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include <math/dag_lsbVisitor.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -22,6 +23,8 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <perfMon/dag_statDrv.h>
 #include "wayland.h"
+
+#define wl_array_for_each_fixed(pos, array) for (; (const char *)pos < ((const char *)(array)->data + (array)->size); (pos)++)
 
 namespace workcycle_internal
 {
@@ -147,12 +150,23 @@ static void handle_wl_output_scale(void *data, wl_output *, int32_t factor)
   info.scaleFactor = factor;
 }
 
-static void handle_xdg_toplevel_configure(void *data, xdg_toplevel *, int32_t width, int32_t height, wl_array *)
+static void handle_xdg_toplevel_configure(void *data, xdg_toplevel *, int32_t width, int32_t height, wl_array *states)
 {
   DUMP_HANDLE();
   Wayland::Window &info = *((Wayland::Window *)data);
   info.reportedWidth = width;
   info.reportedHeight = height;
+
+  info.reportedMaximized = false;
+  if (states)
+  {
+    uint32_t *state = (uint32_t *)states->data;
+    wl_array_for_each_fixed(state, states)
+    {
+      if (*state == XDG_TOPLEVEL_STATE_MAXIMIZED)
+        info.reportedMaximized = true;
+    }
+  }
 }
 
 static void handle_xdg_toplevel_close(void *data, xdg_toplevel *)
@@ -833,8 +847,6 @@ void Wayland::Keyboard::cbKey(uint32_t key, uint32_t state, uint32_t /*time_ms*/
   sendKeyMsg(pressed, key);
 }
 
-#define wl_array_for_each_fixed(pos, array) for (; (const char *)pos < ((const char *)(array)->data + (array)->size); (pos)++)
-
 void Wayland::Keyboard::cbEnter(wl_surface *surface, wl_array *keys, uint32_t serial)
 {
   Wayland::Window *cbWnd = parent->parent->windows.find(surface);
@@ -973,10 +985,14 @@ bool Wayland::Seat::setClipboardUTF8Text(const char *text)
 
 bool Wayland::Seat::getClipboardUTF8Text(char *dest, int buf_size)
 {
+  if (!dest || buf_size < 1)
+    return false;
   inbound.process();
   if (inbound.text.empty() || !inbound.completed)
     return false;
-  memcpy(dest, inbound.text.data(), min(inbound.text.length(), buf_size));
+  int n = utf8_truncate_len(inbound.text.data(), min(inbound.text.length(), buf_size - 1));
+  memcpy(dest, inbound.text.data(), n);
+  dest[n] = 0;
   return true;
 }
 
@@ -1267,7 +1283,7 @@ void Wayland::destroyMainWindow()
   mainWindow = nullptr;
 }
 
-bool Wayland::initWindow(const char *title, int winWidth, int winHeight)
+bool Wayland::initWindow(const char *title, int winWidth, int winHeight, const linux_GUI::WindowCreationOptions &)
 {
   if (!mainWindow)
   {
@@ -1288,6 +1304,20 @@ void Wayland::getWindowPosition(void *, int &cx, int &cy)
   // assume everything has local window coordinates and position is always zero
   cx = 0;
   cy = 0;
+}
+
+void Wayland::getWindowFramePosition(void *, int &x, int &y)
+{
+  // Not possible on Wayland.
+  x = y = 0;
+}
+
+bool Wayland::isWindowMaximized(void *w)
+{
+  Window *wi = (Window *)w;
+  if (!wi)
+    wi = mainWindow;
+  return wi && wi->reportedMaximized;
 }
 
 void Wayland::setTitle(const char *title, const char *)

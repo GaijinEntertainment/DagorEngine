@@ -58,13 +58,9 @@ struct Scripts
     uint64_t nextGcMsec;
   };
   ska::flat_hash_map<eastl::string, ScriptMemory> scriptsMemory;
-  enum
-  {
-    MODULE_FS_ACCESS,
-    SANDBOX_FS_ACCESS
-  };
-  DagFileAccessContainer<MODULE_FS_ACCESS> moduleFileAccess;
-  DagFileAccessContainer<SANDBOX_FS_ACCESS> sandboxModuleFileAccess;
+
+  DagFileAccessContainer moduleFileAccess;
+  DagFileAccessContainer sandboxModuleFileAccess;
 
   // flags to turn on/off loading of some kind of files
   bool loadDebugCode = true;

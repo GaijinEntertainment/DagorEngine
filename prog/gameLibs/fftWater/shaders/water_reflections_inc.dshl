@@ -2,7 +2,6 @@ include "shader_global.dshl"
 include "viewVecVS.dshl"
 include "vr_reprojection.dshl"
 include "flexible_scale_rasterization.dshl"
-include "dynamic_resolution.dshl"
 
 float object_reflection_distortion = 0.05;
 float water_reflection_normal_scale = 0.1; // when increasing test on high storminess
@@ -37,7 +36,6 @@ endmacro
 
 macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
   INIT_REFLECTION_COMMON(stage)
-  INIT_DYNAMIC_RESOLUTION(stage)
 
   (stage) {
     object_reflection_distortion@f4 = (object_reflection_distortion, water_reflection_normal_scale, 1.0 / water_reflection_hdr_multiplier, water_level);
@@ -45,7 +43,7 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
     with_water_depth_tex@smp2d =  with_water_depth_tex;
     without_water_depth_tex@smp2d = without_water_depth_tex;
 
-    water_downsampled_normals@smp2d = water_downsampled_normals;
+    water_downsampled_normals@tex2d = water_downsampled_normals;
 
     prev_combined_reflection_tex@smp2d = prev_combined_reflection_tex;
     prev_refl_tex_load@tex2d = prev_combined_reflection_tex;
@@ -56,8 +54,10 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
     water_mask_exists@i1 = exists_tex(water_mask);
     prev_water_mask@tex2d = prev_water_mask;
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
 
   hlsl(stage) {
+    #define water_downsampled_normals_samplerstate global_linear_wrap_sampler
     void getReflectionReprojection(float2 distortedTc, float2 fullResTexSize, float3 cameraToPoint, float worldDist, float ssrDepth, float4 newTarget, int mipLevel, float2 mipTexSize, out float4 prevTarget, out float weight)
     {
       float4 reprojectedWorldPos = reprojected_world_view_pos;
@@ -78,7 +78,7 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
         float offscreen = saturate(20.0f*(1.0f - max(abs(prevScreen.x), abs(prevScreen.y))));
         float invalidateScale=3;
         float2 oldUvLinear = prevScreen.xy*float2(0.5,-0.5) + float2(0.5,0.5);
-        oldUv = linearToDistortedTc(oldUvLinear) * prev_dynamic_resolution_scale;
+        oldUv = linearToDistortedTc(oldUvLinear);
 
         if (water_mask_exists)
         {
@@ -94,7 +94,7 @@ macro INIT_REFLECTION_COMBINED_REPROJECTION(stage)
 
       float2 sampleTexSize = mipLevel > 0 ? mipTexSize : fullResTexSize;
       prevTarget = tex2Dlod(prev_combined_reflection_tex, float4(oldUv, 0, mipLevel));
-      int2 prevTexel = int2(floor(oldUv * sampleTexSize * prev_inv_dynamic_resolution_scale));
+      int2 prevTexel = int2(floor(oldUv * sampleTexSize));
       prevTarget.a = prev_refl_tex_load.Load(int3(prevTexel, mipLevel)).a; // no filtering for decoding alpha
       if (prevTarget.a == 0)
         weight = 0;

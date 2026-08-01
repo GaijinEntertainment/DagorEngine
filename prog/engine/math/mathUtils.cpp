@@ -124,22 +124,3 @@ bool clip_homogeneous(Point4 &p0, Point4 &p1)
 
   return true;
 }
-
-bool test_point_convex_intersection(const Point2 &p, const Point2 *pts, int32_t count)
-{
-  if (count < 3)
-    return false;
-  bool allNonPositive = true;
-  bool allNonNegative = true;
-  for (int i = 0; i < count; ++i)
-  {
-    const Point2 &a = pts[i];
-    const Point2 &b = pts[(i + 1) % count];
-    float cr = cross(b - a, p - a);
-    if (cr > 0)
-      allNonPositive = false;
-    if (cr < 0)
-      allNonNegative = false;
-  }
-  return allNonPositive || allNonNegative;
-}

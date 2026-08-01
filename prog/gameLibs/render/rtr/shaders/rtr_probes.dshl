@@ -470,7 +470,7 @@ shader rt_reflection_probe_debug
     VsOutput rt_reflection_probe_debug_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID)
     {
       uint2 probeIndex = uint2(instanceId % usable_probe_count.x, instanceId / usable_probe_count.x);
-      uint probeIndexLinear = (probeIndex.y * probe_count.x + probeIndex.x) * PROBE_LAYER_MUL + display_back_probes ? 1 : 0;
+      uint probeIndexLinear = (probeIndex.y * probe_count.x + probeIndex.x) * PROBE_LAYER_MUL + (display_back_probes ? 1 : 0);
       float4 probeData = asfloat(loadBuffer4(probe_locations, probeIndexLinear * PROBE_SIZE));
 
       VsOutput output = (VsOutput)0;

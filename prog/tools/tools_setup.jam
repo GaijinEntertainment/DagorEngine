@@ -2,8 +2,10 @@ if $(DabuildEmbeddedInGame) = yes { return ; }
 if $(OS) != LINUX && $(OS) != MACOSX { SSEVersion = 2 ; } else { MArch = -default- ; SSEVersion = 4 ; }
 VCMathOption = -fp:precise ;
 ReproducibleExeBuild = yes ;
+UseLLDLink = yes ;
 PhysName ?= Bullet ;
 PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
 local forced_arch = $(PlatformArch) ;
 include $(Root)/prog/_jBuild/defPlatform.jam ; # $(Platform) is defined after this line
 if $(Platform) = windows && $(WindowsHostArch) != $(PlatformArch) && ! $(forced_arch) {

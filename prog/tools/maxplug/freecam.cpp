@@ -6,36 +6,15 @@
 #include "resource.h"
 #include "dagor.h"
 #include "debug.h"
+#include "common.h"
 
 #define MAX_CLSNAME 64
 
-extern HINSTANCE hInstance;
+ViewExp *getViewport(HWND hwnd) { return GetCOREInterface()->GetViewExp(hwnd).ToPointer(); }
 
-ViewExp *getViewport(HWND hwnd)
-{
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
-  return GetCOREInterface()->GetViewExp(hwnd).ToPointer();
-#else
-  return GetCOREInterface()->GetViewport(hwnd);
-#endif
-}
+ViewExp *getActiveViewport() { return GetCOREInterface()->GetActiveViewExp().ToPointer(); }
 
-ViewExp *getActiveViewport()
-{
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
-  return GetCOREInterface()->GetActiveViewExp().ToPointer();
-#else
-  return GetCOREInterface()->GetActiveViewport();
-#endif
-}
-
-void releaseViewport(ViewExp *vp)
-{
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
-#else
-  GetCOREInterface()->ReleaseViewport(vp);
-#endif
-}
+void releaseViewport(ViewExp *vp) {}
 
 struct FreeCamera
 {
@@ -96,8 +75,6 @@ struct FreeCamera
       hang -= TWOPI;
     while (hang < 0)
       hang += TWOPI;
-    // while(vang>PI) vang-=TWOPI;
-    // while(vang<-PI) vang+=TWOPI;
     if (vang > PI)
       vang = PI;
     if (vang < 0)
@@ -222,8 +199,6 @@ public:
   {
     if (msg == MOUSE_MOVE)
     {
-      // DWORD dx,dy,dwData;
-      // mouse_event(MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE,dx,dy, dwData, NULL);
       if (op.x != m.x || op.y != m.y)
       {
         if (!started)
@@ -270,10 +245,7 @@ public:
               (m.y + Rect.top) * 65535 / desktopr.bottom, 0, NULL);
         }
         freecam.changed = true;
-        // camera->SetView(vpt);
-        // vpt->getGW()->enlargeUpdateRect(NULL);
         releaseViewport(vpt);
-        // GetCOREInterface()->ForceCompleteRedraw(FALSE);
         op = m;
       }
     }
@@ -286,12 +258,10 @@ public:
       op = m;
       started = 0;
       freecam.on = 0;
-      // mouse_event(MOUSEEVENTF_ABSOLUTE|MOUSEEVENTF_MOVE,startop.x,startop.y, 0, NULL);
       GetCOREInterface()->DeleteMode(this);
     }
     else if (msg == MOUSE_INIT)
     {
-      // SetCapture(hwnd);
       op = m;
       started = 0;
     }
@@ -307,15 +277,10 @@ public:
       if (gr)
         mouse_event(MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE, (startop.x + Rect.left) * 65535 / desktopr.right,
           (startop.y + Rect.top) * 65535 / desktopr.bottom, 0, NULL);
-      // debug("%d %d ",startop.x,startop.y);
     }
     return true;
   }
-  int override(int mode) override
-  {
-    return mode;
-    // return CLICK_DRAG_CLICK;
-  } // Override the mouse manager's mode!
+  int override(int mode) override { return mode; } // Override the mouse manager's mode!
 };
 
 static class FreeCamShortcut *fccb = NULL;
@@ -332,11 +297,6 @@ static VOID CALLBACK TimerFunc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwT
   freecam.SetView(ve);
   GetCOREInterface()->ForceCompleteRedraw(FALSE);
   releaseViewport(ve);
-  /*static int called=0;
-  if(++called>10){
-  GetCOREInterface()->ForceCompleteRedraw(FALSE);
-  called=0;
-  }*/
 }
 static UINT_PTR timer_id = NULL;
 
@@ -398,10 +358,7 @@ public:
     }
     if (set)
     {
-      // freecam.SetView(ve);
       releaseViewport(ve);
-      // GetCOREInterface()->ForceCompleteRedraw(FALSE);
-      // GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
     }
     return TRUE;
   };
@@ -423,12 +380,8 @@ ActionTable *GetActions()
   GetCOREInterface()->GetActionManager()->RegisterActionContext(FreeCamContext, name.data());
   GetCOREInterface()->GetActionManager()->RegisterActionTable(pTab);
   GetCOREInterface()->GetActionManager()->ActivateActionTable(fccb, FreeCamShortcuts);
-  // pTab->SetCallback(&freecam_callback);
   return pTab;
 }
-
-extern bool get_edint(ICustEdit *e, int &a);
-extern bool get_edfloat(ICustEdit *e, float &a);
 
 class DagFreeCamUtil : public UtilityObj
 {
@@ -438,9 +391,6 @@ public:
   Interface *ip;
   HWND hFreeCamPanel;
   ICustEdit *cammovespeedid, *camrotspeedid, *turboid;
-  // FreeCamCommandMode freecamcm;
-  // FreeCamera freecam;
-
 
   DagFreeCamUtil();
   void BeginEditParams(Interface *ip, IUtil *iu) override;
@@ -463,11 +413,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading = FALSE) override { return &futil; }
   const TCHAR *ClassName() override { return GetString(IDS_DAGFREECAM_UTIL_NAME); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
   Class_ID ClassID() override { return DagUtilFreeCam_CID; }
   const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
@@ -478,8 +424,7 @@ public:
   {
     GetActions();
     return 0;
-  } // GetActions();
-  // ActionTable*  GetActionTable(int i) { return GetActions(); }
+  }
 };
 
 static const int CH_FREE_CAM = 1;

@@ -41,6 +41,7 @@
 #include "animStates/rootProps.h"
 #include "animStates/initFifo3.h"
 #include "animStates/postBlendCtrlOrder.h"
+#include "animStates/morph.h"
 
 #include "nodeMasks/nodeMaskType.h"
 
@@ -102,10 +103,10 @@ private:
 
 AnimTreePlugin::AnimTreePlugin() :
   animPlayer{get_app().getAssetMgr().getAssetTypeId("dynModel"), get_app().getAssetMgr()},
+  childsDialog(controllersData, blendNodesData, statesData, includePaths),
   ctrlTreeEventHandler(controllersData, includePaths, childsDialog),
   ctrlListSettingsEventHandler(controllersData, blendNodesData),
   resetRandomSwitchListEventHandler(controllersData),
-  childsDialog(controllersData, blendNodesData, statesData, includePaths),
   blendNodeTreeEventHandler(blendNodesData, includePaths),
   nodeMaskTreeEventHandler(nodeMasksData, includePaths),
   animStatesTreeEventHandler(statesData, controllersData, includePaths, childsDialog),
@@ -537,6 +538,7 @@ void AnimTreePlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     case PID_ANIM_STATES_ADD_CHAN: addStateDescItem(panel, AnimStatesType::CHAN, "new_channel"); break;
     case PID_ANIM_STATES_ADD_STATE: addStateDescItem(panel, AnimStatesType::STATE, "new_state"); break;
     case PID_ANIM_STATES_ADD_STATE_ALIAS: addStateDescItem(panel, AnimStatesType::STATE_ALIAS, "new_state_alias"); break;
+    case PID_ANIM_STATES_ADD_MORPH: addStateDescItem(panel, AnimStatesType::MORPH, "new_morph"); break;
     case PID_NODE_MASKS_PATH_FIELD:
     case PID_NODES_INCLUDE_PATH_FIELD:
     case PID_CTRLS_INCLUDE_PATH_FIELD: selectIncludeFileDialog(panel, pcb_id); break;
@@ -659,6 +661,7 @@ void AnimTreePlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
     case PID_NODES_RESET_RANDOM_SWITCH_LIST: selectedChangedResetRandomSwitchList(panel); break;
     case PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT: changeParamSwitchType(panel); break;
     case PID_CTRLS_MULTI_CHAIN_FABRIK_BLOCK_TYPE_COMBO_SELECT: changeMultiChainFABRIKBlockType(panel); break;
+    case PID_CTRLS_COND_HIDE_ALWAYS: cond_hide_always_changed(panel); break;
     case PID_CTRLS_PARAMS_CTRL_CHANGE_RATE_SRC: params_ctrl_change_rate_src_changed(panel); break;
     case PID_CTRLS_PARAMS_CTRL_CHANGE_SCALE_SRC: params_ctrl_change_scale_src_changed(panel); break;
     case PID_CTRLS_PARAMS_CTRL_BLOCK_TYPE_COMBO_SELECT: changeParamsCtrlBlockType(panel); break;
@@ -921,7 +924,8 @@ void AnimTreePlugin::fillAnimStatesTreeNode(PropPanel::ContainerPropertyControl 
     {
       nodeLeaf = check_multiple_block_declarations(*data, include_name, blockName,
         statesData.end() == eastl::find_if(statesData.begin(), statesData.end(), [](const AnimStatesData &data) {
-          return data.type == AnimStatesType::STATE || data.type == AnimStatesType::CHAN || data.type == AnimStatesType::STATE_ALIAS;
+          return data.type == AnimStatesType::STATE || data.type == AnimStatesType::CHAN || data.type == AnimStatesType::STATE_ALIAS ||
+                 data.type == AnimStatesType::MORPH;
         }));
 
       if (!nodeLeaf)
@@ -935,6 +939,7 @@ void AnimTreePlugin::fillAnimStatesTreeNode(PropPanel::ContainerPropertyControl 
     int chanNid = node.getNameId("chan");
     int stateNid = node.getNameId("state");
     int stateAliasNid = node.getNameId("state_alias");
+    int morphNid = node.getNameId("morph");
     for (int i = 0; i < node.blockCount(); ++i)
     {
       const DataBlock *stateNode = node.getBlock(i);
@@ -948,6 +953,14 @@ void AnimTreePlugin::fillAnimStatesTreeNode(PropPanel::ContainerPropertyControl 
         add_leaf_and_data(AnimStatesType::STATE);
       else if (stateNode->getBlockNameId() == stateAliasNid)
         add_leaf_and_data(AnimStatesType::STATE_ALIAS);
+      else if (stateNode->getBlockNameId() == morphNid)
+      {
+        const char *morphFrom = stateNode->getStr("from", "");
+        const char *morphTo = stateNode->getStr("to", "");
+        String morphCaption(0, "%s -> %s", morphFrom, morphTo);
+        TLeafHandle leaf = tree->createTreeLeaf(nodeLeaf, morphCaption, get_state_desc_icon(AnimStatesType::MORPH));
+        statesData.emplace_back(AnimStatesData{leaf, AnimStatesType::MORPH});
+      }
     }
   }
   else if (!strcmp(blockName, "initAnimState"))
@@ -1592,17 +1605,18 @@ static void set_read_only_changes(PropPanel::ContainerPropertyControl *panel, bo
 }
 
 DataBlock *AnimTreePlugin::findCtrlSettings(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, CtrlType type,
-  DataBlock &out_props, String &full_path, bool &out_is_proc_child, bool only_includes)
+  DataBlock &out_props, String &full_path, const AnimCtrlData *parent_data, bool only_includes)
 {
   TLeafHandle parent = tree->getParentLeaf(leaf);
-  const AnimCtrlData *parentData = find_data_by_handle(controllersData, parent);
-  out_is_proc_child = parentData != controllersData.end() && parentData->type == ctrl_type_animateAndProcNode;
-  TLeafHandle navLeaf = out_is_proc_child ? tree->getParentLeaf(parent) : parent;
+  if (!parent_data)
+    parent_data = find_data_by_handle(controllersData, parent);
+  const bool isProcChild = parent_data != controllersData.end() && parent_data->type == ctrl_type_animateAndProcNode;
+  TLeafHandle navLeaf = isProcChild ? tree->getParentLeaf(parent) : parent;
   out_props = get_props_from_include_leaf(includePaths, *curAsset, tree, navLeaf, full_path, only_includes);
   DataBlock *ctrlsProps = get_props_from_include_leaf_ctrl_node(controllersData, includePaths, *curAsset, out_props, tree, navLeaf);
   if (!ctrlsProps)
     return nullptr;
-  if (out_is_proc_child)
+  if (isProcChild)
   {
     DataBlock *animAndProcBlk = find_animate_and_proc_block(ctrlsProps, tree->getCaption(parent));
     if (!animAndProcBlk)
@@ -1639,14 +1653,16 @@ void AnimTreePlugin::fillCtrlsSettings(PropPanel::ContainerPropertyControl *pane
   }
   else
   {
+    TLeafHandle parent = tree->getParentLeaf(leaf);
+    const AnimCtrlData *parentData = find_data_by_handle(controllersData, parent);
+    const bool isProcChild = parentData != controllersData.end() && parentData->type == ctrl_type_animateAndProcNode;
     String fullPath;
     DataBlock props;
-    bool isProcChild = false;
-    DataBlock *settings = findCtrlSettings(tree, leaf, selectedData->type, props, fullPath, isProcChild);
+    DataBlock *settings = findCtrlSettings(tree, leaf, selectedData->type, props, fullPath, parentData);
     bool isEditable = true;
     if (!settings)
     {
-      settings = findCtrlSettings(tree, leaf, selectedData->type, props, fullPath, isProcChild, /*only_includes*/ true);
+      settings = findCtrlSettings(tree, leaf, selectedData->type, props, fullPath, parentData, /*only_includes*/ true);
       if (settings)
       {
         isEditable = false;
@@ -1667,16 +1683,21 @@ void AnimTreePlugin::fillCtrlsSettings(PropPanel::ContainerPropertyControl *pane
       fill_ctrls_params_settings(group, type, fieldIdx, ctrlParams);
       if (type == ctrl_type_aim)
         aim_set_dependent_defaults(ctrlParams, panel);
-      fillCtrlsBlocksSettings(group, type, settings);
+      else if (type == ctrl_type_fifo3 || type == ctrl_type_linearPoly || type == ctrl_type_paramSwitch ||
+               type == ctrl_type_paramSwitchS || type == ctrl_type_randomSwitch)
+        set_varname_dependent_defaults(ctrlParams, panel);
+      fillCtrlsBlocksSettings(group, type, settings, selectedData);
       panel->setListBoxEventHandler(PID_CTRLS_NODES_LIST, &ctrlListSettingsEventHandler);
       group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save", isEditable);
-      set_read_only_changes(group, isEditable);
+      if (!isEditable)
+        set_read_only_changes(group, isEditable);
     }
   }
   group->loadState(ctrlsSettingsPanelState);
 }
 
-void AnimTreePlugin::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl *panel, CtrlType type, const DataBlock *settings)
+void AnimTreePlugin::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl *panel, CtrlType type, const DataBlock *settings,
+  AnimCtrlData *ctrl_data)
 {
   switch (type)
   {
@@ -1701,6 +1722,7 @@ void AnimTreePlugin::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl
 
     default: break;
   }
+  setCtrlsDragAndDropHandlers(getPluginPanel(), type, ctrl_data);
 }
 
 static void save_params_blk(DataBlock *settings, dag::ConstSpan<AnimParamData> params, PropPanel::ContainerPropertyControl *panel)
@@ -1765,12 +1787,14 @@ void AnimTreePlugin::setSelectedCtrlNodeListSettings(PropPanel::ContainerPropert
   if (data == controllersData.end())
     return;
 
-  bool isProcChild = false;
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  const AnimCtrlData *parentData = find_data_by_handle(controllersData, parent);
+  const bool isProcChild = parentData != controllersData.end() && parentData->type == ctrl_type_animateAndProcNode;
   DataBlock props;
   String fullPath;
-  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, isProcChild);
+  DataBlock *settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, parentData);
   if (!settings)
-    settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, isProcChild, /*only_includes*/ true);
+    settings = findCtrlSettings(tree, leaf, data->type, props, fullPath, parentData, /*only_includes*/ true);
   if (settings)
   {
     CtrlType type = get_selected_ctrl_type(panel, isProcChild);
@@ -1829,7 +1853,19 @@ void AnimTreePlugin::addNodeCtrlList(PropPanel::ContainerPropertyControl *panel)
     panel->setInt(PID_CTRLS_NODES_LIST, idx);
     setSelectedCtrlNodeListSettings(panel);
     panel->setEnabledById(PID_CTRLS_NODES_LIST_ADD, /*enabled*/ false);
-    data->childs.emplace_back(ctrl_type_not_found);
+    // Childs used only by controllers with childs list and should map 1:1 to its entries
+    switch (data->type)
+    {
+      case ctrl_type_paramSwitch:
+      case ctrl_type_paramSwitchS:
+      case ctrl_type_hub:
+      case ctrl_type_linearPoly:
+      case ctrl_type_randomSwitch:
+      case ctrl_type_animateAndProcNode:
+      case ctrl_type_animateNode: data->childs.emplace_back(AnimCtrlData::NOT_FOUND_CHILD); break;
+
+      default: break;
+    }
   }
 }
 
@@ -1871,17 +1907,20 @@ void AnimTreePlugin::removeNodeCtrlList(PropPanel::ContainerPropertyControl *pan
   if (ctrlData == controllersData.end())
     return;
 
-  bool isProcChild = false;
   DataBlock props;
   String fullPath;
-  DataBlock *settings = findCtrlSettings(tree, leaf, ctrlData->type, props, fullPath, isProcChild);
+  DataBlock *settings = findCtrlSettings(tree, leaf, ctrlData->type, props, fullPath);
   if (settings)
   {
     update_add_button(panel);
     CtrlType type = static_cast<CtrlType>(lup(settings->getBlockName(), ctrl_type, ctrl_type_not_found));
     switch (type)
     {
-      case ctrl_type_randomSwitch: random_switch_remove_node_from_list(panel, settings); break;
+      case ctrl_type_randomSwitch:
+        if (random_switch_has_duplicated_childs(*settings))
+          return;
+        random_switch_remove_node_from_list(panel, settings);
+        break;
       case ctrl_type_paramSwitch:
       case ctrl_type_paramSwitchS: param_switch_remove_node_from_list(panel, settings); break;
       case ctrl_type_hub: hub_remove_node_from_list(panel, settings); break;
@@ -1916,7 +1955,12 @@ void AnimTreePlugin::removeNodeCtrlList(PropPanel::ContainerPropertyControl *pan
   if (data != controllersData.end())
   {
     if (data->childs.size())
-      data->childs.erase(data->childs.begin() + removeIdx);
+    {
+      G_ASSERTF(removeIdx < data->childs.size(), "Remove idx <%d> from list is out of childs size <%d> in controller <%s>", removeIdx,
+        (int)data->childs.size(), tree->getCaption(leaf));
+      if (removeIdx < data->childs.size())
+        data->childs.erase(data->childs.begin() + removeIdx);
+    }
   }
   else
     logerr("Can't find selected leaf with name <%s> in controllers data for remove child idx", childName.c_str());
@@ -1942,9 +1986,22 @@ void AnimTreePlugin::fillStatesChilds(PropPanel::ContainerPropertyControl *panel
   {
     TLeafHandle leaf = tree->getChildLeaf(stateDescData->handle, leafIdx);
     AnimStatesData *leafData = find_data_by_handle(statesData, leaf);
+    if (leafData == statesData.end())
+    {
+      logerr("Can't find state tree leaf data for block #%d in blk with path:<%s>", blkIdx, fullPath);
+      return;
+    }
 
     const DataBlock *settings = stateDesc->getBlock(blkIdx);
-    const char *nameField = settings->getStr("name", nullptr);
+    const char *nameField = nullptr;
+    String morphCaption;
+    if (leafData->type == AnimStatesType::MORPH)
+    {
+      morphCaption = String(0, "%s -> %s", settings->getStr("from", ""), settings->getStr("to", ""));
+      nameField = morphCaption;
+    }
+    else
+      nameField = settings->getStr("name", nullptr);
 
     // We should have same hierarchy with leafs and blocks exclude cases above
     if (!nameField)
@@ -1975,7 +2032,6 @@ void AnimTreePlugin::fillStatesChilds(PropPanel::ContainerPropertyControl *panel
 
 void AnimTreePlugin::fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *panel)
 {
-  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
   AnimStatesData *initAnimStateData = eastl::find_if(statesData.begin(), statesData.end(),
     [](const AnimStatesData &data) { return data.type == AnimStatesType::INIT_ANIM_STATE; });
   String fullPath;
@@ -2054,6 +2110,50 @@ void AnimTreePlugin::setStatesDragAndDropHandlers(PropPanel::ContainerPropertyCo
       break;
 
     default: break;
+  }
+}
+
+static IListReorderHandler *get_ctrl_reorder_handler(PropPanel::ContainerPropertyControl *panel, CtrlType type, AnimTreePlugin &plugin,
+  dag::ConstSpan<AnimCtrlData> controllers, AnimCtrlData *ctrl_data)
+{
+  switch (type)
+  {
+    case ctrl_type_paramsCtrl: return params_ctrl_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_aim: return aim_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_animateAndProcNode:
+    case ctrl_type_animateNode: return animate_node_get_reorder_handler(plugin, controllers, panel, ctrl_data);
+    case ctrl_type_attachNode: return attach_node_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_condHide: return cond_hide_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_defClampCtrl: return def_clamp_ctrl_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_hub: return hub_get_reorder_handler(plugin, controllers, panel, ctrl_data);
+    case ctrl_type_linearPoly: return linear_poly_get_reorder_handler(plugin, controllers, panel, ctrl_data);
+    case ctrl_type_effFromAttachment: return eff_from_attachment_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_nodesFromAttachement: return nodes_from_attachement_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_footLockerIK: return foot_locker_ik_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_twoBonesIK: return two_bones_ik_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_legsIK: return legs_ik_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_multiChainFABRIK: return multi_chain_fabrik_get_reorder_handler(plugin, controllers, panel);
+    case ctrl_type_randomSwitch: return random_switch_get_reorder_handler(plugin, controllers, panel, ctrl_data);
+    case ctrl_type_paramSwitch:
+    case ctrl_type_paramSwitchS: return param_switch_get_reorder_handler(plugin, controllers, panel, ctrl_data);
+    default: return nullptr;
+  }
+}
+
+void AnimTreePlugin::setCtrlsDragAndDropHandlers(PropPanel::ContainerPropertyControl *panel, CtrlType type, AnimCtrlData *ctrl_data)
+{
+  ctrlsListDropHandler.reorderHandler.reset(get_ctrl_reorder_handler(panel, type, *this, controllersData, ctrl_data));
+  if (ctrlsListDropHandler.reorderHandler)
+  {
+    panel->setListDragHandler(PID_CTRLS_NODES_LIST, &ctrlsListDragHandler);
+    panel->setListDropHandler(PID_CTRLS_NODES_LIST, &ctrlsListDropHandler);
+    ctrlsListDropHandler.panel = panel;
+    ctrlsListDropHandler.pid = PID_CTRLS_NODES_LIST;
+  }
+  else
+  {
+    panel->setListDragHandler(PID_CTRLS_NODES_LIST, nullptr);
+    panel->setListDropHandler(PID_CTRLS_NODES_LIST, nullptr);
   }
 }
 
@@ -2228,7 +2328,7 @@ static bool remove_include_states_tree(PropPanel::ContainerPropertyControl *pane
       for (int i = states.size() - 1; i >= 0; --i)
       {
         if (states[i].type == AnimStatesType::CHAN || states[i].type == AnimStatesType::STATE ||
-            states[i].type == AnimStatesType::STATE_ALIAS)
+            states[i].type == AnimStatesType::STATE_ALIAS || states[i].type == AnimStatesType::MORPH)
         {
           tree->removeLeaf(states[i].handle);
           states.erase(states.begin() + i);
@@ -2278,13 +2378,15 @@ void AnimTreePlugin::saveControllerSettings(PropPanel::ContainerPropertyControl 
   if (selectedData == controllersData.end())
     return;
 
+  // change_include_leaf below erases from controllersData and invalidates selectedData
+  const CtrlType selectedType = selectedData->type;
   TLeafHandle parent = tree->getParentLeaf(leaf);
   String fullPath;
   DataBlock props;
-  if (selectedData->type == ctrl_type_include || selectedData->type == ctrl_type_inner_include)
+  if (selectedType == ctrl_type_include || selectedType == ctrl_type_inner_include)
     props = get_props_from_include_leaf(includePaths, *curAsset, tree, parent, fullPath);
 
-  if (selectedData->type == ctrl_type_include || selectedData->type == ctrl_type_inner_include)
+  if (selectedType == ctrl_type_include || selectedType == ctrl_type_inner_include)
   {
     const SimpleString fileName = get_str_param_by_name_optional(ctrlParams, panel, "file name");
     const SimpleString newPath = get_str_param_by_name_optional(ctrlParams, panel, "folder path");
@@ -2294,7 +2396,7 @@ void AnimTreePlugin::saveControllerSettings(PropPanel::ContainerPropertyControl 
     String newFullPath = String(0, "%s%s.blk", newPath.c_str(), fileName.c_str());
     const String selName = tree->getCaption(leaf);
     change_include_leaf(tree, controllersData, fileName.c_str(), leaf);
-    if (selectedData->type == ctrl_type_include)
+    if (selectedType == ctrl_type_include)
     {
       auto [nodeLeaf, updateSelectedNodes] = change_include_leaf_nodes(panel, blendNodesData, selName, fileName.c_str());
       auto [maskLeaf, updateSelectedMasks] =
@@ -2334,8 +2436,7 @@ void AnimTreePlugin::saveControllerSettings(PropPanel::ContainerPropertyControl 
   }
   else
   {
-    bool isProcChild = false;
-    if (DataBlock *settings = findCtrlSettings(tree, leaf, selectedData->type, props, fullPath, isProcChild))
+    if (DataBlock *settings = findCtrlSettings(tree, leaf, selectedData->type, props, fullPath))
     {
       SimpleString newTypeName = panel->getText(PID_CTRLS_TYPE_COMBO_SELECT);
       // If ctrl type changed we need change block name and remove all blocks from old type if they exist
@@ -2353,10 +2454,14 @@ void AnimTreePlugin::saveControllerSettings(PropPanel::ContainerPropertyControl 
             settings->removeBlock(i);
         if (oldType == ctrl_type_animateAndProcNode)
         {
+          selectedData->childs.clear();
           remove_childs_data_by_leaf(tree, controllersData, leaf);
           for (int i = tree->getChildCount(leaf) - 1; i >= 0; --i)
             tree->removeLeaf(tree->getChildLeaf(leaf, i));
-          selectedData->childs.clear();
+          // erase in remove_childs_data_by_leaf shifts controllersData, refetch selectedData
+          selectedData = find_data_by_handle(controllersData, leaf);
+          G_ASSERTF(selectedData != controllersData.end(), "Data for leaf <%s> should exist, only its childs were removed",
+            tree->getCaption(leaf));
         }
       }
       CtrlType type = static_cast<CtrlType>(lup(newTypeName.c_str(), ctrl_type, ctrl_type_not_found));
@@ -2628,7 +2733,7 @@ void AnimTreePlugin::addItemToAnimStatesTree(PropPanel::ContainerPropertyControl
     }
   }
   else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE ||
-           data->type == AnimStatesType::STATE_DESC)
+           data->type == AnimStatesType::MORPH || data->type == AnimStatesType::STATE_DESC)
   {
     TLeafHandle stateDescLeaf = leaf;
     if (data->type != AnimStatesType::STATE_DESC)
@@ -2651,7 +2756,10 @@ static void remove_include_node(PropPanel::ContainerPropertyControl *tree, dag::
     const int includeNid = props.getNameId("@include");
     for (int i = 0; i < props.paramCount(); ++i)
       if (includeNid == props.getParamNameId(i) && *path == props.getStr(i))
+      {
         props.removeParam(i);
+        break;
+      }
 
     paths.erase(path);
   }
@@ -2750,10 +2858,23 @@ void AnimTreePlugin::removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyCo
     if (panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer()->getSelLeaf())
       paramSwitchRefreshMorphTimesCombo(panel);
   }
-  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE)
+  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE ||
+           data->type == AnimStatesType::MORPH)
   {
     DataBlock *stateDescProps = props.getBlockByName("stateDesc");
-    remove_block_by_name(stateDescProps, tree->getCaption(leaf));
+    if (data->type == AnimStatesType::MORPH)
+    {
+      DataBlock *settings = find_morph_block_by_name(stateDescProps, tree->getCaption(data->handle));
+      if (settings)
+        for (int i = 0; i < stateDescProps->blockCount(); ++i)
+          if (stateDescProps->getBlock(i) == settings)
+          {
+            stateDescProps->removeBlock(i);
+            break;
+          }
+    }
+    else
+      remove_block_by_name(stateDescProps, tree->getCaption(leaf));
     if (stateDescProps->isEmpty())
       props.removeBlock("stateDesc");
     statesData.erase(data);
@@ -2877,7 +2998,6 @@ void AnimTreePlugin::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
         // Need update childs for all dependent controllers when update _use value or change from _use to paramSwitch
         if (paramSwitchName == "_use" || !strcmp(oldParamSwitchName, "_use"))
         {
-          PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
           AnimStatesData *enumData = find_data_by_handle(statesData, parent);
           for (int idx : enumData->childs)
           {
@@ -2941,11 +3061,14 @@ void AnimTreePlugin::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
     saveStatesParamsSettings(panel, settings, data->type, *settings);
     saveProps(props, fullPath);
   }
-  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE)
+  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE ||
+           data->type == AnimStatesType::MORPH)
   {
     DataBlock *stateDesc = props.addBlock("stateDesc");
     const String oldName = tree->getCaption(leaf);
-    if (DataBlock *settings = find_block_by_name(stateDesc, oldName))
+    DataBlock *settings =
+      data->type == AnimStatesType::MORPH ? find_morph_block_by_name(stateDesc, oldName) : find_block_by_name(stateDesc, oldName);
+    if (settings)
     {
       const char *newTypeName = get_state_desc_cbox_block_name(panel->getInt(PID_STATES_STATE_DESC_TYPE_COMBO_SELECT));
       // If state desc type changed we need change block name
@@ -2962,9 +3085,20 @@ void AnimTreePlugin::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
         case AnimStatesType::STATE: stateSaveBlockSettings(panel, *settings, *data, *stateDesc); break;
         default: break;
       }
-      const char *newName = settings->getStr("name");
-      if (oldName != newName)
-        tree->setCaption(leaf, newName);
+      if (data->type == AnimStatesType::MORPH)
+      {
+        const char *fromStr = settings->getStr("from", "");
+        const char *toStr = settings->getStr("to", "");
+        String morphCaption(0, "%s -> %s", fromStr, toStr);
+        if (oldName != morphCaption)
+          tree->setCaption(leaf, morphCaption);
+      }
+      else
+      {
+        const char *newName = settings->getStr("name");
+        if (oldName != newName)
+          tree->setCaption(leaf, newName);
+      }
     }
     saveProps(props, fullPath);
   }
@@ -2996,6 +3130,7 @@ void AnimTreePlugin::saveStatesParamsSettings(PropPanel::ContainerPropertyContro
     case AnimStatesType::STATE_ALIAS: state_alias_prepare_params(params, panel); break;
     case AnimStatesType::STATE: state_prepare_params(params, panel, props); break;
     case AnimStatesType::ROOT_PROPS: root_props_prepare_params(params, panel); break;
+    case AnimStatesType::MORPH: morph_prepare_params(params, panel); break;
     default: break;
   }
 
@@ -3057,8 +3192,8 @@ DataBlock AnimTreePlugin::getPropsAnimStates(PropPanel::ContainerPropertyControl
   const AnimStatesData *includeSource = &data;
   if (includeSource->type == AnimStatesType::ENUM || includeSource->type == AnimStatesType::ENUM_ITEM ||
       includeSource->type == AnimStatesType::CHAN || includeSource->type == AnimStatesType::STATE ||
-      includeSource->type == AnimStatesType::STATE_ALIAS || includeSource->type == AnimStatesType::POST_BLEND_CTRL_ORDER ||
-      includeSource->type == AnimStatesType::INIT_FIFO3)
+      includeSource->type == AnimStatesType::STATE_ALIAS || includeSource->type == AnimStatesType::MORPH ||
+      includeSource->type == AnimStatesType::POST_BLEND_CTRL_ORDER || includeSource->type == AnimStatesType::INIT_FIFO3)
   {
     TLeafHandle parent = statesTree->getParentLeaf(data.handle);
     if (includeSource->type == AnimStatesType::ENUM_ITEM)
@@ -3081,6 +3216,7 @@ static void fill_states_params_settings(PropPanel::ContainerPropertyControl *pan
     case AnimStatesType::STATE_ALIAS: state_alias_init_panel(params, panel, field_idx); break;
     case AnimStatesType::STATE: state_init_panel(params, panel, field_idx, props); break;
     case AnimStatesType::ROOT_PROPS: root_props_init_panel(params, panel, field_idx); break;
+    case AnimStatesType::MORPH: morph_init_panel(params, panel, field_idx); break;
     default: break;
   }
 }
@@ -3122,7 +3258,8 @@ void AnimTreePlugin::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
 
   const bool isEnumSelected = isEnumOrEnumItem(leaf, tree);
   const bool isStateDescItemSelected = data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS ||
-                                       data->type == AnimStatesType::STATE || data->type == AnimStatesType::STATE_DESC;
+                                       data->type == AnimStatesType::STATE || data->type == AnimStatesType::STATE_DESC ||
+                                       data->type == AnimStatesType::MORPH;
   panel->setEnabledById(PID_ANIM_STATES_ADD_ITEM, isEnumSelected || isStateDescItemSelected);
   if (isEnumSelected)
   {
@@ -3172,7 +3309,7 @@ void AnimTreePlugin::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
   else if (data->type == AnimStatesType::INIT_ANIM_STATE)
   {
     fill_include_file_combo(panel, group, controllersData, *data, "Init anim state include");
-    DataBlock *settings = props.getBlockByName("initAnimState");
+    DataBlock *settings = props.addBlock("initAnimState");
     int fieldIdx = PID_STATES_PARAMS_FIELD;
     fill_params_from_settings(settings, group, stateParams, fieldIdx);
   }
@@ -3202,17 +3339,21 @@ void AnimTreePlugin::selectedChangedAnimStatesTree(PropPanel::ContainerPropertyC
     group->createCombo(rootParam->pid, rootParam->name, childNames, index);
     group->moveById(rootParam->pid, rootParam->pid + 1);
   }
-  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE)
+  else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE ||
+           data->type == AnimStatesType::MORPH)
   {
     int fieldIdx = PID_STATES_PARAMS_FIELD;
     DataBlock *stateProps = props.getBlockByName("stateDesc");
-    DataBlock *settings = find_block_by_name(stateProps, tree->getCaption(leaf), /*should_exist*/ false);
+    DataBlock *settings = data->type == AnimStatesType::MORPH
+                            ? find_morph_block_by_name(stateProps, tree->getCaption(leaf))
+                            : find_block_by_name(stateProps, tree->getCaption(leaf), /*should_exist*/ false);
     bool isEditable = true;
     if (!settings)
     {
       props = getPropsAnimStates(panel, *data, fullPath, /*only_includes*/ true);
       stateProps = props.getBlockByName("stateDesc");
-      settings = find_block_by_name(stateProps, tree->getCaption(leaf));
+      settings = data->type == AnimStatesType::MORPH ? find_morph_block_by_name(stateProps, tree->getCaption(leaf))
+                                                     : find_block_by_name(stateProps, tree->getCaption(leaf));
       isEditable = false;
       logerr("State description node <%s> overrided in blk, can't edit this node. Edit it manual in %s", tree->getCaption(leaf),
         fullPath.c_str());
@@ -3275,14 +3416,16 @@ void AnimTreePlugin::changeStateDescType(PropPanel::ContainerPropertyControl *pa
 
   // Before fill block settings we need check new and old types, if they different use emptyBlock for fill
   const DataBlock *blocksSettings = &DataBlock::emptyBlock;
-  if (DataBlock *settings = find_block_by_name(stateDescProps, tree->getCaption(leaf)))
+  DataBlock *settings = data->type == AnimStatesType::MORPH ? find_morph_block_by_name(stateDescProps, tree->getCaption(leaf))
+                                                            : find_block_by_name(stateDescProps, tree->getCaption(leaf));
+  if (settings)
   {
     if (type == AnimStatesType::STATE)
       state_init_block_settings(panel, *settings, *stateDescProps, statesData, stateDependentParams);
     AnimStatesType oldType = get_state_desc_cbox_enum_value(settings->getBlockName());
     if (oldType == type)
       blocksSettings = settings;
-    fill_values_if_exists(group, settings, stateParams);
+    fill_values_if_exists(group, blocksSettings, stateParams);
   }
   group->createButton(PID_STATES_SETTINGS_SAVE, "Save");
 }
@@ -3314,7 +3457,8 @@ void AnimTreePlugin::addStateDescItem(PropPanel::ContainerPropertyControl *panel
     TLeafHandle newLeaf = tree->createTreeLeaf(state_desc_leaf, name, get_state_desc_icon(type));
     statesData.emplace_back(AnimStatesData{newLeaf, type});
     DataBlock *settings = stateDescProps->addNewBlock(blockName);
-    settings->setStr("name", name);
+    if (type != AnimStatesType::MORPH)
+      settings->setStr("name", name);
     saveProps(props, full_path);
     tree->setSelLeaf(newLeaf);
     selectedChangedAnimStatesTree(panel);
@@ -3338,7 +3482,6 @@ void AnimTreePlugin::setSelectedStateNodeListSettings(PropPanel::ContainerProper
   {
     DataBlock *stateProps = props.getBlockByName("stateDesc");
     DataBlock *settings = find_block_by_name(stateProps, tree->getCaption(leaf), /*should_exist*/ false);
-    bool isEditable = true;
     if (!settings)
     {
       props = getPropsAnimStates(panel, *data, fullPath, /*only_includes*/ true);
@@ -3495,6 +3638,7 @@ void AnimTreePlugin::removeNodeStateList(PropPanel::ContainerPropertyControl *pa
     return;
 
   AnimStatesData *data = find_data_by_handle(statesData, leaf);
+  G_ASSERTF(data != statesData.end(), "Data for leaf <%s> should exist in states data", tree->getCaption(leaf));
   String fullPath;
   DataBlock props = getPropsAnimStates(panel, *data, fullPath);
   if (fullPath.empty())
@@ -3532,11 +3676,8 @@ void AnimTreePlugin::removeNodeStateList(PropPanel::ContainerPropertyControl *pa
       saveProps(props, fullPath);
     }
 
-    const SimpleString childName = panel->getText(PID_STATES_STATE_NODE_NAME);
-    if (data != statesData.end() && data->childs.size())
+    if (data->childs.size())
       data->childs.erase(data->childs.begin() + removeIdx);
-    else
-      logerr("Can't find selected leaf with name <%s> in states data for remove child idx", childName.c_str());
     panel->removeString(PID_STATES_NODES_LIST, removeIdx);
     dag::ConstSpan<String> names = panel->getStrings(PID_STATES_NODES_LIST);
     if (names.empty())
@@ -3559,9 +3700,9 @@ void AnimTreePlugin::removeNodeStateList(PropPanel::ContainerPropertyControl *pa
     if (initAnimState->isEmpty())
       props.removeBlock("initAnimState");
     saveProps(props, fullPath);
-    if (!isFifo3 && data != statesData.end() && data->childs.size())
+    if (!isFifo3 && data->childs.size())
       data->childs.erase(data->childs.begin() + removeIdx);
-    else if (data != statesData.end() && data->childs.size())
+    else if (data->childs.size())
     {
       // remove pair childs fifo3 ctrl and node value
       data->childs.erase(data->childs.begin() + removeIdx * 2);
@@ -3805,6 +3946,10 @@ void AnimTreePlugin::removeNodeFromCtrlsTree(PropPanel::ContainerPropertyControl
     tree->removeLeaf(leaf);
   }
 
+  // erase in remove_include_tree_node/remove_childs_data_by_leaf shifts controllersData, refetch selectedData
+  selectedData = find_data_by_handle(controllersData, leaf);
+  G_ASSERTF(selectedData != controllersData.end(), "Data for leaf <%s> should exist, only its childs were removed",
+    tree->getCaption(leaf));
   controllersData.erase(selectedData);
   saveProps(props, fullPath);
   fillCtrlsSettings(panel);
@@ -3815,14 +3960,16 @@ void AnimTreePlugin::changeCtrlType(PropPanel::ContainerPropertyControl *panel)
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
-  const AnimCtrlData *selectedData = find_data_by_handle(controllersData, leaf);
+  AnimCtrlData *selectedData = find_data_by_handle(controllersData, leaf);
   if (selectedData == controllersData.end())
     return;
   const CtrlType oldType = selectedData->type;
-  bool isProcChild = false;
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  const AnimCtrlData *parentData = find_data_by_handle(controllersData, parent);
+  const bool isProcChild = parentData != controllersData.end() && parentData->type == ctrl_type_animateAndProcNode;
   DataBlock props;
   String fullPath;
-  DataBlock *settings = findCtrlSettings(tree, leaf, oldType, props, fullPath, isProcChild);
+  DataBlock *settings = findCtrlSettings(tree, leaf, oldType, props, fullPath, parentData);
   if (fullPath.empty())
     return;
   const CtrlType type = get_selected_ctrl_type(panel, isProcChild);
@@ -3848,9 +3995,12 @@ void AnimTreePlugin::changeCtrlType(PropPanel::ContainerPropertyControl *panel)
     fill_values_if_exists(group, settings, ctrlParams);
     if (type == ctrl_type_aim)
       aim_set_dependent_defaults(ctrlParams, panel);
+    else if (type == ctrl_type_fifo3 || type == ctrl_type_linearPoly || type == ctrl_type_paramSwitch ||
+             type == ctrl_type_paramSwitchS || type == ctrl_type_randomSwitch)
+      set_varname_dependent_defaults(ctrlParams, panel);
   }
 
-  fillCtrlsBlocksSettings(group, type, blocksSettings);
+  fillCtrlsBlocksSettings(group, type, blocksSettings, selectedData);
   group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
 }
 
@@ -3865,9 +4015,18 @@ void AnimTreePlugin::updateCtrlFields(PropPanel::ContainerPropertyControl *panel
   }
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
   TLeafHandle leaf = tree->getSelLeaf();
-  AnimCtrlData *data = find_data_by_handle(controllersData, leaf);
-  if (data != controllersData.end() && data->type == ctrl_type_aim)
-    aim_update_dependent_fields(*param, ctrlParams, panel);
+  TLeafHandle parent = tree->getParentLeaf(leaf);
+  AnimCtrlData *data = find_data_by_handle(controllersData, parent);
+  if (parent == tree->getRootLeaf() || data != controllersData.end())
+  {
+    bool isProcChild = data != controllersData.end() && data->type == ctrl_type_animateAndProcNode;
+    CtrlType type = get_selected_ctrl_type(panel, isProcChild);
+    if (type == ctrl_type_aim)
+      aim_update_dependent_fields(*param, ctrlParams, panel);
+    else if ((type == ctrl_type_fifo3 || type == ctrl_type_linearPoly || type == ctrl_type_paramSwitch ||
+               type == ctrl_type_paramSwitchS || type == ctrl_type_randomSwitch))
+      update_varname_dependent_fields(*param, ctrlParams, panel);
+  }
   else if (param->name == "Param type")
   {
     dag::ConstSpan<String> names = panel->getStrings(param->pid);
@@ -3979,7 +4138,8 @@ void AnimTreePlugin::addNodeToNodeMasksTree(PropPanel::ContainerPropertyControl 
     return;
   }
 
-  if (maskData->type == NodeMaskType::INCLUDE || (maskData == nodeMasksData.end() && includeLeaf == root))
+  // Check end() first: root leaf has no data in nodeMasksData
+  if ((maskData == nodeMasksData.end() && includeLeaf == root) || maskData->type == NodeMaskType::INCLUDE)
     addIncludeLeaf(panel, PID_NODE_MASKS_TREE, includeLeaf, tree->getCaption(includeLeaf));
   else if (maskData->type == NodeMaskType::MASK || maskData->type == NodeMaskType::LEAF)
   {
@@ -4059,10 +4219,14 @@ void AnimTreePlugin::removeNodeFromNodeMasksTree(PropPanel::ContainerPropertyCon
             const int nodeNid = node->getNameId("node");
             for (int j = 0; j < node->paramCount(); ++j)
               if (nodeNid == node->getParamNameId(j) && leafName == node->getStr(j))
+              {
                 node->removeParam(j);
+                break;
+              }
           }
           else
             props.removeBlock(i);
+          break;
         }
       }
     }
@@ -4072,6 +4236,9 @@ void AnimTreePlugin::removeNodeFromNodeMasksTree(PropPanel::ContainerPropertyCon
     panel->setText(PID_NODE_MASKS_NAME_FIELD, "");
   }
 
+  // erase in remove_include_tree_node/remove_childs_data_by_leaf shifts nodeMasksData, refetch maskData
+  maskData = find_data_by_handle(nodeMasksData, leaf);
+  G_ASSERTF(maskData != nodeMasksData.end(), "Data for leaf <%s> should exist, only its childs were removed", tree->getCaption(leaf));
   nodeMasksData.erase(maskData);
   saveProps(props, fullPath);
   selectedChangedNodeMasksTree(panel);
@@ -4329,8 +4496,14 @@ void AnimTreePlugin::removeBlendNodeOrA2d(PropPanel::ContainerPropertyControl *t
   if (!nodeLeaf)
     return;
 
-  DataBlock *settings = get_selected_bnl_settings(*props, tree->getCaption(nodeLeaf), a2dIdx);
+  // call only for get a2dIdx
+  get_selected_bnl_settings(*props, tree->getCaption(nodeLeaf), a2dIdx);
   DataBlock *a2dBlk = props->getBlock(a2dIdx);
+  if (!a2dBlk)
+  {
+    logerr("Can't find a2d block for node <%s>", tree->getCaption(nodeLeaf));
+    return;
+  }
 
   TLeafHandle parent = tree->getParentLeaf(leaf);
   // First case is selected a2d node or it's collapsed a2d node with only 1 child
@@ -4637,7 +4810,10 @@ void AnimTreePlugin::saveSettingsAnimNodesTree(PropPanel::ContainerPropertyContr
       if (data != blendNodesData.end())
         data->type = type;
       else
-        logerr("Can't find and update data for blend node with name: %s", oldName);
+      {
+        G_ASSERT_FAIL("Can't find and update data for blend node with name: %s", oldName);
+        return;
+      }
 
       const char *newName = settings->getStr("name");
       if (oldName != newName)
@@ -4924,10 +5100,9 @@ void AnimTreePlugin::validateDependentNodes(PropPanel::ContainerPropertyControl 
   {
     if (ctrlData.type != ctrl_type_paramSwitch && ctrlData.type != ctrl_type_paramSwitchS)
       continue;
-    bool isProcChild = false;
     DataBlock props;
     String fullPath;
-    DataBlock *settings = findCtrlSettings(ctrlsTree, ctrlData.handle, ctrlData.type, props, fullPath, isProcChild);
+    DataBlock *settings = findCtrlSettings(ctrlsTree, ctrlData.handle, ctrlData.type, props, fullPath);
     if (!settings)
       continue;
     const DataBlock *morphTimes = settings->getBlockByName("morphTimes");
@@ -4941,49 +5116,53 @@ void AnimTreePlugin::validateDependentNodes(PropPanel::ContainerPropertyControl 
     wingw::message_box(wingw::MBS_INFO, "All nodes checked", "All child nodes have correct indices");
 }
 
+template <typename T>
+static bool is_selected_leaf_dependent(PropPanel::ContainerPropertyControl *tree, dag::Vector<T> &data_container,
+  dag::ConstSpan<int> dependent_nodes)
+{
+  PropPanel::TLeafHandle leaf = tree->getSelLeaf();
+  if (!leaf)
+    return false;
+
+  const T *data = find_data_by_handle(data_container, leaf);
+  if (data == data_container.end())
+    return false;
+
+  const int dataIdx = eastl::distance(data_container.cbegin(), data);
+  for (int idx : dependent_nodes)
+    if (idx == dataIdx)
+      return true;
+
+  return false;
+}
+
 void AnimTreePlugin::updateSelectedDependentCtrl(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<int> dependent_ctrls)
 {
   PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-  PropPanel::TLeafHandle leaf = ctrlsTree->getSelLeaf();
-  if (leaf)
+  if (!is_selected_leaf_dependent(ctrlsTree, controllersData, dependent_ctrls))
+    return;
+
+  const int selectedListIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  fillCtrlsSettings(panel);
+  if (selectedListIdx > 0)
   {
-    AnimCtrlData *data = find_data_by_handle(controllersData, leaf);
-    const int dataIdx = eastl::distance(controllersData.begin(), data);
-    for (int idx : dependent_ctrls)
-      if (idx == dataIdx)
-      {
-        const int selectedListIdx = panel->getInt(PID_CTRLS_NODES_LIST);
-        fillCtrlsSettings(panel);
-        if (selectedListIdx > 0)
-        {
-          panel->setInt(PID_CTRLS_NODES_LIST, selectedListIdx);
-          setSelectedCtrlNodeListSettings(panel);
-        }
-        break;
-      }
+    panel->setInt(PID_CTRLS_NODES_LIST, selectedListIdx);
+    setSelectedCtrlNodeListSettings(panel);
   }
 }
 
 void AnimTreePlugin::updateSelectedDependentState(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<int> dependent_states)
 {
   PropPanel::ContainerPropertyControl *statesTree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
-  PropPanel::TLeafHandle leaf = statesTree->getSelLeaf();
-  if (leaf)
+  if (!is_selected_leaf_dependent(statesTree, statesData, dependent_states))
+    return;
+
+  const int selectedListIdx = panel->getInt(PID_STATES_NODES_LIST);
+  selectedChangedAnimStatesTree(panel);
+  if (selectedListIdx > 0)
   {
-    AnimStatesData *data = find_data_by_handle(statesData, leaf);
-    const int dataIdx = eastl::distance(statesData.begin(), data);
-    for (int idx : dependent_states)
-      if (idx == dataIdx)
-      {
-        const int selectedListIdx = panel->getInt(PID_STATES_NODES_LIST);
-        selectedChangedAnimStatesTree(panel);
-        if (selectedListIdx > 0)
-        {
-          panel->setInt(PID_STATES_NODES_LIST, selectedListIdx);
-          setSelectedStateNodeListSettings(panel);
-        }
-        break;
-      }
+    panel->setInt(PID_STATES_NODES_LIST, selectedListIdx);
+    setSelectedStateNodeListSettings(panel);
   }
 }
 
@@ -5012,11 +5191,11 @@ DependentNodesResult AnimTreePlugin::checkDependentNodes(PropPanel::ContainerPro
   int dialogResult = PropPanel::DIALOG_ID_NONE; // default value in case if we don't have any dependency
   if (dependentCtrls.size() + dependentStates.size() > 0)
   {
+    PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+    PropPanel::ContainerPropertyControl *statesTree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
     // We can't update dependent nodes properly if suffix has changed
     if (get_node_mask_suffix_from_name(new_name) != get_node_mask_suffix_from_name(old_name.c_str()))
     {
-      PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
-      PropPanel::ContainerPropertyControl *statesTree = panel->getById(PID_ANIM_STATES_TREE)->getContainer();
       wingw::message_box(wingw::MBS_INFO, "Node suffix changed",
         "You have changed node name with %d dependent nodes. Need update child name manualy, see dependent nodes name in logs",
         dependentCtrls.size() + dependentStates.size());
@@ -5034,10 +5213,20 @@ DependentNodesResult AnimTreePlugin::checkDependentNodes(PropPanel::ContainerPro
     }
     else
     {
+      // Warn only when prop panel really will be refilled, see updateSelectedDependentCtrl/updateSelectedDependentState
+      const bool selectedCtrlDependent = is_selected_leaf_dependent(ctrlsTree, controllersData, dependentCtrls);
+      const bool selectedStateDependent = is_selected_leaf_dependent(statesTree, statesData, dependentStates);
+      const char *warning = "";
+      if (selectedCtrlDependent && selectedStateDependent)
+        warning = "\nWarning: selected controller and state prop panel will be updated.";
+      else if (selectedCtrlDependent)
+        warning = "\nWarning: selected controller prop panel will be updated.";
+      else if (selectedStateDependent)
+        warning = "\nWarning: selected state prop panel will be updated.";
+
       const int mbResult = wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, "Node name changed",
-        "You have changed node name with %d dependent nodes. Do you want to update child name in other nodes?\n"
-        "Warning: selected dependent controller or state can be updated in prop panel.",
-        dependentCtrls.size() + dependentStates.size());
+        "You have changed node name with %d dependent nodes. Do you want to update child name in other nodes?%s",
+        dependentCtrls.size() + dependentStates.size(), warning);
       if (mbResult == wingw::MB_ID_YES)
         dialogResult = PropPanel::DIALOG_ID_YES;
       else if (mbResult == wingw::MB_ID_NO)
@@ -5079,7 +5268,7 @@ static TLeafHandle find_enum_handle_by_name(PropPanel::ContainerPropertyControl 
   return nullptr;
 }
 
-static void update_depedndent_states_tree_child_names(PropPanel::ContainerPropertyControl *tree, dag::ConstSpan<AnimStatesData> states,
+static void update_dependent_states_tree_child_names(PropPanel::ContainerPropertyControl *tree, dag::ConstSpan<AnimStatesData> states,
   dag::ConstSpan<int> dependent_states, DataBlock *state_desc, DataBlock *init_anim_state, const char *name, const String &old_name,
   dag::Vector<int> &dependent_enum_items)
 {
@@ -5140,11 +5329,9 @@ void AnimTreePlugin::proccesDependentNodes(PropPanel::ContainerPropertyControl *
 
   for (int idx : result.dependentCtrls)
   {
-    bool isProcChild = false;
     DataBlock props;
     String fullPath;
-    DataBlock *settings =
-      findCtrlSettings(ctrlsTree, controllersData[idx].handle, controllersData[idx].type, props, fullPath, isProcChild);
+    DataBlock *settings = findCtrlSettings(ctrlsTree, controllersData[idx].handle, controllersData[idx].type, props, fullPath);
     if (settings)
     {
       switch (controllersData[idx].type)
@@ -5164,7 +5351,14 @@ void AnimTreePlugin::proccesDependentNodes(PropPanel::ContainerPropertyControl *
               enumRootProps = propsState.addBlock("initAnimState")->addBlock("enum");
             }
             const char *enumName = settings->getBlockByName("nodes")->getStr("enum_gen");
-            DataBlock *enumProps = enumRootProps->getBlockByName(enumName);
+            DataBlock *enumProps = enumRootProps ? enumRootProps->getBlockByName(enumName) : nullptr;
+            if (!enumProps)
+            {
+              logerr("Can't find enum <%s> from enum_gen declared in paramSwitch controller <%s>, childs in this enum are not "
+                     "renamed",
+                enumName, settings->getStr("name", ""));
+              continue;
+            }
             TLeafHandle enumLeaf = find_enum_handle_by_name(statesTree, getEnumsRootLeaf(statesTree), enumName);
             dag::Vector<int> dependentItemsIdxs;
             param_switch_update_enum_gen_child_name(*enumProps, settings->getStr("name", ""), name, old_name, dependentItemsIdxs);
@@ -5210,7 +5404,7 @@ void AnimTreePlugin::proccesDependentNodes(PropPanel::ContainerPropertyControl *
     DataBlock props = getPropsAnimStates(panel, *stateDescData, fullPath);
     DataBlock *stateDesc = props.getBlockByName("stateDesc");
     DataBlock *initAnimState = props.addBlock("initAnimState");
-    update_depedndent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, initAnimState, name, old_name,
+    update_dependent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, initAnimState, name, old_name,
       dependentEnumItems);
     saveProps(props, fullPath);
   }
@@ -5232,7 +5426,7 @@ void AnimTreePlugin::proccesDependentNodes(PropPanel::ContainerPropertyControl *
       initAnimStateProps = getPropsAnimStates(panel, *initAnimStateData, fullPathInitAnimState);
       initAnimState = initAnimStateProps.addBlock("initAnimState");
     }
-    update_depedndent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, initAnimState, name, old_name,
+    update_dependent_states_tree_child_names(statesTree, statesData, result.dependentStates, stateDesc, initAnimState, name, old_name,
       dependentEnumItems);
     if (stateDescData)
       saveProps(stateDescProps, stateDescFullPath);

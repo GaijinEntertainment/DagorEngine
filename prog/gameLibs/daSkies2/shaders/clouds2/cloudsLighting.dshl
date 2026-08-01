@@ -4,6 +4,10 @@ float clouds_forward_eccentricity = 0.8;
 float clouds_back_eccentricity = -0.5;//clouds_back_eccentricity = -0.5 if we use constant lerp param.
 float clouds_forward_eccentricity_weight = 0.6;//frostbite uses 0.5 by default
 float clouds_ms_eccentricity_attenuation = 0.6;
+texture clouds_phase_lut;
+float clouds_droplet_diameter_um = 20;
+//droplet HG-fit folds ((1-w)(1-g^2)/4, (1-g)^2, 2g), set from C++; defaults mirror d = 20
+float4 clouds_droplet_phase_params = (0.0013488, 0.0000290512, 1.9892202, 0);
 
 macro CLOUDS_MULTIPLE_SCATTERING(code)
   //Multiple scattering, see Oz the great and volumetric or Frostbite clouds
@@ -39,7 +43,10 @@ macro CLOUDS_MULTIPLE_SCATTERING(code)
     clouds_ms_attenuation_param@f4 = (1/(clouds_ms_attenuation*clouds_ms_attenuation), 1/clouds_ms_attenuation, 0, ms_sigma.z);
     //for four octaves
     //clouds_ms_attenuation_param@f4 = (pow(clouds_ms_attenuation,-3), 1/(clouds_ms_attenuation*clouds_ms_attenuation), 1/clouds_ms_attenuation, ms_sigma.w);
+    clouds_phase_lut@smp2d = clouds_phase_lut;
+    clouds_droplet_phase_mul@f4 = (clouds_ms_contribution4_base.x, clouds_ms_contribution4_base.x*clouds_droplet_phase_params.x, clouds_droplet_phase_params.y, clouds_droplet_phase_params.z);
   }
+
   hlsl(code) {
       //number of octaves used in shader = 3
       #if NUMBER_OF_MS_OCTAVES == 3
@@ -63,10 +70,32 @@ macro CLOUDS_MULTIPLE_SCATTERING(code)
         return float_octaves(one_minus_g2_by_4pi*pow(h, -1.5));
         //return float_octaves(one_minus_g2_by_4pi/(h * h * rsqrt(h)));
       }
+      #include "clouds_droplet_phase.hlsli"
       float_octaves henyey_greenstein_optimized_multiple_scattering(float cos0)
       {
-        return (henyey_greenstein_optimized_multiple_octaves(one_plus_g2_ms_back .octaves_attributes, neg_2g_ms_back .octaves_attributes, one_minus_g2_by_4pi_ms_back .octaves_attributes, cos0) +
+        float_octaves phase =
+               (henyey_greenstein_optimized_multiple_octaves(one_plus_g2_ms_back .octaves_attributes, neg_2g_ms_back .octaves_attributes, one_minus_g2_by_4pi_ms_back .octaves_attributes, cos0) +
                 henyey_greenstein_optimized_multiple_octaves(one_plus_g2_ms_forw .octaves_attributes, neg_2g_ms_forw .octaves_attributes, one_minus_g2_by_4pi_ms_forw .octaves_attributes, cos0));
+        //measured water-droplet phase for the first scattering octave only: recovers
+        //fogbow, glory and silver-lining sharpening that dual-lobe HG cannot; higher
+        //octaves keep the attenuated HG (see gen_clouds_phase_lut.dshl).
+        //tc: acosFast (fast_shader_trig.hlsl, Eberly) with acos(x)/PI*(N-1)/N + 0.5/N
+        //folded into its constants; exact at both LUT ends (forward peak, glory) and the
+        //saturate keeps |cos0| slightly above 1 NaN-free, so no input clamp
+        #define PLUT_N float(CLOUDS_PHASE_LUT_SIZE)
+        float x = abs(cos0);
+        float a = (-0.156583/3.14159265*(PLUT_N-1.)/PLUT_N) * x + 0.5*(PLUT_N-1.)/PLUT_N;
+        a *= sqrt(saturate(1. - x));
+        float tc = cos0 >= 0 ? a + 0.5/PLUT_N : (PLUT_N-1.)/PLUT_N + 0.5/PLUT_N - a;//acos(-x) = PI - acos(x)
+        //the LUT stores only the w*Draine part: the (1-w)*HG(gHG) forward spike is far
+        //sub-texel (half-max 0.09 deg at d=50) and is exact analytically. t uses the
+        //(1-g)^2 + 2g*(1-cos0) form: 1+g^2-2g*cos0 cancels catastrophically at the peak.
+        //clouds_droplet_phase_mul = (lut scale, (1-w)(1-g^2)/4*scale, (1-g)^2, 2g); the
+        //droplet-fit factors are folded on the CPU (clouds_droplet_phase_params)
+        float t = clouds_droplet_phase_mul.z + clouds_droplet_phase_mul.w*max(1. - cos0, 0.);
+        float hgSpike = clouds_droplet_phase_mul.y * rsqrt(t) / t;
+        phase.x = tex2Dlod(clouds_phase_lut, float4(tc, 0.5, 0, 0)).x * clouds_droplet_phase_mul.x + hgSpike;
+        return phase;
       }
       float_octaves getMSExtinction(float lastExtinction)
       {

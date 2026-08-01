@@ -45,7 +45,6 @@ void AnimcharRenderMainJob::doJob()
   {
     for (int n = 1; n < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; n++)
       dynrend::merge_context(mainCtx->jobs[0].dynCtx, mainCtx->jobs[n].dynCtx);
-    dynrend::prepare_render_begin(mainCtx->jobs[0].dynCtx, mainCtx->viewTm, mainCtx->projTm);
     dynrend::prepare_render_finalize(mainCtx->jobs[0].dynCtx);
   }
 }

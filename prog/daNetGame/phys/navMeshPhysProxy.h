@@ -19,8 +19,6 @@ class NavMeshPhysProxy final : public IPhysBase
   float timeStep;
 
 public:
-  static void *vtblPtr;
-
   // Warn: for perfomace reasons dtor isn't called (and ctor might get called multiple times)
   NavMeshPhysProxy(ecs::EntityId target_eid, float dt);
   ~NavMeshPhysProxy() = delete;

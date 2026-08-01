@@ -6,8 +6,6 @@
 #include "dagor.h"
 #include "resource.h"
 
-// SimpleObject *SimpleObject::editOb=NULL;
-
 class LinkDummy : public SimpleObject
 {
 public:
@@ -31,30 +29,12 @@ public:
   int DoOwnSelectHilite() override { return 1; }
 
   CreateMouseCallBack *GetCreateMouseCallBack() override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *GetObjectName(bool localized = true) { return GetString(IDS_Dummy); }
-#else
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
-  const
-#endif
-    MCHAR *
-    GetObjectName()
-  {
-    return GetString(IDS_Dummy);
-  }
-#endif
   RefTargetHandle Clone(RemapDir &remap) override;
-
-  //	IOResult Load(ILoad *iload);
-  //	IOResult Save(ISave *iload);
 
   BOOL OKtoDisplay(TimeValue t) override;
   ParamDimension *GetParameterDim(int pbIndex) override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   MSTR GetParameterName(int pbIndex, bool localized) override { return MSTR(_T("???")); }
-#else
-  TSTR GetParameterName(int pbIndex) { return TSTR(_T("???")); }
-#endif
 
   void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev) override;
   void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) override;
@@ -120,8 +100,6 @@ int LinkDummy::Display(TimeValue t, INode *inode, ViewExp *vpt, int flags)
   GraphicsWindow *gw = vpt->getGW();
   DWORD rlim = gw->getRndLimits();
 
-  //	gw->setRndLimits(GW_WIREFRAME|GW_BACKCULL| (rlim&GW_Z_BUFFER?GW_Z_BUFFER:0) );
-
   gw->setTransform(ident);
   DrawIt(gw, t, inode, inode->Selected(), flags, vpt);
 
@@ -143,11 +121,7 @@ public:
   int IsPublic() override { return TRUE; }
   void *Create(BOOL loading = FALSE) override { return new LinkDummy(); }
   const TCHAR *ClassName() override { return GetString(IDS_Dummy); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return GEOMOBJECT_CLASS_ID; }
   Class_ID ClassID() override { return Dummy_CID; }
   const TCHAR *Category() override { return GetString(IDS_DAGOR_CAT); }
@@ -173,37 +147,6 @@ LinkDummy::LinkDummy()
   assert(pblock);
   pblock->SetValue(PB_SIZE, 0, crtSize);
 }
-
-/*
-IOResult LinkDummy::Load(ILoad *io) {
-  io->RegisterPostLoadCallback(
-    new ParamBlockPLCB(NULL,0,&curVersion,this,0));
-  char *str;
-  while(io->OpenChunk()==IO_OK) {
-    switch(io->CurChunkID()) {
-      case CH_NAME:
-        if(io->ReadCStringChunk(&str)!=IO_OK) return IO_ERROR;
-        memset(name,0,sizeof(name));
-        strncpy(name,str,sizeof(name)-1);
-        break;
-    }
-    io->CloseChunk();
-  }
-  if(editOb==this) if(edname) edname->SetText(name);
-  return IO_OK;
-}
-
-IOResult LinkDummy::Save(ISave *io) {
-  if(editOb==this) if(edname) {
-    edname->GetText(name,sizeof(name));
-    ivalid=NEVER;
-  }
-  io->BeginChunk(CH_NAME);
-  if(io->WriteCString(name)!=IO_OK) return IO_ERROR;
-  io->EndChunk();
-  return IO_OK;
-}
-*/
 
 void LinkDummy::BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev)
 {
@@ -318,9 +261,7 @@ RefTargetHandle LinkDummy::Clone(RemapDir &remap)
   LinkDummy *newob = new LinkDummy();
   newob->ReplaceReference(0, pblock->Clone(remap));
   newob->ivalid.SetEmpty();
-#if MAX_RELEASE >= 4000
   BaseClone(this, newob, remap);
-#endif
   return (newob);
 }
 

@@ -74,8 +74,10 @@ class Module {
 
   // A source file.
   struct File {
+    explicit File(const string &name_input) : name(name_input), source_id(0) {}
+
     // The name of the source file.
-    string name;
+    const string name;
 
     // The file's source id.  The Write member function clears this
     // field and assigns source ids a fresh, so any value placed here
@@ -85,6 +87,9 @@ class Module {
 
   // A function.
   struct Function {
+    Function(const string &name_input, const Address &address_input) :
+        name(name_input), address(address_input), size(0), parameter_size(0) {}
+
     // For sorting by address.  (Not style-guide compliant, but it's
     // stupid not to put this in the struct.)
     static bool CompareByAddress(const Function *x, const Function *y) {
@@ -92,10 +97,11 @@ class Module {
     }
 
     // The function's name.
-    string name;
+    const string name;
 
     // The start address and length of the function's code.
-    Address address, size;
+    const Address address;
+    Address size;
 
     // The function's parameter size.
     Address parameter_size;
@@ -120,7 +126,8 @@ class Module {
 
   // An exported symbol.
   struct Extern {
-    Address address;
+    explicit Extern(const Address &address_input) : address(address_input) {}
+    const Address address;
     string name;
   };
 

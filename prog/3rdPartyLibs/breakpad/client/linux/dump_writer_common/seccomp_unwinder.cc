@@ -44,8 +44,8 @@ void SeccompUnwinder::PopSeccompStackFrame(RawContextCPU* cpu,
   uint64_t top = thread.stack.start_of_memory_range;
   for (int i = 4; i--; ) {
     if (bp < top ||
-        bp + sizeof(bp) > thread.stack.start_of_memory_range +
-        thread.stack.memory.data_size ||
+        bp > thread.stack.start_of_memory_range +
+        thread.stack.memory.data_size - sizeof(bp) ||
         bp & 1) {
       break;
     }
@@ -107,8 +107,8 @@ void SeccompUnwinder::PopSeccompStackFrame(RawContextCPU* cpu,
   uint32_t top = thread.stack.start_of_memory_range;
   for (int i = 4; i--; ) {
     if (bp < top ||
-        bp + sizeof(bp) > thread.stack.start_of_memory_range +
-        thread.stack.memory.data_size ||
+        bp > thread.stack.start_of_memory_range +
+        thread.stack.memory.data_size - sizeof(bp) ||
         bp & 1) {
       break;
     }

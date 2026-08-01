@@ -16,13 +16,13 @@ static inline void mark_all_dirty_ecs_query(ecs::EntityManager &manager, Cb cb);
 struct ComponentFiltersHelper
 {
   typedef decltype(net::Object::filteredComponentsBits) object_filter_t;
-  static void mark_some_objects_as_dirty(object_filter_t mask);
+  static void mark_some_objects_as_dirty(ecs::EntityManager &mgr, object_filter_t mask);
 };
 
-void ComponentFiltersHelper::mark_some_objects_as_dirty(object_filter_t mask)
+void ComponentFiltersHelper::mark_some_objects_as_dirty(ecs::EntityManager &mgr, object_filter_t mask)
 {
-  mark_all_dirty_ecs_query(*g_entity_mgr, [mask](net::Object &replication) // todo: filteredComponentsBits should be component
-                                                                           // (improves cache friendliness)!
+  mark_all_dirty_ecs_query(mgr, [mask](net::Object &replication) // todo: filteredComponentsBits should be component
+                                                                 // (improves cache friendliness)!
     {
       if ((replication.filteredComponentsBits & mask) != 0)
       {
@@ -32,10 +32,13 @@ void ComponentFiltersHelper::mark_some_objects_as_dirty(object_filter_t mask)
     });
 }
 
-void mark_some_objects_as_dirty(uint32_t mask)
+void mark_some_objects_as_dirty(ecs::EntityManager &mgr, uint32_t mask)
 {
-  ComponentFiltersHelper::mark_some_objects_as_dirty(ComponentFiltersHelper::object_filter_t(mask));
+  ComponentFiltersHelper::mark_some_objects_as_dirty(mgr, ComponentFiltersHelper::object_filter_t(mask));
 }
-void mark_all_objects_as_dirty() { ComponentFiltersHelper::mark_some_objects_as_dirty(~ComponentFiltersHelper::object_filter_t(0)); }
+void mark_all_objects_as_dirty(ecs::EntityManager &mgr)
+{
+  ComponentFiltersHelper::mark_some_objects_as_dirty(mgr, ~ComponentFiltersHelper::object_filter_t(0));
+}
 
 }; // namespace net

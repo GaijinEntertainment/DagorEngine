@@ -42,6 +42,10 @@ Picture::~Picture()
 IGuiScene *Picture::getScene() const { return guiScene; }
 
 
+// Reads pic directly instead of getPic(): must not kick the lazy load from observers.
+bool Picture::isContentReady() const { return !isLoading() && PictureManager::is_picture_content_ready(pic.pic); }
+
+
 const PictureManager::PicDesc &Picture::getPic()
 {
   if (!nameToLoadOnDemand.empty())
@@ -51,6 +55,27 @@ const PictureManager::PicDesc &Picture::getPic()
   }
 
   return pic;
+}
+
+
+void Picture::finishPrefetch()
+{
+  if (pic.pic == BAD_PICTUREID)
+    return;
+
+  Point2 tcLt, tcRb;
+  PictureManager::get_picture_data(pic.pic, tcLt, tcRb);
+}
+
+
+bool Picture::prefetch()
+{
+  getPic();
+
+  prefetchPending = isLoading();
+  if (!prefetchPending)
+    finishPrefetch();
+  return prefetchPending;
 }
 
 
@@ -165,6 +190,12 @@ void Picture::onLoaded(PICTUREID pid, TEXTUREID tid, d3d::SamplerHandle smp, con
   {
     lazy = true;
     init(srcName);
+    // a load started here would be aborted too, the next getPic() retries
+  }
+  else if (prefetchPending)
+  {
+    prefetchPending = false;
+    finishPrefetch();
   }
 }
 

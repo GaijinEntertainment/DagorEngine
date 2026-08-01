@@ -126,6 +126,9 @@ bool update_bindless_resource(D3DResourceType type, uint32_t index, D3dResource 
  *
  * Shader access to those slots will read all zeros and writes will be discarded.
  *
+ * Thread-safe: drivers serialize internally, callers do not need to hold any lock.
+ * Requires 'caps.hasBindless == true' (contract assert otherwise).
+ *
  * \note We guarantee that draw calls and dispatch calls will see the result of the last update in the current frame
  * (before flush or update_screen) after the update call returns. The descriptor value after intermediate update calls
  * is undefined behavior and differs between platforms.

@@ -53,6 +53,10 @@ namespace rendinst
 struct PrepareRiGenVisibilityParams;
 }
 typedef void *file_ptr_t;
+namespace rendinst::gen
+{
+struct RiGenCellCtx;
+}
 namespace rendinst::gen::land
 {
 class AssetData;
@@ -211,6 +215,7 @@ struct RendInstGenData
 #endif
     SmallTab<PregenEntCounter, MidmemAlloc> entCntForOldFmt;
     void *entCntOldPtr = nullptr;
+    SimpleString levelBinName;
 
   public:
     RtData(int layer_idx);
@@ -395,6 +400,11 @@ struct RendInstGenData
     CellPoolsVec pools;
     LinearHeapAllocatorSbuffer::RegionId cellVbId;
     float cellHeight = 0.f;
+    static constexpr uint32_t BYTES_PER_UNIQUE_ID = sizeof(int16_t);
+    static constexpr uint64_t UNIQUE_ID_INVALID = 0;
+    uint64_t uniqueIdBase = 0;
+    uint64_t getUniqueId(uint32_t sysMemDataOfs) const { return uniqueIdBase + sysMemDataOfs / BYTES_PER_UNIQUE_ID; }
+    uint32_t uniqueIdCount() const { return uint32_t(vbSize) / BYTES_PER_UNIQUE_ID; }
     enum
     {
       LOADED = 1,
@@ -563,21 +573,24 @@ public:
   static bool isLoading;
 
   static void (*riGenPrepareAddPregenCB)(CellRtData &crt, int layer_idx, int per_inst_data_dwords, float ox, float oy, float oz,
-    float cell_xz_sz, float cell_y_sz);
+    float cell_xz_sz, float cell_y_sz, bbox3f &cell_bbox);
   static CellRtData *(*riGenValidateGeneratedCell)(RendInstGenData *rgl, CellRtData *crt, int idx, int cx, int cz);
 
   void renderRendinstShadowsToClipmap(const BBox2 &region, int cascadeNo);
   bool notRenderedClipmapShadowsBBox(BBox2 &box, int cascadeNo);
   bool notRenderedStaticShadowsBBox(BBox3 &box);
+  bool notRenderedStaticShadowsBBoxes(Tab<BBox3> &boxes);
   void setClipmapShadowsRendered(int cacscadeNo);
   bool updateLClassColors(const char *name, E3DCOLOR from, E3DCOLOR to); // for tuning
   void clearDelayedRi();
   void updateHeapVbNoLock();
 
-  void generateRiExFromPregenData(int riex_idx, RendInstGenData::CellRtData &crt, vec3f v_cell_add, vec3f v_cell_mul, //
+  void generateRiExFromPregenData(rendinst::gen::RiGenCellCtx &ctx, int riex_idx, RendInstGenData::CellRtData &crt, vec3f v_cell_add,
+    vec3f v_cell_mul, //
     uint8_t *ptr, unsigned cnt, unsigned stride, bool zeroInstSeeds, const rendinst::DestroyedCellData &extraDestrData, bool store);
-  void processRiGenFromPregenData(int ri_idx, EntPool &pool, vec3f v_cell_add, vec3f v_cell_mul, uint8_t *ptr, unsigned cnt,
-    int stride, dag::ConstSpan<uint8_t> buf_tm32, dag::ConstSpan<uint8_t> buf_w16, uint8_t *vbPtr, bool from_RIGz);
+  void processRiGenFromPregenData(rendinst::gen::RiGenCellCtx &ctx, int ri_idx, EntPool &pool, vec3f v_cell_add, vec3f v_cell_mul,
+    uint8_t *ptr, unsigned cnt, int stride, dag::ConstSpan<uint8_t> buf_tm32, dag::ConstSpan<uint8_t> buf_w16, uint8_t *vbPtr,
+    bool from_RIGz);
 
   static RendInstGenData *getGenDataByLayer(const rendinst::RendInstDesc &desc);
 };
@@ -585,6 +598,7 @@ public:
 namespace rendinst
 {
 inline constexpr int MAX_PREGEN_RI = 16384; // no more than 65536 due to riex_handle_t limitations
+inline constexpr int MAX_RG_LAYERS = 16;
 
 struct RiGenDataAttr
 {
@@ -594,9 +608,9 @@ struct RiGenDataAttr
   bool needNetSync, render, depthShadows, clipmapShadows;
 };
 
-extern StaticTab<RendInstGenData *, 16> rgLayer; //< all riGen layers (primary & secondary), upto 16
-extern StaticTab<RiGenDataAttr, 16> rgAttr;      //< riGen layer attributes (parallel to rgLayer)
-extern unsigned rgPrimaryLayers;                 //< number of primary layers (primary layers go first in rgLayer)
+extern StaticTab<RendInstGenData *, MAX_RG_LAYERS> rgLayer; //< all riGen layers (primary & secondary), upto 16
+extern StaticTab<RiGenDataAttr, MAX_RG_LAYERS> rgAttr;      //< riGen layer attributes (parallel to rgLayer)
+extern unsigned rgPrimaryLayers;                            //< number of primary layers (primary layers go first in rgLayer)
 extern unsigned rgRenderMaskO; //< bitmask (for indices of rgLayer) used for render (opaque, depth shadows, clipmap shadows, ...)
 extern unsigned rgRenderMaskDS;
 extern unsigned rgRenderMaskCMS;

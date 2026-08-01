@@ -129,11 +129,13 @@ ResourceHeapGroupProperties NativeResourceAllocator::getResourceHeapGroupPropert
     // For an ESRAM heap, maxHeapSize in properties will contain
     // the size of the free ESRAM which is most likely zero if we already
     // allocated the ESRAM heap.
+    // ESRAM heaps never hold untracked buffers, so the tracked/untracked heap
+    // split never applies here and matching this group alone is exact.
     if (heapProp.isDedicatedFastGPULocal)
-      for (auto [group, size] : allocatedHeaps)
-        if (group == heap_group)
+      for (const auto &heap : allocatedHeaps)
+        if (heap.group == heap_group)
         {
-          heapProp.maxHeapSize = size;
+          heapProp.maxHeapSize = heap.size;
           break;
         }
     return heapProp;

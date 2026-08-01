@@ -9,7 +9,6 @@
 
 #include <gui/dag_stdGuiRenderEx.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include <math/dag_mathAng.h>
 #include <perfMon/dag_perfTimer.h>
 
@@ -21,13 +20,13 @@ static TEXTUREID compass_tid = BAD_TEXTUREID, compass_nesw_tid = BAD_TEXTUREID;
 static d3d::SamplerHandle compass_sampler = d3d::INVALID_SAMPLER_HANDLE;
 static d3d::SamplerHandle compass_nesw_sampler = d3d::INVALID_SAMPLER_HANDLE;
 
-static Point2 getCameraAngles()
+static Point2 getCameraAngles(const TMatrix &camera_tm)
 {
-  Point2 ang = dir_to_angles(::grs_cur_view.itm.getcol(2));
+  Point2 ang = dir_to_angles(camera_tm.getcol(2));
   if (ang.y > DegToRad(85))
-    ang.x = dir_to_angles(-::grs_cur_view.itm.getcol(1)).x;
+    ang.x = dir_to_angles(-camera_tm.getcol(1)).x;
   else if (ang.y < -DegToRad(85))
-    ang.x = dir_to_angles(::grs_cur_view.itm.getcol(1)).x;
+    ang.x = dir_to_angles(camera_tm.getcol(1)).x;
   return ang;
 }
 
@@ -122,7 +121,9 @@ void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
   IEditorCoreEngine::get()->showMessageAt();
   if (showCompass)
   {
-    Point3 toNorth = ::grs_cur_view.pos + Point3(0, 0, 50);
+    TMatrix cameraTm;
+    wnd->getCameraTransform(cameraTm);
+    Point3 toNorth = cameraTm.getcol(3) + Point3(0, 0, 50);
     Point2 cp;
 
     if (!wnd->isOrthogonal() && wnd->worldToClient(toNorth, cp))
@@ -154,7 +155,7 @@ void DagorEdAppEventHandler::handleViewportPaint(IGenViewportWnd *wnd)
 
 
     // render compass widget
-    Point2 ang = getCameraAngles();
+    Point2 ang = getCameraAngles(cameraTm);
     float alpha = -ang.x - HALFPI;
     Point2 c(vpW - _pxS(132) + _pxS(64), vpH - _pxS(132) + _pxS(64)), c2, ts;
     float r = _pxS(64);
@@ -239,7 +240,9 @@ bool DagorEdAppEventHandler::handleMouseLBPress(IGenViewportWnd *wnd, int x, int
     wnd->getViewportSize(vpW, vpH);
 
     // handle click to world directions on compass to set proper camera
-    Point2 ang = getCameraAngles();
+    TMatrix cameraTm;
+    wnd->getCameraTransform(cameraTm);
+    Point2 ang = getCameraAngles(cameraTm);
     Point2 c(vpW - 132 + 64 - x, vpH - 132 + 64 - y);
     for (int i = 0; i < 4; i++)
     {
@@ -249,7 +252,7 @@ bool DagorEdAppEventHandler::handleMouseLBPress(IGenViewportWnd *wnd, int x, int
       {
         ang.x = (i - 1) * HALFPI;
         wnd->setCameraDirection(angles_to_dir(ang), angles_to_dir(ang + Point2(0, HALFPI)));
-        wnd->setCameraPos(::grs_cur_view.itm.getcol(3));
+        wnd->setCameraPos(cameraTm.getcol(3));
         return true;
       }
     }

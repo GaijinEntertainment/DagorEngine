@@ -11,8 +11,6 @@ include "wetness_inc.dshl"
 include "triangle_size_debug.dshl"
 include "triangle_size_debug_lmesh.dshl"
 
-float4 camera_base_offset = (0, 0, 0, 0);
-
 shader land_mesh//, land_mesh_combined
 {
   assume allow_forced_in_editor = yes;
@@ -201,6 +199,18 @@ shader land_mesh//, land_mesh_combined
       USE_LAND_SHORE()
       USE_UAV_RENDERING_FEEDBACK()
       WRITE_GBUFFER()
+      if (in_editor == yes || use_editor_render)
+      {
+        INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+        (ps) {
+          heightmap_gradient_land_tex@tex2d = heightmap_gradient_land_tex;
+          heightmap_gradient_land_params@f4 = heightmap_gradient_land_params;
+          heightmap_show_gradient_land@i1 = heightmap_show_gradient_land;
+        }
+        hlsl(ps) {
+          #define heightmap_gradient_land_tex_samplerstate global_linear_wrap_sampler
+        }
+      }
     } else if (lmesh_rendering_mode == rendering_reflection)
     {
       supports land_mesh_with_clipmap_reflection;
@@ -332,6 +342,19 @@ shader land_mesh//, land_mesh_combined
   ## endif
 
         half3 diffuse = diffuseColor.rgb;
+
+        ##if (in_editor == yes || use_editor_render) && lmesh_rendering_mode == rendering_landmesh
+          BRANCH
+          if (heightmap_show_gradient_land != 0)
+          {
+            float gradientT = saturate((worldPos.y - heightmap_gradient_land_params.x) * heightmap_gradient_land_params.y);
+            // To make edge colors flat remap to texel centers, so bilinear filtering never reaches past the first/last texel.
+            const float gradientLandTexWidth = 256.0; // HeightmapDebugShading::TEXTURE_WIDTH
+            float gradientU = (gradientT * (gradientLandTexWidth - 1.0f) + 0.5) / gradientLandTexWidth;
+            diffuse.rgb = tex2Dlod(heightmap_gradient_land_tex, float4(gradientU, 0.5, 0, 0)).rgb;
+          }
+        ##endif
+
         //shadow = lerp(1, shadow, 1-combinedAmount);
         UnpackedGbuffer result;
         init_gbuffer(result);

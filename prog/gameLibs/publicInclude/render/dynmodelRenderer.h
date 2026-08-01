@@ -99,6 +99,8 @@ struct BasePerInstanceRenderData
 struct PerInstanceRenderData : public BasePerInstanceRenderData
 {
   dag::RelocatableFixedVector<Point4, NUM_GENERIC_PER_INSTANCE_PARAMS, true, framemem_allocator> params;
+  bool additionalDataAppended = false; // params are terminated by an additional-data block, adding anything after will result in
+                                       // malformed data
   PerInstanceRenderData() = default;
   PerInstanceRenderData(const struct AddedPerInstanceRenderData &o);
 };
@@ -109,6 +111,11 @@ struct AddedPerInstanceRenderData : public BasePerInstanceRenderData
   AddedPerInstanceRenderData() = default;
   AddedPerInstanceRenderData(const PerInstanceRenderData &o, dag::Vector<Point4> &extraParams);
 };
+
+// Appends an additional-data block (payload + 2-float4 metadata tail, see animCharRenderAdditionalData.h)
+// after the generic params, first zero-padding up to NUM_GENERIC_PER_INSTANCE_PARAMS if the caller pushed fewer
+void append_animchar_additional_data(PerInstanceRenderData &render_data,
+  const animchar_additional_data::AnimcharAdditionalDataView &additional_data);
 
 struct InstanceContextData
 {

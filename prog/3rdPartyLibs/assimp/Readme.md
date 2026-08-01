@@ -121,3 +121,8 @@ For the legal details, see the `LICENSE` file.
 
 ### Why this name ###
 Sorry, we're germans :-), no english native speakers ...
+
+### Vendoring note ###
+This directory vendors Open Asset Import Library (assimp), version 5.2.4,
+from https://github.com/assimp/assimp. Bundled `contrib/` sub-libraries
+(poly2tri, pugixml, utf8cpp) are documented separately in their own folders.

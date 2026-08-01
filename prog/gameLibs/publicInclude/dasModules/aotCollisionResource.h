@@ -9,6 +9,7 @@
 #include <dasModules/aotAnimchar.h>
 #include <dasModules/aotDagorMath.h>
 #include <dasModules/dasManagedTab.h>
+#include <util/dag_bitwise_cast.h>
 
 #include <ecs/anim/anim.h>
 #include <ecs/phys/collRes.h>
@@ -113,7 +114,7 @@ inline bool collres_get_node_capsule(const CollisionResource &collres, int node_
   return collres.getNodeCapsule(node_id, out);
 }
 inline const char *collres_get_node_name(const CollisionResource &collres, int node_id) { return collres.getNodeName(node_id); }
-inline const TMatrix &collres_get_node_tm(const CollisionResource &collres, int node_id) { return collres.getNodeTm(node_id); }
+inline TMatrix collres_get_node_tm(const CollisionResource &collres, int node_id) { return collres.getNodeTm(node_id); }
 inline float collres_get_node_max_tm_scale(const CollisionResource &collres, int node_id)
 {
   return collres.getNodeMaxTmScale(node_id);
@@ -134,8 +135,9 @@ inline void collres_get_collision_node_tm(const CollisionResource &collres, int 
   if (node == nullptr)
     context->throw_error_at(line_info, "No collision node found with id: %d", coll_node_id);
 
-  collres.getCollisionNodeTm(node, reinterpret_cast<const TMatrix &>(instance_tm), geom_node_tree,
-    reinterpret_cast<TMatrix &>(out_tm));
+  TMatrix res;
+  collres.getCollisionNodeTm(node, dag::bit_cast<TMatrix>(instance_tm), geom_node_tree, res);
+  out_tm = dag::bit_cast<das::float3x4>(res);
 }
 
 inline bool test_collres_intersection(const CollisionResource &col1, const das::float3x4 &tm1, const CollisionResource &col2,
@@ -172,7 +174,7 @@ template <typename TT>
 inline void collres_node_iterate_faces_T(const CollisionResource &collres, int node_idx, TT &&block, das::Context *,
   das::LineInfoArg *)
 {
-  collres.iterateNodeFaces(node_idx, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) { block(fi, (int)i0, (int)i1, (int)i2); });
+  collres.iterateNodeFaces(node_idx, [&](int fi, uint32_t i0, uint32_t i1, uint32_t i2) { block(fi, (int)i0, (int)i1, (int)i2); });
 }
 
 inline void collres_node_iterate_faces(const CollisionResource &collres, int node_idx,
@@ -182,7 +184,7 @@ inline void collres_node_iterate_faces(const CollisionResource &collres, int nod
   context->invokeEx(
     block, args, nullptr,
     [&](das::SimNode *code) {
-      collres.iterateNodeFaces(node_idx, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
+      collres.iterateNodeFaces(node_idx, [&](int fi, uint32_t i0, uint32_t i1, uint32_t i2) {
         args[0] = das::cast<int>::from(fi);
         args[1] = das::cast<int>::from((int)i0);
         args[2] = das::cast<int>::from((int)i1);

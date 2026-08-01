@@ -14,6 +14,7 @@ Sources =
   physMap.cpp
   physMatHtTex.cpp
   physMapLoad.cpp
+  physMapCompactDecals.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

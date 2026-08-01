@@ -1,7 +1,6 @@
 include "ssr_base.dshl"
 include "camera_in_camera.dshl"
 include "sky_polarization_filter_term_inc.dshl"
-include "dynamic_resolution.dshl"
 
 texture ssr_target_before_denoise;
 int ssr_denoiser_tile;
@@ -1076,7 +1075,7 @@ shader tile_ssr_compute
       half smoothness;
       unpack_material(screenCoord, normal, linear_roughness, smoothness);
 
-      float rawDepth = tex2Dlod(src_depth_tex, float4(curViewTc * current_dynamic_resolution_scale, 0, 0)).x;
+      float rawDepth = tex2Dlod(src_depth_tex, float4(curViewTc, 0, 0)).x;
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
       bool NEEDSSR = (linear_roughness < CALC_SSR_ROUGHNESS_THRESHOLD) && (w < 0.5*zn_zfar.y);
@@ -1247,7 +1246,7 @@ shader tile_ssr_compute
         if(NEEDSSR)
         {
           disocclusionWeightAtten = get_ssr_reprojection_with_weight(prev_globtm_no_ofs_psf, relativePixelTranslation, neighboorhoodVariance,
-            cameraToPoint, curViewTc * current_dynamic_resolution_scale, normal, linear_roughness, reflectionDistance, w, prevFrame, virtualWeight);
+            cameraToPoint, curViewTc, normal, linear_roughness, reflectionDistance, w, prevFrame, virtualWeight);
           //rougher surfaces should be more relaxed, to fight noise
           //todo: add pixel age, so we can more correctly fight noise
           const half roughnessWeightFactor = lerp(0.97h, 0.8h, exp2(-60*linear_roughness));

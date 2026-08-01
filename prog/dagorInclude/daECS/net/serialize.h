@@ -6,6 +6,15 @@
 
 #include <daECS/core/baseIo.h>
 
+class framemem_allocator;
+namespace eastl
+{
+template <typename T, typename A>
+class vector;
+template <typename A, typename T, typename C>
+class bitvector;
+} // namespace eastl
+
 namespace danet
 {
 class BitStream;
@@ -18,15 +27,16 @@ struct DataComponent;
 namespace net
 {
 
-struct InternedStrings;
+struct InternedStringsBase;
+struct InternedStringsRepl;
 class IConnection;
 
 struct BitstreamDeserializer final : public ecs::DeserializerCb
 {
   const danet::BitStream &bs;
   ecs::EntityManager &mgr;
-  InternedStrings *objectKeys = nullptr;
-  BitstreamDeserializer(ecs::EntityManager &mgr, const danet::BitStream &bs_, InternedStrings *keys = nullptr) :
+  InternedStringsRepl *objectKeys = nullptr;
+  BitstreamDeserializer(ecs::EntityManager &mgr, const danet::BitStream &bs_, InternedStringsRepl *keys = nullptr) :
     mgr(mgr), bs(bs_), objectKeys(keys)
   {}
   bool read(void *to, size_t sz_in_bits, ecs::component_type_t user_type) const override;
@@ -36,9 +46,13 @@ struct BitstreamSerializer final : public ecs::SerializerCb
 {
   danet::BitStream &bs;
   ecs::EntityManager &mgr;
-  InternedStrings *objectKeys = nullptr;
-  BitstreamSerializer(ecs::EntityManager &mgr, danet::BitStream &bs_, InternedStrings *keys = nullptr) :
-    mgr(mgr), bs(bs_), objectKeys(keys)
+  InternedStringsRepl *objectKeys = nullptr;
+  using ObjectKeysBitVector = eastl::bitvector<framemem_allocator, uint64_t, eastl::vector<uint64_t, framemem_allocator>>;
+  ObjectKeysBitVector *outObjectKeysUsed = nullptr;
+  BitstreamSerializer(ecs::EntityManager &mgr, danet::BitStream &bs_) : mgr(mgr), bs(bs_) {}
+  BitstreamSerializer(ecs::EntityManager &mgr, danet::BitStream &bs_, InternedStringsRepl *object_keys,
+    ObjectKeysBitVector *out_keys_used) :
+    mgr(mgr), bs(bs_), objectKeys(object_keys), outObjectKeysUsed(out_keys_used)
   {}
   void write(const void *from, size_t sz_in_bits, ecs::component_type_t user_type) override;
 };

@@ -51,6 +51,7 @@ int32_t Z_EXPORT PREFIX(inflateBackInit_)(PREFIX3(stream) *strm, int32_t windowB
     state->window = window;
     state->wnext = 0;
     state->whave = 0;
+    state->sane = 1;
     state->chunksize = functable.chunksize();
     return Z_OK;
 }

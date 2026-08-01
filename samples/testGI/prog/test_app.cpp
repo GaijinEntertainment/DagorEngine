@@ -37,6 +37,7 @@
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <3d/dag_texPackMgr2.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <3d/dag_texMgrTags.h>
 
 #include "test_main.h"
@@ -93,13 +94,14 @@
 #include <render/deferredRenderer.h>
 #include <render/downsampleDepth.h>
 #include <render/screenSpaceReflections.h>
-#include <render/lights/tileDeferredLighting.h>
 #include <render/preIntegratedGF.h>
 #include <render/viewVecs.h>
 #include <render/voxelization_target.h>
 #include <daSkies2/daSkies.h>
 #include <daSkies2/daSkiesToBlk.h>
 #include "de3_gui.h"
+#include <render/giVerifierCapture.h>
+#include <image/dag_exr.h>
 #include "de3_gui_dialogs.h"
 #include "de3_hmapTex.h"
 #include <render/motionVectorAccess.h>
@@ -132,6 +134,7 @@
 
 #include "de3_benchmark.h"
 #include "lruCollision.h"
+#include <rendInst/riCollisionDump.h>
 #include <render/toroidal_update.h>
 #include <profileEventsGUI/profileEventsGUI.h>
 #include <scene/dag_visibility.h>
@@ -308,8 +311,6 @@ CONSOLE_BOOL_VAL("render", stop_camera, false);
 CONSOLE_INT_VAL("render", gf_frames, 128, 1, 512);
 CONSOLE_BOOL_VAL("render", gi_reset, false);
 CONSOLE_BOOL_VAL("render", ssao_blur, true);
-CONSOLE_BOOL_VAL("render", bnao_blur, true);
-CONSOLE_BOOL_VAL("render", bent_cones, true);
 CONSOLE_BOOL_VAL("render", dynamic_lights, true);
 CONSOLE_BOOL_VAL("render", invalidate_dynamic_shadows, false);
 CONSOLE_BOOL_VAL("render", taa, false);
@@ -342,8 +343,8 @@ ConVarI sleep_msec_val("sleep_msec", 0, 0, 1000, NULL);
 
 struct IRenderDynamicCubeFace2
 {
-  virtual void renderLightProbeOpaque() = 0;
-  virtual void renderLightProbeEnvi() = 0;
+  virtual void renderLightProbeOpaque(const TMatrix &view_tm, const TMatrix4 &proj_tm) = 0;
+  virtual void renderLightProbeEnvi(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp) = 0;
 };
 
 class RenderDynamicCube
@@ -383,8 +384,9 @@ public:
     for (int i = 0; i < 6; ++i)
     {
       target->setRt();
+      const Driver3dPerspective persp(1, 1, zn, zf, 0, 0);
       TMatrix4 projTm;
-      d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0), &projTm);
+      d3d::setpersp(persp, &projTm);
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
       cameraMatrix.setcol(3, pos);
       TMatrix viewTm = orthonormalized_inverse(cameraMatrix);
@@ -392,12 +394,12 @@ public:
 
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 
-      cb.renderLightProbeOpaque();
+      cb.renderLightProbeOpaque(viewTm, projTm);
       target->resolve(shadedTarget.getTex2D(), viewTm, projTm);
       d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{shadedTarget.getTex2D(), 0, 0}});
 
       // d3d::clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0, 0, 0);
-      cb.renderLightProbeEnvi();
+      cb.renderLightProbeEnvi(viewTm, projTm, persp);
       // save_rt_image_as_tga(shadedTarget.getTex2D(), String(128, "cube%s.tga", i));
 
       d3d::set_render_target({}, DepthAccess::RW, {{cubeTarget->getCubeTex(), 0, static_cast<uint32_t>(i)}});
@@ -465,6 +467,8 @@ CONSOLE_FLOAT_VAL_MINMAX("render", world_sdf_rasterize_supersample, 1, 1, 4);
 
 static bool screenshotRequested = false;
 static String screenshotFilename;
+static bool verifyCaptureRequested = false; // app.save_verify_capture: giVerifier replay input
+static String verifyCaptureDir;
 
 namespace bvh
 {
@@ -477,6 +481,21 @@ void add_mesh(ContextId context_id, uint64_t mesh_id, const MeshInfo &info)
 }
 } // namespace bvh
 
+
+// giVerifierCapture hands the env plane over rather than encoding it, so the
+// EXR dependency stays with the app that wants EXRs (see render/giVerifierCapture.h)
+static bool write_verify_env_exr(const char *path, const uint16_t *rgba16f, int w, int h)
+{
+  Tab<uint16_t> planes[3];
+  for (int c = 0; c < 3; ++c)
+    planes[c].resize(w * h);
+  for (int i = 0; i < w * h; ++i)
+    for (int c = 0; c < 3; ++c)
+      planes[c][i] = rgba16f[i * 4 + c];
+  uint8_t *planePtrs[3] = {(uint8_t *)planes[2].data(), (uint8_t *)planes[1].data(), (uint8_t *)planes[0].data()};
+  const char *planeNames[3] = {"B", "G", "R"};
+  return save_exr(path, planePtrs, w, h, 3, w * sizeof(uint16_t), planeNames, String("verify env"));
+}
 
 class DemoGameScene final : public DagorGameScene, public IRenderDynamicCubeFace2, public ICascadeShadowsClient
 {
@@ -638,6 +657,7 @@ public:
   }
 
   BBox3 sceneBox, levelBox;
+  BBox3 loadedLevelBox; // bin scene bounds only (levelBox also merges collision bounds)
 
   int giUpdatePosFrameCounter = 1;
   enum
@@ -993,7 +1013,7 @@ public:
 
       denoiser::TexInfoMap textures;
 
-      ::denoiser::get_required_persistent_texture_descriptors(textures, false);
+      ::denoiser::get_required_persistent_texture_descriptors(textures, false, false, false);
       ::rtsm::get_required_persistent_texture_descriptors(textures);
       ::rtsm::get_required_transient_texture_descriptors(textures);
 
@@ -1024,100 +1044,139 @@ public:
       if (riCollision.fileHandle)
       {
         swrt.init();
-        auto &cb = riCollision;
-        cb.readInt();
         struct Mesh
         {
-          dag::Vector<uint16_t> indices;
+          dag::Vector<uint16_t> indices;   // non-wide records
+          dag::Vector<uint32_t> indices32; // wide (>65535 vert) records
           dag::Vector<Point3> vertices;
           int lruIdx = 0;
           int instCount = 0;
+          bool wide = false;
         };
         dag::Vector<Mesh> meshes;
         meshes.reserve(lruColl.count);
         swrt.reserveAddInstances(lruColl.count);
 
-        for (int i = 0; cb.tell() < cb.getTargetDataSize(); ++i)
+        // Instance transforms were already read by lruColl.load above, so skip
+        // their payload here and just keep the per-record count in lockstep.
+        struct SwrtHandler
         {
-          Mesh &m = meshes.push_back();
-          m.lruIdx = i;
-          m.indices.resize(cb.readInt());
-          cb.read(m.indices.begin(), m.indices.size() * sizeof(*m.indices.data()));
-          m.vertices.resize(cb.readInt());
-          cb.read(m.vertices.begin(), m.vertices.size() * sizeof(*m.vertices.data()));
-          m.instCount = cb.readInt();
-          G_ASSERT(lruColl.instances.size() > i && lruColl.instances[i].size() == m.instCount);
-          cb.seekrel(sizeof(mat43f) * m.instCount);
-        }
-
-        // File I/O was sequential; BLAS build dispatches across workers. Per-worker
-        // RenderSWRT::buildBLAS does not touch shared SWRT state, only the addBuiltModel +
-        // addInstance handoff runs under the spinlock.
-        WinCritSec addLock;
-        modelIndex.resize(meshes.size(), -1);
-
-        // Default threadpool size is ~N_cores-3 (61 on this box); at that many workers
-        // the single addBuiltModel critical section starves the builders. Cap at 32: a
-        // sweep on this 7815-mesh scene is flat from ~16..48 once the per-worker
-        // transient allocations go through framemem, so 32 is just a picked round.
-        threadpool::parallel_for_inline(
-          0, (uint32_t)meshes.size(), 64,
-          [&](uint32_t tbegin, uint32_t tend, uint32_t worker_id) {
-            Tab<Point3_vec4> verts4(framemem_ptr());
-            for (uint32_t mi = tbegin; mi < tend; ++mi)
+          dag::Vector<Mesh> &meshes;
+          const LRUCollision &lruColl;
+          Mesh *cur = nullptr;
+          bool wantMesh(int recordIdx, bool wide)
+          {
+            cur = &meshes.push_back();
+            cur->lruIdx = recordIdx;
+            cur->wide = wide;
+            return true;
+          }
+          void *indexBuffer(int count, bool wide)
+          {
+            if (wide)
             {
-              const Mesh &m = meshes[mi];
-              bool anyQualifying = false;
-              for (int j = 0; j < m.instCount; ++j)
-                if (v_extract_w(lruColl.instancesSph[m.lruIdx][j]) >= minSWRTRadius)
-                {
-                  anyQualifying = true;
-                  break;
-                }
-              if (!anyQualifying)
-                continue;
-
-              verts4.resize(m.vertices.size());
-              for (int j = 0, n = (int)m.vertices.size(); j < n; ++j)
-                verts4[j] = m.vertices[j];
-
-              static const float dimAsBoxMin = 2.f, dimAsBoxMax = 16.f;
-              daSWRT::BuiltBLAS built =
-                RenderSWRT::buildBLAS(m.indices.data(), (int)m.indices.size(), verts4.data(), (int)verts4.size(), dimAsBoxMax);
-
-              // Score box-resemblance on the SWRT BuiltBLAS itself (FP16-encoded tree).
-              // `isBox()` meshes are already perfect boxes; skip and count separately.
-              if (!built.isBox())
-              {
-                float boxLike = daSWRT::computeBlasBoxResemblanceVoxel(built.data.data(), 0, (int)built.treeBytes, built.box,
-                  daSWRT::BlasBoxEncoding::Fp16);
-                // Empirical calibration toward MC-yaw (fitted on this scene, 111 meshes).
-                // Pow law is the only single-param family that pins (0,0) and (1,1).
-                boxLike = powf(boxLike, 1.5f);
-                built.dimAsBoxDist = lerp(dimAsBoxMax, dimAsBoxMin, boxLike);
-              }
-
-              WinAutoLock lk(addLock);
-              modelIndex[mi] = swrt.addBuiltModel(eastl::move(built));
+              cur->indices32.resize(count);
+              return cur->indices32.data();
             }
-          },
-          32);
+            cur->indices.resize(count);
+            return cur->indices.data();
+          }
+          Point3 *vertexBuffer(int count)
+          {
+            cur->vertices.resize(count);
+            return cur->vertices.data();
+          }
+          mat43f *instanceBuffer(int count)
+          {
+            cur->instCount = count;
+            return nullptr;
+          }
+          void endMesh(int recordIdx, bool, int, int, int)
+          {
+            G_ASSERT(lruColl.instances.size() > recordIdx && lruColl.instances[recordIdx].size() == cur->instCount);
+            G_UNUSED(recordIdx);
+          }
+        } handler{meshes, lruColl};
+        const bool dumpOk = read_ri_collision_dump(riCollision, handler);
+        if (!dumpOk)
+          logerr("ri_collisions: corrupt or truncated collision dump; skipping SWRT build");
 
-        // Merge per-worker stats and log a single summary line.
-        for (uint32_t mi = 0; mi < meshes.size(); ++mi)
+        // modelIndex is record-parallel (one slot per lruColl record, -1 == no SWRT model):
+        // remakeSWRTInstances indexes it by record, and dropped records stay -1.
+        modelIndex.assign(lruColl.instances.size(), -1);
+
+        if (dumpOk)
         {
-          int modelId = modelIndex[mi];
-          if (modelId < 0)
-            continue;
-          const Mesh &m = meshes[mi];
-          for (int j = 0; j < m.instCount; ++j)
-            if (v_extract_w(lruColl.instancesSph[m.lruIdx][j]) >= minSWRTRadius)
-              swrt.addInstance(modelId, lruColl.instances[m.lruIdx][j]);
+          // File I/O was sequential; BLAS build dispatches across workers. Per-worker
+          // RenderSWRT::buildBLAS does not touch shared SWRT state, only the addBuiltModel +
+          // addInstance handoff runs under the spinlock.
+          WinCritSec addLock;
+
+          // Default threadpool size is ~N_cores-3 (61 on this box); at that many workers
+          // the single addBuiltModel critical section starves the builders. Cap at 32: a
+          // sweep on this 7815-mesh scene is flat from ~16..48 once the per-worker
+          // transient allocations go through framemem, so 32 is just a picked round.
+          threadpool::parallel_for_inline(
+            0, (uint32_t)meshes.size(), 64,
+            [&](uint32_t tbegin, uint32_t tend, uint32_t worker_id) {
+              Tab<Point3_vec4> verts4(framemem_ptr());
+              for (uint32_t mi = tbegin; mi < tend; ++mi)
+              {
+                const Mesh &m = meshes[mi];
+                bool anyQualifying = false;
+                for (int j = 0; j < m.instCount; ++j)
+                  if (v_extract_w(lruColl.instancesSph[m.lruIdx][j]) >= minSWRTRadius)
+                  {
+                    anyQualifying = true;
+                    break;
+                  }
+                if (!anyQualifying)
+                  continue;
+
+                verts4.resize(m.vertices.size());
+                for (int j = 0, n = (int)m.vertices.size(); j < n; ++j)
+                  verts4[j] = m.vertices[j];
+
+                static const float dimAsBoxMin = 2.f, dimAsBoxMax = 16.f;
+                daSWRT::BuiltBLAS built = m.wide ? RenderSWRT::buildBLAS(m.indices32.data(), (int)m.indices32.size(), verts4.data(),
+                                                     (int)verts4.size(), dimAsBoxMax)
+                                                 : RenderSWRT::buildBLAS(m.indices.data(), (int)m.indices.size(), verts4.data(),
+                                                     (int)verts4.size(), dimAsBoxMax);
+
+                // Score box-resemblance on the SWRT BuiltBLAS itself (FP16-encoded tree).
+                // `isBox()` meshes are already perfect boxes; skip and count separately.
+                if (!built.isBox())
+                {
+                  float boxLike = daSWRT::computeBlasBoxResemblanceVoxel(built.data.data(), 0, (int)built.treeBytes, built.box,
+                    daSWRT::BlasBoxEncoding::Fp16);
+                  // Empirical calibration toward MC-yaw (fitted on this scene, 111 meshes).
+                  // Pow law is the only single-param family that pins (0,0) and (1,1).
+                  boxLike = powf(boxLike, 1.5f);
+                  built.dimAsBoxDist = lerp(dimAsBoxMax, dimAsBoxMin, boxLike);
+                }
+
+                WinAutoLock lk(addLock);
+                modelIndex[m.lruIdx] = swrt.addBuiltModel(eastl::move(built));
+              }
+            },
+            32);
+
+          // Merge per-worker stats and log a single summary line.
+          for (uint32_t mi = 0; mi < meshes.size(); ++mi)
+          {
+            const Mesh &m = meshes[mi];
+            const int modelId = modelIndex[m.lruIdx];
+            if (modelId < 0)
+              continue;
+            for (int j = 0; j < m.instCount; ++j)
+              if (v_extract_w(lruColl.instancesSph[m.lruIdx][j]) >= minSWRTRadius)
+                swrt.addInstance(modelId, lruColl.instances[m.lruIdx][j]);
+          }
+          swrt.copyToGPUAndDestroy(swrt.buildBottomLevelStructures());
+          swrt.clearBLASSourceData();
+          swrt.copyToGPUAndDestroy(swrt.buildTopLevelStructures());
+          swrt.clearTLASSourceData();
         }
-        swrt.copyToGPUAndDestroy(swrt.buildBottomLevelStructures(32));
-        swrt.clearBLASSourceData();
-        swrt.copyToGPUAndDestroy(swrt.buildTopLevelStructures());
-        swrt.clearTLASSourceData();
       }
       else
       {
@@ -1493,13 +1552,11 @@ public:
     alignas(16) TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
     {
+      alignas(16) TMatrix4 viewTm = TMatrix4(view);
       mat44f globtm;
-      d3d::getglobtm(globtm);
+      d3d::calcglobtm((mat44f_cref)viewTm, (mat44f_cref)projTm, globtm);
       SCOPE_VIEW_PROJ_MATRIX;
       // can be done in thread
-      Driver3dPerspective p;
-      G_VERIFY(d3d::getpersp(p));
-      alignas(16) TMatrix4 viewTm = TMatrix4(view);
       clusteredLights->cullFrustumLights(v_ldu_p3(itm[3]), globtm, (mat44f_cref)viewTm, (mat44f_cref)projTm, p.zn, p.zf, nullptr,
         SpotLightMaskType::SPOT_LIGHT_MASK_NONE, OmniLightMaskType::OMNI_LIGHT_MASK_NONE);
 
@@ -1511,13 +1568,8 @@ public:
         clusteredLights->invalidateAllShadows();
       }
 
-      const int spotsCount = clusteredLights->getVisibleClusteredSpotsCount();
-      const int omniCount = clusteredLights->getVisibleClusteredOmniCount();
-
-
-      DynLightsOptimizationMode dynLightsMode = (dynamic_lights.get() && clusteredLights->hasClusteredLights())
-                                                  ? get_lights_count_interval(spotsCount, omniCount)
-                                                  : DynLightsOptimizationMode::NO_LIGHTS;
+      DynLightsOptimizationMode dynLightsMode =
+        dynamic_lights.get() ? clusteredLights->getLightsCountInterval() : DynLightsOptimizationMode::NO_LIGHTS;
 
       ShaderGlobal::set_int(dynamic_lights_countVarId, eastl::to_underlying(dynLightsMode));
       // Grid fill is deferred to render(), after the depth downsample: the clustered
@@ -1569,7 +1621,7 @@ public:
             // vbox.bmax = v_add(vbox.bmax, v_splats(voxelSize*2));//we rasterize with up 2 voxels dist
             lruColl.gatherBox(vbox, handles);
           }
-          const bool intersectLevel = levelBox & box & rasterize_sdf_level;
+          const bool intersectLevel = loadedLevelBox & box & rasterize_sdf_level;
           if (handles.empty() && !intersectLevel)
             return UpdateGiQualityStatus::NOTHING;
 
@@ -1623,7 +1675,7 @@ public:
           return UpdateGiQualityStatus::RENDERED;
         },
         [&](const BBox3 &box, float voxelSize, uintptr_t &) {
-          const bool intersectLevel = levelBox & box;
+          const bool intersectLevel = loadedLevelBox & box;
           if (!intersectLevel)
             return UpdateGiQualityStatus::NOTHING;
           if (intersectLevel)
@@ -1639,7 +1691,7 @@ public:
     }
 
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
-    render();
+    render(projTm, p);
 
     d3d::settm(TM_VIEW, view);
     d3d::settm(TM_PROJ, &projTm);
@@ -1647,9 +1699,9 @@ public:
     daGI2->afterFrameRendered(DaGI::FrameData(DaGI::FrameHasAll));
     d3d::settm(TM_VIEW, view);
     d3d::settm(TM_PROJ, &projTm);
-    d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
+    d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{frame.getTex2D(), 0, 0}});
     renderWater();
-    d3d::set_depth(target->getDepth(), DepthAccess::RW);
+    d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
     renderTrans();
     daGI2->debugRenderTrans();
     ShaderGlobal::set_int(dynamic_lights_countVarId, 0);
@@ -1685,6 +1737,21 @@ public:
 
     d3d::set_render_target();
 
+    if (verifyCaptureRequested)
+    {
+      // end of frame: the gbuffer and shader globals still hold this frame's
+      // state, exactly what the giVerifier replay capture must snapshot
+      verifyCaptureRequested = false;
+      const char *dir = verifyCaptureDir.empty() ? "verify_capture" : verifyCaptureDir.c_str();
+      // itm and p are this frame's camera and projection, already in hand - no
+      // need to ask the driver for state the frame owns
+      bool ok = gi_verify::save_capture(dir, itm, p, target->getWidth(), target->getHeight(), dir_to_sun,
+        df_get_real_name(dgs_get_settings()->getStr("ri_collisions", "ri_collisions.bin")),
+        df_get_real_name(dgs_get_settings()->getStr("level", "")), &write_verify_env_exr);
+      console::print_d("save_verify_capture: %s -> %s", ok ? "saved" : "FAILED", dir);
+      verifyCaptureDir.clear();
+    }
+
     if (show_gbuffer == DebugGbufferMode::None)
     {
       ShaderGlobal::set_float(get_shader_variable_id("exposure"), gi_panel.exposure);
@@ -1718,7 +1785,7 @@ public:
     if (::grs_draw_wire)
       d3d::setwire(::grs_draw_wire);
     TMatrix4 globtm;
-    d3d::getglobtm(globtm);
+    d3d::calcglobtm(view, projTm, globtm);
     TMatrix4 globtmTr = globtm.transpose();
     ShaderGlobal::set_float4(prev_globtm_psf_0VarId, Color4(globtmTr[0]));
     ShaderGlobal::set_float4(prev_globtm_psf_1VarId, Color4(globtmTr[1]));
@@ -1988,9 +2055,7 @@ public:
       daSkies.closePanorama();
     // debug("regen = %d force_update = %d", sky_panel.regen, force_update);
     // sky_panel.regen  = false;
-    daSkies.projectUses2DShadows(render_panel.shadows_2d);
-    ShaderGlobal::set_int(get_shader_variable_id("skies_use_2d_shadows", true), render_panel.shadows_2d);
-    daSkies.prepare(dir_to_sun, false, gametime_elapsed_sec);
+    daSkies.prepare(dir_to_sun, gametime_elapsed_sec);
     dir_to_sun = daSkies.getPrimarySunDir();
     ShaderGlobal::set_float4(from_sun_directionVarId, -dir_to_sun.x, -dir_to_sun.y, -dir_to_sun.z, 0);
     Color3 sun, amb, moon, moonamb;
@@ -2245,31 +2310,23 @@ public:
     if (land_panel.collision)
       rasterizeGbufCollision(culling, !render_decals);
   }
-  void renderLightProbeOpaque()
+  void renderLightProbeOpaque(const TMatrix &view_tm, const TMatrix4 &proj_tm) override
   {
     // daSkies.prepare(dir_to_sun);
-    TMatrix view, itm;
-    d3d::gettm(TM_VIEW, view);
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    itm = orthonormalized_inverse(view);
-    daSkies.useFog(itm.getcol(3), cube_pov_data.get(), view, projTm);
+    TMatrix itm = orthonormalized_inverse(view_tm);
+    daSkies.useFog(itm.getcol(3), cube_pov_data.get(), view_tm, proj_tm);
     if (binScene && land_panel.level)
-      binScene->render(visibilityFinder, StrmSceneHolder::Hmap::On, (StrmSceneHolder::Lmesh)land_panel.lmesh, projTm);
+      binScene->render(visibilityFinder, StrmSceneHolder::Hmap::On, (StrmSceneHolder::Lmesh)land_panel.lmesh, proj_tm);
   }
 
-  void renderLightProbeEnvi()
+  void renderLightProbeEnvi(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp) override
   {
     TIME_D3D_PROFILE(cubeenvi)
-    TMatrix view, itm;
-    d3d::gettm(TM_VIEW, view);
-    itm = orthonormalized_inverse(view);
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    Driver3dPerspective persp;
-    d3d::getpersp(persp);
+    TMatrix itm = orthonormalized_inverse(view_tm);
+    // cube faces are disjoint views sharing cube_pov_data: restart clouds TAA per face
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 2, UniqueTex{}, UniqueTex{},
-      nullptr, cube_pov_data.get(), view, projTm, persp);
+      nullptr, cube_pov_data.get(), view_tm, proj_tm, persp, UpdateSky::On, false, SKY_PREPARE_THRESHOLD,
+      CloudsRenderFlags::Default | CloudsRenderFlags::RestartTAA);
   }
 
   eastl::unique_ptr<ToroidalStaticShadows> staticShadows;
@@ -2362,7 +2419,10 @@ public:
       BBox3 box;
       for (int i = 0; i < binScene->getRsm().getScenes().size(); ++i)
         box += binScene->getRsm().getScenes()[i]->calcBoundingBox();
-      levelBox = box;
+      // bin scene bounds ONLY: gates level voxelization (renderVoxelsMediaGeom draws just the
+      // bin scene; levelBox below also includes collision bounds and spans the whole map)
+      loadedLevelBox = box;
+      loadedLevelBox.inflate(1.f);
       if (lruColl.size())
       {
         bbox3f colBox = lruColl.calcBox();
@@ -2371,12 +2431,6 @@ public:
       }
       box.inflate(1.f);
       levelBox = box;
-      if (lruColl.size())
-      {
-        bbox3f colBox = lruColl.calcBox();
-        box[0] = min(box[0], (const Point3 &)colBox.bmin);
-        box[1] = max(box[1], (const Point3 &)colBox.bmax);
-      }
       sceneBox = box;
       staticShadows->setWorldBox(box);
 
@@ -2539,7 +2593,7 @@ public:
     ShaderGlobal::set_float4(globtm_no_ofs_psf_3VarId, Color4(gtm_no_ofs[3]));
   }
 
-  virtual void render()
+  void render(const TMatrix4 &projTm, const Driver3dPerspective &persp)
   {
     TIME_D3D_PROFILE(render)
     Driver3dRenderTarget prevRT;
@@ -2549,13 +2603,9 @@ public:
     // d3d::set_render_target(target.gbuf[target.GBUF_ALBEDO_AO].getTex2D(), 0, false);
     // d3d::clearview(CLEAR_TARGET, 0xFF108080, 0, 0);
     // d3d::set_render_target();
-    Driver3dPerspective persp;
-    G_VERIFY(d3d::getpersp(persp));
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
     TMatrix view = orthonormalized_inverse(itm);
-    alignas(16) TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
     mat44f globtm;
     d3d::calcglobtm(view, projTm, (TMatrix4 &)globtm);
     if (!stop_camera)
@@ -2678,7 +2728,7 @@ public:
 
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{frame.getTex2D(), 0, 0}});
     clusteredLights->renderOtherLights();
-    renderEnvi();
+    renderEnvi(view, projTm, persp);
     d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getTex2D(), 0, 0}});
     ensurePrevFrame();
     d3d::stretch_rect(frame.getTex2D(), prevFrame.getTex2D());
@@ -3028,8 +3078,8 @@ protected:
       DECLARE_FLOAT_SLIDER(strata_clouds, amount, 0, 1.0, 0.5, 0.01),
       DECLARE_FLOAT_SLIDER(strata_clouds, altitude, 4.0, 14.0, 10.0, 0.100),
       DECLARE_INT_COMBOBOX(render_panel, render_type, DIRECT, PANORAMA, DIRECT),
-      DECLARE_BOOL_CHECKBOX(render_panel, infinite_skies, false), DECLARE_BOOL_CHECKBOX(render_panel, shadows_2d, false),
-      DECLARE_INT_SLIDER(render_panel, sky_quality, 0, 3, 1), DECLARE_INT_SLIDER(render_panel, direct_quality, 0, 3, 1),
+      DECLARE_BOOL_CHECKBOX(render_panel, infinite_skies, false), DECLARE_INT_SLIDER(render_panel, sky_quality, 0, 3, 1),
+      DECLARE_INT_SLIDER(render_panel, direct_quality, 0, 3, 1),
       DECLARE_INT_COMBOBOX(render_panel, panoramaResolution, 2048, 1024, 1536, 2048, 3072, 4096),
       DECLARE_BOOL_CHECKBOX(render_panel, panorama_blending, false), DECLARE_FLOAT_SLIDER(render_panel, cloudsSpeed, 0, 60, 20, 0.1),
       DECLARE_FLOAT_SLIDER(render_panel, strataCloudsSpeed, 0, 30, 10, 0.1), DECLARE_FLOAT_SLIDER(render_panel, windDir, 0, 359, 0, 1),
@@ -3084,7 +3134,7 @@ protected:
     // daSkies.setCloudsPosition(clouds_panel, -1);
     daSkies.setStrataClouds(strata_clouds);
     // daSkies.setLayeredFog(layered_fog);
-    daSkies.prepare(dir_to_sun, true, 0);
+    daSkies.prepare(dir_to_sun, 0);
     Color3 sun, amb, moon, moonamb;
     float sunCos, moonCos;
     if (daSkies.currentGroundSunSkyColor(sunCos, moonCos, sun, amb, moon, moonamb))
@@ -3108,17 +3158,11 @@ protected:
   }
 
 
-  void renderEnvi()
+  void renderEnvi(const TMatrix &view, const TMatrix4 &projTm, const Driver3dPerspective &persp)
   {
     TIME_D3D_PROFILE(envi)
     TMatrix itm;
     curCamera->getInvViewMatrix(itm);
-    TMatrix view;
-    d3d::gettm(TM_VIEW, view);
-    TMatrix4 projTm;
-    d3d::gettm(TM_PROJ, &projTm);
-    Driver3dPerspective persp;
-    d3d::getpersp(persp);
     daSkies.renderEnvi(render_panel.infinite_skies, dpoint3(itm.getcol(3)), dpoint3(itm.getcol(2)), 3,
       farDownsampledDepth[currentDownsampledDepth], farDownsampledDepth[1 - currentDownsampledDepth], target->getDepth(),
       main_pov_data.get(), view, projTm, persp);
@@ -3213,7 +3257,7 @@ protected:
   struct RenderPanel
   {
     int render_type;
-    bool infinite_skies, panorama_blending, shadows_2d = false;
+    bool infinite_skies, panorama_blending;
     bool trace_ray, compareCpuSunSky;
     int sky_quality;
     int direct_quality;
@@ -3399,6 +3443,7 @@ protected:
   eastl::vector<uint64_t> bvhMeshes;
   uint64_t bvhIdGen = 0;
   uint64_t bvhLruMeshBase = 0;
+  bool bvhLruIndexUnsupported = false;
   uint64_t bvhMeshBase = 0;
   uint64_t bvhMeshCount = 0;
   uint64_t testId = 0;
@@ -3494,7 +3539,7 @@ protected:
     if (isRtEnabled())
     {
       bvh::init();
-      bvhCtx = bvh::create_context("GI", bvh::ForGI);
+      bvhCtx = bvh::create_context("GI", bvh::ForGI, static_cast<bvh::Features>(0));
     }
   }
   void teardownBvh()
@@ -3551,7 +3596,7 @@ protected:
   void buildBvhRiColl()
   {
     static int countdown = 100;
-    if (bvhCtx != bvh::InvalidContextId && !bvhLruMeshBase)
+    if (bvhCtx != bvh::InvalidContextId && !bvhLruMeshBase && !bvhLruIndexUnsupported)
     {
       if (countdown-- > 0)
         return;
@@ -3568,6 +3613,17 @@ protected:
 
         if (data->vertexCount == 0 || data->indexCount == 0)
           continue;
+
+        // lruCollision shares a 32-bit index heap, but bvh::add_mesh only handles
+        // 16-bit indices; disable this demo path instead of asserting/under-copying.
+        if (data->indexStride != sizeof(uint16_t))
+        {
+          logerr("testGI: BVH-from-LRU collision disabled: lruCollision uses 32-bit indices, "
+                 "bvh::add_mesh supports only 16-bit");
+          bvhLruIndexUnsupported = true;
+          bvhLruMeshBase = 0;
+          return;
+        }
 
         bvh::MeshInfo meshInfo;
         meshInfo.indices = data->indices;
@@ -3588,8 +3644,8 @@ protected:
 
     if (bvhLruMeshBase)
     {
-      bvh::update_instances(bvhCtx, Point3::ZERO, Point3(0, -1, 0), TMatrix::IDENT, TMatrix4::IDENT, Frustum(), Frustum(), nullptr,
-        nullptr, nullptr, {}, threadpool::PRIO_HIGH);
+      bvh::update_instances(bvhCtx, Point3::ZERO, Point3::ZERO, Point3(0, -1, 0), TMatrix::IDENT, TMatrix4::IDENT, Frustum(),
+        Frustum(), nullptr, nullptr, nullptr, {}, threadpool::PRIO_HIGH);
 
       auto accept = [](auto) { return LRUCollision::ObjectClass::Accept; };
       auto addInstance = [this](size_t i, mat43f_cref tm, bbox3f_cref, bbox3f_cref) {
@@ -3684,6 +3740,12 @@ bool TestConsole::processCommand(const char *argv[], int argc)
     screenshotRequested = true;
     screenshotFilename = argc > 1 ? argv[1] : "";
     console::print_d("screenshot: will capture next frame");
+  }
+  CONSOLE_CHECK_NAME("app", "save_verify_capture", 1, 2)
+  {
+    verifyCaptureRequested = true;
+    verifyCaptureDir = argc > 1 ? argv[1] : "";
+    console::print_d("save_verify_capture: will capture this frame");
   }
   CONSOLE_CHECK_NAME("profiler", "events", 1, 2)
   {
@@ -3994,6 +4056,16 @@ void add_dynrend_instance_to_bvh(bvh::ContextId context_id, const DynamicRendera
     },
     [&](const ShaderSkinnedMesh *, int, int) { G_ASSERTF(0, "Skinned parts are not yet supported."); });
 }
+
+// pack textures lose their content with the device and nothing in this sample
+// would re-read them (the games do the same in their reset handling)
+static void testgi_reload_textures_after_reset(bool)
+{
+  ddsx::reload_active_textures(0);
+  if (!is_managed_textures_streaming_load_on_demand())
+    ddsx::tex_pack2_perform_delayed_data_loading();
+}
+REGISTER_D3D_AFTER_RESET_FUNC(testgi_reload_textures_after_reset);
 
 PULL_CONSOLE_PROC(profiler_console_handler)
 PULL_CONSOLE_PROC(def_app_console_handler)

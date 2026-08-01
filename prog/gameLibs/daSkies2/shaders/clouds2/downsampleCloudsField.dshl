@@ -5,7 +5,6 @@ include "globtm.dshl"
 include "clouds_hole_pos.dshl"
 include "camera_in_camera.dshl"
 include "nuke_atmospheric_effects.dshl"
-include "dynamic_resolution.dshl"
 
 float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
 texture clouds_field_volume;
@@ -277,7 +276,7 @@ shader clouds_close_layer_clear
   }
   hlsl(cs) {
     [numthreads(1, 1, 1)]
-    void cs_main() { structuredBufferAt(output, 0) = 0; structuredBufferAt(output, 1) = 0;}
+    void cs_main() { structuredBufferAt(output, 0) = 1; structuredBufferAt(output, 1) = 0;}
   }
   compile("cs_5_0", "cs_main")
 }
@@ -574,7 +573,6 @@ shader clouds_tile_dist_min_cs
 
 shader clouds_tile_dist_count_cs
 {
-  INIT_DYNAMIC_RESOLUTION(cs)
   USE_CLOUDS_DISTANCE(cs)
   (cs)
   {

@@ -1,0 +1,278 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+include "shader_global.dshl"
+
+texture omm_debug_target;
+buffer omm_debug_array_data;
+buffer omm_debug_desc_array;
+buffer omm_debug_index_buffer;
+
+int omm_debug_index_format = 1;
+int omm_debug_index_count = 0;
+int omm_debug_desc_count = 0;
+int omm_debug_array_data_size = 0;
+int omm_debug_tile_size = 96;
+int omm_debug_grid_columns = 1;
+float4 omm_debug_view_params = (0, 0, 1, 0);
+
+shader omm_debug_visualize
+{
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    target@uav = omm_debug_target hlsl { RWTexture2D<float4> target@uav; };
+    array_data@buf = omm_debug_array_data hlsl { ByteAddressBuffer array_data@buf; };
+    desc_array@buf = omm_debug_desc_array hlsl { ByteAddressBuffer desc_array@buf; };
+    index_buffer@buf = omm_debug_index_buffer hlsl { ByteAddressBuffer index_buffer@buf; };
+
+    index_format@i1 = omm_debug_index_format;
+    index_count@i1 = omm_debug_index_count;
+    desc_count@i1 = omm_debug_desc_count;
+    array_data_size@i1 = omm_debug_array_data_size;
+    tile_size@i1 = omm_debug_tile_size;
+    grid_columns@i1 = omm_debug_grid_columns;
+    view_params@f4 = omm_debug_view_params;
+  }
+
+  hlsl(cs) {
+    #define OMM_DEBUG_INDEX_UINT16 0
+    #define OMM_DEBUG_INDEX_UINT32 1
+    #define OMM_DEBUG_INDEX_UINT8 2
+
+    #define OMM_DEBUG_FORMAT_OC1_2_STATE 1
+    #define OMM_DEBUG_FORMAT_OC1_4_STATE 2
+    #define OMM_DEBUG_TILE_GAP_RATIO 0.1
+    #define OMM_DEBUG_EQUILATERAL_HEIGHT 0.8660254038
+
+    uint load_u8(ByteAddressBuffer buffer, uint byte_offset)
+    {
+      uint aligned_offset = byte_offset & ~3u;
+      uint word = buffer.Load(aligned_offset);
+      return (word >> ((byte_offset & 3u) * 8u)) & 0xFFu;
+    }
+
+    uint load_u16(ByteAddressBuffer buffer, uint byte_offset)
+    {
+      uint aligned_offset = byte_offset & ~3u;
+      uint word = buffer.Load(aligned_offset);
+      return (word >> ((byte_offset & 3u) * 8u)) & 0xFFFFu;
+    }
+
+    int decode_index(uint triangle_index)
+    {
+      if (triangle_index >= uint(index_count))
+        return 0x7FFFFFFF;
+
+      if (index_format == OMM_DEBUG_INDEX_UINT8)
+      {
+        uint value = load_u8(index_buffer, triangle_index);
+        return value >= 0xFCu ? int(value) - 0x100 : int(value);
+      }
+      if (index_format == OMM_DEBUG_INDEX_UINT16)
+      {
+        uint value = load_u16(index_buffer, triangle_index * 2u);
+        return value >= 0xFFFCu ? int(value) - 0x10000 : int(value);
+      }
+
+      return asint(index_buffer.Load(triangle_index * 4u));
+    }
+
+    uint prefix_eor2(uint x)
+    {
+      x ^= (x >> 1u) & 0x7fff7fffu;
+      x ^= (x >> 2u) & 0x3fff3fffu;
+      x ^= (x >> 4u) & 0x0fff0fffu;
+      x ^= (x >> 8u) & 0x00ff00ffu;
+      return x;
+    }
+
+    uint interleave_bits2(uint x, uint y)
+    {
+      x = (x & 0xffffu) | (y << 16u);
+      x = ((x >> 8u) & 0x0000ff00u) | ((x << 8u) & 0x00ff0000u) | (x & 0xff0000ffu);
+      x = ((x >> 4u) & 0x00f000f0u) | ((x << 4u) & 0x0f000f00u) | (x & 0xf00ff00fu);
+      x = ((x >> 2u) & 0x0c0c0c0cu) | ((x << 2u) & 0x30303030u) | (x & 0xc3c3c3c3u);
+      x = ((x >> 1u) & 0x22222222u) | ((x << 1u) & 0x44444444u) | (x & 0x99999999u);
+      return x;
+    }
+
+    uint dbary_to_index(uint u, uint v, uint w, uint level)
+    {
+      const uint coord_mask = (1u << level) - 1u;
+      uint b0 = ~(u ^ w) & coord_mask;
+      uint t = (u ^ v) & b0;
+      uint c = (((u & v & w) | (~u & ~v & ~w)) & coord_mask) << 16u;
+      uint f = prefix_eor2(t | c) ^ u;
+      uint b1 = (f & ~b0) | t;
+      return interleave_bits2(b0, b1);
+    }
+
+    float4 state_color(uint state)
+    {
+      if (state == 0u)
+        return float4(0.0, 0.0, 0.0, 1.0);
+      if (state == 1u)
+        return float4(1.0, 1.0, 1.0, 1.0);
+      if (state == 2u)
+        return float4(1.0, 0.0, 0.0, 1.0);
+      return float4(0.0, 1.0, 0.0, 1.0);
+    }
+
+    float4 special_index_color(int index)
+    {
+      if (index == -1)
+        return state_color(0u);
+      if (index == -2)
+        return state_color(1u);
+      if (index == -3)
+        return state_color(2u);
+      if (index == -4)
+        return state_color(3u);
+      return float4(1.0, 0.0, 0.25, 1.0);
+    }
+
+    bool load_desc(uint desc_index, out uint byte_offset, out uint subdivision_level, out uint format)
+    {
+      byte_offset = 0u;
+      subdivision_level = 0u;
+      format = 0u;
+      if (desc_index >= uint(desc_count))
+        return false;
+
+      uint offset = desc_index * 8u;
+      byte_offset = desc_array.Load(offset);
+      uint packed = desc_array.Load(offset + 4u);
+      subdivision_level = packed & 0xFFFFu;
+      format = (packed >> 16u) & 0xFFFFu;
+      return subdivision_level < 16u && (format == OMM_DEBUG_FORMAT_OC1_2_STATE || format == OMM_DEBUG_FORMAT_OC1_4_STATE);
+    }
+
+    bool decode_state(uint byte_offset, uint format, uint micro_triangle, out uint state)
+    {
+      state = 0u;
+      uint bits_per_state = format == OMM_DEBUG_FORMAT_OC1_4_STATE ? 2u : 1u;
+      uint bit_offset = micro_triangle * bits_per_state;
+      uint state_byte_offset = byte_offset + bit_offset / 8u;
+      if (state_byte_offset >= uint(array_data_size))
+        return false;
+
+      uint aligned_offset = state_byte_offset & ~3u;
+      uint word = array_data.Load(aligned_offset);
+      uint shift = ((state_byte_offset & 3u) * 8u) + (bit_offset & 7u);
+      state = (word >> shift) & ((1u << bits_per_state) - 1u);
+      return true;
+    }
+
+    bool decode_state_for_desc(uint desc_index, uint micro_triangle, out uint state)
+    {
+      state = 0u;
+      uint byte_offset;
+      uint subdivision_level;
+      uint format;
+      if (!load_desc(desc_index, byte_offset, subdivision_level, format))
+        return false;
+
+      return decode_state(byte_offset, format, micro_triangle, state);
+    }
+
+    bool get_desc_subdivision(uint desc_index, out uint subdivision_level)
+    {
+      uint byte_offset;
+      uint format;
+      return load_desc(desc_index, byte_offset, subdivision_level, format);
+    }
+
+    bool tile_to_micro_triangle(float2 local_pos, uint subdivision_level, out uint micro_triangle)
+    {
+      micro_triangle = 0u;
+      float side = max(float(tile_size), 1.0);
+      float height = side * OMM_DEBUG_EQUILATERAL_HEIGHT;
+      if (local_pos.x < 0.0 || local_pos.y < 0.0 || local_pos.x > side || local_pos.y > height)
+        return false;
+
+      float y = local_pos.y / height;
+      float u = local_pos.x / side - 0.5 * (1.0 - y);
+      float v = y - u;
+      float w = 1.0 - u - v;
+      if (u < 0.0 || v < 0.0 || w < 0.0)
+        return false;
+
+      uint level = min(subdivision_level, 15u);
+      uint n = 1u << level;
+      uint iu = min(uint(floor(float(n) * u)), n - 1u);
+      uint iv = min(uint(floor(float(n) * v)), n - 1u);
+      uint iw = min(uint(floor(float(n) * w)), n - 1u);
+      micro_triangle = dbary_to_index(iu, iv, iw, level);
+      return true;
+    }
+
+    [numthreads(16, 16, 1)]
+    void omm_debug_visualize_cs(uint2 dtid : SV_DispatchThreadID)
+    {
+      uint width;
+      uint height;
+      target.GetDimensions(width, height);
+      if (dtid.x >= width || dtid.y >= height)
+        return;
+
+      float2 logical_pos = view_params.xy + (float2(dtid) + 0.5) / max(view_params.z, 1e-6);
+      float side = max(float(tile_size), 1.0);
+      float gap = side * OMM_DEBUG_TILE_GAP_RATIO;
+      float pitch_x = side + gap;
+      float pitch_y = side * OMM_DEBUG_EQUILATERAL_HEIGHT + gap;
+      int tile_x = int(floor(logical_pos.x / pitch_x));
+      int tile_y = int(floor(logical_pos.y / pitch_y));
+
+      if (tile_x < 0 || tile_y < 0 || tile_x >= max(grid_columns, 1))
+      {
+        target[dtid] = float4(0.09, 0.09, 0.09, 1.0);
+        return;
+      }
+
+      uint triangle_index = uint(tile_y * max(grid_columns, 1) + tile_x);
+      if (triangle_index >= uint(index_count))
+      {
+        target[dtid] = float4(0.09, 0.09, 0.09, 1.0);
+        return;
+      }
+
+      float2 tile_origin = float2(float(tile_x) * pitch_x + gap, float(tile_y) * pitch_y + gap);
+      float2 local_pos = logical_pos - tile_origin;
+      if (local_pos.x < 0.0 || local_pos.y < 0.0 || local_pos.x >= side || local_pos.y >= side * OMM_DEBUG_EQUILATERAL_HEIGHT)
+      {
+        target[dtid] = float4(0.14, 0.14, 0.14, 1.0);
+        return;
+      }
+
+      int desc_index = decode_index(triangle_index);
+      if (desc_index < 0)
+      {
+        uint dummy;
+        target[dtid] = tile_to_micro_triangle(local_pos, 0u, dummy) ? special_index_color(desc_index) : float4(0.14, 0.14, 0.14, 1.0);
+        return;
+      }
+
+      uint subdivision_level;
+      if (!get_desc_subdivision(uint(desc_index), subdivision_level))
+      {
+        target[dtid] = float4(1.0, 0.0, 0.25, 1.0);
+        return;
+      }
+
+      uint micro_triangle;
+      if (!tile_to_micro_triangle(local_pos, subdivision_level, micro_triangle))
+      {
+        target[dtid] = float4(0.14, 0.14, 0.14, 1.0);
+        return;
+      }
+
+      uint state;
+      target[dtid] = decode_state_for_desc(uint(desc_index), micro_triangle, state) ? state_color(state) : float4(1.0, 0.0, 0.25, 1.0);
+    }
+  }
+
+  compile("target_cs", "omm_debug_visualize_cs");
+}

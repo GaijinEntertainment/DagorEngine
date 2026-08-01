@@ -401,7 +401,8 @@ Reader::addComment( Location begin,
 bool 
 Reader::readCStyleComment()
 {
-   while ( current_ != end_ )
+   // Keep one byte of lookahead: *current_ is read right after getNextChar().
+   while ( ( current_ + 1 ) < end_ )
    {
       Char c = getNextChar();
       if ( c == '*'  &&  *current_ == '/' )
@@ -516,7 +517,7 @@ Reader::readArray( Token &/*tokenStart*/ )
 {
    currentValue() = Value( arrayValue );
    skipSpaces();
-   if ( *current_ == ']' ) // empty array
+   if ( current_ != end_  &&  *current_ == ']' ) // empty array
    {
       Token endArray;
       readToken( endArray );
@@ -573,7 +574,8 @@ Reader::decodeNumber( Token &token )
    bool isNegative = *current == '-';
    if ( isNegative )
       ++current;
-   Value::LargestUInt maxIntegerValue = isNegative ? Value::LargestUInt(-Value::minLargestInt) 
+   // Avoid negating minLargestInt directly: that is undefined behavior.
+   Value::LargestUInt maxIntegerValue = isNegative ? Value::LargestUInt(Value::maxLargestInt) + 1
                                                    : Value::maxLargestUInt;
    Value::LargestUInt threshold = maxIntegerValue / 10;
    Value::UInt lastDigitThreshold = Value::UInt( maxIntegerValue % 10 );
@@ -597,7 +599,9 @@ Reader::decodeNumber( Token &token )
       }
       value = value * 10 + digit;
    }
-   if ( isNegative )
+   if ( isNegative  &&  value == maxIntegerValue )
+      currentValue() = Value::minLargestInt;
+   else if ( isNegative )
       currentValue() = -Value::LargestInt( value );
    else if ( value <= Value::LargestUInt(Value::maxInt) )
       currentValue() = Value::LargestInt( value );
@@ -614,6 +618,11 @@ Reader::decodeDouble( Token &token )
    const int bufferSize = 32;
    int count;
    int length = int(token.end_ - token.start_);
+
+   // Sanity check to avoid buffer overflow exploits.
+   if ( length < 0 )
+      return addError( "Unable to parse token length", token );
+
    if ( length <= bufferSize )
    {
       Char buffer[bufferSize+1];
@@ -817,7 +826,7 @@ Reader::getLocationLineAndColumn( Location location,
       Char c = *current++;
       if ( c == '\r' )
       {
-         if ( *current == '\n' )
+         if ( current != end_  &&  *current == '\n' )
             ++current;
          lastLineStart = current;
          ++line;

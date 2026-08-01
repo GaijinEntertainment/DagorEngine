@@ -683,6 +683,9 @@ bool buildGameResPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
     }
     if (prev_pack_fp && !changed && c4.checkAllTouched())
     {
+      // Prune stale entries here too - otherwise a pack that stays up-to-date across many build-server runs
+      // never gets its cache cleaned, since this is the only path most runs ever take.
+      c4.removeUntouched();
       log.addMessage(log.NOTE, "skip up-to-date %s", pack_fname);
       up_to_date = true;
       df_close(prev_pack_fp);
@@ -743,6 +746,34 @@ bool buildGameResPack(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<DagorAsset *
   log.addMessage(log.NOTE, "built %s: %d Kb, %d resources\n", pack_fname, cwr.getSize() >> 10, assets.size());
   stat_grp_built++;
   return true;
+}
+
+// Separate from checkGameResPackUpToDate() below: checks the whole pack still matches the cache from the
+// last real build, never calls gatherSrcDataFiles(), and never pinpoints which asset is stale - a UI-only
+// indicator, not suitable for a real build decision.
+bool quickCheckGameResPackReady(dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4, const char *pack_fname)
+{
+  GrpExporter exp(assets[0]->getMgr());
+  for (int i = 0; i < assets.size(); ++i)
+  {
+    DagorAsset &a = *assets[i];
+    String asset_name_typified(a.getNameTypified());
+    int dataOfs = 0, dataLen = 0;
+    IDagorAssetExporter *e = exp.mgr.getAssetExporter(a.getType());
+    if (!e)
+      return false;
+
+    if (c4.checkAssetExpVerChanged(a.getType(), e->getGameResClassId(), e->getGameResVersion()))
+      return false;
+    if (!c4.getAssetDataPos(asset_name_typified, dataOfs, dataLen))
+      return false;
+    if (c4.checkDataBlockChanged(asset_name_typified, a.props, -1))
+      return false;
+  }
+  // resetExtraAssets() also catches an asset removed since the last build (mutates adPos, same as precise check).
+  if (c4.resetExtraAssets(assets))
+    return false;
+  return c4.allTrackedFilesUpToDate(pack_fname);
 }
 
 bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4, const char *pack_fname, int ch_bit)

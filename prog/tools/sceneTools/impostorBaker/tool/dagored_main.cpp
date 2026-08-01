@@ -190,7 +190,17 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   char app_dir[512];
   dd_get_fname_location(app_dir, options.appBlk.c_str());
   set_canonical_app_dir_mount(app_dir);
-  if (!app_dir[0])
+  // set_canonical_app_dir_mount() only registers the resolved absolute path as the %appDir mount,
+  // it doesn't write it back here - read it back so app_dir (used below for appblk's "appDir" str,
+  // consumed by texconvcache::init()'s AssetExportCache::setSdkRoot()) is absolute too, same as
+  // daBuild.exe's cmain.cpp does. Otherwise a relative application.blk path on the command line
+  // leaves sdkRoot relative, and every AssetExportCache filename lookup then miscompares.
+  if (const char *path = dd_get_named_mount_path("appDir", 6))
+  {
+    strncpy(app_dir, path, sizeof(app_dir));
+    app_dir[sizeof(app_dir) - 1] = '\0';
+  }
+  else if (!app_dir[0])
     strcpy(app_dir, "./");
 
   DataBlock appblk;

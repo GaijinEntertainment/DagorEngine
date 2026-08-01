@@ -4,6 +4,7 @@
 #include "../animTreeUtils.h"
 #include "../animParamData.h"
 #include "../animTreePanelPids.h"
+#include "../animTreeDragListHandler.h"
 #include <generic/dag_tab.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_lookup.h>
@@ -430,9 +431,15 @@ void cond_hide_init_block_settings(PropPanel::ContainerPropertyControl *panel, c
   panel->createCheckBox(PID_CTRLS_COND_HIDE_HIDE_ONLY, "hideOnly", defaultBlock->getBool("hideOnly", false), isEditable);
   const char *nodeName = defaultBlock->getStr("node", "");
   String condError;
-  const String condStr = (isEditable && !isAlways) ? condition_blk_to_string(*defaultBlock, nodeName, condError) : String();
+  const String condStr = isEditable ? condition_blk_to_string(*defaultBlock, nodeName, condError) : String();
   panel->createEditBox(PID_CTRLS_COND_HIDE_CONDITION, "condition", condStr, isEditable && !isAlways);
   panel->setTooltipId(PID_CTRLS_COND_HIDE_CONDITION, condError.c_str());
+}
+
+void cond_hide_always_changed(PropPanel::ContainerPropertyControl *panel)
+{
+  const bool isAlways = panel->getBool(PID_CTRLS_COND_HIDE_ALWAYS);
+  panel->setEnabledById(PID_CTRLS_COND_HIDE_CONDITION, !isAlways);
 }
 
 void cond_hide_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
@@ -518,9 +525,12 @@ void cond_hide_set_selected_node_list_settings(PropPanel::ContainerPropertyContr
   panel->setBool(PID_CTRLS_COND_HIDE_HIDE_ONLY, selectedBlock->getBool("hideOnly", false));
   const char *nodeName = selectedBlock->getStr("node", "");
   String condError;
-  const String condStr = isAlways ? String() : condition_blk_to_string(*selectedBlock, nodeName, condError);
+  const String condStr = condition_blk_to_string(*selectedBlock, nodeName, condError);
   panel->setText(PID_CTRLS_COND_HIDE_CONDITION, condStr);
   panel->setTooltipId(PID_CTRLS_COND_HIDE_CONDITION, condError.c_str());
+  PropPanel::ColorOverride::ColorIndex editBoxColor =
+    condError.empty() ? PropPanel::ColorOverride::NONE : PropPanel::ColorOverride::EDIT_BOX_WRONG_VALUE_BACKGROUND;
+  panel->setValueHighlightById(PID_CTRLS_COND_HIDE_CONDITION, editBoxColor);
 
   const bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
   for (int i = PID_CTRLS_COND_HIDE_NODE; i <= PID_CTRLS_COND_HIDE_HIDE_ONLY; ++i)
@@ -530,15 +540,30 @@ void cond_hide_set_selected_node_list_settings(PropPanel::ContainerPropertyContr
 
 void cond_hide_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int targetNodeNid = settings->getNameId("targetNode");
-  for (int i = 0; i < settings->blockCount(); ++i)
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "targetNode");
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
+}
+
+class CondHideReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  CondHideReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
   {
-    const DataBlock *child = settings->getBlock(i);
-    if (child->getBlockNameId() == targetNodeNid && removeName == child->getStr("node", nullptr))
-    {
-      settings->removeBlock(i);
-      break;
-    }
+    dag::Vector<int> positions = collect_block_positions_by_name(settings, "targetNode");
+    move_block_at_positions(settings, positions, from, to);
   }
+};
+
+IListReorderHandler *cond_hide_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new CondHideReorderHandler(plugin, controllers, panel);
 }

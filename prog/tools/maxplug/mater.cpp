@@ -6,10 +6,10 @@
 #include "mater.h"
 #include "texmaps.h"
 #include "resource.h"
+#include "common.h"
 #include <IHardwareMaterial.h>
 #include <iparamb2.h>
 #include <d3d9types.h>
-// #include "debug.h"
 
 #include <string>
 
@@ -135,22 +135,14 @@ public:
 
   Class_ID ClassID() override;
   SClass_ID SuperClassID() override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  void GetClassName(TSTR &s, bool localized) { s = GetString(IDS_DAGORMAT); }
-#else
-  void GetClassName(TSTR &s) { s = GetString(IDS_DAGORMAT); }
-#endif
+  void GetClassName(TSTR &s, bool localized) const override { s = GetString(IDS_DAGORMAT); }
 
   void DeleteThis() override;
 
   ULONG Requirements(int subMtlNum) override;
   int NumSubs() override;
   Animatable *SubAnim(int i) override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   MSTR SubAnimName(int i, bool localized) override;
-#else
-  TSTR SubAnimName(int i);
-#endif
   int SubNumToRefNum(int subNum) override;
 
   // From ref
@@ -162,12 +154,8 @@ public:
   IOResult Load(ILoad *iload) override;
 
   RefTargetHandle Clone(RemapDir &remap) override;
-#if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
   RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
     BOOL propagate) override;
-#else
-  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message) override;
-#endif
   void SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &cb) override;
   void ActivateTexDisplay(BOOL onoff) override;
 };
@@ -191,11 +179,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading) override { return new DagorMat(loading); }
   const TCHAR *ClassName() override { return GetString(IDS_DAGORMAT_LONG); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return MATERIAL_CLASS_ID; }
   Class_ID ClassID() override { return DagorMat_CID; }
   const TCHAR *Category() override { return _T(""); }
@@ -209,11 +193,7 @@ public:
   int IsPublic() override { return 0; }
   void *Create(BOOL loading) override { return new Texmaps; }
   const TCHAR *ClassName() override { return _T("DagorTexmaps"); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return TEXMAP_CONTAINER_CLASS_ID; }
   Class_ID ClassID() override { return Texmaps_CID; }
   const TCHAR *Category() override { return _T(""); }
@@ -327,7 +307,7 @@ BOOL MaterDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       eclassname = GetICustEdit(GetDlgItem(hWnd, IDC_CLASSNAME));
       assert(eclassname);
       eclassname->SetText(theMtl->classname);
-      SetDlgItemText(hWnd, IDC_SCRIPT, STR_DEST(theMtl->script));
+      SetDlgItemText(hWnd, IDC_SCRIPT, theMtl->script.data());
       for (int i = 0; i < NUMTEXMAPS; ++i)
       {
         tbut[i] = GetICustButton(GetDlgItem(hWnd, texidc[i]));
@@ -369,12 +349,7 @@ BOOL MaterDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             break;
           if (HIWORD(wParam) == EN_CHANGE)
           {
-            HWND hw = (HWND)lParam;
-            int l = GetWindowTextLength(hw);
-            TSTR s;
-            s.Resize(l + 1);
-            GetWindowText(hw, STR_DEST(s), l + 1);
-            theMtl->classname = s;
+            theMtl->classname = get_window_text((HWND)lParam).c_str();
             theMtl->NotifyChanged();
           }
           break;
@@ -387,12 +362,7 @@ BOOL MaterDlg::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
               if (creating)
                 break;
-              HWND hw = (HWND)lParam;
-              int l = GetWindowTextLength(hw);
-              TSTR s;
-              s.Resize(l + 1);
-              GetWindowText(hw, STR_DEST(s), l + 1);
-              theMtl->script = s;
+              theMtl->script = get_window_text((HWND)lParam).c_str();
               theMtl->NotifyChanged();
             }
             break;
@@ -641,7 +611,6 @@ ULONG DagorMat::Requirements(int subm)
   for (int i = 0; i < NUMTEXMAPS; ++i)
     if (texmaps->texmap[i])
       r |= texmaps->texmap[i]->Requirements(subm);
-  //      if(texmap[0]) r|=texmap[0]->Requirements(subm);
   return r;
 }
 
@@ -713,11 +682,7 @@ Animatable *DagorMat::SubAnim(int i)
   }
 }
 
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
 MSTR DagorMat::SubAnimName(int i, bool localized)
-#else
-TSTR DagorMat::SubAnimName(int i)
-#endif
 {
   switch (i)
   {
@@ -767,19 +732,13 @@ RefTargetHandle DagorMat::Clone(RemapDir &remap)
   mtl->twosided = twosided;
   mtl->classname = classname;
   mtl->script = script;
-#if MAX_RELEASE >= 4000
   BaseClone(this, mtl, remap);
-#endif
   return mtl;
 }
 
 
-#if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
 RefResult DagorMat::NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
   BOOL propagate)
-#else
-RefResult DagorMat::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message)
-#endif
 {
   switch (message)
   {
@@ -805,11 +764,7 @@ RefResult DagorMat::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget
       return REF_STOP;
     }
 
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
     case REFMSG_GET_PARAM_NAME_NONLOCALIZED:
-#else
-    case REFMSG_GET_PARAM_NAME:
-#endif
     {
       GetParamName *gpn = (GetParamName *)partID;
       gpn->name.printf(_T("param#%d"), gpn->index);
@@ -831,7 +786,6 @@ enum
 
 IOResult DagorMat::Save(ISave *isave)
 {
-  //      ULONG nb;
   isave->BeginChunk(MTL_HDR_CHUNK);
   IOResult res = MtlBase::Save(isave);
   if (res != IO_OK)
@@ -857,7 +811,6 @@ IOResult DagorMat::Save(ISave *isave)
 
 IOResult DagorMat::Load(ILoad *iload)
 {
-  //      ULONG nb;
   int id;
   IOResult res;
 
@@ -897,8 +850,6 @@ IOResult DagorMat::Load(ILoad *iload)
     if (res != IO_OK)
       return res;
   }
-  //      iload->RegisterPostLoadCallback(
-  //              new ParamBlockPLCB(versions,NUM_OLDVERSIONS,&curVersion,this,PB_REF));
   DiscardTexHandles();
   return IO_OK;
 }
@@ -1204,7 +1155,7 @@ void DagorMat::set_texname(int i, const TCHAR *s)
     bm = NewDefaultBitmapTex();
     assert(bm);
 
-    std::wstring path = dagor_path + s;
+    const auto path = dagor_path / s;
     bm->SetMapName(path.c_str());
   }
   texmaps->settex(i, bm);

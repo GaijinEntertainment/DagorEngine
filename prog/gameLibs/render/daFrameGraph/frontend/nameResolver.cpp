@@ -107,7 +107,9 @@ void NameResolver::updateMapping()
       autoResTypeValid[autoResTypeId] = true;
   }
 
-  resolver.rebuild(registry.knownNames, resourceValid, nodeValid, autoResTypeValid);
+  IdIndexedFlags<RefinedBlockNameId, framemem_allocator> refinedBlockValid(registry.knownNames.nameCount<RefinedBlockNameId>(), true);
+
+  resolver.rebuild(registry.knownNames, resourceValid, nodeValid, autoResTypeValid, refinedBlockValid);
 }
 
 void NameResolver::updateInverseMapping(NodesChanged &out_nodes_with_changed_requests,

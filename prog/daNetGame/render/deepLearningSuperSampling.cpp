@@ -23,6 +23,7 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
   {
     rayReconstructionPrepareNode =
       dafg::register_node("dlss_ray_reconstruction_prepare_node", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+        registry.multiplex(dafg::multiplexing::Mode::Viewport);
         read_gbuffer(registry, dafg::Stage::PS_OR_CS, readgbuffer::NORMAL | readgbuffer::MATERIAL);
         read_gbuffer_depth(registry, dafg::Stage::PS_OR_CS);
 
@@ -44,6 +45,7 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
 
     colorBeforeTransparencyNode =
       dafg::register_node("dlss_ray_reconstruction_blitter", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+        registry.multiplex(dafg::multiplexing::Mode::Viewport);
         auto opaqueHndl = registry.readTexture("opaque_with_envi").atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::BLIT).handle();
         auto colorBeforeTransparencyHndl = registry.create("dlss_color_before_transparency")
                                              .texture({get_frame_render_target_format() | TEXCF_UPDATE_DESTINATION | TEXCF_RTARGET,
@@ -55,9 +57,12 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
       });
   }
 
-  applierNode = dafg::register_node("dlss", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+  applierNode = dafg::register_node("dlss", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::Viewport);
     auto opaqueFinalTargetHndl =
       registry.readTexture("target_for_transparency").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+    // Run after the AA benchmark consumed target_for_transparency (no-op when the benchmark is off).
+    (registry.root() / "aa_benchmark").readBlob("accumulate_ordering_token").optional();
     auto depthHndl =
       registry.readTexture("depth_after_transparency").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
     auto motionVectorsHndl = registry.readTexture("motion_vecs_after_transparency")
@@ -122,7 +127,7 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
       camera, cameraHistory, albedoHndl, normalRoughnessHndl, specularAlbedoHndl, hitDistHndl, frameCounterHndl, ssssGuideHndl,
       colorBeforeTransparencyHndl);
 
-    return [this, resources = eastl::make_unique<decltype(resources)>(resources)] {
+    return [resources = eastl::make_unique<decltype(resources)>(resources)] {
       auto [depthHndl, motionVectorsHndl, exposureNormFactorHndl, opaqueFinalTargetHndl, antialiasedHndl, camera, cameraHistory,
         albedoHndl, normalRoughnessHndl, specularAlbedoHndl, hitDistHndl, frameCounterHndl, ssssGuideHndl,
         colorBeforeTransparencyHndl] = *resources;
@@ -150,13 +155,14 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
         .exposureTexture = exposureNormFactorHndl ? exposureNormFactorHndl->get() : nullptr,
         .ssssGuideTexture = ssssGuideHndl ? ssssGuideHndl->get() : nullptr,
         .colorBeforeTransparencyTexture = colorBeforeTransparencyHndl ? colorBeforeTransparencyHndl->get() : nullptr,
-        .jitterPixelOffset = jitterOffset,
+        .jitterPixelOffset = camera.ref().jitterOffset,
         .inputOffset = IPoint2::ZERO,
         .viewIndex = 0,
         .persp = camera.ref().noJitterPersp,
         .timeElapsed = 0.0f,
         .depthTexTransform = Point4::ZERO,
-        .vrVrsMask = nullptr};
+        .vrVrsMask = nullptr,
+        .resetHistory = is_teleporting(camera.ref(), cameraHistory.ref())};
 
       render::antialiasing::apply_dlss(opaqueFinalTargetHndl.get(), applyContext, antialiasedHndl.get());
     };
@@ -164,7 +170,8 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
 
   if (render::antialiasing::is_frame_generation_enabled())
   {
-    frameGenerationNode = dafg::register_node("dlss_g", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+    frameGenerationNode = dafg::register_node("dlss_g", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::Viewport);
       registry.executionHas(dafg::SideEffects::External);
       auto beforeUINs = registry.root() / "before_ui";
       auto finalFrameHandle =
@@ -179,7 +186,7 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
       auto camera = registry.readBlob<CameraParams>("current_camera").handle();
       auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
-      return [this, finalFrameHandle, uiHandle, motionVectorsHandle, depthHandle, camera, cameraHistory] {
+      return [finalFrameHandle, uiHandle, motionVectorsHandle, depthHandle, camera, cameraHistory] {
         render::antialiasing::FrameGenContext frameGenContext = {.viewItm = camera.ref().viewItm,
           .noJitterProjTm = camera.ref().noJitterProjTm,
           .noJitterGlobTm = camera.ref().noJitterGlobtm,
@@ -190,8 +197,8 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
           .motionVectorTexture = motionVectorsHandle.get(),
           .uiTexture = uiHandle.get(),
           .timeElapsed = 0.0f,
-          .jitterPixelOffset = jitterOffset,
-          .resetHistory = frameCounter == 0};
+          .jitterPixelOffset = camera.ref().jitterOffset,
+          .resetHistory = is_teleporting(camera.ref(), cameraHistory.ref())};
         render::antialiasing::schedule_generated_frames(frameGenContext);
       };
     });
@@ -199,6 +206,7 @@ DeepLearningSuperSampling::DeepLearningSuperSampling(const IPoint2 &outputResolu
     // the sole purpose of this node is to reference history of the resources used by dlss_g node in order to make these resources
     // "survive" until present()
     lifetimeExtenderNode = dafg::register_node("dlss_g_lifetime_extender", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::Viewport);
       registry.executionHas(dafg::SideEffects::External);
       // ordering before setup_world_rendering_node makes lifetimes as short as possible while making sure the resources are still
       // alive during present()

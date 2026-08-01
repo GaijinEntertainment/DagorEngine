@@ -111,7 +111,11 @@ typedef int unw_regnum_t;
    and is used to track the frame state as the unwinder steps from
    frame to frame.  It is safe to make (shallow) copies of variables
    of this type.  */
-typedef struct unw_cursor
+typedef struct
+#ifdef __GNUC__
+__attribute__((may_alias))
+#endif
+unw_cursor
   {
     unw_word_t opaque[UNW_TDEP_CURSOR_LEN];
   }

@@ -11,7 +11,7 @@ include "ssao_reprojection.dshl"
 include "halfres_close_depth_with_normals.dshl"
 
 int ssao_quality = 1;
-interval ssao_quality:depth_only<1, ssao_normals<3, bnao;
+interval ssao_quality:depth_only<1, ssao_normals;
 
 int blur_quality = 0;
 interval blur_quality:ok<1, good;
@@ -26,349 +26,15 @@ float   ssao_blur_depth_far = 0.002;                     // depth threshold at z
 float4 ssao_frame_no = (0,0,0,0);
 texture ssao_prev_tex;
 
-//bnao
-float sampleRadius = 0.075;
 float4 globtm_no_ofs_psf_0;
 float4 globtm_no_ofs_psf_1;
 float4 globtm_no_ofs_psf_2;
 float4 globtm_no_ofs_psf_3;
-texture random_pattern_tex;
 
-hlsl(ps) {
-  #define OUTPUT_CONE 0
-  #if OUTPUT_CONE
-  #define OUT_TYPE float4
-  half4 encodeBNAO(half3 normal, half AO)
-  {
-    return half4(normal.xyz*0.5+0.5, AO);
-  }
-  half4 encodeBNAO(half4 bnao)
-  {
-    return encodeBNAO(bnao.xyz, bnao.w);
-  }
-  half4 decodeBNAO(half4 bnao_encoded)
-  {
-    return half4(bnao_encoded.xyz*2-1, bnao_encoded.w);
-  }
-  #else
-  #define OUT_TYPE SSAO_TYPE
-  #define encodeBNAO(ao) (ao)
-  #define decodeBNAO(ao) (ao)
-  #endif
-
-  #define SHADER_OUT_TYPE OUT_TYPE
-}
-
-hlsl(ps) {
-  #define BENT_CONES_PATTERN 3
-  #define BENT_CONES_SAMPLES 8
-  #define BENT_CONES_RAY_STEPS 2
-}
-
-float SSAO_effect = 0.95;
-float SSAOZ = 2.0;
-float SSAOW = 2.0;
-float SSAOOFS = -0.075;
 float contact_shadow_min_len = 0.25;
 define_macro_if_not_defined APPLY_ADDITIONAL_AO(code)
   hlsl(code) {
     float getAdditionalAmbientOcclusion(float ssao, float3 worldPos, float3 worldNormal, float2 screenTc){return ssao;}
-  }
-endmacro
-
-macro SS_BENT_CONES()
-  (ps) {
-    sampleRadius__invMaxDistance@f2 = (sampleRadius, 1.0 / (2.0*sampleRadius), 0, 0);
-    random_pattern_tex@tex2d = random_pattern_tex;
-    bent_cones_frame_no@f2 = ssao_frame_no;
-    SSAO_params@f4 = (SSAO_effect, SSAOOFS, SSAOZ, SSAOW);//???
-  }
-  INIT_HALF_RES_CLOSE_DEPTH_NORMALS(ps)
-
-  //crytek
-  hlsl(ps) {
-    #define BENT_CONES_ON 1
-    #if !BENT_CONES_ON
-    #define CRYTEK_ON 1
-    //requires change in pattern
-    #endif
-    float3 mirror( float3 vDir, float3 vPlane )
-    {
-      float3 reflected = vDir - 2 * vPlane * dot(vPlane,vDir);
-      if (dot(reflected, vPlane) < 0)
-        reflected=-reflected;
-      return reflected;
-    }
-    half crytek_ao(float2 screenTC, int2 itexCoord, float fSceneDepthM, float3 wsPosition, float3 wsNormal)
-    {
-      // define kernel
-      const half step = 1.f - 1.f/8.f;
-      const half fScale = 0.025f;
-      const half3 arrKernel[8] =
-      {
-        normalize(half3( 1, 1, 1))*fScale*(step),
-        normalize(half3(-1,-1,-1))*fScale*(2 * step),
-        normalize(half3(-1,-1, 1))*fScale*(3 * step),
-        normalize(half3(-1, 1,-1))*fScale*(4 * step),
-        normalize(half3(-1, 1 ,1))*fScale*(5 * step),
-        normalize(half3( 1,-1,-1))*fScale*(6 * step),
-        normalize(half3( 1,-1, 1))*fScale*(7 * step),
-        normalize(half3( 1, 1,-1))*fScale*(8 * step),
-      };
-
-      int patternIndex = (itexCoord.x%BENT_CONES_PATTERN) + (itexCoord.y%BENT_CONES_PATTERN) * BENT_CONES_PATTERN;//fixme:optimize
-
-      // create random rot matrix
-      float3 rotSample = texelFetch(random_pattern_tex, int2(patternIndex, bent_cones_frame_no.y), 0).xyz;
-
-      //half fSceneDepth = tex2D( sceneDepthSampler, screenTC.xy ).r;
-
-      // range conversions
-      //half fSceneDepthM = fSceneDepth * PS_NearFarClipDist.y;
-
-      half3 vSampleScale = SSAO_params.zzw
-        * saturate(fSceneDepthM / 5.3f) // make area smaller if distance less than 5 meters
-        * (1.f + fSceneDepthM / 8.f ); // make area bigger if distance more than 32 meters
-
-      float used_zfar = 1;//zn_zfar.y;
-      float used_inv_zfar = 1;//rcp(used_zfar);
-      float fDepthRangeScale = used_zfar * 0.85f*rcp(vSampleScale.z);
-
-      // convert from meters into SS units
-      vSampleScale.xy *= 1.0f / fSceneDepthM;
-      vSampleScale.z  *= 2.0f*used_inv_zfar;// / zn_zfar.y;
-
-      float fDepthTestSoftness = 64.f/vSampleScale.z;
-
-      // sample
-      half4 vSkyAccess = 0.f;
-      half4 arrSceneDepth2[2];
-      half3 vIrrSample;
-      half4 vDistance;
-      float4 fRangeIsInvalid;
-
-      #define bHQ 0
-
-      float fHQScale = 0.5f;
-      half ao = 0;
-      UNROLL
-      for(int i=0; i<2; i++)
-      {
-        vIrrSample = mirror(arrKernel[i*4+0], rotSample) * vSampleScale;
-        arrSceneDepth2[0].x = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        if (bHQ)
-        {
-          vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].x = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        }
-
-        vIrrSample = mirror(arrKernel[i*4+1], rotSample) * vSampleScale;
-        arrSceneDepth2[0].y = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        if (bHQ)
-        {
-          vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].y = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        }
-
-        vIrrSample = mirror(arrKernel[i*4+2], rotSample) * vSampleScale;
-        arrSceneDepth2[0].z = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        if (bHQ)
-        {
-          vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].z = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        }
-
-        vIrrSample = mirror(arrKernel[i*4+3], rotSample) * vSampleScale;
-        arrSceneDepth2[0].w = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        if (bHQ)
-        {
-          vIrrSample.xyz *= fHQScale;
-          arrSceneDepth2[1].w = linearize_z(tex2Dlod( half_res_close_depth, float4(screenTC.xy + vIrrSample.xy,0,0) ).r, zn_zfar.zw)*used_inv_zfar + vIrrSample.z;
-        }
-
-        float fDefVal = 0.7f;
-        half4 weights = 1;
-
-        UNROLL
-        for(int s=0; s<(bHQ ? 2 : 1); s++)
-        {
-          vDistance = fSceneDepthM*used_inv_zfar - arrSceneDepth2[s];
-          float4 vDistanceScaled = vDistance * fDepthRangeScale;
-          fRangeIsInvalid = (saturate( abs(vDistanceScaled) ) + saturate( vDistanceScaled ))/2;
-          vSkyAccess += lerp(saturate((-vDistance)*fDepthTestSoftness), fDefVal, fRangeIsInvalid);
-        }
-        //ao += dot(vSkyAccess, weights)*rcp(dot(weights,1));
-        //vSkyAccess = 0;
-      }
-      //ao = ao + SSAO_params.y;
-
-      ao = dot( vSkyAccess, (bHQ ? 1/16.0f : 1/8.0f)*2.0 ) + SSAO_params.y; // 0.075f
-
-      return saturate(ao*ao);
-    }
-  }
-  //end of
-
-
-  hlsl(ps) {
-    #define inSampleRadius (sampleRadius__invMaxDistance.x)
-    #define inInvMaxDistance (sampleRadius__invMaxDistance.y)
-
-    float checkSSVisibilitySmooth(
-      float csPositionW,
-      //const in float4x4 viewMatrix,
-      float4x4 viewProjectionMatrixNoOfs,
-      float3 wsCameraToPoint,
-      float invOutlierDistance,
-      float invOutlierDistanceW,
-      float lod)
-    {
-      // transform world space sample to camera space
-      //float3 csSample = (viewMatrix * float4(wsSample, 1.0)).xyz;
-
-      // project to ndc and then to texture space to sample depth/position buffer to check for occlusion
-      float4 ndcSamplePosition = mul(float4(wsCameraToPoint, 1.0), viewProjectionMatrixNoOfs);
-      float csSampleZ = ndcSamplePosition.w;
-      //if(ndcSamplePosition.w == 0.0) continue;
-      ndcSamplePosition.xy *= rcp(ndcSamplePosition.w);
-      float2 tsSamplePosition = ndcSamplePosition.xy * float2(0.5, -0.5) + float2(0.5,0.5);//todo: can be moved to viewProjectionMatrix
-
-      // optimization: replace position buffer with depth buffer
-      // here we get a world space position
-      // we found the background...
-      //float4 wsReferenceSamplePosition = texture(positionTexture, tsSamplePosition);
-      float wsReferenceRawDepth = tex2Dlod(half_res_close_depth, float4(tsSamplePosition,0,lod)).x;
-      //float wsReferenceRawDepth = tex2Dlod(half_res_close_depth, float4(sampleScreen,0,lod)).x;
-      float wsReferenceSampleW  = linearize_z(wsReferenceRawDepth, zn_zfar.zw);
-      //float3 wsReferenceSamplePosition = world_view_pos + viewVect*wsReferenceSampleW;
-      // transform to camera space
-      //float3 csReferenceSamplePosition = (viewMatrix * float4(wsReferenceSamplePosition.xyz, 1.0)).xyz;
-
-      //////////////////////////////////////////////////////////////////////////
-      // optional: apply some code to handle background
-      //////////////////////////////////////////////////////////////////////////
-
-      // check for occlusion (within camera space, simple test along z axis; remember z axis goes along -z in OpenGL!)
-      // optimized code checks depth values
-      // could apply small depth bias here to avoid precision errors
-      return (wsReferenceSampleW < csSampleZ) ? saturate(pow2(invOutlierDistance - wsReferenceSampleW*invOutlierDistanceW)) : 1;
-      //return (wsReferenceSampleW < csSampleZ) ? 0 : 1;
-      //return saturate(pow2(invOutlierDistance - wsReferenceSampleW*invOutlierDistanceW));
-    }
-
-    void checkSSVisibilityWithRayMarchingSmooth(
-      float csPositionW,
-      //const in float4x4 viewMatrix,
-      float4x4 viewProjectionMatrixNoOfs,
-      float3 wsCameraToPoint, float invOutlierDistance, float invOutlierDistanceW,
-      float3 ray, float sampleRadius,
-      float rayMarchingStartOffset,
-      inout float visibility, float lodOfs)
-    {
-      UNROLL
-      for(int k=0; k<BENT_CONES_RAY_STEPS; k++) {
-        // world space sample radius within we check for occluders (larger radius needs more ray marching steps)
-        float3 wsSample = wsCameraToPoint + ray * (sampleRadius * (float(k) * float(1.0f/BENT_CONES_RAY_STEPS) + rayMarchingStartOffset));
-        visibility *= checkSSVisibilitySmooth(
-          csPositionW,
-          viewProjectionMatrixNoOfs,
-          wsSample, invOutlierDistance, invOutlierDistanceW,
-            k+lodOfs);
-      }
-    }
-
-    void calcBentNormals(float2 texcoord, int2 itexCoord, float3 wsPosition, float3 wsNormal, float w, float4x4 viewProjectionMatrixNoOfs, out OUT_TYPE outBNAO)
-    {
-      outBNAO = 1;
-
-      //////////////////////////////////////////////////////////////////////////
-      // ws = world space
-      // cs = camera space
-      // ndc = normal device coordinates
-      // ts = texture space
-      //////////////////////////////////////////////////////////////////////////
-      // background
-      //float3 csPosition = (viewMatrix * float4(wsPosition.xyz, 1.0)).xyz;
-      //float3 wsNormal = texelFetch(normalTexture, itexCoord, 0).rgb;
-      //float3 wsNormal = decodeNormal(tex2Dlod(normal_gbuf, float4(texcoord,0,0)).xyz*2-1);// instead, use correct normal, from most farthest pixel
-
-      float ao = 0.0;
-      float3 bentNormal = 0.0;
-      float visibilityRays = 0.0;
-
-      // get a different set of samples, depending on pixel position in pattern
-      //int patternIndex = itexCoord.x + itexCoord.y * BENT_CONES_PATTERN;
-      int patternIndex = (itexCoord.x + itexCoord.y * BENT_CONES_PATTERN+int(bent_cones_frame_no.x))%(BENT_CONES_PATTERN*BENT_CONES_PATTERN);//fixme:optimize
-
-      //patternIndex = 0;
-      float inInvMaxDistanceW = inInvMaxDistance * rcp(w);
-      float weight = 0;
-      UNROLL
-      for (int i=0; i<BENT_CONES_SAMPLES; i++)
-      {
-        //////////////////////////////////////////////////////////////////////////
-        // seed texture holds samples
-        // y selects pattern
-        // x coordinate gives samples from set
-        //float4 data = random_pattern[patternIndex][i];
-        float4 data = texelFetch(random_pattern_tex, int2(patternIndex, i), 0);
-        //float4 data = random_pattern[patternIndex*BENT_CONES_SAMPLES + i];
-        //float4 data = texelFetch(seedTexture, int2(i, patternIndex), 0);
-        float rayMarchingStartOffset = data.a;
-        //float3 ray = data.rbg;
-        float3 ray = tangent_to_world( data.xyz, wsNormal);
-        //float3 ray = data.rgb;
-        //float3 ray = data.x*u + data.y*v + data.z*w;
-        // bring it to the local hemisphere
-        // we do not need a ONB, because we have a uniform distribution
-        // simple inversion is ok
-        //FLATTEN
-        //if(dot(ray, wsNormal) < 0.0)
-        //  ray = -ray;
-        //////////////////////////////////////////////////////////////////////////
-        // perform ray marching along the direction
-        float visibility = 1.0;
-        // if the occluder is too far away, we cannot count the sample
-        // screen-space limitation, which could be reduced by depth peeling or scene voxelization
-
-        checkSSVisibilityWithRayMarchingSmooth(
-          w,
-          viewProjectionMatrixNoOfs,
-          wsPosition.xyz, inInvMaxDistance, inInvMaxDistanceW,
-          ray, inSampleRadius*w, rayMarchingStartOffset,
-          visibility, i>BENT_CONES_SAMPLES/2 ? 1 : 1);
-        //////////////////////////////////////////////////////////////////////////
-
-
-        // evaluate the ray marching steps
-        // visibility encodes how much this direction is occluded
-        // one could also do that binary, but that may cause artifacts, when visibilty is checked in SS
-
-        // note: we assume no occlusion if the occluder is too far away
-        // for bent normals we cannot simply "skip" these directions
-        #if OUTPUT_CONE
-        bentNormal += ray * visibility;
-        visibilityRays += visibility;
-        #endif
-
-        ao += visibility;
-      }
-
-      float resultAO = ao * rcp((float)BENT_CONES_SAMPLES);
-      //float resultAO = ao * rcp(weight);
-      #if OUTPUT_CONE
-      half3 resultNormal = 0;
-      FLATTEN
-      if (dot(bentNormal, 1) != 0.0) {
-        bentNormal *= rcp(visibilityRays);
-        resultNormal.xyz = bentNormal-wsNormal;
-      }
-      outBNAO = encodeBNAO(resultNormal, resultAO);
-      outBNAO.w*=outBNAO.w;
-      #else
-      outBNAO = resultAO*resultAO;
-      #endif
-    }
   }
 endmacro
 
@@ -798,15 +464,9 @@ shader ssao
   assume_if_not_assumed use_contact_shadows = use_shadows;
 
   VIEW_VEC_OPTIMIZED(ps)
-  if (ssao_quality == bnao)
-  {
-    SS_BENT_CONES()
-  } else
-  {
-    INIT_AWESOME_SSAO_PARAMS()
-    USE_AWESOME_SSAO()//0.45 of bent cones AO
-    //INIT_ALCHEMY_AO()
-  }
+  INIT_AWESOME_SSAO_PARAMS()
+  USE_AWESOME_SSAO()//0.45 of bent cones AO
+  //INIT_ALCHEMY_AO()
   USE_AND_INIT_VIEW_VEC_VS()
 
   cull_mode=none;
@@ -827,8 +487,6 @@ shader ssao
 
 
   hlsl(ps) {
-    //#undef BENT_CONES_ON
-
     /*float solidAngle(float3 v, float d2, float3 receiverNormal,
                      float3 emitterNormal, float emitterArea)
     {
@@ -849,7 +507,7 @@ shader ssao
       return result;
     } // end solidAngle()*/
 
-    SHADER_OUT_TYPE SSAO_ps(VsOutput IN HW_USE_SCREEN_POS) : SV_Target
+    SSAO_TYPE SSAO_ps(VsOutput IN HW_USE_SCREEN_POS) : SV_Target
     {
       float4 scrpos = GET_SCREEN_POS(IN.pos);
       float2 screenTC = IN.tc.xy;
@@ -866,13 +524,7 @@ shader ssao
       SSAO_TYPE ssao = (SSAO_TYPE)1;
       ##if (ssao_quality != depth_only)
         float3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(screenTC,0,0)).xyz*2-1);
-        #if BENT_CONES_ON
-        calcBentNormals(screenTC, int2(screenTC*lowres_rt_params.xy), cameraToPoint, wsNormal, depth1, viewProjectionMatrixNoOfs, ssao);
-        #elif CRYTEK_ON
-        ssao.x = crytek_ao(screenTC, int2(screenTC*lowres_rt_params.xy), depth1, cameraToPoint, wsNormal);
-        #else
         ssao.x = def_SSAO(scrpos.xy, depth1, screenTC, cameraToPoint, wsNormal).x;
-        #endif
         ssao.x = getAdditionalAmbientOcclusion(ssao.x, world_view_pos + cameraToPoint, wsNormal, screenTC);
       ##else
         ssao.x = def_SSAO(scrpos.xy, depth1, screenTC, cameraToPoint, 0).x;
@@ -1040,7 +692,7 @@ shader ssao_blur
         return color;
     }
 
-    OUT_TYPE ssao_blur_ps(VsOutput IN): SV_Target
+    SSAO_TYPE ssao_blur_ps(VsOutput IN): SV_Target
     {
       return DepthBlurGaussian(IN.texcoord);
     }
@@ -1048,82 +700,4 @@ shader ssao_blur
 
   compile("target_vs", "ssao_blur_vs");
   compile("target_ps", "ssao_blur_ps");
-}
-
-
-shader bent_cones_random_pattern
-{
-  cull_mode = none;
-  z_write = false;
-  z_test = false;
-
-  POSTFX_VS(0)
-
-  (ps) { sampleRadius@f1 = (sampleRadius); }
-  hlsl(ps) {
-    float rand(float2 co)
-    {
-      return frac(sin(dot(co.xy, float2(12.9898,78.233))) * 43758.5453);
-    }
-    float2 rand2(float2 co)
-    {
-      return float2(rand(co), rand(co+float2(1,0)));
-    }
-    uint rand_seed(float2 texcoord)
-    {
-      float2 seed = rand2(texcoord);
-      return uint(seed.x * 7829 + seed.y * 113);
-    }
-    uint rand_lcg(inout uint g_rng_state)
-    {
-      // LCG values from Numerical Recipes
-      g_rng_state = 1664525U * g_rng_state + 1013904223U;
-      return g_rng_state;
-    }
-
-    float rand_lcg_float(inout uint g_rng_state)
-    {
-      uint ret = rand_lcg(g_rng_state);
-      //return float(ret) * (1.0 / 4294967296.0);
-      return frac(float(ret) * (1.0 / 262144.0));
-    }
-
-
-
-    float3 unitSphericalToCarthesian(float phi, float cosTheta)
-    {
-      float3 result;
-      float theta = acos(cosTheta);
-      float sinTheta = sin(theta);
-      //float sinTheta = sqrt( 1 - cosTheta * cosTheta );
-      result.x = sin(phi) * sinTheta;
-      result.y = cos(phi) * sinTheta;
-      result.z = cosTheta;
-      return result;
-    }
-    float4 random_pattern_ps(float4 screenpos : VPOS) : SV_Target
-    {
-      float rayMarchingBias = 1 / float(BENT_CONES_RAY_STEPS) / 1000.0f;
-
-      /*uint seed = rand_seed(screenpos.xy/4.0);
-      float xi0, xi1, xi2;
-      xi0 = rand_lcg_float(seed);
-      while ((xi1 = rand_lcg_float(seed)) == xi0 || (xi1 == 0.0));
-      while ((xi2 = rand_lcg_float(seed)) == xi1);
-
-      float3 direction = unitSphericalToCarthesian((2*PI) * xi0, xi1);
-
-      float offset = xi2 / float(BENT_CONES_RAY_STEPS);
-      return float4(direction, offset + rayMarchingBias);*/
-
-      uint seed = rand_seed(screenpos.xy/4.0);
-      float offset = rand_lcg_float(seed) / float(BENT_CONES_RAY_STEPS);
-      int2 scrPos = int2(screenpos.xy);
-
-      float2 E = hammersley( scrPos.x+scrPos.y*(BENT_CONES_PATTERN*BENT_CONES_PATTERN), BENT_CONES_PATTERN*BENT_CONES_PATTERN*BENT_CONES_SAMPLES, 0 );
-      //return float4(uniform_sample_sphere(E).xyz, offset + rayMarchingBias);
-      return float4(cosine_sample_hemisphere(E).xyz, offset + rayMarchingBias);
-    }
-  }
-  compile("target_ps", "random_pattern_ps");
 }

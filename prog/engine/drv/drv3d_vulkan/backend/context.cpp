@@ -357,6 +357,17 @@ void BEContext::prepareFrameCore()
     popEventRaw();
   }
 
+#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
+  // previous gpu job is fully complete when this work item starts executing,
+  // so compaction size query results written in it are guaranteed to be ready
+  if (Globals::cfg.bits.delayCompactionSizeCopy)
+  {
+    pushEventRaw("compactionSizeCopy", 0x0);
+    flushCompactionSizeCopies();
+    popEventRaw();
+  }
+#endif
+
   writeExceptionChekpointNonCommandStream(MARKER_NCMD_TIMESTAMPS_RESET_QUEUE_READBACKS);
   data->timestampQueryBlock->ensureSizesAndResetStatus(VK_QUERY_TYPE_TIMESTAMP);
   Backend::gpuJob.get().pendingTimestamps = data->timestampQueryBlock;

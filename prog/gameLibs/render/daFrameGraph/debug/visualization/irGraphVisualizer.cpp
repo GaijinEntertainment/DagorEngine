@@ -6,6 +6,7 @@
 
 #include <imgui.h>
 #include <gui/dag_imgui.h>
+#include <gui/dag_imguiUtil.h>
 #include <imgui-node-editor/imgui_canvas.h>
 #include <memory/dag_framemem.h>
 #include <util/dag_convar.h>
@@ -158,36 +159,24 @@ void Visualizer::drawUI()
 {
   // 1 line
   {
-    if (ImGui::BeginCombo("##node_search",
-          focusState.nodeValid() ? intermediateGraph.nodeNames[nodes[focusState.node].irIndex].c_str() : "Node Search"))
+    if (ImGuiDagor::ComboWithFilter("Node Search", presIrNodeNames, focusState.nodeIndex, focusState.nodeSearchInput, false, true,
+          "Search for node...") &&
+        focusState.nodeIndex != UNKNOWN_INDEX)
     {
-      for (auto [nodeId, node] : nodes.enumerate())
-      {
-        const bool selected = nodeId == focusState.node;
-        if (ImGui::Selectable(intermediateGraph.nodeNames[node.irIndex].c_str(), selected))
-          focusState.set(nodeId);
-        if (selected)
-          ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
+      focusState.set(irNodeRepresent[presIrNodeIndices[focusState.nodeIndex]]);
+      centerOnFocusedNode();
     }
     hoverState.searchBox |= ImGui::IsItemHovered();
   }
 
   // 2 line
   {
-    if (ImGui::BeginCombo("##resource_search",
-          focusState.resValid() ? intermediateGraph.resourceNames[resources[focusState.resource].irIndex].c_str() : "Resource Search"))
+    if (ImGuiDagor::ComboWithFilter("Resource Search", presIrResNames, focusState.resourceIndex, focusState.resourceSearchInput, false,
+          true, "Search for resource...") &&
+        focusState.resourceIndex != UNKNOWN_INDEX)
     {
-      for (auto [resId, resource] : resources.enumerate())
-      {
-        const bool selected = resId == focusState.resource;
-        if (ImGui::Selectable(intermediateGraph.resourceNames[resource.irIndex].c_str(), selected))
-          focusState.set(resId);
-        if (selected)
-          ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
+      focusState.set(irResRepresent[presIrResIndices[focusState.resourceIndex]]);
+      centerOnFocusedResource();
     }
     hoverState.searchBox |= ImGui::IsItemHovered();
   }
@@ -1308,9 +1297,19 @@ void Visualizer::processInput()
   if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
   {
     if (hoverState.node != NodeId::Invalid)
+    {
       focusState.set(hoverState.node);
+      focusState.nodeIndex =
+        eastl::find(presIrNodeIndices.begin(), presIrNodeIndices.end(), irIndexByNodeId(hoverState.node)) - presIrNodeIndices.begin();
+      focusState.nodeSearchInput = presIrNodeNames[focusState.nodeIndex];
+    }
     else if (hoverState.resource != ResourceId::Invalid)
+    {
       focusState.set(hoverState.resource);
+      focusState.resourceIndex =
+        eastl::find(presIrResIndices.begin(), presIrResIndices.end(), irIndexByResId(hoverState.resource)) - presIrResIndices.begin();
+      focusState.resourceSearchInput = presIrResNames[focusState.resourceIndex];
+    }
     else
       focusState.reset();
   }
@@ -1374,9 +1373,13 @@ void Visualizer::updateNodes()
 
   nodes.clear();
   irNodeRepresent.clear();
+  presIrNodeIndices.clear();
+  presIrNodeNames.clear();
 
   nodes.reserve(irNodesCount);
   irNodeRepresent.resize(irNodesRange, NodeId::Invalid);
+  presIrNodeIndices.reserve(irNodesCount);
+  presIrNodeNames.reserve(irNodesCount);
 
 
   int currentPassNumber = -1;
@@ -1398,6 +1401,9 @@ void Visualizer::updateNodes()
       }
       newNode.renderPassNumber = currentPassNumber;
 
+      presIrNodeIndices.push_back(irNodeIndex);
+      presIrNodeNames.push_back(intermediateGraph.nodeNames[irNodeIndex]);
+
       ++curExecTime;
     }
 }
@@ -1411,9 +1417,13 @@ void Visualizer::updateResourses()
 
   resources.clear();
   irResRepresent.clear();
+  presIrResIndices.clear();
+  presIrResNames.clear();
 
   resources.reserve(irResCount);
   irResRepresent.resize(irResRange, ResourceId::Invalid);
+  presIrResIndices.reserve(irResCount);
+  presIrResNames.reserve(irResCount);
 
 
   for (const auto [irResourceIndex, irResource] : intermediateGraph.resources.enumerate())
@@ -1422,6 +1432,8 @@ void Visualizer::updateResourses()
       auto [newResId, newResourse] = resources.appendNew();
       irResRepresent[irResourceIndex] = newResId;
       newResourse.irIndex = irResourceIndex;
+      presIrResIndices.push_back(irResourceIndex);
+      presIrResNames.push_back(intermediateGraph.resourceNames[irResourceIndex]);
     }
 }
 
@@ -1792,6 +1804,31 @@ void Visualizer::placeUsages(CanvasLayout &layout)
       horOffset += USAGES_MARGIN;
     }
   }
+}
+
+
+void Visualizer::centerOnFocusedNode()
+{
+  if (!focusState.nodeValid())
+    return;
+
+  const auto nodeRect = generalLayout.nodes[focusState.node];
+  const ImVec2 centerView = nodeRect.offset + nodeRect.size / 2.f;
+
+  canvas.CenterView(centerView);
+  canvasCamera.canvasOffset = canvas.ViewOrigin();
+}
+
+void Visualizer::centerOnFocusedResource()
+{
+  if (!focusState.resValid())
+    return;
+
+  const auto resRect = generalLayout.resources[focusState.resource];
+  const ImVec2 centerView = resRect.offset + ImVec2{0.f, resRect.size.y / 2.f};
+
+  canvas.CenterView(centerView);
+  canvasCamera.canvasOffset = canvas.ViewOrigin();
 }
 
 } // namespace visualization::irgraph

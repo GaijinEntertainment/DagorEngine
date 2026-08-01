@@ -29,6 +29,7 @@
 #include "internal/pool.h"
 #include "internal/occlusion_internal.h"
 #include "internal/occlusionGPU_internal.h"
+#include "internal/steamAudio/steamAudioSpatializer_internal.h"
 #include "internal/debug_internal.h"
 
 namespace sndsys
@@ -301,7 +302,7 @@ static inline bool get_valid_event_attributes_impl(EventHandle event_handle, Eve
   return false;
 }
 
-static inline void stop_impl(FMOD::Studio::EventInstance &event_instance, bool allow_fadeout = false)
+static inline void stop_impl(FMOD::Studio::EventInstance &event_instance, bool allow_fadeout)
 {
   SOUND_VERIFY(event_instance.stop(allow_fadeout ? FMOD_STUDIO_STOP_ALLOWFADEOUT : FMOD_STUDIO_STOP_IMMEDIATE));
 }
@@ -313,7 +314,9 @@ static inline void release_event_instance(const EventAttributes *attributes, FMO
 
   if (is_stop)
   {
-    stop_impl(event_instance);
+    stop_impl(event_instance, false);
+
+    steam_audio::spatializer::release(&event_instance);
     event_instance.release();
 
     if (attributes && attributes->hasOcclusion())
@@ -467,6 +470,7 @@ static __forceinline void set_3d_attr_internal(EventHandle event_handle, const A
   if (attributes.is3d())
   {
     set_3d_attr_impl(*eventInstance, attributes_3d);
+    steam_audio::spatializer::set_pos(*eventInstance, as_point3(attributes_3d.position));
     if (attributes.hasOcclusion())
     {
       occlusion::set_pos(*eventInstance, as_point3(attributes_3d.position));
@@ -577,6 +581,9 @@ EventHandle init_event(const char *name, const char *path, ieff_t flags, const P
     return EventHandle(INVALID_SOUND_HANDLE);
   }
 
+  if (position && attributes.is3d())
+    steam_audio::spatializer::append(descAndInstance.second, *position);
+
   if (attributes.hasOcclusion() && position)
   {
     occlusion::append(descAndInstance.second, descAndInstance.first, *position);
@@ -665,6 +672,9 @@ EventHandle init_event(const FMODGUID &event_id, const Point3 *position /* = nul
   if (position != nullptr)
   {
     set_3d_attr(handle, *position);
+
+    if (attributes.is3d())
+      steam_audio::spatializer::append(descAndInstance.second, *position);
 
     if (attributes.hasOcclusion())
     {
@@ -993,7 +1003,7 @@ bool is_valid_event_instance(EventHandle event_handle) { return get_valid_event_
 static __forceinline void start_impl(FMOD::Studio::EventInstance &event_instance)
 {
   if (is_really_playing(event_instance))
-    stop_impl(event_instance);
+    stop_impl(event_instance, false);
   SOUND_VERIFY_AND_DO(event_instance.start(), return);
 }
 
@@ -1074,6 +1084,9 @@ bool play_oneshot(const char *name, const char *path, const Point3 *position, ie
       return false;
     }
 
+    if (position && attributes.is3d())
+      steam_audio::spatializer::append(descAndInstance.second, *position);
+
     if (attributes.hasOcclusion() && position)
     {
       occlusion::append(descAndInstance.second, descAndInstance.first, *position);
@@ -1085,6 +1098,9 @@ bool play_oneshot(const char *name, const char *path, const Point3 *position, ie
   }
 
   start_impl(*descAndInstance.second);
+
+  if (position && attributes.is3d())
+    steam_audio::spatializer::append(descAndInstance.second, *position);
 
   if (attributes.hasOcclusion() && position)
   {

@@ -63,17 +63,25 @@ void Sweep::FinalizationPolygon(SweepContext& tcx)
   // Get an Internal triangle to start with
   Triangle* t = tcx.front()->head()->next->triangle;
   Point* p = tcx.front()->head()->next->point;
-  while (!t->GetConstrainedEdgeCW(*p)) {
+  while (t && !t->GetConstrainedEdgeCW(*p)) {
     t = t->NeighborCCW(*p);
   }
 
   // Collect interior triangles constrained by edges
-  tcx.MeshClean(*t);
+  if (t) {
+    tcx.MeshClean(*t);
+  }
 }
 
 Node& Sweep::PointEvent(SweepContext& tcx, Point& point)
 {
-  Node& node = tcx.LocateNode(point);
+  Node* node_ptr = tcx.LocateNode(point);
+  if (!node_ptr || !node_ptr->point || !node_ptr->next || !node_ptr->next->point)
+  {
+    throw std::runtime_error("PointEvent - null node");
+  }
+
+  Node& node = *node_ptr;
   Node& new_node = NewFrontTriangle(tcx, point, node);
 
   // Only need to check +epsilon since point never have smaller
@@ -224,7 +232,7 @@ void Sweep::FillAdvancingFront(SweepContext& tcx, Node& n)
   // Fill right holes
   Node* node = n.next;
 
-  while (node->next) {
+  while (node && node->next) {
     // if HoleAngle exceeds 90 degrees then break.
     if (LargeHole_DontFill(node)) break;
     Fill(tcx, *node);
@@ -234,7 +242,7 @@ void Sweep::FillAdvancingFront(SweepContext& tcx, Node& n)
   // Fill left holes
   node = n.prev;
 
-  while (node->prev) {
+  while (node && node->prev) {
     // if HoleAngle exceeds 90 degrees then break.
     if (LargeHole_DontFill(node)) break;
     Fill(tcx, *node);
@@ -258,6 +266,11 @@ bool Sweep::LargeHole_DontFill(Node* node) {
   if (!AngleExceeds90Degrees(node->point, nextNode->point, prevNode->point))
           return false;
 
+  // A negative angle means the candidate triangle would go inside the
+  // advancing front and could intersect already created triangles.
+  if (AngleIsNegative(node->point, nextNode->point, prevNode->point))
+          return true;
+
   // Check additional points on front.
   Node* next2Node = nextNode->next;
   // "..Plus.." because only want angles on same side as point being added.
@@ -270,6 +283,11 @@ bool Sweep::LargeHole_DontFill(Node* node) {
           return false;
 
   return true;
+}
+
+bool Sweep::AngleIsNegative(Point* origin, Point* pa, Point* pb) {
+  double angle = Angle(*origin, *pa, *pb);
+  return angle < 0;
 }
 
 bool Sweep::AngleExceeds90Degrees(Point* origin, Point* pa, Point* pb) {
@@ -779,18 +797,21 @@ void Sweep::FlipScanEdgeEvent(SweepContext& tcx, Point& ep, Point& eq, Triangle&
                               Triangle& t, Point& p)
 {
   Triangle& ot = t.NeighborAcross(p);
-  Point& op = *ot.OppositePoint(t, p);
 
-/*
-  if (&t.NeighborAcross(p) == NULL) {
-    // If we want to integrate the fillEdgeEvent do it here
-    // With current implementation we should never get here
-    //throw new RuntimeException( "[BUG:FIXME] FLIP failed due to missing triangle");
-    assert(0);
+  Point* op_ptr = ot.OppositePoint(t, p);
+  if (op_ptr == NULL) {
+    throw std::runtime_error("FlipScanEdgeEvent - null opposing point");
   }
-*/
 
-  if (InScanArea(eq, *flip_triangle.PointCCW(eq), *flip_triangle.PointCW(eq), op)) {
+  Point* p1 = flip_triangle.PointCCW(eq);
+  Point* p2 = flip_triangle.PointCW(eq);
+  if (p1 == NULL || p2 == NULL) {
+    throw std::runtime_error("FlipScanEdgeEvent - null on either of points");
+  }
+
+  Point& op = *op_ptr;
+
+  if (InScanArea(eq, *p1, *p2, op)) {
     // flip with new edge op->eq
     FlipEdgeEvent(tcx, eq, op, &ot, op);
     // TODO: Actually I just figured out that it should be possible to

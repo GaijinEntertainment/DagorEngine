@@ -219,8 +219,9 @@ void RectificationBoxComputeVarianceBoxData(FFXM_PARAMETER_INOUT RectificationBo
     rectificationBox.fBoxCenterWeight = (abs(rectificationBox.fBoxCenterWeight) > FFXM_MIN16_F(FSR2_EPSILON) ? rectificationBox.fBoxCenterWeight : FFXM_MIN16_F(1.f));
     rectificationBox.boxCenter /= rectificationBox.fBoxCenterWeight;
     rectificationBox.boxVec /= rectificationBox.fBoxCenterWeight;
-    FFXM_MIN16_F3 stdDev = sqrt(abs(rectificationBox.boxVec - rectificationBox.boxCenter * rectificationBox.boxCenter));
-    rectificationBox.boxVec = stdDev;
+    const FfxFloat32x3 boxCenter = FfxFloat32x3(rectificationBox.boxCenter);
+    const FfxFloat32x3 boxVec = FfxFloat32x3(rectificationBox.boxVec);
+    rectificationBox.boxVec = FFXM_MIN16_F3(sqrt(abs(boxVec - boxCenter * boxCenter)));
 }
 #endif
 

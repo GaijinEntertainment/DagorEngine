@@ -122,6 +122,7 @@ enum AppendArrayType {
     SQ_OPCODE(_OP_SAVE_STATIC_MEMO) \
     SQ_OPCODE(_OP_FREEZE) \
     SQ_OPCODE(_OP_CHECK_TYPE) \
+    SQ_OPCODE(_OP_FASTCALL) \
 
 
 #define SQ_OPCODE(id) id,
@@ -190,6 +191,7 @@ inline bool sq_is_pure_op(int op) {
         op != _OP_CLOSURE &&
         op != _OP_TAILCALL &&
         op != _OP_CALL &&
+        op != _OP_FASTCALL &&
         op != _OP_NULLCALL &&
         op != _OP_PREPCALL &&
         op != _OP_PREPCALLK &&

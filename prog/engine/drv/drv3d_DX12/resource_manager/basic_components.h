@@ -12,6 +12,7 @@
 
 #include <dag/dag_vector.h>
 #include <debug/dag_assert.h>
+#include <generic/dag_expected.h>
 #include <EASTL/numeric.h>
 #include <EASTL/optional.h>
 #include <EASTL/string.h>
@@ -34,6 +35,10 @@ namespace drv3d_dx12::resource_manager
 struct MemoryAllocationError
 {
   /// Error code reported by the underlying DX12 / Win32 API.
+  /// Failures that never reached an API call use fixed codes, so that error handling can tell them
+  /// apart: E_OUTOFMEMORY for a real allocation failure, E_INVALIDARG for a malformed request,
+  /// E_ABORT for a refused attempt that the caller is expected to retry on another path and
+  /// E_UNEXPECTED for a device that is already ill.
   HRESULT errorCode = S_OK;
   /// Memory size that that was requested that caused the error.
   uint64_t requestSize = 0;
@@ -90,6 +95,15 @@ struct MemoryAllocationError
     return Type::Unexpected;
   }
 };
+
+/// For failures that did not come from an allocation attempt, so there is no budget information to
+/// report. MemoryBudgetObserver::makeMemoryAllocationError fills that in for the ones that did.
+inline MemoryAllocationError memory_allocation_error(HRESULT error_code) { return {.errorCode = error_code}; }
+
+inline dag::Unexpected<MemoryAllocationError> unexpected_memory_allocation_error(HRESULT error_code)
+{
+  return dag::Unexpected{memory_allocation_error(error_code)};
+}
 
 class ConcurrentAccessControler
 {

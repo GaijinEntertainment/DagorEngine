@@ -206,9 +206,13 @@ ClusterWindRenderer::ClusterWindRenderer(bool need_historical_buffer)
   int bufferSize = (MAXIMUM_GRID_BOX_CASCADE + (MAX_BOX_PER_GRID * MAXIMUM_GRID_BOX_CASCADE) / 4 + MAX_CLUSTER);
 
   cluster_buf.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf", RESTAG_WIND), "cluster_buf");
+  cluster_buf.setVar();
 
   if (need_historical_buffer)
+  {
     cluster_buf_prev.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf_prev", RESTAG_WIND), "cluster_buf_prev");
+    cluster_buf_prev.setVar();
+  }
 
   treeBendingMultVarId = get_shader_variable_id("cluster_wind_tree_bending_mult");
   impostorBendingMultVarId = get_shader_variable_id("cluster_wind_impostor_bending_mult");

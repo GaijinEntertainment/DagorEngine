@@ -80,6 +80,8 @@ extern void messagebox_report_fatal_error(const char *title, const char *msg, co
 extern void android_d3d_reinit(void *w);
 extern void android_update_window_size(void *w);
 extern void android_init_soft_input(android_app *state);
+extern void android_hide_soft_input();
+extern void android_invalidate_soft_input();
 
 namespace workcycle_internal
 {
@@ -416,7 +418,7 @@ struct DagorInputThread final : public DaThread
     {
       struct android_poll_source *source;
       int ident, events;
-      while ((ident = ALooper_pollAll(500 /* timeout */, nullptr, &events, (void **)&source)) >= 0)
+      while ((ident = ALooper_pollOnce(500 /* timeout */, nullptr, &events, (void **)&source)) >= 0)
       {
         android_app *app = (android_app *)win32_get_instance();
 
@@ -619,6 +621,10 @@ static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
     case APP_CMD_TERM_WINDOW:
       // The window is being hidden or closed, clean it up.
       debug("CMD: term window");
+      // the soft-input caches (activity, decor view, global refs) are tied to this window; drop
+      // them so we don't feed stale refs into JNI after the window is gone
+      android_hide_soft_input();
+      android_invalidate_soft_input();
       discard_unused_managed_textures();
       debug("CMD: unload unused tex done");
       d3d::window_destroyed(app->window);
@@ -635,6 +641,8 @@ static void dagor_android_handle_cmd(struct android_app *app, int32_t cmd)
       break;
     case APP_CMD_DESTROY:
       debug("CMD: destroy: %s", dagor_fast_shutdown ? "fast" : "normal");
+
+      android_invalidate_soft_input();
 
       if (app->externalInputProcessing)
         g_dagor_input_thread.terminate(true);
@@ -968,8 +976,11 @@ static void android_looper_poll_all_blocking()
 
   struct android_poll_source *source;
   int ident, events;
-  while ((ident = ALooper_pollAll(-1 /* wait until an event appears */, nullptr, &events, (void **)&source)) >= 0)
+  while ((ident = ALooper_pollOnce(-1 /* wait until an event appears */, nullptr, &events, (void **)&source)) >= 0 ||
+         ident == ALOOPER_POLL_CALLBACK)
   {
+    if (ident == ALOOPER_POLL_CALLBACK)
+      continue;
     if (source != NULL)
       source->process(source->app, source);
 

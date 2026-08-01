@@ -11,6 +11,7 @@ void render_grass_visibility_pass(const GrassView view);
 void resolve_grass_visibility(const GrassView view);
 void render_grass(const GrassView view);
 void init_grass(const DataBlock *grass_settings_from_level);
+void reinit_grass(const DataBlock *grass_settings);
 void erase_grass(const Point3 &world_pos, float radius);
 void grass_invalidate();
 void grass_invalidate(const dag::ConstSpan<BBox3> &boxes);

@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <algorithm>
+#include <string_view>
 #include <unordered_map>
 
 #include "datablk.h"
@@ -13,42 +14,70 @@
 #include "common.h"
 #include "ci.h"
 
+namespace fs = std::filesystem;
+
 TMatrix TMatrix::IDENT(1), TMatrix::ZERO(0);
 
-static const std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> &type_map()
+static const std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> type_map = {
+  {"t", DataBlock::ParamType::TYPE_STRING},
+  {"i", DataBlock::ParamType::TYPE_INT},
+  {"b", DataBlock::ParamType::TYPE_BOOL},
+  {"c", DataBlock::ParamType::TYPE_E3DCOLOR},
+  {"r", DataBlock::ParamType::TYPE_REAL},
+  {"m", DataBlock::ParamType::TYPE_MATRIX},
+  {"p2", DataBlock::ParamType::TYPE_POINT2},
+  {"p3", DataBlock::ParamType::TYPE_POINT3},
+  {"p4", DataBlock::ParamType::TYPE_POINT4},
+  {"ip2", DataBlock::ParamType::TYPE_IPOINT2},
+  {"ip3", DataBlock::ParamType::TYPE_IPOINT3},
+};
+
+DataBlock::ParamType type(const DataBlock::Param &p)
 {
-  // old C++ doesn't recognize the static initializer list for complex containers
-  static std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> tmap;
-  if (tmap.empty())
-  {
-    tmap.emplace("t", DataBlock::ParamType::TYPE_STRING);
-    tmap.emplace("i", DataBlock::ParamType::TYPE_INT);
-    tmap.emplace("b", DataBlock::ParamType::TYPE_BOOL);
-    tmap.emplace("c", DataBlock::ParamType::TYPE_E3DCOLOR);
-    tmap.emplace("r", DataBlock::ParamType::TYPE_REAL);
-    tmap.emplace("m", DataBlock::ParamType::TYPE_MATRIX);
-    tmap.emplace("p2", DataBlock::ParamType::TYPE_POINT2);
-    tmap.emplace("p3", DataBlock::ParamType::TYPE_POINT3);
-    tmap.emplace("p4", DataBlock::ParamType::TYPE_POINT4);
-    tmap.emplace("ip2", DataBlock::ParamType::TYPE_IPOINT2);
-    tmap.emplace("ip3", DataBlock::ParamType::TYPE_IPOINT3);
-  }
-  return tmap;
+  if (std::holds_alternative<std::string>(p))
+    return DataBlock::ParamType::TYPE_STRING;
+  if (std::holds_alternative<int>(p))
+    return DataBlock::ParamType::TYPE_INT;
+  if (std::holds_alternative<real>(p))
+    return DataBlock::ParamType::TYPE_REAL;
+  if (std::holds_alternative<Point2>(p))
+    return DataBlock::ParamType::TYPE_POINT2;
+  if (std::holds_alternative<Point3>(p))
+    return DataBlock::ParamType::TYPE_POINT3;
+  if (std::holds_alternative<Point4>(p))
+    return DataBlock::ParamType::TYPE_POINT4;
+  if (std::holds_alternative<IPoint2>(p))
+    return DataBlock::ParamType::TYPE_IPOINT2;
+  if (std::holds_alternative<IPoint3>(p))
+    return DataBlock::ParamType::TYPE_IPOINT3;
+  if (std::holds_alternative<bool>(p))
+    return DataBlock::ParamType::TYPE_BOOL;
+  if (std::holds_alternative<E3DCOLOR>(p))
+    return DataBlock::ParamType::TYPE_E3DCOLOR;
+  if (std::holds_alternative<TMatrix>(p))
+    return DataBlock::ParamType::TYPE_MATRIX;
+  return DataBlock::ParamType::TYPE_NONE;
 }
 
-static void makeFullPathFromRelative(std::string &path, const std::string &base_filename)
+static_assert(std::variant_size_v<DataBlock::Param> == 11,
+  "DataBlock::Param alternatives changed: update type() and DataBlock::ParamType to match.");
+
+static void makeFullPathFromRelative(std::string &path, std::string_view base_filename)
 {
-  if (base_filename.empty())
+  if (path.empty() || base_filename.empty())
     return;
 
   if (path[0] == '/' || path[0] == '\\')
     return;
 
-  size_t i = base_filename.find_last_of("/\\:");
-  if (i == std::string::npos)
+  if (path.size() > 1 && path[1] == ':')
     return;
 
-  path.insert(0, base_filename.data(), i);
+  size_t i = base_filename.find_last_of("/\\:");
+  if (i == std::string_view::npos)
+    return;
+
+  path.insert(0, base_filename.data(), i + 1);
 }
 
 
@@ -66,17 +95,18 @@ public:
   std::string &buffer;
 
   const char *text, *curp, *textend;
-  const char *fileName;
   int curLine;
 
   std::vector<std::string> includeStack;
 
   DataBlockParser(std::string &buf, const char *fn) :
-    buffer(buf), text(buf.data()), curp(buf.data()), textend(buf.data() + buf.size()), fileName(fn), curLine(1)
+    buffer(buf), text(buf.data()), curp(buf.data()), textend(buf.data() + buf.size()), curLine(1)
   {
     std::replace(buffer.begin(), buffer.end(), EOF_CHAR, ' ');
-    includeStack.emplace_back(fileName ? fileName : "");
+    includeStack.emplace_back(fn ? fn : "");
   }
+
+  const std::string &currentFile() const { return includeStack.back(); }
 
   void updatePointers()
   {
@@ -107,12 +137,8 @@ void DataBlockParser::skipWhite()
 
     if (c == EOF_CHAR)
     {
-      if (!includeStack.empty())
-      {
+      if (includeStack.size() > 1)
         includeStack.pop_back();
-        if (!includeStack.empty())
-          fileName = includeStack.back().data();
-      }
       continue;
     }
 
@@ -321,10 +347,10 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
     if (*curp == '{')
     {
       ++curp;
-      DataBlock *nb = new DataBlock(blk.nameMap);
+      auto nb = std::make_unique<DataBlock>(blk.nameMap);
       nb->setBlockName(name.data());
-      blk.addBlock(nb);
       parse(*nb, false);
+      blk.addBlock(std::move(nb));
     }
     else if (*curp == ':')
     {
@@ -350,7 +376,7 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
 
       std::string value;
       getValue(value);
-      blk.addParam(name.data(), type, value.data(), curLine, fileName);
+      blk.addParam(name.data(), type, value.data(), curLine, currentFile().c_str());
     }
     else if (stricmp(name.data(), "include") == 0)
     {
@@ -361,18 +387,17 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
       curp = start;
       *(char *)curp = EOF_CHAR;
 
-      makeFullPathFromRelative(value, fileName);
+      makeFullPathFromRelative(value, currentFile());
 
-      const char *baseFileName = fileName;
+      const std::string baseFileName = currentFile();
 
       includeStack.emplace_back(value);
-      fileName = includeStack.back().data();
 
-      std::ifstream is(value, std::ios::binary);
+      std::ifstream is(fs::path(strToWide(value)), std::ios::binary);
 
       if (!is)
       {
-        debug("can't open include file '%s' for '%s'\n", value.data(), baseFileName);
+        debug("can't open include file '%s' for '%s'\n", value.data(), baseFileName.c_str());
         throw SyntaxErrorException("can't open include file");
       }
 
@@ -380,10 +405,10 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
       if (buf.empty())
         throw SyntaxErrorException("error loading include file");
 
+      std::replace(buf.begin(), buf.end(), EOF_CHAR, ' ');
+
       int pos = curp - text;
       buffer.insert(pos, buf);
-
-      std::replace(buffer.begin(), buffer.end(), EOF_CHAR, ' ');
 
       updatePointers();
     }
@@ -393,12 +418,10 @@ void DataBlockParser::parse(DataBlock &blk, bool isTop)
 }
 
 
-DataBlock *DataBlock::emptyBlock = NULL;
-
-DataBlock::ParamType DataBlock::deserialize_param_type(const std::string &s)
+DataBlock::ParamType DataBlock::deserialize_param_type(std::string_view s)
 {
-  auto it = type_map().find(s);
-  if (it != type_map().end())
+  auto it = type_map.find(s);
+  if (it != type_map.end())
     return it->second;
 
   return ParamType::TYPE_NONE;
@@ -406,28 +429,28 @@ DataBlock::ParamType DataBlock::deserialize_param_type(const std::string &s)
 
 void DataBlock::setBlockName(const char *name) { nameId = nameMap->addNameId(name); }
 
-int DataBlock::addBlock(DataBlock *blk)
+int DataBlock::addBlock(std::unique_ptr<DataBlock> blk)
 {
   if (!blk)
     return -1;
 
-  blocks.emplace_back(blk);
+  blocks.push_back(std::move(blk));
   return int(blocks.size()) - 1;
 }
 
 int DataBlock::addParam(const char *name, ParamType type, const char *value, int line, const char *filename)
 {
-  int nameId = nameMap->addNameId(name);
+  nameIds.emplace_back(nameMap->addNameId(name));
 
   char *org_locale = setlocale(LC_ALL, "C");
 
   switch (type)
   {
-    case ParamType::TYPE_STRING: params.emplace_back(nameId, std::string(value)); break;
+    case ParamType::TYPE_STRING: params.emplace_back(std::string(value)); break;
 
-    case ParamType::TYPE_INT: params.emplace_back(nameId, std::stoi(value)); break;
+    case ParamType::TYPE_INT: params.emplace_back(std::stoi(value)); break;
 
-    case ParamType::TYPE_REAL: params.emplace_back(nameId, std::stof(value)); break;
+    case ParamType::TYPE_REAL: params.emplace_back(std::stof(value)); break;
 
     case ParamType::TYPE_POINT2:
     {
@@ -435,7 +458,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
       int res = sscanf(value, " %f , %f", &p2.x, &p2.y);
       if (res != 2)
         debug("invalid point2 value in line %d of '%s'\n", line, filename);
-      params.emplace_back(nameId, p2);
+      params.emplace_back(p2);
     }
     break;
 
@@ -445,7 +468,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
       int res = sscanf(value, " %f , %f , %f", &p3.x, &p3.y, &p3.z);
       if (res != 3)
         debug("invalid point3 value in line %d of '%s'\n", line, filename);
-      params.emplace_back(nameId, p3);
+      params.emplace_back(p3);
     }
     break;
 
@@ -455,7 +478,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
       int res = sscanf(value, " %f , %f , %f , %f", &p4.x, &p4.y, &p4.z, &p4.w);
       if (res != 4)
         debug("invalid point4 value in line %d of '%s'\n", line, filename);
-      params.emplace_back(nameId, p4);
+      params.emplace_back(p4);
     }
     break;
 
@@ -465,7 +488,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
       int res = sscanf(value, " %i , %i", &ip2.x, &ip2.y);
       if (res != 2)
         debug("invalid ipoint2 value in line %d of '%s'\n", line, filename);
-      params.emplace_back(nameId, ip2);
+      params.emplace_back(ip2);
     }
     break;
 
@@ -475,7 +498,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
       int res = sscanf(value, " %i , %i , %i", &ip3.x, &ip3.y, &ip3.z);
       if (res != 3)
         debug("invalid ipoint3 value in line %d of '%s'\n", line, filename);
-      params.emplace_back(nameId, ip3);
+      params.emplace_back(ip3);
     }
     break;
 
@@ -491,7 +514,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
         b = false;
         debug("invalid boolean value '%s' in line %d of '%s'\n", value, line, filename);
       }
-      params.emplace_back(nameId, b);
+      params.emplace_back(b);
     }
     break;
 
@@ -508,7 +531,7 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
       c.g = g;
       c.b = b;
       c.a = a;
-      params.emplace_back(nameId, c);
+      params.emplace_back(c);
     }
     break;
 
@@ -524,11 +547,14 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
       if (res != 12)
         debug("invalid TMatrix value in line %d of '%s'\n", line, filename);
 
-      params.emplace_back(nameId, tm);
+      params.emplace_back(tm);
     }
     break;
 
-    default: debug("error");
+    default:
+      nameIds.pop_back();
+      debug("addBlock error: unknown param type");
+      break;
   }
 
   setlocale(LC_ALL, org_locale);
@@ -536,300 +562,89 @@ int DataBlock::addParam(const char *name, ParamType type, const char *value, int
 }
 
 
-DataBlock *DataBlock::addBlock(const char *name)
-{
-  DataBlock *blk = getBlockByName(getNameId(name));
-  if (blk)
-    return blk;
-
-  return addNewBlock(name);
-}
-
-
-DataBlock *DataBlock::addNewBlock(const char *name)
-{
-  DataBlock *nb = new DataBlock(nameMap);
-  nb->setBlockName(name);
-  addBlock(nb);
-  return nb;
-}
-
-
-bool DataBlock::removeBlock(const char *name)
-{
-  int nameId = getNameId(name);
-  if (nameId < 0)
-    return false;
-
-  bool removed = false;
-
-  for (int i = int(blocks.size()) - 1; i >= 0; --i)
-    if (blocks[i] && blocks[i]->getBlockNameId() == nameId)
-    {
-      blocks.erase(blocks.begin() + i);
-      removed = true;
-    }
-
-  return removed;
-}
-
-
-bool DataBlock::removeParam(const char *name)
-{
-  int nameId = getNameId(name);
-  if (nameId < 0)
-    return false;
-
-  bool removed = false;
-
-  for (int i = int(params.size()) - 1; i >= 0; --i)
-    if (params[i].nameId == nameId)
-    {
-      params.erase(params.begin() + i);
-      removed = true;
-    }
-
-  return removed;
-}
-
-
-void DataBlock::setParamsFrom(const DataBlock *blk)
-{
-  if (!blk)
-    return;
-
-  params.clear();
-
-  int num = blk->paramCount();
-  for (int i = 0; i < num; ++i)
-  {
-    const char *name = blk->getParamName(i);
-
-    switch (blk->getParamType(i))
-    {
-      case ParamType::TYPE_STRING: addStr(name, blk->getStr(i)); break;
-      case ParamType::TYPE_INT: addInt(name, blk->getInt(i)); break;
-      case ParamType::TYPE_REAL: addReal(name, blk->getReal(i)); break;
-      case ParamType::TYPE_POINT2: addPoint2(name, blk->getPoint2(i)); break;
-      case ParamType::TYPE_POINT3: addPoint3(name, blk->getPoint3(i)); break;
-      case ParamType::TYPE_POINT4: addPoint4(name, blk->getPoint4(i)); break;
-      case ParamType::TYPE_IPOINT2: addIPoint2(name, blk->getIPoint2(i)); break;
-      case ParamType::TYPE_IPOINT3: addIPoint3(name, blk->getIPoint3(i)); break;
-      case ParamType::TYPE_BOOL: addBool(name, blk->getBool(i)); break;
-      case ParamType::TYPE_E3DCOLOR: addE3dcolor(name, blk->getE3dcolor(i)); break;
-      case ParamType::TYPE_MATRIX: addTm(name, blk->getTm(i)); break;
-      default: debug("error");
-    }
-  }
-}
-
-
-DataBlock *DataBlock::addNewBlock(const DataBlock *blk, const char *as_name)
-{
-  if (!blk)
-    return NULL;
-
-  DataBlock *newBlk = addNewBlock(as_name ? as_name : blk->getBlockName());
-
-  newBlk->setParamsFrom(blk);
-
-  // add sub-blocks
-  int num = blk->blockCount();
-  for (int i = 0; i < num; ++i)
-    newBlk->addNewBlock(blk->getBlock(i));
-
-  return newBlk;
-}
-
-
-void DataBlock::setFrom(const DataBlock *from)
-{
-  clearData();
-
-  if (!from)
-    return;
-
-  setParamsFrom(from);
-
-  for (int i = 0; i < from->blockCount(); ++i)
-    addNewBlock(from->getBlock(i));
-}
-
-
 int DataBlock::setStr(const char *name, const char *value)
 {
   int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_STRING)
+  if (id < 0 || type(params[id]) != ParamType::TYPE_STRING)
     return addStr(name, value);
 
-  params[id].set_str(value);
+  params[id] = std::string(value);
   return id;
 }
 
 int DataBlock::setBool(const char *name, bool value)
 {
   int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_BOOL)
+  if (id < 0 || type(params[id]) != ParamType::TYPE_BOOL)
     return addBool(name, value);
 
-  params[id].set_bool(value);
+  params[id] = value;
   return id;
 }
 
 int DataBlock::setInt(const char *name, int value)
 {
   int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_INT)
+  if (id < 0 || type(params[id]) != ParamType::TYPE_INT)
     return addInt(name, value);
 
-  params[id].set_int(value);
+  params[id] = value;
   return id;
 }
 
 int DataBlock::setReal(const char *name, real value)
 {
   int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_REAL)
+  if (id < 0 || type(params[id]) != ParamType::TYPE_REAL)
     return addReal(name, value);
 
-  params[id].set_real(value);
-  return id;
-}
-
-int DataBlock::setPoint2(const char *name, const Point2 &value)
-{
-  int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_POINT2)
-    return addPoint2(name, value);
-
-  params[id].set_pt2(value);
+  params[id] = value;
   return id;
 }
 
 int DataBlock::setPoint3(const char *name, const Point3 &value)
 {
   int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_POINT3)
+  if (id < 0 || type(params[id]) != ParamType::TYPE_POINT3)
     return addPoint3(name, value);
 
-  params[id].set_pt3(value);
-  return id;
-}
-
-int DataBlock::setPoint4(const char *name, const Point4 &value)
-{
-  int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_POINT4)
-    return addPoint4(name, value);
-
-  params[id].set_pt4(value);
-  return id;
-}
-
-int DataBlock::setIPoint2(const char *name, const IPoint2 &value)
-{
-  int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_IPOINT2)
-    return addIPoint2(name, value);
-
-  params[id].set_ipt2(value);
-  return id;
-}
-
-int DataBlock::setIPoint3(const char *name, const IPoint3 &value)
-{
-  int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_IPOINT3)
-    return addIPoint3(name, value);
-
-  params[id].set_ipt3(value);
-  return id;
-}
-
-int DataBlock::setE3dcolor(const char *name, const E3DCOLOR value)
-{
-  int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_E3DCOLOR)
-    return addE3dcolor(name, value);
-
-  params[id].set_color(value);
-  return id;
-}
-
-int DataBlock::setTm(const char *name, const TMatrix &value)
-{
-  int id = findParam(name);
-  if (id < 0 || params[id].type != ParamType::TYPE_MATRIX)
-    return addTm(name, value);
-
-  params[id].set_tm(value);
+  params[id] = value;
   return id;
 }
 
 
 int DataBlock::addStr(const char *name, const char *value)
 {
-  params.emplace_back(Param(nameMap->addNameId(name), std::string(value)));
+  params.emplace_back(std::string(value));
+  nameIds.emplace_back(nameMap->addNameId(name));
   return int(params.size()) - 1;
 }
 
 int DataBlock::addBool(const char *name, bool value)
 {
-  params.emplace_back(Param(nameMap->addNameId(name), value));
+  params.emplace_back(value);
+  nameIds.emplace_back(nameMap->addNameId(name));
   return int(params.size()) - 1;
 }
 
 int DataBlock::addInt(const char *name, int value)
 {
-  params.emplace_back(Param(nameMap->addNameId(name), value));
+  params.emplace_back(value);
+  nameIds.emplace_back(nameMap->addNameId(name));
   return int(params.size()) - 1;
 }
 
 int DataBlock::addReal(const char *name, real value)
 {
-  params.emplace_back(Param(nameMap->addNameId(name), value));
-  return int(params.size()) - 1;
-}
-
-int DataBlock::addPoint2(const char *name, const Point2 &value)
-{
-  params.emplace_back(Param(nameMap->addNameId(name), value));
+  params.emplace_back(value);
+  nameIds.emplace_back(nameMap->addNameId(name));
   return int(params.size()) - 1;
 }
 
 int DataBlock::addPoint3(const char *name, const Point3 &value)
 {
-  params.emplace_back(Param(nameMap->addNameId(name), value));
-  return int(params.size()) - 1;
-}
-
-int DataBlock::addPoint4(const char *name, const Point4 &value)
-{
-  params.emplace_back(Param(nameMap->addNameId(name), value));
-  return int(params.size()) - 1;
-}
-
-int DataBlock::addIPoint2(const char *name, const IPoint2 &value)
-{
-  params.emplace_back(Param(nameMap->addNameId(name), value));
-  return int(params.size()) - 1;
-}
-
-int DataBlock::addIPoint3(const char *name, const IPoint3 &value)
-{
-  params.emplace_back(Param(nameMap->addNameId(name), value));
-  return int(params.size()) - 1;
-}
-
-int DataBlock::addE3dcolor(const char *name, const E3DCOLOR value)
-{
-  params.emplace_back(Param(nameMap->addNameId(name), value));
-  return int(params.size()) - 1;
-}
-
-int DataBlock::addTm(const char *name, const TMatrix &value)
-{
-  params.emplace_back(Param(nameMap->addNameId(name), value));
+  params.emplace_back(value);
+  nameIds.emplace_back(nameMap->addNameId(name));
   return int(params.size()) - 1;
 }
 
@@ -851,6 +666,7 @@ void DataBlock::reset()
 void DataBlock::clearData()
 {
   params.clear();
+  nameIds.clear();
   blocks.clear();
 }
 
@@ -873,33 +689,54 @@ bool DataBlock::loadText(std::string &text, const char *filename)
 
     return false;
   }
+  catch (std::invalid_argument &e)
+  {
+    debug("DataBlock error in line %d of '%s': invalid numeric value:\n  %s\n", parser.curLine, filename ? filename : "<unknown>",
+      e.what());
+
+    if (!paramCount())
+      reset();
+
+    return false;
+  }
+  catch (std::out_of_range &e)
+  {
+    debug("DataBlock error in line %d of '%s': numeric value out of range:\n  %s\n", parser.curLine, filename ? filename : "<unknown>",
+      e.what());
+
+    if (!paramCount())
+      reset();
+
+    return false;
+  }
 
   return true;
 }
 
-bool DataBlock::loadText(char *text, int len, const char *filename)
+bool DataBlock::loadText(const char *text, int len, const char *filename)
 {
   std::string buf(text, len);
   return loadText(buf, filename);
 }
 
 
-bool DataBlock::load(const std::wstring &fname)
+bool DataBlock::load(const fs::path &fname)
 {
   reset();
   if (fname.empty())
     return false;
 
-  std::string fileName = wideToStr(fname.data()).data(); // FIXME
+  std::ifstream is(fname, std::ios::binary);
 
-  std::ifstream is(fileName, std::ios::binary);
+  const std::string narrow_name = wideToStr(fname.native());
+
   if (!is)
   {
-    debug("can't open include file '%s'\n", fname);
+    debug("can't open include file '%s'\n", narrow_name.c_str());
     return false;
   }
 
-  return loadFromStream(is, fileName.data());
+  return loadFromStream(is, narrow_name.c_str());
 }
 
 
@@ -947,65 +784,86 @@ static void writeStringValue(std::ofstream &os, const char *s)
 
 void DataBlock::saveText(std::ofstream &os, int level) const
 {
-  for (const Param &p : params)
+  for (size_t i = 0; i < params.size(); ++i)
   {
+    const Param &p = params[i];
+
     os << std::string(level * 2, ' ');
-    writeString(os, getName(p.nameId));
+    writeString(os, getName(nameIds[i]));
 
     // clang-format off
-    switch (p.type)
+    switch (type(p))
     {
       case ParamType::TYPE_STRING:
         os << ":t=";
-        writeStringValue(os, p.as_c_str());
+        writeStringValue(os, std::get<std::string>(p).data());
         break;
 
       case ParamType::TYPE_BOOL:
-        os << ":b=" << (p.as_bool() ? "yes" : "no");
+        os << ":b=" << (std::get<bool>(p) ? "yes" : "no");
         break;
 
       case ParamType::TYPE_INT:
-        os << ":i=" << p.as_int();
+        os << ":i=" << std::get<int>(p);
         break;
 
       case ParamType::TYPE_REAL:
-        os << ":r=" << p.as_real();
+        os << ":r=" << std::get<real>(p);
         break;
 
       case ParamType::TYPE_POINT2:
-        os << ":p2=" << p.as_pt2().x << ", " << p.as_pt2().y;
+      {
+        auto &p2 = std::get<Point2>(p);
+        os << ":p2=" << p2.x << ", " << p2.y;
+      }
         break;
 
       case ParamType::TYPE_POINT3:
-        os << ":p3=" << p.as_pt3().x << ", " << p.as_pt3().y << ", " << p.as_pt3().z;
+      {
+        auto &p3 = std::get<Point3>(p);
+        os << ":p3=" << p3.x << ", " << p3.y << ", " << p3.z;
+      }
         break;
 
       case ParamType::TYPE_POINT4:
-        os << ":p4=" << p.as_pt4().x << ", " << p.as_pt4().y << ", " << p.as_pt4().z << ", " << p.as_pt4().w;
+      {
+        auto &p4 = std::get<Point4>(p);
+        os << ":p4=" << p4.x << ", " << p4.y << ", " << p4.z << ", " << p4.w;
+      }
         break;
 
       case ParamType::TYPE_IPOINT2:
-        os << ":ip2=" << p.as_ipt2().x << ", " << p.as_ipt2().y;
+      {
+        auto &ip2 = std::get<IPoint2>(p);
+        os << ":ip2=" << ip2.x << ", " << ip2.y;
+      }
         break;
 
       case ParamType::TYPE_IPOINT3:
-        os << ":ip3=" << p.as_ipt3().x << ", " << p.as_ipt3().y << ", " << p.as_ipt3().z;
-      break;
+      {
+        auto &ip3 = std::get<IPoint3>(p);
+        os << ":ip3=" << ip3.x << ", " << ip3.y << ", " << ip3.z;
+      }
+        break;
 
       case ParamType::TYPE_E3DCOLOR:
-        os << ":c=" << p.as_color().r << ", " << p.as_color().g << ", " << p.as_color().b << ", " << p.as_color().a;
+      {
+        auto &c = std::get<E3DCOLOR>(p);
+        os << ":c=" << c.r << ", " << c.g << ", " << c.b << ", " << c.a;
+      }
         break;
 
       case ParamType::TYPE_MATRIX:
       {
+        auto &m = std::get<TMatrix>(p);
         os << ":m=[";
-        os << "[" << p.as_tm().getcol(0).x << ", " << p.as_tm().getcol(0).y << ", " << p.as_tm().getcol(0).z << "]";
-        os << "[" << p.as_tm().getcol(1).x << ", " << p.as_tm().getcol(1).y << ", " << p.as_tm().getcol(1).z << "]";
-        os << "[" << p.as_tm().getcol(2).x << ", " << p.as_tm().getcol(2).y << ", " << p.as_tm().getcol(2).z << "]";
-        os << "[" << p.as_tm().getcol(3).x << ", " << p.as_tm().getcol(3).y << ", " << p.as_tm().getcol(3).z << "]";
+        os << "[" << m.getcol(0).x << ", " << m.getcol(0).y << ", " << m.getcol(0).z << "]";
+        os << "[" << m.getcol(1).x << ", " << m.getcol(1).y << ", " << m.getcol(1).z << "]";
+        os << "[" << m.getcol(2).x << ", " << m.getcol(2).y << ", " << m.getcol(2).z << "]";
+        os << "[" << m.getcol(3).x << ", " << m.getcol(3).y << ", " << m.getcol(3).z << "]";
         os << "]";
-        break;
       }
+        break;
 
       default: debug("unknown type");
     }
@@ -1031,12 +889,12 @@ void DataBlock::saveText(std::ofstream &os, int level) const
   }
 }
 
-bool DataBlock::saveToTextFile(const std::wstring &filename) const
+bool DataBlock::saveToTextFile(const fs::path &filename) const
 {
   std::ofstream os(filename, std::ios::binary);
   if (!os)
   {
-    debug(_T("cant open '%s' file for writing"), filename.data());
+    debug(_T("cant open '%s' file for writing"), filename.c_str());
     return false;
   }
 
@@ -1073,107 +931,65 @@ DataBlock::ParamType DataBlock::getParamType(int i) const
 {
   if (i < 0 || i >= int(params.size()))
     return ParamType::TYPE_NONE;
-  return params[i].type;
+  return type(params[i]);
 }
 
 int DataBlock::getParamNameId(int i) const
 {
-  if (i < 0 || i >= int(params.size()))
+  if (i < 0 || i >= int(nameIds.size()))
     return -1;
-  return params[i].nameId;
+  return nameIds[i];
 }
 
 const char *DataBlock::getStr(int i, const char *def) const
 {
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_STRING)
+  if (i < 0 || i >= int(params.size()) || type(params[i]) != ParamType::TYPE_STRING)
     return def;
-  return params[i].as_c_str();
+  return std::get<std::string>(params[i]).c_str();
 }
 
 int DataBlock::getInt(int i, int def) const
 {
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_INT)
+  if (i < 0 || i >= int(params.size()) || type(params[i]) != ParamType::TYPE_INT)
     return def;
-  return params[i].as_int();
+  return std::get<int>(params[i]);
 }
 
 bool DataBlock::getBool(int i, bool def) const
 {
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_BOOL)
+  if (i < 0 || i >= int(params.size()) || type(params[i]) != ParamType::TYPE_BOOL)
     return def;
-  return params[i].as_bool();
+  return std::get<bool>(params[i]);
 }
 
 real DataBlock::getReal(int i, real def) const
 {
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_REAL)
+  if (i < 0 || i >= int(params.size()) || type(params[i]) != ParamType::TYPE_REAL)
     return def;
-  return params[i].as_real();
-}
-
-Point2 DataBlock::getPoint2(int i, const Point2 &def) const
-{
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_POINT2)
-    return def;
-  return params[i].as_pt2();
+  return std::get<real>(params[i]);
 }
 
 Point3 DataBlock::getPoint3(int i, const Point3 &def) const
 {
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_POINT3)
+  if (i < 0 || i >= int(params.size()) || type(params[i]) != ParamType::TYPE_POINT3)
     return def;
-  return params[i].as_pt3();
-}
-
-Point4 DataBlock::getPoint4(int i, const Point4 &def) const
-{
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_POINT4)
-    return def;
-  return params[i].as_pt4();
-}
-
-IPoint2 DataBlock::getIPoint2(int i, const IPoint2 &def) const
-{
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_IPOINT2)
-    return def;
-  return params[i].as_ipt2();
-}
-
-IPoint3 DataBlock::getIPoint3(int i, const IPoint3 &def) const
-{
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_IPOINT3)
-    return def;
-  return params[i].as_ipt3();
-}
-
-E3DCOLOR DataBlock::getE3dcolor(int i, const E3DCOLOR &def) const
-{
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_E3DCOLOR)
-    return def;
-  return params[i].as_color();
-}
-
-TMatrix DataBlock::getTm(int i, const TMatrix &def) const
-{
-  if (i < 0 || i >= int(params.size()) || params[i].type != ParamType::TYPE_MATRIX)
-    return def;
-  return params[i].as_tm();
+  return std::get<Point3>(params[i]);
 }
 
 
 int DataBlock::findParam(int nid, int after) const
 {
-  for (int i = after + 1; i < int(params.size()); ++i)
-    if (params[i].nameId == nid)
+  for (int i = after + 1; i < int(nameIds.size()); ++i)
+    if (nameIds[i] == nid)
       return i;
   return -1;
 }
 
-const DataBlock::Param *DataBlock::getParam(int name_id) const
+std::optional<std::reference_wrapper<const DataBlock::Param>> DataBlock::getParam(int param_number) const
 {
-  if (name_id < 0 || name_id >= int(params.size()))
-    return 0;
-  return &params[name_id];
+  if (param_number < 0 || param_number >= int(params.size()))
+    return std::nullopt;
+  return params[param_number];
 }
 
 const char *DataBlock::getStr(const char *name, const char *def) const { return getStr(findParam(name), def); }
@@ -1184,197 +1000,4 @@ bool DataBlock::getBool(const char *name, bool def) const { return getBool(findP
 
 real DataBlock::getReal(const char *name, real def) const { return getReal(findParam(name), def); }
 
-Point2 DataBlock::getPoint2(const char *name, const Point2 &def) const { return getPoint2(findParam(name), def); }
-
 Point3 DataBlock::getPoint3(const char *name, const Point3 &def) const { return getPoint3(findParam(name), def); }
-
-Point4 DataBlock::getPoint4(const char *name, const Point4 &def) const { return getPoint4(findParam(name), def); }
-
-IPoint2 DataBlock::getIPoint2(const char *name, const IPoint2 &def) const { return getIPoint2(findParam(name), def); }
-
-IPoint3 DataBlock::getIPoint3(const char *name, const IPoint3 &def) const { return getIPoint3(findParam(name), def); }
-
-E3DCOLOR DataBlock::getE3dcolor(const char *name, const E3DCOLOR &def) const { return getE3dcolor(findParam(name), def); }
-
-TMatrix DataBlock::getTm(const char *name, const TMatrix &def) const { return getTm(findParam(name), def); }
-
-
-DataBlock::Param::Param(int id, const std::string &s) : nameId(id), type(DataBlock::ParamType::TYPE_STRING)
-{
-  new (&data) std::string(s);
-}
-
-DataBlock::Param::Param(int id, int i) : nameId(id), type(DataBlock::ParamType::TYPE_INT) { new (&data) int(i); }
-DataBlock::Param::Param(int id, real r) : nameId(id), type(DataBlock::ParamType::TYPE_REAL) { new (&data) real(r); }
-
-DataBlock::Param::Param(int id, const Point2 &p2) : nameId(id), type(DataBlock::ParamType::TYPE_POINT2) { new (&data) Point2(p2); }
-DataBlock::Param::Param(int id, const Point3 &p3) : nameId(id), type(DataBlock::ParamType::TYPE_POINT3) { new (&data) Point3(p3); }
-DataBlock::Param::Param(int id, const Point4 &p4) : nameId(id), type(DataBlock::ParamType::TYPE_POINT4) { new (&data) Point4(p4); }
-
-DataBlock::Param::Param(int id, const IPoint2 &ip2) : nameId(id), type(DataBlock::ParamType::TYPE_IPOINT2)
-{
-  new (&data) IPoint2(ip2);
-}
-DataBlock::Param::Param(int id, const IPoint3 &ip3) : nameId(id), type(DataBlock::ParamType::TYPE_IPOINT3)
-{
-  new (&data) IPoint3(ip3);
-}
-
-DataBlock::Param::Param(int id, bool b) : nameId(id), type(DataBlock::ParamType::TYPE_BOOL) { new (&data) bool(b); }
-
-DataBlock::Param::Param(int id, const E3DCOLOR &c) : nameId(id), type(DataBlock::ParamType::TYPE_E3DCOLOR) { new (&data) E3DCOLOR(c); }
-DataBlock::Param::Param(int id, const TMatrix &tm) : nameId(id), type(DataBlock::ParamType::TYPE_MATRIX) { new (&data) TMatrix(tm); }
-
-
-DataBlock::Param::Param(const Param &p)
-{
-  nameId = p.nameId;
-  type = p.type;
-
-  // std::string has a non-trival copy constructor
-  if (type == ParamType::TYPE_STRING)
-    new (&data) std::string(p.as_c_str());
-  else
-    memcpy(&data, &p.data, sizeof(data));
-}
-
-DataBlock::Param::~Param()
-{
-  // std::string has a non-trivial destructor
-  if (type == ParamType::TYPE_STRING)
-    reinterpret_cast<std::string *>(&data)->~basic_string();
-}
-
-
-const char *DataBlock::Param::as_c_str() const
-{
-  assert(type == ParamType::TYPE_STRING);
-  return reinterpret_cast<const std::string *>(&data)->c_str();
-}
-
-int DataBlock::Param::as_int() const
-{
-  assert(type == ParamType::TYPE_INT);
-  return *reinterpret_cast<const int *>(&data);
-}
-
-real DataBlock::Param::as_real() const
-{
-  assert(type == ParamType::TYPE_REAL);
-  return *reinterpret_cast<const float *>(&data);
-}
-
-const Point2 &DataBlock::Param::as_pt2() const
-{
-  assert(type == ParamType::TYPE_POINT2);
-  return *reinterpret_cast<const Point2 *>(&data);
-}
-
-const Point3 &DataBlock::Param::as_pt3() const
-{
-  assert(type == ParamType::TYPE_POINT3);
-  return *reinterpret_cast<const Point3 *>(&data);
-}
-
-const Point4 &DataBlock::Param::as_pt4() const
-{
-  assert(type == ParamType::TYPE_POINT4);
-  return *reinterpret_cast<const Point4 *>(&data);
-}
-
-const IPoint2 &DataBlock::Param::as_ipt2() const
-{
-  assert(type == ParamType::TYPE_IPOINT2);
-  return *reinterpret_cast<const IPoint2 *>(&data);
-}
-
-const IPoint3 &DataBlock::Param::as_ipt3() const
-{
-  assert(type == ParamType::TYPE_IPOINT3);
-  return *reinterpret_cast<const IPoint3 *>(&data);
-}
-
-bool DataBlock::Param::as_bool() const
-{
-  assert(type == ParamType::TYPE_BOOL);
-  return *reinterpret_cast<const bool *>(&data);
-}
-
-const E3DCOLOR &DataBlock::Param::as_color() const
-{
-  assert(type == ParamType::TYPE_E3DCOLOR);
-  return *reinterpret_cast<const E3DCOLOR *>(&data);
-}
-
-const TMatrix &DataBlock::Param::as_tm() const
-{
-  assert(type == ParamType::TYPE_MATRIX);
-  return *reinterpret_cast<const TMatrix *>(&data);
-}
-
-
-void DataBlock::Param::set_str(const std::string &s)
-{
-  assert(type == ParamType::TYPE_STRING);
-  *reinterpret_cast<std::string *>(&data) = s;
-}
-
-void DataBlock::Param::set_int(int i)
-{
-  assert(type == ParamType::TYPE_INT);
-  *reinterpret_cast<int *>(&data) = i;
-}
-
-void DataBlock::Param::set_real(real r)
-{
-  assert(type == ParamType::TYPE_REAL);
-  *reinterpret_cast<real *>(&data) = r;
-}
-
-void DataBlock::Param::set_pt2(const Point2 &p2)
-{
-  assert(type == ParamType::TYPE_POINT2);
-  *reinterpret_cast<Point2 *>(&data) = p2;
-}
-
-void DataBlock::Param::set_pt3(const Point3 &p3)
-{
-  assert(type == ParamType::TYPE_POINT3);
-  *reinterpret_cast<Point3 *>(&data) = p3;
-}
-
-void DataBlock::Param::set_pt4(const Point4 &p4)
-{
-  assert(type == ParamType::TYPE_POINT4);
-  *reinterpret_cast<Point4 *>(&data) = p4;
-}
-
-void DataBlock::Param::set_ipt2(const IPoint2 &ip2)
-{
-  assert(type == ParamType::TYPE_IPOINT2);
-  *reinterpret_cast<IPoint2 *>(&data) = ip2;
-}
-
-void DataBlock::Param::set_ipt3(const IPoint3 &ip3)
-{
-  assert(type == ParamType::TYPE_IPOINT3);
-  *reinterpret_cast<IPoint3 *>(&data) = ip3;
-}
-
-void DataBlock::Param::set_bool(bool b)
-{
-  assert(type == ParamType::TYPE_BOOL);
-  *reinterpret_cast<bool *>(&data) = b;
-}
-
-void DataBlock::Param::set_color(const E3DCOLOR &c)
-{
-  assert(type == ParamType::TYPE_E3DCOLOR);
-  *reinterpret_cast<E3DCOLOR *>(&data) = c;
-}
-
-void DataBlock::Param::set_tm(const TMatrix &tm)
-{
-  assert(type == ParamType::TYPE_MATRIX);
-  *reinterpret_cast<TMatrix *>(&data) = tm;
-}

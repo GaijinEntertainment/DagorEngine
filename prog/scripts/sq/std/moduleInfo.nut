@@ -22,7 +22,7 @@ let typesByTypechecks ={
   [0x00010000] = "weakref",
   [0x00020000] = "outer", //internal type
 }
-function mkAssertStr(x, argname, verbose=false){
+function mkAssertStr(x, argname, verbose=false): string {
   if (verbose)
     log("type", x, "argname", argname)
   if (x < 0 || argname == null)
@@ -36,7 +36,7 @@ function mkAssertStr(x, argname, verbose=false){
   return $"  assert(type({argname}) in {typestr}, @() $\"type of argument should be one of: {infostr}\")"
 }
 
-function typeCheckArrToStringCheck(mask, arguments, indentStr="  ", verbose = false) {
+function typeCheckArrToStringCheck(mask, arguments, indentStr="  ", verbose = false): string {
   return $"\n{indentStr}".join(mask.map(@(x, i) mkAssertStr(x, arguments?[i], verbose)).filter(@(v) v!=""))
 }
 
@@ -61,7 +61,7 @@ let valuesByTypechecks ={
   [0x00020000] = "outer", //internal type
 }
 
-function typeBitsToStringFirst(x) {
+function typeBitsToStringFirst(x): string {
   if (x==null || x < 0)
     return "null"
   return (valuesByTypechecks.filter(@(_, bits) (x & bits)!=0)).values()?[0] ?? "null"
@@ -69,7 +69,7 @@ function typeBitsToStringFirst(x) {
 
 let def_params_names = ["a", "b", "c", "d", "e"].extend(array(10).map(@(_, i) $"var_{i+5}"))
 
-function defaultValueStr(v){
+function defaultValueStr(v): string {
   let t = type(v)
   if (t == "string") {
     let esc = v.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
@@ -83,7 +83,7 @@ function defaultValueStr(v){
 
 const INDENT_SYM = "  "
 
-function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=null){
+function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=null): string {
   let infos = func.getfuncinfos()
   let {typecheck, varargs, return_type_mask, pure, doc} = infos
 
@@ -153,14 +153,14 @@ function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=
         ? $"{funcname} \{\n{docstr}{indentStr}{typechecks}{retValueStr}\}"
         : $"{funcname} \{\n{docstr}{indentStr}{typechecks}\n{indentStr}\}"
 }
-function topairs(val) {
+function topairs(val): array {
   let sorted = []
   foreach (k, v in val)
     sorted.append([k, v])
   sorted.sort(@(pairA, pairB) pairA[0] <=> pairB[0])
   return sorted
 }
-function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null){
+function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null): string {
   let typ = type(val)
   let indentStr = "".join(array(indent, INDENT_SYM))
   let mkStubSt = callee()
@@ -198,7 +198,7 @@ function mkStubStr(val, name=null, indent=0, verbose = false, manualModInfo=null
   return name == null ? $"\"{typ}\"" : $"{indentStr}{name} = \"{typ}\""
 }
 
-let mkModuleStub = @(nm) mkStubStr(require(nm), nm)
+let mkModuleStub = @(nm): string mkStubStr(require(nm), nm)
 
 
 return freeze({

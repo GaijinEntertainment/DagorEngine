@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <sys/types.h>
 #if defined(_WIN32) || defined(__amigaos__) || defined(__amigaos4__)
 #ifdef _WIN32
@@ -17,7 +18,11 @@
 #include <io.h>
 #include <iphlpapi.h>
 #include <winsock.h>
-#define snprintf _snprintf
+/* snprintf is supported by Visual Studio 2015, mingw-w64 8.0.0, mingw-w64 with ucrt, mingw-w64 or mingw32 with ansi stdio */
+#if (defined(_MSC_VER) && _MSC_VER < 1900) || (defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 8 && !defined(_UCRT) && !defined(__USE_MINGW_ANSI_STDIO)) || (defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) && !defined(__USE_MINGW_ANSI_STDIO))
+/* _snprintf does not fill nul byte at the end of buffer and returns -1 on overflow */
+#define snprintf(buf, size, fmt, ...) ((_snprintf((buf), (size), (fmt), __VA_ARGS__), (((char *)buf)[(size_t)(size)-1] = 0), _scprintf((fmt), __VA_ARGS__)))
+#endif
 #if !defined(_MSC_VER)
 #include <stdint.h>
 #else /* !defined(_MSC_VER) */
@@ -188,6 +193,7 @@ connectToMiniSSDPD(const char * socketpath)
 #endif /* #ifdef MINIUPNPC_SET_SOCKET_TIMEOUT */
 	if(!socketpath)
 		socketpath = "/var/run/minissdpd.sock";
+	memset(&addr, 0, sizeof(addr));
 	addr.sun_family = AF_UNIX;
 	strncpy(addr.sun_path, socketpath, sizeof(addr.sun_path));
 	/* TODO : check if we need to handle the EINTR */
@@ -409,17 +415,17 @@ parseMSEARCHReply(const char * reply, int size,
 					putchar('\n');*/
 					/* skip the colon and white spaces */
 					do { b++; } while(reply[b]==' ');
-					if(0==strncasecmp(reply+a, "location", 8))
+					if(0==strncasecmp(reply+a, "location:", 9))
 					{
 						*location = reply+b;
 						*locationsize = i-b;
 					}
-					else if(0==strncasecmp(reply+a, "st", 2))
+					else if(0==strncasecmp(reply+a, "st:", 3))
 					{
 						*st = reply+b;
 						*stsize = i-b;
 					}
-					else if(0==strncasecmp(reply+a, "usn", 3))
+					else if(0==strncasecmp(reply+a, "usn:", 4))
 					{
 						*usn = reply+b;
 						*usnsize = i-b;
@@ -433,6 +439,52 @@ parseMSEARCHReply(const char * reply, int size,
 		}
 		i++;
 	}
+}
+
+#if defined(CLOCK_MONOTONIC_FAST)
+#define UPNP_CLOCKID CLOCK_MONOTONIC_FAST
+#elif defined(CLOCK_MONOTONIC)
+#define UPNP_CLOCKID CLOCK_MONOTONIC
+#endif
+
+static int upnp_gettimeofday(struct timeval * tv)
+{
+#if defined(_WIN32)
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
+	ULONGLONG ts = GetTickCount64();
+#else
+	DWORD ts = GetTickCount();
+#endif
+	tv->tv_sec = (long)(ts / 1000);
+	tv->tv_usec = (ts % 1000) * 1000;
+	return 0; /* success */
+#elif defined(CLOCK_MONOTONIC_FAST) || defined(CLOCK_MONOTONIC)
+#if defined(__APPLE__)
+#if defined(__clang__)
+	if (__builtin_available(macOS 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *)) {
+#else /* !defined(__clang__) */
+	if (clock_gettime != NULL) {
+#endif /* defined(__clang__) */
+#endif /* defined(__APPLE__) */
+		struct timespec ts;
+		int ret_code = clock_gettime(UPNP_CLOCKID, &ts);
+		if (ret_code == 0)
+		{
+			tv->tv_sec = ts.tv_sec;
+			tv->tv_usec = ts.tv_nsec / 1000;
+		}
+		return ret_code;
+#if defined(__APPLE__)
+	}
+	else
+	{
+		/* fall-back for earlier Apple platforms */
+		return gettimeofday(tv, NULL);
+	}
+#endif /* defined(__APPLE__) */
+#else
+	return gettimeofday(tv, NULL);
+#endif
 }
 
 /* port upnp discover : SSDP protocol */
@@ -681,6 +733,11 @@ ssdpDiscoverDevices(const char * const deviceTypes[],
 		             (linklocal ? "[" UPNP_MCAST_LL_ADDR "]" :  "[" UPNP_MCAST_SL_ADDR "]")
 		             : UPNP_MCAST_ADDR,
 		             deviceTypes[deviceIndex], mx);
+		if ((unsigned int)n >= sizeof(bufr))
+		{
+			closesocket(sudp);
+			return NULL;
+		}
 #ifdef DEBUG
 		/*printf("Sending %s", bufr);*/
 		printf("Sending M-SEARCH request to %s with ST: %s\n",
@@ -756,73 +813,84 @@ ssdpDiscoverDevices(const char * const deviceTypes[],
 		/* Waiting for SSDP REPLY packet to M-SEARCH
 		 * if searchalltypes is set, enter the loop only
 		 * when the last deviceType is reached */
-		if(!searchalltypes || !deviceTypes[deviceIndex + 1]) do {
-			n = receivedata(sudp, bufr, sizeof(bufr), delay, &scope_id);
-			if (n < 0) {
-				/* error */
-				if(error)
-					*error = MINISSDPC_SOCKET_ERROR;
-				goto error;
-			} else if (n == 0) {
-				/* no data or Time Out */
-#ifdef DEBUG
-				printf("NODATA or TIMEOUT\n");
-#endif /* DEBUG */
-				if (devlist && !searchalltypes) {
-					/* found some devices, stop now*/
+		if(!searchalltypes || !deviceTypes[deviceIndex + 1]) {
+			struct timeval start = {0, 0}, current = {0, 0};
+			upnp_gettimeofday(&start);
+			do {
+				n = receivedata(sudp, bufr, sizeof(bufr), delay, &scope_id);
+				if (n < 0) {
+					/* error */
 					if(error)
-						*error = MINISSDPC_SUCCESS;
+						*error = MINISSDPC_SOCKET_ERROR;
 					goto error;
-				}
-			} else {
-				const char * descURL=NULL;
-				int urlsize=0;
-				const char * st=NULL;
-				int stsize=0;
-				const char * usn=NULL;
-				int usnsize=0;
-				parseMSEARCHReply(bufr, n, &descURL, &urlsize, &st, &stsize, &usn, &usnsize);
-				if(st&&descURL) {
+				} else if (n == 0) {
+					/* no data or Time Out */
 #ifdef DEBUG
-					printf("M-SEARCH Reply:\n  ST: %.*s\n  USN: %.*s\n  Location: %.*s\n",
-					       stsize, st, usnsize, (usn?usn:""), urlsize, descURL);
+					printf("NODATA or TIMEOUT\n");
 #endif /* DEBUG */
-					for(tmp=devlist; tmp; tmp = tmp->pNext) {
-						if(memcmp(tmp->descURL, descURL, urlsize) == 0 &&
-						   tmp->descURL[urlsize] == '\0' &&
-						   memcmp(tmp->st, st, stsize) == 0 &&
-						   tmp->st[stsize] == '\0' &&
-						   (usnsize == 0 || memcmp(tmp->usn, usn, usnsize) == 0) &&
-						   tmp->usn[usnsize] == '\0')
-							break;
-					}
-					/* at the exit of the loop above, tmp is null if
-					 * no duplicate device was found */
-					if(tmp)
-						continue;
-					tmp = (struct UPNPDev *)malloc(sizeof(struct UPNPDev)+urlsize+stsize+usnsize);
-					if(!tmp) {
-						/* memory allocation error */
+					if (devlist && !searchalltypes) {
+						/* found some devices, stop now*/
 						if(error)
-							*error = MINISSDPC_MEMORY_ERROR;
+							*error = MINISSDPC_SUCCESS;
 						goto error;
 					}
-					tmp->pNext = devlist;
-					tmp->descURL = tmp->buffer;
-					tmp->st = tmp->buffer + 1 + urlsize;
-					tmp->usn = tmp->st + 1 + stsize;
-					memcpy(tmp->buffer, descURL, urlsize);
-					tmp->buffer[urlsize] = '\0';
-					memcpy(tmp->st, st, stsize);
-					tmp->buffer[urlsize+1+stsize] = '\0';
-					if(usn != NULL)
-						memcpy(tmp->usn, usn, usnsize);
-					tmp->buffer[urlsize+1+stsize+1+usnsize] = '\0';
-					tmp->scope_id = scope_id;
-					devlist = tmp;
+				} else {
+					const char * descURL=NULL;
+					int urlsize=0;
+					const char * st=NULL;
+					int stsize=0;
+					const char * usn=NULL;
+					int usnsize=0;
+					parseMSEARCHReply(bufr, n, &descURL, &urlsize, &st, &stsize, &usn, &usnsize);
+					if(st&&descURL) {
+#ifdef DEBUG
+						printf("M-SEARCH Reply:\n  ST: %.*s\n  USN: %.*s\n  Location: %.*s\n",
+						       stsize, st, usnsize, (usn?usn:""), urlsize, descURL);
+#endif /* DEBUG */
+						for(tmp=devlist; tmp; tmp = tmp->pNext) {
+							if(memcmp(tmp->descURL, descURL, urlsize) == 0 &&
+							   tmp->descURL[urlsize] == '\0' &&
+							   memcmp(tmp->st, st, stsize) == 0 &&
+							   tmp->st[stsize] == '\0' &&
+							   (usnsize == 0 || memcmp(tmp->usn, usn, usnsize) == 0) &&
+							   tmp->usn[usnsize] == '\0')
+								break;
+						}
+						/* at the exit of the loop above, tmp is null if
+						 * no duplicate device was found */
+						if(tmp)
+							continue;
+						tmp = (struct UPNPDev *)malloc(sizeof(struct UPNPDev)+urlsize+stsize+usnsize);
+						if(!tmp) {
+							/* memory allocation error */
+							if(error)
+								*error = MINISSDPC_MEMORY_ERROR;
+							goto error;
+						}
+						tmp->pNext = devlist;
+						tmp->descURL = tmp->buffer;
+						tmp->st = tmp->buffer + 1 + urlsize;
+						tmp->usn = tmp->st + 1 + stsize;
+						memcpy(tmp->buffer, descURL, urlsize);
+						tmp->buffer[urlsize] = '\0';
+						memcpy(tmp->st, st, stsize);
+						tmp->buffer[urlsize+1+stsize] = '\0';
+						if(usn != NULL)
+							memcpy(tmp->usn, usn, usnsize);
+						tmp->buffer[urlsize+1+stsize+1+usnsize] = '\0';
+						tmp->scope_id = scope_id;
+						devlist = tmp;
+					}
+					if (upnp_gettimeofday(&current) >= 0) {
+						/* exit the loop if delay is reached */
+						long interval = (current.tv_sec - start.tv_sec) * 1000;
+						interval += (current.tv_usec - start.tv_usec) / 1000;
+						if (interval > (long)delay)
+							break;
+					}
 				}
-			}
-		} while(n > 0);
+			} while(n > 0);
+		}
 		if(ipv6) {
 			/* switch linklocal flag */
 			if(linklocal) {

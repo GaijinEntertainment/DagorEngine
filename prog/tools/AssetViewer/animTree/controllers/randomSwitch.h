@@ -15,6 +15,8 @@ struct DependentParamData;
 struct AnimCtrlData;
 struct BlendNodeData;
 class DataBlock;
+class IListReorderHandler;
+class AnimTreePlugin;
 
 void random_switch_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx);
 void random_switch_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
@@ -23,6 +25,9 @@ void random_switch_init_block_settings(PropPanel::ContainerPropertyControl *pane
 void random_switch_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings,
   dag::Vector<DependentParamData> &params, dag::ConstSpan<AnimParamData> base_params);
 void random_switch_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
+bool random_switch_has_duplicated_childs(const DataBlock &settings);
 const char *random_switch_get_child_name_by_idx(const DataBlock &settings, int idx);
 String random_switch_get_child_prefix_name(const DataBlock &settings, int idx);
 void random_switch_update_child_name(DataBlock &settings, const char *name, const String &old_name);
+IListReorderHandler *random_switch_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data);

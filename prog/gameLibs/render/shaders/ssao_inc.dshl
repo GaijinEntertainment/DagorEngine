@@ -11,9 +11,6 @@ float4x4 ssao_gbuf_prev_globtm_no_ofs_psf;
 texture ssao_tex;
 float4 lowres_rt_params = (1280, 720, 0, 0);
 
-int mobile_ssao_active = 0;
-interval mobile_ssao_active : no < 1, yes;
-
 float ssao_apply_strength = 1.0;
 float gtao_apply_strength = 1.0;
 int ssao_is_gtao = 0;

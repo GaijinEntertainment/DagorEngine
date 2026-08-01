@@ -167,9 +167,13 @@ DeltaComp::ReadResult DeltaComp::readDelta(const danet::BitStream &data, History
   ok &= data.Read(srvHash);
 #endif
   data.AlignReadToByteBoundary();
+  // compressedSize is wire-controlled: refuse to build a view past the received data.
+  // count only complete unread bytes (floor), so a partial trailing byte cannot satisfy it.
+  if (!ok || (data.GetNumberOfUnreadBits() >> 3) < compressedSize)
+    return {};
   danet::BitStream compressedDelta(data.GetData() + BITS_TO_BYTES(data.GetReadOffset()), compressedSize, false, framemem_ptr());
   data.SetReadOffset(BYTES_TO_BITS(BITS_TO_BYTES(data.GetReadOffset()) + compressedSize));
-  if (history == nullptr || !ok)
+  if (history == nullptr)
     return {};
 
   G_ASSERT(packetNoDelta < history->baseHist.size());

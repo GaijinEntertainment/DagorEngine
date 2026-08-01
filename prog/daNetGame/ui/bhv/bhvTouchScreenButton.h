@@ -44,7 +44,9 @@ public:
     action,
     releaseOnPressAction,
     blockingAction,
-    delayedActions);
+    delayedActions,
+    onTouchEnd,
+    useActionOnTouchEnd);
 
   BhvTouchScreenButton();
 

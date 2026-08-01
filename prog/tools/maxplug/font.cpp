@@ -8,11 +8,12 @@
 #include "common.h"
 #include "resource.h"
 #include <string>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 #define ERRMSG_DELAY 3000
 
-std::string wideToStr(const TCHAR *sw);
-M_STD_STRING strToWide(const char *sz);
 
 class FontUtil : public UtilityObj
 {
@@ -20,7 +21,7 @@ public:
   IUtil *iu;
   Interface *ip;
   HWND hPanel;
-  TSTR fd_fname;
+  fs::path fd_fname;
 
   FontUtil();
   void BeginEditParams(Interface *ip, IUtil *iu) override;
@@ -40,11 +41,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading = FALSE) override { return &util; }
   const TCHAR *ClassName() override { return GetString(IDS_FONTUTIL_NAME); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
   Class_ID ClassID() override { return FontUtil_CID; }
   const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
@@ -60,11 +57,10 @@ enum
 
 IOResult FontUtilDesc::Save(ISave *io)
 {
-  //        ULONG nw;
-  if (util.fd_fname.Length())
+  if (!util.fd_fname.empty())
   {
     io->BeginChunk(CH_FD_FNAME);
-    if (io->WriteCString(util.fd_fname) != IO_OK)
+    if (io->WriteCString(util.fd_fname.c_str()) != IO_OK)
       return IO_ERROR;
     io->EndChunk();
   }
@@ -73,7 +69,6 @@ IOResult FontUtilDesc::Save(ISave *io)
 
 IOResult FontUtilDesc::Load(ILoad *io)
 {
-  //        ULONG nr;
   TCHAR *str;
   while (io->OpenChunk() == IO_OK)
   {
@@ -113,13 +108,6 @@ static INT_PTR CALLBACK FontUtilDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPAR
         break;
       }
       break;
-      /*
-          case WM_LBUTTONDOWN:
-          case WM_LBUTTONUP:
-          case WM_MOUSEMOVE:
-            util.ip->RollupMouseMessage(hWnd,msg,wParam,lParam);
-            break;
-      */
     default: return FALSE;
   }
   return TRUE;
@@ -379,6 +367,6 @@ void FontUtil::exportData()
   enum_nodes(ip->GetRootNode(), &cb);
   if (!cb.check(ip))
     return;
-  if (!cb.save(fd_fname.data(), ip))
+  if (!cb.save(fd_fname.c_str(), ip))
     return;
 }

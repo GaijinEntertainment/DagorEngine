@@ -388,6 +388,45 @@ static bool TokenizeLuaStylePunctuation(const char* in_begin, const char* in_end
 	return false;
 }
 
+static bool TokenizeBlkTypedIdentifier(const char* in_begin, const char* in_end, const char*& out_begin, const char*& out_end)
+{
+	const char* p = in_begin;
+
+	if (!(('a' <= *p && *p <= 'z') || ('A' <= *p && *p <= 'Z') || *p == '_'))
+		return false;
+
+	p++;
+	while ((p < in_end) && ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') || *p == '_'))
+		p++;
+
+	if (p >= in_end || *p != ':')
+		return false;
+
+	p++;
+	if (p >= in_end || !(('a' <= *p && *p <= 'z') || ('A' <= *p && *p <= 'Z') || *p == '_'))
+		return false;
+
+	p++;
+	while ((p < in_end) && ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') || *p == '_'))
+		p++;
+
+	out_begin = in_begin;
+	out_end = p;
+	return true;
+}
+
+static bool TokenizeBlkBlockIdentifier(const char* in_begin, const char* in_end, const char*& out_begin, const char*& out_end)
+{
+	if (!TokenizeCStyleIdentifier(in_begin, in_end, out_begin, out_end))
+		return false;
+
+	const char* p = out_end;
+	while (p < in_end && unsigned(*p) < 128 && isblank(*p))
+		p++;
+
+	return p < in_end && *p == '{';
+}
+
 const TextEditor::LanguageDefinition& TextEditor::LanguageDefinition::Cpp()
 {
 	static bool inited = false;
@@ -535,12 +574,56 @@ const TextEditor::LanguageDefinition& TextEditor::LanguageDefinition::Daslang()
 	return langDef;
 }
 
+const TextEditor::LanguageDefinition& TextEditor::LanguageDefinition::Blk()
+{
+	static bool inited = false;
+	static LanguageDefinition langDef;
+	if (!inited)
+	{
+		langDef.mTokenize = [](const char* in_begin, const char* in_end, const char*& out_begin, const char*& out_end, PaletteIndex& paletteIndex) -> bool
+		{
+			paletteIndex = PaletteIndex::Max;
+
+			while (in_begin < in_end && unsigned(*in_begin) < 128 && isblank(*in_begin))
+				in_begin++;
+
+			if (in_begin == in_end)
+			{
+				out_begin = in_end;
+				out_end = in_end;
+				paletteIndex = PaletteIndex::Default;
+			}
+			else if (TokenizeCStyleString(in_begin, in_end, out_begin, out_end))
+				paletteIndex = PaletteIndex::String;
+			else if (TokenizeBlkTypedIdentifier(in_begin, in_end, out_begin, out_end))
+				paletteIndex = PaletteIndex::Keyword;
+			else if (TokenizeBlkBlockIdentifier(in_begin, in_end, out_begin, out_end))
+				paletteIndex = PaletteIndex::Keyword;
+			else if (TokenizeCStyleNumber(in_begin, in_end, out_begin, out_end))
+				paletteIndex = PaletteIndex::Number;
+			else if (TokenizeCStyleIdentifier(in_begin, in_end, out_begin, out_end))
+				paletteIndex = PaletteIndex::Identifier;
+			else if (TokenizeCStylePunctuation(in_begin, in_end, out_begin, out_end))
+				paletteIndex = PaletteIndex::Punctuation;
+
+			return paletteIndex != PaletteIndex::Max;
+		};
+
+		langDef.mCommentStart = "/*";
+		langDef.mCommentEnd = "*/";
+		langDef.mSingleLineComment = "//";
+		langDef.mCaseSensitive = true;
+		langDef.mName = "BLK";
+
+		inited = true;
+	}
+	return langDef;
+}
+
 
 static eastl::string parse_first_word(const char * line, bool & is_last_word)
 {
 	eastl::string w;
-
-	int i = 0;
 	const char * p = line;
 
 	while (*p && isspace(*p))

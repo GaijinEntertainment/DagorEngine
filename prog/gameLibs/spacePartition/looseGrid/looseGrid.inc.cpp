@@ -236,6 +236,7 @@ void LooseGridBoxIterator::init(const LooseGrid *grid_, int bminX, int bminZ, in
 #endif
   G_ASSERT(grid_);
 
+  ownerGrid->lockRead();
   levelsUsed = grid_->largeObjectsCount ? GLEV_MAX : GLEV_LARGE_OBJECTS;
 
   for (int i = 0; i < levelsUsed; ++i)
@@ -246,8 +247,8 @@ void LooseGridBoxIterator::init(const LooseGrid *grid_, int bminX, int bminZ, in
     int lmaxZ = (bmaxZ >> grid_->bitShift[i]) + 1;
     if (cutLimit)
     {
-      lmaxX = min(lmaxX, lminX + GRID_SIZE_CELLS);
-      lmaxZ = min(lmaxZ, lminZ + GRID_SIZE_CELLS);
+      lmaxX = min(lmaxX, lminX + GRID_SIZE_CELLS - 1);
+      lmaxZ = min(lmaxZ, lminZ + GRID_SIZE_CELLS - 1);
     }
 
     LooseGridBoxIteratorLevel &data = levels[i];
@@ -258,8 +259,6 @@ void LooseGridBoxIterator::init(const LooseGrid *grid_, int bminX, int bminZ, in
     data.maxX = lmaxX;
     data.maxZ = lmaxZ;
   }
-
-  ownerGrid->lockRead();
 
   nextCell();
 }

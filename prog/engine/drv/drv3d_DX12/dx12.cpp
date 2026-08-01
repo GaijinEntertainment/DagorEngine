@@ -280,11 +280,14 @@ struct ApiState
 
   void releaseAll()
   {
-    auto &ctx = device.getContext();
-    shaderProgramDatabase.shutdown(ctx);
-    ctx.finish();
+    if (device.isInitialized())
+    {
+      auto &ctx = device.getContext();
+      shaderProgramDatabase.shutdown(ctx);
+      ctx.finish();
 
-    device.shutdown();
+      device.shutdown();
+    }
 
     deviceName[0] = '\0';
 
@@ -513,18 +516,6 @@ APISupport check_driver_version(const DXGI_ADAPTER_DESC1 &adapter_info, const Dr
       return APISupport::BLACKLISTED_DRIVER;
   }
   return APISupport::FULL_SUPPORT;
-}
-
-
-bool is_software_device(const DXGI_ADAPTER_DESC1 &desc)
-{
-  constexpr UINT software_driver_vendor = 0x1414;
-  constexpr UINT software_driver_id = 0x8c;
-  // checking software flag is insuficient, on some systems (even with exact same patch level and
-  // drivers) this flag might not be set by the dx runtime and we have to manually check for
-  // software device and vendor id.
-  return (0 != (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) ||
-         (desc.VendorId == software_driver_vendor && desc.DeviceId == software_driver_id);
 }
 
 APISupport check_device_features(const ComPtr<ID3D12Device> &device)
@@ -1853,20 +1844,6 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       api_state.device.getContext().executeFSRFG(args);
       return 1;
     }
-    case Drv3dCommand::EXECUTE_FSR2:
-    {
-      api_state.device.getContext().executeFSR2(*(Fsr2Params *)par1);
-      return 1;
-    }
-    case Drv3dCommand::GET_FSR2_STATE:
-    {
-      return int(api_state.device.getContext().getFsr2State());
-    }
-    case Drv3dCommand::GET_FSR2_RESOLUTION:
-    {
-      api_state.device.getContext().getFsr2RenderResolution(*(int *)par1, *(int *)par2);
-      return 1;
-    }
     case Drv3dCommand::SET_XESS_VELOCITY_SCALE:
     {
       api_state.device.getContext().setXessVelocityScale(*(float *)par1, *(float *)par2);
@@ -2131,6 +2108,14 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 #endif
       return 0;
     }
+    case Drv3dCommand::IS_ANY_CAPTURE_TOOL_LOADED:
+    {
+#if _TARGET_PC_WIN
+      if (api_state.debugState.captureTool().isAnyActive())
+        return 1;
+#endif
+      return 0;
+    }
     case Drv3dCommand::SET_RT_VALIDATION_CALLBACK:
     {
 #if _TARGET_PC_WIN
@@ -2252,10 +2237,14 @@ void recover_textures()
 void recover_buffers()
 {
   api_state.device.visitBufferObjects([](auto buf) {
+    if (api_state.device.isDummyUavBuffer((Sbuffer *)buf))
+      return;
     watchdog_kick();
     buf->recreate();
   });
   api_state.device.visitBufferObjects([](auto buf) {
+    if (api_state.device.isDummyUavBuffer((Sbuffer *)buf))
+      return;
     watchdog_kick();
     buf->restore();
   });
@@ -2311,7 +2300,6 @@ bool d3d::reset_device()
   api_state.device.getContext().shutdownXess();
   api_state.device.getContext().shutdownDLSS();
   api_state.device.getContext().shutdownFSR();
-  api_state.device.getContext().shutdownFsr2();
 
   if (dagor_d3d_force_driver_reset || api_state.device.isIll())
   {
@@ -2408,7 +2396,6 @@ bool d3d::reset_device()
     api_state.device.getContext().initXeSS();
 
   api_state.device.getContext().initFSR();
-  api_state.device.getContext().initFsr2();
 
   if (!is_window_resizing_by_mouse())
   {
@@ -2986,16 +2973,8 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
 
 bool d3d::set_buffer(unsigned shader_stage, unsigned unit, Sbuffer *buffer)
 {
-  D3D_CONTRACT_ASSERT(
-    (nullptr == buffer) || (buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES))); // todo: remove
-                                                                                                 // SBCF_BIND_UNORDEREDcheck!
-#if DAGOR_DBGLEVEL > 0
-                                                                                                 // todo: this check to be
-                                                                                                 // removed
-  if (buffer && (buffer->getFlags() & (SBCF_BIND_UNORDERED | SBCF_BIND_SHADER_RES)) == SBCF_BIND_UNORDERED)
-    D3D_CONTRACT_ERROR("DX12: buffer %s is without SBCF_BIND_SHADER_RES flag and can't be used in SRV. Deprecated, fixme!",
-      buffer->getBufName());
-#endif
+  D3D_CONTRACT_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_SHADER_RES));
+  D3D_CONTRACT_ASSERT(unit < dxil::MAX_T_REGISTERS);
   api_state.state.setStageTRegisterBuffer(shader_stage, unit, static_cast<GenericBufferInterface *>(buffer));
   return true;
 }
@@ -3756,11 +3735,11 @@ void d3d::dispatch_mesh_indirect_count(Sbuffer *args, uint32_t args_stride_bytes
 GPUFENCEHANDLE d3d::insert_fence(GpuPipeline /*gpu_pipeline*/) { return BAD_GPUFENCEHANDLE; }
 void d3d::insert_wait_on_fence(GPUFENCEHANDLE & /*fence*/, GpuPipeline /*gpu_pipeline*/) {}
 
-bool d3d::set_const_buffer(uint32_t stage, uint32_t unit, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
+bool d3d::set_const_buffer(uint32_t stage, uint32_t unit, Sbuffer *buffer)
 {
   D3D_CONTRACT_ASSERT((nullptr == buffer) || (buffer->getFlags() & SBCF_BIND_CONSTANT));
 
-  api_state.state.setStageBRegisterBuffer(stage, unit, buffer, consts_offset, consts_size);
+  api_state.state.setStageBRegisterBuffer(stage, unit, buffer);
   return true;
 }
 
@@ -5135,9 +5114,14 @@ void d3d::activate_buffer(Sbuffer *buf, ResourceActivationAction action, GpuPipe
 {
   CHECK_MAIN_THREAD();
   D3D_CONTRACT_ASSERTF_RETURN(nullptr != buf, , "DX12: 'buf' of activate_buffer was nullptr");
+  auto gbuf = (GenericBufferInterface *)buf;
+  D3D_CONTRACT_ASSERTF_RETURN(0 == (gbuf->getFlags() & SBCF_NO_STATE_TRACKING), ,
+    "DX12: activate_buffer called on untracked buffer <%s>. Untracked buffers are synced by their owner via enhanced "
+    "barriers and must not be driver-activated.",
+    gbuf->getBufName());
   D3D_CONTRACT_ASSERTF_RETURN(check_buffer_activation(action), , "DX12: 'activation' of activate_buffer was invalid");
   STORE_RETURN_ADDRESS();
-  decltype(auto) buffer = ((GenericBufferInterface *)buf)->getDeviceBuffer();
+  decltype(auto) buffer = gbuf->getDeviceBuffer();
   api_state.device.getContext().activateBuffer(buffer, action, gpu_pipeline);
 }
 void d3d::activate_texture(BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
@@ -5145,8 +5129,13 @@ void d3d::activate_texture(BaseTexture *tex, ResourceActivationAction action, co
 {
   CHECK_MAIN_THREAD();
   D3D_CONTRACT_ASSERTF_RETURN(nullptr != tex, , "DX12: 'tex' of activate_texture was nullptr");
+  auto btex = cast_to_texture_base(tex);
+  D3D_CONTRACT_ASSERTF_RETURN(0 == (btex->cflg & TEXCF_NO_STATE_TRACKING), ,
+    "DX12: activate_texture called on untracked texture <%s>. Untracked textures are synced by their owner via enhanced "
+    "barriers and must not be driver-activated.",
+    btex->getName());
   STORE_RETURN_ADDRESS();
-  api_state.device.getContext().activateTexture(cast_to_texture_base(tex), action, value, gpu_pipeline);
+  api_state.device.getContext().activateTexture(btex, action, value, gpu_pipeline);
 }
 
 void d3d::deactivate_buffer(Sbuffer *buf, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
@@ -5154,8 +5143,13 @@ void d3d::deactivate_buffer(Sbuffer *buf, GpuPipeline gpu_pipeline /*= GpuPipeli
   CHECK_MAIN_THREAD();
   STORE_RETURN_ADDRESS();
   D3D_CONTRACT_ASSERTF_RETURN(buf != nullptr, , "Tried to deactivate a nullptr buffer!");
+  auto gbuf = (GenericBufferInterface *)buf;
+  D3D_CONTRACT_ASSERTF_RETURN(0 == (gbuf->getFlags() & SBCF_NO_STATE_TRACKING), ,
+    "DX12: deactivate_buffer called on untracked buffer <%s>. Untracked buffers are synced by their owner via enhanced "
+    "barriers and must not be driver-deactivated.",
+    gbuf->getBufName());
 
-  decltype(auto) buffer = ((GenericBufferInterface *)buf)->getDeviceBuffer();
+  decltype(auto) buffer = gbuf->getDeviceBuffer();
   api_state.device.getContext().deactivateBuffer(buffer, gpu_pipeline);
 }
 
@@ -5164,8 +5158,13 @@ void d3d::deactivate_texture(BaseTexture *tex, GpuPipeline gpu_pipeline /*= GpuP
   CHECK_MAIN_THREAD();
   STORE_RETURN_ADDRESS();
   D3D_CONTRACT_ASSERTF_RETURN(tex != nullptr, , "Tried to deactivate a nullptr texture!");
+  auto btex = cast_to_texture_base(tex);
+  D3D_CONTRACT_ASSERTF_RETURN(0 == (btex->cflg & TEXCF_NO_STATE_TRACKING), ,
+    "DX12: deactivate_texture called on untracked texture <%s>. Untracked textures are synced by their owner via enhanced "
+    "barriers and must not be driver-deactivated.",
+    btex->getName());
 
-  Image *image = cast_to_texture_base(tex)->getDeviceImage();
+  Image *image = btex->getDeviceImage();
   if (!image)
     return;
   api_state.device.getContext().deactivateTexture(image, gpu_pipeline);
@@ -5621,7 +5620,7 @@ namespace
 SwapchainKind determine_swapchain_kind()
 {
   const DataBlock &video = *dgs_get_settings()->getBlockByNameEx("video");
-  if (video.getInt("antialiasing_fgc", 0) >= 1)
+  if (video.getInt("antialiasing_fgc", 0) != 0)
   {
     auto mode = video.getStr("antialiasing_mode", "off");
     if (stricmp(mode, "dlss") == 0)
@@ -5769,8 +5768,10 @@ void validate_enhanced_texture_barrier(const d3d::TextureBarrier &barrier, BaseT
       texName);
   if ((is_depth_layout(barrier.layoutTransition.src) || is_depth_layout(barrier.layoutTransition.dst)) && !isDepth)
     D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: Depth/stencil layout requires a depth-format texture", texName);
-  if (barrier.layoutTransition.dst == d3d::TextureLayout::Undefined)
-    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: destination layout cannot be Undefined", texName);
+  if (barrier.layoutTransition.dst == d3d::TextureLayout::Undefined && barrier.memorySync.dst != d3d::AccessFlags{})
+    D3D_CONTRACT_ERROR(
+      "DX12: enhanced_texture_barrier for <%s>: Undefined destination layout requires NoAccess destination access mask (D3D12 spec)",
+      texName);
   if (barrier.layoutTransition.src == d3d::TextureLayout::Undefined && barrier.memorySync.src != d3d::AccessFlags{})
     D3D_CONTRACT_ERROR(
       "DX12: enhanced_texture_barrier for <%s>: Undefined source layout requires NoAccess source access mask (D3D12 spec)", texName);

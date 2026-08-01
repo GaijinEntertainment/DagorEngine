@@ -12,7 +12,11 @@
 #ifdef _WIN32
 #include <io.h>
 #include <winsock2.h>
-#define snprintf _snprintf
+/* snprintf is supported by Visual Studio 2015, mingw-w64 8.0.0, mingw-w64 with ucrt, mingw-w64 or mingw32 with ansi stdio */
+#if (defined(_MSC_VER) && _MSC_VER < 1900) || (defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 8 && !defined(_UCRT) && !defined(__USE_MINGW_ANSI_STDIO)) || (defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) && !defined(__USE_MINGW_ANSI_STDIO))
+/* _snprintf does not fill nul byte at the end of buffer and returns -1 on overflow */
+#define snprintf(buf, size, fmt, ...) ((_snprintf((buf), (size), (fmt), __VA_ARGS__), (((char *)buf)[(size_t)(size)-1] = 0), _scprintf((fmt), __VA_ARGS__)))
+#endif
 #else
 #include <unistd.h>
 #include <sys/types.h>
@@ -105,6 +109,8 @@ int soapPostSubmit(int fd,
 					   "Pragma: no-cache\r\n"
 					   "\r\n",
 					   url, httpversion, host, portstr, bodysize, action);
+	if ((unsigned int)headerssize >= sizeof(headerbuf))
+		return 0;
 #ifdef DEBUG
 	/*printf("SOAP request : headersize=%d bodysize=%d\n",
 	       headerssize, bodysize);

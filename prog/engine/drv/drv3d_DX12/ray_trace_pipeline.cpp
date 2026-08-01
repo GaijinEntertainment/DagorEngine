@@ -422,7 +422,8 @@ struct RootSignatureGeneratorCallback
 struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
 {
   PipelineBuilder(const ::raytrace::PipelineExpandInfo &ei, uint32_t min_rec, uint32_t min_pl, uint32_t min_attr,
-    const drv3d_dx12::RaytracePipelineSignature &rps, const drv3d_dx12::RayTracePipelineResourceTypeTable &rtprtt) :
+    bool allow_opacity_micro_maps, const drv3d_dx12::RaytracePipelineSignature &rps,
+    const drv3d_dx12::RayTracePipelineResourceTypeTable &rtprtt) :
     AutoLifetimeTimer<AFP_MSEC>{[&ei]() {
       eastl::string s;
       s = "DX12: PipelineBuilder: Expanding pipeline <";
@@ -433,7 +434,8 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     pipelineInfo{ei},
     minRecursion{min_rec},
     minPayload{min_pl},
-    minAttributes{min_attr}
+    minAttributes{min_attr},
+    allowOpacityMicroMaps{allow_opacity_micro_maps}
   {
     resourceUses.resourceUsageTable = rps.def.registers;
     resourceUses.resourceTypeTable = rtprtt;
@@ -445,7 +447,8 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
       m.visit([this](const auto &member) { onMember(member); });
     }
   }
-  PipelineBuilder(const ::raytrace::PipelineCreateInfo &ci, const drv3d_dx12::RayTracePipeline::BuildConfig &build_config) :
+  PipelineBuilder(const ::raytrace::PipelineCreateInfo &ci, const drv3d_dx12::RayTracePipeline::BuildConfig &build_config,
+    bool device_allows_omm = false) :
     AutoLifetimeTimer<AFP_MSEC>{[&ci]() {
       eastl::string s;
       s = "DX12: PipelineBuilder: building pipeline <";
@@ -457,28 +460,49 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     minRecursion{max<uint32_t>(1, ci.maxRecursionDepth)},
     minPayload{max<uint32_t>(4u, ci.maxPayloadSize)},
     minAttributes{max<uint32_t>(sizeof(float) * 2, ci.maxAttributeSize)},
-    buildConfig{build_config}
+    allowOpacityMicroMaps{ci.allowOpacityMicroMaps},
+    buildConfig{build_config},
+    combineLibraryOmm{true},
+    deviceAllowsOmm{device_allows_omm}
   {
     nameTable.reserve(ci.groupMemebers.size());
     for (auto m : ci.groupMemebers)
     {
       m.visit([this](const auto &member) { onMember(member); });
     }
+    // The single OMM device-support gate. Callers pass raw "wants OMM" (the C++ create-info seed above
+    // plus each library's DSHL opt-in OR-ed in during the visit); we AND device support here, once,
+    // right before the config subobject is built, so no other site has to repeat the check.
+    allowOpacityMicroMaps = allowOpacityMicroMaps && deviceAllowsOmm;
   }
   const ::raytrace::PipelineExpandInfo &pipelineInfo;
   const char *name() const { return pipelineInfo.name ? pipelineInfo.name : "UNKNOWN"; }
   bool isOk = true;
   ShaderResourceUsageTableWithResourceTypes resourceUses;
   eastl::vector<ShaderCollectionImportInfo> importInfos;
+  eastl::vector<D3D12_SHADER_BYTECODE> embeddedDxilLibraries;
   eastl::vector<D3D12_HIT_GROUP_DESC> hitGroups;
   dag::Vector<DynamicArray<wchar_t>> nameTable;
   dag::Vector<DynamicArray<wchar_t>> tempNameTable;
   uint32_t minRecursion = 1;
   uint32_t minPayload = 4;
   uint32_t minAttributes = sizeof(float) * 2;
+  bool allowOpacityMicroMaps = false;
+  // OR-reduced across the visited libraries: any library authored via a DSHL raytrace_pipeline block
+  // forces a CPU-side pipeline config even when useEmbeddedObjects would otherwise trust the DXIL one.
+  bool hasExplicitPipelineConfig = false;
   bool useResourceDescriptorHeapIndexing = false;
   bool useSamplerDescriptorHeapIndexing = false;
   drv3d_dx12::RayTracePipeline::BuildConfig buildConfig;
+  // Fresh builds fold each library's DSHL OMM opt-in into the driver-built config; expansion inherits
+  // the base pipeline's (already gated) flag instead. deviceAllowsOmm applies the sole device gate.
+  bool combineLibraryOmm = false;
+  bool deviceAllowsOmm = false;
+  // Whether the driver emits the config subobjects itself. Embedded (collection) pipelines carry both
+  // in their DXIL, so the driver stays out of the way -- except that a DSHL raytrace_pipeline block
+  // always forces the pipeline config CPU-side. hasExplicitPipelineConfig is final only after the visit.
+  bool buildsShaderConfigCpuSide() const { return !buildConfig.useEmbeddedObjects; }
+  bool buildsPipelineConfigCpuSide() const { return !buildConfig.useEmbeddedObjects || hasExplicitPipelineConfig; }
   void onError()
   {
     isOk = false;
@@ -489,6 +513,16 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     auto shaderName = lib->nameOf(index);
     if (shaderName.empty())
     {
+      return;
+    }
+    if (lib->isEmbeddable())
+    {
+      // A DXIL_LIBRARY subobject exports every symbol of the library by its own name, so per-shader
+      // export tracking is unnecessary here; the raygen/hit/miss names still resolve by name.
+      const D3D12_SHADER_BYTECODE dxil = lib->getEmbeddableDxil();
+      if (eastl::find_if(begin(embeddedDxilLibraries), end(embeddedDxilLibraries),
+            [&](const D3D12_SHADER_BYTECODE &e) { return e.pShaderBytecode == dxil.pShaderBytecode; }) == end(embeddedDxilLibraries))
+        embeddedDxilLibraries.push_back(dxil);
       return;
     }
     auto importRef = eastl::find_if(begin(importInfos), end(importInfos),
@@ -523,6 +557,13 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     }
 
     auto lib = to_dx12_lib(shader_ref.library);
+    if (shader_ref.index >= lib->shaderCount())
+    {
+      D3D_ERROR("DX12: RayTracePipeline::PipelineBuilder: shader index %u is out of range for library <%s>", shader_ref.index,
+        lib->name());
+      onError();
+      return false;
+    }
     if (pipelineInfo.expandable)
     {
       if (!lib->canBeUsedByExpandablePipelines())
@@ -560,6 +601,25 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     minRecursion = max<uint32_t>(minRecursion, properties.maxRecusionDepth);
     minPayload = max<uint32_t>(minPayload, properties.maxPayloadSizeInBytes);
     minAttributes = max<uint32_t>(minAttributes, properties.maxAttributeSizeInBytes);
+
+    hasExplicitPipelineConfig =
+      hasExplicitPipelineConfig || 0 != (properties.rtPipelineFlags & dxil::RT_PIPELINE_FLAG_HAS_EXPLICIT_CONFIG);
+
+    // When the driver builds the pipeline config itself, a library that carries a DXIL-embedded
+    // RaytracingPipelineConfig would produce a second, conflicting config subobject in the state
+    // object. Reject it up front instead of letting CreateStateObject fail obscurely.
+    if (buildsPipelineConfigCpuSide() && 0 != (properties.rtPipelineFlags & dxil::RT_PIPELINE_FLAG_HAS_DXIL_CONFIG))
+    {
+      D3D_ERROR("DX12: RayTracePipeline::PipelineBuilder: shader library <%s> carries a DXIL-embedded RaytracingPipelineConfig, "
+                "which conflicts with the driver-built pipeline config; author a raytrace_pipeline DSHL block instead",
+        lib->name());
+      onError();
+      return false;
+    }
+    // Fold this library's DSHL OMM opt-in into the raw "wants OMM"; device gating happens once in the
+    // build-ctor after all libraries are visited.
+    if (combineLibraryOmm)
+      allowOpacityMicroMaps = allowOpacityMicroMaps || 0 != (properties.rtPipelineFlags & dxil::RT_PIPELINE_FLAG_ALLOW_OMM);
 
     addImport(lib, shader_ref.index);
 
@@ -654,7 +714,7 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
   ComPtr<ID3D12StateObject> createPipeline(ID3D12Device5 *device, ID3D12RootSignature *signature)
   {
     eastl::vector<D3D12_STATE_SUBOBJECT> subObjects;
-    subObjects.reserve(4 + importInfos.size() + hitGroups.size());
+    subObjects.reserve(4 + importInfos.size() + embeddedDxilLibraries.size() + hitGroups.size());
 
     D3D12_STATE_OBJECT_CONFIG config{};
     if (pipelineInfo.expandable)
@@ -669,15 +729,36 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     eastl::transform(begin(importInfos), end(importInfos), eastl::back_inserter(subObjects),
       [](const auto &e) { return D3D12_STATE_SUBOBJECT{D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION, &e.desc}; });
 
+    eastl::vector<D3D12_DXIL_LIBRARY_DESC> libDescs;
+    libDescs.reserve(embeddedDxilLibraries.size());
+    for (const D3D12_SHADER_BYTECODE &dxil : embeddedDxilLibraries)
+    {
+      auto &libDesc = libDescs.emplace_back();
+      libDesc.DXILLibrary = dxil;
+      libDesc.NumExports = 0;
+      libDesc.pExports = nullptr;
+      subObjects.push_back({D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, &libDesc});
+    }
+
     D3D12_RAYTRACING_SHADER_CONFIG rtCFG{minPayload, minAttributes};
-    if (!buildConfig.useEmbeddedShaderConfig)
+    if (buildsShaderConfigCpuSide())
     {
       D3D12_STATE_SUBOBJECT rtCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &rtCFG};
       subObjects.push_back(rtCFGSubObject);
     }
 
     D3D12_RAYTRACING_PIPELINE_CONFIG pCFG{minRecursion};
-    if (!buildConfig.useEmbeddedPipelineConfig)
+#if DX12_HAS_OMM_INTERFACE
+    D3D12_RAYTRACING_PIPELINE_CONFIG1 pCFG1{minRecursion,
+      allowOpacityMicroMaps ? D3D12_RAYTRACING_PIPELINE_FLAG_ALLOW_OPACITY_MICROMAPS : D3D12_RAYTRACING_PIPELINE_FLAG_NONE};
+    if (allowOpacityMicroMaps)
+    {
+      D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1, &pCFG1};
+      subObjects.push_back(pCFGSubObject);
+    }
+    else
+#endif
+      if (buildsPipelineConfigCpuSide())
     {
       D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pCFG};
       subObjects.push_back(pCFGSubObject);
@@ -717,14 +798,24 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
       [](const auto &e) { return D3D12_STATE_SUBOBJECT{D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION, &e.desc}; });
 
     D3D12_RAYTRACING_SHADER_CONFIG rtCFG{minPayload, minAttributes};
-    if (!buildConfig.useEmbeddedShaderConfig)
+    if (buildsShaderConfigCpuSide())
     {
       D3D12_STATE_SUBOBJECT rtCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &rtCFG};
       subObjects.push_back(rtCFGSubObject);
     }
 
     D3D12_RAYTRACING_PIPELINE_CONFIG pCFG{minRecursion};
-    if (!buildConfig.useEmbeddedPipelineConfig)
+#if DX12_HAS_OMM_INTERFACE
+    D3D12_RAYTRACING_PIPELINE_CONFIG1 pCFG1{minRecursion,
+      allowOpacityMicroMaps ? D3D12_RAYTRACING_PIPELINE_FLAG_ALLOW_OPACITY_MICROMAPS : D3D12_RAYTRACING_PIPELINE_FLAG_NONE};
+    if (allowOpacityMicroMaps)
+    {
+      D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1, &pCFG1};
+      subObjects.push_back(pCFGSubObject);
+    }
+    else
+#endif
+      if (buildsPipelineConfigCpuSide())
     {
       D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pCFG};
       subObjects.push_back(pCFGSubObject);
@@ -768,14 +859,24 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
       [](const auto &e) { return D3D12_STATE_SUBOBJECT{D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION, &e}; });
 
     D3D12_RAYTRACING_SHADER_CONFIG rtCFG{minPayload, minAttributes};
-    if (!buildConfig.useEmbeddedShaderConfig)
+    if (buildsShaderConfigCpuSide())
     {
       D3D12_STATE_SUBOBJECT rtCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &rtCFG};
       subObjects.push_back(rtCFGSubObject);
     }
 
     D3D12_RAYTRACING_PIPELINE_CONFIG pCFG{minRecursion};
-    if (!buildConfig.useEmbeddedPipelineConfig)
+#if DX12_HAS_OMM_INTERFACE
+    D3D12_RAYTRACING_PIPELINE_CONFIG1 pCFG1{minRecursion,
+      allowOpacityMicroMaps ? D3D12_RAYTRACING_PIPELINE_FLAG_ALLOW_OPACITY_MICROMAPS : D3D12_RAYTRACING_PIPELINE_FLAG_NONE};
+    if (allowOpacityMicroMaps)
+    {
+      D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1, &pCFG1};
+      subObjects.push_back(pCFGSubObject);
+    }
+    else
+#endif
+      if (buildsPipelineConfigCpuSide())
     {
       D3D12_STATE_SUBOBJECT pCFGSubObject{D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pCFG};
       subObjects.push_back(pCFGSubObject);
@@ -829,7 +930,7 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
 };
 } // namespace
 
-bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_native_expand,
+bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_native_expand, bool device_allows_omm,
   PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer, RayTracePipeline *base, const ::raytrace::PipelineCreateInfo &ci)
 {
   if (ci.name)
@@ -850,7 +951,7 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
   {
     return false;
   }
-  PipelineBuilder pipelineBuilder{ci, {}};
+  PipelineBuilder pipelineBuilder{ci, {}, device_allows_omm};
 
   if (!pipelineBuilder.isOk)
   {
@@ -934,6 +1035,7 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
       .minRecursion = pipelineBuilder.minRecursion,
       .minPayload = pipelineBuilder.minPayload,
       .minAttributes = pipelineBuilder.minAttributes,
+      .allowOpacityMicroMaps = pipelineBuilder.allowOpacityMicroMaps,
     };
   }
   return true;
@@ -941,7 +1043,8 @@ bool drv3d_dx12::RayTracePipeline::build(AnyDevicePtr device_ptr, bool has_nativ
 
 // TODO refactor common stuff into helpers
 bool drv3d_dx12::RayTracePipeline::build(D3DDevice *device, const RaytracePipelineSignature &root_signature,
-  const RayTracePipelineResourceTypeTable &res_type_table, const ::raytrace::PipelineCreateInfo &ci, const BuildConfig &build_config)
+  const RayTracePipelineResourceTypeTable &res_type_table, const ::raytrace::PipelineCreateInfo &ci, const BuildConfig &build_config,
+  bool device_allows_omm)
 {
   G_ASSERTF(false == ci.expandable, "DX12: [DRIVER BUG] Can not allow expansion for internal ray trace pipelines");
   if (ci.name)
@@ -949,7 +1052,7 @@ bool drv3d_dx12::RayTracePipeline::build(D3DDevice *device, const RaytracePipeli
     debugName = ci.name;
   }
 
-  PipelineBuilder pipelineBuilder{ci, build_config};
+  PipelineBuilder pipelineBuilder{ci, build_config, device_allows_omm};
 
   if (!pipelineBuilder.isOk)
   {
@@ -1015,8 +1118,8 @@ drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7
     logwarn("DX12: Attempted to expand ray trace pipeline that does not support expansion");
     return nullptr;
   }
-  PipelineBuilder pipelineBuilder{
-    ei, expansionData->minRecursion, expansionData->minPayload, expansionData->minAttributes, rootSignature, resourceTypeTable};
+  PipelineBuilder pipelineBuilder{ei, expansionData->minRecursion, expansionData->minPayload, expansionData->minAttributes,
+    expansionData->allowOpacityMicroMaps, rootSignature, resourceTypeTable};
 
   if (!pipelineBuilder.isOk)
   {
@@ -1093,6 +1196,7 @@ drv3d_dx12::RayTracePipeline *drv3d_dx12::RayTracePipeline::expand(ID3D12Device7
       .minRecursion = pipelineBuilder.minRecursion,
       .minPayload = pipelineBuilder.minPayload,
       .minAttributes = pipelineBuilder.minAttributes,
+      .allowOpacityMicroMaps = pipelineBuilder.allowOpacityMicroMaps,
     };
   }
   return newObject.release();

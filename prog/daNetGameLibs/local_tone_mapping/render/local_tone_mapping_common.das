@@ -1,3 +1,5 @@
+module local_tone_mapping_common shared
+
 options persistent_heap
 
 require ecs

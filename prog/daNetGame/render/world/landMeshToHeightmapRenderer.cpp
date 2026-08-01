@@ -13,12 +13,8 @@
 #include "landMeshToHeightmapRenderer.h"
 #include <drv/3d/dag_shaderConstants.h>
 
-void render_landmesh_to_heightmap(Texture *heightmap_tex,
-  float heightmap_size,
-  const Point2 &center_pos,
-  const BBox2 *box,
-  const float water_level,
-  Point4 &world_to_heightmap)
+void render_landmesh_to_heightmap(
+  Texture *heightmap_tex, float heightmap_size, const Point2 &center_pos, const BBox2 *box, Point4 &world_to_heightmap)
 {
   if (!heightmap_tex)
     return;
@@ -70,25 +66,22 @@ void render_landmesh_to_heightmap(Texture *heightmap_tex,
     d3d::set_render_target({heightmap_tex, 0, 0}, DepthAccess::RW, {});
     d3d::clearview(CLEAR_ZBUFFER, 0, 0.f, 0);
 
-    lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
     ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
-
-    float oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
-    lmeshRenderer->setInvGeomLodDist(0.5 / heightmap_size);
 
     const int HEIGTHMAP_VS_CONST_BUFFFER_SIZE = 512;
     d3d::set_vs_constbuffer_register_count(HEIGTHMAP_VS_CONST_BUFFFER_SIZE);
 
-    lmeshRenderer->prepare(*lmeshMgr, Point3::xVz(origin, 0), 0, water_level);
+    lmeshRenderer->prepare(*lmeshMgr, HmapOrigin(Point3::xVz(origin, 0)));
 
-    lmeshRenderer->setRenderInBBox(levelBox);
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_HEIGHTMAP;
+    desc.renderInBBox = levelBox;
+    desc.invGeomLodDist = 0.5 / heightmap_size;
     shaders::overrides::set(depthClipState);
     lmeshRenderer->render(reinterpret_cast<mat44f_cref &>(globTm), projectionMatrix, Frustum{globTm}, *lmeshMgr,
-      LandMeshRenderer::RENDER_ONE_SHADER, ::grs_cur_view.pos);
+      LandMeshRenderer::RENDER_ONE_SHADER, desc, ::grs_cur_view.pos, HmapOrigin(Point3::xVz(origin, 0)));
     shaders::overrides::reset();
-    lmeshRenderer->setRenderInBBox(BBox3());
 
-    lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
     d3d::set_vs_constbuffer_register_count(0);
   }
 

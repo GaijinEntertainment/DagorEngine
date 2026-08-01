@@ -216,6 +216,9 @@ struct Context
   CommandQueue commandQueue;
   CommandQueue commandQueueNext;
 
+  eastl::vector<CommandQueue::InstanceWarmup> instanceWarmupRequests;
+  eastl::vector<CommandQueue::InstanceWarmup> instanceWarmupScheduled;
+
   AsyncPrepareJob asyncPrepareJob;
   AsyncStartNextComputeBatchJob startNextComputeBatchJob;
   dag::RelocatableFixedVector<AsyncCpuComputeJob, 10> asyncCpuComputeJobs;

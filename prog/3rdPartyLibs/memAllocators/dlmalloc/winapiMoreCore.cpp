@@ -114,7 +114,7 @@ extern "C" void *winapi_more_core(intptr_t size)
     }
     else if (usedPools < MAX_POOL_NUM)
     {
-      size_t committed_rest = restSize;
+      const size_t committed_rest = restSize;
       if (restSize)
       {
         result = VirtualAlloc(toCommit, restSize, MEM_COMMIT, PAGE_READWRITE);
@@ -174,6 +174,9 @@ extern "C" void *winapi_more_core(intptr_t size)
           usedPools);
         return MFAIL;
       }
+
+      if (!committed_rest) // whole request from new pool
+        result = toCommit;
 
       char buf[512];
       get_memory_stats(buf, 512);

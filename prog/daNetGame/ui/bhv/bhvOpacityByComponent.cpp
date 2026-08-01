@@ -11,6 +11,13 @@ SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvOpacityByComponent, bhv_opacity_by_com
 
 using namespace darg;
 
+// Keeps the component name alive so update() can build HashedConstString without refetching it
+struct BhvOpacityByComponentData
+{
+  eastl::string componentName;
+  ecs::hash_str_t componentHash = 0;
+};
+
 BhvOpacityByComponent::BhvOpacityByComponent() : Behavior(darg::Behavior::STAGE_BEFORE_RENDER, 0) {}
 
 void BhvOpacityByComponent::onAttach(Element *elem)
@@ -21,10 +28,25 @@ void BhvOpacityByComponent::onAttach(Element *elem)
   if (elem->isHidden())
     return;
 
-  eastl::string opacityComponentName =
+  BhvOpacityByComponentData *bhvData = new BhvOpacityByComponentData();
+  bhvData->componentName =
     elem->props.scriptDesc.RawGetSlotValue<eastl::string>(strings->opacityComponentName, "ui__opacityComponent");
-  ecs::hash_str_t opacityComponentHash = ecs_str_hash(opacityComponentName.c_str());
-  elem->props.storage.SetValue(strings->opacityComponentHash, opacityComponentHash);
+  bhvData->componentHash = ecs_str_hash(bhvData->componentName.c_str());
+  elem->props.storage.SetValue(strings->opacityComponentData, bhvData);
+}
+
+void BhvOpacityByComponent::onDetach(Element *elem, DetachMode)
+{
+  const auto strings = cstr.resolveVm(elem->getVM());
+  G_ASSERT_RETURN(strings, );
+
+  BhvOpacityByComponentData *bhvData =
+    elem->props.storage.RawGetSlotValue<BhvOpacityByComponentData *>(strings->opacityComponentData, nullptr);
+  if (bhvData)
+  {
+    elem->props.storage.DeleteSlot(strings->opacityComponentData);
+    delete bhvData;
+  }
 }
 
 int BhvOpacityByComponent::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt*/)
@@ -40,10 +62,12 @@ int BhvOpacityByComponent::update(UpdateStage /*stage*/, darg::Element *elem, fl
   if (entity == ecs::INVALID_ENTITY_ID)
     return 0;
 
-  eastl::string opacityComponentName =
-    elem->props.scriptDesc.RawGetSlotValue<eastl::string>(strings->opacityComponentName, "ui__opacityComponent");
-  ecs::hash_str_t opacityComponentHash = elem->props.storage.RawGetSlotValue<ecs::hash_str_t>(strings->opacityComponentHash, 0);
-  ecs::HashedConstString opacityComponentNameHashed{opacityComponentName.c_str(), opacityComponentHash};
+  BhvOpacityByComponentData *bhvData =
+    elem->props.storage.RawGetSlotValue<BhvOpacityByComponentData *>(strings->opacityComponentData, nullptr);
+  if (!bhvData)
+    return 0;
+
+  ecs::HashedConstString opacityComponentNameHashed{bhvData->componentName.c_str(), bhvData->componentHash};
   float opacity = g_entity_mgr->getOr(entity, opacityComponentNameHashed, -1.0f);
   if (opacity < 0.0)
     return 0;

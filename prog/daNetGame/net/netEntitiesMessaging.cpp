@@ -70,6 +70,53 @@ ECS_NET_IMPL_MSG(SyncVromsDone,
   dedicated::get_sync_vroms_done_msg_handler());
 
 
+namespace net
+{
+
+// Defined in this TU so ctor/advance/deref inline into the send loops below.
+ConnectionsIterator::ConnectionsIterator()
+{
+  // GET_NET_CTX asserts the access contract once here; the hot loop trusts the cached view after that.
+  NetContext *nctx = GET_NET_CTX();
+  CNetwork *net = nctx ? &nctx->getNet() : nullptr;
+  cachedIsServer = net && net->isServer();
+  if (cachedIsServer)
+  {
+    // unique_ptr<Connection> is a single Connection* under the hood, so its array is a Connection* array.
+    auto &conns = net->getClientConnections();
+    static_assert(sizeof(conns[0]) == sizeof(Connection *));
+    clientConns = reinterpret_cast<Connection *const *>(conns.data()); //-V1032 same size and alignment (both pointers)
+    clientConnCount = (int)conns.size();
+  }
+  else
+    serverConn = net ? net->getServerConnection() : nullptr; // client (or no net): single connection
+  advance();
+}
+
+void ConnectionsIterator::advance()
+{
+  if (cachedIsServer)
+  {
+    for (; i < clientConnCount; ++i)
+      if (clientConns[i] && !(clientConns[i]->getConnFlags() & net::CF_PENDING))
+        return;
+  }
+  else if (i == 0 && serverConn)
+    return;
+  i = -1;
+}
+
+IConnection &ConnectionsIterator::operator*() const
+{
+  DAECS_EXT_FAST_ASSERT(i >= 0);
+  Connection *conn = cachedIsServer ? clientConns[i] : serverConn;
+  DAECS_EXT_FAST_ASSERT(conn != NULL);
+  return *conn;
+}
+
+} // namespace net
+
+
 int send_net_msg(ecs::EntityManager &mgr, ecs::EntityId to_eid, net::IMessage &&msg, const net::MessageNetDesc *msg_net_desc)
 {
   const net::MessageNetDesc &msgDesc = !msg_net_desc ? msg.getMsgClass() : *msg_net_desc;

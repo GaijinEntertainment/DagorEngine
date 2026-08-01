@@ -40,4 +40,5 @@ DriverVersion get_driver_version_from_adapter(IDXGIAdapter *adapter);
 
 DXGI_GPU_PREFERENCE get_gpu_preference_from_registry();
 
+bool is_software_device(const DXGI_ADAPTER_DESC1 &desc);
 #endif

@@ -276,7 +276,6 @@ protected:
     ShaderVariableInfo volfog_shadow_accumulation_factor = ShaderVariableInfo("volfog_shadow_accumulation_factor", true);
     ShaderVariableInfo volfog_shadow = ShaderVariableInfo("volfog_shadow", true);
     ShaderVariableInfo volfog_shadow_samplerstate = ShaderVariableInfo("volfog_shadow_samplerstate", true);
-    ShaderVariableInfo view_result_inscatter_samplerstate = ShaderVariableInfo("view_result_inscatter_samplerstate", true);
   } vars;
 
   bool hasDistantFogStaticShadows() const;

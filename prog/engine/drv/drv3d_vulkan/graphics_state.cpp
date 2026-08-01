@@ -23,7 +23,12 @@ void BackGraphicsState::reset(ExecutionStateStorage &)
 
 using namespace drv3d_vulkan;
 
-void BackGraphicsStateStorage::makeDirty() { dynamic.makeDirty(); }
+void BackGraphicsStateStorage::makeDirty()
+{
+  dynamic.makeDirty();
+  if (Globals::VK::phy.hasExtendedDynamicState)
+    extDynamic.makeDirty();
+}
 
 void FrontGraphicsStateStorage::makeDirty()
 {
@@ -35,7 +40,12 @@ void FrontGraphicsStateStorage::makeDirty()
   renderpass.makeDirty();
 }
 
-void BackGraphicsStateStorage::clearDirty() { dynamic.clearDirty(); }
+void BackGraphicsStateStorage::clearDirty()
+{
+  dynamic.clearDirty();
+  if (Globals::VK::phy.hasExtendedDynamicState)
+    extDynamic.clearDirty();
+}
 
 void FrontGraphicsStateStorage::clearDirty()
 {

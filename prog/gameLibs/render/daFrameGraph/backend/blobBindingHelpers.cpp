@@ -155,7 +155,7 @@ bool dafg::ShaderVarBindingValidationHelper<DirectX::XMMATRIX, DirectX::XMMATRIX
   return memcmp(a.r, b.r, sizeof(a.r)) == 0;
 #else
   for (int i = 0; i < 4; ++i)
-    if (v_signmask(v_cmp_eq(a.r[i], b.r[i])) != 0b1111)
+    if (!v_check_xyzw_all_true(v_cmp_eq(a.r[i], b.r[i])))
       return false;
   return true;
 #endif

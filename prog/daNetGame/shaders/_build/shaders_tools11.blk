@@ -60,6 +60,7 @@ Compile
     num_of_cascades:i=4
     compatibility_mode:i = 0
     use_postfx:i = 1
+    film_grain_mode:i=1
     has_discard_without_prepass:i=0
     volumetric_light_assumed_off:i=1
     use_directional_blood_on_screen:i=0
@@ -95,6 +96,8 @@ Compile
     micro_details_quality:i=2
     dafx_use_gravity_zone:i=1
     max_flowmap_cascades:i=2
+    parallax_shadow_enabled:i=1
+    parallax_ao_enabled:i=1
   }
   required_shaders {}
 }
@@ -104,6 +107,5 @@ explicit_var_ref
 {
   include common_tools_var_ref.blk
   ref:t = in_editor
-  ref:t = random_pattern_tex
   ref:t = dafx_frame_boundary_buffer_enabled
 }

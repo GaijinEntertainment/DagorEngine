@@ -127,6 +127,7 @@
 
       new_size = new_size + ( new_size >> 1 ) + 4;
 
+      /* if relocating to heap */
       if ( state->stack == state->stack_0 )
       {
         state->stack = NULL;
@@ -144,6 +145,10 @@
 
       if ( FT_RENEW_ARRAY( state->stack, old_size, new_size ) )
         return -1;
+
+      /* if relocating to heap */
+      if ( old_size == 0 )
+        FT_MEM_COPY( state->stack, state->stack_0, FT_LZW_DEFAULT_STACK_SIZE );
 
       state->stack_size = new_size;
     }

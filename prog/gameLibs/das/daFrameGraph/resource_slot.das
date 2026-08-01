@@ -23,7 +23,7 @@ struct SlotActions
   update : array<Update>
   read : array<Read>
 
-def registerAccess(var self : NameSpace; name : string; slot_decl : resource_slot::SlotActions; var declaration_callback : lambda<(slots_state : ResourceSlotCore::State; var reg : daFG::Registry) : lambda<void>>) : ResourceSlotCore::NodeHandleWithSlotsAccess
+def registerAccess(self : NameSpace; name : string; slot_decl : resource_slot::SlotActions; var declaration_callback : lambda<(slots_state : ResourceSlotCore::State; var reg : daFG::Registry) : lambda<void>>) : ResourceSlotCore::NodeHandleWithSlotsAccess
 
   return <- ResourceSlotCore::prepare_access <| $(var handle : ResourceSlotCore::NodeHandleWithSlotsAccess; var actionList : ActionList)
     for a in slot_decl.create

@@ -1,22 +1,17 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <max.h>
-#if defined(MAX_RELEASE_R14) && MAX_RELEASE >= MAX_RELEASE_R14
 #include <maxScript/maxScript.h>
-#else
-#include <maxscrpt/maxscrpt.h>
-#endif
 #include <locale.h>
 
 #include "dagor.h"
 #include "resource.h"
 
 #include "debug.h"
+#include "common.h"
 
 #include <string>
-
-M_STD_STRING strToWide(const char *sz);
-std::string wideToStr(const TCHAR *sw);
+#include <vector>
 
 
 static TCHAR importFilename[256] = _T("F:\\SETUPS\\Graphics\\MilkShape\\ascii\\Walk_Forward.txt");
@@ -202,7 +197,7 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
 
   int errLine = 0;
 
-  MilkshapeNodeAnim *bones = new MilkshapeNodeAnim[numBones];
+  std::vector<MilkshapeNodeAnim> bones(numBones);
 
   float minTime = 1e30f, maxTime = -1e30f;
 
@@ -357,8 +352,6 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
       tabPrintf(s, _T("sliderTime=%ff\n"), keyTime);
 
       // set pos keys
-      // if (0)
-      // if (stricmp(name, "Bip01")==0)
       if (_tcsicmp(name, _T("Bip01")) == 0 || _tcsstr(name, _T("Pelvis")))
       {
         Matrix3 baseTm;
@@ -378,8 +371,6 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
           ptm.SetRow(0, -ptm.GetRow(0));
         }
 
-        // Matrix3 ntm=node->GetNodeTM(time);
-
         Matrix3 tm = baseTm * ptm;
 
         Point3 pk = anim.pos.interp(keyTime);
@@ -396,8 +387,6 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
       }
 
       // set rot keys
-      // if (stricmp(name, "Bip01 Spine")==0 || stricmp(name, "Bip01 Spine1")==0)
-      // if (stricmp(name, "Bip01")==0 || stricmp(name, "Bip01 PelvisX")==0)
       {
         Matrix3 baseTm;
 
@@ -420,25 +409,18 @@ void import_milkshape_anim(Interface *ip, HWND hpanel)
         q.MakeMatrix(rtm, TRUE);
 
         Matrix3 tm = rtm * baseTm * ptm;
-        // Matrix3 tm=baseTm*ptm;
         q = Quat(tm);
 
         tabPrintf(s, _T("biped.setTransform $'%s' #rotation (quat %g %g %g %g) true\n"), name, q.x, q.y, q.z, q.w);
       }
 
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
       ExecuteMAXScriptScript(&s[0], MAXScript::ScriptSource::NotSpecified);
-#else
-      ExecuteMAXScriptScript(&s[0]);
-#endif
     }
   }
 
   ip->EnableSceneRedraw();
   ip->RedrawViews(ip->GetTime());
 
-
-  delete[] bones;
 
   setlocale(LC_NUMERIC, "");
 }

@@ -585,6 +585,10 @@ int GenericBuffer::lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int
     return 0;
 
   D3D11_MAP mapType = mapTypeFromFlags(flags);
+  // D3D11 allows WRITE_DISCARD/WRITE_NO_OVERWRITE only on DYNAMIC resources, never on
+  // STAGING, so a buffer routed through staging must use a plain write map type.
+  if (bufferToMap == stagingBuffer && (mapType == D3D11_MAP_WRITE_DISCARD || mapType == D3D11_MAP_WRITE_NO_OVERWRITE))
+    mapType = D3D11_MAP_WRITE;
   ContextAutoLock contextLock;
   // D3D11_MAP_FLAG_DO_NOT_WAIT cannot be used with D3D11_MAP_WRITE_DISCARD or D3D11_MAP_WRITE_NO_OVERWRITE.
   bool allowsNonBlocking = mapType != D3D11_MAP_WRITE_NO_OVERWRITE && mapType != D3D11_MAP_WRITE_DISCARD;

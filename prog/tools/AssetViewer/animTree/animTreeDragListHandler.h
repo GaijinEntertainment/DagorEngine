@@ -3,6 +3,7 @@
 
 #include <propPanel/control/dragAndDropHandler.h>
 #include <EASTL/unique_ptr.h>
+#include <generic/dag_span.h>
 
 constexpr char ASSET_DRAG_AND_DROP_TYPE[] = "ListBoxReorder";
 
@@ -14,6 +15,7 @@ class ContainerPropertyControl;
 class AnimTreePlugin;
 class DataBlock;
 struct AnimStatesData;
+struct AnimCtrlData;
 enum class AnimStatesType;
 
 struct DragDropPayloadData
@@ -27,6 +29,7 @@ class IListReorderHandler
 public:
   virtual ~IListReorderHandler() = default;
   virtual void handleReorder(int from, int to) = 0;
+  virtual bool canReorder() { return true; }
 };
 
 class BaseAnimStatesReorderHandler : public IListReorderHandler
@@ -55,6 +58,24 @@ public:
 
 private:
   AnimTreePlugin &plugin;
+  PropPanel::ContainerPropertyControl *panel;
+};
+
+class BaseCtrlReorderHandler : public IListReorderHandler
+{
+public:
+  BaseCtrlReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    plugin(plugin), controllers(controllers), panel(panel)
+  {}
+  void handleReorder(int from, int to) override;
+  bool canReorder() override;
+
+protected:
+  virtual void handleSpecificReorder(DataBlock &settings, int from, int to) = 0;
+
+  AnimTreePlugin &plugin;
+  dag::ConstSpan<AnimCtrlData> controllers;
   PropPanel::ContainerPropertyControl *panel;
 };
 

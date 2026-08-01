@@ -43,6 +43,8 @@ public:
 
   void setResolutionRange(const IPoint2 &min_dynamic_resolution, const IPoint2 &max_dynamic_resolution);
 
+  void setManualResolutionScaleForDebug(float scale);
+
 private:
   void trackCpuTime();
   void calculateAllowableTimeRange(float &lower_bound, float &upper_bound, eastl::optional<int> frame_rate_limit);

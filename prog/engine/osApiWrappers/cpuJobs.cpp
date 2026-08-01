@@ -536,9 +536,7 @@ static void *__cdecl job_mgr_thread(void *p)
 
   TIME_PROFILE_THREAD(ctx.getName());
 
-#if DAGOR_DBGLEVEL > 0 || _TARGET_PC
-  update_float_exceptions();
-#endif
+  update_float_exceptions(); // also applies default FTZ/DAZ fp control
 
   bool timeouted = false;
   for (;;) // infinite cycle with explicit break

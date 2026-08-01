@@ -6,6 +6,8 @@ Target      = gameLibs/heightmap.lib ;
 
 Sources =
   heightmapCompressError.cpp
+  lodGridVertexData.cpp
+  simpleHeightmapRenderer.cpp
   heightmapRenderer.cpp
   heightmapPhysHandler.cpp
   heightmapMetricsCalc.cpp

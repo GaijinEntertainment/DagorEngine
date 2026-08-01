@@ -1,0 +1,8 @@
+ERROR: forward declaration 'value' is never defined
+testData/diagnostics/forward_let_never_defined.nut:1:0
+
+let value
+^--------
+function reader() {
+
+

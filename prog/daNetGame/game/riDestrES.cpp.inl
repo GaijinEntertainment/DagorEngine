@@ -131,6 +131,22 @@ static void on_ridestr_changed_server(
   increment_ridestr_version();
 }
 
+// A restored tree can be destroyed again, which would add a second entry with the same
+// key to unsynced_destr_data; drop the stale unsent destruction to keep entries unique.
+static void on_ridestr_restored_server(const rendinst::RendInstDesc &restorable_desc)
+{
+  G_ASSERT(is_server());
+  if (sceneload::unload_in_progress || unsynced_destr_data.empty())
+    return;
+  rendinstdestr::DestrUpdateDesc key;
+  key.offs = restorable_desc.offs;
+  key.poolIdx = uint16_t(restorable_desc.pool);
+  key.cellIdx = int16_t(restorable_desc.cellIdx);
+  auto it = eastl::find(unsynced_destr_data.begin(), unsynced_destr_data.end(), key);
+  if (it != unsynced_destr_data.end())
+    unsynced_destr_data.erase(it);
+}
+
 static const Point3_vec4 ri_collision_check_margin = {0.16f, 0.16f, 0.16f};
 
 static void on_ri_destroyed_destroy_and_update_ladders_around(const bbox3f &ri_bbox, const BBox3 &bbox)
@@ -394,6 +410,7 @@ void init(bool have_render)
   if (is_server())
   {
     rendinstdestr::set_on_rendinst_destroyed_cb(on_ri_destroyed_server_cb);
+    rendinstdestr::set_on_ri_restored_cb(&on_ridestr_restored_server);
     rendinst::sweep_rendinst_cb = on_sweep_rendinst_server_cb;
   }
   else
@@ -535,11 +552,12 @@ void update(float dt, float current_time, const TMatrix4 &glob_tm)
     rendinstdestr::update(dt, current_time, &frustum);
     rendinstdestr::perform_delayed_destruction();
   }
-  destructables::update(dt);
+  destructables::update(dt, dedicated::is_dedicated() ? Point3::ZERO : get_cam_itm().getcol(3));
 }
 
 void shutdown()
 {
+  rendinstdestr::set_on_ri_restored_cb(nullptr);
   rendinstdestr::shutdown();
   destructables::clear();
   cur_ridestr_ver = cached_ridestr_ver = 0;

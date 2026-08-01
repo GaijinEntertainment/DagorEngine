@@ -247,33 +247,19 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
   DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(stage)
   hlsl(stage)
   {
-    // copy pasted from shader_global, that only had a ps version
-    half3 restore_normal(half2 xy)
-    {
-      half3 normal;
-      normal.xy = xy*2-1;
-      normal.z = sqrt(saturate(1-dot(normal.xy,normal.xy)));
-      return normal;
-    }
     half get_specular_intensity_from_color(half3 color)
     {
       return pow4(color.r);
     }
 
-    // Wrappers to have the same interface as Skyquake
-    struct Vtex
-    {
-      half3 diffuse;
-      half2 normal_xy;
-      half reflectance, smoothness, ao, emission;
-      DetailDesc detailNo;
-    };
-    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip, DetailDesc microdetail_desc, int inderection_offset)
+    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip, inout DetailDesc micro_detail, int inderection_offset)
     {
       Vtex vtex = (Vtex)0;
+      half2 normalXY;
       sample_clipmaps(worldPos.xz, world_pos_xz_gradients,
-        vtex.diffuse, vtex.normal_xy, vtex.smoothness, vtex.ao,
-        vtex.reflectance, vtex.emission, vtex.detailNo, smooth_mip, inderection_offset);
+        vtex.diffuse, normalXY, vtex.smoothness, vtex.ao,
+        vtex.reflectance, vtex.emission, micro_detail, smooth_mip, inderection_offset);
+      vtex.normal = restore_normal(normalXY);
       return vtex;
     }
 
@@ -568,7 +554,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
         sp.albedo = textures.diffuse;
         sp.normal = terrainNormal;
         ##if !fast_mode
-          sp.normal.xzy = RNM_ndetail_normalized(sp.normal.xzy, restore_normal(textures.normal_xy));
+          sp.normal.xzy = RNM_ndetail_normalized(sp.normal.xzy,textures.normal);
         ##endif
         sp.smoothness = textures.smoothness;
         sp.reflectance = textures.reflectance;
@@ -871,7 +857,7 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
 
       #if RT_USE_RT_SHADOW
         float3 offsetPos = applyAdaptiveRayOffset(surface.position, surface.normal);
-        half shadow = is_obstructed(bvhMain, offsetPos, toSun, 0, ray_max, w, bvhGroupAll & ~bvhGroupGrass, 1, trace_extra_flags) ? 0 : 1;
+        half shadow = is_obstructed(bvhMain, offsetPos, toSun, 0, ray_max, w, bvhGroupAll & ~bvhGroupGrass, trace_extra_flags) ? 0 : 1;
       #else
         half shadow = getStaticShadow(worldPos.xyz);
         #if RT_USE_CSM_SHADOW

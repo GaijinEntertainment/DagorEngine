@@ -46,10 +46,13 @@ bool ClusteredLightsGrid::newFrameHasLights() const { return hasOmni() || hasSpo
 bool ClusteredLightsGrid::lastFrameHasLights() const { return frameState != FrameState::NO_CLUSTERED_LIGHTS; }
 uint32_t ClusteredLightsGrid::getOmniWords() const { return dag::divide_align_up(storedOmniCount, 32); }
 uint32_t ClusteredLightsGrid::getSpotWords() const { return dag::divide_align_up(storedSpotCount, 32); }
+int ClusteredLightsGrid::getOmniCount() const { return storedOmniCount; }
+int ClusteredLightsGrid::getSpotCount() const { return storedSpotCount; }
 
 
-ClusteredLightsGrid::ClusteredLightsGrid(FrustumClusters &clusters_, const char *name_suffix, int initial_light_density) :
-  clusters(&clusters_), nameSuffix(name_suffix)
+ClusteredLightsGrid::ClusteredLightsGrid(FrustumClusters &clusters_, const LightsResourcesManager *lights_res_mgr,
+  int initial_light_density) :
+  clusters(&clusters_), lightsResMgr(lights_res_mgr)
 {
   bool useGpuLights = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("gpuLights", true);
   if (useGpuLights)
@@ -70,21 +73,22 @@ ClusteredLightsGrid::ClusteredLightsGrid(FrustumClusters &clusters_, const char 
     // it's an optional optimization for 'fill_items_spheres_cs' and can be skipped
     if (precalculate_occlusion_z_slice_cs)
     {
-      String occlusionName(128, "clustered_occlusion_z_slice%s", nameSuffix.c_str());
       lightsOcclusionZSlice = dag::create_sbuffer(sizeof(uint32_t), CLUSTERS_W * CLUSTERS_H,
-        SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED, 0, occlusionName, RESTAG_LIGHTS);
+        SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED, 0, lightsResMgr->getResName("clustered_occlusion_z_slice"),
+        RESTAG_LIGHTS);
     }
 
-    String precalcName(128, "clustered_grid_lights_precalculated_data%s", nameSuffix.c_str());
-    lightsGridPrecalculatedData = dag::create_sbuffer(sizeof(CLG_LightData), MAX_OMNI_LIGHTS + MAX_SPOT_LIGHTS,
-      SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED, 0, precalcName, RESTAG_LIGHTS);
+    lightsGridPrecalculatedData = dag::create_sbuffer(sizeof(CLG_LightData), MAX_CLUSTERED_OMNI_LIGHTS + MAX_CLUSTERED_SPOT_LIGHTS,
+      SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED, 0,
+      lightsResMgr->getResName("clustered_grid_lights_precalculated_data"), RESTAG_LIGHTS);
 
-    String frustumPtsName(128, "clustered_frustum_points%s", nameSuffix.c_str());
     lightsGridFrustumPoints = dag::create_sbuffer(sizeof(Point4), (CLUSTERS_W + 1) * (CLUSTERS_H + 1) * (CLUSTERS_D + 1),
-      SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED, 0, frustumPtsName, RESTAG_LIGHTS);
+      SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED | SBCF_MISC_STRUCTURED, 0, lightsResMgr->getResName("clustered_frustum_points"),
+      RESTAG_LIGHTS);
   }
 
-  const uint32_t words = clamp((initial_light_density + 31) / 32, (int)2, (int)(MAX_SPOT_LIGHTS + MAX_OMNI_LIGHTS + 31) / 32);
+  const uint32_t words =
+    clamp((initial_light_density + 31) / 32, (int)2, (int)(MAX_CLUSTERED_SPOT_LIGHTS + MAX_CLUSTERED_OMNI_LIGHTS + 31) / 32);
   validateDensity(words);
 }
 
@@ -114,9 +118,10 @@ void ClusteredLightsGrid::validateDensity(uint32_t words)
   const int numBuffers = isGPU() ? 1 : (int)lightsFullGridCB.size();
   for (int i = 0; i < numBuffers; ++i)
   {
-    String name(128, "lights_full_grid_%d%s", i, nameSuffix.c_str());
+    String name(128, "lights_full_grid_%d", i);
     lightsFullGridCB[i].close();
-    lightsFullGridCB[i] = dag::create_sbuffer(sizeof(uint32_t), CLUSTERS_PER_GRID * allocatedWords, bufFlags, 0, name, RESTAG_LIGHTS);
+    lightsFullGridCB[i] = dag::create_sbuffer(sizeof(uint32_t), CLUSTERS_PER_GRID * allocatedWords, bufFlags, 0,
+      lightsResMgr->getResName(name.c_str()), RESTAG_LIGHTS);
   }
 }
 
@@ -147,12 +152,12 @@ void ClusteredLightsGrid::prepareGPUCulling(mat44f_cref view, mat44f_cref proj, 
 }
 
 void ClusteredLightsGrid::cullCPU(mat44f_cref view, mat44f_cref proj, float znear, float close_dist, float max_dist,
-  dag::ConstSpan<vec4f> omni_bounds, dag::ConstSpan<SpotLightsManager::RawLight> spot_lights, dag::ConstSpan<vec4f> spot_bounds,
-  Occlusion *occlusion)
+  dag::ConstSpan<vec4f> omni_bounds, dag::ConstSpan<FrustumClusters::SpotsCullingData> spot_lights_culling_data,
+  dag::ConstSpan<vec4f> spot_bounds, Occlusion *occlusion)
 {
   G_ASSERT(!isGPU());
   storedOmniCount = omni_bounds.size();
-  storedSpotCount = spot_lights.size();
+  storedSpotCount = spot_lights_culling_data.size();
   const uint32_t omniWords = getOmniWords();
   const uint32_t spotWords = getSpotWords();
   clustersOmniGrid.resize(CLUSTERS_PER_GRID * omniWords);
@@ -164,8 +169,8 @@ void ClusteredLightsGrid::cullCPU(mat44f_cref view, mat44f_cref proj, float znea
     bool hasSpotLights = !clustersSpotGrid.empty();
     mem_set_0(clustersOmniGrid);
     mem_set_0(clustersSpotGrid);
-    clusteredCullLights(view, proj, znear, close_dist, max_dist, omni_bounds, spot_lights, spot_bounds, occlusion, hasOmniLights,
-      hasSpotLights, clustersOmniGrid.data(), omniWords, clustersSpotGrid.data(), spotWords);
+    clusteredCullLights(view, proj, znear, close_dist, max_dist, omni_bounds, spot_lights_culling_data, spot_bounds, occlusion,
+      hasOmniLights, hasSpotLights, clustersOmniGrid.data(), omniWords, clustersSpotGrid.data(), spotWords);
     if (!hasOmniLights)
     {
       clustersOmniGrid.resize(0);
@@ -236,13 +241,13 @@ void ClusteredLightsGrid::executeGPUFillingPipeline()
 }
 
 void ClusteredLightsGrid::clusteredCullLights(mat44f_cref view, mat44f_cref proj, float znear, float min_dist, float max_dist,
-  dag::ConstSpan<vec4f> omni_bounds, dag::ConstSpan<SpotLightsManager::RawLight> spot_lights, dag::ConstSpan<vec4f> spot_bounds,
-  Occlusion *occlusion, bool &has_omni_lights, bool &has_spot_lights, uint32_t *omni_mask, uint32_t omni_words, uint32_t *spot_mask,
-  uint32_t spot_words)
+  dag::ConstSpan<vec4f> omni_bounds, dag::ConstSpan<FrustumClusters::SpotsCullingData> spot_lights_culling_data,
+  dag::ConstSpan<vec4f> spot_bounds, Occlusion *occlusion, bool &has_omni_lights, bool &has_spot_lights, uint32_t *omni_mask,
+  uint32_t omni_words, uint32_t *spot_mask, uint32_t spot_words)
 {
-  has_spot_lights = spot_lights.size() != 0;
+  has_spot_lights = spot_lights_culling_data.size() != 0;
   has_omni_lights = omni_bounds.size() != 0;
-  if (!omni_bounds.size() && !spot_lights.size())
+  if (!omni_bounds.size() && !spot_lights_culling_data.size())
     return;
   TIME_D3D_PROFILE(clusteredCullLights_CPU);
   clusters->prepareFrustum(view, proj, znear, min_dist, max_dist, occlusion);
@@ -257,19 +262,17 @@ void ClusteredLightsGrid::clusteredCullLights(mat44f_cref view, mat44f_cref proj
   tempOmniItemsPtr.reset();
 
   uint32_t clusteredSpotLights = 0;
-  if (spot_lights.size())
+  if (spot_lights_culling_data.size())
   {
     tempSpotItemsPtr.reset(new (framemem_ptr()) FrustumClusters::ClusterGridItemMasks);
-    clusteredSpotLights = clusters->fillItemsSpheres(spot_bounds.data(), elem_size(spot_bounds) / sizeof(vec4f), spot_lights.size(),
-      *tempSpotItemsPtr, spot_mask, spot_words);
+    clusteredSpotLights = clusters->fillItemsSpheres(spot_bounds.data(), elem_size(spot_bounds) / sizeof(vec4f),
+      spot_lights_culling_data.size(), *tempSpotItemsPtr, spot_mask, spot_words);
   }
 
   if (clusteredSpotLights)
   {
     TIME_PROFILE(cullSpots)
-    clusteredSpotLights = clusters->cullSpots((const vec4f *)spot_lights.data(), elem_size(spot_lights) / sizeof(vec4f),
-      (const vec4f *)&spot_lights[0].dir_tanHalfAngle, elem_size(spot_lights) / sizeof(vec4f), *tempSpotItemsPtr, spot_mask,
-      spot_words);
+    clusteredSpotLights = clusters->cullSpots(spot_lights_culling_data.data(), *tempSpotItemsPtr, spot_mask, spot_words);
   }
   has_spot_lights = clusteredSpotLights != 0;
   has_omni_lights = clusteredOmniLights != 0;

@@ -39,6 +39,8 @@ static const unsigned int mask8B[]=
 void oggpack_writeinit(oggpack_buffer *b){
   memset(b,0,sizeof(*b));
   b->ptr=b->buffer=_ogg_malloc(BUFFER_INCREMENT);
+  if (!b->buffer)
+    return;
   b->buffer[0]='\0';
   b->storage=BUFFER_INCREMENT;
 }
@@ -228,20 +230,23 @@ ogg_int32_t oggpack_look(oggpack_buffer *b,int bits){
 
   bits+=b->endbit;
 
-  if(b->endbyte+4>=b->storage){
+  if(b->endbyte>=b->storage-4){
     /* not the main path */
-    if(b->endbyte*8+bits>b->storage*8)return(-1);
+    if(b->endbyte>b->storage-((bits+7)>>3))return(-1);
+    /* special case to avoid reading b->ptr[0], which might be past the end of
+        the buffer; also skips some useless accounting */
+    else if(!bits)return(0L);
   }
 
   ret=b->ptr[0]>>b->endbit;
   if(bits>8){
-    ret|=b->ptr[1]<<(8-b->endbit);
+    ret|=(ogg_uint32_t)b->ptr[1]<<(8-b->endbit);
     if(bits>16){
-      ret|=b->ptr[2]<<(16-b->endbit);
+      ret|=(ogg_uint32_t)b->ptr[2]<<(16-b->endbit);
       if(bits>24){
-        ret|=b->ptr[3]<<(24-b->endbit);
+        ret|=(ogg_uint32_t)b->ptr[3]<<(24-b->endbit);
         if(bits>32 && b->endbit)
-          ret|=b->ptr[4]<<(32-b->endbit);
+          ret|=(ogg_uint32_t)b->ptr[4]<<(32-b->endbit);
       }
     }
   }
@@ -255,18 +260,21 @@ ogg_int32_t oggpackB_look(oggpack_buffer *b,int bits){
 
   bits+=b->endbit;
 
-  if(b->endbyte+4>=b->storage){
+  if(b->endbyte>=b->storage-4){
     /* not the main path */
-    if(b->endbyte*8+bits>b->storage*8)return(-1);
+    if(b->endbyte>b->storage-((bits+7)>>3))return(-1);
+    /* special case to avoid reading b->ptr[0], which might be past the end of
+        the buffer; also skips some useless accounting */
+    else if(!bits)return(0L);
   }
 
-  ret=b->ptr[0]<<(24+b->endbit);
+  ret=(ogg_uint32_t)b->ptr[0]<<(24+b->endbit);
   if(bits>8){
-    ret|=b->ptr[1]<<(16+b->endbit);
+    ret|=(ogg_uint32_t)b->ptr[1]<<(16+b->endbit);
     if(bits>16){
-      ret|=b->ptr[2]<<(8+b->endbit);
+      ret|=(ogg_uint32_t)b->ptr[2]<<(8+b->endbit);
       if(bits>24){
-        ret|=b->ptr[3]<<(b->endbit);
+        ret|=(ogg_uint32_t)b->ptr[3]<<(b->endbit);
         if(bits>32 && b->endbit)
           ret|=b->ptr[4]>>(8-b->endbit);
       }
@@ -315,21 +323,24 @@ ogg_int32_t oggpack_read(oggpack_buffer *b,int bits){
 
   bits+=b->endbit;
 
-  if(b->endbyte+4>=b->storage){
+  if(b->endbyte>=b->storage-4){
     /* not the main path */
     ret=-1L;
-    if(b->endbyte*8+bits>b->storage*8)goto overflow;
+    if(b->endbyte>b->storage-((bits+7)>>3))goto overflow;
+    /* special case to avoid reading b->ptr[0], which might be past the end of
+        the buffer; also skips some useless accounting */
+    else if(!bits)return(0L);
   }
 
   ret=b->ptr[0]>>b->endbit;
   if(bits>8){
-    ret|=b->ptr[1]<<(8-b->endbit);
+    ret|=(ogg_uint32_t)b->ptr[1]<<(8-b->endbit);
     if(bits>16){
-      ret|=b->ptr[2]<<(16-b->endbit);
+      ret|=(ogg_uint32_t)b->ptr[2]<<(16-b->endbit);
       if(bits>24){
-        ret|=b->ptr[3]<<(24-b->endbit);
+        ret|=(ogg_uint32_t)b->ptr[3]<<(24-b->endbit);
         if(bits>32 && b->endbit){
-          ret|=b->ptr[4]<<(32-b->endbit);
+          ret|=(ogg_uint32_t)b->ptr[4]<<(32-b->endbit);
         }
       }
     }
@@ -351,19 +362,22 @@ ogg_int32_t oggpackB_read(oggpack_buffer *b,int bits){
 
   bits+=b->endbit;
 
-  if(b->endbyte+4>=b->storage){
+  if(b->endbyte>=b->storage-4){
     /* not the main path */
     ret=-1L;
-    if(b->endbyte*8+bits>b->storage*8)goto overflow;
+    if(b->endbyte>b->storage-((bits+7)>>3))goto overflow;
+    /* special case to avoid reading b->ptr[0], which might be past the end of
+        the buffer; also skips some useless accounting */
+    else if(!bits)return(0L);
   }
 
-  ret=b->ptr[0]<<(24+b->endbit);
+  ret=(ogg_uint32_t)b->ptr[0]<<(24+b->endbit);
   if(bits>8){
-    ret|=b->ptr[1]<<(16+b->endbit);
+    ret|=(ogg_uint32_t)b->ptr[1]<<(16+b->endbit);
     if(bits>16){
-      ret|=b->ptr[2]<<(8+b->endbit);
+      ret|=(ogg_uint32_t)b->ptr[2]<<(8+b->endbit);
       if(bits>24){
-        ret|=b->ptr[3]<<(b->endbit);
+        ret|=(ogg_uint32_t)b->ptr[3]<<(b->endbit);
         if(bits>32 && b->endbit)
           ret|=b->ptr[4]>>(8-b->endbit);
       }

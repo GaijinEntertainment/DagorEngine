@@ -8,7 +8,6 @@
 #include <generic/dag_span.h>
 
 class TextureIDPair;
-struct DynRes;
 
 namespace downsample_depth
 {
@@ -40,16 +39,13 @@ void downsample(const ManagedTex &from_depth, int w, int h, const ManagedTex &fa
 // Downsample depth in pixel shader using chain of FS draw passes or in compute shader if available.
 void downsamplePS(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *far_normals,
   BaseTexture *normal_gbuf = nullptr, BaseTexture *motion_vectors = nullptr, BaseTexture *checkerboard_depth = nullptr,
-  bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0), const DynRes *dynamic_resolution = nullptr);
+  bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0));
 
 void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *> far_depth_mips, BaseTexture *close_depth,
   BaseTexture *far_normals, BaseTexture *normal_gbuf = nullptr, BaseTexture *motion_vectors = nullptr,
-  BaseTexture *checkerboard_depth = nullptr, bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0),
-  const DynRes *dynamic_resolution = nullptr);
+  BaseTexture *checkerboard_depth = nullptr, bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0));
 
-void generate_depth_mips(const TextureIDPair &tex);
-
-void generate_depth_mips(const TextureIDPair *depth_mips, int depth_mip_count);
+void generate_depth_mips(BaseTexture *tex);
 
 // Downsample depth using single compute shader pass
 void downsampleWithWaveIntin(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth,

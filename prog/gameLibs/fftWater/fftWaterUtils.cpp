@@ -848,7 +848,7 @@ void get_wave_preset(const FFTWater *water, WavePreset &out_preset)
   out_preset.chopWater = get_chop_water_props(water);
 }
 
-void set_wind(FFTWater *handle, float bf_scale, const Point2 &wind_dir)
+void set_wind(FFTWater *water, float bf_scale, const Point2 &wind_dir)
 {
   G_STATIC_ASSERT(BEAUFORT_SCALES_NUM == 7);
   const float BeaufortWindSpeed[BEAUFORT_SCALES_NUM] = {0.0f, 0.6f, 2.0f, 3.0f, 6.0f, 8.1f, 10.9};
@@ -858,6 +858,6 @@ void set_wind(FFTWater *handle, float bf_scale, const Point2 &wind_dir)
   const float fftWindSpeed = lerp<float>(BeaufortWindSpeed[speed], BeaufortWindSpeed[speed + 1], saturate(bf_scale - speed));
   const float chopWindSpeed = lerp<float>(BeaufortWindSpeedChop[speed], BeaufortWindSpeedChop[speed + 1], saturate(bf_scale - speed));
 
-  set_wind_speed(handle, fftWindSpeed, chopWindSpeed, wind_dir);
+  set_wind_speed(water, fftWindSpeed, chopWindSpeed, wind_dir);
 }
 } // namespace fft_water

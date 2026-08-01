@@ -32,6 +32,9 @@ int BhvRotateRelativeToDir::update(UpdateStage /*stage*/, darg::Element *elem, f
   if (elem->isHidden())
     return 0;
 
+  if (!elem->transform) // transform is an optional element prop; skip the ECS lookup when absent
+    return 0;
+
   const Sqrat::Table &scriptDesc = elem->props.scriptDesc;
   const ecs::EntityId targetEid = scriptDesc.RawGetSlotValue<ecs::EntityId>(strings->targetEid, ecs::INVALID_ENTITY_ID);
   const float additiveAngle = scriptDesc.GetSlotValue<float>(strings->additiveAngle, 0.0);

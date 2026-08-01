@@ -24,8 +24,6 @@ class Matrix33
 public:
   real m[3][3];
   INLINE Matrix33() {}
-  // Matrix33(const Matrix33& a) {memcpy(m,a.m,sizeof(m));}
-  // Matrix33& operator =(const Matrix33& a) {memcpy(m,a.m,sizeof(m));return *this;}
   INLINE Matrix33(const float *p) { memcpy(m, p, sizeof(m)); }
 
   INLINE void identity();
@@ -53,12 +51,6 @@ public:
     r.m[1][2] = m[0][2] * b.m[1][0] + m[1][2] * b.m[1][1] + m[2][2] * b.m[1][2];
     r.m[2][2] = m[0][2] * b.m[2][0] + m[1][2] * b.m[2][1] + m[2][2] * b.m[2][2];
 
-    /*for(int i=0;i<3;++i)
-      for(int j=0;j<3;++j) {
-        real v=0;
-        for(int k=0;k<3;++k) v+=m[k][i]*b.m[j][k];
-        r.m[j][i]=v;
-      }*/
     return r;
   }
   INLINE Point3 operator*(const Point3 &p) const
@@ -178,7 +170,6 @@ INLINE Matrix33 Matrix33::operator-() const
   a.m[2][0] = -m[2][0];
   a.m[2][1] = -m[2][1];
   a.m[2][2] = -m[2][2];
-  // for(int i=0;i<3*3;++i) a.m[0][i]=-m[0][i];
   return a;
 }
 
@@ -194,7 +185,6 @@ INLINE Matrix33 Matrix33::operator+(const Matrix33 &b) const
   r.m[2][0] = m[2][0] + b.m[2][0];
   r.m[2][1] = m[2][1] + b.m[2][1];
   r.m[2][2] = m[2][2] + b.m[2][2];
-  // for(int i=0;i<3*3;++i) r.m[0][i]=m[0][i]+b.m[0][i];
   return r;
 }
 
@@ -210,7 +200,6 @@ INLINE Matrix33 Matrix33::operator-(const Matrix33 &b) const
   r.m[2][0] = m[2][0] - b.m[2][0];
   r.m[2][1] = m[2][1] - b.m[2][1];
   r.m[2][2] = m[2][2] - b.m[2][2];
-  // for(int i=0;i<3*3;++i) r.m[0][i]=m[0][i]-b.m[0][i];
   return r;
 }
 
@@ -225,7 +214,6 @@ INLINE Matrix33 &Matrix33::operator+=(const Matrix33 &a)
   m[2][0] += a.m[2][0];
   m[2][1] += a.m[2][1];
   m[2][2] += a.m[2][2];
-  // for(int i=0;i<3*3;++i) m[0][i]+=a.m[0][i];
   return *this;
 }
 
@@ -240,7 +228,6 @@ INLINE Matrix33 &Matrix33::operator-=(const Matrix33 &a)
   m[2][0] -= a.m[2][0];
   m[2][1] -= a.m[2][1];
   m[2][2] -= a.m[2][2];
-  // for(int i=0;i<3*3;++i) m[0][i]-=a.m[0][i];
   return *this;
 }
 
@@ -257,7 +244,6 @@ INLINE Matrix33 Matrix33::operator*(real f) const
   a.m[2][0] = m[2][0] * f;
   a.m[2][1] = m[2][1] * f;
   a.m[2][2] = m[2][2] * f;
-  // for(int i=0;i<3*3;++i) a.m[0][i]=m[0][i]*f;
   return a;
 }
 
@@ -274,7 +260,6 @@ INLINE Matrix33 &Matrix33::operator*=(real f)
   m[2][0] *= f;
   m[2][1] *= f;
   m[2][2] *= f;
-  // for(int i=0;i<3*3;++i) m[0][i]*=f;
   return *this;
 }
 
@@ -363,8 +348,6 @@ public:
 
   INLINE TMatrix() {}
   INLINE TMatrix(real);
-  // TMatrix(const TMatrix& a) {memcpy(m,a.m,sizeof(m));}
-  // TMatrix& operator =(const TMatrix& a) {memcpy(m,a.m,sizeof(m));return *this;}
 
   INLINE void identity();
   INLINE void zero();
@@ -414,22 +397,6 @@ public:
     r.m[2][2] = m[0][2] * b.m[2][0] + m[1][2] * b.m[2][1] + m[2][2] * b.m[2][2];
     return r;
   }
-  /// multiply only 3x3 parts, translation column is undefined
-  /* INLINE Matrix3 operator %(const Matrix3 &b) const {
-     Matrix3 r;
-     r.m[0][0]=m[0][0]*b.m[0][0]+m[1][0]*b.m[0][1]+m[2][0]*b.m[0][2];
-     r.m[1][0]=m[0][0]*b.m[1][0]+m[1][0]*b.m[1][1]+m[2][0]*b.m[1][2];
-     r.m[2][0]=m[0][0]*b.m[2][0]+m[1][0]*b.m[2][1]+m[2][0]*b.m[2][2];
-
-     r.m[0][1]=m[0][1]*b.m[0][0]+m[1][1]*b.m[0][1]+m[2][1]*b.m[0][2];
-     r.m[1][1]=m[0][1]*b.m[1][0]+m[1][1]*b.m[1][1]+m[2][1]*b.m[1][2];
-     r.m[2][1]=m[0][1]*b.m[2][0]+m[1][1]*b.m[2][1]+m[2][1]*b.m[2][2];
-
-     r.m[0][2]=m[0][2]*b.m[0][0]+m[1][2]*b.m[0][1]+m[2][2]*b.m[0][2];
-     r.m[1][2]=m[0][2]*b.m[1][0]+m[1][2]*b.m[1][1]+m[2][2]*b.m[1][2];
-     r.m[2][2]=m[0][2]*b.m[2][0]+m[1][2]*b.m[2][1]+m[2][2]*b.m[2][2];
-     return r;
-   }*/
   /// transform #Point3 point through this matrix
   INLINE Point3 operator*(const Point3 &p) const
   {
@@ -701,17 +668,6 @@ public:
   Point2 lim[2];
   INLINE BBox2() { setempty(); }
   BBox2(const Point2 &a, real s) { makebox(a, s); }
-  // BBox2(const BBox2& a) {lim[0]=a.lim[0];lim[1]=a.lim[1];}
-  // BBox2& operator =(const BBox2& a) {lim[0]=a.lim[0];lim[1]=a.lim[1];return *this;}
-  /*
-  INLINE BBox2(const BBox3& b) {
-  setempty();
-  if(b.lim[0].x<lim[0].x) lim[0].x=b.lim[0].x;
-  if(b.lim[1].x>lim[1].x) lim[1].x=b.lim[1].x;
-  if(b.lim[0].y<lim[0].y) lim[0].y=b.lim[0].y;
-  if(b.lim[1].y>lim[1].y) lim[1].y=b.lim[1].y;
-  }
-  */
 
   INLINE void setempty()
   {

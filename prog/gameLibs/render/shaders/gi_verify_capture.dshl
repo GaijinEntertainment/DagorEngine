@@ -1,0 +1,129 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+// giVerifier screenshot verification (gameLibs/render/giVerifierCapture.cpp):
+// decode the game's packed gbuffer into the canonical replay planes so the
+// capture format never depends on a game's gbuffer packing. Outputs:
+//   RT0 baseColor.rgb + translucency (A8R8G8B8 sRGB)
+//   RT1 world-space normal.xyz       (A16B16G16R16F)
+//   RT2 smoothness, metalness, reflectance, dynamic (A8R8G8B8)
+//   RT3 linear view-space depth, meters (R32F; 0 = sky)
+shader gi_verify_capture
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD0;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl(vs) {
+    VsOutput gi_verify_capture_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 0, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      return output;
+    }
+  }
+
+  INIT_READ_GBUFFER()
+  USE_READ_GBUFFER()
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+  INIT_ZNZFAR()
+
+  hlsl(ps) {
+    struct CaptureOut
+    {
+      float4 albedoTrans : SV_Target0;
+      float4 normal : SV_Target1;
+      float4 material : SV_Target2;
+      float depth : SV_Target3;
+    };
+
+    // ProcessedGbuffer differs across games: testGI's commonShaders gbuffer
+    // spells metalness with two l's and stores no reflectance, whereas the
+    // daNetGame/skyquake gbuffer uses one l and carries a real reflectance
+    // field with a 0.16*reflectance^2 dielectric-F0 encoding. Both provide
+    // specularColor, so the defaults below work for the commonShaders gbuffer
+    // (F0 = 0.08*reflectance -> *12.5); a game with a different struct defines
+    // these before including this file to read its own fields.
+    #ifndef GI_VERIFY_METALNESS
+    #define GI_VERIFY_METALNESS(g) ((g).metallness)
+    #endif
+    #ifndef GI_VERIFY_REFLECTANCE
+    #define GI_VERIFY_REFLECTANCE(g) saturate((g).specularColor.x * 12.5)
+    #endif
+
+    CaptureOut gi_verify_capture_ps(VsOutput input)
+    {
+      CaptureOut o;
+      float rawDepth = readGbufferDepth(input.texcoord);
+      ProcessedGbuffer g = readProcessedGbuffer(input.texcoord);
+      o.albedoTrans = float4(g.albedo, g.translucency);
+      o.normal = float4(g.normal, 0);
+      o.material = float4(1 - g.linearRoughness, GI_VERIFY_METALNESS(g), GI_VERIFY_REFLECTANCE(g), g.dynamic ? 1 : 0);
+      o.depth = rawDepth > 0 ? linearize_z(rawDepth, zn_zfar.zw) : 0;
+      return o;
+    }
+  }
+  compile("target_vs", "gi_verify_capture_vs");
+  compile("target_ps", "gi_verify_capture_ps");
+}
+
+// The environment probe flattened to the lat-long mapping giVerifier's env
+// pipeline expects (giv_env_uv_to_dir with yaw 0): importance sampling and
+// MIS then work on captures exactly as on any env EXR.
+shader gi_verify_env_latlong
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 texcoord : TEXCOORD0;
+    };
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+
+  hlsl(vs) {
+    VsOutput gi_verify_env_latlong_vs(uint vertex_id : SV_VertexID)
+    {
+      VsOutput output;
+      float2 pos = getPostfxVertexPositionById(vertex_id);
+      output.pos = float4(pos.xy, 0, 1);
+      output.texcoord = screen_to_texcoords(pos);
+      return output;
+    }
+  }
+
+  (ps) {
+    envi_probe_specular@smpCube = envi_probe_specular;
+  }
+
+  hlsl(ps) {
+    float4 gi_verify_env_latlong_ps(VsOutput input) : SV_Target0
+    {
+      float phi = (input.texcoord.x - 0.5) * (2.0 * PI);
+      float theta = input.texcoord.y * PI;
+      float st = sin(theta);
+      float3 dir = float3(st * cos(phi), cos(theta), st * sin(phi));
+      return float4(texCUBElod(envi_probe_specular, float4(dir, 0)).rgb, 1);
+    }
+  }
+  compile("target_vs", "gi_verify_env_latlong_vs");
+  compile("target_ps", "gi_verify_env_latlong_ps");
+}

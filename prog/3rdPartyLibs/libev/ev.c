@@ -2950,7 +2950,7 @@ loop_fork (EV_P)
 #endif
 
 #if EV_SIGNAL_ENABLE || EV_ASYNC_ENABLE
-  if (ev_is_active (&pipe_w))
+  if (ev_is_active (&pipe_w) && postfork != 2)
     {
       /* pipe_write_wanted must be false now, so modifying fd vars should be safe */
 

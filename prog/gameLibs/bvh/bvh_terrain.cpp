@@ -439,7 +439,7 @@ void init() { generate_indices(); }
 
 void init(ContextId context_id)
 {
-  if (context_id->has(Features::Terrain))
+  if (context_id->hasAny(Features::Terrain))
   {
     G_ASSERT(indices && indices_bindless_slot == -1);
     context_id->terrainLods.resize(bvh_terrain_lod_count);
@@ -451,10 +451,11 @@ void teardown() { indices.close(); }
 
 void teardown(ContextId context_id)
 {
-  if (context_id->has(Features::Terrain))
+  if (context_id->hasAny(Features::Terrain))
   {
     remove_patches(context_id);
-    context_id->terrainPatchTemplate.~TerrainPatch();
+    // not an explicit destructor call: ~Context destroys the member again later
+    context_id->terrainPatchTemplate = TerrainPatch();
     G_ASSERT(indices_bindless_slot != -1);
     G_VERIFY(context_id->releaseBuffer(indices.getBuf()));
     indices_bindless_slot = -1;
@@ -488,7 +489,7 @@ namespace bvh
 
 void add_terrain(ContextId context_id, HeightProvider *height_provider)
 {
-  if (!context_id->has(Features::Terrain))
+  if (!context_id->hasAny(Features::Terrain))
     return;
 
   if (context_id->heightProvider != height_provider)
@@ -514,7 +515,7 @@ void update_terrain(ContextId context_id, const Point2 &location)
   if (!context_id || !context_id->heightProvider)
     return;
 
-  if (!context_id->has(Features::Terrain))
+  if (!context_id->hasAny(Features::Terrain))
     return;
 
   if (bvh_terrain_lod_count != context_id->terrainLods.size())

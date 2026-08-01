@@ -44,6 +44,8 @@ using Bitset = eastl::bitset<max_banks>;
 
 static bool g_report_bank_loading_time = false;
 
+using FileInfoStr = eastl::fixed_string<char, 96>;
+
 struct Bank
 {
   using id_t = uint32_t;
@@ -51,6 +53,9 @@ struct Bank
 
   FMOD::Studio::Bank *fmodBank = nullptr;
   const eastl::string path;
+  int64_t fileSize = -1;
+  int64_t fileMTime = -1;
+  uint64_t fileHeadTailHash = 0;
   const label_t label; // filename trimmed after dot (e.g. hash("master_bank"), same for "/master_bank.bank",
                        // "/master_bank.strings.bank", "/master_bank.assets.bank")
   const id_t id = 0;
@@ -224,6 +229,65 @@ static inline void make_localized(FrameStr &str) { replace(str, "<loc>", locale.
 
 // ............................................................
 
+static void get_file_size_and_mtime(const char *filename, int64_t &size, int64_t &mtime)
+{
+  size = -1;
+  mtime = -1;
+  DagorStat stat = {};
+  if (df_stat(filename, &stat) == 0)
+  {
+    size = stat.size;
+    mtime = stat.mtime;
+  }
+}
+
+static constexpr int head_tail_chunk_size = 64 << 10;
+
+// hash of file size, first and last head_tail_chunk_size bytes; reads up to 2 * head_tail_chunk_size bytes
+static uint64_t get_file_head_tail_hash(const char *filename)
+{
+  file_ptr_t fp = df_open(filename, DF_READ | DF_IGNORE_MISSING);
+  if (!fp)
+    return 0;
+  FINALLY([fp]() { df_close(fp); });
+
+  const intptr_t filesize = df_length(fp);
+  if (filesize <= 0)
+    return 0;
+
+  const intptr_t headSize = min(filesize, (intptr_t)head_tail_chunk_size);
+  eastl::vector<char, framemem_allocator> buf;
+  buf.resize(headSize);
+  G_ASSERT_RETURN(buf.size() == headSize, 0);
+
+  const int64_t filesize64 = filesize;
+  uint64_t hash = mod_file_hash_fun((const char *)&filesize64, sizeof(filesize64), 0);
+
+  if (df_read(fp, buf.begin(), headSize) != headSize)
+    return 0;
+  hash = mod_file_hash_fun(buf.begin(), headSize, hash);
+
+  if (filesize > head_tail_chunk_size)
+  {
+    if (df_seek_to(fp, filesize - head_tail_chunk_size) != 0)
+      return 0;
+    if (df_read(fp, buf.begin(), head_tail_chunk_size) != head_tail_chunk_size)
+      return 0;
+    hash = mod_file_hash_fun(buf.begin(), head_tail_chunk_size, hash);
+  }
+
+  return hash;
+}
+
+static FileInfoStr make_file_info_str(const Bank &bank)
+{
+  FileInfoStr str;
+  str.sprintf("size=%lld, mtime=%lld", (long long)bank.fileSize, (long long)bank.fileMTime);
+  if (bank.fileHeadTailHash != 0)
+    str.append_sprintf(", headTailHash=%llu", (unsigned long long)bank.fileHeadTailHash);
+  return str;
+}
+
 static inline FMOD_RESULT load_bank_memory(const char *filename, FMOD_STUDIO_LOAD_BANK_FLAGS flags, FMOD::Studio::Bank **fmod_bank)
 {
   eastl::vector<char> data;
@@ -304,6 +368,9 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
   FMOD_STUDIO_LOAD_BANK_FLAGS flags = is_async(bank.id) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
   const int32_t start = get_time_msec();
 
+  get_file_size_and_mtime(realPath, bank.fileSize, bank.fileMTime);
+  bank.fileHeadTailHash = get_file_head_tail_hash(realPath);
+
   const FMOD_RESULT result = bank.isLoadToMemory ? load_bank_memory(realPath, flags, &bank.fmodBank)
                                                  : fmodapi::get_studio_system()->loadBankFile(realPath, flags, &bank.fmodBank);
 
@@ -329,7 +396,7 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
     if (g_report_bank_loading_time)
     {
       const int32_t now = get_time_msec();
-      debug("[SNDSYS] load bank \"%s\" in %d ms", realPath, now - start);
+      debug("[SNDSYS] loaded bank (sync) \"%s\" in %d ms  %s", realPath, now - start, make_file_info_str(bank).c_str());
     }
   }
 }
@@ -514,7 +581,9 @@ static void update_impl(loaded_presets_t &lp)
         SOUND_VERIFY(bank.fmodBank->unload());
         bank.fmodBank = nullptr;
       }
-      err_cb("error loading bank", FMOD_ErrorString(result), bank.path.c_str(), bank.isMod);
+      FrameStr errMessage;
+      errMessage.sprintf("error loading bank, %s", make_file_info_str(bank).c_str());
+      err_cb(errMessage.c_str(), FMOD_ErrorString(result), bank.path.c_str(), bank.isMod);
       continue;
     }
 
@@ -523,7 +592,8 @@ static void update_impl(loaded_presets_t &lp)
 
     if (state == FMOD_STUDIO_LOADING_STATE_LOADED)
     {
-      debug("[SNDSYS] loaded bank '%s', isMod=%s", bank.path.c_str(), bank.isMod ? "true" : "false");
+      debug("[SNDSYS] loaded bank '%s', isMod=%s, %s", bank.path.c_str(), bank.isMod ? "true" : "false",
+        make_file_info_str(bank).c_str());
       loaded_banks.set(bank.id);
       if (is_preload(bank.id))
       {
@@ -696,6 +766,10 @@ void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs
   {
     const DataBlock *pluginBlk = pluginsBlk->getBlock(j);
     const char *fileName = pluginBlk->getStr(PLUGIN_SUBSYSTEM);
+#if __e2k__ || (_TARGET_PC_WIN && _M_ARM64) // no ported binary of ResonanceAudio plugin for these arch
+    if (strstr(fileName, "resonanceaudio"))
+      continue;
+#endif
     all_plugins.emplace_back(fileName);
   }
 }

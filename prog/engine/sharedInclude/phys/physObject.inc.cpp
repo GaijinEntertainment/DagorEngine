@@ -11,10 +11,6 @@
 
 
 template <>
-DynamicPhysObject::DynamicPhysObjectClass() : ud{_MAKE4C('DPOJ')}
-{}
-
-template <>
 DynamicPhysObject::~DynamicPhysObjectClass()
 {
   for (int i = 0; i < modelEntries.size(); i++)
@@ -24,7 +20,6 @@ DynamicPhysObject::~DynamicPhysObjectClass()
   }
 
   del_it(physSys);
-  del_it(nodeTree);
 }
 
 
@@ -43,7 +38,7 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
   if (phys_obj_data->physRes && world)
     physSys = new PhysSystemInstance(phys_obj_data->physRes, world, &tm, &ud, fgroup, fmask);
   if (phys_obj_data->nodeTree)
-    nodeTree = new GeomNodeTree(*phys_obj_data->nodeTree);
+    nodeTree.reset(GeomNodeTree::make(*phys_obj_data->nodeTree));
 
   for (int nModel = 0; nModel < phys_obj_data->models.size(); nModel++)
   {
@@ -66,11 +61,20 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
     {
       const RoNameMapEx &map = entry->model->getLodsResource()->getNames().node;
 
+      Tab<int> treeNodeToBody(framemem_ptr());
       clear_and_resize(entry->nodeHelpers, nodeTree->nodeCount());
+      treeNodeToBody.resize(entry->nodeHelpers.size());
       for (dag::Index16 j(0), je(entry->nodeHelpers.size()); j != je; ++j)
-        entry->nodeHelpers[j.index()] = physSys->getTmHelper(nodeTree->getNodeName(j));
+      {
+        int bodyId = -1;
+        entry->nodeHelpers[j.index()] = physSys->getTmHelper(nodeTree->getNodeName(j), &bodyId);
+        treeNodeToBody[j.index()] = bodyId;
+      }
 
       clear_and_resize(entry->treeIndex, map.nameCount());
+      clear_and_resize(entry->nodeToBody, map.nameCount());
+      for (int &bodyId : entry->nodeToBody)
+        bodyId = -1;
       iterate_names(map, [&](int i, const char *name) {
         entry->treeIndex[i] = nodeTree->findNodeIndex(name);
         G_ASSERT((int)entry->treeIndex[i] < 0x8000);
@@ -81,6 +85,8 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
             G_ASSERT(entry->treeIndex[i]);
             entry->treeIndex[i] = dag::Index16(entry->treeIndex[i].index() | 0x8000);
           }
+        if (entry->treeIndex[i])
+          entry->nodeToBody[i] = treeNodeToBody[entry->treeIndex[i].index() & ~0x8000];
       });
 
       entry->twistCtrl = make_phys_twist_ctrls(*phys_obj_data->physRes, *nodeTree);
@@ -90,12 +96,17 @@ void DynamicPhysObject::init(const DynamicPhysObjectData *phys_obj_data, PhysWor
       const RoNameMapEx &map = entry->model->getLodsResource()->getNames().node;
       clear_and_resize(entry->nodeHelpers, map.nameCount());
       mem_set_0(entry->nodeHelpers);
+      clear_and_resize(entry->nodeToBody, map.nameCount());
+      for (int &bodyId : entry->nodeToBody)
+        bodyId = -1;
 
       iterate_names(map, [&](int i, const char *name) {
-        if (TMatrix *tmHelper = physSys->getTmHelper(name))
+        int bodyId = -1;
+        if (TMatrix *tmHelper = physSys->getTmHelper(name, &bodyId))
         {
           entry->nodeHelpers[i] = tmHelper;
-          if (!entry->nodeHelpers[0])
+          entry->nodeToBody[i] = bodyId;
+          if (!entry->nodeHelpers[0]) // -V1051
             entry->nodeHelpers[0] = tmHelper;
         }
       });
@@ -129,14 +140,18 @@ void DynamicPhysObject::replaceModel(int index, DynamicRenderableSceneLodsResour
 }
 
 template <>
-void DynamicPhysObject::beforeRender(const Point3 &cam_pos)
+void DynamicPhysObject::beforeRender(const Point3 &cam_pos, dag::FunctionRef<TMatrix(int)> get_body_tm,
+  dag::FunctionRef<bool(int)> is_body_visible)
 {
   if (physSys && modelEntries.size() == 1 && physSys->getBodyCount() == 1)
   {
     // "single-body at root" case
     TMatrix itm = physSys->getPhysicsResource()->getBodies()[0].tmInvert;
     TMatrix tm;
-    physSys->getBody(0)->getTm(tm);
+    if (get_body_tm)
+      tm = get_body_tm(0);
+    else
+      physSys->getBody(0)->getTm(tm);
 
     tm = tm * itm;
     if (nodeTree)
@@ -149,6 +164,8 @@ void DynamicPhysObject::beforeRender(const Point3 &cam_pos)
     modelEntries[0]->model->setNodeWtm(0, tm);
     if (modelEntries[0]->model->getLodsResource()->getNames().node.nameCount() == 1)
     {
+      if (is_body_visible)
+        modelEntries[0]->model->showNode(0, is_body_visible(0));
       modelEntries[0]->model->beforeRender(cam_pos);
       return;
     }
@@ -156,7 +173,7 @@ void DynamicPhysObject::beforeRender(const Point3 &cam_pos)
 
   if (physSys)
   {
-    physSys->updateTms();
+    physSys->updateTms(get_body_tm);
 
     for (ModelEntry *entry : modelEntries)
     {
@@ -189,6 +206,12 @@ void DynamicPhysObject::beforeRender(const Point3 &cam_pos)
           entry->model->setNodeWtm(i, *entry->nodeHelpers[i]);
     }
   }
+
+  if (is_body_visible)
+    for (ModelEntry *entry : modelEntries)
+      for (int i = 0; i < entry->nodeToBody.size(); ++i)
+        if (entry->nodeToBody[i] >= 0)
+          entry->model->showNode(i, is_body_visible(entry->nodeToBody[i]));
 
   if (nodeTree)
   {

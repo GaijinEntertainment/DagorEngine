@@ -97,11 +97,11 @@ hlsl(code) {
     uint isLandscape;
     uint isHeroCockpit;
 
-    // Dummy
-    bool isGlass;
+    bool isGlass; // Dummy
     bool isGrass;
     bool isFoliage;
-    bool isFacingSun;
+    bool isFacingSun; // Dummy
+    bool isCamoNet; // Dummy
   };
 
   ProcessedGbuffer processGbuffer(UnpackedGbuffer gbuf)
@@ -130,7 +130,7 @@ hlsl(code) {
     gbuffer.isLandscape = gbuf.isLandscape;
     gbuffer.isGrass = gbuffer.isLandscape && gbuffer.material == SHADING_FOLIAGE;
     gbuffer.isFoliage = gbuffer.material == SHADING_FOLIAGE;
-    gbuffer.isGlass = gbuffer.isFacingSun = false;
+    gbuffer.isGlass = gbuffer.isFacingSun = gbuffer.isCamoNet = false;
     return gbuffer;
   }
 
@@ -154,7 +154,7 @@ hlsl(code) {
     result.motion = 0;
     result.reactive = 0;
     result.sheen = 0;
-    result.isGlass = result.isGrass = result.isFoliage = result.isFacingSun = result.isSnow = false;
+    result.isGlass = result.isGrass = result.isFoliage = result.isFacingSun = result.isCamoNet = result.isSnow = false;
     result.impostorMask = 0;
   }
   void init_albedo(inout UnpackedGbuffer result, half3 albedo)

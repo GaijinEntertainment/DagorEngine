@@ -20,6 +20,7 @@ class DataBlock;
 struct ImFont;
 struct ImDrawData;
 class BaseTexture;
+struct ImRect;
 
 enum class ImGuiState
 {
@@ -89,6 +90,17 @@ struct ImGuiFunctionQueue
   ImGuiFunctionQueue(const char *group_, const char *name_, const char *hotkey_, int priority_, int flags_, ImGuiFuncPtr func,
     bool is_window);
 };
+
+struct ImGuiTestRuntimeOptions
+{
+  void *engine = nullptr;
+  bool drawHovered = false;
+  uint32_t drawItemId = 0;
+  bool drawFakeMousePointer = false;
+};
+
+bool imgui_test_runtime_set(bool enabled, ImGuiTestRuntimeOptions *options = nullptr);
+bool imgui_test_runtime_query_item(const char *path, uint32_t &id, ImRect &bb, uint32_t &parent_id);
 
 #define REGISTER_IMGUI_WINDOW(group, name, func) \
   static ImGuiFunctionQueue DAG_CONCAT(AutoImGuiWindow, __LINE__)(group, name, nullptr, 100, 0, func, true)

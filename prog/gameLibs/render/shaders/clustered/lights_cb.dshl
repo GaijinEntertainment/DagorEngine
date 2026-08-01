@@ -5,10 +5,6 @@ texture photometry_textures_tex;
 texture dynamic_light_shadows;
 
 // GridLightsParams
-int omniLightsCount = 0;
-int omniLightsWordCount = 0;
-int spotLightsCount = 0;
-int spotLightsWordCount = 0;
 float depthSliceScale = 0.0;
 float depthSliceBias = 0.0;
 float4 shadowAtlasTexel = (0.0, 0.0, 0.0, 0.0);
@@ -191,7 +187,6 @@ endmacro
 
 macro INIT_CLUSTERED_LIGHTS(code)
   (code) {
-    light_count_params@i4 = (omniLightsCount, omniLightsWordCount, spotLightsCount, spotLightsWordCount);
     depth_slice_params__shadow_atlas_texel@f4 = (depthSliceScale, depthSliceBias, shadowAtlasTexel.x, shadowAtlasTexel.y/max(1, shadowAtlasTexel.y));
     shadow_scale_bias_params@f4 = (shadowDistScale, shadowDistBias, shadowZBias, shadowSlopeZBias);
   }
@@ -199,10 +194,10 @@ endmacro
 
 macro USE_CLUSTERED_LIGHTS(code)
   hlsl(code) {
-    #define omniLightsCount light_count_params.x
-    #define omniLightsWordCount light_count_params.y
-    #define spotLightsCount light_count_params.z
-    #define spotLightsWordCount light_count_params.w
+    #define omniLightsCount omni_lights_count.x
+    #define omniLightsWordCount omni_lights_count.y
+    #define spotLightsCount spot_lights_count.x
+    #define spotLightsWordCount spot_lights_count.y
     #define depthSliceScale depth_slice_params__shadow_atlas_texel.x
     #define depthSliceBias depth_slice_params__shadow_atlas_texel.y
     #define shadowAtlasTexel depth_slice_params__shadow_atlas_texel.zw
@@ -218,6 +213,27 @@ macro INIT_AND_USE_CLUSTERED_LIGHTS(code)
   USE_CLUSTERED_LIGHTS(code)
 endmacro
 
+macro USE_CLUSTERED_LIGHTS_WORD_COUNTS(code)
+  hlsl(code) {
+    void get_clustered_light_word_counts(out uint words_per_omni, out uint words_per_spot)
+    {
+      ##if dynamic_lights_count == lights_omnispot_1
+        words_per_omni = 1;
+        words_per_spot = 1;
+      ##elif dynamic_lights_count == lights_omni_1
+        words_per_omni = 1;
+        words_per_spot = 0;
+      ##elif dynamic_lights_count == lights_spot_1
+        words_per_omni = 0;
+        words_per_spot = 1;
+      ##else
+        words_per_omni = omniLightsWordCount;
+        words_per_spot = spotLightsWordCount;
+      ##endif
+    }
+  }
+endmacro
+
 macro INIT_OMNI_LIGHTS_CB(code)
   (code) {
     Lights@cbuf = omni_lights hlsl {
@@ -226,7 +242,7 @@ macro INIT_OMNI_LIGHTS_CB(code)
       cbuffer Lights@cbuf
       {
         uint4 omni_lights_count;
-        RenderOmniLight omni_lights_cb[MAX_OMNI_LIGHTS];
+        RenderOmniLight omni_lights_cb[MAX_CLUSTERED_OMNI_LIGHTS];
       };
     }
   }
@@ -444,7 +460,7 @@ macro INIT_COMMON_LIGHTS_SHADOWS_CB(code)
       cbuffer common_lights_shadows@cbuf
       {
         float4 spotCnt_omniCnt_firstOmni;
-        float4 common_light_shadows[MAX_SPOT_LIGHTS*4 + MAX_OMNI_LIGHTS];
+        float4 common_light_shadows[MAX_CLUSTERED_SPOT_LIGHTS*5 + MAX_CLUSTERED_OMNI_LIGHTS];
       };
     }
   }
@@ -454,13 +470,17 @@ macro USE_COMMON_LIGHTS_SHADOWS_CB(code)
   hlsl(code) {
     float4x4 getSpotLightTm(uint index)
     {
-      index *= 4;
+      index *= 5;
       return float4x4(
         common_light_shadows[index + 0],
         common_light_shadows[index + 1],
         common_light_shadows[index + 2],
         common_light_shadows[index + 3]
       );
+    }
+    float4 getSpotLightShadowUvBounds(uint index)
+    {
+      return common_light_shadows[index * 5 + 4];
     }
     half4 getOmniLightShadowData(uint index)
     {
@@ -481,7 +501,7 @@ macro INIT_SPOT_LIGHTS_CB(code)
       #include <renderLights.hlsli>
       cbuffer Lights2@cbuf {
         uint4 spot_lights_count;
-        RenderSpotLight spot_lights_cb[MAX_SPOT_LIGHTS];
+        RenderSpotLight spot_lights_cb[MAX_CLUSTERED_SPOT_LIGHTS];
       }
     }
   }

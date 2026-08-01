@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="..\..\..\_jBuild\msbuild\projects\$(MSBuildProjectName).props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{bdce474e-af15-412e-ba2d-579623579ce2}</ProjectGuid>
+    <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
+    <ProjectRootDir>$(RootDir)prog\tools\</ProjectRootDir>
+    <GameDir>$(ProjectRootDir)</GameDir>
+    <ProjectName>daEditor3x</ProjectName>
+    <GameType>tool</GameType>
+    <OutDir>$(RootDir)tools\dagor_cdk\$(JamPlatform)-$(JamPlatformArch)\</OutDir>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)defaults.props" />
+  <PropertyGroup Label="Configuration">
+    <NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);$(RootDir)prog\tools\sceneTools\daEditorX\include;$(RootDir)prog\tools\sharedInclude;$(RootDir)prog\engine\sharedInclude;$(RootDir)prog\gameLibs\publicInclude;$(RootDir)prog\1stPartyLibs\jsoncpp\include;$(RootDir)prog\daNetGame</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)config.props" />
+  <PropertyGroup>
+    <AdjunctOptions>$(AdjunctOptions) -sRoot=../.. -fsceneTools/daEditorX/jamfile </AdjunctOptions>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)common.targets" />
+  <PropertyGroup>
+    <JamOutput>$(OutDir)daEditor3x$(NameSuffix).exe</JamOutput>
+    <ExeName>daEditor3x$(NameSuffix).exe</ExeName>
+    <NMakeOutput>$(JamOutput)</NMakeOutput>
+    <LocalDebuggerCommand>$(JamOutput)</LocalDebuggerCommand>
+  </PropertyGroup>
+  <ItemGroup Label="Wildcard">
+    <CppSource Include="**\*.cpp" />
+    <CppHeader Include="**\*.h;**\*.inl" />
+    <bat Include="**\*.bat;**\*.cmd" />
+  </ItemGroup>
+</Project>

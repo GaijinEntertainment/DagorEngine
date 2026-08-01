@@ -135,4 +135,11 @@ struct WRDispatcher
     REINIT_TARGET = 1u << 4u,
   };
   static void recreateRayTracingDependentNodes(uint32_t features_to_reset);
+
+  struct ScopedForceInEditor
+  {
+    bool active;
+    explicit ScopedForceInEditor(bool a);
+    ~ScopedForceInEditor();
+  };
 };

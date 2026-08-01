@@ -405,6 +405,9 @@ LZWDecode(TIFF* tif, uint8_t* op0, tmsize_t occ0, uint16_t s)
 	assert(sp->dec_codetab != NULL);
 
 	if (sp->read_error) {
+		TIFFErrorExt(tif->tif_clientdata, module,
+			"LZWDecode: Scanline %"PRIu32" cannot be read due to previous error",
+			tif->tif_row);
 		return 0;
 	}
 
@@ -698,6 +701,8 @@ after_loop:
 	sp->dec_maxcodep = maxcodep;
 
 	if (occ > 0) {
+		memset(op, 0, (size_t)occ);
+		sp->read_error = 1;
 		TIFFErrorExt(tif->tif_clientdata, module,
 			"Not enough data at scanline %"PRIu32" (short %"PRIu64" bytes)",
 			     tif->tif_row, (uint64_t)occ);
@@ -706,6 +711,7 @@ after_loop:
 	return (1);
 
 no_eoi:
+    sp->read_error = 1;
     TIFFErrorExt(tif->tif_clientdata, module,
                     "LZWDecode: Strip %"PRIu32" not terminated with EOI code",
                     tif->tif_curstrip);

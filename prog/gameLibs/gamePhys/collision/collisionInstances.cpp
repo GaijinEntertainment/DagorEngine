@@ -196,7 +196,7 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
 #endif
 
   // To consider: use scale difference instead of raw compare
-  if (update_scale && (v_signmask(v_cmp_eq(ls, v_ldu(&scaledInstance->scale.x))) & 0b111) != 0b111)
+  if (update_scale && !v_check_xyz_all_true(v_cmp_eq(ls, v_ldu(&scaledInstance->scale.x))))
   {
     v_stu(&scaledInstance->scale.x, ls);
     cobj.body->patchCollisionScaledCopy(scaledInstance->scale, originalObj.body);

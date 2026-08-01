@@ -164,7 +164,7 @@ __forceinline auto grid_find_in_capsule_by_pos_impl(const Holder &grid_holder, v
       mat44f d;
       v_mat44_sub(d, pa, projMat);
       vec4f distSq = v_add(v_add(v_sqr(d.col0), v_sqr(d.col1)), v_sqr(d.col2));
-      return v_signmask(v_cmp_le(distSq, v_sqr(radius)));
+      return v_truemask(v_cmp_le(distSq, v_sqr(radius)));
     }
     const Predicate &predFunc;
     const Filter &filterFunc;
@@ -215,7 +215,7 @@ __forceinline auto grid_find_in_capsule_by_bounding_impl(const Holder &grid_hold
       mat44f d;
       v_mat44_sub(d, pa, projMat);
       vec4f distSq = v_add(v_add(v_sqr(d.col0), v_sqr(d.col1)), v_sqr(d.col2));
-      return v_signmask(v_cmp_le(distSq, v_sqr(v_add(objMat.col3, radius))));
+      return v_truemask(v_cmp_le(distSq, v_sqr(v_add(objMat.col3, radius))));
     }
     const Predicate &predFunc;
     const Filter &filterFunc;
@@ -345,7 +345,7 @@ __forceinline auto grid_find_ray_intersections_impl(const Holder &grid_holder, v
       mat44f d;
       v_mat44_sub(d, pa, projMat);
       vec4f distSq = v_add(v_add(v_sqr(d.col0), v_sqr(d.col1)), v_sqr(d.col2));
-      return v_signmask(v_cmp_le(distSq, v_sqr(objMat.col3)));
+      return v_truemask(v_cmp_le(distSq, v_sqr(objMat.col3)));
     }
     const Predicate &predFunc;
     const Filter &filterFunc;

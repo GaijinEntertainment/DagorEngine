@@ -148,6 +148,9 @@ public:
 
   bool hasFormatError() const { return !formatErrorMsg.empty(); }
 
+  // True while format() is running; callers must not mutate the block list (clear/append).
+  bool isFormatInProgress() const { return isFormatting; }
+
   // True when the previously formatted lines are still valid for a call that
   // would use this maxWidth. Safe because every other FormatParams input comes
   // from script properties; any change to those goes through updateText/clear
@@ -163,9 +166,11 @@ public:
   int preformattedFlags;
 
 private:
-  E3DCOLOR strToColor(const char *str, int &out_length, bool &out_error);
+  bool strToColor(const char *str, const char *end, E3DCOLOR &out_color, int &out_length);
   Point2 calcEmbeddedComponentSize(const Sqrat::Object &desc, float def_height);
   void shapeBlock(TextBlock *block, const StdGuiFontContext &fontCtx, float ascent, float descent);
+
+  bool isFormatting = false;
 
 public:
   Tab<TextBlock *> blocks;

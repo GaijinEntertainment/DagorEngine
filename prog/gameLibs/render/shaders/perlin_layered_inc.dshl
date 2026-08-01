@@ -2,6 +2,7 @@ include "paint_details_inc.dshl"
 include "layered_inc.dshl"
 include "const_color_inc.dshl"
 include_optional "hmap_blend_use_inc.dshl"
+include "voxel_baking.dshl"
 
 define_macro_if_not_defined USE_HMAP_BLEND()
 endmacro
@@ -77,6 +78,10 @@ macro INIT_PERLIN_LAYERED_VAR()
   static float4 blend_normals = (0, 0, 0, -1);
   static float4 details_tile = (1, 1, 1, 0);
   static int use_local_transform_for_details = 0;
+  static float4 parallax_height_influence_meters = (0.02, 0.01, 0.01, 0);
+  static float parallax_shadow_ray_length_meters = 0.08;
+  static float parallax_shadow_tolerance_meters = 0.005;
+  static float parallax_ao_ray_length_meters = 0.0031;
 
   static float4 bumpmap_scale_contrast = (0.0, 0.5, 1.0, 0.0); // (xyz: 0,1,2 layers scale, w: transition contrast)
   static float4 bumpmap_additional_params = (4, 1, 1, 1); // (slope scaling, sharpness, bumpmap weight, normalmap weight)
@@ -106,6 +111,10 @@ macro INIT_PERLIN_LAYERED_VAR()
     use_local_transform_for_details@i1 = use_local_transform_for_details;
     bumpmap_scale_contrast@f4 = bumpmap_scale_contrast;
     bumpmap_additional_params@f4 = bumpmap_additional_params;
+    parallax_height_influence_meters@f3 = parallax_height_influence_meters;
+    parallax_shadow_ray_length_meters@f1 = parallax_shadow_ray_length_meters;
+    parallax_shadow_tolerance_meters@f1 = parallax_shadow_tolerance_meters;
+    parallax_ao_ray_length_meters@f1 = parallax_ao_ray_length_meters;
   }
   INIT_CONST_COLOR_OVERRIDES(detail0_const_color)
   INIT_CONST_COLOR_OVERRIDES(detail1_const_color)
@@ -142,7 +151,47 @@ macro USE_PERLIN_LAYERED(stage) //use this macro after RENDINST_BLOCK(), because
 endmacro
 
 
-macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, has_microdetail_sampler) //not for depth or shadow
+macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, has_microdetail_sampler, use_parallax_shadow) //not for depth or shadow
+  if (compatibility_mode == compatibility_mode_off && use_parallax_shadow && rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    hlsl(ps) {
+      #define PARALLAX_SHADOW
+      struct ParallaxData
+      {
+        half3 startWeights; // Not entirely correct, since it depends on vertex data
+        half3 influence;
+      };
+
+      float sample_height_tex(float2 tc, ParallaxData userData)
+      {
+        const float mipLevel = 2;
+        float4 details_tile = get_details_tile();
+        SamplerState smp = get_diffuse_tex().smp;
+        float detail0 = get_diffuse_tex().tex.SampleLevel(smp, tc * details_tile.x, mipLevel).a;
+        float detail1 = 0;
+        float detail2 = 0;
+        #if MISSING_TEXTURE_ID != 1
+          detail1 = get_diffuse_tex1().SampleLevel(smp, tc * details_tile.y, mipLevel).a;
+        #endif
+        #if MISSING_TEXTURE_ID != 2
+          detail2 = get_diffuse_tex2().SampleLevel(smp, tc * details_tile.z, mipLevel).a;
+        #endif
+
+        float3 initialHeight = float3(detail0, detail1, detail2);
+        half4 invertHeights = get_invert_heights();
+        #if MISSING_TEXTURE_ID == 2
+          invertHeights.z = 0;
+        #elif MISSING_TEXTURE_ID == 1
+          invertHeights.y = 0;
+        #endif
+
+        half3 invertedHeight = lerp(initialHeight, 1 - initialHeight, invertHeights.xyz);
+        half3 weights = get_blending_weights_for_parallax(userData.startWeights, invertedHeight);
+        return dot(initialHeight, weights * userData.influence);
+      }
+    }
+    USE_PARALLAX_SHADOW(sample_height_tex, ParallaxData, use_parallax_shadow)
+  }
   USE_PIXEL_TANGENT_SPACE()
   if (is_writing_gbuffer)
   {
@@ -154,6 +203,7 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
   {
     USE_HMAP_BLEND(true)
   }
+  USE_VOXEL_BAKING()
   hlsl(ps) {
     #define THIRD_DETAIL_GLOBAL_TRANSFORM 0
 
@@ -260,12 +310,7 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
     #endif
 
     #if RENDINST_IMPOSTOR_VOXEL
-      void perlin_layered_ps(VsOutput input,
-        out float4 out_0 : SV_Target0,
-        out float4 out_1 : SV_Target1,
-        out float4 out_2 : SV_Target2,
-        out float  out_3 : SV_Target3
-        INPUT_VFACE HW_USE_SCREEN_POS)
+      VOXEL_BAKER_OUTPUT perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     #elif VOXELIZE_ALBEDO_PASS
       void perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     #else
@@ -316,24 +361,27 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
       half3 lumins = half3(luminance(diffuseColor0.rgb), luminance(diffuseColor1.rgb), luminance(diffuseColor2.rgb));
       half3 details = get_paint_details().xyz * saturate(lumins * get_paint_points_tr_mul().xyz + get_paint_points_tr_add().xyz);
 
-      //== not baking coloring for now, because it looks like it's better to bake in differenty colored materials for this shader
-      // #if RENDINST_IMPOSTOR_VOXEL
-      //   diffuseColor0.rgb = lerp(diffuseColor0.rgb, get_detail0_const_color().rgb * get_detail0_const_color().a, details.x);
-      //   diffuseColor1.rgb = lerp(diffuseColor1.rgb, get_detail1_const_color().rgb * get_detail1_const_color().a, details.y);
-      //   diffuseColor2.rgb = lerp(diffuseColor2.rgb, get_detail2_const_color().rgb * get_detail2_const_color().a, details.z);
-      //   half3 coloringMul =
-      //     get_detail0_const_color().rgb * (1 - get_detail0_const_color().a) * details.x * weights.x +
-      //     get_detail1_const_color().rgb * (1 - get_detail1_const_color().a) * details.y * weights.y +
-      //     get_detail2_const_color().rgb * (1 - get_detail2_const_color().a) * details.z * weights.z;
-      // #else
+      #if RENDINST_IMPOSTOR_VOXEL
+        uint palRow = input.colorMul.x;
+        uint palIndex = input.colorMul.y;
+        half4 overColor0 = get_detail0_const_color();
+        half4 overColor1 = get_detail1_const_color();
+        half4 overColor2 = get_detail2_const_color();
+        half3 coloringMul =
+          diffuseColor0.rgb * overColor0.rgb * (1 - overColor0.a) * details.x * weights.x +
+          diffuseColor1.rgb * overColor1.rgb * (1 - overColor1.a) * details.y * weights.y +
+          diffuseColor2.rgb * overColor2.rgb * (1 - overColor2.a) * details.z * weights.z;
+        diffuseColor0.rgb = diffuseColor0.rgb * lerp(1, details.x * overColor0.rgb * overColor0.a, details.x);
+        diffuseColor1.rgb = diffuseColor1.rgb * lerp(1, details.y * overColor1.rgb * overColor1.a, details.y);
+        diffuseColor2.rgb = diffuseColor2.rgb * lerp(1, details.z * overColor2.rgb * overColor2.a, details.z);
+      #else
         half3 paint_details_col  = get_color_mul(input, get_detail0_const_color());
         half3 paint_details_col1 = get_color_mul(input, get_detail1_const_color());
         half3 paint_details_col2 = get_color_mul(input, get_detail2_const_color());
         diffuseColor0.rgb = lerp(diffuseColor0.rgb, diffuseColor0.rgb * paint_details_col , details.x);
         diffuseColor1.rgb = lerp(diffuseColor1.rgb, diffuseColor1.rgb * paint_details_col1, details.y);
         diffuseColor2.rgb = lerp(diffuseColor2.rgb, diffuseColor2.rgb * paint_details_col2, details.z);
-        half3 coloringMul = 0;
-      // #endif
+      #endif
 
       half4 diffuseColor = diffuseColor0*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
 
@@ -421,6 +469,7 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
 
         half reflectance = 0.5;
         half ao = 1;
+        half shadow = 1.h;
 ##if compatibility_mode == compatibility_mode_off
   #if RENDINST_IMPOSTOR_VOXEL
         half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
@@ -434,6 +483,22 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
 
         half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
         apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+        #ifdef PARALLAX_SHADOW
+          float3 influence = get_parallax_height_influence_meters().xyz;
+          influence *= get_parallax_vignette(input.pointToEye.xyz);
+          BRANCH
+          if (any(abs(influence) > 0.0))
+          {
+            ParallaxData userData;
+            userData.startWeights = startWeights;
+            userData.influence = influence;
+            ParallaxCommonParams commonParams = make_parallax_common_params(input.pointToEye.xyz, input.normal.xyz, input.diffuseTexcoord.xy, userData);
+            BRANCH if (parallax_shadow_enabled)
+              shadow *= calc_parallax_shadow(commonParams, from_sun_direction.xyz, get_parallax_shadow_ray_length_meters(), get_parallax_shadow_tolerance_meters());
+            BRANCH if (parallax_ao_enabled)
+              ao *= calc_parallax_ao(commonParams, get_parallax_ao_ray_length_meters());
+          }
+        #endif
   #endif
 ##else
         half3 worldNormal = input.normal.xyz;
@@ -441,6 +506,7 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
 
         init_metalness(gbuffer, metalness);
         init_ao(gbuffer, ao);
+        init_shadow(gbuffer, shadow);
         init_material(gbuffer, SHADING_NORMAL);
         BRANCH
         if (emissionStrength > 0)
@@ -459,7 +525,7 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
         float4 screenpos = GET_SCREEN_POS(input.pos);
 
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
           init_motion_vector(gbuffer, motion);
         #endif
 
@@ -475,27 +541,14 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
         #endif
 
         #if RI_PUDDLES_ENABLED && !VOXELIZE_ALBEDO_PASS && !RENDINST_IMPOSTOR_VOXEL
-          addPuddlesRi(gbuffer, worldPos, worldNormal);
+          addPuddlesRi(gbuffer, worldPos, normalize(input.normal.xyz));
         #endif
 
         #if RENDINST_IMPOSTOR_VOXEL
-          half alpha = 1;
-
-          half coloring = luminance(coloringMul) / COLOR_CORRECTION_MULTIPLIER;
-
-          float depth = dot(impostor_depth_proj, float4(worldPos, 1));
-          float sliceDepth = texelFetch(impostor_depth_slice, int2(GET_SCREEN_POS(input.pos).xy), 0).r;
-          if (depth < sliceDepth + 1) discard;
-
-          out_0.a = alpha;
-          out_0.rgb = gbuffer.albedo.rgb;
-          out_1.rgb = normalize(gbuffer.normal.xyz)*0.5+0.5;
-          out_1.a = coloring;
-          out_2.r = gbuffer.smoothness;
-          out_2.g = gbuffer.reflectance;
-          out_2.b = gbuffer.metalness;
-          out_2.a = gbuffer.translucency;
-          out_3 = depth;
+          const half alpha = 1;
+          const float depth = voxel_baker_depth(worldPos, GET_SCREEN_POS(input.pos).xy);
+          return baker_output_from_gbuffer(gbuffer, depth, alpha,
+            coloringMul, palRow, palIndex);
         #else
           return encode_gbuffer(gbuffer, input.pointToEye.xyz, screenpos);
         #endif
@@ -505,6 +558,6 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
   compile("target_ps", "perlin_layered_ps");
 endmacro
 
-macro PERLIN_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, order_bit)
-  PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, true)
+macro PERLIN_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, order_bit, use_parallax_shadow)
+  PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, true, use_parallax_shadow)
 endmacro

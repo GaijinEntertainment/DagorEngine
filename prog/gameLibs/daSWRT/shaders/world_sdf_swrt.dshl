@@ -1,0 +1,667 @@
+include "sky_shader_global.dshl"
+include "world_sdf_update_common.dshl"
+include "world_sdf_project_common.dshl"
+include "world_sdf_rasterize_sdf_common.dshl"
+include "giHelpers/voxelize_gs.dshl"
+include "swBVH.dshl"
+
+buffer world_sdf_swrt_tile_ranges;
+buffer world_sdf_swrt_tiles;
+buffer world_sdf_swrt_dispatch_args;
+buffer world_sdf_swrt_region_leaves;
+buffer bvh_blas_leaf_table;
+buffer bvh_blas_leaf_ranges;
+// x = mesh record capacity, y = box list offset (dwords), z = box capacity. The CPU sizes
+// the region buffer to the TLAS instance count, so region instances can never overflow.
+int4 world_sdf_swrt_region_caps;
+int world_sdf_swrt_radiance;
+interval world_sdf_swrt_radiance: off < 1, on;
+
+macro WORLD_SDF_SWRT_TILE_COMMON(code)
+  hlsl(code) {
+    #define TILE_RES 4
+    // Shell half-thickness (in voxels) that gets direct distance writes - matches the
+    // rasterizer band (WORLD_SDF_RASTERIZE_VOXELS_DIST plus sample reach). The plane sign is
+    // only locally valid, so writing further would leak wrong negatives from open meshes
+    // (the rasterizer is conservative the same way); ping-pong fills beyond the shell.
+    #define SWRT_SDF_WRITE_VOXELS (WORLD_SDF_RASTERIZE_VOXELS_DIST + 0.5)
+    // region buffer layout (dwords): header [instCount, totalLeaves, boxCount, pad], then
+    // mesh-instance records {tlasLeafSkip, leafTableStart, leafBase, leafCount}, then the
+    // box-instance skip list at world_sdf_swrt_region_caps.y
+    #define REGION_RECORDS_AT 4
+    // world_sdf_swrt_dispatch_args layout (byte offsets): tile-path dispatch args (group
+    // count X is the survivor counter - the CPU pre-initializes 0,1,1 each update and
+    // tile_range_cs increments X), box-raster dispatch args, leaf-raster draw args
+    // (DrawIndirectArgs, 4 dwords). The CPU mirrors these offsets in its
+    // dispatch_indirect/draw_indirect calls.
+    #define SWRT_SDF_ARGS_TILE_DISPATCH 0
+    #define SWRT_SDF_ARGS_BOX_DISPATCH 16
+    #define SWRT_SDF_ARGS_LEAF_DRAW 32
+    uint3 swrt_sdf_tiles_dim() {return (world_sdf_raster_width() + TILE_RES - 1)/TILE_RES;}
+    void swrt_sdf_tile_box(uint3 tile_id, float voxel_size, float query_dist, out float3 bmin, out float3 bmax)
+    {
+      int3 tileLt = world_sdf_raster_begin() + int3(tile_id)*TILE_RES;
+      // query spheres sit on voxel CENTERS: the outermost centers are half a voxel inside the
+      // tile bounds, so the selection box shrinks by that much per side
+      bmin = (float3(tileLt.xzy) + 0.5)*voxel_size - query_dist;
+      bmax = (float3(tileLt.xzy) + (TILE_RES - 0.5))*voxel_size + query_dist;
+    }
+  }
+endmacro
+
+// Pre-pass: one thread per 4^3 tile finds the [first, last] TLAS node range for the
+// shell-inflated tile box (mask_shadow_swrt_cs style narrowing). Runs at full occupancy,
+// unlike doing the same walks in thread 0 of each update group.
+shader world_sdf_swrt_tile_range_cs
+{
+  supports none;
+  supports global_frame;
+
+  INIT_SW_BVH_RAYTRACING(cs)
+  USE_SW_BVH_RAYTRACING(cs)
+  WORLD_SDF_RES_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  (cs) {
+    world_sdf_swrt_tile_ranges@uav = world_sdf_swrt_tile_ranges hlsl {
+      RWByteAddressBuffer world_sdf_swrt_tile_ranges@uav;
+    }
+    world_sdf_swrt_tiles@uav = world_sdf_swrt_tiles hlsl {
+      RWByteAddressBuffer world_sdf_swrt_tiles@uav;
+    }
+    world_sdf_swrt_dispatch_args@uav = world_sdf_swrt_dispatch_args hlsl {
+      RWByteAddressBuffer world_sdf_swrt_dispatch_args@uav;
+    }
+  }
+  WORLD_SDF_SWRT_TILE_COMMON(cs)
+
+  hlsl(cs) {
+    #include <world_sdf.hlsli>
+    #include <waveUtils.hlsl>
+
+    [numthreads(64, 1, 1)]
+    void world_sdf_swrt_tile_range_cs(uint dtId : SV_DispatchThreadID)
+    {
+      uint3 tiles = swrt_sdf_tiles_dim();
+      if (dtId >= tiles.x*tiles.y*tiles.z)
+        return;
+      uint3 tileId;
+      tileId.x = dtId % tiles.x;
+      tileId.y = (dtId / tiles.x) % tiles.y;
+      tileId.z = dtId / (tiles.x*tiles.y);
+      float voxelSize = world_sdf_raster_voxel_size();
+      float3 tileBmin, tileBmax;
+      swrt_sdf_tile_box(tileId, voxelSize, SWRT_SDF_WRITE_VOXELS*voxelSize, tileBmin, tileBmax);
+      // out encoding: (~0,~0) = empty tile; bit31 set in .x = exactly one overlapping instance,
+      // .x is its leaf skip word inline (leaf offsets carry bit31, node offsets never do);
+      // else .x/.y = [first, last] node range for the update-pass harvest walk
+      uint2 outRange = uint2(~0u, ~0u);
+      uint startOfs = firstTLASOffsetForBox(bvh_top_structures, tileBmin, tileBmax, 0u);
+      if (startOfs != ~0u)
+      {
+        uint endOfs = lastTLASLeafForBox(bvh_top_structures, tileBmin, tileBmax, startOfs);
+        // count overlapping leaves, stopping at 2: 0 = really empty (the ambiguous node had no
+        // overlapping leaf), 1 = inline it, 2+ = leave the range for the harvest
+        uint firstLeaf = 0, cnt = 0;
+        uint walkOfs = startOfs;
+        LOOP
+        for (;;)
+        {
+          bool leafNode;
+          float3 bmin, bmax;
+          uint skip;
+          decode_tlas_node(bvh_top_structures, walkOfs, bmin, bmax, skip, leafNode);
+          if (!skip || walkOfs > endOfs)
+            break;
+          bool overlaps = all(bmin <= tileBmax) && all(bmax >= tileBmin);
+          if (!leafNode)
+            walkOfs += overlaps ? TLAS_NODE_ELEM_SIZE : skip;
+          else
+          {
+            if (overlaps)
+            {
+              firstLeaf = skip;
+              if (++cnt == 2)
+                break;
+            }
+            walkOfs += TLAS_NODE_ELEM_SIZE;
+          }
+        }
+        if (cnt)
+          outRange = cnt == 1 ? uint2(firstLeaf, 0) : uint2(startOfs, endOfs);
+      }
+      BRANCH
+      if (outRange.x != ~0u)
+      {
+        // ranges of empty tiles are never read (the update CS only visits compacted survivors)
+        storeBuffer2(world_sdf_swrt_tile_ranges, dtId*8, outRange);
+        // compact non-empty tiles; the counter is group count X of the indirect update
+        // dispatch (see the SWRT_SDF_ARGS layout in WORLD_SDF_SWRT_TILE_COMMON).
+        // Wave-aggregated: a plain per-thread InterlockedAdd serializes every survivor
+        // on one dword.
+        uint slot;
+        WaveInterlockedAddRawUintOriginal(world_sdf_swrt_dispatch_args, SWRT_SDF_ARGS_TILE_DISPATCH, 1u, slot);
+        storeBuffer(world_sdf_swrt_tiles, slot*4, dtId);
+      }
+    }
+  }
+  compile("target_cs", "world_sdf_swrt_tile_range_cs");
+}
+
+// Fine-clip pre-pass: one TLAS walk collects the raster region's instances into
+// mesh-instance records (with a running BLAS-leaf prefix over bvh_blas_leaf_ranges) and a
+// box list, and writes the indirect args for the leaf-raster draw and the box pass.
+shader world_sdf_swrt_region_leaves_cs
+{
+  supports none;
+  supports global_frame;
+
+  hlsl(cs) {
+    // decode parity with the other SDF consumers in this file: this pass only reads
+    // blasStartSize today, but a transform read added later must decode reflection correctly
+    #define BVH_TLAS_DECODE_REFLECTION 1
+  }
+  INIT_SW_BVH_RAYTRACING(cs)
+  USE_SW_BVH_RAYTRACING(cs)
+  WORLD_SDF_RES_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  (cs) {
+    world_sdf_swrt_region_leaves@uav = world_sdf_swrt_region_leaves hlsl {
+      RWByteAddressBuffer world_sdf_swrt_region_leaves@uav;
+    }
+    world_sdf_swrt_dispatch_args@uav = world_sdf_swrt_dispatch_args hlsl {
+      RWByteAddressBuffer world_sdf_swrt_dispatch_args@uav;
+    }
+    bvh_blas_leaf_ranges@buf = bvh_blas_leaf_ranges hlsl {
+      ByteAddressBuffer bvh_blas_leaf_ranges@buf;
+    }
+    world_sdf_swrt_region_caps@i4 = world_sdf_swrt_region_caps;
+  }
+  WORLD_SDF_SWRT_TILE_COMMON(cs)
+
+  hlsl(cs) {
+    #include <world_sdf.hlsli>
+
+    [numthreads(1, 1, 1)]
+    void world_sdf_swrt_region_leaves_cs()
+    {
+      float voxelSize = world_sdf_raster_voxel_size();
+      float band = SWRT_SDF_WRITE_VOXELS*voxelSize;
+      int3 lt = world_sdf_raster_begin();
+      float3 regionBmin = float3(lt.xzy)*voxelSize - band;
+      float3 regionBmax = float3((lt + int3(world_sdf_raster_width())).xzy)*voxelSize + band;
+      uint instCnt = 0, boxCnt = 0, totalLeaves = 0;
+      uint modelCount = loadBuffer(bvh_blas_leaf_ranges, 0);
+      uint dataOffset = 0;
+      LOOP
+      for (;;)
+      {
+        bool leafNode;
+        float3 bmin, bmax;
+        uint skip;
+        decode_tlas_node(bvh_top_structures, dataOffset, bmin, bmax, skip, leafNode);
+        if (!skip)
+          break;
+        bool overlaps = all(bmin <= regionBmax) && all(bmax >= regionBmin);
+        if (!leafNode)
+          dataOffset += overlaps ? TLAS_NODE_ELEM_SIZE : skip;
+        else
+        {
+          // capacity checks cannot fail (buffer sized to the TLAS instance count), kept as
+          // pure out-of-bounds-write protection
+          if (overlaps)
+          {
+            DistDecodedLeaf l = decode_dist_tlas_leaf(bvh_top_structures, skip);
+            if (l.blasStartSize.y == 0)
+            {
+              if (boxCnt < uint(world_sdf_swrt_region_caps.z))
+                storeBuffer(world_sdf_swrt_region_leaves, (uint(world_sdf_swrt_region_caps.y) + boxCnt++)*4, skip);
+            }
+            else if (instCnt < uint(world_sdf_swrt_region_caps.x))
+            {
+              // greatest range entry with blasStart <= ours (exact match by construction);
+              // half-open [lo, hi) form: no unsigned wrap even if modelCount were 0
+              uint lo = 0, hi = modelCount;
+              LOOP
+              while (lo + 1 < hi)
+              {
+                uint mid = (lo + hi) >> 1;
+                if (loadBuffer(bvh_blas_leaf_ranges, (1 + mid*4)*4) <= l.blasStartSize.x)
+                  lo = mid;
+                else
+                  hi = mid;
+              }
+              uint leafStart = loadBuffer(bvh_blas_leaf_ranges, (1 + lo*4 + 1)*4);
+              uint leafCount = loadBuffer(bvh_blas_leaf_ranges, (1 + lo*4 + 2)*4);
+              uint base = (REGION_RECORDS_AT + instCnt*4)*4;
+              storeBuffer2(world_sdf_swrt_region_leaves, base, uint2(skip, leafStart));
+              storeBuffer2(world_sdf_swrt_region_leaves, base + 8, uint2(totalLeaves, leafCount));
+              totalLeaves += leafCount;
+              ++instCnt;
+            }
+          }
+          dataOffset += TLAS_NODE_ELEM_SIZE;
+        }
+      }
+      storeBuffer2(world_sdf_swrt_region_leaves, 0, uint2(instCnt, totalLeaves));
+      storeBuffer2(world_sdf_swrt_region_leaves, 8, uint2(boxCnt, 0));
+      storeBuffer3(world_sdf_swrt_dispatch_args, SWRT_SDF_ARGS_BOX_DISPATCH, uint3(boxCnt, 1, 1));
+      // draw args: 12 verts per (leaf x 3 axis) instance; start vertex/instance stay 0
+      storeBuffer2(world_sdf_swrt_dispatch_args, SWRT_SDF_ARGS_LEAF_DRAW, uint2(12, totalLeaves*3));
+      storeBuffer2(world_sdf_swrt_dispatch_args, SWRT_SDF_ARGS_LEAF_DRAW + 8, uint2(0, 0));
+    }
+  }
+  compile("target_cs", "world_sdf_swrt_region_leaves_cs");
+}
+
+// Box instances of the region: one group per box, threads stride its AABB voxels with the
+// analytic signed distance (bounded, balanced - no reason to flatten these)
+shader world_sdf_swrt_box_raster_cs
+{
+  supports none;
+  supports global_frame;
+
+  (cs) {
+    world_sdf_clipmap_rasterize@uav : register(2) hlsl {
+      RWByteAddressBuffer world_sdf_clipmap_rasterize@uav;
+    }
+    world_sdf_swrt_region_leaves@buf = world_sdf_swrt_region_leaves hlsl {
+      ByteAddressBuffer world_sdf_swrt_region_leaves@buf;
+    }
+    world_sdf_swrt_region_caps@i4 = world_sdf_swrt_region_caps;
+  }
+  hlsl(cs) {
+    #define BVH_TLAS_DECODE_REFLECTION 1
+  }
+  INIT_SW_BVH_RAYTRACING(cs)
+  USE_SW_BVH_RAYTRACING(cs)
+  WORLD_SDF_RES_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  WORLD_SDF_SWRT_TILE_COMMON(cs)
+  if (world_sdf_swrt_radiance == on)
+  {
+    hlsl(cs) {
+      #define RASTERIZE_PRIMS 1
+      #include <world_sdf_interpolant.hlsl>
+    }
+    PROJECT_WORLD_SDF_RASTERIZE(cs)
+  }
+
+  hlsl(cs) {
+    #include <world_sdf_dist.hlsl>
+    #include <world_sdf.hlsli>
+
+    void swrt_sdf_write_voxel(int3 wc, float voxel_size, float signed_dist, float3 world_nrm, float3 world_surf)
+    {
+      uint3 targetCoord = world_sdf_raster_target_coord_from_world(wc);
+      world_sdf_clipmap_rasterize.InterlockedMin(4*world_sdf_raster_index(targetCoord),
+        encode_world_sdf(signed_dist/(MAX_WORLD_SDF_VOXELS_BAND*voxel_size)));
+##if world_sdf_swrt_radiance == on
+      BRANCH
+      if (abs(signed_dist) < 0.87*voxel_size && dot(world_nrm, world_nrm) > 0)
+        project_world_sdf_rasterize_normal(world_surf, normalize(world_nrm), false);
+##endif
+    }
+
+    [numthreads(64, 1, 1)]
+    void world_sdf_swrt_box_raster_cs(uint3 gId : SV_GroupID, uint threadIndex : SV_GroupIndex)
+    {
+      float voxelSize = world_sdf_raster_voxel_size();
+      float band = SWRT_SDF_WRITE_VOXELS*voxelSize;
+      uint leafSkip = loadBuffer(world_sdf_swrt_region_leaves, (uint(world_sdf_swrt_region_caps.y) + gId.x)*4);
+      DistDecodedLeaf leaf = decode_dist_tlas_leaf(bvh_top_structures, leafSkip);
+      float3 he = leaf.invScale; // halfExtent (see decode_dist_tlas_leaf)
+      float3 worldExt = float3(dot(abs(leaf.invTm0), he), dot(abs(leaf.invTm1), he), dot(abs(leaf.invTm2), he));
+      int3 lo = max(int3(ceil((leaf.origin - worldExt - band).xzy/voxelSize - 0.5)), world_sdf_raster_begin());
+      int3 hi = min(int3(floor((leaf.origin + worldExt + band).xzy/voxelSize - 0.5)),
+        world_sdf_raster_begin() + int3(world_sdf_raster_width()) - 1);
+      if (any(lo > hi))
+        return;
+      int3 sz = hi - lo + 1;
+      uint cnt = uint(sz.x)*uint(sz.y)*uint(sz.z);
+      LOOP
+      for (uint i = threadIndex; i < cnt; i += 64)
+      {
+        int3 wc = lo + int3(i % uint(sz.x), (i/uint(sz.x)) % uint(sz.y), i/uint(sz.x*sz.y));
+        float3 p = (wc.xzy + 0.5)*voxelSize;
+        float3 localPos = transform(float3x3(leaf.invTm0, leaf.invTm1, leaf.invTm2), p - leaf.origin);
+        float d = distancePointBoxSigned(-he, he, localPos);
+        if (abs(d) >= band)
+          continue;
+        float3 nLocal;
+        float3 surfLocal = clamp(localPos, -he, he);
+        if (d > 0)
+          nLocal = localPos - surfLocal;
+        else
+        {
+          float3 pen = he - abs(localPos);
+          nLocal = pen.x < pen.y && pen.x < pen.z ? float3(sign(localPos.x), 0, 0)
+                                                  : (pen.y < pen.z ? float3(0, sign(localPos.y), 0) : float3(0, 0, sign(localPos.z)));
+          surfLocal += nLocal*dot(pen, abs(nLocal));
+        }
+        float3 worldN = float3(dot(nLocal, leaf.invTm0), dot(nLocal, leaf.invTm1), dot(nLocal, leaf.invTm2));
+        float3 worldS = leaf.origin + float3(dot(surfLocal, leaf.invTm0), dot(surfLocal, leaf.invTm1), dot(surfLocal, leaf.invTm2));
+        swrt_sdf_write_voxel(wc, voxelSize, d, worldN, worldS);
+      }
+    }
+  }
+  compile("target_cs", "world_sdf_swrt_box_raster_cs");
+}
+
+// Fine-clip SDF (+radiance side channel) source: BLAS leaves through the incumbent SDF
+// raster pipeline - an indirect draw of 12 verts per (leaf x 3 axis) instance. The VS
+// decodes the quad leaf and instance transform (absent sub-tris emit NaN and clip away);
+// the PS is the incumbent prims path: exact tri distance via interpolated va/vb/vc + the
+// project radiance hook. Cost shape matches the vb/ib rasterizer; input is BLAS-only.
+shader world_sdf_swrt_leaf_raster
+{
+  supports none;
+  supports global_frame;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  hlsl {
+    #define RASTERIZE_PRIMS 1
+    struct VsOutput
+    {
+      centroid VS_OUT_POSITION(pos)
+      noperspective centroid float3 worldPos    : TEXCOORD0;
+      nointerpolation int axis:TEXCOORD1;
+      nointerpolation float3 va : TEXCOORD2;
+      nointerpolation float3 vb : TEXCOORD3;
+      nointerpolation float3 vc : TEXCOORD4;
+    };
+  }
+  INIT_RASTERIZE_SDF()
+  if (world_sdf_swrt_radiance == on)
+  {
+    PROJECT_WORLD_SDF_RASTERIZE(ps)
+  }
+
+  hlsl(ps) {
+    void swrt_leaf_raster_ps(VsOutput input)
+    {
+      WorldSDFInterpolant sdfI = (WorldSDFInterpolant)0;
+      sdfI.worldPos = input.worldPos;
+      sdfI.axis = input.axis;
+      sdfI.isTwoSided = false;
+      sdfI.va = input.va;
+      sdfI.vb = input.vb;
+      sdfI.vc = input.vc;
+      write_world_sdf(sdfI);
+##if world_sdf_swrt_radiance == on
+      project_world_sdf_rasterize(sdfI);
+##endif
+    }
+  }
+
+  (vs) {
+    world_sdf_swrt_region_leaves@buf = world_sdf_swrt_region_leaves hlsl {
+      ByteAddressBuffer world_sdf_swrt_region_leaves@buf;
+    }
+    bvh_blas_leaf_table@buf = bvh_blas_leaf_table hlsl {
+      ByteAddressBuffer bvh_blas_leaf_table@buf;
+    }
+  }
+  hlsl(vs) {
+    #define BVH_TLAS_DECODE_REFLECTION 1
+  }
+  INIT_SW_BVH_RAYTRACING(vs)
+  USE_SW_BVH_RAYTRACING(vs)
+  TO_VOXELIZE_SPACE(vs)
+  USE_VOXELIZE_SPACE(vs)
+  hlsl(vs) {
+    VsOutput swrt_leaf_raster_vs(uint vid : SV_VertexID, uint id : SV_InstanceID)
+    {
+      VsOutput output;
+      uint angle = id % 3;
+      uint leafFlat = id / 3;
+      uint subTri = vid / 3, corner = vid - subTri*3;
+      // region record layout: see world_sdf_swrt_region_leaves_cs (header 4 dwords, then
+      // {tlasLeafSkip, leafTableStart, leafBase, leafCount} per mesh instance)
+      // greatest record with leafBase <= leafFlat; half-open [lo, hi) form: no unsigned
+      // wrap even if instCnt were 0 (the draw has 0 instances then, but keep the pattern safe)
+      uint instCnt = loadBuffer(world_sdf_swrt_region_leaves, 0);
+      uint lo = 0, hi = instCnt;
+      LOOP
+      while (lo + 1 < hi)
+      {
+        uint mid = (lo + hi) >> 1;
+        if (loadBuffer(world_sdf_swrt_region_leaves, (4 + mid*4 + 2)*4) <= leafFlat)
+          lo = mid;
+        else
+          hi = mid;
+      }
+      uint base = (4 + lo*4)*4;
+      uint2 skipStart = loadBuffer2(world_sdf_swrt_region_leaves, base);
+      uint leafBase = loadBuffer(world_sdf_swrt_region_leaves, base + 8);
+      DistDecodedLeaf leaf = decode_dist_tlas_leaf(bvh_top_structures, skipStart.x);
+      uint leafOfs = loadBuffer(bvh_blas_leaf_table, (skipStart.y + (leafFlat - leafBase))*4);
+      uint qskip = loadBuffer(bvh_bottom_structures, leafOfs - 4);
+      QuadLeafVerts q = decodeQuadLeafVerts(bvh_bottom_structures, leafOfs, qskip, true);
+      bool valid = subTri == 0 || (subTri == 1 && !q.isSingle) || (subTri == 2 && q.hasB) ||
+                   (subTri == 3 && q.hasB && !q.isSingleB);
+      float3 a, b, c;
+      getLeafTri(q, subTri, a, b, c);
+      a *= leaf.invScale; b *= leaf.invScale; c *= leaf.invScale;
+      #define TO_WORLD(v) (leaf.origin + float3(dot(v, leaf.invTm0), dot(v, leaf.invTm1), dot(v, leaf.invTm2)))
+      float3 va = TO_WORLD(a), vb = TO_WORLD(b), vc = TO_WORLD(c);
+      #undef TO_WORLD
+      float3 worldPos = corner == 0 ? va : corner == 1 ? vb : vc;
+      output.pos = valid ? worldPosToVoxelSpace(worldPos, angle) : NaN;
+      // the write_world_sdf sign convention expects getTriangle()'s vb/vc-swapped winding
+      // (see the late-interpolation variant of world_sdf_collision_rasterize, which swaps
+      // vertices 1 and 2); BLAS decode gives raw winding, so swap here
+      output.va = va;
+      output.vb = vc;
+      output.vc = vb;
+      output.worldPos = worldPos;
+      output.axis = angle;
+      return output;
+    }
+  }
+  compile("target_ps", "swrt_leaf_raster_ps");
+  compile("target_vs", "swrt_leaf_raster_vs");
+}
+
+// World SDF surface source from the daSWRT TLAS/BLAS: exact signed distance per voxel via
+// closest-point BVH query, instead of triangle rasterization of lruCollision geometry.
+// Writes the same encoded scratch as the collision voxelizers, so it composes with other
+// writers (e.g. level geometry rasterization) through the InterlockedMin contract.
+shader world_sdf_swrt_update_cs
+{
+  supports none;
+  supports global_frame;
+
+  (cs) {
+    world_sdf_clipmap_rasterize@uav : register(2) hlsl {
+      RWByteAddressBuffer world_sdf_clipmap_rasterize@uav;
+    }
+    world_sdf_swrt_tile_ranges@buf = world_sdf_swrt_tile_ranges hlsl {
+      ByteAddressBuffer world_sdf_swrt_tile_ranges@buf;
+    }
+    world_sdf_swrt_tiles@buf = world_sdf_swrt_tiles hlsl {
+      ByteAddressBuffer world_sdf_swrt_tiles@buf;
+    }
+  }
+  hlsl(cs) {
+    // testGI feeds raw ri collision transforms, which include mirrored (det<0) instances;
+    // without this they decode with negative scale.x and get distance-culled entirely
+    #define BVH_TLAS_DECODE_REFLECTION 1
+  }
+  INIT_SW_BVH_RAYTRACING(cs)
+  USE_SW_BVH_RAYTRACING(cs)
+  WORLD_SDF_RES_MATH(cs)
+  WSDF_COORD_UPDATE(cs)
+  WORLD_SDF_SWRT_TILE_COMMON(cs)
+  if (world_sdf_swrt_radiance == on)
+  {
+    hlsl(cs) {
+      #define RASTERIZE_PRIMS 1
+      #include <world_sdf_interpolant.hlsl>
+    }
+    PROJECT_WORLD_SDF_RASTERIZE(cs)
+  }
+
+  hlsl(cs) {
+    #include <world_sdf_dist.hlsl>
+    #include <world_sdf.hlsli>
+
+    #define MAX_TILE_LEAVES 64
+    groupshared uint tileLeafOfs[MAX_TILE_LEAVES];
+    groupshared DistDecodedLeaf tileLeaves[MAX_TILE_LEAVES];
+    groupshared uint tileLeafCount;
+
+    [numthreads(TILE_RES, TILE_RES, TILE_RES)]
+    void world_sdf_swrt_update_cs(uint3 gtId : SV_GroupThreadID, uint3 gId : SV_GroupID, uint threadIndex : SV_GroupIndex)
+    {
+      float voxelSize = world_sdf_raster_voxel_size();
+      float queryDist = SWRT_SDF_WRITE_VOXELS*voxelSize;
+      uint3 tiles = swrt_sdf_tiles_dim();
+      // indirect dispatch: one group per compacted non-empty tile (world_sdf_swrt_tiles),
+      // so empty space costs no group launches at all
+      uint tileLinear = loadBuffer(world_sdf_swrt_tiles, gId.x*4);
+      uint3 tileId;
+      tileId.x = tileLinear % tiles.x;
+      tileId.y = (tileLinear / tiles.x) % tiles.y;
+      tileId.z = tileLinear / (tiles.x*tiles.y);
+      // pre-pass encoding: empty / single inlined leaf / [first, last] range (see
+      // world_sdf_swrt_tile_range_cs); thread 0 only harvests the multi-instance case
+      uint2 range = loadBuffer2(world_sdf_swrt_tile_ranges, tileLinear*8);
+      // no early return before the barriers: empty tiles fall through with tileLeafCount == 0
+      if (threadIndex == 0)
+      {
+        uint cnt = 0;
+        if (range.x == ~0u)
+          ; // empty tile
+        else if (range.x & 0x80000000u)
+          tileLeafOfs[cnt++] = range.x; // single instance, leaf skip word inlined by the pre-pass
+        else
+        {
+          float3 tileBmin, tileBmax;
+          swrt_sdf_tile_box(tileId, voxelSize, queryDist, tileBmin, tileBmax);
+          uint walkOfs = range.x;
+          LOOP
+          for (;;)
+          {
+            bool leafNode;
+            float3 bmin, bmax;
+            uint skip;
+            decode_tlas_node(bvh_top_structures, walkOfs, bmin, bmax, skip, leafNode);
+            if (!skip || walkOfs > range.y)
+              break;
+            bool overlaps = all(bmin <= tileBmax) && all(bmax >= tileBmin);
+            if (!leafNode)
+              walkOfs += overlaps ? TLAS_NODE_ELEM_SIZE : skip;
+            else
+            {
+              if (overlaps)
+              {
+                if (cnt < MAX_TILE_LEAVES)
+                  tileLeafOfs[cnt] = skip;
+                ++cnt; // counting past the cap signals the ranged-walk fallback
+              }
+              walkOfs += TLAS_NODE_ELEM_SIZE;
+            }
+          }
+        }
+        tileLeafCount = cnt;
+      }
+      GroupMemoryBarrierWithGroupSync();
+      uint leafCount = tileLeafCount;
+      // leaves decoded once per tile (in parallel), not per voxel x instance: origin/invScale/
+      // invTm/blasStartSize are shared by all 64 queries of the group. blasStartSize is also
+      // narrowed to the BLAS sub-range overlapping the tile, so voxels walk a subtree, not the
+      // whole model tree (and instances whose relevant geometry misses the tile are skipped).
+      if (leafCount <= MAX_TILE_LEAVES && threadIndex < leafCount) // overflow tiles never read the cache
+      {
+        DistDecodedLeaf l = decode_dist_tlas_leaf(bvh_top_structures, tileLeafOfs[threadIndex]);
+        float3 tileBmin, tileBmax;
+        swrt_sdf_tile_box(tileId, voxelSize, queryDist, tileBmin, tileBmax);
+        narrowDistLeafToBox(l, bvh_bottom_structures, tileBmin, tileBmax);
+        tileLeaves[threadIndex] = l;
+      }
+      GroupMemoryBarrierWithGroupSync();
+      BRANCH
+      if (!leafCount)
+        return;
+      uint3 voxCoord = tileId*TILE_RES + gtId;
+      if (any(voxCoord >= world_sdf_raster_width()))
+        return;
+      int3 world_coord = world_sdf_world_coord_from_raster_target_coord(voxCoord);
+      float3 worldPos = (world_coord.xzy + 0.5)*voxelSize;
+      float dist = queryDist;
+      bool found = false;
+##if world_sdf_swrt_radiance == on
+      float3 winnerNrm = 0, winnerSurf = 0;
+      uint winnerIdx = ~0u;
+##endif
+      BRANCH
+      if (leafCount <= MAX_TILE_LEAVES)
+      {
+        float maxDist2 = queryDist*queryDist;
+        LOOP
+        for (uint i = 0; i < leafCount; ++i)
+        {
+##if world_sdf_swrt_radiance == on
+          bool improved = distTLASleafDecodedN(tileLeaves[i], bvh_bottom_structures, worldPos, maxDist2, winnerNrm, winnerSurf);
+          if (improved)
+            winnerIdx = i;
+          found = found | improved;
+##else
+          found = found | distTLASleafDecoded(tileLeaves[i], bvh_bottom_structures, worldPos, maxDist2);
+##endif
+        }
+        dist = sqrt(abs(maxDist2));
+        dist = maxDist2 < 0 ? -dist/sqrt(NEG_DIST_SCALE) : dist/sqrt(POS_DIST_SCALE);
+      }
+      else
+      {
+##if world_sdf_swrt_radiance == on
+        found = distTLASN(bvh_top_structures, bvh_bottom_structures, worldPos, queryDist, dist, range.x, range.y, winnerNrm, winnerSurf);
+##else
+        found = distTLAS(bvh_top_structures, bvh_bottom_structures, worldPos, queryDist, dist, range.x, range.y);
+##endif
+      }
+      BRANCH
+      if (!found)
+        return;
+      float normalizedDist = dist/(MAX_WORLD_SDF_VOXELS_BAND*voxelSize);
+      world_sdf_clipmap_rasterize.InterlockedMin(4*world_sdf_raster_index(voxCoord), encode_world_sdf(normalizedDist));
+##if world_sdf_swrt_radiance == on
+      // Feed the voxel-lit radiance scene like rasterized samples: pass CLOSEST POINTS on the
+      // surfaces, not the voxel center - lighting/albedo get evaluated ON the surface (a
+      // center inside geometry samples shadowed sun visibility) and writes land in the surface
+      // voxel. One write PER INSTANCE with surface inside the band (fresh probe per instance),
+      // like rasterization wrote a sample from every surface crossing the voxel - corners and
+      // instance contacts get multiple normals to fill the anisotropy axis slices. 0.87 = half
+      // voxel diagonal: every voxel actually containing surface has a contributor.
+      float radDist = 0.87*voxelSize;
+      BRANCH
+      if (abs(dist) < radDist)
+      {
+        // the global winner is always in band here and its fresh probe would return the same
+        // point - write it from the tracked values (also covers single-instance and dense-
+        // fallback tiles) and skip its slot in the per-instance loop below
+        if (dot(winnerNrm, winnerNrm) > 0)
+          project_world_sdf_rasterize_normal(winnerSurf, normalize(winnerNrm), false);
+        BRANCH
+        if (leafCount > 1 && leafCount <= MAX_TILE_LEAVES)
+        {
+          LOOP
+          for (uint i = 0; i < leafCount; ++i)
+          {
+            if (i == winnerIdx)
+              continue;
+            float cand2 = radDist*radDist;
+            float3 n = 0, s = 0;
+            if (distTLASleafDecodedN(tileLeaves[i], bvh_bottom_structures, worldPos, cand2, n, s) && dot(n, n) > 0)
+              project_world_sdf_rasterize_normal(s, normalize(n), false);
+          }
+        }
+      }
+##endif
+    }
+  }
+  compile("target_cs", "world_sdf_swrt_update_cs");
+}

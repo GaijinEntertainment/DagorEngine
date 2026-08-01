@@ -14,6 +14,10 @@ namespace danet
 {
 class BitStream;
 }
+namespace ecs
+{
+class EntityManager;
+}
 
 namespace net
 {
@@ -41,7 +45,7 @@ INetDriver *create_replay_net_driver(const char *read_fname, uint16_t version, T
 
 // Black-hole connection that will write all outgoing packets to replay file.
 // 'write_fname' is in/out, should ends with 'XXXXXX' in which actual temp path will be written
-Connection *create_replay_connection(ConnectionId id, char *write_fname, uint16_t version,
+Connection *create_replay_connection(ecs::EntityManager &mgr, ConnectionId id, char *write_fname, uint16_t version,
   get_replay_footer_data_cb_t get_footer_cb = nullptr, scope_query_cb_t &&scope_query = scope_query_cb_t(),
   dump_replay_key_frame_cb_t dump_replay_key_frame_cb = nullptr);
 

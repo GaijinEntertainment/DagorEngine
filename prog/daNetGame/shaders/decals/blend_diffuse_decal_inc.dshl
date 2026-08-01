@@ -3,6 +3,7 @@ include "decals/decal_painted_inc.dshl"
 include "decals/deferred_decal_inc.dshl"
 include "gbuffer.dshl"
 include "gbuffer_with_mixing.dshl"
+include "voxel_baking.dshl"
 
 
 macro BLEND_DIFFUSE_DECAL_TEXTURES(deferred)
@@ -29,15 +30,22 @@ macro BLEND_DIFFUSE_DECAL_TEXTURES(deferred)
 endmacro
 
 macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
-  blend_src = sa; blend_dst = isa;
-  blend_asrc = 0; blend_adst = 1;
   WRITE_GBUFFER_WITH_MIXING(true, true, false)
+  if (!is_dynamic && rendinst_render_pass == rendinst_render_pass_impostor_voxel)
+  {
+    USE_VOXEL_BAKING_DECAL()
+    no_ablend;
+  }
+  else
+  {
+    blend_src = sa; blend_dst = isa;
+    blend_asrc = 0; blend_adst = 1;
+    DYNAMIC_FILTER_FOR_MIXING(is_dynamic, false)
+  }
   if (deferred)
   {
     DEFERRED_DECAL_DEPTH()
   }
-
-  DYNAMIC_FILTER_FOR_MIXING(is_dynamic, false)
 
   static float4 gamma_mask = (1,1,0,0); //x for albedo, y for normal
   (ps) { gamma_mask@f2 = gamma_mask; }
@@ -48,7 +56,11 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
 
   hlsl(ps) {
 #if HAS_NORMAL
+  #if RENDINST_IMPOSTOR_VOXEL
+    VOXEL_DECAL_OUTPUT simple_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+  #else
     GBUFFER_OUTPUT simple_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+  #endif
     {
       #if SET_UP_MULTIDRAW
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
@@ -61,7 +73,12 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
       half3 albedo = 0;
       half alpha;
       half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
-      diffuseColor.rgb = apply_paint_to_decal(input, diffuseColor);
+      #if RENDINST_IMPOSTOR_VOXEL
+        half3 coloringMul;
+        get_decal_coloring(diffuseColor, coloringMul);
+      #else
+        diffuseColor.rgb = apply_paint_to_decal(input, diffuseColor);
+      #endif
       ##if deferred && atest == atestOn
         alpha = smoothstep(0.5-0.05, 0.5+0.05, diffuseColor.a);
       ##else
@@ -77,16 +94,18 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
         half3 vertexNormal = normalize(input.normal);
         half3 worldNormal = perturb_normal_precise(normalMap, vertexNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
       ##endif
-      BRANCH
-      if (character_micro_detail_layer >= 0)
-      {
-        half reflectance = 0.5;
-        apply_character_micro_detail(
-          sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
-          albedo.rgb, worldNormal, reflectance, smoothness);
-      }
-      #if FILTER_DYNAMIC
-        filterDynamic(GET_SCREEN_POS(input.pos).xy);
+      #if !RENDINST_IMPOSTOR_VOXEL
+        BRANCH
+        if (character_micro_detail_layer >= 0)
+        {
+          half reflectance = 0.5;
+          apply_character_micro_detail(
+            sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+            albedo.rgb, worldNormal, reflectance, smoothness);
+        }
+        #if FILTER_DYNAMIC
+          filterDynamic(GET_SCREEN_POS(input.pos).xy);
+        #endif
       #endif
 
       UnpackedGbuffer result;
@@ -100,23 +119,64 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
       ##if deferred
         alpha_mask *= read_depth_mask(GET_SCREEN_POS(input.pos).xy, input.diffuseTexcoord.z);
       ##endif
-      return encode_gbuffer_alpha3(result, alpha_mask, input.pointToEye, GET_SCREEN_POS(input.pos));
+      #if RENDINST_IMPOSTOR_VOXEL
+        VOXEL_DECAL_OUTPUT ret = baker_read_last(GET_SCREEN_POS(input.pos).xy);
+        baker_set_albedo(ret, lerp(baker_get_albedo(ret), albedo, alpha_mask.x));
+        baker_set_normal(ret, lerp(baker_get_normal(ret), worldNormal, alpha_mask.y));
+        VoxelMaterial mat = baker_get_material(ret);
+        mat.smoothness = lerp(mat.smoothness, smoothness, alpha_mask.z);
+        mat.metalness = lerp(mat.metalness, metalness, alpha_mask.z);
+        baker_set_material(ret, mat);
+        #if COLOR_NEEDED
+          FLATTEN if (alpha_mask.x >= 0.5 || luminance(baker_get_coloring(ret)) == 0)
+            baker_set_palette(ret, input.colorMul.x, input.colorMul.y);
+        #endif
+        baker_set_coloring(ret, lerp(baker_get_coloring(ret), coloringMul, alpha_mask.x));
+        return ret;
+      #else
+        return encode_gbuffer_alpha3(result, alpha_mask, input.pointToEye, GET_SCREEN_POS(input.pos));
+      #endif
     }
 #else
+  ##if deferred
+  #if RENDINST_IMPOSTOR_VOXEL
+    VOXEL_DECAL_OUTPUT simple_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+  #else
     float4 simple_decal_ps(VsOutput input) : SV_Target0
+  #endif
+  ##else
+    float4 simple_decal_ps(VsOutput input) : SV_Target0
+  ##endif
     {
       #if SET_UP_MULTIDRAW
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
       #endif
       ##if deferred
         half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
-        diffuseColor.rgb = apply_paint_to_decal(input, diffuseColor);
+        #if RENDINST_IMPOSTOR_VOXEL
+          half3 coloringMul;
+          get_decal_coloring(diffuseColor, coloringMul);
+        #else
+          diffuseColor.rgb = apply_paint_to_decal(input, diffuseColor);
+        #endif
         ##if atest == atestOn
           half alpha = smoothstep(0.5-0.05, 0.5+0.05, diffuseColor.a);
         ##else
           half alpha = diffuseColor.a;
         ##endif
-        return float4(diffuseColor.rgb, alpha*read_depth_mask(GET_SCREEN_POS(input.pos).xy, input.diffuseTexcoord.z));
+        alpha *= read_depth_mask(GET_SCREEN_POS(input.pos).xy, input.diffuseTexcoord.z);
+        #if RENDINST_IMPOSTOR_VOXEL
+          VOXEL_DECAL_OUTPUT ret = baker_read_last(GET_SCREEN_POS(input.pos).xy);
+          baker_set_albedo(ret, lerp(baker_get_albedo(ret), diffuseColor.rgb, alpha));
+          #if COLOR_NEEDED
+            FLATTEN if (alpha >= 0.5 || luminance(baker_get_coloring(ret)) == 0)
+              baker_set_palette(ret, input.colorMul.x, input.colorMul.y);
+          #endif
+          baker_set_coloring(ret, lerp(baker_get_coloring(ret), coloringMul, alpha));
+          return ret;
+        #else
+          return float4(diffuseColor.rgb, alpha);
+        #endif
       ##else
         return MOBILE_PS_OUTPUT_WRAPPER(tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy));
       ##endif

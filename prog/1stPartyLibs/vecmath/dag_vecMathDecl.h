@@ -114,6 +114,19 @@ typedef const struct bsph3f& bsph3f_cref;
     operator vec4f() const { return m128f; }
   } vec4i_const;
 
+  //! 4D double vector. On AVX targets it is one 256-bit register; otherwise two 128-bit
+  //! registers (low pair .xy, high pair .zw). The layout differs between AVX and non-AVX
+  //! translation units, so vec4d must stay a local compute type, never a field in a
+  //! header-shared struct that crosses that boundary.
+  #if defined(__AVX__)
+    #include <immintrin.h>
+    typedef __m256d vec4d;
+    #define VECMATH_VEC4D_256 1
+  #else
+    struct vec4d { __m128d xy, zw; };
+    #define VECMATH_VEC4D_256 0
+  #endif
+
 #elif _TARGET_SIMD_NEON // PSP2, iOS
   #include <arm_neon.h>
   typedef float32x4_t vec4f;
@@ -121,6 +134,10 @@ typedef const struct bsph3f& bsph3f_cref;
   typedef int32x4_t   vec4i;
   typedef const vec4f vec4f_const;
   typedef const vec4i vec4i_const;
+
+  //! see the SSE branch above. NEON is aarch64-only here (ARMv7 has no float64x2_t).
+  struct vec4d { float64x2_t xy, zw; };
+  #define VECMATH_VEC4D_256 0
 
 #else
  !error! unsupported target
@@ -177,6 +194,7 @@ typedef vec4f plane3f;
 namespace eastl
 {
   template <typename Count> inline void uninitialized_value_construct_n(vec4f* , Count){}
+  template <typename Count> inline void uninitialized_value_construct_n(vec4d* , Count){}
 #if !(defined(_M_ARM64) && defined(_MSC_VER) && !defined(__clang__))
   template <typename Count> inline void uninitialized_value_construct_n(vec4i* , Count){}
 #endif

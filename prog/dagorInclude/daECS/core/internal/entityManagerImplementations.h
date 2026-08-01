@@ -426,10 +426,9 @@ DAECS_RELEASE_INLINE bool EntityManager::archetypeTrackChangedCheck(uint32_t arc
   const component_index_t old_cidx = dataComponents.getTrackedPair(cidx);
   if (old_cidx == INVALID_COMPONENT_INDEX)
     return false;
-  // this is even existence check, we don't care about actual offset.
-  // todo: can be optimized with bitvector (we have up to ~2048 total components, so less than 256 bytes)
+  // membership only, the offset is never needed here
   // todo: we can check if archetype has tracked at all, even faster
-  if (archetypes.getArchetypeComponentIdUnsafe(archetypeId, old_cidx) == INVALID_ARCHETYPE_COMPONENT_ID)
+  if (!archetypes.hasComponentUnsafe(archetypeId, old_cidx))
     return false;
   return true;
 }
@@ -819,6 +818,9 @@ public:
     G_ASSERT_RETURN(n && *n, );
     requestedResources.emplace(n, type_id);
   }
+  // The cb exists only inside entity creation on the manager's owner thread, so
+  // mutating manager calls (template instantiation, query updates) are safe here.
+  EntityManager &manager() const { return const_cast<EntityManager &>(mgr); }
   EA_NON_COPYABLE(ResourceRequestCb)
 protected:
   ResourceRequestCb(const EntityManager &m) : mgr(m) {}

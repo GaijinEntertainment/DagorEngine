@@ -68,6 +68,7 @@ __forceinline float4 rb_get_f4(int32_t gid) { return internalCbTable.rbGetF4(gid
 __forceinline float rb_get_real(int32_t gid) { return internalCbTable.rbGetReal(gid); }
 __forceinline int32_t rb_get_int(int32_t gid) { return internalCbTable.rbGetInt(gid); }
 __forceinline void rb_get_mat44(int32_t gid, float4x4 *out) { internalCbTable.rbGetMat44(gid, out); }
+__forceinline void rb_get_mat43(int32_t gid, float4x3 *out) { internalCbTable.rbGetMat43(gid, out); }
 __forceinline void *rb_get_tex(int32_t gid) { return internalCbTable.rbGetTex(gid); }
 __forceinline void *rb_get_buf(int32_t gid) { return internalCbTable.rbGetBuf(gid); }
 __forceinline int4 rb_get_ivec(int32_t gid) { return internalCbTable.rbGetIvec(gid); }

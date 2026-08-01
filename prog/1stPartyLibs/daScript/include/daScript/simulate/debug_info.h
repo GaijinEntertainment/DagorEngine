@@ -244,6 +244,9 @@ namespace das
         void addExtraModule ( const string & modName, const string & modFile ) { extraModules.emplace_back(modName, modFile); }
         const vector<pair<string,string>> & getExtraModules () const { return extraModules; }
 
+        void addAutoRequiredModule ( const string & modName ) { autoRequiredModules.insert(modName); }
+        const das_set<string> & getAutoRequiredModules () const { return autoRequiredModules; }
+
         void lock() { locked = true; }
         void unlock() { locked = false; }
         bool isLocked() const { return locked; }
@@ -252,6 +255,7 @@ namespace das
     protected:
         das_hash_map<string, FileInfoPtr>    files;
         vector<pair<string,string>>          extraModules;
+        das_set<string>                      autoRequiredModules;
         bool    locked = false;
     };
     template <> struct isCloneable<FileAccess> : false_type {};

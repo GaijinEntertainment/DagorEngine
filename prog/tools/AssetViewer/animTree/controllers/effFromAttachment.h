@@ -10,8 +10,11 @@ class ContainerPropertyControl;
 }
 
 struct AnimParamData;
+struct AnimCtrlData;
 struct DependentParamData;
 class DataBlock;
+class AnimTreePlugin;
+class IListReorderHandler;
 
 void eff_from_attachment_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx);
 void eff_from_attachment_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
@@ -21,3 +24,5 @@ void eff_from_attachment_save_block_settings(PropPanel::ContainerPropertyControl
 void eff_from_attachment_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings,
   dag::Vector<DependentParamData> &params, dag::ConstSpan<AnimParamData> base_params);
 void eff_from_attachment_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
+IListReorderHandler *eff_from_attachment_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel);

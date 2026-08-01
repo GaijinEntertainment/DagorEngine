@@ -17,13 +17,14 @@ public:
   {
     if (initialized)
       return true;
+    auto quirrelModule = Module::require("quirrel");
+    if (!quirrelModule || !quirrelModule->initDependencies())
+      return false;
+
     initialized = true;
 
     lib.addModule(this);
     lib.addBuiltInModule();
-    auto quirrelModule = Module::require("quirrel");
-    if (!quirrelModule || !quirrelModule->initDependencies())
-      return false;
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, quirrelModule);

@@ -12,13 +12,13 @@ function getClassOfInstanceName(v){
   return v?.__name__ ?? v?.__name ?? v?.name ?? v?.getName()
 }
 
-function isNativeClassOrInstance(v){
+function isNativeClassOrInstance(v): bool {
   let tt = type(v)
   return (tt=="instance" || tt=="class") && "__getTable" in v && "__setTable" in v
 }
 
 local make_module_description
-make_module_description = function(module, frozen=null){
+make_module_description = function(module, frozen=null): table {
   let t = type(module)
   if (isNativeClassOrInstance(module))
     return {"type":t, frozenable=true, name=getClassOfInstanceName(module)}

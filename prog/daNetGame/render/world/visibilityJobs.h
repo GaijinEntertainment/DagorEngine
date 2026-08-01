@@ -160,27 +160,19 @@ struct LodsByDistanceJob final : public cpujobs::IJob
 struct GroundCullingJob final : public cpujobs::IJob
 {
   const VisibilityJobsContext *jobs = nullptr;
-  LandMeshCullingState lmeshCullingState;
+  // Fully captured at start() on the render thread (incl. the per-frame useExclBox bit);
+  // doJob() is a pure landmesh::frustum_cull over stable level data.
+  LandMeshCullDesc cullDesc;
   LandMeshCullingData *lmeshCullingData = nullptr;
   LandMeshManager *lmeshMgr = nullptr;
-  LandMeshRenderer *lmeshRenderer = nullptr;
-  Occlusion *occlusion = nullptr;
-  Frustum frustum;
-  TMatrix4 viewProj = TMatrix4::IDENT;
-  Point3 viewPos = {0, 0, 0};
-  float waterLevel = 0.0f;
-  int displacementSubDiv = 1;
-  float displacementRadius = 90;
 
   void start(const VisibilityJobsContext *jobs,
     LandMeshCullingData *culling_data,
     LandMeshManager *lmesh_mgr,
-    LandMeshRenderer *lmesh_renderer,
     Occlusion *occlusion,
     const Frustum &frustum_,
     const Point3 &viewPos_,
     const TMatrix4 &viewProj_,
-    const float water_level,
     const int displacement_sub_div,
     const float displacement_radius,
     threadpool::JobPriority prio);
@@ -191,23 +183,16 @@ struct GroundCullingJob final : public cpujobs::IJob
 struct GroundReflectionCullingJob final : public cpujobs::IJob
 {
   const VisibilityJobsContext *jobs = nullptr;
-  LandMeshCullingState lmeshCullingState;
+  LandMeshCullDesc cullDesc;
   LandMeshCullingData *lmeshCullingData = nullptr;
   LandMeshManager *lmeshMgr = nullptr;
-  LandMeshRenderer *lmeshRenderer = nullptr;
-  Frustum frustum;
-  TMatrix4 viewProj = TMatrix4::IDENT;
-  Point3 viewPos = {0, 0, 0};
-  float waterLevel = 0.0f;
 
   void start(const VisibilityJobsContext *jobs,
     LandMeshCullingData *culling_data,
     LandMeshManager *lmesh_mgr,
-    LandMeshRenderer *lmesh_renderer,
     const Frustum &frustum_,
     const Point3 &viewPos_,
     const TMatrix4 &viewProj_,
-    const float water_level,
     threadpool::JobPriority prio);
   const char *getJobName(bool &) const override { return "GroundReflectionCullingJob"; }
   virtual void doJob() override;

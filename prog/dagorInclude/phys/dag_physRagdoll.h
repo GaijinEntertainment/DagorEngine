@@ -8,7 +8,7 @@
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physUserData.h>
 #include <phys/dag_physTwistCtrl.h>
-#include <animChar/dag_animCharacter2.h>
+#include <animChar/dag_animCharPostCtrl.h>
 #include <generic/dag_smallTab.h>
 
 

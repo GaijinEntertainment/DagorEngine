@@ -65,7 +65,7 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 34
+#define SQUIRREL_VERSION_NUMBER_MINOR 37
 #define SQUIRREL_VERSION_NUMBER_PATCH 0
 
 #define SQ_STRINGIFY_HELPER(x) #x
@@ -233,7 +233,8 @@ typedef struct tagSQFunctionInfo {
 #define BIT(n) (1ULL << (n))
 
 enum CompilationOptions : SQUnsignedInteger {
-  CO_CLOSURE_HOISTING_OPT = BIT(1)
+  CO_CLOSURE_HOISTING_OPT = BIT(1),
+  CO_STATIC_ANALYSIS_SKIP_REQUIRE_RESOLUTION = BIT(2)
 };
 
 #undef BIT

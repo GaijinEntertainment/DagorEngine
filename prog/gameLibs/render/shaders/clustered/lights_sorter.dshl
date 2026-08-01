@@ -35,10 +35,11 @@ shader sort_omni_lights_cs, sort_spot_lights_cs
 
   if (shader == sort_omni_lights_cs)
   {
+    INIT_OMNI_LIGHTS_CB(cs)
     USE_OMNI_LIGHTS_BOUNDS(cs)
+    USE_CLUSTERED_LIGHTS(cs)
 
     (cs) {
-      lights_count@i1 = omniLightsCount;
       lights_buf@uav = omni_lights_structured_buf hlsl {
         #include <renderLights.hlsli>
         RWStructuredBuffer<RenderOmniLight> lights_buf@uav;
@@ -49,10 +50,11 @@ shader sort_omni_lights_cs, sort_spot_lights_cs
 
   if (shader == sort_spot_lights_cs)
   {
+    INIT_SPOT_LIGHTS_CB(cs)
     USE_SPOT_LIGHTS_BOUNDS(cs)
+    USE_CLUSTERED_LIGHTS(cs)
 
     (cs) {
-      lights_count@i1 = spotLightsCount;
       lights_buf@uav = spot_lights_structured_buf hlsl {
         #include <renderLights.hlsli>
         RWStructuredBuffer<RenderSpotLight> lights_buf@uav;
@@ -63,10 +65,10 @@ shader sort_omni_lights_cs, sort_spot_lights_cs
 
   hlsl(cs) {
     ##if shader == sort_omni_lights_cs
-      static const uint kMaxLightsCount = MAX_OMNI_LIGHTS;
+      static const uint kMaxLightsCount = MAX_CLUSTERED_OMNI_LIGHTS;
     ##endif
     ##if shader == sort_spot_lights_cs
-      static const uint kMaxLightsCount = MAX_SPOT_LIGHTS;
+      static const uint kMaxLightsCount = MAX_CLUSTERED_SPOT_LIGHTS;
     ##endif
 
     groupshared uint  gs_indices[kMaxLightsCount]; // 1 KB
@@ -77,7 +79,12 @@ shader sort_omni_lights_cs, sort_spot_lights_cs
     {
       uint tid = gtId.x;
       uint tid2 = tid + kMaxLightsCount / 2u;
-      uint lightCount = (uint)lights_count;
+      ##if shader == sort_omni_lights_cs
+        uint lightCount = omniLightsCount;
+      ##endif
+      ##if shader == sort_spot_lights_cs
+        uint lightCount = spotLightsCount;
+      ##endif
       float3 viewPos = lights_sort_view_pos;
 
       gs_indices[tid]  = tid;

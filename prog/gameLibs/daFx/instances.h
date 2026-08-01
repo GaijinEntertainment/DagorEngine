@@ -8,6 +8,7 @@
 #include "emitters.h"
 #include <EASTL/vector.h>
 #include <EASTL/bonus/tuple_vector.h>
+#include <memory/dag_framemem.h>
 
 namespace dafx
 {
@@ -326,5 +327,6 @@ void set_instance_visibility_from_queue(Context &ctx);
 void set_instance_emission_rate_from_queue(Context &ctx);
 void set_instance_value_from_queue(Context &ctx);
 void adjust_buffer_size_by_quality(Context &ctx, const SystemTemplate &sys, int &cpu_size, int &gpu_size, bool force_dummy);
+void gather_subinstances(Context &ctx, int sid, uint32_t req_flags, uint32_t excl_flags, eastl::vector<int, framemem_allocator> &dst);
 } // namespace dafx
 DAG_DECLARE_RELOCATABLE(dafx::InstanceStream);

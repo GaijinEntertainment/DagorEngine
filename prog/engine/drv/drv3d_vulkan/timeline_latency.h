@@ -26,6 +26,8 @@ struct TimelineLatency
 
   // replay latency and helpers
 
+  // shows latency between GPU work inside backend
+  static constexpr size_t GPUToGPUCompletion = GPU_TIMELINE_HISTORY_SIZE;
   // shows latency between replay work and its GPU compeletion
   // if resource used on replay x, it may be reused after frame x + replayToGPUCompletion
   static constexpr size_t replayToGPUCompletion = GPU_TIMELINE_HISTORY_SIZE + MAX_PENDING_REPLAY_ITEMS;
@@ -38,6 +40,10 @@ struct TimelineLatency
   }
   static size_t getLastCompletedReplay(size_t replay_id) { return getLastCompleted(replay_id, replayToGPUCompletion); }
   static size_t getNextRingedReplay(size_t replay_id) { return nextRingedIndex(replay_id, replayToGPUCompletion); }
+  static size_t isGPUWorkCompleted(size_t gpu_work_id, size_t current_gpu_work_id)
+  {
+    return isCompleted(gpu_work_id + GPUToGPUCompletion, current_gpu_work_id);
+  }
 };
 
 } // namespace drv3d_vulkan

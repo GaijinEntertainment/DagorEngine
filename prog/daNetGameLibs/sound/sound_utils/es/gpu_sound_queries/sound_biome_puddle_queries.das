@@ -7,6 +7,7 @@ require math.base
 require PhysMat
 require Dacoll
 require gameLibs.pufd_events.pufd_events
+require sound_utils.modules.sound_trace_common
 require gpuReadbackQuery
 require landMesh
 require puddleQueryManager
@@ -15,6 +16,7 @@ require DagorSystem
 
 def invalid_query_id()
   return -1
+
 
 def is_valid_query_id(query_id : int)
   return query_id != invalid_query_id()
@@ -35,14 +37,14 @@ def sound_biome_puddle_queries_update(info : ParallelUpdateFrameDelayed;
                                       transform : float3x4;
 
                                       sound_biome_puddle_queries_vars__speedSq : float;
-                                      sound_biome_puddle_queries_vars__isOnGround : bool;
+                                      human_net_phys__isInAir : bool = false;
 
-                                      sound_biome_puddle_queries__lmeshDiff : float;
+                                      sound_biome_puddle_queries__maxDistToFloor : float;
                                       sound_biome_puddle_queries__farawayThreshold : float;
                                       sound_biome_puddle_queries__zeroSpeedThreshold : float;
-                                      sound_biome_puddle_queries__heroSpeedToQueryInterval : float4;
+                                      sound_biome_puddle_queries__watchedSpeedToQueryInterval : float4;
                                       sound_biome_puddle_queries__enemySpeedToQueryInterval : float4;
-                                      sound_biome_puddle_queries__heroEnemyInAirInterval : float2;
+                                      sound_biome_puddle_queries__watchedOtherInAirInterval : float2;
                                       sound_biome_puddle_queries__puddleQueryToDepth : float4;
 
                                       var sound_biome_puddle_queries__lastQueryTime : float&;
@@ -50,6 +52,8 @@ def sound_biome_puddle_queries_update(info : ParallelUpdateFrameDelayed;
                                       var sound_biome_puddle_queries__puddleQueryId : int&;
                                       var sound_biome_puddle_queries__biomeId : int&;
                                       var sound_biome_puddle_queries__puddleDepth : float&)
+
+  assume isInAir = human_net_phys__isInAir
 
   if is_valid_query_id(sound_biome_puddle_queries__biomeQueryId)
 
@@ -89,23 +93,37 @@ def sound_biome_puddle_queries_update(info : ParallelUpdateFrameDelayed;
 
   else
     var interval = -1.
-    if sound_biome_puddle_queries_vars__isOnGround
+    if !isInAir
       if sound_biome_puddle_queries_vars__speedSq >= square(sound_biome_puddle_queries__zeroSpeedThreshold)
         if is_watched_sound
-          interval = cvt(sqrt(sound_biome_puddle_queries_vars__speedSq), sound_biome_puddle_queries__heroSpeedToQueryInterval.x, sound_biome_puddle_queries__heroSpeedToQueryInterval.y, sound_biome_puddle_queries__heroSpeedToQueryInterval.z, sound_biome_puddle_queries__heroSpeedToQueryInterval.w)
+          interval = cvt(sqrt(sound_biome_puddle_queries_vars__speedSq), sound_biome_puddle_queries__watchedSpeedToQueryInterval.x, sound_biome_puddle_queries__watchedSpeedToQueryInterval.y, sound_biome_puddle_queries__watchedSpeedToQueryInterval.z, sound_biome_puddle_queries__watchedSpeedToQueryInterval.w)
         else
           interval = cvt(sqrt(sound_biome_puddle_queries_vars__speedSq), sound_biome_puddle_queries__enemySpeedToQueryInterval.x, sound_biome_puddle_queries__enemySpeedToQueryInterval.y, sound_biome_puddle_queries__enemySpeedToQueryInterval.z, sound_biome_puddle_queries__enemySpeedToQueryInterval.w)
     else
-      interval = is_watched_sound ? sound_biome_puddle_queries__heroEnemyInAirInterval.x : sound_biome_puddle_queries__heroEnemyInAirInterval.y
+      interval = is_watched_sound ? sound_biome_puddle_queries__watchedOtherInAirInterval.x : sound_biome_puddle_queries__watchedOtherInAirInterval.y
 
     if interval >= 0. && info.curTime >= sound_biome_puddle_queries__lastQueryTime + interval
-      //logerr("{sound_biome_puddle_queries__biomeId}   biome={get_biome_group_name(sound_biome_puddle_queries__biomeId)}     {sound_biome_puddle_queries__puddleDepth}  {sound_biome_puddle_queries__lastQueryTime}")
       sound_biome_puddle_queries__lastQueryTime = info.curTime
-      let pos = transform[3]
+      var pos = transform[3]
+
       if is_watched_sound || length_sq(get_listener_pos() - pos) < square(sound_biome_puddle_queries__farawayThreshold)
-        let posXZ = pos.xz
-        let ground = traceht_lmesh(posXZ)
-        if pos.y - ground < sound_biome_puddle_queries__lmeshDiff
-          sound_biome_puddle_queries__biomeQueryId = biome_query_start(float3(pos.x, ground, pos.z), 0.1)
-          if sound_biome_puddle_queries__puddleQueryToDepth.w > 0. // puddle queries enabled
-            sound_biome_puddle_queries__puddleQueryId = puddle_query_start(float3(pos.x, ground, pos.z))
+
+        let floorIsDown = is_floor_down(transform[1])
+        if isInAir && floorIsDown
+          let dirToFloor = make_dir_to_floor(transform[1], floorIsDown)
+          var distToFloor = sound_biome_puddle_queries__maxDistToFloor
+          var floorPMID = PHYSMAT_INVALID
+          if trace_floor(pos, 0.5/*offset*/, distToFloor, floorPMID, dirToFloor, floorIsDown, null, get_trace_flags_for_biome_and_puddle_queries())
+            pos += dirToFloor * distToFloor // bring pos to the "floor" to have proper values under feet even if in the air
+          else
+            sound_biome_puddle_queries__biomeId = -1
+            sound_biome_puddle_queries__puddleDepth = 0.
+            return  // too far above "floor"
+
+        sound_biome_puddle_queries__biomeQueryId = biome_query_start(pos, 0.1)
+        if sound_biome_puddle_queries__puddleQueryToDepth.w > 0. // puddle queries enabled
+          sound_biome_puddle_queries__puddleQueryId = puddle_query_start(pos)
+
+      else
+        sound_biome_puddle_queries__biomeId = -1
+        sound_biome_puddle_queries__puddleDepth = 0.

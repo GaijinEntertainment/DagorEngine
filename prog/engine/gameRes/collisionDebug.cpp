@@ -29,10 +29,10 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
         add_debug_text_mark(tm.getcol(3), getNodeName(meshNode->nodeIndex), -1, 0.f);
 
       set_cached_debug_lines_wtm(tm);
-      // Consume faces through the node iterator instead of indexing meshVertsBase/meshIndicesBase
-      // directly, so this keeps working once a node's vertex/index slices may be dropped (its
-      // verticesOfs/indicesOfs no longer addressing ownVertices/ownIndices). For directly-stored
-      // nodes the iterator reads the same ownVertices/ownIndices, so behavior is unchanged.
+      // Consume faces through the node iterator instead of indexing raw vertex/index arrays directly,
+      // so this keeps working for nodes whose slices were dropped (BLAS-resident) or never existed as
+      // raw arrays (owning resources hold no raw verts). The iterator decodes the same per-node chunk
+      // / grid vert21 data the traces use, so behavior is consistent.
       iterateNodeFacesVerts(meshNode->nodeIndex, [&](int, vec4f v0, vec4f v1, vec4f v2) {
         Point3_vec4 p0, p1, p2;
         v_st(&p0.x, v0);

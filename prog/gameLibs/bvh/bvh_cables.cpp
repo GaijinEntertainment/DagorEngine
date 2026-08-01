@@ -97,7 +97,7 @@ static bool create_blas(ContextId context_id, Cables *cables, int index)
 
 void on_cables_changed(Cables *cables, ContextId context_id)
 {
-  if (!context_id->has(Features::Cable))
+  if (!context_id->hasAny(Features::Cable))
     return;
 
   context_id->cableBLASes.clear();

@@ -8,9 +8,7 @@
 #include <string.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <osApiWrappers/dag_miscApi.h>
-#include <osApiWrappers/gdk/gameinput.h>
-
-static constexpr int MS_IN_SEC = 1000;
+#include "gameinput.h"
 
 
 const char *HumanInput::GameInputGamepadClassDriver::gamepadName[HumanInput::GameInputGamepadClassDriver::GAMEPAD_MAX] = {
@@ -18,17 +16,22 @@ const char *HumanInput::GameInputGamepadClassDriver::gamepadName[HumanInput::Gam
 
 HumanInput::GameInputGamepadClassDriver::GameInputGamepadClassDriver(bool emulate_single_gamepad) :
   prevUpdateRefTime(get_time_msec()), emulateSingleDevice(emulate_single_gamepad)
-{}
+{
+  gameinput::init();
+}
 
 
-HumanInput::GameInputGamepadClassDriver::~GameInputGamepadClassDriver() { destroyDevices(); }
+HumanInput::GameInputGamepadClassDriver::~GameInputGamepadClassDriver()
+{
+  destroyDevices();
+  gameinput::shutdown();
+}
 
 
 bool HumanInput::GameInputGamepadClassDriver::init()
 {
   stg_joy.enabled = false;
 
-  deviceConfigChanged = true;
   refreshDeviceList();
   if (getDeviceCount() > 0)
     enable(true);
@@ -58,11 +61,12 @@ void HumanInput::GameInputGamepadClassDriver::destroyDevices()
 void HumanInput::GameInputGamepadClassDriver::refreshDeviceList()
 {
   bool was_enabled = enabled;
-  if (deviceConfigChanged)
+  unsigned gen = gameinput::get_devices_config_generation(GameInputKindGamepad);
+  if (devicesConfigGen != gen)
   {
     TIME_PROFILE(HID_GINP_refreshDeviceList);
     destroyDevices();
-    deviceConfigChanged = false;
+    devicesConfigGen = gen;
 
     enable(false);
 
@@ -70,10 +74,8 @@ void HumanInput::GameInputGamepadClassDriver::refreshDeviceList()
 
     refresh_gamepads();
 
-    deviceStateMask = 0;
     for (int i = 0; i < GAMEPAD_MAX; i++)
     {
-      deviceStateMask <<= 1;
       if (!is_gamepad_connected(i))
         continue;
 
@@ -82,7 +84,6 @@ void HumanInput::GameInputGamepadClassDriver::refreshDeviceList()
         device[deviceNum]->setStickDeadZoneScale(s, stickDeadZoneScale[s]);
 
       deviceNum++;
-      deviceStateMask |= 1;
     }
     if (emulateSingleDevice && virtualDevice == nullptr)
     {
@@ -141,22 +142,11 @@ void HumanInput::GameInputGamepadClassDriver::destroy()
 }
 
 
-static unsigned int get_device_state_mask()
+bool HumanInput::GameInputGamepadClassDriver::isDeviceConfigChanged() const
 {
-  unsigned int deviceStateMask = 0;
-  for (int i = 0; i < HumanInput::GameInputGamepadClassDriver::GAMEPAD_MAX; i++)
-    deviceStateMask = (deviceStateMask << 1) | (is_gamepad_connected(i) ? 1 : 0);
-  return deviceStateMask;
-}
-
-
-void HumanInput::GameInputGamepadClassDriver::setDeviceMask(const unsigned int new_mask)
-{
-  if (new_mask != deviceStateMask)
-  {
-    deviceConfigChanged = true;
-    deviceStateMask = new_mask;
-  }
+  if (devicesConfigGen != gameinput::get_devices_config_generation(GameInputKindGamepad))
+    return true;
+  return secDrv ? secDrv->isDeviceConfigChanged() : false;
 }
 
 
@@ -208,12 +198,6 @@ void HumanInput::GameInputGamepadClassDriver::updateDevices()
         dev->copyStickDeadZoneScales(*virtualDevice);
 
   refresh_gamepads();
-
-  if (prevUpdateRefTime >= nextUpdatePresenseTime)
-  {
-    nextUpdatePresenseTime = prevUpdateRefTime + MS_IN_SEC;
-    setDeviceMask(get_device_state_mask());
-  }
 
   if (defJoy || !enableAutoDef)
     for (int i = 0; i < deviceNum; i++)
@@ -328,11 +312,19 @@ float HumanInput::GameInputGamepadClassDriver::getStickDeadZoneAbs(int stick_idx
 }
 
 
-static gdk::gameinput::DevicesList devices;
+static gameinput::DevicesList devices;
 
-void refresh_gamepads() { gdk::gameinput::get_devices(GameInputKindGamepad, devices); }
+void refresh_gamepads() { gameinput::get_devices(GameInputKindGamepad, devices); }
 
 bool is_gamepad_connected(int slot) { return slot >= 0 && slot < (int)devices.size() && devices[slot]; }
+
+bool is_any_gamepad_connected()
+{
+  for (const IGameInputDevice *device : devices)
+    if (device)
+      return true;
+  return false;
+}
 
 bool read_gamepad(int slot, GamepadReading &out)
 {
@@ -340,7 +332,7 @@ bool read_gamepad(int slot, GamepadReading &out)
   if (!is_gamepad_connected(slot))
     return false;
 
-  gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindGamepad, devices[slot]);
+  gameinput::Reading reading = gameinput::get_current_reading(GameInputKindGamepad, devices[slot]);
   if (!reading)
     return false;
 

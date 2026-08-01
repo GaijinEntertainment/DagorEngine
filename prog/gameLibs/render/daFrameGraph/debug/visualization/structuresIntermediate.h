@@ -21,6 +21,7 @@ namespace dafg::visualization::irgraph
 {
 inline constexpr PassColor UNKNOWN_PASS_COLOR = static_cast<PassColor>(-1);
 inline constexpr uint32_t UNKNOWN_VALUE = static_cast<uint32_t>(-1);
+inline constexpr int UNKNOWN_INDEX = -1;
 
 
 struct Rectangle

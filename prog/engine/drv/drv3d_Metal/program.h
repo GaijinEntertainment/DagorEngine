@@ -43,7 +43,8 @@ public:
         } blend[shaders::RenderState::NumIndependentBlendParameters];
 
         uint32_t writeMask;
-        uint8_t a2c;
+        uint8_t a2c : 4 = 0;
+        uint8_t is_dual_blend : 4 = 0;
         uint8_t pad[2];
       };
       uint8_t state[RasterizerStateSizeInBytes];

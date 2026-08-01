@@ -43,6 +43,15 @@ void rendinst::destroyRIGenVisibility(RiGenVisibility *visibility)
   }
 }
 
+void rendinst::shrinkRIGenVisibility(RiGenVisibility *visibility)
+{
+  if (visibility)
+  {
+    visibility[0].shrink();
+    visibility[1].shrink();
+  }
+}
+
 void rendinst::setRIForcedLocalPoolOrder(RiGenVisibility *visibility, bool forced_local_pool_order)
 {
   visibility->riex.forcedLocalPoolOrder = forced_local_pool_order;
@@ -261,7 +270,7 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
         auto result = rendinst::get_rendinst_matrix_by_ri_idx(rtData->layerIdx, ri_idx, pos, tm);
         int pregenId = rendinst::get_pregen_id_from_layer_idx_and_ri_idx(rtData->layerIdx, ri_idx);
         if (result == rendinst::GetRendInstMatrixByRiIdxResult::Success && id_filter(pregenId, tm))
-          filteredVis.addTreeInstance(ri_idx, perInstanceData[lod], v_pos, lod);
+          filteredVis.addTreeInstance(ri_idx, perInstanceData[lod], v_pos, visibility.instanceIds[lod][inst], lod);
       }
     }
   }
@@ -423,6 +432,7 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
   static constexpr unsigned MAX_INSTANCES_TO_SORT = 256;
   dag::Vector<carray<IPoint2, MAX_INSTANCES_TO_SORT>, framemem_allocator, false> perInstanceDistance(rendinst::MAX_LOD_COUNT);
   dag::Vector<carray<vec4f, MAX_INSTANCES_TO_SORT>, framemem_allocator, false> sortedInstances(rendinst::MAX_LOD_COUNT);
+  dag::Vector<carray<uint64_t, MAX_INSTANCES_TO_SORT>, framemem_allocator, false> sortedInstanceIds(rendinst::MAX_LOD_COUNT);
   if (rendinst::render::per_instance_visibility)
   {
     for (int vi = 0; vi < min<int>(MAX_PER_INSTANCE_CELLS, visData.cells.size()); ++vi)
@@ -719,10 +729,12 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
                       instanceLod = rtData->riRes[ri_idx]->getQlBestLod();
 
                     vec4f v_packed_data = rendinst::gen::pack_entity_data(v_pos, v_scale, v_palette_id);
+                    const uint64_t uniqueId = crt.getUniqueId(uint32_t((const uint8_t *)data - crt.sysMemData.get()));
                     if (pool_front_to_back && (instanceLod <= RiGenVisibility::PI_LAST_MESH_LOD) &&
                         perInstanceDistanceCnt[instanceLod] < perInstanceDistance[instanceLod].size())
                     {
                       sortedInstances[instanceLod][perInstanceDistanceCnt[instanceLod]] = v_packed_data;
+                      sortedInstanceIds[instanceLod][perInstanceDistanceCnt[instanceLod]] = uniqueId;
                       int distance = bitwise_cast<int, float>(instance_dist2);
 
                       if (forShadow) // we shall sort from front to back
@@ -733,7 +745,7 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
                       perInstanceDistanceCnt[instanceLod]++;
                     }
                     else
-                      visibility.addTreeInstance(ri_idx, perInstanceData[instanceLod], v_packed_data, instanceLod);
+                      visibility.addTreeInstance(ri_idx, perInstanceData[instanceLod], v_packed_data, uniqueId, instanceLod);
 
                     visibility.instNumberCounter[max(0, instanceLod - lodTranslation)]++;
                     if (instanceLod == visibility.PI_ALPHA_LOD) // PI_ALPHA_LOD also requires an impostor texture.
@@ -771,8 +783,12 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
         stlsort::sort(perInstanceDistance[lodI].data(), perInstanceDistance[lodI].data() + perInstanceDistanceCnt[lodI], SortByY());
         int perInstanceStart = visibility.addTreeInstances(ri_idx, perInstanceData[lodI], nullptr, perInstanceDistanceCnt[lodI], lodI);
         vec4f *dest = &visibility.instanceData[lodI][perInstanceStart];
-        for (int i = 0; i < perInstanceDistanceCnt[lodI]; ++i, dest++)
+        uint64_t *destId = &visibility.instanceIds[lodI][perInstanceStart];
+        for (int i = 0; i < perInstanceDistanceCnt[lodI]; ++i, dest++, destId++)
+        {
           *dest = sortedInstances[lodI][perInstanceDistance[lodI][i].x];
+          *destId = sortedInstanceIds[lodI][perInstanceDistance[lodI][i].x];
+        }
       }
     }
     for (int lodI = 0; lodI < visibility.instanceData.size(); ++lodI)

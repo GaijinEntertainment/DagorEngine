@@ -16,6 +16,10 @@ namespace gamephys
 {
 class DestructableObject;
 }
+namespace frx
+{
+struct MeshRenderList;
+}
 namespace destructables
 {
 struct DestrRendData
@@ -24,6 +28,7 @@ struct DestrRendData
   {
     DynamicRenderableSceneInstance *inst;
     dynrend::InitialNodes *initialNodes;
+    BSphere3 bsph;
   };
   SmallTab<RendData, MidmemAlloc> rendData;
   int deformationId;
@@ -37,9 +42,11 @@ struct DestrRendDataDeleter
   void operator()(DestrRendData *rd);
 };
 
-void before_render(const Point3 &view_pos, bool has_motion_vectors);
+void before_render(const Point3 &view_pos, const Frustum &frustum, Occlusion *occlusion, bool has_motion_vectors);
 // Objects with a bounding box radius < min_bbox_radius will be skipped.
 void render(dynrend::ContextId inst_ctx, const Frustum &frustum, float min_bbox_radius);
+
+void render_fractured_rendinst(frx::MeshRenderList &list, const Frustum &frustum, const Occlusion *occlusion);
 
 typedef int (*deform_create_instance_cb_type)(const DestrRendData *src, bool fully_deformed);
 typedef void (*deform_destroy_instance_cb_type)(const DestrRendData *src);

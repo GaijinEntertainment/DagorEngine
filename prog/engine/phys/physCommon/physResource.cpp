@@ -12,7 +12,12 @@
 
 
 PhysicsResource::PhysicsResource() :
-  bodies(midmem), rdBallJoints(midmem), rdHingeJoints(midmem), revoluteJoints(midmem), sphericalJoints(midmem)
+  bodies(midmem),
+  rdBallJoints(midmem),
+  rdHingeJoints(midmem),
+  revoluteJoints(midmem),
+  sphericalJoints(midmem),
+  noCollisionPairs(midmem)
 {}
 
 
@@ -113,6 +118,15 @@ void PhysicsResource::load(IGenLoad &cb, int load_flags)
 
       if (cb.getBlockRest())
         cb.readString(jnt.name);
+    }
+    else if (id == _MAKE4C('NCol'))
+    {
+      while (cb.getBlockRest() > 0)
+      {
+        CollisionPair &p = noCollisionPairs.push_back();
+        p.body0 = cb.readInt();
+        p.body1 = cb.readInt();
+      }
     }
     else if (id == _MAKE4C('Na1c')) // node align controller, type1, obsolete, skip it
     {}

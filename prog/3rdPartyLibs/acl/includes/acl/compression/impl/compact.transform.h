@@ -609,7 +609,7 @@ namespace acl
 							if (!bone_stream.is_rotation_constant && parent_constant_changed.rotation)
 							{
 								ACL_ASSERT(any_constant_changed.rotation, "No rotations have changed!");
-								adjusted_local_transform.rotation = rtm::quat_normalize(rtm::quat_mul(original_object_transform.rotation, rtm::quat_conjugate(parent_adjusted_object_transform.rotation)));
+								adjusted_local_transform.rotation = quat_normalize_stable(rtm::quat_mul(original_object_transform.rotation, rtm::quat_conjugate(parent_adjusted_object_transform.rotation)));
 								raw_bone_stream.rotations.set_raw_sample(sample_index, adjusted_local_transform.rotation);
 								bone_stream.rotations.set_raw_sample(sample_index, adjusted_local_transform.rotation);
 							}

@@ -29,6 +29,7 @@ buffer ri_vertex_data;
 float4 params_validation_debug_color = (1, 0, 1, 16);
 
 float4 impostor_depth_proj = (0, 0, 1, 0);
+float impostor_depth_to_world = 1;
 texture impostor_depth_slice;
 
 macro RENDINST_SW_VERTEX_FETCH(stage)
@@ -420,6 +421,7 @@ macro RENDINST_SCENE_COMMON()
     }
     impostor_depth_proj@f4 = impostor_depth_proj;
     impostor_depth_slice@tex2d = impostor_depth_slice;
+    impostor_depth_to_world@f1 = impostor_depth_to_world;
   }
   (vs) {
     ri_per_draw_args@buf = ri_gen_multidraw_perDrawArgsBuffer hlsl {

@@ -195,6 +195,7 @@ private:
 
   void initDynamicShadows();
   void initVoxelShadows();
+  void initParallaxShadows();
 
   Point3 getThisFrameCameraPos() const { return shadowInfoProvider.getCurrentFrameCameraParams().viewItm.getcol(3); }
 

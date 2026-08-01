@@ -1,0 +1,57 @@
+Root    ?= ../../../.. ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/omm ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/omm.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/omm_sdk/include
+  $(Root)/prog/3rdPartyLibs/omm_sdk/src
+  $(Root)/prog/3rdPartyLibs/omm_sdk/shaders
+  $(Root)/prog/3rdPartyLibs/stb
+  $(Root)/prog/3rdPartyLibs/hash
+  $(Root)/prog/3rdPartyLibs/arc/lz4
+;
+
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 {
+  Sources =
+    omm.cpp
+    omm_debug.cpp
+    ../../../3rdPartyLibs/omm_sdk/src/bake.cpp
+    ../../../3rdPartyLibs/omm_sdk/src/bake_cpu_impl.cpp
+    ../../../3rdPartyLibs/omm_sdk/src/bake_gpu_impl.cpp
+    omm_sdk_debug_stub.cpp
+    ../../../3rdPartyLibs/omm_sdk/src/serialize_impl.cpp
+    ../../../3rdPartyLibs/omm_sdk/src/shader_bindings.cpp
+    ../../../3rdPartyLibs/omm_sdk/src/texture_impl.cpp
+  ;
+} else {
+  Sources = omm_stub.cpp ;
+}
+
+UseProgLibs +=
+  engine/lib3d
+  engine/shaders
+  3rdPartyLibs/hash
+  3rdPartyLibs/arc/lz4
+;
+
+CPPopt +=
+  -DGLM_ENABLE_EXPERIMENTAL
+  -DOMM_VK_S_SHIFT=0
+  -DOMM_VK_T_SHIFT=128
+  -DOMM_VK_B_SHIFT=256
+  -DOMM_VK_U_SHIFT=384
+;
+if $(Platform) = windows { CPPopt += /Zc:__cplusplus ; }
+if $(PlatformSpec) = clang {
+  CPPopt += -DOMM_DEPRECATED_MSG(X)= -Wno-ignored-attributes ;
+  if $(Platform)-$(PlatformArch) in linux-x86_64 {
+    CPPopt += -Wno-switch ;
+  }
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

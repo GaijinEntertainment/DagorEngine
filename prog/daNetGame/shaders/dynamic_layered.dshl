@@ -123,8 +123,8 @@ shader dynamic_layered
       float opacity = 1;
       ##if dyn_model_render_pass == render_pass_normal
         #ifdef MOTION_VECTORS_ENABLED
-          output.out_pos_prev = get_prevframe_output_pos(input, input.pos);
-          output.out_pos = output.pos;
+          output.out_pos_prev = get_prevframe_output_pos(input, input.pos).xyw;
+          output.out_pos = output.pos.xyw;
         #endif
       ##endif
 
@@ -177,7 +177,7 @@ shader dynamic_layered
       paint_details@f3 = paint_details;
     }
     USE_NORMAL_DETAIL()
-    LAYERED_PS(dyn_model_render_pass == render_pass_normal)
+    LAYERED_PS(dyn_model_render_pass == render_pass_normal, false)
     compile("target_ps", "simple_ps");
   }
   compile("target_vs", "simple_vs");

@@ -13,6 +13,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <3d/ddsFormat.h>
 #include <validateUpdateSubRegion.h>
+#include <validation/texture.h>
 #if _TARGET_PC_WIN
 #include <drv/3d/dag_platform_pc.h>
 #endif
@@ -186,6 +187,12 @@ int BaseTex::updateSubRegionInternal(BaseTexture *srcBaseTex, int src_subres_idx
   if (!validate_update_sub_region_params(src, src_subres_idx, src_x, src_y, src_z, src_w, src_h, src_d, this, dest_subres_idx, dest_x,
         dest_y, dest_z))
     return 0;
+
+  if (getFormat().getAspektFlags() != src->getFormat().getAspektFlags())
+  {
+    D3D_ERROR("vulkan: can't copy textures with different aspect flags src: %p:%s dst: %p:%s", src, src->getName(), this, getName());
+    return 0;
+  }
 
   VkImageCopy region;
   region.srcSubresource.aspectMask = getFormat().getAspektFlags();
@@ -414,6 +421,7 @@ bool BaseTex::updateTexResFormat(unsigned d3d_format)
   auto *img = image;
   image = nullptr; // reset pointer to stub for getFormat() inside setInitialImageViewState()
   pars.flg = implant_d3dformat(pars.flg, d3d_format);
+  check_texture_srgb_format(pars.flg, getTexName());
   fmt = FormatStore::fromCreateFlags(pars.flg);
   setInitialImageViewState();
   image = img; // reset pointer to stub

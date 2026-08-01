@@ -66,19 +66,11 @@ public:
     const IPoint2 &rendering_resolution,
     const ShadowVisibilityContext &shadow_ctx);
 
-  void startGroundVisibility(LandMeshManager *lmesh_mgr,
-    LandMeshRenderer *lmesh_renderer,
-    const float water_level,
-    const int displacement_sub_div,
-    const float displacement_radius,
-    const CameraParams &cur_frame_camera);
+  void startGroundVisibility(
+    LandMeshManager *lmesh_mgr, const int displacement_sub_div, const float displacement_radius, const CameraParams &cur_frame_camera);
 
-  void startGroundReflectionVisibility(LandMeshManager *lmesh_mgr,
-    LandMeshRenderer *lmesh_renderer,
-    const Frustum &frustum,
-    const Point3 &viewPos,
-    const TMatrix4 &viewProj,
-    const float water_level);
+  void startGroundReflectionVisibility(
+    LandMeshManager *lmesh_mgr, const Frustum &frustum, const Point3 &viewPos, const TMatrix4 &viewProj);
 
   void startLightsCullingJob(const CameraParams &cur_frame_camera, const bool use_occlusion_culling = true);
 

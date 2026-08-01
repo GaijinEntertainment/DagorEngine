@@ -79,6 +79,9 @@ extern bool dbg_texq_only_stubs;
 extern volatile int drv_res_updates_flush_count;
 extern FastStrMapT<int, -1> managed_tex_map_by_name; // helper container for fast resolve by name
 extern Tab<const char *> managed_tex_map_by_idx;     // helper container for fast resolve by index
+extern bool defer_managed_tex_map_erase;
+extern Tab<const char *> deferred_freed_tex_names;
+void compact_managed_tex_map();
 extern bool enable_cur_ql_mismatch_assert;
 extern int always_release_threshold_tex_size_kb;
 

@@ -57,15 +57,15 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #endif
 
 {
-    uint2 pos = pixelPos;
+    uint2 inputPos = pixelPos;
 #if( REBLUR_SPATIAL_PASS == REBLUR_PRE_PASS )
-    pos.x >>= CHECKERBOARD == 2 ? 0 : 1;
+    inputPos.x >>= CHECKERBOARD == 2 ? 0 : 1;
 #endif
 
     float sum = 1.0;
-    REBLUR_TYPE result = INPUT[ pos ];
+    REBLUR_TYPE result = INPUT[ inputPos ];
     #if( NRD_MODE == SH )
-        REBLUR_SH_TYPE resultSh = INPUT_SH[ pos ];
+        REBLUR_SH_TYPE resultSh = INPUT_SH[ inputPos ];
     #endif
 
 #if( REBLUR_SPATIAL_PASS == REBLUR_PRE_PASS )

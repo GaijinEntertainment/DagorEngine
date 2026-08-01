@@ -7,6 +7,11 @@ Target          = 3rdPartyLibs/imgui.lib ;
 include $(Root)/prog/_jBuild/defaults.jam ;
 if $(FreeTypeVer) != $(DefFreeTypeVer) { Target = $(Target:S=~ft$(FreeTypeVer)$(Target:S)) ; }
 
+if $(ImguiTestRuntime) = yes {
+  CPPopt += -DIMGUI_ENABLE_TEST_ENGINE ;
+  Target = $(Target:S=~ete.lib) ;
+}
+
 AddIncludes =
   $(Root)/$(Location)
   $(Root)/prog/3rdPartyLibs/freetype/freetype-$(FreeTypeVer)/include

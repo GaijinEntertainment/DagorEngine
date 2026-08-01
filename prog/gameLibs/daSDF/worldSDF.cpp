@@ -36,7 +36,6 @@ CONSOLE_INT_VAL("render", world_sdf_ping_pong_iterations, 1, 0, 8);
 CONSOLE_INT_VAL("render", world_sdf_invalidate_clip, -1, -1, 8);
 CONSOLE_INT_VAL("render", world_sdf_depth_mark_pass, 16384, 0, 131072);
 #define GLOBAL_VARS_LIST                          \
-  VAR(world_sdf_update_current_frame)             \
   VAR(world_sdf_update_old)                       \
   VAR(world_sdf_update_lt_coord)                  \
   VAR(world_sdf_update_sz_coord)                  \
@@ -53,13 +52,16 @@ CONSOLE_INT_VAL("render", world_sdf_depth_mark_pass, 16384, 0, 131072);
   VAR(world_sdf_res_np2)                          \
   VAR(world_sdf_update_mip)                       \
   VAR(world_sdf_use_grid)                         \
-  VAR(world_sdf_clipmap_rasterize)                \
-  VAR(world_sdf_debug_clip)                       \
-  VAR(world_sdf_debug_mode)
+  VAR(world_sdf_clipmap_rasterize)
 
-#define OPTIONAL_VARS_LIST        \
-  VAR(world_sdf_support_uav_load) \
-  VAR(world_sdf_inv_size)
+// feature-gated: gbuffer marking and the debug view are opt-in, their shader
+// files (world_sdf_mark_from_depth.dshl / world_sdf_debug.dshl) may be absent
+#define OPTIONAL_VARS_LIST            \
+  VAR(world_sdf_support_uav_load)     \
+  VAR(world_sdf_inv_size)             \
+  VAR(world_sdf_update_current_frame) \
+  VAR(world_sdf_debug_clip)           \
+  VAR(world_sdf_debug_mode)
 
 static ShaderVariableInfo world_sdf_cull_grid_ltVarId[6], world_sdf_cull_grid_rbVarId[6];
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
@@ -278,8 +280,10 @@ struct WorldSDFImpl final : public WorldSDF
 
     CS_SHADER(world_sdf_ping_pong_final_cs);
     CS_SHADER(world_sdf_ping_pong_cs);
-    CS_SHADER(world_sdf_from_gbuf_cs);
-    CS_SHADER(world_sdf_from_gbuf_remove_cs);
+    // gbuffer marking is opt-in: hosts that never call markFromGbuffer /
+    // removeFromDepth need not compile world_sdf_mark_from_depth.dshl
+    world_sdf_from_gbuf_cs.reset(new_compute_shader("world_sdf_from_gbuf_cs", true));
+    world_sdf_from_gbuf_remove_cs.reset(new_compute_shader("world_sdf_from_gbuf_remove_cs", true));
     CS_SHADER(world_sdf_update_cs);
     CS_SHADER(world_sdf_copy_slice_cs);
     CS_SHADER(world_sdf_cull_instances_grid_cs);
@@ -748,14 +752,12 @@ struct WorldSDFImpl final : public WorldSDF
     return true;
   }
 
-  void debugRender() override
+  void debugRender(const TMatrix4 &globtm) override
   {
     if (!world_sdf_debug_render)
       return;
 
     TIME_D3D_PROFILE(world_sdf_render);
-    TMatrix4 globtm;
-    d3d::getglobtm(globtm);
     set_globtm_to_shader(globtm);
     if (!sdf_world_debug.getElem())
       sdf_world_debug.init("sdf_world_debug");

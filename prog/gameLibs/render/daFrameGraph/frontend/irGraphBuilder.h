@@ -84,7 +84,8 @@ private:
   };
 
   using FirstUsageUpdatedFlagsAndUsageInfo = eastl::tuple<ResourceUsage, uint32_t, ResourceUsageInfo>;
-  FirstUsageUpdatedFlagsAndUsageInfo findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uint32_t initial_flags) const;
+  FirstUsageUpdatedFlagsAndUsageInfo findFirstUsageAndUpdatedCreationFlags(ResNameId res_id, uint32_t initial_flags,
+    D3DResourceType d3d_type) const;
 
   void addResourcesToGraph(intermediate::Graph &graph, intermediate::Mapping &mapping, const intermediate::Mapping &old_mapping,
     const ResourcesChanged &resources_changed, IrResourcesChanged &ir_resources_changed, multiplexing::Extents extents) const;

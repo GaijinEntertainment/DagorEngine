@@ -1,5 +1,7 @@
 include "shaders_pc11.blk"
 include "raytracing.blk"
+// NOTE: only Dx12 supports OMM for now.
+include "../../../../prog/gameLibs/render/omm/shaders/build.blk"
 "@delete-all:packBin":b=false; packBin:b=yes
 
 "@override:source"
@@ -22,6 +24,7 @@ include "raytracing.blk"
     "@delete:hdr_ps_output_mode":i=0
     "@delete:can_use_half_precision":i=0
     "@delete:deform_occupied_tiles_bitvector":i=0
+    "@delete:bvh_has_omm_support":i=0
     combined_shadows_allow_half_precision:i=1
   }
 }

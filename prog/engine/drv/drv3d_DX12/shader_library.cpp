@@ -98,7 +98,7 @@ public:
     ci{create_info}
   {}
 
-  drv3d_dx12::ShaderLibrary *build(ID3D12Device5 *device)
+  drv3d_dx12::ShaderLibrary *build(ID3D12Device5 *device, bool embeddable)
   {
     eastl::string libName;
     if (ci.debugName)
@@ -139,6 +139,16 @@ public:
       inHLSLName.resize(srcName.length() + 1);
       inHLSLName[srcName.length()] = L'\0';
       eastl::copy(srcName.begin(), srcName.end(), inHLSLName.data());
+    }
+
+    if (embeddable)
+    {
+      DynamicArray<uint8_t> dxilCopy;
+      dxilCopy.resize(libContainer->dxilBinary.size());
+      eastl::copy(libContainer->dxilBinary.data(), libContainer->dxilBinary.data() + libContainer->dxilBinary.size(), dxilCopy.data());
+      logdbg("DX12: ...completed, creating embeddable shader library object for <%s>...", libName);
+      return new drv3d_dx12::ShaderLibrary(eastl::move(libName), libContainer->resourceUsageInfo, libContainer->shaderProperties,
+        eastl::move(nameTable), {}, ci.mayBeUsedByExpandablePipeline, eastl::move(dxilCopy));
     }
 
     D3D12_DXIL_LIBRARY_DESC libDesc{};
@@ -189,8 +199,9 @@ eastl::wstring_view drv3d_dx12::ShaderLibrary::nameOf(uint32_t index) const
   return {nameTable[index].begin(), nameTable[index].size() - 1};
 }
 
-drv3d_dx12::ShaderLibrary *drv3d_dx12::ShaderLibrary::build(ID3D12Device5 *device, const ::ShaderLibraryCreateInfo &ci)
+drv3d_dx12::ShaderLibrary *drv3d_dx12::ShaderLibrary::build(ID3D12Device5 *device, const ::ShaderLibraryCreateInfo &ci,
+  bool embeddable)
 {
   ShaderLibraryBuilder shaderLibraryBuilder{ci};
-  return shaderLibraryBuilder.build(device);
+  return shaderLibraryBuilder.build(device, embeddable);
 }

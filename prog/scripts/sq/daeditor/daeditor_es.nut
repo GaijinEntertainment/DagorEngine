@@ -42,13 +42,13 @@ register_es("update_selected_entities", {
   { comps_rq = ["daeditor__selected"]}
 )
 
-function getEntityExtraName(eid) {
+function getEntityExtraName(eid): string|null {
   let extraName = get_entity_extra_name?(eid) ?? ""
 
   return extraName.strip() == "" ? null : extraName
 }
 
-function getSceneLoadTypeText(v) {
+function getSceneLoadTypeText(v): string {
   let loadTypeVal = type(v) == "integer" ? v : v.loadType
   let loadType = (
     (loadTypeVal == 1) ? "COMMON" :
@@ -59,7 +59,7 @@ function getSceneLoadTypeText(v) {
   return loadType
 }
 
-function getNumMarkedScenes() {
+function getNumMarkedScenes(): int {
   local nSel = 0
   foreach (_sceneId, marked in markedScenes.get()) {
     if (marked)
@@ -79,7 +79,7 @@ function getScenePrettyName(index) {
   return entity_editor?.get_instance().getScenePrettyName(index) ?? ""
 }
 
-function sceneToComboboxEntry(scene) {
+function sceneToComboboxEntry(scene): string {
   if (scene.importDepth == 0 && !scene.hasParent) {
     return "MAIN"
   }
@@ -90,7 +90,7 @@ function sceneToComboboxEntry(scene) {
   return $"{loadType}:{scene.id}:{prettyName.len() == 0 ? strippedPath : $"{prettyName} ({strippedPath})"}"
 }
 
-function canSceneBeModified(scene) {
+function canSceneBeModified(scene): bool {
   if (scene == null) {
     return false
   }

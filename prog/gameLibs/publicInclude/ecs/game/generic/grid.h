@@ -19,8 +19,6 @@ typedef eastl::fixed_vector<ecs::EntityId, 64, true, framemem_allocator> TempGri
 typedef eastl::vector<const GridHolder *> GridHolders;
 ECS_DECLARE_RELOCATABLE_TYPE(GridHolders);
 
-const float MAX_VALID_BOUNDING_RADIUS = 64.f; // logerr anomalous large objects
-
 enum class GridEntCheck
 {
   POS, // Check is entity position (center of collres.vBoundingSphere) inside bounding.

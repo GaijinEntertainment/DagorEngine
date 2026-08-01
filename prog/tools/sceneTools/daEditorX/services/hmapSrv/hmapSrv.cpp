@@ -18,6 +18,7 @@
 #include <oldEditor/de_util.h>
 
 #include <landMesh/lmeshRenderer.h>
+#include <landMesh/lmeshWeightAtlas.h>
 #include <landMesh/clipMap.h>
 #include <landMesh/lastClip.h>
 #include <heightmap/lodGrid.h>
@@ -86,6 +87,7 @@
 #include <physMap/physMatSwRendererRT.h>
 #include <physMap/physMatHtTex.h>
 #include <landMesh/biomeQuery.h>
+#include <heightmap/heightmapRenderer.h>
 #include <heightmap/heightmapHandler.h>
 
 /*#include "detailRenderData.h"
@@ -120,9 +122,6 @@ extern const char *filter_class_name;
 static void optimizeMesh(Mesh &m);
 extern TEXTUREID load_land_micro_details(const DataBlock &blk);
 extern void close_land_micro_details(TEXTUREID &id);
-
-#define CALL_LMESH_TYPED_RENDER(X, p) X.render(p, X.RENDER_WITH_CLIPMAP, false)
-
 
 static int hmap_stor_mismatch_cnt = 0;
 
@@ -1899,10 +1898,10 @@ public:
     if (hm2.texMainId == BAD_TEXTUREID && hm2.texDetId == BAD_TEXTUREID)
       return;
 
-    static LodGridCullData cullData;
+    static LodGridRingCullData cullData;
     LMeshRenderingMode oldMode;
     if (render_hm)
-      oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
+      oldMode = landmesh::set_rendering_mode_shadervar(LMeshRenderingMode::RENDERING_HEIGHTMAP);
 
     d3d::settm(TM_WORLD, TMatrix::IDENT);
     const BBox2 *clip = hm2.texMainId != BAD_TEXTUREID ? (infinite ? NULL : &hm2.bboxMain) : &hm2.bboxDet;
@@ -1965,16 +1964,16 @@ public:
     }
 
     if (render_hm)
-      r.setLMeshRenderingMode(oldMode);
+      landmesh::set_rendering_mode_shadervar(oldMode);
     cullData.frustum.reset();
   }
   void renderHm2VSM(LandMeshRenderer &r, const Point3 &vpos) const override
   {
     if (hm2.texMainId == BAD_TEXTUREID && hm2.texDetId == BAD_TEXTUREID)
       return;
-    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
+    LMeshRenderingMode oldMode = landmesh::set_rendering_mode_shadervar(LMeshRenderingMode::RENDERING_VSM);
     renderHm2(r, vpos, true, false);
-    r.setLMeshRenderingMode(oldMode);
+    landmesh::set_rendering_mode_shadervar(oldMode);
   }
 
   static bool renderHm2ToFeedback(LandMeshRenderer &r);
@@ -2034,7 +2033,8 @@ public:
         d3d::settm(TM_VIEW, &vtm);
         ShaderGlobal::set_float4(get_shader_variable_id("hmap_patches_min_max_z", true), minZ, maxZ, 0.0, 1.0);
         filter_class_name = "land_mesh";
-        prevLandmeshRenderingMode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
+        prevLandmeshRenderingMode = landmesh::set_rendering_mode_shadervar(LMeshRenderingMode::RENDERING_CLIPMAP);
+        ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
         static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
         ShaderGlobal::setBlock(land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
         shaders::OverrideState flipCullState;
@@ -2068,8 +2068,9 @@ public:
       void end()
       {
         d3d_set_view_proj(oviewproj);
+        ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-        renderer.setLMeshRenderingMode(prevLandmeshRenderingMode);
+        landmesh::set_rendering_mode_shadervar(prevLandmeshRenderingMode);
         filter_class_name = NULL;
         shaders::overrides::reset();
       }
@@ -2154,6 +2155,7 @@ public:
     unsigned new_st_mask;
     shaders::OverrideStateId flipCullStateId;
     bool shouldShowPhysMatColors;
+    Point3 hmapOrigin = ::grs_cur_view.pos; // seed for renderFeedback() before startRenderTiles() runs (fallback feedback pass)
 
     LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p, bool shouldRenderPhysmats) :
       rendSrv(tmpmem),
@@ -2178,10 +2180,14 @@ public:
       minZ = landBox[0].y - 100;
       maxZ = landBox[1].y + 500;
 
-      omode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
+      omode = renderer.getLMeshRenderingMode();
+      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
       static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
       ShaderGlobal::setBlock(land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
-      renderer.prepare(provider, pos, pos.y);
+      hmapOrigin = pos;
+      if (HeightmapHandler *hmapHandler = provider.getHmapHandler())
+        hmapHandler->makeBookKeeping();
+      renderer.prepare(provider, HmapOrigin(pos));
       TMatrix vtm = TMatrix::IDENT;
       d3d::gettm(TM_VIEW, &ovtm);
       d3d::gettm(TM_PROJ, &oproj);
@@ -2196,8 +2202,9 @@ public:
     }
     void endRenderTiles() override
     {
-      renderer.setRenderInBBox(BBox3());
+      ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+      // restore the ambient mode shadervar for tool passes that still rely on inheriting it
       renderer.setLMeshRenderingMode(omode);
       d3d::settm(TM_VIEW, &ovtm);
       d3d::settm(TM_PROJ, &oproj);
@@ -2217,9 +2224,12 @@ public:
       d3d::settm(TM_PROJ, &proj);
 
       BBox3 landBox = provider.getBBox();
-      renderer.setRenderInBBox(
-        BBox3(Point3(region[0].x, landBox[0].y - 10, region[0].y), Point3(region[1].x, landBox[1].y + 10, region[1].y)));
-      renderer.render(provider, renderer.RENDER_CLIPMAP, ::grs_cur_view.pos);
+      LandMeshRenderDesc desc;
+      desc.mode = LMeshRenderingMode::RENDERING_CLIPMAP;
+      desc.renderInBBox =
+        BBox3(Point3(region[0].x, landBox[0].y - 10, region[0].y), Point3(region[1].x, landBox[1].y + 10, region[1].y));
+      desc.invGeomLodDist = renderer.getInvGeomLodDist();
+      renderer.render(provider, renderer.RENDER_CLIPMAP, desc, ::grs_cur_view.pos, HmapOrigin(hmapOrigin));
       render_decals_to_clipmap(hmap, rendSrv, old_st_mask, new_st_mask);
       if (renderer.physMap && shouldShowPhysMatColors)
       {
@@ -2247,7 +2257,12 @@ public:
 
       LMeshRenderingMode oldMode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_FEEDBACK);
       if (!renderHm2ToFeedback(renderer))
-        renderer.render(provider, renderer.RENDER_DEPTH, ::grs_cur_view.pos);
+      {
+        LandMeshRenderDesc desc;
+        desc.mode = LMeshRenderingMode::RENDERING_FEEDBACK;
+        desc.invGeomLodDist = renderer.getInvGeomLodDist();
+        renderer.render(provider, renderer.RENDER_DEPTH, desc, ::grs_cur_view.pos, HmapOrigin(hmapOrigin));
+      }
 
       static int land_mesh_render_depth_blockid = ShaderGlobal::getBlockId("land_mesh_render_depth");
       ShaderGlobal::setBlock(land_mesh_render_depth_blockid, ShaderGlobal::LAYER_SCENE);
@@ -2319,7 +2334,12 @@ public:
 
   BBox3 getBBoxWithHMapWBBox(LandMeshManager &p) const override { return p.getBBoxWithHMapWBBox(); }
 
-  void prepareLandMesh(LandMeshRenderer &r, LandMeshManager &p, const Point3 &pos) const override { r.prepare(p, pos, pos.y); }
+  void prepareLandMesh(LandMeshRenderer &r, LandMeshManager &p, const Point3 &pos) const override
+  {
+    if (HeightmapHandler *h = p.getHmapHandler())
+      h->makeBookKeeping(); // prepare() no longer does per-frame upkeep (textures, pending edits)
+    r.prepare(p, HmapOrigin(pos));
+  }
 
   void invalidatePhysMatHtTex() override { shouldUpdatePhysMatHtTex = true; }
 
@@ -2328,6 +2348,29 @@ public:
     if (shouldShowPhysMatColors != val)
       invalidateClipmap(true, true);
     shouldShowPhysMatColors = val;
+  }
+
+  void beforeD3DReset(bool full_reset) override
+  {
+    if (clipmap)
+      full_reset ? clipmap->beforeReset() : clipmap->finalizeFeedback();
+    lod_grid_vdata_before_reset_device();
+  }
+
+  void afterD3DReset(bool full_reset) override
+  {
+    lod_grid_vdata_after_reset_device();
+    if (full_reset && clipmap)
+      clipmap->afterReset();
+  }
+
+  void afterD3DResetLandMesh(LandMeshManager &p, LandMeshRenderer *r, bool full_reset) override
+  {
+    if (!full_reset)
+      return;
+    p.afterDeviceReset(r, full_reset);
+    if (HeightmapHandler *h = p.getHmapHandler())
+      h->fillHmapTextures();
   }
 
   void invalidateClipmap(bool force_redraw, bool rebuild_last_clip) override
@@ -2474,6 +2517,7 @@ public:
     get_subtype_mask_for_clipmap_rendering(old_st_mask, new_st_mask);
     render_decals_to_clipmap(hmap, rendSrv, old_st_mask, new_st_mask);
   }
+  DecalsCb getDecalsRenderCb() const override { return render_decals_cb; }
   void prepareFixedClip(LandMeshManager *lmMgr, LandMeshRenderer *lmRend, int texture_size)
   {
     int64_t reft = ref_time_ticks();
@@ -2488,7 +2532,7 @@ public:
     data.texture_size = texture_size;
     data.use_dxt = false; // true;
     data.decals_cb = render_decals_cb;
-    data.global_frame_id = ShaderGlobal::getBlockId("global_frame");
+    data.global_frame_id = -1;
     data.flipCullStateId = flipCullStateId.get();
     data.land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
     LMeshRenderingMode oldm = lmRend->getLMeshRenderingMode();
@@ -2513,41 +2557,60 @@ public:
     TIME_D3D_PROFILE(renderLandMesh);
     DagorCurView savedView = ::grs_cur_view;
     d3d::settm(TM_WORLD, TMatrix::IDENT);
-    r.render(p, r.RENDER_WITH_CLIPMAP, ::grs_cur_view.pos);
+    LandMeshRenderDesc desc;
+    desc.renderInBBox = r.getRenderInBBox();
+    desc.invGeomLodDist = r.getInvGeomLodDist();
+    desc.debugCells = r.getCellsDebug();
+    r.render(p, r.RENDER_WITH_CLIPMAP, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
     ::grs_cur_view = savedView;
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
   void renderLandMeshClipmap(LandMeshRenderer &r, LandMeshManager &p) const override
   {
-    ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
+    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     DagorCurView savedView = ::grs_cur_view;
     d3d::settm(TM_WORLD, TMatrix::IDENT);
-    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
+    LMeshRenderingMode oldMode = r.getLMeshRenderingMode();
     ShaderGlobal::set_int_fast(render_with_normalmapVarId, 1);
-    r.render(p, r.RENDER_CLIPMAP, ::grs_cur_view.pos);
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_CLIPMAP;
+    desc.renderInBBox = r.getRenderInBBox();
+    desc.invGeomLodDist = r.getInvGeomLodDist();
+    desc.debugCells = r.getCellsDebug();
+    r.render(p, r.RENDER_CLIPMAP, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
     render_decals_cb(BBox3());
     ShaderGlobal::set_int_fast(render_with_normalmapVarId, 2);
+    // restore the ambient mode shadervar for tool passes that still rely on inheriting it
     r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
+    ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
   }
 
   void renderLandMeshVSM(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     DagorCurView savedView = ::grs_cur_view;
-    r.forceLowQuality(true);
-    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
-    r.render(p, r.RENDER_ONE_SHADER, ::grs_cur_view.pos);
-    r.forceLowQuality(false);
+    LMeshRenderingMode oldMode = r.getLMeshRenderingMode();
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_VSM;
+    desc.renderInBBox = r.getRenderInBBox();
+    desc.invGeomLodDist = r.getInvGeomLodDist();
+    desc.debugCells = r.getCellsDebug();
+    r.render(p, r.RENDER_ONE_SHADER, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
     r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
   }
   void renderLandMeshDepth(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     DagorCurView savedView = ::grs_cur_view;
-    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_DEPTH);
-    r.render(p, r.RENDER_DEPTH, ::grs_cur_view.pos);
+    LMeshRenderingMode oldMode = r.getLMeshRenderingMode();
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_DEPTH;
+    desc.renderInBBox = r.getRenderInBBox();
+    desc.invGeomLodDist = r.getInvGeomLodDist();
+    desc.debugCells = r.getCellsDebug();
+    r.render(p, r.RENDER_DEPTH, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
     r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
@@ -2557,7 +2620,7 @@ public:
   void renderLandMeshHeight(LandMeshRenderer &r, LandMeshManager &p) const override
   {
     DagorCurView savedView = ::grs_cur_view;
-    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
+    LMeshRenderingMode oldMode = r.getLMeshRenderingMode();
     BBox3 landBox;
     landBox[0].x = p.getCellOrigin().x * p.getLandCellSize() + p.getOffset().x;
     landBox[0].y = -8192;
@@ -2566,17 +2629,16 @@ public:
     landBox[1].y = 8192;
     landBox[1].z = (p.getNumCellsY() + p.getCellOrigin().y) * p.getLandCellSize() - p.getGridCellSize() + p.getOffset().z;
 
-    r.setRenderInBBox(landBox);
-    float oldInvGeomDist = r.getInvGeomLodDist();
-    r.setInvGeomLodDist(0.5 / landBox.width().length());
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::RENDERING_HEIGHTMAP;
+    desc.renderInBBox = landBox;
+    desc.invGeomLodDist = 0.5 / landBox.width().length();
     shaders::overrides::set(blendOpMaxStateId.get());
-    r.render(p, r.RENDER_ONE_SHADER, ::grs_cur_view.pos);
+    r.render(p, r.RENDER_ONE_SHADER, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
     r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     shaders::overrides::reset();
-    r.setRenderInBBox(BBox3());
-    r.setInvGeomLodDist(oldInvGeomDist);
   }
 
   void renderDecals(LandMeshRenderer &r, LandMeshManager &p) const override
@@ -2588,16 +2650,14 @@ public:
     levelBox.lim[0].z = p.getCellOrigin().y * p.getLandCellSize();
     levelBox.lim[1].x = (p.getNumCellsX() + p.getCellOrigin().x) * p.getLandCellSize() - p.getGridCellSize();
     levelBox.lim[1].z = (p.getNumCellsY() + p.getCellOrigin().y) * p.getLandCellSize() - p.getGridCellSize();
-    r.setRenderInBBox(levelBox);
-
     TMatrix4 globtm;
     d3d::getglobtm(globtm);
     LMeshRenderingMode omode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
-    r.renderDecals(p, LandMeshRenderer::RENDER_WITH_CLIPMAP, globtm, false, false);
+    LandMeshRenderDesc desc;
+    desc.renderInBBox = levelBox;
+    r.renderDecals(p, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, globtm, HmapOrigin(::grs_cur_view.pos));
     r.setLMeshRenderingMode(omode);
-
-    r.setRenderInBBox(BBox3());
   }
 
   LMeshRenderingMode setGrassMaskRenderingMode(LandMeshRenderer &r) override
@@ -2614,9 +2674,15 @@ public:
 
   void renderLandMeshGrassMask(LandMeshRenderer &r, LandMeshManager &p) const override
   {
+    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     DagorCurView savedView = ::grs_cur_view;
-    LMeshRenderingMode oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::GRASS_MASK);
-    r.render(p, r.RENDER_GRASS_MASK, ::grs_cur_view.pos, LandMeshRenderer::RENDER_FOR_GRASS);
+    LMeshRenderingMode oldMode = r.getLMeshRenderingMode();
+    LandMeshRenderDesc desc;
+    desc.mode = LMeshRenderingMode::GRASS_MASK;
+    desc.renderInBBox = r.getRenderInBBox();
+    desc.invGeomLodDist = r.getInvGeomLodDist();
+    desc.debugCells = r.getCellsDebug();
+    r.render(p, r.RENDER_GRASS_MASK, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos), LandMeshRenderer::RENDER_FOR_GRASS);
     r.setLMeshRenderingMode(oldMode);
     ::grs_cur_view = savedView;
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
@@ -2633,34 +2699,39 @@ public:
       LandMeshRenderer &r;
       LandMeshManager &p;
       LMeshRenderingMode omode;
-      uint32_t oldflags;
+      BBox3 renderInBBox;
 
       MyGrassTranlucencyCB(LandMeshRenderer &lmr, LandMeshManager &lmp) : r(lmr), p(lmp) {}
       void start(const BBox3 &box) override
       {
         if (::grs_draw_wire)
           d3d::setwire(0);
-        oldflags = LandMeshRenderer::lmesh_render_flags;
-        omode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
-        r.setRenderInBBox(box);
+        omode = r.getLMeshRenderingMode();
+        renderInBBox = box;
+        ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
       }
       void renderTranslucencyColor() override
       {
-        LandMeshRenderer::lmesh_render_flags &= ~(LandMeshRenderer::RENDER_DECALS | LandMeshRenderer::RENDER_COMBINED);
-        r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
-        r.render(p, LandMeshRenderer::RENDER_CLIPMAP, ::grs_cur_view.pos);
+        LandMeshRenderDesc desc;
+        desc.mode = LMeshRenderingMode::RENDERING_CLIPMAP;
+        desc.renderInBBox = renderInBBox;
+        desc.renderFlags &= ~(LandMeshRenderer::RENDER_DECALS | LandMeshRenderer::RENDER_COMBINED);
+        desc.invGeomLodDist = r.getInvGeomLodDist();
+        r.render(p, LandMeshRenderer::RENDER_CLIPMAP, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
       }
       void renderTranslucencyMask() override
       {
-        LandMeshRenderer::lmesh_render_flags = oldflags;
-        r.setLMeshRenderingMode(LMeshRenderingMode::GRASS_MASK);
-        r.render(p, LandMeshRenderer::RENDER_GRASS_MASK, ::grs_cur_view.pos);
+        LandMeshRenderDesc desc;
+        desc.mode = LMeshRenderingMode::GRASS_MASK;
+        desc.renderInBBox = renderInBBox;
+        desc.invGeomLodDist = r.getInvGeomLodDist();
+        r.render(p, LandMeshRenderer::RENDER_GRASS_MASK, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
       }
       void finish() override
       {
-        LandMeshRenderer::lmesh_render_flags = oldflags;
+        // restore the ambient mode shadervar for tool passes that still rely on inheriting it
         r.setLMeshRenderingMode(omode);
-        r.setRenderInBBox(BBox3());
+        ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
         d3d::setwire(::grs_draw_wire);
       }
     };
@@ -2668,7 +2739,9 @@ public:
       ddsx::tex_pack2_perform_delayed_data_loading();
 
     MyGrassTranlucencyCB cb(r, p);
-    r.prepare(p, ::grs_cur_view.pos, ::grs_cur_view.pos.y);
+    if (HeightmapHandler *hmapHandler = p.getHmapHandler())
+      hmapHandler->makeBookKeeping();
+    r.prepare(p, HmapOrigin(::grs_cur_view.pos));
     grassTranslucency->update(::grs_cur_view.pos, grassTranslucencyHalfSize, cb);
   }
 
@@ -2703,6 +2776,24 @@ public:
   }
 
   void resetTexturesLandMesh(LandMeshRenderer &r) const override { r.resetTextures(); }
+
+  int getLandWeightCellTexSize(LandMeshManager &p) const override
+  {
+    const LandWeightAtlas *a = p.getWeightAtlas();
+    return a ? a->getCellTexSize() : 0;
+  }
+  void setLandWeights(LandMeshManager &p, int cell_idx, const uint32_t *argb4, const uint32_t *rg8, int num_tex) const override
+  {
+    LandWeightAtlas *a = p.getWeightAtlasForEdit();
+    if (a && uint32_t(cell_idx) < uint32_t(p.getDetailMap().cells.size()))
+      a->setCellFromDetailTexels(cell_idx, argb4, rg8, p.getDetailMap().cells[cell_idx].detTexIds.data(), num_tex);
+  }
+  void uploadLandWeights(LandMeshManager &p) const override
+  {
+    LandWeightAtlas *a = p.getWeightAtlasForEdit();
+    if (a && !a->upload()) // records are already written, so a failure means stale pages render
+      logerr("land weight atlas: upload failed, the painted weights are not on the GPU");
+  }
 
   bool exportToGameLandMesh(mkbindump::BinDumpSaveCB &cwr, dag::ConstSpan<landmesh::Cell> cells,
     dag::ConstSpan<MaterialData> materials, int lod1TrisDensity, bool tools_internal) const override
@@ -3166,7 +3257,9 @@ public:
 
   void prepare(LandMeshRenderer &r, LandMeshManager &p, const Point3 &center_pos, const BBox3 &box) override
   {
-    r.prepare(p, center_pos, 2.f);
+    if (HeightmapHandler *hmapHandler = p.getHmapHandler())
+      hmapHandler->makeBookKeeping();
+    r.prepare(p, HmapOrigin(center_pos));
     r.setRenderInBBox(box);
   }
 };
@@ -3208,3 +3301,5 @@ void release_generic_hmap_service()
   srv_released = true;
   srv.reset();
 }
+
+bool is_generic_hmap_service_initialized() { return srv.get() != nullptr; }

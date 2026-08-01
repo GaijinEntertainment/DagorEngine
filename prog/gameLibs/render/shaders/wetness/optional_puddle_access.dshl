@@ -104,7 +104,7 @@ define_macro_if_not_defined USE_RI_PUDDLES()
       onlyPuddleHeight = 0;
     }
 
-    half addPuddlesRi(inout UnpackedGbuffer result, float3 worldPos, float3 worldNormal, half porosity)
+    half addPuddlesRi(inout UnpackedGbuffer result, float3 worldPos, float3 vertexNormal)
     {
       return 0;
     }

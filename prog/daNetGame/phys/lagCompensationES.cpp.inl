@@ -298,21 +298,22 @@ public:
     {
       auto it = entityTrack.find(physActor->eid);
       EntityLagTrack *track;
+      // eids are unique here, so append unsorted and sort once below
       if (it != entityTrack.end()) // already exist in history
       {
-        track = &entityTrackTmp.insert(eastl::move(*it)).first->second;
+        track = &entityTrackTmp.emplace_back_unsorted(eastl::move(*it)).second;
         G_ASSERT(it->second.empty()); // ensure that it's moved
         nTracksMoved++;
       }
       else if (!freeTracks.empty()) // new entity & has free track for reuse
       {
-        track = &entityTrackTmp.insert(eastl::make_pair(ecs::EntityId(physActor->eid), eastl::move(freeTracks.back()))).first->second;
+        track = &entityTrackTmp.emplace_back_unsorted(ecs::EntityId(physActor->eid), eastl::move(freeTracks.back())).second;
         freeTracks.pop_back();
         G_ASSERT(track->capacity());
         track->clear();
       }
       else // new entity and no free tracks for reuse
-        track = &entityTrackTmp.insert(physActor->eid).first->second;
+        track = &entityTrackTmp.emplace_back_unsorted(ecs::EntityId(physActor->eid), EntityLagTrack()).second;
       double actorTime = double(physActor->getPhys().getCurrentTick()) * double(physActor->getPhys().getTimeStep());
       if (EntityLagTrack::value_type *prevRec = track->empty() ? nullptr : &track->back())
       {
@@ -329,6 +330,7 @@ public:
       track->emplace_back(EntityLagTrack::value_type::make(*physActor, actorTime));
       G_ASSERT(track->size() < 1024); // sanity check
     }
+    eastl::sort(entityTrackTmp.begin(), entityTrackTmp.end(), entityTrackTmp.value_comp()); // restore vector_map invariant
     entityTrack.swap(entityTrackTmp);
     if (int nTracksLeft = entityTrackTmp.size() - nTracksMoved) // there are some entities that wasn't moved (i.e. was destroyed)?
     {
@@ -349,13 +351,13 @@ public:
     {
       auto &track = it->second;
       SLOW_ASSERT(eastl::is_sorted(track.begin(), track.end()));
-      while (!track.empty() && track.front().atTime < minTime)
-      {
-        if (!track.front().isPhysAsleep() || track.size() > 1)
-          track.erase(track.begin());
-        else
-          break;
-      }
+      auto firstAlive = track.begin(); // records are sorted by atTime
+      while (firstAlive != track.end() && firstAlive->atTime < minTime)
+        ++firstAlive;
+      // keep single expired asleep record so that static actors stay compensatable
+      if (firstAlive == track.end() && !track.empty() && track.back().isPhysAsleep())
+        --firstAlive;
+      track.erase(track.begin(), firstAlive);
       if (track.empty())
         it = entityTrack.erase(it);
       else

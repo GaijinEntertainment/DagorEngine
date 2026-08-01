@@ -73,7 +73,7 @@ function copyParamsToTable(db, table = null) {
   return table
 }
 
-function blk2SquirrelObjNoArrays(blk){
+function blk2SquirrelObjNoArrays(blk): table {
   let res = {}
   for (local i=0; i<blk.paramCount(); i++){
     let paramName = blk.getParamName(i)
@@ -91,7 +91,7 @@ function blk2SquirrelObjNoArrays(blk){
 }
 
 
-function blk2SquirrelObj(blk){
+function blk2SquirrelObj(blk): table {
   let res = {}
   for (local i=0; i<blk.blockCount(); i++){
     let block = blk.getBlock(i)
@@ -157,7 +157,7 @@ function normalizeAndFlattenConvertedBlk(obj){
 let convertBlkFlat = @(blk) normalizeAndFlattenConvertedBlk(blk2SquirrelObj(blk))
 let convertBlk = @(blk) normalizeConvertedBlk(blk2SquirrelObj(blk))
 
-function getParamsListByName(blk, name){
+function getParamsListByName(blk, name): array {
   let res = []
   for (local j = 0; j < blk.paramCount(); j++) {
     if (blk.getParamName(j)!=name)

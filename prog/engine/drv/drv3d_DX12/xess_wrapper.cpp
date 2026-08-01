@@ -214,7 +214,7 @@ public:
         [](const char *message, xefg_swapchain_logging_level_t level, void *) {
           switch (level)
           {
-            case XEFG_SWAPCHAIN_LOGGING_LEVEL_DEBUG: logdbg("[XEFG] %s", message); break;
+            case XEFG_SWAPCHAIN_LOGGING_LEVEL_DEBUG: logdbg("[XEFG] %s", message); break; //-V1037
             case XEFG_SWAPCHAIN_LOGGING_LEVEL_INFO: logdbg("[XEFG] %s", message); break;
             case XEFG_SWAPCHAIN_LOGGING_LEVEL_WARNING: logwarn("[XEFG] %s", message); break;
             case XEFG_SWAPCHAIN_LOGGING_LEVEL_ERROR: D3D_ERROR("[XEFG] %s", message); break;
@@ -852,7 +852,7 @@ public:
       xellSetLoggingCallback(handle, logLevel, [](const char *message, xell_logging_level_t level) {
         switch (level)
         {
-          case XELL_LOGGING_LEVEL_DEBUG: logdbg("[XELL] %s", message); break;
+          case XELL_LOGGING_LEVEL_DEBUG: logdbg("[XELL] %s", message); break; //-V1037
           case XELL_LOGGING_LEVEL_INFO: logdbg("[XELL] %s", message); break;
           case XELL_LOGGING_LEVEL_WARNING: logwarn("[XELL] %s", message); break;
           case XELL_LOGGING_LEVEL_ERROR: D3D_ERROR("[XELL] %s", message); break;

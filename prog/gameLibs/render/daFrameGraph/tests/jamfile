@@ -69,11 +69,13 @@ Sources =
   runtime.cpp
   multiplexing.cpp
   idContainers.cpp
+  cycAlloc.cpp
   bitSearch.cpp
   irGraphBuilder.cpp
   nodeStateDeltas.cpp
   resourceScheduler.cpp
   virtualPassRequest.cpp
+  refinedBlock.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

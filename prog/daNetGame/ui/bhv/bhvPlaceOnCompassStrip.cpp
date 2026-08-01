@@ -66,7 +66,7 @@ int BhvPlaceOnCompassStrip::update(UpdateStage /*stage*/, darg::Element *elem, f
     }
     else
     {
-      float relativeAngle = data.RawGetSlotValue("relativeAngle", VERY_BIG_NUMBER);
+      float relativeAngle = data.RawGetSlotValue(strings->relativeAngle, VERY_BIG_NUMBER);
       if (relativeAngle != VERY_BIG_NUMBER)
       {
         d = relativeAngle;

@@ -198,9 +198,6 @@ bool GrassTranslucency::update(const Point3 &view_pos, float half_size, GrassTra
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
     decode_grass_mask.render();
 
-    // restore
-    // app->getCurrentScene()->lmeshRenderer->forceTrivial(wasTrivial);
-
     shaders::overrides::reset();
 
     cb.finish();

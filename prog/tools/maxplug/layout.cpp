@@ -1,19 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <max.h>
+#include <memory>
 #include "layout.h"
+#include "dagor.h"
 
 #ifndef uint8_t
 typedef unsigned char uint8_t;
 #endif
 
-extern HINSTANCE hInstance;
-
-#define IDT_LAYOUT_TIMER       (1)
-#define LAYOUT_TIMEOUT         (250)
-#define PROP_LAYOUT            (L"~Layout~")
-#define PROP_LAYOUT_SIZE       (L"~LayoutSize~")
-#define PROP_ORIGINAL_DLG_PROC (L"~OriginalWndProc~")
+#define PROP_LAYOUT (L"~Layout~")
 
 struct DialogLayout
 {
@@ -267,7 +263,7 @@ static DialogLayout *load_dialog_layout(LPCWSTR dialog_name)
   if (!dlg_info.w || !dlg_info.h || !dlg_info.num_items)
     return 0;
 
-  DialogLayout *layout = new DialogLayout;
+  auto layout = std::make_unique<DialogLayout>();
   layout->dlg_w = dlg_info.w;
   layout->dlg_h = dlg_info.h;
   layout->items = read_dialog_ex_items(res, dlg_info.num_items);
@@ -282,97 +278,7 @@ static DialogLayout *load_dialog_layout(LPCWSTR dialog_name)
   if (layout->layout.empty())
     return 0;
 
-  return layout;
-}
-
-static RECT get_local_rect(HWND hWnd)
-{
-  RECT rect;
-  GetWindowRect(hWnd, &rect);
-  MapWindowPoints(HWND_DESKTOP, GetParent(hWnd), (LPPOINT)&rect, 2);
-  return rect;
-}
-
-static INT_PTR CALLBACK parent_proc_wrapper(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-  WNDPROC originalDlgProc = (WNDPROC)GetProp(hWnd, PROP_ORIGINAL_DLG_PROC);
-  assert(originalDlgProc);
-  switch (message)
-  {
-    case WM_MOVE:
-    case WM_SIZE: return TRUE;
-
-    case WM_WINDOWPOSCHANGING:
-    case WM_WINDOWPOSCHANGED:
-      for (HWND hChild = GetWindow(hWnd, GW_CHILD); hChild; hChild = GetWindow(hChild, GW_HWNDNEXT))
-      {
-        RECT rect = get_local_rect(hChild);
-        WINDOWPOS *wp = (WINDOWPOS *)lParam;
-        MoveWindow(hChild, 1, rect.top, wp->cx - 2, rect.bottom - rect.top, TRUE);
-      }
-      return TRUE;
-
-    default: break;
-  }
-  return (*originalDlgProc)(hWnd, message, wParam, lParam);
-}
-
-static void propagate_update_layout(HWND hWnd, LPARAM lParam)
-{
-  update_layout(hWnd, lParam);
-  for (HWND hChild = GetWindow(hWnd, GW_CHILD); hChild; hChild = GetWindow(hChild, GW_HWNDNEXT))
-    propagate_update_layout(hChild, lParam);
-}
-
-static INT_PTR CALLBACK rollup_proc_wrapper(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-  WNDPROC originalDlgProc = (WNDPROC)GetProp(hWnd, PROP_ORIGINAL_DLG_PROC);
-  assert(originalDlgProc);
-  switch (message)
-  {
-    case WM_MOVE:
-    case WM_SIZE:
-    case WM_WINDOWPOSCHANGING: return TRUE;
-
-    case WM_WINDOWPOSCHANGED:
-    {
-      WINDOWPOS *wp = (WINDOWPOS *)lParam;
-      SetProp(hWnd, PROP_LAYOUT_SIZE, (HANDLE)MAKELPARAM(wp->cx, wp->cy));
-      SetTimer(hWnd, IDT_LAYOUT_TIMER, LAYOUT_TIMEOUT, NULL);
-    }
-      return TRUE;
-
-    case WM_TIMER:
-      if (wParam == IDT_LAYOUT_TIMER)
-      {
-        PostMessage(hWnd, LAYOUT_MESSAGE, 0, (LPARAM)GetProp(hWnd, PROP_LAYOUT_SIZE));
-        KillTimer(hWnd, IDT_LAYOUT_TIMER);
-      }
-      break;
-
-    case LAYOUT_MESSAGE: propagate_update_layout(hWnd, lParam); break;
-
-    case WM_DESTROY: delete (DialogLayout *)GetProp(hWnd, PROP_LAYOUT); break;
-
-    default: break;
-  }
-  return (*originalDlgProc)(hWnd, message, wParam, lParam);
-}
-
-static void hook_dlg_proc(HWND hWnd, DLGPROC dlgProc)
-{
-  if (!hWnd)
-    return;
-  WNDPROC orgDlgProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)dlgProc);
-  SetProp(hWnd, PROP_ORIGINAL_DLG_PROC, (HANDLE)orgDlgProc);
-}
-
-void attach_layout_to_rollup(HWND hWnd, LPCWSTR dialog_name)
-{
-  DialogLayout *layout = load_dialog_layout(dialog_name);
-  hook_dlg_proc(GetParent(hWnd), parent_proc_wrapper);
-  hook_dlg_proc(hWnd, rollup_proc_wrapper);
-  SetProp(hWnd, PROP_LAYOUT, (HANDLE)layout);
+  return layout.release();
 }
 
 void attach_layout_to_dialog(HWND hWnd, LPCWSTR dialog_name)
@@ -380,3 +286,5 @@ void attach_layout_to_dialog(HWND hWnd, LPCWSTR dialog_name)
   DialogLayout *layout = load_dialog_layout(dialog_name);
   SetProp(hWnd, PROP_LAYOUT, (HANDLE)layout);
 }
+
+void detach_layout_from_dialog(HWND hWnd) { delete static_cast<DialogLayout *>(RemoveProp(hWnd, PROP_LAYOUT)); }

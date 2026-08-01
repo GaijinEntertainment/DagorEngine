@@ -1,5 +1,5 @@
 from "%darg/ui_imports.nut" import *
-let function col(color){
+function col(color){
   return {
     rendObj = ROBJ_BOX
     size = 40
@@ -7,7 +7,7 @@ let function col(color){
     borderColor= Color(100,100,100)
   }
 }
-let function text(s){
+function text(s){
   return {
     rendObj = ROBJ_TEXT
     text=s

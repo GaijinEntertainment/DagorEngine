@@ -37,6 +37,7 @@ uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt)
 #endif
     case _MAKE4C('ATI1'): return TEXFMT_ATI1N;
     case _MAKE4C('ATI2'): return TEXFMT_ATI2N;
+    case FOURCC_BC5S: return TEXFMT_BC5S;
     case _MAKE4C('BC6H'): return TEXFMT_BC6H;
     case _MAKE4C('BC7 '): return TEXFMT_BC7;
     case _MAKE4C('AST4'): return TEXFMT_ASTC4;
@@ -46,6 +47,7 @@ uint32_t d3dformat_to_texfmt(/*D3DFORMAT*/ uint32_t fmt)
     case TEXFMT_A16B16G16R16S:
     case TEXFMT_ATI1N:
     case TEXFMT_ATI2N:
+    case TEXFMT_BC5S:
     case TEXFMT_A16B16G16R16UI:
     case TEXFMT_A32B32G32R32UI:
     case TEXFMT_R32G32UI:
@@ -86,6 +88,7 @@ uint32_t texfmt_to_d3dformat(/*D3DFORMAT*/ uint32_t fmt)
     case TEXFMT_R5G6B5: return D3DFMT_R5G6B5;
     case TEXFMT_ATI1N: return _MAKE4C('ATI1');
     case TEXFMT_ATI2N: return _MAKE4C('ATI2');
+    case TEXFMT_BC5S: return FOURCC_BC5S;
     case TEXFMT_BC6H: return _MAKE4C('BC6H');
     case TEXFMT_BC7: return _MAKE4C('BC7 ');
   }

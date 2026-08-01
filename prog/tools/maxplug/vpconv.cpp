@@ -134,11 +134,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading) override { return new VPnorm; }
   const TCHAR *ClassName() override { return _T("VPnorm2rgb"); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return FLT_CLASS_ID; }
   Class_ID ClassID() override { return VPNORM_CID; }
   const TCHAR *Category() override { return _T(""); }
@@ -153,11 +149,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading) override { return new VPzbufa; }
   const TCHAR *ClassName() override { return _T("VPzbuf2a"); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return FLT_CLASS_ID; }
   Class_ID ClassID() override { return VPZBUF_CID; }
   const TCHAR *Category() override { return _T(""); }

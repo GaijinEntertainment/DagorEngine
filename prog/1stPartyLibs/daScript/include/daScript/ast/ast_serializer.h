@@ -19,7 +19,7 @@ namespace das {
         template<typename T>
         __forceinline bool read ( T & data ) {
             if ( bufferPos + sizeof(T) < buffer.size() ) {
-                data = *(T*)(buffer.data() + bufferPos);
+                memcpy((void*)&data, buffer.data() + bufferPos, sizeof(T));  // buffer offsets are arbitrary - no aligned punning
                 bufferPos += sizeof(T);
                 return true;
             }
@@ -220,9 +220,10 @@ namespace das {
         AstSerializer & operator << ( Module & module );
         AstSerializer & serializeModule ( Module & module, bool already_exists );
 
-        static constexpr uint32_t getVersion () { return 193; }
+        static constexpr uint32_t getVersion () { return 196; }
 
         void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) noexcept;
+        void serializeProgramImpl ( ProgramPtr program, ModuleGroup & libGroup ); // throws dasException; called via the noexcept wrapper above
         bool serializeScript ( ProgramPtr program ) noexcept;
 
         template <uint64_t n>

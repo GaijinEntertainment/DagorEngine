@@ -11,7 +11,6 @@ texture bvh_postfx_source;
 
 int bvh_debug_mode = 0;
 int bvh_debug_use_atmosphere = 1;
-int bvh_detect_identical_geometry = 0;
 float rtsm_sun_angle_multiplier = 0.5;
 
 int rt_debug_rt_shadow = 1;
@@ -21,6 +20,14 @@ int rt_debug_use_csm = 0;
 float bvh_debug_intersection_count_threshold = 16.0;
 
 float bvh_debug_min_t = 0;
+
+int bvh_debug_back_view = 0;
+
+int bvh_disable_ahs_with_omm = 0;
+
+// Debug-only meta-index -> (RI LOD + 1) table, rebuilt on the CPU while the LOD view is active.
+// 0 means "not a rendinst". Keeps LOD out of the production meta struct.
+buffer bvh_debug_lod_by_meta;
 
 shader bvh_debug
 {
@@ -36,14 +43,17 @@ shader bvh_debug
     world_view_pos@f3 = world_view_pos;
     bvh_debug_mode@i1 = bvh_debug_mode;
     bvh_debug_use_atmosphere@i1 = bvh_debug_use_atmosphere;
-    bvh_detect_identical_geometry@i1 = bvh_detect_identical_geometry;
     sun_angle_multiplier@f1 = rtsm_sun_angle_multiplier;
     bvh_debug_intersection_count_threshold@f1 = bvh_debug_intersection_count_threshold;
     bvh_debug_min_t@f1 = bvh_debug_min_t;
+    bvh_debug_back_view@i1 = bvh_debug_back_view;
+    bvh_disable_ahs_with_omm@u1 = bvh_disable_ahs_with_omm;
+    bvh_debug_lod_by_meta@buf = bvh_debug_lod_by_meta hlsl { StructuredBuffer<uint> bvh_debug_lod_by_meta@buf; }
   }
 
   hlsl (cs) {
     #include <NRD.hlsli>
+    #include <render/debug_mesh.hlsli>
 
     #define BVH_DEBUG_MODE_LIT 0
     #define BVH_DEBUG_MODE_TEXTURE_COLOR 1
@@ -53,15 +63,17 @@ shader bvh_debug
     #define BVH_DEBUG_MODE_CAMO_TEXCOORD 5
     #define BVH_DEBUG_MODE_VERTEX_COLOR 6
     #define BVH_DEBUG_MODE_GI 7
-    #define BVH_DEBUG_MODE_TWOSIDED 8
-    #define BVH_DEBUG_MODE_PAINT 9
-    #define BVH_DEBUG_MODE_INTERSECTION_COUNT 10
-    #define BVH_DEBUG_MODE_INSTANCES 11
-    #define BVH_DEBUG_MODE_NAN 12
+    #define BVH_DEBUG_MODE_PAINT 8
+    #define BVH_DEBUG_MODE_INTERSECTION_COUNT 9
+    #define BVH_DEBUG_MODE_INSTANCES 10
+    #define BVH_DEBUG_MODE_NAN 11
+    #define BVH_DEBUG_MODE_LOD 12
+
+    #define RAY_FLAG_FORCE_OMM_2_STATE_MANUAL 1
   }
 
   INIT_BVH(cs, 0, true)
-  USE_BVH_FOR_RENDER(cs)
+  USE_BVH_FOR_DEBUG(cs)
   USE_BVH_FX_RENDER(cs)
 
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
@@ -87,11 +99,11 @@ shader bvh_debug
 
   hlsl(cs)
   {
-    bool trace_ray_safe(float3 origin, float3 direction, float tmin, float tmax, float bias, uint group, out HitInfo hitInfo)
+    bool trace_ray_safe(float3 origin, float3 direction, float tmin, float tmax, float bias, uint group, out HitInfo hitInfo, uint extra_flags = 0)
     {
       if (!bvhMainValid)
         return false;
-      return trace_ray(bvhMain, origin, direction, tmin, tmax, bias, group, hitInfo);
+      return trace_ray(bvhMain, origin, direction, tmin, tmax, bias, group, hitInfo, extra_flags);
     }
 
     RT_GROUP_SIZE
@@ -104,12 +116,36 @@ shader bvh_debug
       float3 topT = lerp(view_vecLT, view_vecRT, rate.x);
       float3 botT = lerp(view_vecLB, view_vecRB, rate.x);
       float3 direction = normalize(lerp(topT, botT, rate.y));
+      if (bvh_debug_back_view)
+      {
+        // works as a vertical mirror facing the camera
+        float3 forward = view_vecLT + view_vecRT + view_vecLB + view_vecRB;
+        forward.y = 0;
+        // near-vertical camera leaves the horizontal forward at zero: normalize
+        // is NaN and the mirror plane undefined, so trace a fixed ray instead
+        float forwardLenSq = dot(forward, forward);
+        if (forwardLenSq > 1e-6f)
+        {
+          forward *= rsqrt(forwardLenSq);
+          direction = reflect(direction, forward);
+        }
+        else
+        {
+          direction = float3(0, 1, 0);
+        }
+      }
 
       float3 result = 0;
       bool isHit = false;
 
+      #ifdef HAS_RAYQUERY_FLAG_ALLOW_OPACITY_MICROMAPS
+        uint extraFlags = bvh_disable_ahs_with_omm ? RAY_FLAG_FORCE_OMM_2_STATE : 0;
+      #else
+        uint extraFlags = 0;
+      #endif
+
       HitInfo hitInfo;
-      if (trace_ray_safe(0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo))
+      if (trace_ray_safe(0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo, extraFlags))
       {
         isHit = true;
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);
@@ -118,35 +154,6 @@ shader bvh_debug
           result = light_hit_surface(hitSurface, -direction, hitInfo.t, 100000);
           if (bvh_debug_mode == BVH_DEBUG_MODE_NAN)
             result = select(isfinite(result), 1, 0);
-          if (bvh_detect_identical_geometry)
-          {
-#ifdef BVH_TWO_SIDED
-            float2 bvhResolution;
-            bvh_gbuf_load.GetDimensions(bvhResolution.x, bvhResolution.y);
-            float2 invRes = rcp(bvhResolution);
-            float3 geometryNormal = calc_geometry_normal(rate * bvhResolution, invRes, bvhResolution);
-            float rawDepth = loadGbufferDepth(rate * bvhResolution);
-            float w = linearize_z(rawDepth, zn_zfar.zw);
-            float3 relPos = calc_camera_relative_pos(rate * bvhResolution, w, invRes);
-
-            uint bvhFlags = loadBvhFlags(rate * bvhResolution);
-
-            relPos = applyAdaptiveRayOffset(relPos, geometryNormal);
-
-            half3 rayColor;
-            float translucentT;
-            HitInfo shadowHitInfo;
-            bool isHit = trace_ray(bvhMain, relPos.xyz, -direction, 0, 100000, w, bvhGroupRender, shadowHitInfo, rayColor, translucentT, 1, 0);
-
-            const float solViewRadialAngle = 0.0093f / 2;
-            const float solViewTanRadialAngle = tan(solViewRadialAngle);
-            float solRadialAngle = solViewTanRadialAngle * sun_angle_multiplier;
-
-            float shadow = SIGMA_FrontEnd_PackPenumbra(isHit ? shadowHitInfo.t : 65504.0, solRadialAngle) ;
-            if (shadow < 1e-3)
-              result += float3(1, 0, 1);
-#endif
-          }
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_TEXTURE_COLOR)
         {
@@ -201,17 +208,6 @@ shader bvh_debug
           }
           else
             result = hitInfo.vertexColor;
-        }
-        else if (bvh_debug_mode == BVH_DEBUG_MODE_TWOSIDED)
-        {
-          #ifdef BVH_TWO_SIDED
-            float2 bvhResolution;
-            bvh_gbuf_load.GetDimensions(bvhResolution.x, bvhResolution.y);
-            uint bvhFlags = loadBvhFlags(rate * bvhResolution);
-            result = bvhFlags & BVH_TWO_SIDED ? float3(0, 1, 0) : float3(0, 0, 0);
-          #else
-            result = float3(1, 0, 0);
-          #endif
         }
         else if (bvh_debug_mode == BVH_DEBUG_MODE_PAINT)
         {
@@ -270,6 +266,32 @@ shader bvh_debug
           // just encode the first 24 bits as color
           result = isHit ? float3((instanceIdx >> 16) & 0xff, (instanceIdx >> 8) & 0xff, instanceIdx & 0xff) / 255.0 : float3(0,0,0);
         }
+        else if (bvh_debug_mode == BVH_DEBUG_MODE_LOD)
+        {
+          const uint flags = RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+
+          GenericRayQuery(flags, TraceRayAHSLambda) query;
+
+          RayDesc ray;
+          ray.Origin    = 0;
+          ray.Direction = direction;
+          ray.TMin      = 0;
+          ray.TMax      = 100000;
+
+          query.TraceRayInline(bvhMain, flags, bvhGroupRender, ray);
+
+          while (query.Proceed())
+            query.CommitNonOpaqueTriangleHit();
+
+          // InstanceID is the object's base meta slot, which is what the CPU side keyed the table by.
+          // 0 in the table means "not a rendinst" -> stays black.
+          if (query.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+          {
+            uint lodPlusOne = bvh_debug_lod_by_meta[query.CommittedInstanceID()];
+            result = lodPlusOne == 0 ? float3(0, 0, 0)
+             : debug_mesh_shade_lod(lodPlusOne - 1, hitSurface.albedo, hitSurface.normal, -from_sun_direction.xyz);
+          }
+        }
         ##endif
       }
       else
@@ -278,7 +300,7 @@ shader bvh_debug
         {
           result = texCUBElod(envi_probe_specular, float4(direction, 0)).rgb;
         }
-        else
+        else if (bvh_debug_mode != BVH_DEBUG_MODE_LOD) // LOD view shows only RI; sky/miss stays black
         {
           result = float3(0, 0, 1);
         }

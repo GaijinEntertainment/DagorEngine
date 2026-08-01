@@ -13,6 +13,7 @@
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animState.h>
 #include <ecs/anim/animchar_visbits.h>
+#include <ecs/render/nodeCollapserBitsType.h>
 #include <dasModules/aotGeomNodeTree.h>
 #include <animChar/dag_animCharacter2.h>
 #include <shaders/dag_dynSceneRes.h>
@@ -97,6 +98,8 @@ MAKE_TYPE_FACTORY(DynSceneResNameMapResource, DynSceneResNameMapResource);
 // TODO: extract these render related types into separate module
 MAKE_TYPE_FACTORY(DynamicRenderableSceneLodsResource, DynamicRenderableSceneLodsResource);
 MAKE_TYPE_FACTORY(DynamicRenderableSceneInstance, DynamicRenderableSceneInstance);
+using NodeCollapserBits = DynamicRenderableSceneInstance::NodeCollapserBits;
+MAKE_TYPE_FACTORY(NodeCollapserBits, DynamicRenderableSceneInstance::NodeCollapserBits);
 
 MAKE_TYPE_FACTORY(Animate2ndPassCtx, Animate2ndPassCtx);
 
@@ -110,12 +113,21 @@ DAS_BIND_VECTOR(IAnimBlendNodePtrTab, IAnimBlendNodePtrTab, IAnimBlendNodePtr, "
 DAS_BIND_VECTOR(BnlPtrTab, BnlPtrTab, AnimBlendNodeLeafPtr, " ::PtrTab<::AnimV20::AnimBlendNodeLeaf>");
 DAS_BIND_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab, AnimPostBlendCtrlPtr, " ::PtrTab<::AnimV20::AnimPostBlendCtrl>");
 
+using LinearPolyAnimPointTab = Tab<AnimV20::AnimBlendCtrl_LinearPoly::AnimPoint>;
+using ParamSwitcherItemAnimTab = Tab<AnimV20::AnimBlendCtrl_ParametricSwitcher::ItemAnim>;
+DAS_BIND_VECTOR(LinearPolyAnimPointTab, LinearPolyAnimPointTab, AnimV20::AnimBlendCtrl_LinearPoly::AnimPoint,
+  " ::Tab<::AnimV20::AnimBlendCtrl_LinearPoly::AnimPoint>");
+DAS_BIND_VECTOR(ParamSwitcherItemAnimTab, ParamSwitcherItemAnimTab, AnimV20::AnimBlendCtrl_ParametricSwitcher::ItemAnim,
+  " ::Tab<::AnimV20::AnimBlendCtrl_ParametricSwitcher::ItemAnim>");
+
 MAKE_TYPE_FACTORY(AnimBlender, AnimV20::AnimBlender);
 MAKE_TYPE_FACTORY(AnimcharDebugContext, AnimV20::AnimcharDebugContext);
 
 DAS_BIND_ENUM_CAST_98(AnimcharVisbits);
 
 DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(AnimV20::FifoMorphType, FifoMorphType);
+
+MAKE_TYPE_FACTORY(TraceRayInfo, AnimCharV20::TraceRayInfo);
 
 template <>
 struct das::isCloneable<AnimV20::AnimationGraph> : false_type
@@ -180,6 +192,11 @@ inline int anim_graph_getBlendNodeId(const ::AnimV20::AnimationGraph &animGraph,
 inline int anim_graph_getParamId(const ::AnimV20::AnimationGraph &animGraph, const char *state_name, int type)
 {
   return animGraph.getParamId(state_name ? state_name : "", type);
+}
+
+inline const DataBlock *anim_graph_getEnumList(const ::AnimV20::AnimationGraph &animGraph, const char *enum_cls)
+{
+  return &animGraph.getEnumList(enum_cls ? enum_cls : "");
 }
 
 inline int anim_graph_addParamId(::AnimV20::AnimationGraph &animGraph, const char *param_name, int type)
@@ -267,6 +284,12 @@ inline float AnimBlendCtrl_ParametricSwitcherItemAnim_getStart(const ::AnimV20::
 inline float AnimBlendCtrl_ParametricSwitcherItemAnim_getEnd(const ::AnimV20::AnimBlendCtrl_ParametricSwitcher::ItemAnim &item)
 {
   return item.range[1];
+}
+inline void AnimBlendCtrl_ParametricSwitcherItemAnim_setRange(::AnimV20::AnimBlendCtrl_ParametricSwitcher::ItemAnim &item, float start,
+  float end)
+{
+  item.range[0] = start;
+  item.range[1] = end;
 }
 
 inline void AnimBlendCtrl_ParametricSwitcher_getChildren(::AnimV20::AnimBlendCtrl_ParametricSwitcher &param_switch,
@@ -544,6 +567,12 @@ inline char *anim_state_holder_dumpStateText(const ::AnimV20::AnimGraphStateHold
   String out;
   st.dumpStateText(out);
   return context->allocateString(out.c_str(), out.length(), at);
+}
+
+inline bool anim_pbc_ctx_trace_single(::AnimV20::AnimPostBlendCtrl::Context &ctx, ::AnimCharV20::TraceRayInfo &ray,
+  const bool isTraceDown)
+{
+  return ctx.irq(::AnimV20::GIRQT_TraceFootStepMultiRay, (intptr_t)&ray, 1, (intptr_t)isTraceDown) == ::AnimV20::GIRQR_TraceOK;
 }
 
 } // namespace bind_dascript

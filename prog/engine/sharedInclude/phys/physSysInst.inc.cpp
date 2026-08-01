@@ -153,6 +153,18 @@ void PhysSystemInstance::setJointsMotorSettings(float twistFrequeny, float twist
   }
 }
 
+void PhysSystemInstance::disableJointsMotors()
+{
+  for (int i = 0; i < joints.size(); ++i)
+  {
+    PhysRagdollBallJoint *joint = PhysRagdollBallJoint::cast(joints[i]);
+    if (joint == nullptr || joints[i]->jointType != PhysJoint::PJ_CONE_TWIST)
+      continue;
+
+    joint->disableMotors();
+  }
+}
+
 void PhysSystemInstance::driveBodiesToAnimcharPose(const dag::Span<mat44f *> &skeletonWtms)
 {
   dag::ConstSpan<PhysicsResource::RdBallJoint> res_joints = resource->getRdBallJoints();
@@ -310,17 +322,20 @@ void PhysSystemInstance::resetTm(const TMatrix &tm)
 }
 
 
-TMatrix *PhysSystemInstance::getTmHelper(const char *name)
+TMatrix *PhysSystemInstance::getTmHelper(const char *name, int *out_body_id)
 {
   for (int i = 0; i < bodies.size(); ++i)
   {
     int j = resource->getBodies()[i].findTmHelper(name);
     if (j < 0)
       continue;
-
+    if (out_body_id)
+      *out_body_id = i;
     return &bodies[i].tmHelpers[j].wtm;
   }
 
+  if (out_body_id)
+    *out_body_id = -1;
   return NULL;
 }
 
@@ -334,10 +349,18 @@ PhysBody *PhysSystemInstance::getBody(const char *name) const
   return NULL;
 }
 
-void PhysSystemInstance::updateTms()
+void PhysSystemInstance::updateTms(dag::FunctionRef<TMatrix(int)> get_body_tm)
 {
   for (int i = 0; i < bodies.size(); ++i)
-    bodies[i].updateTms(resource->getBodies()[i], scaleTm);
+  {
+    TMatrix wtm;
+    if (get_body_tm)
+      wtm = get_body_tm(i);
+    else
+      bodies[i].body->getTm(wtm);
+    wtm *= scaleTm;
+    bodies[i].updateTms(resource->getBodies()[i], wtm);
+  }
 }
 
 
@@ -511,11 +534,8 @@ PhysSystemInstance::Body::Body(const PhysicsResource::Body &res_body, PhysWorld 
 }
 
 
-void PhysSystemInstance::Body::updateTms(const PhysicsResource::Body &res_body, const TMatrix &scale_tm)
+void PhysSystemInstance::Body::updateTms(const PhysicsResource::Body &res_body, const TMatrix &wtm)
 {
-  TMatrix wtm;
-  body->getTm(wtm);
-
   for (int i = 0; i < tmHelpers.size(); ++i)
-    tmHelpers[i].wtm = wtm * scale_tm * res_body.tmHelpers[i].tm;
+    tmHelpers[i].wtm = wtm * res_body.tmHelpers[i].tm;
 }

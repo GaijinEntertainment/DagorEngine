@@ -56,14 +56,20 @@ template<typename T> T EndianSwap(T t) {
   if (sizeof(T) == 1) {   // Compile-time if-then's.
     return t;
   } else if (sizeof(T) == 2) {
-    auto r = FLATBUFFERS_BYTESWAP16(*reinterpret_cast<uint16_t *>(&t));
-    return *reinterpret_cast<T *>(&r);
+    union { T t; uint16_t i; } u;
+    u.t = t;
+    u.i = FLATBUFFERS_BYTESWAP16(u.i);
+    return u.t;
   } else if (sizeof(T) == 4) {
-    auto r = FLATBUFFERS_BYTESWAP32(*reinterpret_cast<uint32_t *>(&t));
-    return *reinterpret_cast<T *>(&r);
+    union { T t; uint32_t i; } u;
+    u.t = t;
+    u.i = FLATBUFFERS_BYTESWAP32(u.i);
+    return u.t;
   } else if (sizeof(T) == 8) {
-    auto r = FLATBUFFERS_BYTESWAP64(*reinterpret_cast<uint64_t *>(&t));
-    return *reinterpret_cast<T *>(&r);
+    union { T t; uint64_t i; } u;
+    u.t = t;
+    u.i = FLATBUFFERS_BYTESWAP64(u.i);
+    return u.t;
   } else {
     assert(0);
   }
@@ -613,8 +619,7 @@ class vector_downward {
   uint8_t *data_at(size_t offset) const { return buf_ + reserved_ - offset; }
 
   void push(const uint8_t *bytes, size_t num) {
-    auto dest = make_space(num);
-    memcpy(dest, bytes, num);
+    if (num > 0) { memcpy(make_space(num), bytes, num); }
   }
 
   // Specialized version of push() that avoids memcpy call for small data.
@@ -631,6 +636,7 @@ class vector_downward {
   }
 
   // Version for when we know the size is larger.
+  // Precondition: zero_pad_bytes > 0
   void fill_big(size_t zero_pad_bytes) {
     auto dest = make_space(zero_pad_bytes);
     memset(dest, 0, zero_pad_bytes);
@@ -674,10 +680,16 @@ inline voffset_t FieldIndexToOffset(voffset_t field_id) {
 }
 
 template <typename T> const T* data(const std::vector<T> &v) {
-  return v.empty() ? nullptr : &v.front();
+  // Eventually the returned pointer gets passed down to memcpy, so
+  // we need it to be non-null to avoid undefined behavior.
+  static uint8_t t;
+  return v.empty() ? reinterpret_cast<const T*>(&t) : &v.front();
 }
 template <typename T> T* data(std::vector<T> &v) {
-  return v.empty() ? nullptr : &v.front();
+  // Eventually the returned pointer gets passed down to memcpy, so
+  // we need it to be non-null to avoid undefined behavior.
+  static uint8_t t;
+  return v.empty() ? reinterpret_cast<T*>(&t) : &v.front();
 }
 
 /// @endcond
@@ -1205,7 +1217,9 @@ class FlatBufferBuilder
   template<typename T> Offset<Vector<const T *>> CreateVectorOfStructs(
       const T *v, size_t len) {
     StartVector(len * sizeof(T) / AlignOf<T>(), AlignOf<T>());
-    PushBytes(reinterpret_cast<const uint8_t *>(v), sizeof(T) * len);
+    if (len > 0) {
+      PushBytes(reinterpret_cast<const uint8_t *>(v), sizeof(T) * len);
+    }
     return Offset<Vector<const T *>>(EndVector(len));
   }
 

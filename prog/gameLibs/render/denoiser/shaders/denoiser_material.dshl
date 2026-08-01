@@ -1,0 +1,32 @@
+float denoiser_camera_attached_radius = 0;
+
+macro INIT_DENOISER_MATERIAL(code)
+  (code) { denoiser_camera_attached_radius@f1 = denoiser_camera_attached_radius; }
+endmacro
+
+macro USE_DENOISER_MATERIAL(code)
+  hlsl (code){
+    #include "common_consts.hlsli"
+    uint getNRDMaterialID(float w, bool is_hero_cockpit, bool is_grass, bool is_foliage)
+    {
+      FLATTEN
+      if (is_hero_cockpit)
+        return CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
+
+      FLATTEN
+      if (w < denoiser_camera_attached_radius)
+        return CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
+
+      FLATTEN
+      if (is_grass || is_foliage)
+        return STRAND_MATERIAL_ID;
+
+      return COMMON_MATERIAL_ID;
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_DENOISER_MATERIAL(code)
+  INIT_DENOISER_MATERIAL(code)
+  USE_DENOISER_MATERIAL(code)
+endmacro

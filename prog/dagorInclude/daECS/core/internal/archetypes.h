@@ -6,6 +6,7 @@
 
 #include <util/dag_stdint.h>
 #include <math/dag_adjpow2.h>
+#include <math/dag_bits.h>
 #include <EASTL/vector_multimap.h>
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_smallTab.h>
@@ -96,6 +97,7 @@ protected:
   uint32_t getComponentOfsUnsafe(uint32_t archetype, uint32_t id) const;
   uint32_t generation() const { return size(); } // as we are currently not erasing archetypes
   archetype_component_id getArchetypeComponentIdUnsafe(uint32_t archetype, component_index_t id) const;
+  bool hasComponentUnsafe(uint32_t archetype, component_index_t id) const; // membership only: skips the rank popcount
 
   __forceinline uint32_t getArchetypeComponentOfsUnsafe(uint32_t archetype) const
   {
@@ -124,11 +126,31 @@ protected:
   void addEntity(uint32_t to_archetype, chunk_type_t &chunkId, uint32_t &id, const uint8_t *__restrict initial_data,
     const uint16_t *__restrict offsets);
   bool delEntity(uint32_t to_archetype, chunk_type_t chunkId, uint32_t id, uint32_t &moved_id);
+  // cidx -> archetype-local component id as a rank dictionary over the
+  // archetype's [firstCidx, lastCidx] cidx span. The local id of a present
+  // cidx is exactly its rank in the sorted component array, so a hit is one
+  // word load plus a popcount, and a miss - the common case in query
+  // resolution - is the range gate plus one bit test. Memory is span/4
+  // bytes, branchless, no probing.
   struct ArchetypeInfo
   {
-    component_index_t firstNonEidIndex, count;
-    eastl::unique_ptr<archetype_component_id[]> componentIndexToArchetypeOffset; // todo: make it soa as well
+    // word i covers cidx [firstCidx + 32*i .. firstCidx + 32*i + 31]:
+    // low 32 bits - presence bitmap (bit j = cidx firstCidx + 32*i + j),
+    // high 32 bits - set bits in all preceding words (running rank).
+    // Fused so one 8-byte load serves both the bit test and the rank
+    eastl::unique_ptr<uint64_t[]> blocks;
+    component_index_t firstCidx = 1, lastCidx = 0; // empty range: any lookup misses without touching the blocks
+    void init(const component_index_t *__restrict components, uint32_t components_cnt);
     inline archetype_component_id getComponentId(component_index_t cidx) const;
+    // batch form: results land in out[], so per-lookup chains overlap in flight
+    // instead of serializing through the caller; measurably faster for n > 1.
+    // out of line: one call resolves many components, so call cost is amortized
+    void getComponentIds(const component_index_t *__restrict cidx, uint32_t n, archetype_component_id *__restrict out) const;
+    inline bool hasComponent(component_index_t cidx) const; // membership only: skips the rank popcount
+    uint32_t memBytes() const
+    {
+      return firstCidx <= lastCidx ? (((uint32_t(lastCidx) - firstCidx + 32) >> 5) * (uint32_t)sizeof(uint64_t)) : 0;
+    }
   };
 #pragma pack(push, 1)
   struct TrackedPod
@@ -338,18 +360,37 @@ inline component_index_t Archetypes::getComponentUnsafe(uint32_t archetype, uint
 
 inline archetype_component_id Archetypes::ArchetypeInfo::getComponentId(component_index_t cidx) const
 {
-  if (cidx == 0) // eid
+  if (cidx == 0) // eid is always archetype component 0
     return 0;
-  uint32_t at = (uint32_t)((int)cidx - (int)firstNonEidIndex);
-  if (at >= count)
+  if (cidx < firstCidx || cidx > lastCidx) // reject without touching the blocks; hits never take this branch
     return INVALID_ARCHETYPE_COMPONENT_ID;
-  return componentIndexToArchetypeOffset[at];
+  const uint32_t at = uint32_t(cidx) - firstCidx;
+  const uint64_t br = blocks[at >> 5]; // low 32: presence bits, high 32: rank
+  const uint32_t bit = 1u << (at & 31);
+  if (!(br & bit))
+    return INVALID_ARCHETYPE_COMPONENT_ID;
+  return archetype_component_id(uint32_t(br >> 32) + dag::popcount(uint32_t(br) & (bit - 1)) + 1); // +1: local id 0 is eid
+}
+
+inline bool Archetypes::ArchetypeInfo::hasComponent(component_index_t cidx) const
+{
+  if (cidx == 0) // eid is always present
+    return true;
+  if (cidx < firstCidx || cidx > lastCidx)
+    return false;
+  const uint32_t at = uint32_t(cidx) - firstCidx;
+  return (uint32_t(blocks[at >> 5]) & (1u << (at & 31))) != 0; // membership needs only the low (bits) half
 }
 
 inline archetype_component_id Archetypes::getArchetypeComponentIdUnsafe(uint32_t archetype, component_index_t cidx) const
 {
   DAECS_EXT_ASSERT(archetype < archetypes.size());
   return getArchetypeInfoUnsafe(archetype).getComponentId(cidx);
+}
+inline bool Archetypes::hasComponentUnsafe(uint32_t archetype, component_index_t cidx) const
+{
+  DAECS_EXT_ASSERT(archetype < archetypes.size());
+  return getArchetypeInfoUnsafe(archetype).hasComponent(cidx);
 }
 inline const component_index_t *__restrict Archetypes::getTrackedPodCidxUnsafe(uint32_t archetype) const
 {

@@ -1,4 +1,8 @@
 include "node_based_common.dshl"
+include "clouds2/clouds_bsm_macros.dshl"
+
+float clouds_start_altitude2;
+float clouds_thickness2;
 
 texture volfog_occlusion always_referenced;
 texture volfog_mask_tex always_referenced;
@@ -44,8 +48,6 @@ float4 enviSPH2 always_referenced;
 float4 nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m always_referenced;
 float4 skies_primary_sun_light_dir always_referenced;
 float4 clouds_origin_offset always_referenced;
-texture clouds_shadows_2d always_referenced;
-sampler clouds_shadows_2d_samplerstate always_referenced;
 float4 clouds_hole_pos always_referenced;
 float4 distant_fog_local_view_z always_referenced;
 float4 static_shadow_matrix_0_0 always_referenced;
@@ -61,6 +63,12 @@ float4 static_shadow_cascade_1_scale_ofs_z_tor always_referenced;
 float static_shadow_scrolled_depth_min_0 always_referenced;
 float static_shadow_scrolled_depth_max_0 always_referenced;
 int distant_fog_use_static_shadows always_referenced;
+
+texture clouds_bsm always_referenced;
+float4 clouds_bsm_world always_referenced;
+float4 clouds_bsm_consts always_referenced;
+float4 clouds_bsm_stat always_referenced;
+float4 clouds_bsm_texel always_referenced;
 
 int fog_shader_type always_referenced;
 interval fog_shader_type: froxel < 1, raymarch < 2, shadow always_referenced;
@@ -115,8 +123,6 @@ macro NBS_FOG_BLOCK()
     nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m@f4 = nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m;
     skies_primary_sun_light_dir@f4 = skies_primary_sun_light_dir;
     clouds_origin_offset@f4 = clouds_origin_offset;
-    clouds_shadows_2d@tex2d = clouds_shadows_2d;
-    clouds_shadows_2d_samplerstate@sampler = clouds_shadows_2d_samplerstate;
     clouds_hole_pos@f4 = clouds_hole_pos;
     distant_fog_local_view_z@f4 = distant_fog_local_view_z;
 
@@ -145,4 +151,7 @@ macro NBS_FOG_BLOCK()
     camera_in_camera_postfx_lens_view@f1 = camera_in_camera_postfx_lens_view;
     camera_in_camera_active@f1 = camera_in_camera_active;
   }
+  //Beer shadow map replaced the legacy 2D cloud shadow map; USE_CLOUDS_BSM defines
+  //get_clouds_shadow(world_pos) - the shadow helper fog graphs bind to
+  INIT_CLOUDS_BSM(cs)
 endmacro

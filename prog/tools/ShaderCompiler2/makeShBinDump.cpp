@@ -44,6 +44,8 @@
 #include <dag/dag_vector.h>
 #include <generic/dag_enumerate.h>
 
+#include <osApiWrappers/dag_direct.h>
+
 #include <util/dag_threadPool.h>
 #include <perfMon/dag_cpuFreq.h>
 
@@ -290,6 +292,7 @@ struct Variables
         case SHVT_INT4:
         case SHVT_COLOR4: memcpy(&vl.v[i].valPtr.get(), &v.defval, 16); break;
         case SHVT_FLOAT4X4: memset(&vl.v[i].valPtr.get(), 0, 16 * sizeof(float)); break;
+        case SHVT_FLOAT4x3: memset(&vl.v[i].valPtr.get(), 0, 12 * sizeof(float)); break;
         case SHVT_TEXTURE: *(TEXTUREID *)&vl.v[i].valPtr.get() = BAD_TEXTUREID; break;
         case SHVT_BUFFER: *(D3DRESID *)&vl.v[i].valPtr.get() = BAD_D3DRESID; break;
         case SHVT_SAMPLER: *(d3d::SamplerHandle *)&vl.v[i].valPtr.get() = d3d::INVALID_SAMPLER_HANDLE; break;
@@ -323,6 +326,7 @@ struct Variables
             case SHVT_INT4:
             case SHVT_COLOR4: memcpy(&var.valPtr.get(), &v.value, 16); break;
             case SHVT_FLOAT4X4: memset(&var.valPtr.get(), 0, 16 * sizeof(float)); break;
+            case SHVT_FLOAT4x3: memset(&var.valPtr.get(), 0, 12 * sizeof(float)); break;
             case SHVT_TEXTURE: *(TEXTUREID *)&var.valPtr.get() = BAD_TEXTUREID; break;
             case SHVT_BUFFER: *(D3DRESID *)&var.valPtr.get() = BAD_D3DRESID; break;
             case SHVT_SAMPLER: *(d3d::SamplerHandle *)&var.valPtr.get() = d3d::INVALID_SAMPLER_HANDLE; break;
@@ -339,12 +343,12 @@ struct Variables
     int stor_p = stor_start;
 
     for (auto &var : vl.v)
-      if (var.type == SHVT_COLOR4 || var.type == SHVT_INT4 || var.type == SHVT_FLOAT4X4)
+      if (var.type == SHVT_COLOR4 || var.type == SHVT_INT4 || var.type == SHVT_FLOAT4X4 || var.type == SHVT_FLOAT4x3)
       {
         if (stor_p & 3)
           stor_p = (stor_p + 4) & ~3;
         var.valPtr = storage.getElementAddress(stor_p);
-        stor_p += var.type == SHVT_FLOAT4X4 ? 4 * 4 : 4;
+        stor_p += var.type == SHVT_FLOAT4X4 ? 4 * 4 : (var.type == SHVT_FLOAT4x3 ? 3 * 4 : 4);
       }
 
     for (auto &var : vl.v)
@@ -381,7 +385,7 @@ struct Variables
     for (auto &var : vl.v)
       if (var.type != SHVT_INT && var.type != SHVT_INT4 && var.type != SHVT_REAL && var.type != SHVT_COLOR4 &&
           var.type != SHVT_TEXTURE && var.type != SHVT_BUFFER && var.type != SHVT_TLAS && var.type != SHVT_FLOAT4X4 &&
-          var.type != SHVT_SAMPLER)
+          var.type != SHVT_FLOAT4x3 && var.type != SHVT_SAMPLER)
         debug("[vErr] unknown type %d for var = %s", var.type, varMap.getOrdinalName(var.nameId));
 
     storage.resize(storage.size() + stor_p - stor_start);
@@ -951,7 +955,7 @@ static Tab<ShaderVarTextureType> collect_static_var_texture_types_from_initcode_
       continue;
     int stVarId = initcode[i];
     int slot = shaderopcode::getOp2p1(initcode[i + 1]);
-    if (slot > textypes.size())
+    if (slot >= textypes.size())
       continue; // texture was never used and it's type could not be recorded
     stVarIdToTexType[stVarId] = textypes[slot];
   }
@@ -1111,6 +1115,26 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   sh_debug(SHLOG_NORMAL, "[INFO] Loaded linker output in %gms", get_time_usec(reft) / 1000.);
   reft = ref_time_ticks();
 
+#if _CROSS_TARGET_DX12
+  if (!strip_shaders_and_stcode && !targetCtx.storage().usedSepDebugInfoNames.empty())
+  {
+    NameMap uniqueNames{};
+    for (const auto &name : targetCtx.storage().usedSepDebugInfoNames)
+      uniqueNames.addNameId(name.c_str());
+
+    iterate_names_in_id_order(ctx.compInfo().getDebugInfoDirListing(), [&](int, const char *name) {
+      eastl::string stem = name;
+      if (const char *p = strchr(stem.c_str(), '.'))
+        stem.resize(p - stem.c_str());
+      if (uniqueNames.getNameId(stem.c_str()) < 0)
+        dd_erase((eastl::string{shc::config().dx12PdbCacheDirUtf8} + name).c_str());
+    });
+
+    sh_debug(SHLOG_NORMAL, "[INFO] Pruned debug info dir in %gms", get_time_usec(reft) / 1000.);
+    reft = ref_time_ticks();
+  }
+#endif
+
   if (!targetCtx.refinedBlockLayout().empty())
     targetCtx.refinedBlockLayout().generateStcode();
 
@@ -1199,6 +1223,35 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
         if (var.codeId >= 0)
           var.codeId = codeIdRemapping[var.codeId];
       }
+    }
+  }
+
+  // Legacy tools shaders are on their way to be deprecated and we don't spend time optimizing variations there => no imposed limits.
+  if (!ctx.toolsShadersDetected())
+  {
+    auto variantCount = stor.ldShVpr.size() + stor.ldShFsh.size();
+    if (variantCount > ctx.inTargetShaderAmountLimit() && ctx.inTargetShaderAmountLimit() < HARD_SHADER_VARIANT_LIMIT)
+    {
+      sh_debug(SHLOG_FATAL,
+        "Generating bindump with %d shader binaries, while project/target defined 'shaderAmountLimit' LIMIT is no more than %d! Too "
+        "many shaders cause runtime FREEZES, DRIVER CRASHES, RAM CONSUMPTION and LONG COMPILE TIMES! Optimize shaders and reduce "
+        "shader variants!",
+        variantCount, ctx.inTargetShaderAmountLimit());
+    }
+    else if (variantCount > HARD_SHADER_VARIANT_LIMIT)
+    {
+      sh_debug(SHLOG_FATAL,
+        "Generating bindump with %d shader binaries, while DAGOR HARD LIMIT is no more than %d! Too many shaders cause runtime "
+        "FREEZES, DRIVER CRASHES, RAM CONSUMPTION and LONG COMPILE TIMES! Optimize shaders and reduce shader variants!",
+        variantCount, HARD_SHADER_VARIANT_LIMIT);
+    }
+    else if (variantCount > SOFT_SHADER_VARIANT_LIMIT)
+    {
+      sh_debug(SHLOG_NORMAL,
+        "Generating bindump with %d shader binaries, while dagor rule is no more than %d to void RUNTIME FREEZES and LONG COMPILE "
+        "TIMES! Optimize shaders and reduce shader variants, or the game will logerr! If you keep piling on variants further, the "
+        "compiler WILL REFUSE TO COMPILE YOUR SHADERS!",
+        variantCount, SOFT_SHADER_VARIANT_LIMIT);
     }
   }
 
@@ -1934,8 +1987,18 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   sh_debug(SHLOG_NORMAL, "[INFO] Compressed shaders in %gms", get_time_usec(reft) / 1000.);
   reft = ref_time_ticks();
 
-  const int compressedSize =
-    shaders_dump_compressed.scriptedShadersBindumpCompressed.compress(shaders_dump, packBin ? dumpCompressionLevel : -1);
+  const int compressionLevel = packBin ? dumpCompressionLevel : -1;
+  int compressedSize;
+  if (strip_shaders_and_stcode)
+  {
+    // Discard all additional levels for lean minidump. Only core info needed.
+    compressedSize = shaders_dump_compressed.scriptedShadersBindumpCompressed.compress(
+      static_cast<bindump::Master<stripped_bindump_frozen_version_t> &>(shaders_dump), compressionLevel);
+  }
+  else
+  {
+    compressedSize = shaders_dump_compressed.scriptedShadersBindumpCompressed.compress(shaders_dump, compressionLevel);
+  }
 
   sh_debug(SHLOG_NORMAL, "[INFO] Compressed dump in %gms", get_time_usec(reft) / 1000.);
   reft = ref_time_ticks();

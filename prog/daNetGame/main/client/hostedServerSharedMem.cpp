@@ -1,9 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <osApiWrappers/dag_sharedMem.h>
-#include <landMesh/landRayTracer.h>
+#include <osApiWrappers/dag_vromfs.h>
 #include <heightmap/heightmapPhysHandler.h>
 #include <fftWater/fftWater.h>
+#include <landMesh/landRayTracerSoA4.h>
 #include <ioSys/dag_dataBlock.h>
 
 extern "C" const char *dedicated_server_dll_fn;
@@ -11,7 +12,7 @@ extern "C" const char *dedicated_server_dll_fn;
 static GlobalSharedMemStorage *shared_mem = nullptr;
 static GlobalSharedMemStorage shared_mem_storage;
 
-void hosted_internal_server_init_shared_memory()
+void init_shared_memory()
 {
   if (!dedicated_server_dll_fn || ::shared_mem)
     return;
@@ -20,10 +21,11 @@ void hosted_internal_server_init_shared_memory()
   if (shared_mem_storage.initLocal(maxRecords))
   {
     ::shared_mem = &shared_mem_storage;
-    LandRayTracer::sharedMem = ::shared_mem;
     HeightmapPhysHandler::sharedMem = ::shared_mem;
     HeightmapPhysHandler::dumpSharingReadOnly = true;
+    LandRayTracerSoA4::sharedMem = ::shared_mem;
     fft_water::WaterHeightmap::sharedMem = ::shared_mem;
+    set_vromfs_shared_mem_storage(::shared_mem);
     debug("inited local shared memory (%d records)", maxRecords);
   }
 }

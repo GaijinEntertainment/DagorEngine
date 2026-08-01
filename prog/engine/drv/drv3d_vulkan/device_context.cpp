@@ -43,8 +43,12 @@ void DeviceContext::waitForItemPushSpace()
 {
   DA_PROFILE_WAIT(DA_PROFILE_FUNC);
   while (!Globals::timelines.get<TimelineManager::CpuReplay>().waitAdvance(MAX_PENDING_REPLAY_ITEMS, MAX_REPLAY_WAIT_TRIES))
+  {
+#if !DAGOR_ADDRESS_SANITIZER
     D3D_ERROR("vulkan: replay takes too long. Compiling pipeline: %s",
       Backend::interop.blockingPipelineCompilation.load() ? "yes" : "no");
+#endif
+  }
 }
 
 int DeviceContext::getFramerateLimitingFactor()

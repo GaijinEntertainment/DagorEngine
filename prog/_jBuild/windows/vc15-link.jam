@@ -21,10 +21,19 @@ rule ProcessLinkTarget
   local _ADD_LIBS = $(1) ;
   _LINK_OPT = ;
   if $(Sanitize) = address {
-    if $(PlatformSpec) != clang || $(CLangVer) >= 20 {
+    if $(PlatformSpec) != clang || $(UseLLDLink) != yes {
       # Implicit `/INFERASANLIBS` should do the right thing by default (https://devblogs.microsoft.com/cppblog/msvc-address-sanitizer-one-dll-for-all-runtime-configurations/)
-    }
-    else {
+    } else if $(CLangVer) >= 20 {
+      # lld-link has no link.exe /INFERASANLIBS, so link clang's asan runtime explicitly (needs clang_rt.asan_dynamic-x86_64.dll at runtime)
+      if $(TargetType) in dll exe {
+        if $(PlatformArch) = x86_64 {
+          _ADD_LIBS += clang_rt.asan_dynamic-x86_64.lib ;
+          local thunkKind = dynamic ;
+          if $(_VC_CRT_TYPE) = -MT { thunkKind = static ; }
+          _LINK_OPT += -wholearchive:clang_rt.asan_$(thunkKind)_runtime_thunk-x86_64.lib ;
+        }
+      }
+    } else {
       if $(TargetType) = exe {
           _ADD_LIBS += clang_rt.asan-x86_64.lib ;
           _LINK_OPT += /WHOLEARCHIVE:clang_rt.asan-x86_64.lib ;
@@ -82,7 +91,9 @@ rule ProcessLinkTarget
       ProcessGDKManifest ;
     }
 
-    if $(Config) != dbg && $(CheckOnly) != yes {
+    if $(Sanitize) = address {
+      _LINK_OPT += /opt:ref,noicf ; # noicf: folding distinct string literals to one address trips a false asan odr-violation
+    } else if $(Config) != dbg && $(CheckOnly) != yes {
       if $(PlatformArch) = x86 { _LINK_OPT += /OPT:REF,ICF ; } else { _LINK_OPT += -opt:ref ; }
     }
 

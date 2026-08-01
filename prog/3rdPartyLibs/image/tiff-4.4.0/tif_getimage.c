@@ -3088,15 +3088,15 @@ TIFFReadRGBATileExt(TIFF* tif, uint32_t col, uint32_t row, uint32_t * raster, in
         return( ok );
 
     for( i_row = 0; i_row < read_ysize; i_row++ ) {
-        memmove( raster + (tile_ysize - i_row - 1) * tile_xsize,
-                 raster + (read_ysize - i_row - 1) * read_xsize,
+        memmove( raster + (size_t)(tile_ysize - i_row - 1) * tile_xsize,
+                 raster + (size_t)(read_ysize - i_row - 1) * read_xsize,
                  read_xsize * sizeof(uint32_t) );
-        _TIFFmemset( raster + (tile_ysize - i_row - 1) * tile_xsize+read_xsize,
+        _TIFFmemset( raster + (size_t)(tile_ysize - i_row - 1) * tile_xsize+read_xsize,
                      0, sizeof(uint32_t) * (tile_xsize - read_xsize) );
     }
 
     for( i_row = read_ysize; i_row < tile_ysize; i_row++ ) {
-        _TIFFmemset( raster + (tile_ysize - i_row - 1) * tile_xsize,
+        _TIFFmemset( raster + (size_t)(tile_ysize - i_row - 1) * tile_xsize,
                      0, sizeof(uint32_t) * tile_xsize );
     }
 

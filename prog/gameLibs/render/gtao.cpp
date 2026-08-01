@@ -117,7 +117,7 @@ void GTAORenderer::updateCurFrameIdxs()
   historyIdx = even ? 2 : 0; // last frame's temporalTargetIdx
 }
 
-void GTAORenderer::renderGTAO(BaseTexture *rawTex, const DynRes *dynamic_resolution)
+void GTAORenderer::renderGTAO(BaseTexture *rawTex)
 {
   Afr &afr = afrs.current();
 
@@ -127,9 +127,7 @@ void GTAORenderer::renderGTAO(BaseTexture *rawTex, const DynRes *dynamic_resolut
   ShaderGlobal::set_float(gtao_temporal_directionsVarId, temporalRotation / 360);
   ShaderGlobal::set_float(gtao_temporal_offsetVarId, temporalOffset);
 
-  IPoint2 sres = dynamic_resolution
-                   ? calc_and_set_dynamic_resolution_stcode(*rawTex, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution))
-                   : IPoint2(aoWidth, aoHeight);
+  IPoint2 sres = IPoint2(aoWidth, aoHeight);
 
   if (aoRendererCS)
   {
@@ -147,13 +145,11 @@ void GTAORenderer::renderGTAO(BaseTexture *rawTex, const DynRes *dynamic_resolut
   }
 }
 
-void GTAORenderer::applySpatialFilter(BaseTexture *rawTex, BaseTexture *spatialTex, const DynRes *dynamic_resolution)
+void GTAORenderer::applySpatialFilter(BaseTexture *rawTex, BaseTexture *spatialTex)
 {
   ShaderGlobal::set_texture(raw_gtao_texVarId, rawTex);
 
-  IPoint2 sres = dynamic_resolution
-                   ? calc_and_set_dynamic_resolution_stcode(*spatialTex, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution))
-                   : IPoint2(aoWidth, aoHeight);
+  IPoint2 sres = IPoint2(aoWidth, aoHeight);
 
   if (spatialFilterRendererCS)
   {
@@ -171,16 +167,13 @@ void GTAORenderer::applySpatialFilter(BaseTexture *rawTex, BaseTexture *spatialT
   ShaderGlobal::set_texture(raw_gtao_texVarId, BAD_TEXTUREID);
 }
 
-void GTAORenderer::applyTemporalFilter(BaseTexture *rawTex, BaseTexture *prevGtaoTex, BaseTexture *spatialTex,
-  const DynRes *dynamic_resolution)
+void GTAORenderer::applyTemporalFilter(BaseTexture *rawTex, BaseTexture *prevGtaoTex, BaseTexture *spatialTex)
 {
   ShaderGlobal::set_texture(gtao_prev_texVarId, prevGtaoTex);
   ShaderGlobal::set_texture(gtao_texVarId, spatialTex);
   ShaderGlobal::set_texture(raw_gtao_texVarId, BAD_TEXTUREID);
 
-  IPoint2 sres = dynamic_resolution
-                   ? calc_and_set_dynamic_resolution_stcode(*rawTex, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution))
-                   : IPoint2(aoWidth, aoHeight);
+  IPoint2 sres = IPoint2(aoWidth, aoHeight);
 
   if (temporalFilterRendererCS)
   {
@@ -201,15 +194,13 @@ void GTAORenderer::applyTemporalFilter(BaseTexture *rawTex, BaseTexture *prevGta
 }
 
 void GTAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *, BaseTexture *ssao_tex,
-  BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample,
-  const DynRes *dynamic_resolution)
+  BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
 {
-  renderGTAO(view_tm, proj_tm, ssao_tex, world_pos, dynamic_resolution);
-  applyGTAOFilter(ssao_tex, prev_ssao_tex, tmp_tex, sub_sample, dynamic_resolution);
+  renderGTAO(view_tm, proj_tm, ssao_tex, world_pos);
+  applyGTAOFilter(ssao_tex, prev_ssao_tex, tmp_tex, sub_sample);
 }
 
-void GTAORenderer::renderGTAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssao_tex, const DPoint3 *world_pos,
-  const DynRes *dynamic_resolution)
+void GTAORenderer::renderGTAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *ssao_tex, const DPoint3 *world_pos)
 {
   // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
   G_ASSERT(useOwnTextures || ssao_tex);
@@ -235,11 +226,10 @@ void GTAORenderer::renderGTAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, B
   // GTAO uses local_view_N, which is initialized by setting view_tm
   d3d::settm(TM_VIEW, view_tm);
 
-  renderGTAO(rawTex, dynamic_resolution);
+  renderGTAO(rawTex);
 }
 
-void GTAORenderer::applyGTAOFilter(BaseTexture *ssao_tex, BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, SubFrameSample sub_sample,
-  const DynRes *dynamic_resolution)
+void GTAORenderer::applyGTAOFilter(BaseTexture *ssao_tex, BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, SubFrameSample sub_sample)
 {
   // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
   G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex && tmp_tex));
@@ -254,13 +244,13 @@ void GTAORenderer::applyGTAOFilter(BaseTexture *ssao_tex, BaseTexture *prev_ssao
 
   {
     TIME_D3D_PROFILE(GTAO_spatial);
-    applySpatialFilter(rawTex, spatialTex, dynamic_resolution);
+    applySpatialFilter(rawTex, spatialTex);
   }
   d3d::resource_barrier({spatialTex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
 
   {
     TIME_D3D_PROFILE(GTAO_temporal);
-    applyTemporalFilter(rawTex, prevGtaoTex, spatialTex, dynamic_resolution);
+    applyTemporalFilter(rawTex, prevGtaoTex, spatialTex);
   }
 
   if (useOwnTextures)

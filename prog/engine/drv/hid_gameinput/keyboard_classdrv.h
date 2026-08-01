@@ -11,8 +11,8 @@ class GameInputKeyboardDevice;
 class GameInputKeyboardClassDriver final : public IGenKeyboardClassDrv
 {
 public:
-  GameInputKeyboardClassDriver() = default;
-  ~GameInputKeyboardClassDriver() { destroyDevices(); }
+  GameInputKeyboardClassDriver();
+  ~GameInputKeyboardClassDriver();
 
   bool init();
   void destroyDevices();

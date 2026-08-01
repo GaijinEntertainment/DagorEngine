@@ -8,7 +8,6 @@ include "brunetonSky.dshl"
 include "light_mask_helpers.dshl"
 include "clusteredViewLights.dshl"
 include "draw_indirect_buffer_layout.dshl"
-include "dynamic_resolution.dshl"
 
 // Used by the compute shader to prepare the instances
 int lens_flare_prepare_flare_type;
@@ -21,8 +20,6 @@ buffer lens_flare_prepare_instance_offsets_buf;
 int lens_flare_prepare_max_num_instance = 0;
 buffer lens_flare_prepare_draw_indices_buf;
 int lens_flare_prepare_num_manual_flares = 0;
-int lens_flare_prepare_num_omni_light_flares = 0;
-int lens_flare_prepare_num_spot_light_flares = 0;
 float4 lens_flare_prepare_camera_pos;
 float4 lens_flare_prepare_camera_dir;
 int lens_flare_prepare_has_fom_shadows = 0;
@@ -95,8 +92,6 @@ shader prepare_lens_flare
   INIT_VOLUMETRIC_LIGHT_TRANSPARENT(cs)
   USE_VOLUMETRIC_LIGHT_TRANSPARENT(cs)
 
-  INIT_DYNAMIC_RESOLUTION(cs)
-
   if (lens_flare_prepare_has_fom_shadows == yes)
   {
     INIT_FOM_SHADOWS(cs)
@@ -106,8 +101,6 @@ shader prepare_lens_flare
   (cs) {
     globtm@f44 = lens_flare_perpare_globtm;
     num_manual_flares@i1 = (lens_flare_prepare_num_manual_flares);
-    num_omni_light_flares@i1 = (lens_flare_prepare_num_omni_light_flares);
-    num_spot_light_flares@i1 = (lens_flare_prepare_num_spot_light_flares);
     camera_pos@f3 = lens_flare_prepare_camera_pos;
     camera_dir@f3 = lens_flare_prepare_camera_dir;
     max_num_instance@i1 = (lens_flare_prepare_max_num_instance);
@@ -161,9 +154,9 @@ shader prepare_lens_flare
     ##if lens_flare_prepare_flare_type == manual_flares
       #define NUM_FLARES (num_manual_flares)
     ##elif lens_flare_prepare_flare_type == omni_light_flares
-      #define NUM_FLARES (num_omni_light_flares)
+      #define NUM_FLARES (omni_lights_count.x)
     ##elif lens_flare_prepare_flare_type == spot_light_flares
-      #define NUM_FLARES (num_spot_light_flares)
+      #define NUM_FLARES (spot_lights_count.x)
     ##endif
 
     float getDownsampledFarDepth(int2 coord, int2 dim)
@@ -212,7 +205,7 @@ shader prepare_lens_flare
         // A texel in downsampled depth at mip level (far_depth_mip) covers the maximum area
         // If the area is not perfectly aligned with the downsampled depth texel, 4 samples are needed to cover it
         int2 depthMipResolution = int2(far_depth_mip_resolution); //gbuffer_depth_size_load >> (far_depth_mip+1);
-        float2 mipTexCoord = screenTc * depthMipResolution * current_dynamic_resolution_scale;
+        float2 mipTexCoord = screenTc * depthMipResolution;
         int2 topLeftCorner = int2(mipTexCoord - float2(0.5, 0.5));
         float4 farDepths = float4(
           getDownsampledFarDepth(topLeftCorner + int2( 0, 0), depthMipResolution),

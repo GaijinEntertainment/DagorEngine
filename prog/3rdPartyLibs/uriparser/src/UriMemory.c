@@ -61,6 +61,15 @@
 
 
 
+#define URI_MAX(a, b)         (((a) > (b)) ? (a) : (b))
+
+/* NOTE: This intends to mimic MALLOC_ALIGNMENT of glibc */
+#define URI_MALLOC_ALIGNMENT  URI_MAX(2 * sizeof(size_t), sizeof(long double))
+
+#define URI_MALLOC_PADDING    (URI_MALLOC_ALIGNMENT - sizeof(size_t))
+
+
+
 #define URI_CHECK_ALLOC_OVERFLOW(total_size, nmemb, size) \
 		do { \
 			/* check for unsigned overflow */ \
@@ -167,7 +176,7 @@ void * uriEmulateReallocarray(UriMemoryManager * memory,
 static void * uriDecorateMalloc(UriMemoryManager * memory,
 		size_t size) {
 	UriMemoryManager * backend;
-	const size_t extraBytes = sizeof(size_t);
+	const size_t extraBytes = sizeof(size_t) + URI_MALLOC_PADDING;
 	void * buffer;
 
 	if (memory == NULL) {
@@ -222,7 +231,7 @@ static void * uriDecorateRealloc(UriMemoryManager * memory,
 		return NULL;
 	}
 
-	prevSize = *((size_t *)((char *)ptr - sizeof(size_t)));
+	prevSize = *((size_t *)((char *)ptr - sizeof(size_t) - URI_MALLOC_PADDING));
 
 	/* Anything to do? */
 	if (size <= prevSize) {
@@ -256,7 +265,7 @@ static void uriDecorateFree(UriMemoryManager * memory, void * ptr) {
 		return;
 	}
 
-	backend->free(backend, (char *)ptr - sizeof(size_t));
+	backend->free(backend, (char *)ptr - sizeof(size_t) - URI_MALLOC_PADDING);
 }
 
 

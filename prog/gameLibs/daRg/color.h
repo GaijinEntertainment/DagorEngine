@@ -7,23 +7,22 @@
 namespace darg
 {
 
-class ColorHsva
+// below this chroma the hue carries no information
+static constexpr float OKLCH_ACHROMATIC_CHROMA = 1e-4f;
+
+
+// Oklab in polar form: lightness, chroma, hue in degrees, alpha
+struct ColorOklcha
 {
-public:
-  float h, s, v, a;
-
-  ColorHsva() : h(0), s(0), v(0), a(0) {}
-
-  ColorHsva(float h_, float s_, float v_, float a_ = 0) : h(h_), s(s_), v(v_), a(a_) {}
-
-  ColorHsva operator*(float k) const { return ColorHsva(h * k, s * k, v * k, a * k); }
-
-  ColorHsva operator+(const ColorHsva &c) const { return ColorHsva(h + c.h, s + c.s, v + c.v, a + c.a); }
+  float l = 0, c = 0, h = 0, a = 0;
 };
 
 
-ColorHsva rgb2hsv(const Color4 &in);
-Color4 hsv2rgb(const ColorHsva &in);
+// E3DCOLOR channels are sRGB-encoded
+ColorOklcha e3dcolor_to_oklch(E3DCOLOR c);
+
+// reduces chroma until the color fits sRGB, keeping lightness and hue
+E3DCOLOR oklch_to_e3dcolor(const ColorOklcha &c);
 
 
 } // namespace darg

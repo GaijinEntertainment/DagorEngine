@@ -3,6 +3,7 @@
 
 #include <dag/dag_vector.h>
 #include <generic/dag_span.h>
+#include <math/dag_sdf_edt.h>
 #include <stdint.h>
 
 // Critical path extraction from SDF distance field.
@@ -14,7 +15,7 @@
 // Pipeline: detect ridges -> thin 2x2 blocks -> prune branches ->
 // remove small components -> filter by LOS to contour -> combine with contour.
 //
-// dist            - distance field, w*w floats
+// dist            - distance field, w*w floats (see sdf::DistField, a row grid)
 // water_mask      - packed bitmask, bit=1 for water pixels
 // w               - grid width (square grid)
 // contour_dist    - distance from shore for the contour (e.g. 64.0)
@@ -23,5 +24,5 @@
 // out_path        - output bitmask, will be resized and zeroed, ceil(w*w/32) words
 //
 // Returns number of critical path pixels.
-int hmap_sdf_extract_critical_path(dag::ConstSpan<float> dist, dag::ConstSpan<uint32_t> water_mask, int w, float contour_dist,
+int hmap_sdf_extract_critical_path(const sdf::DistField &dist, dag::ConstSpan<uint32_t> water_mask, int w, float contour_dist,
   int min_branch_len, int min_comp_size, dag::Vector<uint32_t> &out_path);

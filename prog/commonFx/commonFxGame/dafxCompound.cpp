@@ -969,7 +969,10 @@ struct DafxCompound : BaseParticleEffect
       case HUID_ACES_RESET: reset(); break;
       case HUID_COLOR_MULT: setColorMult((Color3 *)value); break;
       case HUID_COLOR4_MULT: setColor4Mult((Color4 *)value); break;
-      case _MAKE4C('PFXG'): dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0); break;
+      case _MAKE4C('PFXG'):
+        if (const BaseFxWarmupParams *warmupParams = (const BaseFxWarmupParams *)value)
+          dafx::warmup_instance(g_dafx_ctx, iid, warmupParams->time, warmupParams->perInstanceMode, warmupParams->stepDt);
+        break;
       case _MAKE4C('GZTM'): setGravityTm(*(Matrix3 *)value); break;
       case _MAKE4C('SPLN'): setSplineControlPoints(*(TMatrix4 *)value); break;
       default:

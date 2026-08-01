@@ -8,8 +8,9 @@ macro INIT_NIGHT_VISION_FORWARD()
   if (lens_night_vision_on == on) {
     (ps) {
       screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
-      scope_lens_mask@smp2d = scope_lens_mask;
+      scope_lens_mask@tex2d = scope_lens_mask;
     }
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
     INIT_NIGHT_VISION()
   }
 endmacro
@@ -18,6 +19,7 @@ macro USE_NIGHT_VISION_FORWARD()
   if (lens_night_vision_on == on) {
     USE_NIGHT_VISION()
     hlsl(ps) {
+      #define scope_lens_mask_samplerstate global_linear_wrap_sampler
       void applyOptionalFilter(inout half3 color, float2 sceneUV, float2 tc)
       {
         ##if (lens_night_vision_on == on)

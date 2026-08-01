@@ -704,7 +704,7 @@
 #define SIZEOF_INT 4
 
 /* The size of `long', as computed by sizeof. */
-#define SIZEOF_LONG 8
+#define SIZEOF_LONG __SIZEOF_LONG__
 
 /* The size of `off_t', as computed by sizeof. */
 #define SIZEOF_OFF_T 8
@@ -713,7 +713,7 @@
 #define SIZEOF_CURL_OFF_T 8
 
 /* The size of `size_t', as computed by sizeof. */
-#define SIZEOF_SIZE_T 8
+#define SIZEOF_SIZE_T __SIZEOF_SIZE_T__
 
 /* The size of `time_t', as computed by sizeof. */
 #ifndef __ILP32__

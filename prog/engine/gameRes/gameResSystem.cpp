@@ -194,8 +194,6 @@ static void getResClassName(unsigned class_id, String &name)
 
 using gameresprivate::resNameMap;
 
-void repack_real_game_res_id_table() { resNameMap.shrink_to_fit(); }
-
 static int addGameResId(const char *name)
 {
   if (!name || !*name)
@@ -323,6 +321,18 @@ struct GameResInfo
 static Tab<GameResMap> grMap(inimem_ptr());
 static Tab<GameResInfo> grInfo(inimem_ptr());
 static Tab<int> grInfoRefs(inimem);
+
+// called when pack scanning settles: the tables grow geometrically per-res, so drop the slack
+void repack_real_game_res_id_table()
+{
+  resNameMap.shrink_to_fit();
+  grMap.shrink_to_fit();
+  grInfo.shrink_to_fit();
+  grInfoRefs.shrink_to_fit();
+  resId_to_grInfo.shrink_to_fit();
+  resId_to_grMap.shrink_to_fit();
+  resId_to_packId.shrink_to_fit();
+}
 
 static inline GameResInfo *getGameResInfo(int res_id)
 {

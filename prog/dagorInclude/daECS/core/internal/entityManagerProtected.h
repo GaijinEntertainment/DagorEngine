@@ -31,7 +31,6 @@ void updateAllQueries()
 
 protected:
 typedef uint16_t es_index_type;
-static bool is_son_of(const Template &t, const int p, const TemplateDB &db, int rec_depth = 0);
 TemplateDB &getMutableTemplateDB(); // not sure if we have to expose non-const version..
 void updateEntitiesWithTemplate(template_t oldT, template_t newTemp, bool update_templ_values);
 void removeTemplateInternal(const uint32_t *to_remove, const uint32_t cnt);
@@ -126,12 +125,17 @@ replication_cb_t replicationCb = NULL;
 
 void onChangeEvents(const TrackedChangesTemp &process);
 void preprocessTrackedChange(EntityId eid, archetype_t archetype, component_index_t cidx, TrackedChangesTemp &process);
+struct TrackedChangeContext;
+void resolveTrackedChangeContext(TrackedChangeContext &ctx);
+void applyTrackedChange(EntityId eid, TrackedChangeContext &ctx, TrackedChangesTemp &process);
 bool trackChangedArchetype(uint32_t archetype, component_index_t cidx, component_index_t old_cidx, TrackedChangesTemp &process);
-void trackChanged(EntityId eid, component_index_t cidx, TrackedChangesTemp &process);
+void trackChanged(EntityId eid, component_index_t cidx, uint64_t scanned_cidx_mask, TrackedChangesTemp &process);
 
 template <class T, int const_csz = 1, bool use_ctm = false>
 void compare_data(TrackedChangesTemp &process, uint32_t arch, const uint32_t compOffset, const uint32_t oldCompOffset,
-  component_index_t cidx, size_t csz = 1, const ComponentTypeManager *ctm = nullptr);
+  TrackedChangeContext &ctx, size_t csz = 1, const ComponentTypeManager *ctm = nullptr);
+void compare_data_pod(TrackedChangesTemp &process, uint32_t arch, const uint32_t compOffset, const uint32_t oldCompOffset,
+  TrackedChangeContext &ctx, const size_t csz);
 unsigned trackScheduledChanges();
 
 EntityId allocateOneEid();

@@ -72,8 +72,8 @@ shader dynamic_painted_by_mask
         float3 pointToEye                       : TEXCOORD1;
         float3 normal                           : TEXCOORD2;
         #ifdef MOTION_VECTORS_ENABLED
-        float4 out_pos                          : TEXCOORD4;
-        float4 out_pos_prev                     : TEXCOORD5;
+        float3 out_pos                          : TEXCOORD4;
+        float3 out_pos_prev                     : TEXCOORD5;
         #endif
         #if HAS_BLOOD_DECAL
         float4 bloodDecalTC                     : TEXCOORD6;
@@ -236,7 +236,7 @@ shader dynamic_painted_by_mask
           init_emission_color(result, float4(emissiveColor.rgb, emissionAlbedoMult));
         }
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
           init_motion_vector(result, motion);
         #endif
 

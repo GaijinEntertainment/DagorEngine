@@ -7,9 +7,12 @@
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_tex3d.h>
 #include <drv/3d/dag_driver.h>
-#include <daGI/daGI.h>
+#include <3d/dag_resourceTags.h>
+#include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_TMatrix4.h>
+#include <math/integer/dag_IPoint3.h>
+#include <math/dag_hlsl_floatx.h>
 // #include "global_vars.h"
 #include <scene/dag_tiledScene.h>
 #include "shaders/gi_windows.hlsli"

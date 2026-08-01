@@ -1,0 +1,572 @@
+include "land_block_inc.dshl"
+include "bc_compression_inc.dshl"
+include "astc_compression_inc.dshl"
+include "etc2_compression_inc.dshl"
+
+float src_mip = 0;
+float dst_mip = 0;
+
+int cache_buffer_tex0_srgb_mode = 0;
+interval cache_buffer_tex0_srgb_mode : native < 1, software;
+
+int bypass_cache_no = -1;
+interval bypass_cache_no : all < 0, cache_no_0 < 1, cache_no_1 < 2, cache_no_2;
+
+int clipmap_compression_gather4_allowed = 1;
+interval clipmap_compression_gather4_allowed : no < 1, yes;
+
+texture cache_buffer_tex_0;
+texture cache_buffer_tex_1;
+texture cache_buffer_tex_2;
+
+macro USE_BUFFER_UNPACK_HELPERS(code)
+  hlsl(code)
+  {
+    float2 unpack_ao_emission(float buffer2_red)
+    {
+      return saturate(float2(buffer2_red, buffer2_red - (128.f / 255.f)) * (255.f / 127.f));
+    }
+  }
+endmacro
+
+macro DIRECT_CACHE_BYPASS_VS()
+  supports land_mesh_prepare_clipmap;
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 texcoord : TEXCOORD0;
+    };
+  }
+
+  (vs) {
+    // size must match MAX_QUADS
+    rel_queue_page_sz__rel_cache_page_sz@f4 : register(50)
+    mip@f1 : register(51);
+    quads@f4[4] : register(52);
+  }
+  hlsl(vs) {
+    #define rel_queue_page_sz (rel_queue_page_sz__rel_cache_page_sz.xy)
+    #define rel_cache_page_sz (rel_queue_page_sz__rel_cache_page_sz.zw)
+    //no reason to allocate more than COMPRESS_QUEUE_SIZE
+    //otherwise it is possible OOB read from const buffer, which
+    //bugs out on Adreno 660 devices (either hw specific prefetch bug in driver or bug in general)
+    #define MAX_QUADS 4
+
+    VsOutput bypass_vs(uint vertexId : SV_VertexID)
+    {
+      uint quadId = vertexId/6;
+      uint subvertexId = vertexId%6;
+      float2 localPos = float2(subvertexId % 2, subvertexId > 1 && subvertexId < 5);
+      float4 quad = quads[quadId];
+      VsOutput output;
+      float mipExp = exp2(mip);
+      float2 srcTc = localPos.xy*rel_queue_page_sz + quad.zw;
+      output.pos = float4((quad.xy+localPos)*rel_cache_page_sz*2-1, 0, 1);
+      output.pos.y = -output.pos.y;
+      output.texcoord.xy = srcTc;
+      output.texcoord.zw = mip;
+      return output;
+    }
+  }
+endmacro
+
+shader direct_cache_bypass
+{
+  cull_mode = none;
+  z_test = false;
+
+  if (bypass_cache_no == cache_no_1 && !clipmap_use_cache_output1 ||
+      bypass_cache_no == cache_no_2 && !clipmap_use_cache_output2)
+  {
+    dont_render;
+  }
+
+  DIRECT_CACHE_BYPASS_VS()
+  USE_BUFFER_UNPACK_HELPERS(ps)
+
+  (ps) {
+    cache_buffer_tex_0@tex2d = cache_buffer_tex_0;
+    cache_buffer_tex_0_samplerstate@sampler = CompressionInputTexSampler;
+    cache_buffer_tex_1@tex2d = cache_buffer_tex_1;
+    cache_buffer_tex_1_samplerstate@sampler = CompressionInputTexSampler;
+    src_mip@f1 = src_mip;
+  }
+  if (clipmap_use_cache_output2)
+  {
+    (ps) {
+      cache_buffer_tex_2@tex2d = cache_buffer_tex_2;
+      cache_buffer_tex_2_samplerstate@sampler = CompressionInputTexSampler;
+    }
+  }
+  hlsl(ps) {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+    struct MRT_OUTPUT {
+      float4 cache0:SV_Target0;
+      ##if (clipmap_use_cache_output1)
+        float2 cache1:SV_Target1;
+      ##endif
+      ##if (clipmap_use_cache_output2)
+        float4 cache2:SV_Target2;
+      ##endif
+    };
+
+    ##if bypass_cache_no == all
+    MRT_OUTPUT bypass_ps(VsOutput IN)
+    ##else
+    float4 bypass_ps(VsOutput IN) : SV_Target
+    ##endif
+    {
+      float4 tc = float4(IN.texcoord.xy,0,src_mip);
+
+      half4 buffer0 = tex2Dlod(cache_buffer_tex_0, tc);
+##if cache_buffer_tex0_srgb_mode == software
+      buffer0.xyz = ApplySRGBCurve(buffer0.xyz);
+##endif
+      half4 buffer1 = tex2Dlod(cache_buffer_tex_1, tc);
+      ##if (clipmap_use_cache_output2)
+        half4 buffer2 = tex2Dlod(cache_buffer_tex_2, tc);
+      ##endif
+
+      MRT_OUTPUT ret;
+      ##if (clipmap_use_cache_output2)
+        float detail = buffer2.b;
+      ##else
+        ##if (clipmap_use_cache_output1)
+          float detail = buffer1.b;
+        ##else
+          float detail = buffer1.r;
+        ##endif
+      ##endif
+      ret.cache0 = half4(buffer0.rgb, detail);
+
+      ##if (clipmap_use_cache_output1)
+        ret.cache1 = buffer1.rg;
+      ##endif
+      ##if (clipmap_use_cache_output2)
+        float2 ao_emission = unpack_ao_emission(buffer2.r);
+        ret.cache2 = float4(ao_emission.x, buffer2.g, ao_emission.y, buffer1.b);
+      ##endif
+
+      ##if bypass_cache_no == all
+        return ret;
+      ##elif bypass_cache_no == cache_no_0
+        return ret.cache0;
+      ##elif bypass_cache_no == cache_no_1
+        return float4(ret.cache1, 0, 0);
+      ##elif bypass_cache_no == cache_no_2
+        return ret.cache2;
+      ##else
+        return 0;
+      ##endif
+    }
+  }
+  compile( "target_vs", "bypass_vs" );
+  compile( "target_ps", "bypass_ps" );
+}
+
+macro USE_COMMON_GATHER_HELPERS(code)
+hlsl(code) {
+  #include <pixelPacking/ColorSpaceUtility.hlsl>
+
+  #define GET_TEXEL(x, y, dst_attr, src_attr, texn) {\
+    float2 texTc = src_top_left + float2( x + 0.5, y + 0.5) * src_texel_size; \
+    texels[y * 4 + x]. dst_attr = tex2Dlod( texn, float4(texTc, 0, src_mip) ). src_attr;\
+  }
+  #define GET_TEXELS(dst_attr, src_attr, tex) {\
+    GET_TEXEL(0,0,dst_attr,src_attr,tex);GET_TEXEL(1,0,dst_attr,src_attr,tex);GET_TEXEL(2,0,dst_attr,src_attr,tex);GET_TEXEL(3,0,dst_attr,src_attr,tex);\
+    GET_TEXEL(0,1,dst_attr,src_attr,tex);GET_TEXEL(1,1,dst_attr,src_attr,tex);GET_TEXEL(2,1,dst_attr,src_attr,tex);GET_TEXEL(3,1,dst_attr,src_attr,tex);\
+    GET_TEXEL(0,2,dst_attr,src_attr,tex);GET_TEXEL(1,2,dst_attr,src_attr,tex);GET_TEXEL(2,2,dst_attr,src_attr,tex);GET_TEXEL(3,2,dst_attr,src_attr,tex);\
+    GET_TEXEL(0,3,dst_attr,src_attr,tex);GET_TEXEL(1,3,dst_attr,src_attr,tex);GET_TEXEL(2,3,dst_attr,src_attr,tex);GET_TEXEL(3,3,dst_attr,src_attr,tex);\
+  }
+
+  #define gatherTexels(channel, attr, tex) {\
+    float4 block;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(1, 1) * src_texel_size).wzxy;\
+    texels[0+0*4].attr = block.x;texels[1+0*4].attr = block.y;texels[0+1*4].attr = block.z;texels[1+1*4].attr = block.w;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(3, 1) * src_texel_size).wzxy;\
+    texels[2+0*4].attr = block.x;texels[3+0*4].attr = block.y;texels[2+1*4].attr = block.z;texels[3+1*4].attr = block.w;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(1, 3) * src_texel_size).wzxy;\
+    texels[0+2*4].attr = block.x;texels[1+2*4].attr = block.y;texels[0+3*4].attr = block.z;texels[1+3*4].attr = block.w;\
+    block = tex.Gather##channel(tex##_samplerstate, src_top_left + float2(3, 3) * src_texel_size).wzxy;\
+    texels[2+2*4].attr = block.x;texels[3+2*4].attr = block.y;texels[2+3*4].attr = block.z;texels[3+3*4].attr = block.w;\
+  }
+}
+endmacro
+
+macro USE_CACHE_GATHER_HELPERS(code)
+  USE_COMMON_GATHER_HELPERS(code)
+  hlsl(code)
+  {
+    ##if (is_gather4_supported == supported && clipmap_compression_gather4_allowed == yes)
+      #define GATHER_NORMAL(dst_channel0, dst_channel1)\
+        gatherTexels(Red, dst_channel0, src_tex_1);\
+        gatherTexels(Green, dst_channel1, src_tex_1);
+
+      ##if (clipmap_use_cache_output2)
+        #define GATHER_MICRODETAIL(dst_channel)\
+          gatherTexels(Blue, dst_channel, src_tex_2);
+        #define GATHER_SMOOTHNESS(dst_channel)\
+          gatherTexels(Blue, dst_channel, src_tex_1);
+      ##else
+        ##if (clipmap_use_cache_output1)
+          #define GATHER_MICRODETAIL(dst_channel)\
+            gatherTexels(Blue, dst_channel, src_tex_1);
+        ##else
+          #define GATHER_MICRODETAIL(dst_channel)\
+            gatherTexels(Red, dst_channel, src_tex_1);
+        ##endif
+      ##endif
+    ##else
+      #define GATHER_NORMAL(dst_channel0, dst_channel1)\
+        GET_TEXELS(dst_channel0##dst_channel1,rg,src_tex_1)
+
+      ##if (clipmap_use_cache_output2)
+        #define GATHER_MICRODETAIL(dst_channel)\
+          GET_TEXELS(dst_channel, b, src_tex_2);
+        #define GATHER_SMOOTHNESS(dst_channel)\
+          GET_TEXELS(dst_channel, b, src_tex_1);
+      ##else
+        ##if (clipmap_use_cache_output1)
+          #define GATHER_MICRODETAIL(dst_channel)\
+            GET_TEXELS(dst_channel, b, src_tex_1);
+        ##else
+          #define GATHER_MICRODETAIL(dst_channel)\
+            GET_TEXELS(dst_channel, r, src_tex_1);
+        ##endif
+      ##endif
+    ##endif
+
+    ##if (cache_buffer_tex0_srgb_mode == software)
+      #define COMPRESS_AS_SRGB { \
+        UNROLL \
+        for (int i = 0; i < 16; ++i) { \
+          texels[i].rgb = ApplySRGBCurve(texels[i].rgb); } \
+      }
+    ##else
+      #define COMPRESS_AS_SRGB
+    ##endif
+  }
+endmacro
+
+macro USE_CACHE_GATHER_0(code)
+  USE_CACHE_GATHER_HELPERS(code)
+  (code)
+  {
+    src_tex_0@tex2d = cache_buffer_tex_0;
+    src_tex_0_samplerstate@sampler = CompressionInputTexSampler;
+  }
+  if (clipmap_use_cache_output2)
+  {
+    (code)
+    {
+      src_tex_2@tex2d = cache_buffer_tex_2;
+      src_tex_2_samplerstate@sampler = CompressionInputTexSampler;
+    }
+  }
+  else
+  {
+    (code)
+    {
+      src_tex_1@tex2d = cache_buffer_tex_1;
+      src_tex_1_samplerstate@sampler = CompressionInputTexSampler;
+    }
+  }
+  hlsl(code)
+  {
+    #define GATHER_BLOCK { \
+      GET_TEXELS(rgb,rgb,src_tex_0) \
+      GATHER_MICRODETAIL(a) \
+      COMPRESS_AS_SRGB \
+    }
+  }
+endmacro
+
+macro USE_CACHE_GATHER_1(code)
+  USE_CACHE_GATHER_HELPERS(code)
+  (code)
+  {
+    src_tex_1@tex2d = cache_buffer_tex_1;
+    src_tex_1_samplerstate@sampler = CompressionInputTexSampler;
+  }
+  hlsl(code)
+  {
+    #define GATHER_BLOCK { \
+      GATHER_NORMAL(x, y) \
+      for (int i = 0; i < 16; ++i) \
+        texels[i].zw = float2(0, 1); \
+    }
+  }
+endmacro
+
+macro USE_CACHE_GATHER_2(code)
+  USE_CACHE_GATHER_HELPERS(code)
+  USE_BUFFER_UNPACK_HELPERS(code)
+  (code)
+  {
+    src_tex_1@tex2d = cache_buffer_tex_1;
+    src_tex_1_samplerstate@sampler = CompressionInputTexSampler;
+    src_tex_2@tex2d = cache_buffer_tex_2;
+    src_tex_2_samplerstate@sampler = CompressionInputTexSampler;
+  }
+  hlsl(code)
+  {
+    #define GATHER_BLOCK { \
+      GET_TEXELS( rg, rg, src_tex_2 ) \
+      GATHER_SMOOTHNESS(b) \
+      UNROLL \
+      for (int i = 0; i < 16; ++i) { \
+        float2 ao_emission = unpack_ao_emission(texels[i].r); \
+        float reflectance = texels[i].g; \
+        float smoothness = texels[i].b; \
+        texels[i].r = ao_emission.x; \
+        texels[i].g = reflectance; \
+        texels[i].b = ao_emission.y; \
+        texels[i].a = smoothness; \
+      } \
+    }
+  }
+endmacro
+
+shader cache0_compressor, cache1_compressor, cache2_compressor
+{
+  if (shader == cache1_compressor && !clipmap_use_cache_output1 ||
+      shader == cache2_compressor && !clipmap_use_cache_output2)
+  {
+    dont_render;
+  }
+
+  supports land_mesh_prepare_clipmap;
+  hlsl
+  {
+    #define BC_COMPRESSION_USE_MIPS
+  }
+  (vs) { src_dst_mip__src_face@f3 = (src_mip, dst_mip, 0, 0); }
+  if (shader == cache0_compressor)
+  {
+    INIT_BC_COMPRESSION()
+    USE_BC3_COMPRESSION(ps)
+    USE_CACHE_GATHER_0(ps)
+  } else if (shader == cache1_compressor)
+  {
+    INIT_BC_COMPRESSION()
+    USE_BC5_COMPRESSION(ps)
+    USE_CACHE_GATHER_1(ps)
+  } else
+  {
+    INIT_BC_COMPRESSION()
+    USE_BC3_COMPRESSION(ps)
+    USE_CACHE_GATHER_2(ps)
+  }
+
+  PS4_DEF_TARGET_FMT_32_ABGR()
+
+  hlsl(ps) {
+    #include <pixelPacking/ColorSpaceUtility.hlsl>
+
+    uint4 bc_compressor_ps( VsOutput input ) : SV_Target
+    {
+      float2 src_top_left = input.tex.xy;
+      float2 src_texel_size = input.tex.zw;
+      float src_mip = input.src_mip;
+
+      half4 texels[16];
+      GATHER_BLOCK
+
+      half4 min_color, max_color;
+      ##if shader == cache1_compressor
+        find_base_colors( texels, min_color, max_color );
+        return pack_bc5_block( texels, min_color, max_color );
+      ##else  // cache0, cache2
+        ##if find_base_colors_with_pca
+          find_base_colors_pca_rgb( texels, min_color, max_color );
+        ##else
+          find_base_colors( texels, min_color, max_color );
+          correlate_rgb_base_colors( texels, min_color, max_color );
+        ##endif
+        inset_rgb_base_colors( min_color, max_color );
+        return pack_bc3_block( texels, min_color, max_color );
+      ##endif
+    }
+  }
+
+  compile( "target_vs", "bc_compressor_vs" );
+  compile( "target_ps", "bc_compressor_ps" );
+}
+
+shader cache0_etc2_compressor, cache1_etc2_compressor, cache2_etc2_compressor
+{
+  if (shader == cache1_etc2_compressor && !clipmap_use_cache_output1 ||
+      shader == cache2_etc2_compressor && !clipmap_use_cache_output2)
+  {
+    dont_render;
+  }
+
+  if (!hardware.metal && !hardware.vulkan)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    src_mip@f1 = (src_mip, 0, 0, 0);
+    tex_size__mip_zero@f4 : register(51);
+  }
+  if (shader == cache0_etc2_compressor)
+  {
+    USE_CACHE_GATHER_0(cs)
+  } else if (shader == cache1_etc2_compressor)
+  {
+    USE_CACHE_GATHER_1(cs)
+  } else
+  {
+    USE_CACHE_GATHER_2(cs)
+  }
+  INIT_ETC2_COMPRESSION()
+
+  hlsl(cs)
+  {
+    [numthreads( 8, 8, 1 )]
+    void bc_compressor_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      float2 src_top_left = dtId.xy * 4 * tex_size__mip_zero.xy;
+      float2 src_texel_size = tex_size__mip_zero.xy;
+
+      half4 texels[16];
+      GATHER_BLOCK
+
+    ##if shader == cache0_etc2_compressor || shader == cache2_etc2_compressor
+      texture2DAt(compressedTexture, dtId.xy) = CompressBlock_ETC2_RGBA(texels);
+    ##else
+      texture2DAt(compressedTexture, dtId.xy) = CompressBlock_ETC2_RG(texels);
+    ##endif
+    }
+  }
+  compile( "target_cs", "bc_compressor_cs" );
+}
+
+shader cache0_astc4_compressor, cache2_astc4_compressor
+{
+  if (shader == cache2_astc4_compressor && !clipmap_use_cache_output2)
+  {
+    dont_render;
+  }
+
+  if (!hardware.metal && !hardware.vulkan)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    src_mip@f1 = (src_mip, 0, 0, 0);
+    tex_size__mip_zero@f4 : register(51);
+  }
+  if (shader == cache0_astc4_compressor)
+  {
+    USE_CACHE_GATHER_0(cs)
+  }
+  else
+  {
+    USE_CACHE_GATHER_2(cs)
+  }
+
+  INIT_ASTC_COMPRESSION()
+
+  hlsl(cs)
+  {
+    [numthreads( 8, 8, 1 )]
+    void bc_compressor_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      float2 src_top_left = dtId.xy * 4 * tex_size__mip_zero.xy;
+      float2 src_texel_size = tex_size__mip_zero.xy;
+
+      float4 texels[16];
+      GATHER_BLOCK
+
+      for (int i = 0; i < 16; ++i)
+        texels[i] *= 255.f;
+
+      texture2DAt(compressedTexture, dtId.xy) = ASTCCompressBlock_ASTC_RGBA(texels);
+    }
+  }
+
+  compile( "target_cs", "bc_compressor_cs" );
+}
+
+float4 dbg_src_texelSize_uvOffset;
+texture dbg_sampleTex;
+shader cache0_compressor_sqError, cache1_compressor_sqError, cache2_compressor_sqError
+{
+  if (shader == cache1_compressor_sqError && !clipmap_use_cache_output1 ||
+      shader == cache2_compressor_sqError && !clipmap_use_cache_output2)
+  {
+    dont_render;
+  }
+
+  supports land_mesh_prepare_clipmap;
+  (ps) {
+    src_dst_mip@f2 = (src_mip, dst_mip, 0, 0);
+    src_texelSize@f2 = (dbg_src_texelSize_uvOffset.xy);
+    src_offset@f2 = (dbg_src_texelSize_uvOffset.zw);
+
+    compressed_texelSize@f4 = (1.0 / get_dimensions(dbg_sampleTex, 0).x, 1.0 / get_dimensions(dbg_sampleTex, 0).y);
+    compressedTex@smp2d = dbg_sampleTex;
+  }
+  if (shader == cache0_compressor_sqError)
+  {
+    USE_CACHE_GATHER_0(ps)
+  } else if (shader == cache1_compressor_sqError)
+  {
+    USE_CACHE_GATHER_1(ps)
+  } else
+  {
+    USE_CACHE_GATHER_2(ps)
+  }
+  POSTFX_VS(1)
+
+  hlsl(ps)
+  {
+    float4 compressor_sqError_ps(VsOutput input HW_USE_SCREEN_POS ) : SV_Target
+    {
+
+      float4 src_texels[16];
+      {
+        float src_mip = src_dst_mip.x;
+        float2 src_texel_size = src_texelSize.xy * exp2(src_dst_mip.x).xx;
+        float2 src_top_left = src_offset + floor(GET_SCREEN_POS(input.pos).xy) * 4 * src_texel_size.xy;
+
+        float4 texels[16];
+        GATHER_BLOCK
+
+        UNROLL
+        for(int i = 0; i < 16; i++)
+          src_texels[i] = texels[i];
+      }
+
+      float4 comp_texels[16];
+      {
+        float src_mip = src_dst_mip.y;
+        float2 src_texel_size = compressed_texelSize.xy * exp2(src_dst_mip.y).xx;
+        float2 src_top_left = floor(GET_SCREEN_POS(input.pos).xy) * 4 * src_texel_size.xy;
+
+        float4 texels[16];
+        GET_TEXELS(rgba, rgba, compressedTex);
+
+        UNROLL
+        for(int i = 0; i < 16; i++)
+          comp_texels[i] = texels[i];
+      }
+
+      float4 sqError = float4(0, 0, 0, 0);
+      UNROLL
+      for(int i = 0; i < 16; i++)
+      {
+        float4 error = src_texels[i] - comp_texels[i];
+        sqError += (error * error) / 16;
+      }
+
+      return sqError;
+    }
+  }
+
+  compile( "target_ps", "compressor_sqError_ps" );
+}

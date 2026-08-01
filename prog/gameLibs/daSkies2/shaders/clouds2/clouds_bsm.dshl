@@ -1,0 +1,37 @@
+//Beer Shadow Map lookup: each texel stores an analytic transmittance-vs-depth curve
+//of the cloud matter under it along the sun axis (Hillaire s2020 p.37-39):
+//  R - depth (along sun, from the layer-top plane) where cloud matter starts
+//  G - mean extinction of occupied samples behind that depth
+//  B - total optical depth (the darkness floor)
+//Units: depths (R and the lookup depth) are in CLOUDS_BSM_DEPTH_RANGE, G is optical
+//depth per CLOUDS_BSM_DEPTH_RANGE (a per-meter value underflows fp11/f16 at low ms
+//attenuation), extinction is last-octave. A receiver at sun-axis depth d evaluates
+//exp(-min(B, G*max(0, d-R))) - valid at ANY receiver altitude. Texels are indexed by
+//the sun-ray crossing on the layer-BOTTOM plane; outside the window the lookup falls
+//back to the statistical (coverage-mean) shell transmittance.
+//Design narrative (window, anchoring, fallback, bake cadence): see cloudsShadows.h
+
+texture clouds_bsm;
+float4 clouds_bsm_world;//xy - window center (world XZ), z - 1/span (meters), w - sun-axis length through the layer (m)
+//CPU-computed at publish (keeps consumer preshaders to plain copies - big WT shaders
+//sit at the stcode register limit): x - layer bottom (m), yz - sun slant xz/y, w - 1/sun y.
+//Computed from the sun the published map was traced with, not the live one: an
+//amortized bake converges over many frames (<=0.5s behind)
+float4 clouds_bsm_consts;
+//statistical fallback, CPU-computed at publish: xy - layer bottom/top radius^2 (km^2),
+//z - coverage-mean extinction toward the sun (natural log per km, last-octave units
+//like the map, the shared godray calibration), w - planet radius (km)
+float4 clouds_bsm_stat;
+//xy - map texel size (1/resolution). CPU-published so the consumer preshader stays
+//a plain register copy: a get_dimensions expression costs stcode temp registers the
+//biggest receiver shaders (WT water) do not have.
+//There is deliberately NO on/off flag: clouds_bsm is only bound while a published
+//map is live; a missing map (null texture) reads zero, which decodes to unshadowed
+float4 clouds_bsm_texel;
+float clouds_bsm_ms_attn_sq = 0.09;//ms_attenuation^2: the map stores last-octave extinction, pow(T, 1/this) recovers physical
+//how physical the scattering/godray decode is: 1 - single-scatter transmittance, shafts
+//keep full contrast; 0 - the last-octave ms-brightened convention receivers use, the one
+//that carries diffuse light through a thick overcast into the sky and the envi probe SH
+float clouds_bsm_scattering_physicality = 1;
+
+include "clouds_bsm_macros.dshl"

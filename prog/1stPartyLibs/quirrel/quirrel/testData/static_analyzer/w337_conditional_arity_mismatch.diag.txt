@@ -1,0 +1,16 @@
+WARNING: w337 (conditional-arity-mismatch) Call with 3 arguments, but 'addIcon' may hold a function taking 2 parameters.
+testData/static_analyzer/w337_conditional_arity_mismatch.nut:13:9
+
+let _a = addIcon("bob", "*", true)
+         ^------------------------
+
+
+WARNING: w337 (conditional-arity-mismatch) Call with 1 arguments, but 'mixed' may hold a function taking 2 parameters.
+testData/static_analyzer/w337_conditional_arity_mismatch.nut:27:9
+
+  let mixed = cond ? fn : @(p, q) p + q
+  return mixed(1)
+         ^-------
+}
+
+

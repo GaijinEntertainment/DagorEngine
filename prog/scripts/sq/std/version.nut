@@ -4,7 +4,7 @@ let verTrim = regexp2(@"^\s+|\s+$")
 let dotCase = regexp2(@"^\d+\.\d+\.\d+\.\d+$")
 let dashCase = regexp2(@"^\d+_\d+_\d+_\d+$")
 
-function mkVersionFromString(versionRaw){
+function mkVersionFromString(versionRaw): array|null {
   let version = verTrim.replace("", versionRaw)
   if (dotCase.match(version))
     return version.split(".")
@@ -15,11 +15,11 @@ function mkVersionFromString(versionRaw){
   return null
 }
 
-function mkVersionFromInt(version){
+function mkVersionFromInt(version: int): array {
   return [version>>24, ((version>>16)&255), ((version>>8)&255), (version&255)]
 }
 
-function versionToInt(version){
+function versionToInt(version): int {
   return version
     ? ((version[0]).tointeger() << 24) | ((version[1]).tointeger() << 16)
       | ((version[2]).tointeger() << 8) | (version[3]).tointeger()
@@ -49,11 +49,11 @@ local class Version {
       assert(false, "type is not supported")
     }
   }
-  function toint(){
+  function toint(): int {
     return versionToInt(this.version)
   }
 
-  function tostring(){
+  function tostring(): string {
     return this.version != null ? ".".join(this.version) : ""
   }
 }

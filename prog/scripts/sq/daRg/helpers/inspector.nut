@@ -127,7 +127,7 @@ let mkImageCtor = @(image) @(content) {
 
 let IMAGE_KEYS = {"image":1, "fallbackImage":1}
 
-function getPropValueTexts(desc, key, textLimit = 0) {
+function getPropValueTexts(desc, key, textLimit = 0): table {
   let val = desc[key]
   let tp = type(val)
 
@@ -161,7 +161,7 @@ function getPropValueTexts(desc, key, textLimit = 0) {
   return { text, valCtor }
 }
 
-let textColor = @(sf) sf & S_ACTIVE ? 0xFFFFFF00
+let textColor = @(sf: int): int sf & S_ACTIVE ? 0xFFFFFF00
   : sf & S_HOVER ? 0xFF80A0FF
   : 0xFFFFFFFF
 
@@ -206,7 +206,7 @@ function propPanel(desc) {
   })
 }
 
-function elemLocationText(elem, builder, builder_func_name) {
+function elemLocationText(elem, builder, builder_func_name): string {
   local text = "Source: unknown"
 
   let location = locate_element_source(elem)
@@ -225,7 +225,7 @@ function updatePickedList(data) {
   animHighlight.set(null)
 }
 
-let prepareCallstackText = @(text) //add /t for line wraps
+let prepareCallstackText = @(text: string): string //add /t for line wraps
   text.replace("/", "/\t")
 
 function clickableText(labelText, valueText, onClick = null, highlightBB = null) {

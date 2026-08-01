@@ -1,0 +1,9 @@
+ERROR: Constant name 'x' conflicts with outer local variable
+testData/diagnostics/const_hides_outer_local.nut:3:2
+
+function inner() {
+  const x = 1
+  ^----------
+  println(x)
+
+

@@ -66,10 +66,16 @@ struct DngSkies : public DaSkies
     const TMatrix4 &proj_tm,
     UpdateSky update_sky = UpdateSky::On,
     float altitude_tolerance = SKY_PREPARE_THRESHOLD);
-  void prepare(const Point3 &dir_to_sun, bool force_update_cpu, float dt);
+  void prepare(const Point3 &dir_to_sun, float dt);
 
   // basically turns off sky influence completely (but doesn't spare computational cost)
   void enableBlackSkyRendering(bool black_sky_on);
+
+  // re-apply the checkerboard trace decision from settings and the proximity gate
+  void applyCloudsTraceCheckerboardSetting();
+  // ground-proximity gate for full-res clouds tracing: fed per frame with the camera
+  // height above ground and its smoothed speed; honored only on the top clouds preset
+  void updateCloudsFullresProximity(float camera_height_above_ground, float camera_speed);
 
   Point3 calcViewPos(const Point3 &view_pos) const { return view_pos + Point3(0, altitudeOfs, 0); }
   DPoint3 calcViewPos(const TMatrix &view_itm) const { return dpoint3(view_itm.getcol(3)) + DPoint3(0, altitudeOfs, 0); }
@@ -98,11 +104,15 @@ protected:
   float altitudeOfs = 0;
 
   bool renderBlackSky = false;
+  bool cloudsFullresProximity = false;
 };
 
 void init_daskies();
 void term_daskies();
 DngSkies *get_daskies();
+// specific mechanical energy (g * h + v^2 / 2) of the camera; the RI gen mode
+// switch and the clouds proximity gate measure their thresholds in this unit
+inline float camera_specific_energy(float height, float speed) { return height * 10.f + speed * speed * 0.5f; }
 void load_daskies(const DataBlock &blk, const SkiesPanel &skies_data, const char *weather_blk = nullptr);
 void load_daskies(const DataBlock &blk, const SkiesPanel &skies_data, const DataBlock &weather_blk, bool reuse_weather_blk = false);
 void save_daskies(DataBlock &blk);

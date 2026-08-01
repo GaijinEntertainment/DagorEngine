@@ -12,7 +12,7 @@ function print_(val, separator="\n"){
   print($"{val}{separator}")
 }
 const DEF_MAX_DEEPLEVEL = 4
-function Log(tostringfunc=null) {
+function Log(tostringfunc=null): table {
   function vlog(...){
     local out = ""
     if (vargv.len()==1)
@@ -64,14 +64,14 @@ function Log(tostringfunc=null) {
     dagorDebug.console_print(" ".join(vargv.map(@(v) tostring_r(v, {maxdeeplevel=DEF_MAX_DEEPLEVEL, showArrIdx=false, tostringfunc=tostringfunc}))))
   }
 
-  function with_prefix(prefix) {
+  function with_prefix(prefix): function {
     return @(...) log("".concat(prefix, " ".join(vargv.map(@(val) tostring_r(val, {compact=true, maxdeeplevel=DEF_MAX_DEEPLEVEL tostringfunc=tostringfunc})))))
   }
-  function dlog_prefix(prefix) {
+  function dlog_prefix(prefix): function {
     return @(...) dlog.acall([null, prefix].extend(vargv))  //disable: -dlog-warn
   }
 
-  function mkwlog(logger=log) {
+  function mkwlog(logger=log): function {
     return function(...) {
       let transform = vargv.findvalue(@(v) type(v)=="function") ?? @(v) v
       let prefix = vargv.findvalue(@(v) type(v)=="string")

@@ -8,7 +8,7 @@
 #include <shaders/dag_shaderMeshTexLoadCtrl.h>
 #include <memory/dag_framemem.h>
 #include <ioSys/dag_dataBlock.h>
-#include <EASTL/vector.h>
+#include <dag/dag_vector.h>
 #include <generic/dag_initOnDemand.h>
 #include <3d/fileTexFactory.h>
 #include <drv/3d/dag_driver.h>
@@ -41,7 +41,7 @@ public:
     RPtr sceneRes;
   };
 
-  eastl::vector<GameRes> gameRes;
+  dag::Vector<GameRes> gameRes;
 
 
   int findGameRes(int res_id) const
@@ -205,6 +205,7 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(gameRes, resId, sceneRes->getRefCount())
 };
+DAG_DECLARE_RELOCATABLE(RendInstGameResFactory::GameRes);
 
 class RendInstGameResFactoryFinal final : public RendInstGameResFactory
 {};

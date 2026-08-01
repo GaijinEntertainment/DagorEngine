@@ -143,9 +143,11 @@ void ResourceManager::init(const PhysicalDeviceSet &dev_set)
   allowMixedPages = dev_set.properties.limits.bufferImageGranularity <=
                     Globals::cfg.getPerDriverPropertyBlock("mixedPages")->getInt("granularityLimit", 1024);
   allowBufferSuballoc = Globals::cfg.getPerDriverPropertyBlock("bufferSuballocation")->getBool("enable", false);
+  allowBufferSuballocOnTempRings = Globals::cfg.getPerDriverPropertyBlock("bufferSuballocation")->getBool("enableOnTempRings", true);
   allowAligmentTailOverlap = Globals::cfg.getPerDriverPropertyBlock("memoryAligmentTailOverlap")->getBool("enable", true);
   debug("vulkan: %s type mixed allocators", allowMixedPages ? "using" : "not using");
   debug("vulkan: %s buffer suballoc", allowBufferSuballoc ? "using" : "not using");
+  debug("vulkan: %s buffer suballoc on temp rings", allowBufferSuballocOnTempRings ? "using" : "not using");
   hotMemPushIdx = 0;
   outOfMemorySignal = 0;
   perMemoryTypeMethods.resize(memTypesCount);
@@ -231,11 +233,11 @@ AllocationMethodPriorityList ResourceManager::getAllocationMethods(const Allocat
   if (desc.isSharedHandleAllowed())
   {
     // we want to allocate from shared handle allocators
-    if (desc.obj.isBuffer() && allowBufferSuballoc)
+    if (desc.obj.isBuffer())
     {
-      if (desc.temporary)
+      if (desc.temporary && (allowBufferSuballoc || allowBufferSuballocOnTempRings))
         ret.methods[ret.available++] = AllocationMethodName::BUFFER_SHARED_RINGED;
-      else
+      else if (allowBufferSuballoc)
       {
         ret.methods[ret.available++] = AllocationMethodName::BUFFER_SHARED_SMALL_POW2_ALIGNED_PAGES;
         ret.methods[ret.available++] = AllocationMethodName::BUFFER_SHARED_HEAP_FREE_LIST;

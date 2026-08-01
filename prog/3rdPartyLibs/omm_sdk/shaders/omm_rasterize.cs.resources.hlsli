@@ -22,7 +22,7 @@
 
 #define OMM_DECLARE_INPUT_RESOURCES \
 	OMM_INPUT_RESOURCE(Texture2D<float4>,	t_alphaTexture,		t, 0) \
-	OMM_INPUT_RESOURCE(Buffer<uint>,		t_indexBuffer,		t, 1) \
+	OMM_INPUT_RESOURCE(ByteAddressBuffer,	t_indexBuffer,		t, 1) \
 	OMM_INPUT_RESOURCE(ByteAddressBuffer,	t_texCoordBuffer,	t, 2) \
 	OMM_INPUT_RESOURCE(ByteAddressBuffer,	t_heap0,			t, 3) \
 	OMM_INPUT_RESOURCE(ByteAddressBuffer,	t_heap1,			t, 4)

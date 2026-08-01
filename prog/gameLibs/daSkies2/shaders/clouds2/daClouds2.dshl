@@ -13,15 +13,32 @@ include "skies_special_vision.dshl"
 include "renderSkiesInc.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
 include "camera_in_camera.dshl"
-include "dynamic_resolution.dshl"
 
 texture clouds_field_volume_low;
 float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
 int clouds_field_downsample_ratio = 8;
 
 float clouds_offset = 0;
+
+//checkerboard: trace one sub-pixel of each 2x2 quad per frame into a PACKED
+//quarter-res target (its texel = this frame's quincunx position); the TAA
+//reconstructs full res from the packed lattice and its own history
+int clouds_checkerboard = 0;
+interval clouds_checkerboard: off < 1, on;
+//trace target resolution: the packed quarter res when checkerboarding, else the
+//clouds res - consumers must not derive it from the screen res
+int4 traced_clouds_res;
 int clouds_has_close_sequence = 1;
 texture clouds_depth_gbuf;
+sampler clouds_depth_gbuf_samplerstate
+{
+  mipmap_mode = point;
+  filter = point;
+  address_u = border;
+  address_v = border;
+  address_w = border;
+  border_color = (0, 0, 0, 0);
+};
 int clouds_infinite_skies;
 interval clouds_infinite_skies:no < 1, yes;
 int clouds_panorama_frame;
@@ -72,6 +89,8 @@ hlsl {
 }
 
 int clouds2_current_frame = 0;
+float clouds_edge_albedo = 0.8;//sun-scattering albedo at zero accumulated view-ray opacity (silhouette fringe); 1 = off
+float clouds_edge_albedo_sharpness = 4;//how fast albedo returns to 1 with accumulated opacity
 
 macro RAYCAST_CLOUDS(code)
   hlsl {
@@ -99,6 +118,9 @@ macro RAYCAST_CLOUDS(code)
     ##if clouds_use_fullres == yes
       #define CLOUDS_FULLRES 1
     ##endif
+    #ifndef CLOUDS_CHECKER_TRACE
+      #define CLOUDS_CHECKER_TRACE 0
+    #endif
   }
 
   hlsl {
@@ -151,9 +173,13 @@ macro RAYCAST_CLOUDS(code)
   }
   if (shader == clouds2_close_temporal_ps || shader == clouds2_close_temporal_cs)
   {
+    INIT_HDR(code)
+    USE_HDR(code)
     CLOSE_LAYER_EARLY_EXIT(code)
   } else if (shader == clouds2_temporal_ps || shader == clouds2_temporal_cs)
   {
+    INIT_HDR(code)
+    USE_HDR(code)
     USE_CLOUDS_DISTANCE(code)
     (code) {clouds_has_close_sequence@f1 = clouds_has_close_sequence;}
   } else if (shader == clouds2_direct)
@@ -253,8 +279,10 @@ macro RAYCAST_CLOUDS(code)
   if (shader != clouds_panorama && shader != clouds_alpha_panorama)
   {
     (code) {
-      clouds_depth_gbuf@smp2d = clouds_depth_gbuf;
+      clouds_depth_gbuf@tex2d = clouds_depth_gbuf;
+      clouds_depth_gbuf_samplerstate@sampler = clouds_depth_gbuf_samplerstate;
       current_frame_info@f1 = (clouds2_current_frame, 0,0,0);
+      clouds_taa_exposure@f1 = (clouds_taa_exposure);
     }
   } else
   {
@@ -282,6 +310,7 @@ macro RAYCAST_CLOUDS(code)
     infinite_skies_madd@f3 = (infMul, skies_frustum_scattering_last_tz - skies_froxels_dist*infMul, 1 - 0.5/skies_froxels_resolution.z,0);
     shadow_steps_for_nuke@f2 = (1 + clouds_steps_per_sequence, 1.0 / (1 + clouds_steps_per_sequence));
     trace_steps@f2 = (clouds_trace_steps.x, clouds_trace_steps.y);
+    edge_albedo_mad@f2 = (clouds_edge_albedo_sharpness*(1-clouds_edge_albedo), clouds_edge_albedo, 0, 0);
   }
 
   if (lightning_in_clouds == on && shader != clouds_panorama && shader != clouds_alpha_panorama) {
@@ -533,7 +562,9 @@ macro RAYCAST_CLOUDS(code)
 
     void reduce_steps(inout int num_steps, inout float dist, float stepSize, float distStart, float end)
     {
-      num_steps = min(num_steps, int(floor((end - dist) / stepSize)));
+      //ceil, not floor: the march weights the final step by its covered fraction, so a
+      //boundary between step samples (jittered stitch, trace end) integrates exactly
+      num_steps = min(num_steps, int(ceil((end - dist) / stepSize)));
       const float offsetStepCnt = clamp(ceil((distStart - dist) / stepSize), 0, num_steps);
       num_steps -= int(offsetStepCnt);
       dist += offsetStepCnt*stepSize;
@@ -543,6 +574,7 @@ macro RAYCAST_CLOUDS(code)
                            SunLightingPixelHelper sunPixelHelper,
                            float randomOfs,
                            float threshold,
+                           float enteringTransmittance,
                            inout float weightedSequenceDist,
                            inout float totalSequenceWeight,
                            inout float3 integratedScatteringTransmittance, inout float dist,
@@ -550,8 +582,6 @@ macro RAYCAST_CLOUDS(code)
                            float2 distMulAdd, float erosion_level, bool first_slice_disappear,
                            uint2 nukeMasks, uint nukeVolumMinDist)
     {
-      float mip = distMulAdd.x != 0 ? clamp(dist/30000-1, 0, 2) : 0;//switch off mip selection on first sequence
-
       // Early exit might introduce a bit of banding for really close clouds (but saves performance)
       // for mobile devices it is better to keep it on
       #ifndef FORCE_CLOSE_SEQUENCE_TRANSMITTANCE_CHECK
@@ -567,10 +597,27 @@ macro RAYCAST_CLOUDS(code)
       optimize_sequence_loop_num_steps(num_steps, dist, stepSize, view, clouds_start_trace, clouds_hole_offset);
       #endif
 
+      //distance mip for the erosion detail fetch and the light march (the field volume is
+      //sampled at lod 0 regardless); off on the near sequence (nonzero distMulAdd ramp).
+      //evaluated after range skipping and per sample below: a sequence can span tens of
+      //km, and a mip frozen at the nominal entry keeps the whole far range at mip 0
+      //mip>0 doesnt increase performance, so we keep it like that, but it used to be
+      //mip = (clouds_distance_mips != 0 && distMulAdd.x == 0) ? clamp(dist/30000-1, 0, 2) : 0;
+      float mip = 0;
+
       CloudDensitySampleParams cloudSampleParams = prepare_clouds_density_sample_params(
         erosion_level, mip, clouds_hole_offset, num_steps, view, dist, stepSize, clouds_start_trace);
 
       float sigmaDs = CLOUDS_SIGMA*stepSize;//0.04..0.012 are valid clouds extinction coef
+      const float stepSizeInv = 1.0 / stepSize;
+
+      //forward-scatter rims really glow (HG forward lobe): fade the dark-edge
+      //albedo out as the view aligns with the sun so the silver lining survives
+      //we use hardcoded cos^8
+      float edgeSunFade = saturate(dot(view, skies_primary_sun_light_dir.xzy));
+      edgeSunFade *= edgeSunFade;
+      edgeSunFade *= edgeSunFade;
+      edgeSunFade *= edgeSunFade;
 
       #ifndef EARLY_LOOP_EXIT_CHECK
         #define EARLY_LOOP_EXIT_CHECK 0
@@ -602,7 +649,9 @@ macro RAYCAST_CLOUDS(code)
         if (first_slice_disappear)//that is useful only for first slice
           cloudDensity *= saturate(dist*1./32);
 
-        float beers_term = exp2(cloudDensity * sigmaDs);
+        //the final step can be partial (end is the next sequence's jittered start or the
+        //trace end): weight its optical depth by the covered fraction of the step
+        float beers_term = exp2(cloudDensity * sigmaDs * saturate((end - dist)*stepSizeInv));
         beers_term = lerp(1, beers_term, saturate(dist*distMulAdd.x + distMulAdd.y));
         float transmittance  = beers_term;
         float weight = 1-transmittance;
@@ -628,8 +677,18 @@ macro RAYCAST_CLOUDS(code)
         // Get sun luminance according to volumetric shadow and phase function
         float2 luminance = sunAmbientLuminance(sample_pos, heightFraction, mip, erosion_level, sunPixelHelper) * fakeShadow;
 
+        //dark-edge albedo keys on VIEW-RAY PENETRATION (opacity accumulated so far),
+        //not sample density: the visible shell is low-density everywhere, so a
+        //density ramp degenerates to a constant darkening; penetration darkens the
+        //silhouette fringes (short path) and leaves the deep faces bright. SUN term
+        //only - darkening ambient drops exposure instead of adding contrast.
+        //enteringTransmittance chains the ramp across sequence boundaries: the local
+        //accumulator restarts at 1 per sequence, and the ramp must not restart mid-cloud
+        float edgeAlbedo = saturate((1 - enteringTransmittance*integratedScatteringTransmittance.z)*edge_albedo_mad.x + edge_albedo_mad.y);
+        edgeAlbedo = lerp(edgeAlbedo, 1., edgeSunFade);
         //improved analytical scattering: frostbite clouds
-        float2 integScatt = ( luminance - luminance * beers_term );//analytical integral for beers law. Scattering term is always (cloudDensity*sigma), and integral is divided by (cloudDensity*sigma), so it is just not needed
+        float2 integScatt = luminance - luminance * beers_term;//analytical integral for beers law. Scattering term is always (cloudDensity*sigma), and integral is divided by (cloudDensity*sigma), so it is just not needed
+        integScatt.x *= edgeAlbedo;
 
         integratedScatteringTransmittance.xy = integratedScatteringTransmittance.z * integScatt + integratedScatteringTransmittance.xy;
         integratedScatteringTransmittance.z *= transmittance;
@@ -669,25 +728,29 @@ macro RAYCAST_CLOUDS(code)
     CLOUDS_RET get_clouds_ret(float4 integratedScatteringTransmittance, float dist, float3 additional_lighting)
     {
       integratedScatteringTransmittance.rgb += additional_lighting;
+      float4 target0;
+      target0.rgb = integratedScatteringTransmittance.rgb;
+      target0.a = 1-integratedScatteringTransmittance.a;
+      //normalize by alpha on LINEAR premultiplied rgb, before the nonlinear transform:
+      //T(a*L)/a is not invertible by the TAA resolve, T(a*L/a) is
+      FLATTEN
+      if (target0.a >= 1-CLOUDS_TRANSMITTANCE_THRESHOLD)
+      {
+        target0.rgb /= target0.a;
+        target0.a = 1;
+      }
       #if ALREADY_TONEMAPPED_SCENE && RENDER_TO_TAA_SPACE
-        integratedScatteringTransmittance.rgb = PackToYCoCg(integratedScatteringTransmittance.rgb);
+        target0.rgb = PackToYCoCg(target0.rgb);
         #if TAA_IN_HDR_SPACE
-          integratedScatteringTransmittance.rgb *= simple_luma_tonemap(integratedScatteringTransmittance.x, TONEMAPPED_SCENE_EXPOSURE);
+          target0.rgb  *= simple_luma_tonemap(target0.x, TONEMAPPED_SCENE_EXPOSURE*get_exposure_mul());
         #endif
         #if ALREADY_TONEMAPPED_SCENE == CLOUDS_TONEMAPPED_TO_SRGB
-          integratedScatteringTransmittance.x *= 0.5;//todo: should be 1/exposure
-          integratedScatteringTransmittance.gb = integratedScatteringTransmittance.gb*0.5+0.5;
+          target0.x *= 0.5;//todo: should be 1/exposure
+          target0.gb = target0.gb*0.5+0.5;
         #endif
       #endif
       CLOUDS_RET result;
-      result.target0.rgb = integratedScatteringTransmittance.rgb;
-      result.target0.a = 1-integratedScatteringTransmittance.a;
-      FLATTEN
-      if (result.target0.a >= 1-CLOUDS_TRANSMITTANCE_THRESHOLD)
-      {
-        result.target0.rgb /= result.target0.a;
-        result.target0.a = 1;
-      }
+      result.target0 = target0;
       result.dist = dist/TRACE_DIST;
       return result;
     }
@@ -710,14 +773,14 @@ macro RAYCAST_CLOUDS(code)
     int get_steps(inout float next_sequence_start, float cStep, float nextStepSize, int stepsPerSequence)
     {
       int num_steps = stepsPerSequence;
-      float stepMult = nextStepSize/cStep;
-      float dif = (get_rounded_dist(next_sequence_start, nextStepSize) - next_sequence_start)/cStep;
+      //extend this sequence exactly to the rounded start the next (coarser) sequence
+      //will compute in get_offseted_dist, so boundaries neither gap nor double-trace
+      float nextStart = get_rounded_dist(next_sequence_start, nextStepSize);
       FLATTEN
-      if (dif>=0.0 && dif <= stepMult-1.0);
-      {
-        num_steps += int(dif)+1;
-        next_sequence_start += nextStepSize;
-      }
+      if (nextStart < next_sequence_start)
+        nextStart += nextStepSize;//rounded start landed inside this sequence, push it one coarse step out
+      num_steps += int(ceil((nextStart - next_sequence_start)/cStep));
+      next_sequence_start = nextStart;
       return num_steps;
     }
 
@@ -748,12 +811,38 @@ macro RAYCAST_CLOUDS(code)
       0.937500,0.437500,0.812500,0.312500
     };
   #endif
+    #include <interleavedGradientNoise.hlsl>
 
     float get_random_offset(uint2 screenpos)
     {
       #if TEMPORAL_REPROJECTION
         uint frameOver = TAA_CLOUDS_FRAMES;//with 16 results are slightly better, but we need to store "newFrame weight" in taa, to sample it from history, so we adjust weight accordingly (increase new frame weight, where pixel was offscreen in previous frame, not current one)
-        return ((uint(current_frame_info.x) + uint(screenpos.x)*2789 + uint(screenpos.y)*2791)&(frameOver-1))/float(frameOver);
+        #if CLOUDS_CHECKER_TRACE
+          //a checker texel retraces every 4th frame: index jitter by trace count
+          //and walk a SHORT max-separated 2-phase cycle - longer cycles outlive the
+          //TAA window at quarter rate (shimmer, or content pulsing at tiny weights),
+          //and opposite phases cancel odd harmonics of the offset sensitivity. The
+          //order key checkers on the traced lattice (finest-pitch EMA lean); the
+          //pair center is blue-noised per texel, spreading the 2-point quadrature
+          //residue (iso-step rings on thick clouds) into fine static grain
+          uint jitterFrame = uint(current_frame_info.x) >> 2;
+          uint2 lat = screenpos >> 1u;
+          float phase = ((jitterFrame + lat.x + lat.y) & 1u) ? 0.25 : -0.25;
+          float ign = interleavedGradientNoise(screenpos);
+          return 0.25 + 0.5*ign + phase;
+        #else
+          //blue-noise spatial base under the 16-phase temporal walk: the residual
+          //march noise loses the Bayer grid structure, the aperiodic base cannot
+          //phase-lock under integer-pixel motion, and odd frames mirror the sub-stratum
+          //residue (antithetic pairing), pinning each pixel's full-cycle mean at 0.5
+          float ign = interleavedGradientNoise(screenpos);
+          uint frame = uint(current_frame_info.x)&(frameOver-1);
+          float o = frac(ign + float(frame)/float(frameOver));
+          FLATTEN
+          if (frame & 1u)
+            o = (2.0*floor(o*float(frameOver)) + 1.0)/float(frameOver) - o;//no frac: the closed 1.0 endpoint is deliberate, wrapping it to 0 would bias the cycle mean
+          return o;
+        #endif
       #elif DUAL_PANORAMA
         uint frameOver = PANORAMA_TEMPORAL_SAMPLES;//todo: make this setting
         return ((current_frame_info.x%frameOver) + blue_noise_jitter[(uint(screenpos.x)&3) + 4*(uint(screenpos.y)&3)].x)/frameOver;
@@ -957,6 +1046,51 @@ macro RAYCAST_CLOUDS(code)
       #endif
     }
 
+  #if !CLOUDS_JUST_ONE_SEQUENCE
+    float get_step_size_mul(const int seqNo, const int SEQUENCE_COUNT)
+    {
+      #if CLOUDS_USE_PRESELECTED_SEQUENCE
+        #if REDUCED_SEQUENCE_COUNT
+          if (seqNo == 1)
+            return 4.0;
+        #else
+          if (seqNo == 2)
+            return 4.0;
+        #endif
+      #else
+        if (seqNo > 0 && SEQUENCE_COUNT == 3)
+          return 4.0;
+      #endif
+      return 2.0;
+    }
+
+    //covered distance (x) and headroom step (y) for the ACTUAL per-sequence step
+    //multipliers; CALC_CLOUD_TRACE_DIST assumes 2x growth and undershoots 4x configs
+    float2 calc_sequences_dist(int stepsPerSequence, float startStepSize, const int SEQUENCE_COUNT)
+    {
+      float stepSize = startStepSize;
+      float dist = 0;
+      UNROLL
+      for (int i = 0; i < SEQUENCE_COUNT; ++i)
+      {
+        dist += stepsPerSequence*stepSize;
+        stepSize *= get_step_size_mul(i, SEQUENCE_COUNT);
+      }
+      return float2(dist, stepSize);
+    }
+
+    float bound_trace_dist(float coverage, int stepsPerSequence, float startStepSize, const int SEQUENCE_COUNT)
+    {
+      #if REDUCED_SEQUENCE_COUNT && REDUCED_IN_CLOUDS_STEPS
+        //mobile (simpler-trace) config keeps its pre-restoration trace budget: the full
+        //boundary range is ~1.7x more march work on low-opacity rays for no visible gain
+        return min(coverage, CALC_CLOUD_TRACE_DIST(SEQUENCE_COUNT, stepsPerSequence, startStepSize));
+      #else
+        return coverage;
+      #endif
+    }
+  #endif
+
     CLOUDS_RET process_cloud_trace_result(const float next_sequence_start, const float startStepSize, const int SEQUENCE_COUNT, const float infiniteEnd,
       const TraceConstParams cp, const TraceAccumulationParams ap)
     {
@@ -982,11 +1116,18 @@ macro RAYCAST_CLOUDS(code)
       {
         // TODO: this fading is not correct, we need to use the actual step size (which can vary per sequence)
         #if CLOUDS_USE_PRESELECTED_SEQUENCE
-          // the "next sequence start" is the distance to the end of the sequence, we can use that as the blending end distance
-          const float blendDistEnd = next_sequence_start; // TODO: use this elsewhere
-        #else
-          // TODO: startStepSize and SEQUENCE_COUNT don't make sense here in all cases, the blending end dist can differ based on other values, fix it!
+          //nominal end of the traced sequence, capped by the same trace dist budget as cp.end:
+          //on reduced (4x growth) configs the budget lands first, and an uncapped fade window
+          //would sit entirely past the real trace end (no fade, hard far cutoff)
+          const float blendDistEnd = min(next_sequence_start,
+            CALC_CLOUD_TRACE_DIST(REDUCED_SEQUENCE_COUNT ? 3 : 4, cp.stepsPerSequence, startStepSize));
+        #elif CLOUDS_JUST_ONE_SEQUENCE
           const float blendDistEnd = CALC_PREV_LAYER_CLOUD_TRACE_DIST(SEQUENCE_COUNT, cp.stepsPerSequence, startStepSize);
+        #else
+          //use the coverage of the actual per-sequence step multipliers, so the fade
+          //window ends where tracing really ends (the 2x macro undershoots 4x configs)
+          const float blendDistEnd = bound_trace_dist(calc_sequences_dist(cp.stepsPerSequence, startStepSize, SEQUENCE_COUNT).x,
+            cp.stepsPerSequence, startStepSize, SEQUENCE_COUNT);
         #endif
         const float blendDistStart = blendDistEnd*clouds_blend_fadeout_start;
         float blendOut = saturate(1-(averageDist-blendDistStart)/(blendDistEnd-blendDistStart));
@@ -997,7 +1138,7 @@ macro RAYCAST_CLOUDS(code)
     }
 
     void perform_cloud_trace_sequence_impl(const int num_steps, const float stepSize,
-      const float erosionLevel, const bool use_inf_fog,
+      const float erosionLevel, const bool use_inf_fog, const float end,
       const TraceConstParams cp, inout TraceAccumulationParams ap)
     {
       float3 additionalLighting2 = 0;
@@ -1005,7 +1146,8 @@ macro RAYCAST_CLOUDS(code)
       #if WEIGHTED_ATMOSPHERE_SCATTERING == WEIGHTED_ATMOSPHERE_SCATTERING_SEQUENCE
         float weightedSequenceDist = 0, totalSequenceWeight = 0;
         float3 integratedScatteringTransmittance2 = float3(0,0,1);
-        performSequence(cp.distStart, num_steps, cp.view, stepSize,cp.end,cp.sunPixelHelper, cp.randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/max(ap.integratedTransmittance, EPS),
+        performSequence(cp.distStart, num_steps, cp.view, stepSize,end,cp.sunPixelHelper, cp.randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD/max(ap.integratedTransmittance, EPS),
+                        ap.integratedTransmittance,
                         weightedSequenceDist, totalSequenceWeight, integratedScatteringTransmittance2, ap.dist,
                         additionalLighting2, cp.distMulAdd, erosionLevel, false, cp.nukeEffectsMasks, cp.nukeVolumMinDist);
         float seqAvgDist = weightedSequenceDist/max(EPS, totalSequenceWeight);
@@ -1021,7 +1163,8 @@ macro RAYCAST_CLOUDS(code)
         ap.integratedTransmittance *= integratedScatteringTransmittance2.z;
         ap.weightedDist += weightedSequenceDist; ap.totalWeight += totalSequenceWeight;
       #else
-        performSequence(cp.distStart, num_steps, cp.view, stepSize,cp.end,cp.sunPixelHelper, cp.randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,
+        performSequence(cp.distStart, num_steps, cp.view, stepSize,end,cp.sunPixelHelper, cp.randomOfs, CLOUDS_TRANSMITTANCE_THRESHOLD,
+                        1.0,//the accumulator itself is cumulative across sequences here
                         ap.weightedDist, ap.totalWeight, ap.integratedScatteringTransmittanceEncoded, ap.dist,
                         additionalLighting2, cp.distMulAdd, erosionLevel, cp.first_slice_disappear, cp.nukeEffectsMasks, cp.nukeVolumMinDist);
         ap.additionalLighting.rgb += ap.integratedTransmittance*additionalLighting2;
@@ -1046,29 +1189,12 @@ macro RAYCAST_CLOUDS(code)
 
       int num_steps = ceil((cp.end-ap.dist)/stepSize);
       num_steps = ceil((cp.end-ap.dist)*0.5/stepSize);//half dist
-      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp, ap);
+      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp.end, cp, ap);
       num_steps = ceil((cp.end-ap.dist)/stepSize);
-      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp, ap);
+      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp.end, cp, ap);
     }
 
   #else
-
-    float get_step_size_mul(const int seqNo, const int SEQUENCE_COUNT)
-    {
-      #if CLOUDS_USE_PRESELECTED_SEQUENCE
-        #if REDUCED_SEQUENCE_COUNT
-          if (seqNo == 1)
-            return 4.0;
-        #else
-          if (seqNo == 2)
-            return 4.0;
-        #endif
-      #else
-        if (seqNo > 0 && SEQUENCE_COUNT == 3)
-          return 4.0;
-      #endif
-      return 2.0;
-    }
 
     bool check_use_inf_fog(const int seqNo)
     {
@@ -1085,8 +1211,13 @@ macro RAYCAST_CLOUDS(code)
       const float stepSizeMul = get_step_size_mul(seqNo, SEQUENCE_COUNT);
       get_offseted_dist(ap.dist, next_sequence_start, cp.randomOfs, stepSize, OFFSETTED_DIST_MAX_RANDOM, cp.stepsPerSequence);
       int num_steps = get_steps(next_sequence_start, stepSize, stepSize*stepSizeMul, cp.stepsPerSequence);
+      //end at the jittered start of the next (coarser) sequence - it begins at its rounded
+      //start minus randomOfs*its step, so the unjittered stitch would double-march
+      //randomOfs*(mul-1) fine steps at every nonzero jitter phase; the march weights the
+      //partial final step by its covered fraction, so the boundary integrates exactly
+      const float seqEnd = seqNo == SEQUENCE_COUNT-1 ? cp.end : min(cp.end, next_sequence_start - cp.randomOfs*stepSize*stepSizeMul);
       const float erosionLevel = calc_erosion_level(seqNo, ap.dist);
-      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, cp, ap);
+      perform_cloud_trace_sequence_impl(num_steps, stepSize, erosionLevel, use_inf_fog, seqEnd, cp, ap);
       stepSize *= stepSizeMul;
     }
 
@@ -1121,8 +1252,10 @@ macro RAYCAST_CLOUDS(code)
       perform_cloud_trace_sequence(0, next_sequence_start, stepSize, SEQUENCE_COUNT, cp, ap);
       cp.distMulAdd = float2(0,1);
       cp.first_slice_disappear = false;
+      //the march leaves ap.dist up to one step past seqEnd, which can falsely read as past
+      //cp.end: gate on the next sequence's jittered start so its tail interval is not skipped
       BRANCH
-      if (SEQUENCE_COUNT >= 2 && ap.integratedTransmittance >= CLOUDS_TRANSMITTANCE_THRESHOLD && ap.dist<=cp.end)
+      if (SEQUENCE_COUNT >= 2 && ap.integratedTransmittance >= CLOUDS_TRANSMITTANCE_THRESHOLD && next_sequence_start - cp.randomOfs*stepSize < cp.end)
       {
         perform_cloud_trace_sequence(1, next_sequence_start, stepSize, SEQUENCE_COUNT, cp, ap);
 
@@ -1130,7 +1263,7 @@ macro RAYCAST_CLOUDS(code)
         for (int i = 2; i <= 5; ++i)
         {
           BRANCH
-          if (SEQUENCE_COUNT > i && ap.integratedTransmittance >= CLOUDS_TRANSMITTANCE_THRESHOLD && ap.dist <= cp.end)
+          if (SEQUENCE_COUNT > i && ap.integratedTransmittance >= CLOUDS_TRANSMITTANCE_THRESHOLD && next_sequence_start - cp.randomOfs*stepSize < cp.end)
             perform_cloud_trace_sequence(i, next_sequence_start, stepSize, SEQUENCE_COUNT, cp, ap);
         }
       }
@@ -1170,7 +1303,10 @@ macro RAYCAST_CLOUDS(code)
       #elif CAN_BE_IN_CLOUDS && JUST_CLOSE_SEQUENCE
         const int SEQUENCE_COUNT = 1;
         stepsPerSequence = REDUCED_IN_CLOUDS_STEPS ? steps_per_sequence / 2 : steps_per_sequence;
-        const float startStepSize = closeSequenceStepSize*(32./stepsPerSequence);
+        //reach must equal closeSequenceSteps*closeSequenceStepSize: every consumer
+        //(far layer start, apply gate, outside test, tiled dist) derives from that
+        //product, and a hardcoded 32 left a no-mans band when the define grows
+        const float startStepSize = closeSequenceStepSize*(float(closeSequenceSteps)/stepsPerSequence);
       #elif DUAL_PANORAMA
         const int SEQUENCE_COUNT = 4;
         const float startStepSize = 256;
@@ -1192,10 +1328,13 @@ macro RAYCAST_CLOUDS(code)
       #if CLOUDS_USE_PRESELECTED_SEQUENCE
       // TODO: special case only to keep legacy behavior, and same perf
       const float actualTraceDist = CALC_CLOUD_TRACE_DIST(REDUCED_SEQUENCE_COUNT ? 3 : 4, stepsPerSequence, startStepSize);
-
-      #else
-      // TODO: this is not correct, we need to use the actual step size (which can vary per sequence)
+      #elif CLOUDS_JUST_ONE_SEQUENCE
       const float actualTraceDist = CALC_CLOUD_TRACE_DIST(SEQUENCE_COUNT, stepsPerSequence, startStepSize);
+      #else
+      //coverage of the actual per-sequence step multipliers: identical to the macro for
+      //2x-growth configs, and does not cut far clouds on 4x (3-sequence) configs
+      const float2 seqCoverage = calc_sequences_dist(stepsPerSequence, startStepSize, SEQUENCE_COUNT);
+      const float actualTraceDist = bound_trace_dist(seqCoverage.x + seqCoverage.y, stepsPerSequence, startStepSize, SEQUENCE_COUNT);
       #endif
 
       float stepSize = startStepSize;
@@ -1287,7 +1426,6 @@ shader clouds2_temporal_ps, clouds2_close_temporal_ps, clouds2_direct
 
   USE_POSTFX_VERTEX_POSITIONS()
   USE_AND_INIT_VIEW_VEC(vs)
-  INIT_DYNAMIC_RESOLUTION(ps)
   RAYCAST_CLOUDS(ps)
 
   hlsl(vs) {
@@ -1343,7 +1481,15 @@ float4 clouds2_dispatch_groups;
 
 shader clouds2_temporal_cs, clouds2_close_temporal_cs
 {
-  INIT_DYNAMIC_RESOLUTION(cs)
+  if (shader == clouds2_temporal_cs)
+  {
+    hlsl(cs) {
+      ##if clouds_checkerboard == on
+        #define CLOUDS_CHECKER_TRACE 1
+        #include "clouds_checker.hlsli"
+      ##endif
+    }
+  }
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
   RAYCAST_CLOUDS(cs)
   VIEW_VEC_OPTIMIZED(cs)
@@ -1361,6 +1507,7 @@ shader clouds2_temporal_cs, clouds2_close_temporal_cs
     {
       invres@f4 = (1./clouds2_resolution.x, 1./clouds2_resolution.y, 0.5/clouds2_resolution.x, 0.5/clouds2_resolution.y);
       res@u2 = clouds2_resolution.xy;
+      traced_clouds_res@u2 = traced_clouds_res.xy;
     }
   }
 
@@ -1377,17 +1524,28 @@ shader clouds2_temporal_cs, clouds2_close_temporal_cs
     [numthreads(CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, 1)]
     void cs_main(uint2 dtid : SV_DispatchThreadID)
     {
+      #if CLOUDS_CHECKER_TRACE
+        //packed quarter-res trace: the thread is a packed texel, its ray is the
+        //full-res quincunx position of this frame. Edge rays clamp (odd res), so
+        //every packed texel holds a valid sample of this frame
+        uint2 writeId= dtid;
+        if (any(writeId >= traced_clouds_res))
+          return;
+        dtid = min(writeId*2u + clouds_checker_sub(uint(current_frame_info.x)), res - 1u);
+      #else
       if (any(dtid >= res))
         return;
+      uint2 writeId = dtid;
+      #endif
 
       float2 texcoord = dtid*invres.xy + invres.zw;
-      float2 scatteringTexcoord = texcoord * current_inv_dynamic_resolution_scale;
+      float2 scatteringTexcoord = texcoord;
       DISCARD_IF_INVALID_VIEW_AREA_CS(scatteringTexcoord);
 
       float3 viewVect = getViewVecOptimized(scatteringTexcoord);
       CLOUDS_RET tr = trace_clouds(viewVect, texcoord, dtid, scatteringTexcoord);
 
-      texture2DAt(target0, dtid) = tr.target0;
+      texture2DAt(target0, writeId) = tr.target0;
       #if HAS_DEPTH_TARGET
       texture2DAt(target1, dtid) = tr.dist;
       #endif
@@ -1417,9 +1575,11 @@ shader clouds_panorama, clouds_alpha_panorama
     USE_SKIES_SUN_COLOR(ps)
     (ps) {
       skies_transmittance_texture@smp2d = skies_transmittance_texture;
-      sky_panorama_tex@smp2d = sky_panorama_tex;
+      sky_panorama_tex@tex2d = sky_panorama_tex;
       skies_froxels_resolutionInv@f3 = (1./skies_froxels_resolution.x, 1./skies_froxels_resolution.y, 1./skies_froxels_resolution.z);
     }
+    INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(ps)
+    hlsl(ps) { #define sky_panorama_tex_samplerstate global_linear_wrap_u_clamp_v_sampler }
   }
 
   if (clouds_panorama_split != off)
@@ -1453,7 +1613,6 @@ shader clouds_panorama, clouds_alpha_panorama
     clouds_panorama_blend_weight@f1 = (clouds_panorama_blend,0,0,0);
   }
   INIT_AND_USE_PANORAMA_VIEW_VECT(ps)
-  INIT_DYNAMIC_RESOLUTION(ps)
 
   RAYCAST_CLOUDS(ps)
   hlsl(ps) {

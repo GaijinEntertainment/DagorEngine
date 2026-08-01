@@ -21,6 +21,9 @@ dafg::NodeHandle makeUnderWaterFogNode()
     CameraViewShvars{camera}.bindViewVecs();
     registry.readTexture("depth_for_transparency").atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
+
+    registry.createBlob<OrderingToken>("after_under_water_fog_node_token");
+
     return [renderer = PostFxRenderer("underwater_fog"), underwaterHndl] {
       if (!underwaterHndl.ref())
         return;

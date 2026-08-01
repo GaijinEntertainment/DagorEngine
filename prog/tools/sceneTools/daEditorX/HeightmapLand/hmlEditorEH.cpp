@@ -1847,6 +1847,8 @@ void HmapLandObjectEditor::onObjectEntityNameChanged(RenderableEditableObject &o
 {
   if (outlinerWindow)
     outlinerWindow->onObjectAssetNameChanged(object);
+
+  invalidateObjectProps();
 }
 
 void HmapLandObjectEditor::onObjectEditLayerChanged(RenderableEditableObject &object)

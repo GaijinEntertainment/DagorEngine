@@ -258,7 +258,11 @@ var GE_defaultExternalsAdditional =
     {type: "float4",  name:"nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m"},
     {type: "float4",  name:"skies_primary_sun_light_dir"},
     {type: "float4",  name:"clouds_origin_offset"},
-    {type: "texture2D", name:"clouds_shadows_2d"},
+    {type: "texture2D", name:"clouds_bsm"},
+    {type: "float4",  name:"clouds_bsm_world"},
+    {type: "float4",  name:"clouds_bsm_consts"},
+    {type: "float4",  name:"clouds_bsm_stat"},
+    {type: "float4",  name:"clouds_bsm_texel"},
     {type: "float4",  name:"clouds_hole_pos"},
     {type: "float4",  name:"distant_fog_local_view_z"},
 

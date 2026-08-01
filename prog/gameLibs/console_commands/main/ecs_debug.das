@@ -184,6 +184,26 @@ def add_sub_template_for_selected_processor(args : array<string>;
 
 
 [console_processor]
+def remove_sub_template_for_selected_processor(args : array<string>;
+                                               collect : bool;
+                                               var hints : ConsoleProcessorHints)
+  let cmd = "ecs.remove_sub_template_for_selected_entities"
+  if collect
+    let inputs <- args[0] |> split(" ")
+    add_hints(fixed_array(CommandArgDesc(name = "template_name", hintType = CommandArgHintType.TemplateName)),
+              cmd, inputs, /*hints_count*/ 20, /*threshold_cam_distance_sq*/ square(50.0), hints)
+    return false
+  elif args[0] == cmd
+    let argc = args |> length()
+    let templateName = argc >= 2 ? args[1] : "#invalid_template_name"
+    query() <| $ [es(REQUIRE=daeditor__selected)] (eid : EntityId)
+      removeSubTemplate(eid, templateName)
+    return true
+
+  return false
+
+
+[console_processor]
 def remove_sub_template_processor(args : array<string>;
                                   collect : bool;
                                   var hints : ConsoleProcessorHints)

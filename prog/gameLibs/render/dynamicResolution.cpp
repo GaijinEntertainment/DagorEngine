@@ -225,6 +225,21 @@ void DynamicResolution::setResolutionRange(const IPoint2 &min_dynamic_resolution
   maxResolutionScale = 1;
 }
 
+void DynamicResolution::setManualResolutionScaleForDebug(float scale)
+{
+  G_UNUSED(scale);
+
+#if DYNRES_DEBUG
+  if (scale <= 0)
+    autoAdjust = true;
+  else
+  {
+    resolutionScale = clamp(scale, minResolutionScale, maxResolutionScale);
+    autoAdjust = false;
+  }
+#endif
+}
+
 
 #if DYNRES_DEBUG
 

@@ -2,7 +2,7 @@ include "shader_global.dshl"
 include "rendinst_opaque_inc.dshl"
 include "rendinst_rotation_palette.dshl"
 include "rendinst_simple_inc.dshl"
-include "simple_painted_inc.dshl"
+include "paint_details_inc.dshl"
 include "gbuffer.dshl"
 
 float4 voxel_depth_projection;
@@ -44,16 +44,7 @@ shader rendinst_voxel
   }
 
   INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
-  INIT_SIMPLE_PAINTED()
-  COMMON_RENDINST_INIT_PAINT(false)
   INIT_AND_USE_GLOBTM(ps)
-
-  (vs) {
-    voxel_data@buf : register(ri_vertex_data_no) hlsl {
-      ByteAddressBuffer voxel_data@buf;
-    }
-    voxel_data_offset@u1 = voxel_data_offset;
-  }
 
   (ps) {
     voxel_data@buf : register(ri_vertex_data_no) hlsl {
@@ -68,6 +59,14 @@ shader rendinst_voxel
     normal_block_ofs@u1 = voxel_atlas_offsets.y;
     depth_proj@f4 = voxel_depth_projection;
     camera_base_offset@f3 = camera_base_offset;
+    paint_details_tex@smp2d = paint_details_tex;
+    cliff_color_overlay_map_tex@smp2d = cliff_color_overlay_map_tex;
+    cliff_color_overlay_map_tex_exists@i1 = exists_tex(cliff_color_overlay_map_tex);
+    cliff_color_overlay_map_scale_offset@f4 = (
+        1.0 / (cliff_color_overlay_map_left_top_right_bottom.z - cliff_color_overlay_map_left_top_right_bottom.x),
+        1.0 / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y),
+        -cliff_color_overlay_map_left_top_right_bottom.x / (cliff_color_overlay_map_left_top_right_bottom.z - cliff_color_overlay_map_left_top_right_bottom.x),
+        -cliff_color_overlay_map_left_top_right_bottom.y / (cliff_color_overlay_map_left_top_right_bottom.w - cliff_color_overlay_map_left_top_right_bottom.y));
   }
 
   hlsl {
@@ -79,9 +78,7 @@ shader rendinst_voxel
       nointerpolation float3 worldLocalY : TEXCOORD2;
       nointerpolation float3 worldLocalZ : TEXCOORD3;
       float3 worldPos                    : TEXCOORD4;
-      #if COLOR_NEEDED
-        float3 colorMul                  : TEXCOORD5;
-      #endif
+      nointerpolation uint hashVal       : TEXCOORD5;
       VSOUT_DRAW_ID
     };
   }
@@ -117,17 +114,8 @@ shader rendinst_voxel
       output.worldLocalZ = worldLocalZ;
       output.worldPos = worldPos;
 
-      #if COLOR_NEEDED
-        output.colorMul = 1;
-        #if HAS_PAINT_DETAILS
-          INSTANCING_HASH_VAL
-          output.colorMul = getColorMul(hashVal);
-        #endif
-        #if HAS_OVERLAY_MAP_COLOR
-          if (need_overlay_map_color())
-            output.colorMul = get_overlay_map_color(worldPos);
-        #endif
-      #endif
+      INSTANCING_HASH_VAL
+      output.hashVal = hashVal;
 
       return output;
     }
@@ -149,6 +137,7 @@ shader rendinst_voxel
     };
 
     #define VOXEL_DEPTH_BITS 14
+    #define VOXEL_PALETTE_SIZE 16
 
   ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
     float4 voxel_ps(VsOutput IN HW_USE_SCREEN_POS, out float depth : SV_DepthLessEqual) : SV_Target0
@@ -156,6 +145,10 @@ shader rendinst_voxel
     GBUFFER_OUTPUT voxel_ps(VsOutput IN HW_USE_SCREEN_POS, out float depth : SV_DepthLessEqual)
   ##endif
     {
+      #if SET_UP_MULTIDRAW
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(IN));
+      #endif
+
       float4 screenpos = GET_SCREEN_POS(IN.pos);
       float3 p2e = -depth_proj.xyz - depth_proj.w * (IN.worldPos + camera_base_offset);
 
@@ -174,7 +167,8 @@ shader rendinst_voxel
         if (voxel_data_offset == 0)
         {
           // shouldn't happen
-          depth = screenpos.z * rcp(screenpos.w);
+          float2 pzw = mulPointTm(IN.worldPos + camera_base_offset, globtm).zw;
+          depth = pzw.x * rcp(pzw.y);
           return 0;
         }
       ##else
@@ -188,7 +182,8 @@ shader rendinst_voxel
           init_albedo(result, half3(1, 0, 1));
           init_material(result, SHADING_NORMAL);
           init_order(result, GBUFFER_ORDER_STATIC);
-          depth = screenpos.z * rcp(screenpos.w);
+          float2 pzw = mulPointTm(IN.worldPos + camera_base_offset, globtm).zw;
+          depth = pzw.x * rcp(pzw.y);
           return encode_gbuffer(result, p2e.xyz, screenpos);
         }
       ##endif
@@ -196,6 +191,24 @@ shader rendinst_voxel
       const uint mipsAndLayers = loadBuffer(voxel_data, voxel_data_offset);
       const uint numMips = mipsAndLayers & 0xffff;
       const uint numLayers = mipsAndLayers >> 16;
+
+      if (numLayers == 0 || numLayers > 4)
+      {
+        // shouldn't happen, bad data
+        float2 pzw = mulPointTm(IN.worldPos + camera_base_offset, globtm).zw;
+        depth = pzw.x * rcp(pzw.y);
+        ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
+          return 0;
+        ##else
+          init_albedo(result, half3(1, 0, 0));
+          init_material(result, SHADING_NORMAL);
+          init_order(result, GBUFFER_ORDER_STATIC);
+          return encode_gbuffer(result, p2e.xyz, screenpos);
+        ##endif
+      }
+
+      const uint palOfs = voxel_data_offset + 4 + 4 * numMips;
+      const uint palBlocksOfs = palOfs + VOXEL_PALETTE_SIZE * 2;
       uint mipOfs = loadBuffer(voxel_data, voxel_data_offset + 4) + voxel_data_offset;
       float voxelSize = asfloat(loadBuffer(voxel_data, mipOfs + 4 * 3));
 
@@ -299,7 +312,7 @@ shader rendinst_voxel
         ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
           if (hit)
           {
-            pos = ray.p + ray.wdir * t;
+            pos = ray.p + ray.wdir * (t + 1.8);
             break;
           }
         ##endif
@@ -357,14 +370,46 @@ shader rendinst_voxel
         const uint normalBlock = normal_block_ofs + (normalIndex == 0 ? 0 : normalIndex - 1);
 
         // sample surface blocks
+        const uint palBlock = loadBuffer(voxel_data, palBlocksOfs + (colorIndex == 0 ? 0 : colorIndex - 1) * 4);
+        const uint voxelPalIndex = (palBlock >> ((palBlock & (1u << (8 + (itc.x & 3) + (itc.y & 3) * 4))) == 0 ? 0 : 4)) & 0xf;
+        const uint palData = loadBuffer(voxel_data, palOfs + ((voxelPalIndex * 2) & ~3u))
+          >> ((voxelPalIndex & 1) == 0 ? 0 : 16);
+        const uint palette_index = (palData >> 15) & 1;
+        const uint paint_palette_row = palData & 0x7fff;
+
+        half3 colorMul;
+        if (paint_palette_row == 0x7fff) // overlay map
+        {
+          colorMul = 0; // artist request
+          if (cliff_color_overlay_map_tex_exists)
+          {
+            float2 tc = saturate(worldPos.xz * cliff_color_overlay_map_scale_offset.xy + cliff_color_overlay_map_scale_offset.zw);
+            colorMul = tex2Dlod(cliff_color_overlay_map_tex, float4(tc, 0, 0)).rgb;
+            colorMul *= 2; // modulation hack, see INIT_CONST_COLOR_OVERRIDES
+          }
+        }
+        else
+        {
+          ##if paint_details_tex != NULL
+            uint paint_palette_col = IN.hashVal;
+            uint2 dim;
+            paint_details_tex.GetDimensions(dim.x, dim.y);
+            dim.x >>= 1; // 2 palettes merged together, palette_index will select one of them (but stub textures may have only 1, hence the max 1 below)
+
+            colorMul = texture2DAt(paint_details_tex,
+              uint2(paint_palette_col % max(dim.x, 1) + dim.x * palette_index, paint_palette_row % dim.y)).rgb;
+            colorMul *= COLOR_CORRECTION_MULTIPLIER;
+          ##else
+            colorMul = 1;
+          ##endif
+        }
+
         half4 color = texelFetch(color_tex, uint2(
           ((colorBlock << 2) % uint(color_tex_size.x)) | (itc.x & 3),
           (((colorBlock << 2) / uint(color_tex_size.x)) << 2) | (itc.y & 3)
           ), 0);
         color.rgb = RemoveSRGBCurve_Fast(color.rgb);
-        #if COLOR_NEEDED
-          color.rgb += IN.colorMul * color.a * COLOR_CORRECTION_MULTIPLIER;
-        #endif
+        color.rgb += colorMul * color.a * 2;
 
         half4 material = texelFetch(color_tex, uint2(
           ((matBlock << 2) % uint(color_tex_size.x)) | (itc.x & 3),

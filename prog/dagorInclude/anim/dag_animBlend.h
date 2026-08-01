@@ -41,6 +41,7 @@ struct NodeMask
   NameMap nm;
   String name;
   AnimV20::AnimData *anim;
+  AnimV20::AnimData *animInverted; // only nodes that are not present in nodeMask
 };
 } // namespace AnimResManagerV20
 
@@ -728,9 +729,10 @@ public:
   const char *getStateName(int idx) const { return stateNames.getMapRaw()[idx].name; }
   const char *getStateNameByStateIdx(int state_idx) const
   {
+    // stored ids carry tag/alias bits while state_idx (as from getStateIdx) is stripped
     dag::ConstSpan<FastStrMap::Entry> map = stateNames.getMapRaw();
     for (const FastStrMap::Entry *it = map.begin(); it != map.end(); ++it)
-      if (it->id == state_idx)
+      if ((it->id & ~(STATE_ALIAS_FLG | STATE_TAG_MASK)) == state_idx && !(it->id & STATE_ALIAS_FLG))
         return it->name;
     return nullptr;
   }

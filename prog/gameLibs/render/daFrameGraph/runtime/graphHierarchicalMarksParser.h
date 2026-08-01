@@ -30,10 +30,12 @@ public:
 
   private:
     GraphHierarchicalMarksParser &parser_;
+
+    bool useNamespaces_;
   };
 
 public:
-  GraphHierarchicalMarksParser() = default;
+  GraphHierarchicalMarksParser();
 
   void parseGraphMarks(const InternalRegistry &registry, const intermediate::Graph &graph);
 
@@ -53,7 +55,8 @@ private:
   struct NodeMark
   {
     uint16_t popNum = 0;
-    FixedString displayName;
+    FixedString shortDisplayName;
+    FixedString fullDisplayName;
 
     // dag::RelocatableFixedVector requires T to be relocatable, eastl::fixed_string is not
     eastl::fixed_vector<FixedString, NODE_NAMESPACES_NUMBER> newGPUEvents;

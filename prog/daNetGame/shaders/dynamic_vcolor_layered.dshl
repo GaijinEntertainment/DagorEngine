@@ -40,8 +40,8 @@ shader dynamic_vcolor_layered
         nointerpolation float3 colorMul         : TEXCOORD3;
         #endif
         #ifdef MOTION_VECTORS_ENABLED
-        float4 out_pos                          : TEXCOORD4;
-        float4 out_pos_prev                     : TEXCOORD5;
+        float3 out_pos                          : TEXCOORD4;
+        float3 out_pos_prev                     : TEXCOORD5;
         #endif
         float3 vcolMask                         : TEXCOORD6;
         #if DYNAMIC_DESTR_DISAPPEAR_ENABLED

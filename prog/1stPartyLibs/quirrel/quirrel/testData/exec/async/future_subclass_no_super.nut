@@ -5,7 +5,7 @@ from "async" import Future
 // script-callable methods used to dereference NULL on this; they must now
 // throw "invalid 'this'" instead.
 
-let class Sub(Future) {
+class Sub(Future) {
   constructor() {
     // intentionally skip super.constructor()
   }

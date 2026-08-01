@@ -82,25 +82,22 @@ public:
 
     if (wr.lmeshMgr && (type & RenderDepthAOType::Terrain))
     {
-      wr.lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
-
-      const float oldInvGeomDist = wr.lmeshRenderer->getInvGeomLodDist();
       const float heightmap_size = 4096;
-      wr.lmeshRenderer->setInvGeomLodDist(0.5 / heightmap_size);
       const int HEIGTHMAP_VS_CONST_BUFFFER_SIZE = 522;
       d3d::set_vs_constbuffer_register_count(HEIGTHMAP_VS_CONST_BUFFFER_SIZE);
 
       BBox3 box(Point3::xVz(origin, 0), 2 * distace_around);
-      wr.lmeshRenderer->prepare(*wr.lmeshMgr, Point3::xVz(origin, 0), 0);
+      wr.lmeshRenderer->prepare(*wr.lmeshMgr, HmapOrigin(Point3::xVz(origin, 0)));
 
-      wr.lmeshRenderer->setRenderInBBox(box);
+      LandMeshRenderDesc desc;
+      desc.mode = LMeshRenderingMode::RENDERING_HEIGHTMAP;
+      desc.renderInBBox = box;
+      desc.invGeomLodDist = 0.5 / heightmap_size;
       shaders::overrides::set(wr.depthClipState);
       wr.lmeshRenderer->render(culling_view_proj, TMatrix4::IDENT, Frustum{culling_view_proj}, *wr.lmeshMgr,
-        LandMeshRenderer::RENDER_ONE_SHADER, origin);
+        LandMeshRenderer::RENDER_ONE_SHADER, desc, origin, HmapOrigin(Point3::xVz(origin, 0)));
       shaders::overrides::reset();
-      wr.lmeshRenderer->setRenderInBBox(BBox3());
 
-      wr.lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
       d3d::set_vs_constbuffer_register_count(0);
     }
   }
@@ -118,7 +115,7 @@ void DepthAOAboveContext::AsyncVisiblityJob::doJob()
 }
 
 DepthAOAboveContext::DepthAOAboveContext(int tex_size, float depth_around_distance, bool render_transparent) :
-  renderer(tex_size, depth_around_distance, render_transparent)
+  renderer(tex_size, depth_around_distance, render_transparent, true, DEPTH_AROUND_EXTRA_CASCADE_MUL)
 {}
 
 DepthAOAboveContext::~DepthAOAboveContext()
@@ -133,8 +130,8 @@ DepthAOAboveContext::~DepthAOAboveContext()
 
 bool DepthAOAboveContext::prepare(const Point3 &view_pos, float scene_min_z, float scene_max_z)
 {
-  renderer.prepareRenderRegions(view_pos, scene_min_z, scene_max_z);
-  auto regs = renderer.getRegionsToRender();
+  renderer.prepareRenderRegionsForCascade(view_pos, scene_min_z, scene_max_z, -1.0f, cascadeToUpdate);
+  auto regs = renderer.getRegionsToRender(cascadeToUpdate);
   G_ASSERT_RETURN(regs.size() < cullJobs.size(), false);
 
   if (regs.empty())
@@ -175,5 +172,7 @@ void DepthAOAboveContext::render(WorldRenderer &wr, const TMatrix &view_itm)
 {
   FRAME_LAYER_GUARD(globalFrameBlockId);
   RenderDepthAOCB depthAoCb(*this, wr, view_itm);
-  renderer.renderPreparedRegions(depthAoCb);
+  renderer.renderPreparedRegionsForCascade(depthAoCb, cascadeToUpdate);
+  renderer.setVars();
+  cascadeToUpdate = (cascadeToUpdate + 1) % DepthAOAboveRenderer::MAX_DEPTH_ABOVE_CASCADES;
 }

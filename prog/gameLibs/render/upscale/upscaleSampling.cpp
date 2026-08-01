@@ -14,7 +14,6 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_computeShaders.h>
-#include <shaders/dag_dynamicResolutionStcode.h>
 #include <math/integer/dag_IPoint2.h>
 
 namespace
@@ -156,7 +155,7 @@ UpscaleSamplingTex::UpscaleSamplingTex(uint32_t w, uint32_t h, const char *tag)
   upscaleTexRTPool = RTargetPool::get(w, h, flags, 1);
 }
 
-void UpscaleSamplingTex::render(float goffset_x, float goffset_y, const DynRes *dynamic_resolution)
+void UpscaleSamplingTex::render(float goffset_x, float goffset_y)
 {
   TIME_D3D_PROFILE(upscale_sampling_tex);
 
@@ -183,8 +182,8 @@ void UpscaleSamplingTex::render(float goffset_x, float goffset_y, const DynRes *
 
   if (upscaleTex && !!(ti.cflg & TEXCF_UNORDERED))
   {
-    int w = (dynamic_resolution ? dynamic_resolution->dynamicResolution.x : ti.w) / 2 + 1;
-    int h = (dynamic_resolution ? dynamic_resolution->dynamicResolution.y : ti.h) / 2 + 1;
+    int w = ti.w / 2 + 1;
+    int h = ti.h / 2 + 1;
 
     d3d::set_rwtex(STAGE_CS, 0, upscaleTex->getTex2D(), 0, 0);
     upsample_single.upscaleRendererCS->dispatchThreads(w, h, 1);
@@ -197,8 +196,8 @@ void UpscaleSamplingTex::render(float goffset_x, float goffset_y, const DynRes *
 
     auto target = upscaleTex->getTex2D();
 
-    int w = dynamic_resolution ? dynamic_resolution->dynamicResolution.x : ti.w;
-    int h = dynamic_resolution ? dynamic_resolution->dynamicResolution.y : ti.h;
+    int w = ti.w;
+    int h = ti.h;
 
     d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
     d3d::setview(0, 0, w, h, 0, 1);

@@ -48,7 +48,7 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
   grassPanel->createButton(PID_GPU_GRASS_LOADFROM_LEVELBLK, "Load from level.blk");
   grassPanel->createFileEditBox(PID_GPU_GRASS_TYPES, "Types", blk->getStr("grass_types", ""));
   grassPanel->createFileEditBox(PID_GPU_GRASS_MASKS, "Masks", blk->getStr("grass_masks", ""));
-  grassPanel->createTrackFloat(PID_GPU_GRASS_GRID_SIZE, "Grid size", blk->getReal("grass_grid_size"), 0.0, 1.0, 0.025);
+  grassPanel->createTrackFloat(PID_GPU_GRASS_GRID_SIZE, "Grid size", blk->getReal("grass_grid_size"), 0.00625, 1.0, 0.025);
   grassPanel->createEditFloat(PID_GPU_GRASS_DISTANCE, "Distance", blk->getReal("grass_distance"));
   grassPanel->createEditInt(PID_GPU_GRASS_MASK_RESOLUTION, "Mask resolution", blk->getInt("grassMaskResolution"));
   grassPanel->createEditFloat(PID_GPU_GRASS_HOR_SIZE_MUL, "Horizontal size mul", blk->getReal("hor_size_mul"));
@@ -292,6 +292,7 @@ void GPUGrassPanel::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pan
         GPUGrassType &type = srv->addType(name.c_str());
         addGrassType(type);
         fillPanel();
+        reload();
       }
     }
     break;

@@ -122,3 +122,7 @@ Microsoft is a registered trademark of Microsoft Corporation in the US and other
 Windows is a registered trademark of Microsoft Corporation in the US and other jurisdictions.
 
 © 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+
+## Upstream
+
+Vendored from https://github.com/GPUOpen-LibrariesAndSDKs/AntiLag2-SDK, version v2.0.0a.

@@ -9,6 +9,9 @@
 #include <util/dag_string.h>
 #include <osApiWrappers/basePath.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <osApiWrappers/dag_unicode.h>
+#include <generic/dag_tab.h>
+#include <memory/dag_framemem.h>
 #include <image/dag_texPixel.h>
 
 namespace clipboard
@@ -62,12 +65,26 @@ bool get_clipboard_utf8_text(char *dest, int bufSize)
     HANDLE hData = GetClipboardData(CF_UNICODETEXT);
     if (hData)
     {
-      wchar_t *buffer = (wchar_t *)GlobalLock(hData);
+      const wchar_t *buffer = (const wchar_t *)GlobalLock(hData);
       if (buffer)
       {
-        // strncpy(dest, buffer, bufSize);
-        WideCharToMultiByte(CP_UTF8, 0, buffer, -1, dest, bufSize, NULL, NULL);
-        dest[bufSize - 1] = '\0';
+        // WideCharToMultiByte returns 0 when the result exceeds dest; on that overflow
+        // convert only a bufSize-unit prefix, then truncate on a codepoint boundary.
+        if (WideCharToMultiByte(CP_UTF8, 0, buffer, -1, dest, bufSize, NULL, NULL) == 0)
+        {
+          int srcW = 0;
+          while (srcW < bufSize && buffer[srcW])
+            ++srcW;
+          // drop a split surrogate's lone high half, else it is emitted as U+FFFD
+          if (srcW == bufSize && buffer[srcW - 1] >= 0xD800 && buffer[srcW - 1] <= 0xDBFF)
+            --srcW;
+          Tab<char> tmp(framemem_ptr());
+          tmp.resize(srcW * 3 + 1); // <= 3 UTF-8 bytes per source unit
+          int cnt = WideCharToMultiByte(CP_UTF8, 0, buffer, srcW, tmp.data(), tmp.size(), NULL, NULL);
+          int n = utf8_truncate_len(tmp.data(), cnt < bufSize - 1 ? cnt : bufSize - 1);
+          memcpy(dest, tmp.data(), n);
+          dest[n] = '\0';
+        }
       }
       GlobalUnlock(hData);
     }

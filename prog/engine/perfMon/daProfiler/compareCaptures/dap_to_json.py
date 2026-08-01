@@ -123,6 +123,12 @@ class Cap:
         self.samples = []            # (tick, tid, [addrs])
         self.symbols = {}            # addr -> (fun, file, line)
         self.summary_seen = False
+        # DA_PROFILE_UNIQUE_EVENT cumulative counters (rare/bursty work): name ->
+        # {src, count, minTicks, maxTicks, totalTicks, frames}. unique_events_seen tells
+        # a present-but-empty board (dump kind that carries it, nothing instrumented)
+        # apart from an old dump that omits the board entirely.
+        self.unique_events = {}
+        self.unique_events_seen = False
 
 
 def parse_board(r, cap, descs, desc_meta, threads):
@@ -290,6 +296,42 @@ def parse_symbols(r, cap):
             cap.symbols[addr] = (fun, fil, line)
 
 
+def parse_unique_events(r, cap, descs, desc_meta):
+    # Records: totalOccurencies i64, minTicks i64, maxTicks i64, totalTicks i64,
+    # desc vlq_u (index into this segment's description list), frames vlq_u; a i64 ~0
+    # terminates. Counters are cumulative from process start, so a later segment's
+    # snapshot supersedes an earlier one for the same event (see the merge below).
+    r.i32()                          # board
+    seg = {}
+    while True:
+        occ = r.u64()
+        if occ == U64_MARK:
+            break
+        mn = r.u64(); mx = r.u64(); tot = r.u64()
+        d = r.vlq_u(); frames = r.vlq_u()
+        name = descs[d] if 0 <= d < len(descs) else '?'
+        src = desc_meta[d][0] if 0 <= d < len(desc_meta) else ''
+        e = seg.get(name)
+        if e is None:
+            e = seg[name] = {'src': src, 'count': 0, 'minTicks': None,
+                             'maxTicks': 0, 'totalTicks': 0, 'frames': 0}
+        # Two sites can share a name within one segment (distinct desc indices); those
+        # are additive, unlike the cross-segment cumulative snapshots merged afterwards.
+        e['count'] += occ
+        e['totalTicks'] += tot
+        e['frames'] = max(e['frames'], frames)
+        if occ:
+            e['maxTicks'] = max(e['maxTicks'], mx)
+            e['minTicks'] = mn if e['minTicks'] is None else min(e['minTicks'], mn)
+        if src and not e['src']:
+            e['src'] = src
+    cap.unique_events_seen = True
+    for name, e in seg.items():
+        cur = cap.unique_events.get(name)
+        if cur is None or e['count'] >= cur['count']:
+            cap.unique_events[name] = e
+
+
 def parse_segment(raw, cap):
     r = Reader(raw)
     descs = []
@@ -323,6 +365,8 @@ def parse_segment(raw, cap):
             parse_callstacks(sub, cap)
         elif typ == T_CallstackDescBoard:
             parse_symbols(sub, cap)
+        elif typ == T_UniqueEventsBoard:
+            parse_unique_events(sub, cap, descs, desc_meta)
         r.o = body_end
 
 
@@ -565,10 +609,27 @@ def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter):
         except Exception as ex:    # sampling path is best-effort
             sys.stderr.write("warning: sample attribution failed: %s\n" % ex)
 
+    # Unique (rare-event) counters -> integer us, ranked by total cost. Kept whole-run
+    # (not per-frame): they measure work too rare/bursty for the per-frame timeline.
+    unique_out = []
+    for name, e in cap.unique_events.items():
+        cnt = e['count']
+        unique_out.append({
+            'name': name,
+            'src': e['src'],
+            'count': cnt,
+            'totalUs': int(round(e['totalTicks'] * to_us)),
+            'minUs': int(round((e['minTicks'] or 0) * to_us)),
+            'maxUs': int(round(e['maxTicks'] * to_us)),
+            'frames': e['frames'],
+        })
+    unique_out.sort(key=lambda x: -x['totalUs'])
+
     meta = dict(cap.meta)
     meta['frameCount'] = frame_count
     meta['hasGpu'] = has_gpu
     meta['hasSamples'] = samples_out is not None
+    meta['hasUniqueEvents'] = cap.unique_events_seen
     if cap.frame_ms:
         meta['summaryMeanMs'] = round(sum(cap.frame_ms) / len(cap.frame_ms), 3)
 
@@ -582,6 +643,7 @@ def finalize(cap, top_scopes, min_incl_ms, want_perframe, scope_filter):
         'frames': frames,
         'scopes': out_scopes,
         'scopesTail': out_tail,
+        'uniqueEvents': unique_out,
     }
     if gpu_out is not None:
         doc['gpu'] = gpu_out
@@ -619,9 +681,10 @@ def main(argv=None):
     with open(out, 'w', encoding='utf-8') as f:
         json.dump(doc, f, separators=sep, indent=(None if args.compact else 1))
     m = doc['meta']
-    sys.stderr.write("wrote %s  frames=%d scopes=%d(+%d tail) gpu=%s samples=%s  %.0f KB\n"
+    uev = ("%d" % len(doc['uniqueEvents'])) if m['hasUniqueEvents'] else "none"
+    sys.stderr.write("wrote %s  frames=%d scopes=%d(+%d tail) gpu=%s samples=%s unique=%s  %.0f KB\n"
                      % (out, m['frameCount'], len(doc['scopes']), len(doc['scopesTail']),
-                        m['hasGpu'], m['hasSamples'], os.path.getsize(out) / 1024.0))
+                        m['hasGpu'], m['hasSamples'], uev, os.path.getsize(out) / 1024.0))
     return 0
 
 

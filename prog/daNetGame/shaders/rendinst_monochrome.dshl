@@ -73,8 +73,8 @@ shader rendinst_monochrome
       VSOUT_DRAW_ID
       ##endif
       #ifdef MOTION_VECTORS_ENABLED
-        float4 out_pos                    : TEXCOORD3;
-        float4 out_pos_prev               : TEXCOORD4;
+        float3 out_pos                    : TEXCOORD3;
+        float3 out_pos_prev               : TEXCOORD4;
       #endif
     };
   }

@@ -31,12 +31,11 @@
 #include "heightmap/heightmapHandler.h"
 #include "lmeshRendererGlue.h"
 #include <memory/dag_framemem.h>
-#include <EASTL/string.h>
 #include <EASTL/bitset.h>
-#include <EASTL/hash_map.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <util/dag_hash.h>
 #include "lmeshRendererCommon.h"
 
 static int create_new_land_shader(const char *shader_name, const char *landclass_name)
@@ -61,15 +60,24 @@ static int create_new_land_shader(const char *shader_name, const char *landclass
   //   landclassShader[id].vs_const_offset, landclassShader[id].lc_detail_const_offset, landclassShader[id].lc_textures_sampler);
   return id;
 }
+// Dedup by 64-bit name hash, linear scan (distinct land-class shaders are few; collisions negligible).
+// Failed names are cached in landclassShaderFailed so each is built and logged only once; they must
+// not occupy a landclassShader index (consumers slot custom shaders from LC_CUSTOM up).
 static LandClassType insert_land_shader(const char *shader_name, const char *landclass_name)
 {
-  auto it = shadersNames.find_as(shader_name);
-  if (it != shadersNames.end()) // not inserted (e.g. value exist)
-    return (LandClassType)it->second;
-
-  LandClassType lc = (LandClassType)create_new_land_shader(shader_name, landclass_name);
-  shadersNames[shader_name] = lc;
-  return lc;
+  const uint64_t nameHash = str_hash_fnv1<64>(shader_name);
+  for (int i = LC_COUNT, ie = (int)landclassShader.size(); i < ie; ++i)
+    if (landclassShader[i].nameHash == nameHash)
+      return (LandClassType)i;
+  for (uint64_t failedHash : landclassShaderFailed)
+    if (failedHash == nameHash)
+      return LC_SIMPLE;
+  const int id = create_new_land_shader(shader_name, landclass_name);
+  if (id == LC_SIMPLE)
+    landclassShaderFailed.push_back(nameHash);
+  else
+    landclassShader[id].nameHash = nameHash;
+  return (LandClassType)id;
 }
 static inline TEXTUREID query_tex_loading(TEXTUREID id)
 {
@@ -79,7 +87,7 @@ static inline TEXTUREID query_tex_loading(TEXTUREID id)
   return id;
 }
 
-bool LandMeshRenderer::reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassMaskTexId)
+bool LandVtexRenderer::reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassMaskTexId)
 {
   landClasses[land_class_id].grassMaskTexId = newGrassMaskTexId;
   if (land_class_id < landClassesLoaded.size())
@@ -103,7 +111,7 @@ d3d::SamplerInfo landmesh::get_texture_sampler_info(TEXTUREID tid, float anisotr
   return samplerInfo;
 }
 
-void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
+void LandVtexRenderer::prepareLandClasses(LandMeshManager &provider)
 {
   landClassesLoaded.resize(0);
   landClassesLoaded.resize(landClasses.size());
@@ -204,7 +212,7 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
   updateCustomSamplers(provider);
 }
 
-void LandMeshRenderer::updateCustomSamplers(LandMeshManager &provider)
+void LandVtexRenderer::updateCustomSamplers(LandMeshManager &provider)
 {
   for (int dtype = 0; dtype < NUM_TEXTURES_STACK; ++dtype)
     for (int i = 0; i < megaDetails[dtype].size(); ++i)
@@ -218,7 +226,7 @@ void LandMeshRenderer::updateCustomSamplers(LandMeshManager &provider)
 
   provider.updateOverrideSamplers();
 }
-void LandMeshRenderer::setCustomLcTextures()
+void LandVtexRenderer::setCustomLcTextures()
 {
   ShaderGlobal::set_texture(::get_shader_variable_id("biomeIndicesTex", true), BAD_TEXTUREID);
   if (biomeLandClassIdx < 0)
@@ -282,7 +290,7 @@ void LandMeshRenderer::setCustomLcTextures()
     (landClasses[i].offset.y - offset.z + 0.5f * worldLcTexelSize) * -landClasses[i].tile);
 }
 
-void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, LandClassType lcFilter)
+void LandVtexRenderer::renderLandclasses(CellState &curState, bool useFilter, LandClassType lcFilter)
 {
   eastl::optional<LandClassType> currentLcType;
   Point4 weight[2] = {Point4(0, 0, 0, 0), Point4(0, 0, 0, 0)};
@@ -413,7 +421,8 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
 
       if ((lmesh_sampler__flowmap_tex >= 0) && (has_flowmap_tex))
       {
-        bind_managed_tex_ps(lmesh_sampler__flowmap_tex, landLoaded.flowmapTex.tid, landLoaded.flowmapTex.sampler);
+        // Flowmap sampler is replaced by decals_detail_overrideSampler with tex2Dlod;
+        bind_managed_tex_ps(lmesh_sampler__flowmap_tex, landLoaded.flowmapTex.tid, d3d::SamplerHandle::Invalid);
       }
     }
 
@@ -441,8 +450,10 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
           sampler_idx = lmesh_sampler__land_detail_ntex1 + di;
           if (reflectanceId >= 0)
           {
+            // Using matching albedo sampler (in order to save samplers).
+            G_ASSERT(albedoId >= 0);
             TidSamplerWithoutMipbiasPair tidSamplerPair = megaDetails[LandClassDetailTextures::REFLECTANCE][reflectanceId];
-            bind_managed_tex_ps(sampler_idx, tidSamplerPair.tid, tidSamplerPair.sampler);
+            bind_managed_tex_ps(sampler_idx, tidSamplerPair.tid, d3d::INVALID_SAMPLER_HANDLE);
           }
           else
             d3d::set_tex(STAGE_PS, sampler_idx, nullptr);
@@ -472,7 +483,7 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
       weight[1][detailI - 4] = 0.f;
   }
 
-  resetOverride(prevStateId);
+  landmesh::reset_override(prevStateId);
 
   if (last_ps_cb_register >= 0)
     d3d::set_const_buffer(STAGE_PS, last_ps_cb_register, NULL);

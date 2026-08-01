@@ -10,6 +10,7 @@
 #include <d3d11.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <generic/dag_carray.h>
+#include <util/dag_watchdog.h>
 
 namespace drv3d_dx11
 {
@@ -32,8 +33,6 @@ static const int g_csbin_max_size = 4096;
 struct ConstantBuffers
 {
   carray<carray<ID3D11Buffer *, MAX_CONST_BUFFERS>, STAGE_MAX> customBuffers;
-  carray<carray<uint32_t, MAX_CONST_BUFFERS>, STAGE_MAX> buffersFirstConstants;
-  carray<carray<uint32_t, MAX_CONST_BUFFERS>, STAGE_MAX> buffersNumConstants;
 
   carray<int, STAGE_MAX_EXT> customBuffersMaxSlotUsed;
 
@@ -57,6 +56,8 @@ struct ConstantBuffers
   carray<bool, STAGE_MAX_EXT> constantsModified;
   carray<uint32_t, STAGE_MAX_EXT> constantsBufferChanged;
   uint8_t lastHDGBitsApplied;
+  // hdg bits under which custom VS slots (1..N) were last mirrored to HS/DS/GS.
+  uint8_t lastHDGBitsCustomApplied;
 
   vecflt psConsts[MAX_PS_CONSTS];    // -V730_NOINIT
   vecflt vsConsts[g_vsbin_max_size]; // -V730_NOINIT
@@ -68,6 +69,7 @@ struct ConstantBuffers
     vsCurrentBuffer(0),
     csCurrentBuffer(0),
     lastHDGBitsApplied(0),
+    lastHDGBitsCustomApplied(0),
     vsConstsUsed(0),
     psConstsUsed(0),
     csConstsUsed(0)
@@ -76,8 +78,6 @@ struct ConstantBuffers
     mem_set_0(vsConstBuffer);
     mem_set_0(csConstBuffer);
     mem_set_0(customBuffers);
-    mem_set_0(buffersFirstConstants);
-    mem_set_0(buffersNumConstants);
     mem_set_0(customBuffersMaxSlotUsed);
     mem_set_0(constantsBufferChanged);
     for (auto &c : constantsModified)
@@ -197,6 +197,7 @@ struct VertexShader
     ds = NULL;
     gs = NULL;
     ilCache = NULL;
+    watchdog_kick();
   }
 };
 
@@ -213,6 +214,7 @@ struct PixelShader : ShaderData
       shader->Release();
     shader = NULL;
     constsUsed = 0;
+    watchdog_kick();
     delete this;
   }
 };
@@ -228,6 +230,7 @@ struct ComputeShader : ShaderData
       shader->Release();
     shader = NULL;
     constsUsed = 0;
+    watchdog_kick();
     delete this;
   }
 };

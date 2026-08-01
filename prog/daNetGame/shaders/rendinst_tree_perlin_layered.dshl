@@ -32,6 +32,8 @@ endmacro
 
 shader rendinst_tree_perlin_layered, rendinst_tree_gradient
 {
+  supports global_const_block;
+
   static int material_pn_triangulation = 0 no_warnings;
   interval material_pn_triangulation : off < 1, displacement < 2, smoothing_only;
 
@@ -142,6 +144,13 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
   static float4 emission_color = (0, 0, 0, -1);
   static float emission_albedo_mult = 1;
   static float constant_translucency = 0;
+  if (shader == rendinst_tree_perlin_layered)
+  {
+    static float4 parallax_height_influence_meters = (0, 0, 0, 0);
+    static float parallax_shadow_ray_length_meters = 0;
+    static float parallax_shadow_tolerance_meters = 0;
+    static float parallax_ao_ray_length_meters = 0;
+  }
 
   static int roots_coloring_enabled = 0;
   static float roots_coloring_height = 0.3;
@@ -206,6 +215,10 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         normal_tex1@staticTex = normal1;
         diffuse_tex2@staticTex = tex2;
         normal_tex2@staticTex = normal2;
+        parallax_height_influence_meters@f3 = parallax_height_influence_meters;
+        parallax_shadow_ray_length_meters@f1 = parallax_shadow_ray_length_meters;
+        parallax_shadow_tolerance_meters@f1 = parallax_shadow_tolerance_meters;
+        parallax_ao_ray_length_meters@f1 = parallax_ao_ray_length_meters;
       }
       else
       {
@@ -228,11 +241,32 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
       roots_coloring_enabled@i1 = roots_coloring_enabled;
     }
 
-    hlsl(ps) {
-      float2 get_world_noise3d_2(float3 v)
-      {
-        return tex3Dlod(perlin_noise3d, float4(v*(1./4),0)).rg;
+    USE_PERLIN_LAYERED(ps)
+
+    if (compatibility_mode == compatibility_mode_off && shader == rendinst_tree_perlin_layered && rendinst_render_pass == rendinst_render_pass_normal && use_parallax_shadows_or_ao)
+    {
+      hlsl(ps) {
+        #define PARALLAX_SHADOW
+        struct ParallaxData
+        {
+          half3 startWeights; // Not entirely correct, since it depends on vertex data
+          half3 influence;
+        };
+
+        float sample_height_tex(float2 tc, ParallaxData userData)
+        {
+          const float mipLevel = 2;
+          SamplerState smp = get_diffuse_tex().smp;
+          float detail0 = get_diffuse_tex().tex.SampleLevel(smp, tc, mipLevel).a;
+          float detail1 = get_diffuse_tex1().SampleLevel(smp, tc, mipLevel).a;
+          float detail2 = get_diffuse_tex2().SampleLevel(smp, tc, mipLevel).a;
+          float3 initialHeight = float3(detail0, detail1, detail2);
+          float3 invertedHeight = get_invert_heights().xyz ? 1 - initialHeight : initialHeight;
+          float3 weights = get_blending_weights_for_parallax(userData.startWeights, invertedHeight);
+          return dot(initialHeight, weights * userData.influence);
+        }
       }
+      USE_PARALLAX_SHADOW(sample_height_tex, ParallaxData, true)
     }
     hlsl(ps) {
       #ifndef IS_DYNAMIC
@@ -299,6 +333,26 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         invHeightsSum = rcp(dot(height14, 1));
         weights = height14*invHeightsSum;
 
+        half shadow = 1.h;
+        half ao = 1;
+        #ifdef PARALLAX_SHADOW
+          float3 influence = get_parallax_height_influence_meters();
+          influence *= get_parallax_vignette(input.pointToEye.xyz);
+          BRANCH
+          if (any(abs(influence) > 0.0))
+          {
+            ParallaxData userData;
+            userData.influence = influence;
+            float2 byNormalParams = float2(max(dot(get_mask_by_normal().xyz, input.normal.xyz), 0), get_mask_by_normal().w);
+            userData.startWeights = init_blend_weights(worldPos, get_mask_gamma(), get_invert_heights(), input.mossAo.x, byNormalParams);
+            ParallaxCommonParams commonParams = make_parallax_common_params(input.pointToEye.xyz, input.normal.xyz, input.diffuseTexcoord.xy, userData);
+            BRANCH if (parallax_shadow_enabled)
+              shadow *= calc_parallax_shadow(commonParams, from_sun_direction.xyz, get_parallax_shadow_ray_length_meters(), get_parallax_shadow_tolerance_meters());
+            BRANCH if (parallax_ao_enabled)
+              ao *= calc_parallax_ao(commonParams, get_parallax_ao_ray_length_meters());
+          }
+        #endif
+
         ##if shader == rendinst_tree_perlin_layered
           diffuseColor = diffuseColor*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
         ##else
@@ -333,7 +387,6 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           half smoothness = clamp(smoothnessValue, get_gradient_smoothness_min(), get_gradient_smoothness_max());
         ##endif
         half reflectance = 0.5;
-        half ao = 1;
 
         ##if (shader == rendinst_tree_perlin_layered)
           BRANCH
@@ -357,6 +410,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         half4 emissionColor = get_emission_color();
 
         init_metalness(gbuffer, metalness);
+        init_shadow(gbuffer, shadow);
+        init_ao(gbuffer, ao);
         init_material(gbuffer, SHADING_NORMAL);
         BRANCH
         if(emissionColor.w > 0)
@@ -374,7 +429,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         }
 
         #ifdef MOTION_VECTORS_ENABLED
-          init_motion_vector(gbuffer, encode_motion_vector(input.out_pos.xyw, input.out_pos_prev.xyw));
+          init_motion_vector(gbuffer, encode_motion_vector(input.out_pos, input.out_pos_prev));
         #endif
         init_smoothness(gbuffer, smoothness);
         init_normal(gbuffer, worldNormal);
@@ -422,8 +477,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           float2 mossAo               : TEXCOORD3;
         #endif
         #ifdef MOTION_VECTORS_ENABLED
-          float4 out_pos                   : TEXCOORD5;
-          float4 out_pos_prev              : TEXCOORD6;
+          float3 out_pos                   : TEXCOORD5;
+          float3 out_pos_prev              : TEXCOORD6;
         #endif
         float height : TEXCOORD7;
         #ifdef TREE_BURNING_VSOUTPUT
@@ -444,8 +499,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           float2 mossAo               : TEXCOORD2;
         #endif
         #ifdef MOTION_VECTORS_ENABLED
-          float4 out_pos              : TEXCOORD3;
-          float4 out_pos_prev         : TEXCOORD4;
+          float3 out_pos              : TEXCOORD3;
+          float3 out_pos_prev         : TEXCOORD4;
         #endif
         ##if (material_pn_triangulation == displacement && is_pivoted == yes)
           float additional_displacement_mul : TEXCOORD5;
@@ -547,8 +602,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           output.pos = float4(worldPos, 1);
           #ifdef MOTION_VECTORS_ENABLED
             // motion vectors will not account for tesellation (for now)
-            output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm);
-            output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+            output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm).xyw;
+            output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip).xyw;
           #endif
           ##if (material_pn_triangulation == displacement && is_pivoted == yes)
             output.additional_displacement_mul = get_rendinst_displacement_mod()[Data.maxHierarchyLevel];
@@ -557,8 +612,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
           output.pointToEye = pointToEye;
           #ifdef MOTION_VECTORS_ENABLED
-            output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm);
-            output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+            output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm).xyw;
+            output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip).xyw;
           #endif
         #endif
 
@@ -604,7 +659,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         UnpackedGbuffer gbuffer = get_current_gbuffer(input, 0);
         half shadow = getShadow(input.pointToEye.xyz);
         init_shadow(gbuffer, shadow);
-        init_gbuffer_ao(gbuffer, input.mossAo.y);
+        apply_additional_gbuffer_ao(gbuffer, input.mossAo.y);
         alpha = 1; coloring = 0;
 
         return gbuffer;
@@ -764,7 +819,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         {
           input.normal.xyz = MUL_VFACE(input.normal.xyz);
           UnpackedGbuffer gbuffer = get_current_gbuffer(input, world_view_pos);
-          init_gbuffer_ao(gbuffer, input.mossAo.y);
+          apply_additional_gbuffer_ao(gbuffer, input.mossAo.y);
 
           ##if need_tree_burning
             apply_tree_burning_additional_data(input, gbuffer, get_normal_tex().smp);
@@ -842,8 +897,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           float2 mossAo               : TEXCOORD1;
         #endif
         #ifdef MOTION_VECTORS_ENABLED
-          float4 out_pos              : TEXCOORD2;
-          float4 out_pos_prev         : TEXCOORD3;
+          float3 out_pos              : TEXCOORD2;
+          float3 out_pos_prev         : TEXCOORD3;
         #endif
         ##if (material_pn_triangulation == displacement && is_pivoted == yes)
           float additional_displacement_mul : TEXCOORD4;

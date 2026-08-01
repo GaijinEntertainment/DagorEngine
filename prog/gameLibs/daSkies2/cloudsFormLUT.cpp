@@ -4,6 +4,8 @@
 #include "cloudsShaderVars.h"
 
 #include "shaders/clouds2/clouds_density_height_lut.hlsli"
+#include <math/dag_mathBase.h>
+#include "shaders/clouds2/clouds_droplet_phase.hlsli"
 
 #include <drv/3d/dag_renderTarget.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -11,7 +13,6 @@
 void CloudsFormLUT::init()
 {
   clouds_types_lut.close();
-  clouds_erosion_lut.close();
 
   clouds_types_lut = dag::create_tex(NULL, CLOUDS_TYPES_HEIGHT_LUT, CLOUDS_TYPES_LUT, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY, 1,
     "clouds_types_lut", RESTAG_DASKIES2);
@@ -23,9 +24,18 @@ void CloudsFormLUT::init()
   }
   gen_clouds_types_lut.init("gen_clouds_types_lut");
 
-  clouds_erosion_lut =
-    dag::create_tex(NULL, 32, 1, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY | TEXFMT_R8G8, 1, "clouds_erosion_lut", RESTAG_DASKIES2);
-  gen_clouds_erosion_lut.init("gen_clouds_erosion_lut");
+  // droplet Mie phase over scattering angle, first scattering octave (see
+  // gen_clouds_phase_lut.dshl); regenerated with the other LUTs on invalidate
+  clouds_phase_lut.close();
+  clouds_phase_lut = dag::create_tex(NULL, CLOUDS_PHASE_LUT_SIZE, 1, TEXCF_RTARGET | CLOUDS_ESRAM_ONLY | TEXFMT_R16F, 1,
+    "clouds_phase_lut", RESTAG_DASKIES2);
+  {
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = d3d::AddressMode::Clamp;
+    smpInfo.address_mode_v = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_phase_lut_samplerstate", true), d3d::request_sampler(smpInfo));
+  }
+  gen_clouds_phase_lut.init("gen_clouds_phase_lut");
   invalidate();
 }
 
@@ -40,9 +50,10 @@ CloudsChangeFlags CloudsFormLUT::render()
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
   gen_clouds_types_lut.render();
   d3d::resource_barrier({clouds_types_lut.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
-  d3d::set_render_target({}, DepthAccess::RW, {{clouds_erosion_lut.getTex2D(), 0, 0}});
+  d3d::set_render_target({}, DepthAccess::RW, {{clouds_phase_lut.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
-  gen_clouds_erosion_lut.render();
+  gen_clouds_phase_lut.render();
+  d3d::resource_barrier({clouds_phase_lut.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   frameValid = true;
   return CLOUDS_INVALIDATED;
 }

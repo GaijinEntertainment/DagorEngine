@@ -192,7 +192,7 @@ function WatchedRo(val) {
 }
 
 
-function getWatcheds(func) {
+function getWatcheds(func): array {
   assert(type(func) == "function")
   let num = func.getfuncinfos().freevars
   let res = []

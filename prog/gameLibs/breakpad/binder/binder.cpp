@@ -299,7 +299,11 @@ void add_file_to_report(const char *path)
   if (!context || !path || !*path)
     return;
 
-  context->configuration.files.emplace_back(path);
+  size_t l = strlen(path);
+  if (l >= 2 && path[0] == '"' && path[l - 1] == '"')
+    context->configuration.files.emplace_back(path + 1, l - 2);
+  else
+    context->configuration.files.emplace_back(path);
   reload_args();
 }
 

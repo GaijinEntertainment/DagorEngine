@@ -61,6 +61,20 @@ float projection_effects_fade_end = 20.0;
 // Width (in reflectDir.y) of the horizon reflection fog fade.
 float horizon_reflection_fog_fade_range = 0.02;
 
+// where the water->env far fade begins, as a fraction of the fade end
+// (the fade ends at zfar or at the water mesh edge, whichever is closer)
+float water_to_env_fade_start = 0.75;
+
+float water_fresnel_additive_refraction = 0;
+macro WATER_3D_DEFERRED_COLOR_INIT_FRESNEL_ADDITIVE_REFRACTION()
+  (ps) {
+    water_fresnel_additive_refraction@f1 = 1.0 - water_fresnel_additive_refraction;
+  }
+  hlsl (ps) {
+    #define WATER_3D_FRESNEL_ADDITIVE_REFRACTION 1
+  }
+endmacro
+
 macro INIT_WATER_3D_DEFERRED_COLOR()
   // Declarations pulled from shader_global.dshl due to the need to get rid of "shadow_buffer_tex@smp = shadow_buffer_tex;" declaration
   (ps) {
@@ -81,7 +95,10 @@ macro INIT_WATER_3D_DEFERRED_COLOR()
     perlin_fadeout@f2 = water_perlin_fadeout;
     perlin_mip_influence@f1 = water_perlin_mip_influence;
     rcpFadeDist@f1 = (1 / min(zn_zfar.y, zFarSphere_radius - zFarSphere_error));
-    inv_zfar@f1 = (1 / zn_zfar.y);
+    water_zfar@f1 = zn_zfar.y;
+    // raw values: the water preshader is at the stcode temp register limit,
+    // the fade interval math is done in the pixel shader instead
+    water_to_env_fade@f2 = (water_to_env_fade_start, water_vertical_lod.w, 0, 0);
     hmd_device@i1 = hmd_device;
     storminess@f1 = storminess;
     reflection_distortion_normal_scale_calm@f1 = reflection_distortion_normal_scale_calm;
@@ -96,7 +113,7 @@ macro INIT_WATER_3D_DEFERRED_COLOR()
   {
     local float4 water_refraction_tex_dim = get_dimensions(water_refraction_tex, 0);
     (ps) {
-      water_refraction_tex_half_texel@f2 = (0.5 / water_refraction_tex_dim.x, 0.5 / water_refraction_tex_dim.y);
+      water_refraction_tex_half_texel@f2 = (0.5 / max(water_refraction_tex_dim.x, 1), 0.5 / max(water_refraction_tex_dim.y, 1));
     }
   }
 endmacro
@@ -318,7 +335,18 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       float refractionDistortion = refraction_scale * min(1, 10.0 * roughWaterDepth / (roughWaterDepth + vd.dist));
       float2 distortionVector = vd.worldNormal.xz; // Dependency from camera rotation looks unrealistic.
       float2 refractionDisturbance = refractionDistortion * float2(-distortionVector.x, distortionVector.y);
-      refractionDisturbance *= saturate((linearize_z(sample_far_depth_tex(linearToDistortedTc(vd.linearTc + refractionDisturbance), 0), zn_zfar.zw) - vd.screenPosZW.y) * 2 - 0.1); // Fix scene leaks from above the water.
+      // Fix scene leaks from above the water: kill offsets whose target lies on or next to
+      // a foreground occluder.
+#if HAS_CLOSE_DEPTH
+      float2 refractionGateTc = linearToDistortedTc(vd.linearTc + refractionDisturbance);
+      float2 gateBil;
+      float4 gateZ4 = linearize_z4(gather_close_depth_lvl(refractionGateTc, 2, gateBil), zn_zfar.zw);
+      float4 gate4 = saturate((gateZ4 - vd.screenPosZW.y) * 2 - 0.1);
+      float4 bil = float4(gateBil, 1 - gateBil);
+      refractionDisturbance *= dot(gate4, float4(bil.zx * bil.w, bil.zx * bil.y));
+#else
+      refractionDisturbance *= saturate((linearize_z(sample_far_depth_tex(linearToDistortedTc(vd.linearTc + refractionDisturbance), 0), zn_zfar.zw) - vd.screenPosZW.y) * 2 - 0.1);
+#endif
       refractionDisturbance *= saturate(10 * (1 - max(abs(vd.linearTc.x * 2 - 1), abs(vd.linearTc.y * 2 - 1))) * vd.screenPosZW.y); // Fix scene leaks at screen border
       float2 refractionTexcoordLinear = vd.linearTc.xy + refractionDisturbance;
       deepnessData.refractionTexcoord = linearToDistortedTc(refractionTexcoordLinear);
@@ -380,8 +408,13 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       float distLog2 = log2(vd.dist);
       vd.distToZfar = saturate(vd.dist * rcpFadeDist);
       vd.pointToEyeNormalized = vd.pointToEye * vd.invDist;
-      // waterColorToEnvColorKoef: fading from zFar*0.5 to zFar. On VR we use distance (instead of .W) for fading to sky sphere.
-      vd.waterColorToEnvColorKoef = (half)saturate((hmd_device ? vd.distToZfar : vd.screenPosZW.y * inv_zfar) * 2.0 - 1.0);
+      // waterColorToEnvColorKoef: fading toward the end of the water mesh
+      // (min of zfar and the last lod ring extension), in meters.
+      // On VR we use distance (instead of .W) for fading to sky sphere.
+      float fadeEnd = min(water_zfar, max(1000., water_to_env_fade.y));
+      float fadeStart = water_to_env_fade.x * fadeEnd;
+      vd.waterColorToEnvColorKoef =
+        (half)saturate(((hmd_device ? vd.dist : vd.screenPosZW.y) - fadeStart) / max(1., fadeEnd - fadeStart));
       float perlinSurfGrad = 1;
 #if has_perlin_noise
       float2 wind_dir = wind_dir_speed.xy;
@@ -639,8 +672,8 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       SeabedRefraction seabedRefraction;
       // Getting seabed color (refracted terrain & objects)
 #if has_seabed_refraction
-      float2 refractionTc = deepnessData.refractionTexcoord * current_dynamic_resolution_scale;
-      refractionTc = clamp(refractionTc, 0.0, current_dynamic_resolution_scale - water_refraction_tex_half_texel.xy);
+      float2 refractionTc = deepnessData.refractionTexcoord;
+      refractionTc = clamp(refractionTc, 0.0, 1 - water_refraction_tex_half_texel.xy);
       seabedRefraction.seabedColor.rgb = (half3)tex2Dlod(water_refraction_tex, float4(refractionTc, 0, 0)).rgb;
       seabedRefraction.seabedColor.rgb = (half3)max(float3(0.0,0.0,0.0), unpack_hdr(seabedRefraction.seabedColor.rgb)); // currently works not precise
 
@@ -708,7 +741,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
     {
       RefractionsData refractionsData;
 #if !has_seabed_refraction
-      refractionsData.waterOpacity = saturate(3.0h * (1.0h-luminance(underWaterScattering.loss))) * deepnessData.shore_blending_coeff; // There is not much to see underwater without refraction
+      refractionsData.waterOpacity = saturate(NO_REFRACTION_OPACITY_SCALE * (1.0h-luminance(underWaterScattering.loss))) * deepnessData.shore_blending_coeff;
 #endif
 
       half3 lighting = half3(sun_color_0) *
@@ -735,6 +768,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       // reflectionColor already accounts for enviBRDF. additionalFresnelFactor is an artistic control.
 ##if (use_water_fresnel_reflections == yes)
       half additionalFresnelFactor;
+      half refractionFresnelFactor;
       half3 worldReflection;
 
       if (backFaceCalcs)
@@ -744,14 +778,19 @@ macro USE_WATER_3D_DEFERRED_COLOR()
           worldReflection = reflectionsData.reflectionColor;
         else
           worldReflection = half3(sun_color_0 * underwater_primary_color.rgb);
+        refractionFresnelFactor = 1.0h - additionalFresnelFactor;
       }
       else
       {
         additionalFresnelFactor = water_fresnel_reflectance.y + water_fresnel_reflectance.z * pow3(saturate(1.0h - vd.NdotV));
         worldReflection = reflectionsData.reflectionColor;
+        #if WATER_3D_FRESNEL_ADDITIVE_REFRACTION
+          refractionFresnelFactor = 1.0h - additionalFresnelFactor * half(water_fresnel_additive_refraction);
+        #else
+          refractionFresnelFactor = 1.0h - additionalFresnelFactor;
+        #endif
       }
 
-      half refractionFresnelFactor = 1.0h - additionalFresnelFactor;
       half3 reflection = sunReflections.sunReflection + worldReflection * additionalFresnelFactor;
       half3 refraction = refractionsData.finalLitRefraction * refractionFresnelFactor;
 ##else
@@ -804,10 +843,17 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       // Applying fog
       result.rgb = applyWaterFog(result.rgb, 1.0, fogData);
 
+      // The fade target must shade like the sky ground water (sky_ground_color.dshl):
+      // fresnel-weighted sky reflection plus its own sun specular, fogged afterwards
+      // so the fog inscatter stays unscaled.
+      float3 envReflection = reflectionsData.envReflection *
+        (water_fresnel_reflectance.y + water_fresnel_reflectance.z * pow3(saturate(1.0 - vd.NdotV)))
+        + sunReflections.sunReflection;
+
       // Hide the 1px horizon seam between water and sky.
-      float3 envReflectionFogged = applyWaterFog(reflectionsData.envReflection, 1.0, fogData);
+      float3 envReflectionFogged = applyWaterFog(envReflection, 1.0, fogData);
       #if USE_NOFOG_REFLECTION_ON_DISTANCE
-        envReflectionFogged = lerp(envReflectionFogged, reflectionsData.envReflection,
+        envReflectionFogged = lerp(envReflectionFogged, envReflection,
           smoothstep(0, horizon_reflection_fog_fade_range, vd.reflectDirNormalized.y));
       #endif
 

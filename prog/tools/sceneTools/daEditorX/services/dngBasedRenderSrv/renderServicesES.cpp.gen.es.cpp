@@ -42,6 +42,26 @@ static ecs::EntitySystemDesc render_services_opaque_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoRender>::build(),
   0
 ,"render");
+//static constexpr ecs::ComponentDesc render_services_clipmap_decals_es_comps[] ={};
+static void render_services_clipmap_decals_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<OnClipmapTileRender>());
+  render_services_clipmap_decals_es(static_cast<const OnClipmapTileRender&>(evt)
+        );
+}
+static ecs::EntitySystemDesc render_services_clipmap_decals_es_es_desc
+(
+  "render_services_clipmap_decals_es",
+  "prog/tools/sceneTools/daEditorX/services/dngBasedRenderSrv/renderServicesES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, render_services_clipmap_decals_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<OnClipmapTileRender>::build(),
+  0
+,"render");
 //static constexpr ecs::ComponentDesc render_services_transp_es_comps[] ={};
 static void render_services_transp_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -102,3 +122,23 @@ static ecs::EntitySystemDesc render_services_distortion_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoRenderDistortion>::build(),
   0
 ,"render");
+//static constexpr ecs::ComponentDesc render_services_on_before_scene_load_es_comps[] ={};
+static void render_services_on_before_scene_load_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<EventOnBeforeSceneLoad>());
+  render_services_on_before_scene_load_es(static_cast<const EventOnBeforeSceneLoad&>(evt)
+        );
+}
+static ecs::EntitySystemDesc render_services_on_before_scene_load_es_es_desc
+(
+  "render_services_on_before_scene_load_es",
+  "prog/tools/sceneTools/daEditorX/services/dngBasedRenderSrv/renderServicesES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, render_services_on_before_scene_load_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<EventOnBeforeSceneLoad>::build(),
+  0
+,nullptr,nullptr,"*");

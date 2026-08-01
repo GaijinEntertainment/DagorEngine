@@ -56,7 +56,6 @@
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 #include <math/dag_colorMatrix.h>
 
 #include <debug/dag_debug.h>
@@ -774,7 +773,7 @@ void EnvironmentPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const
   {
     getSettingsFromPlugins();
 
-    if (skiesSrv)
+    if (skiesSrv && !DAGORED2->getWorkspace().isUsingDngBasedSceneRender())
     {
       blk.setStr("weatherPreset", ::make_path_relative(weatherPresetsList[selectedWeatherPreset], DAGORED2->getSdkDir()));
       blk.setStr("weatherType", weatherTypesList[selectedWeatherType]);
@@ -793,7 +792,8 @@ void EnvironmentPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const
 #undef SAVE_ETS
     }
     local_data.setReal("znzfScale", envParams.znzfScale);
-    blk.setStr("enviName", environmentNamesList[selectedEnvironmentNo]);
+    if (unsigned(selectedEnvironmentNo) < environmentNamesList.size())
+      blk.setStr("enviName", environmentNamesList[selectedEnvironmentNo]);
     blk.setStr("commonFile", commonFileName);
     blk.setStr("levelFile", levelFileName);
 
@@ -813,6 +813,9 @@ void EnvironmentPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const
 
 void EnvironmentPlugin::getSettingsFromPlugins()
 {
+  if (DAGORED2->getWorkspace().isUsingDngBasedSceneRender())
+    return;
+
   G_ASSERT(!skiesSrv || selectedWeatherPreset != -1);
   G_ASSERT(!skiesSrv || selectedWeatherType != -1);
   G_ASSERT(selectedEnvironmentNo != -1);
@@ -1285,10 +1288,12 @@ void EnvironmentPlugin::beforeRenderObjects(IGenViewportWnd *renderVp)
 
   if (renderVp && !renderVp->isOrthogonal())
   {
+    // transient driver-only z range override: keeps current wk/hk/ox/oy and view, and must
+    // not touch viewport state (persisted; VR/screenshot passes set their own matrices)
     Driver3dPerspective p;
     d3d::getpersp(p);
     d3d::setpersp(Driver3dPerspective(p.wk, p.hk, !isAcesPlugin ? envParams.z_near : currentEnvironmentAces.envParams.z_near,
-      !isAcesPlugin ? envParams.z_far : currentEnvironmentAces.envParams.z_far, 0, 0));
+      !isAcesPlugin ? envParams.z_far : currentEnvironmentAces.envParams.z_far, p.ox, p.oy));
   }
 
   static float old_lfd = 0, old_bfd = 0;
@@ -1424,7 +1429,11 @@ void EnvironmentPlugin::renderObjectsToViewport(IGenViewportWnd *vp)
 
   Point3 sunDir = -Point3(cosf(HALFPI - sunAzimuth) * cosf(sunZenith), sinf(sunZenith), sinf(HALFPI - sunAzimuth) * cosf(sunZenith));
 
-  Point3 pos = ::grs_cur_view.pos - sunDir * 50;
+  TMatrix cameraTm;
+  vp->getCameraTransform(cameraTm);
+  const Point3 cameraPos = cameraTm.getcol(3);
+
+  Point3 pos = cameraPos - sunDir * 50;
 
 
   Point2 cp;
@@ -1447,7 +1456,7 @@ void EnvironmentPlugin::renderObjectsToViewport(IGenViewportWnd *vp)
 
   sunDir = -Point3(cosf(HALFPI - sunAzimuth) * cosf(sunZenith), sinf(sunZenith), sinf(HALFPI - sunAzimuth) * cosf(sunZenith));
 
-  pos = ::grs_cur_view.pos - sunDir * 50;
+  pos = cameraPos - sunDir * 50;
 
   if (vp->worldToClient(pos, cp))
   {

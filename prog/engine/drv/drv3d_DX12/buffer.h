@@ -137,7 +137,7 @@ struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
   }
   static BufferType createBuffer(uint32_t size, uint32_t structure_size, uint32_t discard_count, MemoryClass memory_class,
     uint32_t buf_flags, const char *name);
-  static BufferType discardBuffer(GenericBufferInterface *self, BufferReferenceType current_buffer, uint32_t size,
+  static void discardBuffer(GenericBufferInterface *self, BufferReferenceType current_buffer_ref, uint32_t size,
     uint32_t structure_size, MemoryClass memory_class, FormatStore view_format, uint32_t buf_flags, const char *name);
   static uint8_t *getMemoryPointer(HostDeviceSharedMemoryRegion mem, uint32_t offset)
   {
@@ -175,7 +175,7 @@ struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
 
   static BufferType createBuffer(uint32_t size, uint32_t structure_size, uint32_t discard_count, MemoryClass memory_class,
     uint32_t buf_flags, const char *name);
-  static BufferType discardBuffer(GenericBufferInterface *self, BufferReferenceType current_buffer, uint32_t size,
+  static void discardBuffer(GenericBufferInterface *self, BufferReferenceType current_buffer_ref, uint32_t size,
     uint32_t structure_size, MemoryClass memory_class, FormatStore view_format, uint32_t buf_flags, const char *name);
   static uint8_t *getMemoryPointer(HostDeviceSharedMemoryRegion mem, uint32_t offset) { return mem.cpuPointer() + offset; }
 };

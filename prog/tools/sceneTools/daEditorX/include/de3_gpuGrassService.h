@@ -57,6 +57,7 @@ public:
   virtual void createGrass(DataBlock &grassBlk) = 0;
   virtual void closeGrass() = 0;
   virtual DataBlock *createDefaultGrass() = 0;
+  virtual DataBlock *getSettings() = 0;
   virtual BBox3 *getGrassBbox() = 0;
 
   virtual bool isGrassEnabled() const = 0;

@@ -108,18 +108,20 @@ int DagorWinMain(bool debugmode)
     DataBlock::setRootIncludeResolver(argv[0]);
     ::load_tex_streaming_settings(app_blk_fn, NULL, true);
 
-    // load asset base
-    const DataBlock &blk = *appblk.getBlockByNameEx("assets");
-    int base_nid = blk.getNameId("base");
+    { // load asset base
+      const DataBlock &blk = *appblk.getBlockByNameEx("assets");
+      const int base_nid = blk.getNameId("base");
+      eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> loadContext = assetMgr.makeLoadAssetsBaseContext();
 
-    assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
-    for (int i = 0; i < blk.paramCount(); i++)
-      if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-      {
-        base_prefix.push_back().printf(260, "%s/%s", argv[0], blk.getStr(i));
-        dd_simplify_fname_c(base_prefix.back());
-        assetMgr.loadAssetsBase(base_prefix.back(), "global");
-      }
+      assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
+      for (int i = 0; i < blk.paramCount(); i++)
+        if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
+        {
+          base_prefix.push_back().printf(260, "%s/%s", argv[0], blk.getStr(i));
+          dd_simplify_fname_c(base_prefix.back());
+          assetMgr.loadAssetsBase(base_prefix.back(), "global", *loadContext);
+        }
+    }
   }
 
   Tab<SimpleString> blk_list;

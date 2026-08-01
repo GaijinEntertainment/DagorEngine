@@ -81,6 +81,7 @@ class MockWarningReporter: public DwarfCUToModule::WarningReporter {
   MOCK_METHOD1(UncoveredFunction, void(const Module::Function &function));
   MOCK_METHOD1(UncoveredLine, void(const Module::Line &line));
   MOCK_METHOD1(UnnamedFunction, void(uint64 offset));
+  MOCK_METHOD2(DemangleError, void(const string &input, int error));
   MOCK_METHOD2(UnhandledInterCUReference, void(uint64 offset, uint64 target));
 };
 
@@ -1712,15 +1713,13 @@ TEST_F(CUErrors, BadCURootDIETag) {
 // produce) output, so their results need to be checked by hand.
 struct Reporter: public Test {
   Reporter()
-      : reporter("filename", 0x123456789abcdef0ULL) {
+      : reporter("filename", 0x123456789abcdef0ULL),
+        function("function name", 0x19c45c30770c1eb0ULL),
+        file("source file name") {
     reporter.SetCUName("compilation-unit-name");
 
-    function.name = "function name";
-    function.address = 0x19c45c30770c1eb0ULL;
     function.size = 0x89808a5bdfa0a6a3ULL;
     function.parameter_size = 0x6a329f18683dcd51ULL;
-
-    file.name = "source file name";
 
     line.address = 0x3606ac6267aebeccULL;
     line.size = 0x5de482229f32556aULL;

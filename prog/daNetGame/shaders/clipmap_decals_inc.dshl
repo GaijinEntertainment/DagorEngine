@@ -1,6 +1,7 @@
 include "land_block_inc.dshl"
 include "water_heightmap.dshl"
 include "rendinst_heightmap_ofs.dshl"
+include "vtex.dshl"
 
 int clipmap_decal_array_tex = 0;
 interval clipmap_decal_array_tex: off<1, on;

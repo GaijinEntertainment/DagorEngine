@@ -23,8 +23,8 @@ def slot_attach_init_tms_impl(dt : float;
     return
   var tmpTm : mat44f
   query(animchar_attach__attachedTo) <| $ [es] (animchar : AnimcharBaseComponent;
-                                            animchar__actOnDemand : Tag const?;
-                                            animchar__updatable : bool = true)
+                                                animchar__actOnDemand : Tag const?;
+                                                animchar__updatable : bool = true)
     if animchar__updatable || animchar__actOnDemand != null
       if animchar_initAttachmentTmAndNodeWtm(animchar, slot_attach__slotId, tmpTm)
         if (slot_attach__rotOffset != null)
@@ -55,8 +55,8 @@ def slot_attach_init_tms_es(info : UpdateStageInfoAct)
     if slot_attach__slotId < 0 || !animchar_attach__attachedTo
       return
     query(animchar_attach__attachedTo) <| $ [es] (animchar : AnimcharBaseComponent;
-                                              animchar__actOnDemand : Tag const?;
-                                              animchar__updatable : bool = true)
+                                                  animchar__actOnDemand : Tag const?;
+                                                  animchar__updatable : bool = true)
       if !animchar__updatable && animchar__actOnDemand != null
         return
       var tmpTm : mat44f

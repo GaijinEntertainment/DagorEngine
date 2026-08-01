@@ -71,6 +71,14 @@ public:
   Terminal *no_dynstcode = nullptr;
   const ShaderVariant::VariantInfo &variant;
 
+  // RT pipeline config authored by the top-level max_recursion / allow_opacity_micromaps shader
+  // statements; read by CompileShaderJob to fill the bindump so the driver builds the pipeline-config
+  // subobject CPU-side. Defaults keep the flag clear (no explicit config) for shaders without them.
+  bool rtPipelineConfigDeclared = false;
+  bool rtPipelineAllowOmm = false;
+  bool rtPipelineMaxRecursionSet = false;
+  int rtPipelineMaxRecursion = 1;
+
   PerHlslStage<HlslCompile> hlsls{};
   PreshaderCompilationInput preshaderSource{};
 
@@ -115,6 +123,7 @@ public:
   void eval(immediate_const_block &) override {}
   void eval_error_stat(error_stat &) override;
   void eval_render_stage(render_stage_stat &s) override;
+  void eval_raytrace_pipeline(raytrace_pipeline_stat &s) override;
   void eval_assume_stat(assume_stat &s) override {}
   void eval_assume_if_not_assumed_stat(assume_if_not_assumed_stat &s) override {}
   void eval_command(shader_directive &s) override;

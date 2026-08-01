@@ -565,6 +565,8 @@ void ObservablesGraph::shutdown(bool is_closing_vm)
       // Watched: keep alive with value so persist-cached handles remain valid.
       s.dependents.clear();
       s.watchers.clear();
+      // Dependents are gone; recompute so no stale immediate flag survives.
+      s.needImmediate = !s.isDeferred;
     }
   }
   deferredNotifyQueue.clear();
@@ -910,6 +912,9 @@ void ObservablesGraph::collectScriptSubscribers(NodeId id, Tab<SubscriberCall> &
 
 bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &notify_queue)
 {
+  if (!triggered_node.isValid() && notify_queue.empty() && subscriberCallsQueue.empty())
+    return true;
+
   if (triggered_node.isValid())
     collectScriptSubscribers(triggered_node, subscriberCallsQueue);
   for (NodeId nid : notify_queue)
@@ -966,7 +971,7 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
       else
       {
         auto callUsec = get_time_usec(t1);
-        bool needToLog = callUsec > curSubscriberThresholdUsec;
+        bool needToLog = callUsec > getCurSubscriberThresholdUsec();
 #if DAGOR_DBGLEVEL > 0
         needToLog |= callUsec > slowestSubscribersAllTime.back().timeUsec;
 #endif
@@ -980,7 +985,7 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
           else
             timing.name = "<unknown>";
 
-          if (callUsec > curSubscriberThresholdUsec)
+          if (callUsec > getCurSubscriberThresholdUsec())
           {
             String sourceInfo;
             NodeSlot *srcSlot = resolve(sc.source);
@@ -1007,7 +1012,7 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
               cause = causeSlot->lastChangeCause;
             }
             String fmt(0, "slow subscriber call (%%dus>%%dus): %s, subscriber of %%s%%s", timing.name.c_str());
-            logerr(fmt.c_str(), callUsec, curSubscriberThresholdUsec, sourceInfo.empty() ? "<unknown>" : sourceInfo.c_str(),
+            logerr(fmt.c_str(), callUsec, getCurSubscriberThresholdUsec(), sourceInfo.empty() ? "<unknown>" : sourceInfo.c_str(),
               chain.c_str());
           }
 #if DAGOR_DBGLEVEL > 0
@@ -1165,7 +1170,7 @@ bool ObservablesGraph::updateDeferred()
   int updateTime = get_time_usec(t0);
   usecUpdateDeferred += updateTime;
 
-  if (updateTime > slowUpdateThresholdUsec && nodeCount() > 0 && is_app_working())
+  if (updateTime > getSlowUpdateThresholdUsec() && nodeCount() > 0 && is_app_working())
   {
 #if DAGOR_DBGLEVEL > 0
     timeTotalRecalc += timeRecalc;
@@ -1191,7 +1196,8 @@ bool ObservablesGraph::updateDeferred()
       for (auto &s : slowestSubscribersAllTime)
         if (s.timeUsec > 0)
           msg.aprintf(1024, "%6d us: SUBS %s\n", s.timeUsec, s.name.c_str());
-      logerr("every FRP update is consistently slow (> %d us), last: %d us:\n%s", slowUpdateThresholdUsec, updateTime, msg.c_str());
+      logerr("every FRP update is consistently slow (> %d us), last: %d us:\n%s", getSlowUpdateThresholdUsec(), updateTime,
+        msg.c_str());
 #endif
     }
   }
@@ -1776,6 +1782,37 @@ static bool try_add_source(dag::Vector<SourceEntry> &sources, WatchedHandle *h, 
   return true;
 }
 
+static bool collect_sources_from_proto(ObservablesGraph *graph, HSQUIRRELVM vm, SQFunctionProto *proto,
+  dag::Vector<SourceEntry> &sources, VisitedSet &visited);
+static bool collect_sources_from_free_vars(ObservablesGraph *graph, HSQUIRRELVM vm, HSQOBJECT func_obj,
+  dag::Vector<SourceEntry> &sources, VisitedSet &visited);
+
+// A value that a function body refers to, either as a free variable or as a literal
+static bool collect_sources_from_value(ObservablesGraph *graph, HSQUIRRELVM vm, const HSQOBJECT &val, const char *var_name,
+  dag::Vector<SourceEntry> &sources, VisitedSet &visited)
+{
+  if (sq_type(val) == OT_CLOSURE)
+  {
+    if (!_closure(val)->_function->_inside_hoisted_scope)
+      return false;
+    return collect_sources_from_free_vars(graph, vm, val, sources, visited);
+  }
+
+  if (sq_type(val) != OT_INSTANCE)
+    return false;
+
+  SqStackChecker stackCheck(vm);
+  sq_pushobject(vm, val);
+  bool isSourceFound = false;
+  if (Sqrat::ClassType<WatchedHandle>::IsClassInstance(vm, -1))
+    isSourceFound = try_add_source(sources, Sqrat::Var<WatchedHandle *>(vm, -1).value, var_name);
+  else if (graph->isStubObservableInstance(Sqrat::Var<Sqrat::Object>(vm, -1).value))
+    isSourceFound = true;
+  sq_pop(vm, 1);
+
+  return isSourceFound;
+}
+
 static bool collect_sources_from_free_vars(ObservablesGraph *graph, HSQUIRRELVM vm, HSQOBJECT func_obj,
   dag::Vector<SourceEntry> &sources, VisitedSet &visited)
 {
@@ -1796,26 +1833,10 @@ static bool collect_sources_from_free_vars(ObservablesGraph *graph, HSQUIRRELVM 
     G_ASSERT(varName);
     if (varName)
     {
-      SQObjectType varType = sq_gettype(vm, -1);
-      if (varType == OT_CLOSURE)
-      {
-        HSQOBJECT f;
-        sq_getstackobj(vm, -1, &f);
-        if (graph->doCollectSourcesRecursively || _closure(f)->_function->_inside_hoisted_scope)
-        {
-          if (collect_sources_from_free_vars(graph, vm, f, sources, visited))
-            areSourcesFound = true;
-        }
-      }
-      else if (Sqrat::ClassType<WatchedHandle>::IsClassInstance(vm, -1))
-      {
-        if (try_add_source(sources, Sqrat::Var<WatchedHandle *>(vm, -1).value, varName))
-          areSourcesFound = true;
-      }
-      else if (varType == OT_INSTANCE && graph->isStubObservableInstance(Sqrat::Var<Sqrat::Object>(vm, -1).value))
-      {
+      HSQOBJECT val;
+      sq_getstackobj(vm, -1, &val);
+      if (collect_sources_from_value(graph, vm, val, varName, sources, visited))
         areSourcesFound = true;
-      }
     }
     sq_pop(vm, 1);
   }
@@ -1824,32 +1845,31 @@ static bool collect_sources_from_free_vars(ObservablesGraph *graph, HSQUIRRELVM 
   stackCheck.check();
 
   G_ASSERT_RETURN(func_obj._type == OT_CLOSURE, areSourcesFound);
-  SQFunctionProto *proto = func_obj._unVal.pClosure->_function;
-  for (SQInteger iConst = 0; iConst < proto->_nliterals; ++iConst)
-  {
-    SQObjectPtr &constant = proto->_literals[iConst];
-    SQObjectType constType = sq_type(constant);
+  if (collect_sources_from_proto(graph, vm, func_obj._unVal.pClosure->_function, sources, visited))
+    areSourcesFound = true;
 
-    if (constType == OT_CLOSURE)
-    {
-      if (graph->doCollectSourcesRecursively || _closure(constant)->_function->_inside_hoisted_scope)
-      {
-        if (collect_sources_from_free_vars(graph, vm, constant, sources, visited))
-          areSourcesFound = true;
-      }
-    }
-    else if (Sqrat::ClassType<WatchedHandle>::IsClassInstance(constant))
-    {
-      SqStackChecker stackCheck2(vm);
-      sq_pushobject(vm, constant);
-      if (try_add_source(sources, Sqrat::Var<WatchedHandle *>(vm, -1).value, "#constant"))
-        areSourcesFound = true;
-      sq_pop(vm, 1);
-    }
-    else if (constType == OT_INSTANCE && graph->isStubObservableInstance(Sqrat::Object(HSQOBJECT(constant), vm)))
-    {
+  return areSourcesFound;
+}
+
+static bool collect_sources_from_proto(ObservablesGraph *graph, HSQUIRRELVM vm, SQFunctionProto *proto,
+  dag::Vector<SourceEntry> &sources, VisitedSet &visited)
+{
+  auto [_, inserted] = visited.insert(SQRawObjectVal(uintptr_t(proto)));
+  if (!inserted)
+    return false;
+
+  bool areSourcesFound = false;
+
+  for (SQInteger iConst = 0; iConst < proto->_nliterals; ++iConst)
+    if (collect_sources_from_value(graph, vm, proto->_literals[iConst], "#constant", sources, visited))
       areSourcesFound = true;
-    }
+
+  for (SQInteger iFunc = 0; iFunc < proto->_nfunctions; ++iFunc)
+  {
+    SQObjectPtr &nested = proto->_functions[iFunc];
+    G_ASSERT_CONTINUE(sq_type(nested) == OT_FUNCPROTO);
+    if (collect_sources_from_proto(graph, vm, _funcproto(nested), sources, visited))
+      areSourcesFound = true;
   }
 
   return areSourcesFound;
@@ -1934,7 +1954,7 @@ Sqrat::Object WatchedHandle::trace()
 void WatchedHandle::whiteListMutatorClosure(Sqrat::Object closure)
 {
   G_ASSERT(closure.GetType() == OT_CLOSURE);
-  if (graph && id.isValid())
+  if (graph && graph->resolve(id))
   {
     HSQOBJECT obj = closure.GetObject();
     sq_addref(graph->vm, &obj);
@@ -1945,7 +1965,7 @@ void WatchedHandle::whiteListMutatorClosure(Sqrat::Object closure)
 bool WatchedHandle::checkMutationAllowed(HSQUIRRELVM vm)
 {
   bool isAllowed = true;
-  if (graph && id.isValid())
+  if (graph && graph->resolve(id))
   {
     auto it = graph->mutatorWhiteLists.find(id.index);
     if (it != graph->mutatorWhiteLists.end())
@@ -2022,15 +2042,15 @@ SQInteger WatchedHandle::update(HSQUIRRELVM vm, int arg_pos)
   if (self->graph->vm != vm)
     return sq_throwerror(vm, "Invalid VM");
 
+  NodeSlot *s = self->graph->resolve(self->id);
+  if (!s)
+    return sq_throwerror(vm, "Stale observable");
+
   if (!self->checkMutationAllowed(vm))
     return SQ_ERROR;
 
   if (sq_gettype(vm, arg_pos) == OT_CLOSURE)
     return sq_throwerror(vm, "Updating observable via callback is no longer supported, use mutate()");
-
-  NodeSlot *s = self->graph->resolve(self->id);
-  if (!s)
-    return sq_throwerror(vm, "Stale observable");
 
   s->timeChangeReq = ::get_time_msec();
 
@@ -2063,12 +2083,12 @@ SQInteger WatchedHandle::mutate(HSQUIRRELVM vm)
   if (self->graph->vm != vm)
     return sq_throwerror(vm, "Invalid VM");
 
-  if (!self->checkMutationAllowed(vm))
-    return SQ_ERROR;
-
   NodeSlot *s = self->graph->resolve(self->id);
   if (!s)
     return sq_throwerror(vm, "Stale observable");
+
+  if (!self->checkMutationAllowed(vm))
+    return SQ_ERROR;
 
   // Validate callback
   SQInteger nParams = 0, nFreeVars = 0;
@@ -2125,12 +2145,12 @@ SQInteger WatchedHandle::modify(HSQUIRRELVM vm)
   if (self->graph->vm != vm)
     return sq_throwerror(vm, "Invalid VM");
 
-  if (!self->checkMutationAllowed(vm))
-    return SQ_ERROR;
-
   NodeSlot *s = self->graph->resolve(self->id);
   if (!s)
     return sq_throwerror(vm, "Stale observable");
+
+  if (!self->checkMutationAllowed(vm))
+    return SQ_ERROR;
 
   const SQInteger closurePos = 2;
 
@@ -2277,16 +2297,21 @@ SQInteger ComputedHandle::script_ctor(HSQUIRRELVM vm)
 
   // Calculate initial value
   Sqrat::optional<Sqrat::Object> optInitialValue;
-  if (nparams == 1)
-    optInitialValue = func.Eval<Sqrat::Object>();
-  else
   {
-    HSQOBJECT hInitialNone;
-    sq_resetobject(&hInitialNone);
-    hInitialNone._type = OT_USERPOINTER;
-    hInitialNone._unVal.pUserPointer = computed_initial_update;
-    Sqrat::Object initialNone(hInitialNone, vm);
-    optInitialValue = func.Eval<Sqrat::Object>(initialNone);
+    NodeId prevRecalc = graph->inRecalc;
+    graph->inRecalc = nodeId;
+    if (nparams == 1)
+      optInitialValue = func.Eval<Sqrat::Object>();
+    else
+    {
+      HSQOBJECT hInitialNone;
+      sq_resetobject(&hInitialNone);
+      hInitialNone._type = OT_USERPOINTER;
+      hInitialNone._unVal.pUserPointer = computed_initial_update;
+      Sqrat::Object initialNone(hInitialNone, vm);
+      optInitialValue = func.Eval<Sqrat::Object>(initialNone);
+    }
+    graph->inRecalc = prevRecalc;
   }
   if (!optInitialValue)
     return sq_throwerror(vm, "Failed to calculate initial computed value - error in function");
@@ -2388,15 +2413,6 @@ static SQInteger recalc_all_computed_values(HSQUIRRELVM vm)
   ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
   graph->resetPerfTimers();
   graph->recalcAllComputedValues();
-  return 0;
-}
-
-static SQInteger set_recursive_sources(HSQUIRRELVM vm)
-{
-  ObservablesGraph *graph = ObservablesGraph::get_from_vm(vm);
-  SQBool val;
-  sq_getbool(vm, 2, &val);
-  graph->doCollectSourcesRecursively = val;
   return 0;
 }
 
@@ -2531,7 +2547,6 @@ void bind_frp_classes(SqModules *module_mgr)
   exports //
     .SquirrelFuncDeclString(set_subscriber_validation, "set_subscriber_validation(val: bool): null")
     .SquirrelFuncDeclString(make_all_observables_immutable, "make_all_observables_immutable(val: bool): null")
-    .SquirrelFuncDeclString(set_recursive_sources, "set_recursive_sources(val: bool): null")
     .SquirrelFuncDeclString(set_slow_update_threshold_usec, "set_slow_update_threshold_usec(val: int): null")
     .SquirrelFuncDeclString(get_slow_update_threshold_usec, "get_slow_update_threshold_usec(): int")
     .SquirrelFuncDeclString(set_slow_subscriber_threshold_usec, "set_slow_subscriber_threshold_usec(val: int): null")

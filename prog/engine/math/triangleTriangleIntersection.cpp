@@ -376,7 +376,7 @@ bool test_triangle_triangle_intersection(const Point3 &v0, const Point3 &v1, con
   return false;
 }
 
-VECTORCALL static bool v_edge_against_tri_edges(vec4f v0, vec4f v1, vec3f u0, vec3f u1, vec3f u2)
+VECTORCALL static VECMATH_FINLINE bool v_edge_against_tri_edges(vec4f v0, vec4f v1, vec3f u0, vec3f u1, vec3f u2)
 {
   vec4f a = v_sub(v1, v0);
   vec3f ax = v_splat_x(a);
@@ -401,7 +401,7 @@ VECTORCALL static bool v_edge_against_tri_edges(vec4f v0, vec4f v1, vec3f u0, ve
   return v_check_xyz_any_true(v_or(cond1, cond2));
 }
 
-VECTORCALL static bool v_coplanar_tri_tri(vec3f normal, vec3f v0, vec3f v1, vec3f v2, vec3f u0, vec3f u1, vec3f u2)
+VECTORCALL static VECMATH_FINLINE bool v_coplanar_tri_tri(vec3f normal, vec3f v0, vec3f v1, vec3f v2, vec3f u0, vec3f u1, vec3f u2)
 {
   vec3f a = v_abs(normal);
   if (v_extract_x(a) > v_extract_y(a) && v_extract_x(a) > v_extract_z(a))
@@ -442,7 +442,7 @@ VECTORCALL static bool v_coplanar_tri_tri(vec3f normal, vec3f v0, vec3f v1, vec3
   return false;
 }
 
-VECTORCALL static void v_compute_intervals(vec3f vp, vec3f dv012, vec3f dv0dv1, vec3f dv0dv2, vec3f &bca, vec3f &x0x1)
+VECTORCALL static VECMATH_FINLINE void v_compute_intervals(vec3f vp, vec3f dv012, vec3f dv0dv1, vec3f dv0dv2, vec3f &bca, vec3f &x0x1)
 {
   // dv2 < 0.0f || dv2 > 0.0f
   vec3f bca_4 = v_perm_xycd(v_mul(v_sub(vp, v_splat_z(vp)), v_splat_z(dv012)), v_splat_z(vp));

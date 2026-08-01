@@ -103,16 +103,16 @@ phys_obj_collision_sound{
   }
 }
 
-phys_obj_fall_sound{ // simple alternative for phys_obj_collision_sound
+phys_obj_shake_sound{ // simple alternative for phys_obj_collision_sound
   _group{
     _tags:t="sound"
-    phys_obj_fall_sound__prevSpeed:r=0
-    phys_obj_fall_sound__nextTime:r=0
+    phys_obj_shake_sound__prevSpeed:r=0
+    phys_obj_shake_sound__nextTime:r=0
     // setup
-    phys_obj_fall_sound__path:t="missing phys_obj_fall_sound__path"
-    phys_obj_fall_sound__minMaxSpeedDrop:p2=3,3
-    phys_obj_fall_sound__cooldown:r=1
-    phys_obj_fall_sound__cooldownOnAppear:r=1
+    phys_obj_shake_sound__path:t="missing phys_obj_shake_sound__path"
+    phys_obj_shake_sound__minMaxSpeedDrop:p2=3,3
+    phys_obj_shake_sound__cooldown:r=1
+    phys_obj_shake_sound__cooldownOnAppear:r=1
   }
 }
 
@@ -177,8 +177,8 @@ landmesh_biomes_to_sound_material{
 }
 
 game_effect_sound{
-  game_effect_sound__hero:t=""
-  game_effect_sound__enemy:t=""
+  game_effect_sound__watched:t=""
+  game_effect_sound__other:t=""
   "game_effect_sound__event:SoundEvent"{
     _tags:t="sound"
   }

@@ -107,8 +107,21 @@ namespace Cpu
         os.write(reinterpret_cast<const char*>(&inputDesc.indexFormat), sizeof(inputDesc.indexFormat));
         os.write(reinterpret_cast<const char*>(&inputDesc.indexCount), sizeof(inputDesc.indexCount));
 
-        static_assert(ommIndexFormat_MAX_NUM == 2);
-        size_t indexBufferSize = inputDesc.indexCount * (inputDesc.indexFormat == ommIndexFormat_UINT_16 ? 2 : 4);
+        static_assert(ommIndexFormat_MAX_NUM == 3);
+        size_t indexBufferSize;
+        if (inputDesc.indexFormat == ommIndexFormat_UINT_8) 
+        {
+            indexBufferSize = inputDesc.indexCount * 1;
+        } 
+        else if (inputDesc.indexFormat == ommIndexFormat_UINT_16) 
+        {
+            indexBufferSize = inputDesc.indexCount * 2;
+        } 
+        else
+        {
+            OMM_ASSERT(inputDesc.indexFormat == ommIndexFormat_UINT_32);
+            indexBufferSize = inputDesc.indexCount * 4;
+        }
         os.write(reinterpret_cast<const char*>(inputDesc.indexBuffer), indexBufferSize);
 
         os.write(reinterpret_cast<const char*>(&inputDesc.dynamicSubdivisionScale), sizeof(inputDesc.dynamicSubdivisionScale));
@@ -118,7 +131,7 @@ namespace Cpu
         os.write(reinterpret_cast<const char*>(&inputDesc.alphaCutoffGreater), sizeof(inputDesc.alphaCutoffGreater));
         os.write(reinterpret_cast<const char*>(&inputDesc.format), sizeof(inputDesc.format));
 
-        size_t numFormats = inputDesc.formats == nullptr ? 0 : inputDesc.indexCount;
+        size_t numFormats = inputDesc.formats == nullptr ? 0 : inputDesc.indexCount / 3;
         os.write(reinterpret_cast<const char*>(&numFormats), sizeof(numFormats));
 
         if (numFormats != 0)
@@ -129,7 +142,8 @@ namespace Cpu
         os.write(reinterpret_cast<const char*>(&inputDesc.unknownStatePromotion), sizeof(inputDesc.unknownStatePromotion));
         os.write(reinterpret_cast<const char*>(&inputDesc.unresolvedTriState), sizeof(inputDesc.unresolvedTriState));
         os.write(reinterpret_cast<const char*>(&inputDesc.maxSubdivisionLevel), sizeof(inputDesc.maxSubdivisionLevel));
-
+        os.write(reinterpret_cast<const char*>(&inputDesc.maxArrayDataSize), sizeof(inputDesc.maxArrayDataSize));
+        
         size_t numSubdivLvls = inputDesc.subdivisionLevels == nullptr ? 0 : inputDesc.indexCount;
         os.write(reinterpret_cast<const char*>(&numSubdivLvls), sizeof(numSubdivLvls));
         if (numSubdivLvls != 0)
@@ -152,7 +166,11 @@ namespace Cpu
         WriteArray<ommCpuOpacityMicromapUsageCount>(os, resultDesc.descArrayHistogram, resultDesc.descArrayHistogramCount);
         
         os.write(reinterpret_cast<const char*>(&resultDesc.indexFormat), sizeof(resultDesc.indexFormat));
-        if (resultDesc.indexFormat == ommIndexFormat_UINT_16)
+        if (resultDesc.indexFormat == ommIndexFormat_UINT_8)
+        {
+            WriteArray<uint8_t>(os, (const uint8_t*)resultDesc.indexBuffer, resultDesc.indexCount);
+        }
+        else if (resultDesc.indexFormat == ommIndexFormat_UINT_16)
         {
             WriteArray<uint16_t>(os, (const uint16_t*)resultDesc.indexBuffer, resultDesc.indexCount);
         }
@@ -369,7 +387,8 @@ namespace Cpu
         os.read(reinterpret_cast<char*>(&inputDesc.bakeFlags), sizeof(inputDesc.bakeFlags));
 
         TextureImpl* texture = Allocate<TextureImpl>(m_stdAllocator, m_stdAllocator, m_log);
-        texture->Deserialize(buffer);
+        texture->Deserialize(buffer, header.inputDescVersion);
+
         inputDesc.texture = CreateHandle<omm::Cpu::Texture, TextureImpl>(texture);
 
         os.read(reinterpret_cast<char*>(&inputDesc.runtimeSamplerDesc.addressingMode), sizeof(inputDesc.runtimeSamplerDesc.addressingMode));
@@ -392,8 +411,21 @@ namespace Cpu
         os.read(reinterpret_cast<char*>(&inputDesc.indexFormat), sizeof(inputDesc.indexFormat));
         os.read(reinterpret_cast<char*>(&inputDesc.indexCount), sizeof(inputDesc.indexCount));
 
-        static_assert(ommIndexFormat_MAX_NUM == 2);
-        const size_t indexBufferSize = inputDesc.indexCount * (inputDesc.indexFormat == ommIndexFormat_UINT_16 ? 2 : 4);
+        static_assert(ommIndexFormat_MAX_NUM == 3);
+        size_t indexBufferSize;
+        if (inputDesc.indexFormat == ommIndexFormat_UINT_8)
+        {
+            indexBufferSize = inputDesc.indexCount * 1;
+        }
+        else if (inputDesc.indexFormat == ommIndexFormat_UINT_16)
+        {
+            indexBufferSize = inputDesc.indexCount * 2;
+        }
+        else
+        {
+            OMM_ASSERT(inputDesc.indexFormat == ommIndexFormat_UINT_32);
+            indexBufferSize = inputDesc.indexCount * 4;
+        }
         uint8_t* indexBuffer = m_stdAllocator.allocate(indexBufferSize, 16);
         os.read(reinterpret_cast<char*>(indexBuffer), indexBufferSize);
         inputDesc.indexBuffer = indexBuffer;
@@ -421,6 +453,10 @@ namespace Cpu
             os.read(reinterpret_cast<char*>(&inputDesc.unresolvedTriState), sizeof(inputDesc.unresolvedTriState));
         }
         os.read(reinterpret_cast<char*>(&inputDesc.maxSubdivisionLevel), sizeof(inputDesc.maxSubdivisionLevel));
+        if (header.inputDescVersion >= 4)
+        {
+            os.read(reinterpret_cast<char*>(&inputDesc.maxArrayDataSize), sizeof(inputDesc.maxArrayDataSize));
+        }
 
         size_t numSubdivLvls = 0;
         os.read(reinterpret_cast<char*>(&numSubdivLvls), sizeof(numSubdivLvls));
@@ -433,6 +469,13 @@ namespace Cpu
         }
 
         os.read(reinterpret_cast<char*>(&inputDesc.maxWorkloadSize), sizeof(inputDesc.maxWorkloadSize));
+
+        if (texture->HasSAT() && header.inputDescVersion < 3)
+        {
+            // old bug: pre v2 m_alphaCutoff was not serialized, but the SAT data was:
+            // to recover this lost information we recorver the alpha cutoff from the input desc.
+            texture->SetAlphaCutoff(inputDesc.alphaCutoff);
+        }
 
         return ommResult_SUCCESS;
     }
@@ -449,7 +492,11 @@ namespace Cpu
 
         os.read(reinterpret_cast<char*>(&resultDesc.indexFormat), sizeof(resultDesc.indexFormat));
 
-        if (resultDesc.indexFormat == ommIndexFormat_UINT_16)
+        if (resultDesc.indexFormat == ommIndexFormat_UINT_8)
+        {
+            ReadArray<uint8_t>(os, mem, reinterpret_cast<const uint8_t*&>(resultDesc.indexBuffer), resultDesc.indexCount);
+        }
+        else if (resultDesc.indexFormat == ommIndexFormat_UINT_16)
         {
             ReadArray<uint16_t>(os, mem, reinterpret_cast<const uint16_t*&>(resultDesc.indexBuffer), resultDesc.indexCount);
         }

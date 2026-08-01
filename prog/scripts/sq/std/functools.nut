@@ -5,7 +5,7 @@ let abs = @[pure](v) v > 0 ? v.tointeger() : -v.tointeger()
 //let { log } = require("log.nut")()
 
 let callableTypes = ["function","table","instance"]
-function isCallable(v) {
+function isCallable(v): bool {
   return callableTypes.contains(type(v)) && (v.getfuncinfos() != null)
 }
 /*
@@ -45,7 +45,7 @@ function partial(func, ...){
 let allowedKwargTypes = const { table = true, ["class"] = true, instance = true }
 
 let KWARG_NON_STRICT = persist("KWARG_NON_STRICT", @() freeze({}))
-function kwarg(func){
+function kwarg(func): function {
   assert(isCallable(func), "kwarg can be applied only to functions as first arguments")
   let infos = func.getfuncinfos()
   let funcName = infos.name
@@ -89,7 +89,7 @@ function kwarg(func){
   kwpartial(foo, {b=3})(1,5) == (1+3)*5
   kwpartial(foo, {b=3}, 2)(5) == (2+3)*5
 */
-function kwpartial(func, partparams, ...){
+function kwpartial(func, partparams, ...): function {
   assert(isCallable(func), "partial can be applied only to functions as first arguments")
   assert(["table", "class","instance"].contains(type(partparams)), "kwpartial second argument of function can be only hashable (table, class, instance)")
   let infos = func.getfuncinfos()
@@ -125,7 +125,7 @@ function kwpartial(func, partparams, ...){
 // pipe:
 //  pipe(f,g) =  @(x) f(g(x))
 //it can be replaced with oneliner pipe = @(...) @(x) vargv.reduce(@(a,b) b(a), x)
-function pipe(...){
+function pipe(...): function {
   let args = vargv.filter(isCallable)
   assert(args.len() == vargv.len() && args.len()>0, "pipe should be called with functions")
   let finfos = args[0].getfuncinfos()
@@ -137,7 +137,7 @@ function pipe(...){
 // compose (reverse to pipe):
 //  compose(f,g) =  @(x) g(f(x))
 //it can be replaced with oneliner compose = @(...) @(x) vargv.reverse().reduce(@(a,b) b(a), x)
-function compose(...){
+function compose(...): function {
   let args = vargv.filter(isCallable)
   assert(args.len() == vargv.len() && args.len()>0, "compose should be called with functions")
   args.reverse()
@@ -150,7 +150,7 @@ function compose(...){
 /*
   tryCatch(tryer function, catcher function) return function that will operate on input safely
 */
-function tryCatch(tryer, catcher=null){
+function tryCatch(tryer, catcher=null): function {
   return function(...) {
     try{
       return tryer.pacall([null].extend(vargv))
@@ -183,7 +183,7 @@ local sum = curry(@(a,b,c) a+b+c)
 sum(1)(2)(3) == sum(1)(2,3) == sum(1,2,3) == sum(1,2)(3)
 unfortunately returning function are now use vargv, instead of rest of parameters (the same issue goes to partial)
 */
-function curry(fn) {
+function curry(fn): function {
   let finfos = fn.getfuncinfos()
   assert(!finfos.native || finfos.paramscheck >= 0, "Cannot curry native function with varargs")
   let arity = (finfos.native ? finfos.paramscheck : finfos.parameters.len())-1
@@ -274,7 +274,7 @@ function getValInCache(path, cache) {
 }
 
 const DEF_MAX_CACHE_ENTRIES = 10000
-function memoize(func, hashfunc = null, cacheExternal=null, maxCacheNum=DEF_MAX_CACHE_ENTRIES) {
+function memoize(func, hashfunc = null, cacheExternal=null, maxCacheNum=DEF_MAX_CACHE_ENTRIES): function {
   let cache = cacheExternal ?? {}
   listOfCaches.append(cache)
   local simpleCache = null
@@ -412,7 +412,7 @@ function memoize(func, hashfunc = null, cacheExternal=null, maxCacheNum=DEF_MAX_
 //Creates a version of the function that can only be called one time.
 //Repeated calls to the modified function will have no effect, returning the value from the original call.
 //Useful for initialization functions, instead of having to set a boolean flag and then check it later.
-function once(func){
+function once(func): function {
   local result
   local called = false
   function memoizedfunc(...){
@@ -429,7 +429,7 @@ function once(func){
 //the same function as in underscore.js
 //Creates a version of the function that can be called no more than count times.
 //The result of the last function call is memoized and returned when count has been reached.
-function before(count, func){
+function before(count, func): function {
   local called = 0
   local res
   return function beforeTimes(...){
@@ -444,7 +444,7 @@ function before(count, func){
 //the same function as in underscore.js
 //Creates a version of the function that will only be run after being called count times.
 //Useful for grouping asynchronous responses, where you want to be sure that all the async calls have finished, before proceeding.
-function after(count, func){
+function after(count, func): function {
   local called = 0
   return function afterTimes(...){
     called++
@@ -496,13 +496,13 @@ function breakable_reduce(obj, func, memo=MemoNotInited()) {
   return !firstInited ? null : memo
 }
 */
-let combine = @(...) @() vargv.each(@(v) v.call(null))
+let combine = @(...): function @() vargv.each(@(v) v.call(null))
 
 
 //creates function that will do map 'set' ({key:key}) to table with provided function
 //function result will be cached for each key, until key disappears, than cache result for this key would be cleaned
 
-function mkMemoizedMapSet(func){
+function mkMemoizedMapSet(func): function {
   let cache = {}
   listOfCaches.append(cache)
   let funcParams = func.getfuncinfos().parameters.len()-1
@@ -530,14 +530,14 @@ function clearMemoizeCaches(){
 }
 
 
-function [pure] setImpl(arr){
+function [pure] setImpl(arr): table {
   let res = {}
   foreach (i in arr)
     res[i] <- i
   return res
 }
 
-function [pure] Set(...){
+function [pure] Set(...): table {
   if (vargv.len()==1 && typeof(vargv[0]) == "array")
     return setImpl(vargv[0])
   return setImpl(vargv)

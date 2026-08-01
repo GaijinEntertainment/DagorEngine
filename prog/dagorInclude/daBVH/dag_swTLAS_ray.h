@@ -199,6 +199,7 @@ struct TLASTraverse
           r.t = localR.t;
           r.bCoord = localR.bCoord;
           r.bestTriOffset = localR.bestTriOffset;
+          r.bestSubTri = localR.bestSubTri; // sub-tri lane 0..3 of the winning quad; stale otherwise
           found_hit = true;
           return cb(r, localR.bestTriOffset);
         }
@@ -236,34 +237,31 @@ struct TLASTraverse
         mat33f invTm;
         bool isIdentity = decodeLeafTransform(leaf, origin, scale, invTm);
 
-        localD.pos = isIdentity ? worldToBlas(d.pos, origin, scale) : worldToBlas(d.pos, origin, scale, invTm);
-        alignas(16) float scaleF[4];
-        v_st(scaleF, scale);
-        float maxScale = max(scaleF[0], max(scaleF[1], scaleF[2]));
-        localD.bestDist2 = d.bestDist2 * maxScale * maxScale;
+        // UNSCALED (rotated world-metric) local space: distBLAS converts the encoded nodes/verts
+        // via invScale, so selection, culling and the resulting distance are all world-correct -
+        // the encoded space is anisotropic and its nearest triangle is not the world-nearest one.
+        vec3f rel = v_sub(d.pos, origin);
+        localD.pos = isIdentity ? rel : v_mat33_mul_vec3(invTm, rel);
+        localD.invScale = v_div(V_C_ONE, scale);
+        localD.bestDist2 = d.bestDist2;
         localD.bestTriOffset = -1;
 
         if (BLAS::distBLAS(localD, leaf.blasStart, leaf.blasSize))
         {
-          // Map the BLAS-space closest point back to world and recompute the exact distance.
-          // Dividing localD.bestDist2 by maxScale^2 underestimates the world distance for
-          // anisotropic scales, wrongly pruning later leaves -- mirror the GPU distTLASleaf instead.
-          vec3f localClosest = v_div(localD.bestPos, scale);
+          d.bestDist2 = localD.bestDist2;
+          d.bestTriOffset = localD.bestTriOffset;
+          d.bestInside = localD.bestInside;
+          // map the closest point back to world for consumers
           vec3f worldClosestRel;
           if (isIdentity)
-            worldClosestRel = localClosest;
+            worldClosestRel = localD.bestPos;
           else
           {
             mat33f tm;
             v_mat33_transpose(tm, invTm);
-            worldClosestRel = v_mat33_mul_vec3(tm, localClosest);
+            worldClosestRel = v_mat33_mul_vec3(tm, localD.bestPos);
           }
-          float worldDist2 = v_extract_x(v_length3_sq_x(v_sub(v_sub(d.pos, origin), worldClosestRel)));
-          if (worldDist2 < d.bestDist2)
-          {
-            d.bestDist2 = worldDist2;
-            d.bestTriOffset = localD.bestTriOffset;
-          }
+          d.bestPos = v_add(origin, worldClosestRel);
         }
         return false;
       });

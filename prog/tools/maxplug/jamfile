@@ -1,7 +1,6 @@
 Root     ?= ../../.. ;
 Location  = prog/tools/maxplug ;
 
-#MaxVer ?= Max2022 ;
 #MaxVer ?= Max2023 ;
 #MaxVer ?= Max2024 ;
 #MaxVer ?= Max2025 ;
@@ -22,14 +21,12 @@ Sources =
   debug.cpp
   dllmain.cpp
   dummy.cpp
-  expAnim.cpp
   expanim2.cpp
   expUtil.cpp
   font.cpp
   freecam.cpp
   layout.cpp
   loadta.cpp
-  ltmap.cpp
   matConvUtil.cpp
   mater.cpp
   mater2.cpp

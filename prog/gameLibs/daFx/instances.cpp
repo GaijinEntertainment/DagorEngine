@@ -50,6 +50,22 @@ void adjust_buffer_size_by_quality(Context &ctx, const SystemTemplate &sys, int 
     adjust_buffer_size_by_quality(ctx, subSys, cpu_size, gpu_size, force_dummy);
 };
 
+void gather_subinstances(Context &ctx, int sid, uint32_t req_flags, uint32_t excl_flags, eastl::vector<int, framemem_allocator> &dst)
+{
+  if (sid == dummy_instance_sid || sid == queue_instance_sid)
+    return;
+
+  const uint32_t flags = ctx.instances.groups.get<INST_FLAGS>(sid);
+  if (!(flags & SYS_VALID))
+    return;
+  if ((flags & req_flags) && !(flags & excl_flags))
+    dst.push_back(sid);
+
+  const eastl::vector<int> &subinstances = ctx.instances.groups.get<INST_SUBINSTANCES>(sid); // -V758
+  for (int sub : subinstances)
+    gather_subinstances(ctx, sub, req_flags, excl_flags, dst);
+};
+
 static inline InstanceId create_subinstance(Context &ctx, InstanceId queued_iid, SystemId sys_id, const SystemTemplate &sys,
   int parent_sid, GpuBuffer &group_gpu_buf, CpuBuffer &group_cpu_buf, int gpu_parent_offset, int cpu_parent_offset, float life_time,
   int depth)
@@ -663,12 +679,12 @@ void reset_instance_from_queue(Context &ctx)
   }
 }
 
-void warmup_instance(ContextId cid, InstanceId iid, float time)
+void warmup_instance(ContextId cid, InstanceId iid, float time, bool per_instance_mode, float step_dt)
 {
   GET_CTX();
-  G_ASSERT_RETURN(time > 0, );
+  G_ASSERT_RETURN(time != 0.f, ); // negative = auto: one full particle lifetime, i.e. warmup to steady state
   os_spinlock_lock(&ctx.queueLock);
-  ctx.commandQueueNext.instanceWarmup.push_back({iid, time});
+  ctx.instanceWarmupRequests.push_back({iid, time, step_dt, per_instance_mode});
   os_spinlock_unlock(&ctx.queueLock);
 }
 DAGOR_NOINLINE
@@ -911,6 +927,39 @@ eastl::string get_instance_info(ContextId cid, InstanceId iid)
     }
   }
   result.append_sprintf(" }");
+  return result;
+}
+
+static void collect_instance_bbox(InstanceGroups &stream, int sid, bbox3f &out_bbox)
+{
+  if (sid == queue_instance_sid || sid == dummy_instance_sid)
+    return;
+
+  const uint32_t &flags = stream.get<INST_FLAGS>(sid);
+  if (flags & SYS_RENDERABLE)
+    v_bbox3_add_box(out_bbox, stream.get<INST_BBOX>(sid));
+
+  const eastl::vector<int> &subinstances = stream.get<INST_SUBINSTANCES>(sid);
+  for (int subSid : subinstances)
+    collect_instance_bbox(stream, subSid, out_bbox);
+}
+
+BBox3 get_instance_bbox(ContextId cid, InstanceId iid)
+{
+  BBox3 result;
+  GET_CTX_RET(result);
+  INST_TUPLE_LOCK_GUARD;
+
+  int *pid = ctx.instances.list.get(iid);
+  G_ASSERT_RETURN(pid, result);
+  int sid = *pid;
+
+  InstanceGroups &stream = ctx.instances.groups;
+  bbox3f vBbox;
+  v_bbox3_init_empty(vBbox);
+  collect_instance_bbox(stream, sid, vBbox);
+  v_stu_bbox3(result, vBbox);
+
   return result;
 }
 

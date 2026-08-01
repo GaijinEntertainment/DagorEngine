@@ -116,11 +116,11 @@ constexpr T pow2(const T &t)
   return t * t;
 }
 
-ObjectManager::ObjectManager(const char *name, uint32_t ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
-  float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters) :
+ObjectManager::ObjectManager(const char *name, rendinst::ClientRiexPool ri_pool_id, int cell_tile, int cells_size_count,
+  float cell_size, float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters) :
   assetName(name),
   riPoolId(ri_pool_id),
-  riPoolOffset(ri_pool_id * rendinst::render::PER_DRAW_VECS_COUNT + 1),
+  riPoolOffset(ri_pool_id.id() * rendinst::render::PER_DRAW_VECS_COUNT + 1),
   boundingSphereRadius(bounding_sphere_radius),
   parameters(parameters),
   cellTileOrig(-1)
@@ -446,8 +446,10 @@ void ObjectManager::updateVisibilityAndLods(const Frustum &frustum, const Occlus
   for (const auto &ao : appendOrder)
   {
     unsigned idx = ao.idx;
+    // short-circuit order matters: testBoxB frustum-classifies the box first, satisfying the
+    // isVisibleBoxInFrustum contract
     if (counters[idx] && frustum.testBoxB(cellsBboxes[idx].bmin, cellsBboxes[idx].bmax) &&
-        (!occlusion || occlusion->isVisibleBox(cellsBboxes[idx])))
+        (!occlusion || occlusion->isVisibleBoxInFrustum(cellsBboxes[idx])))
     {
       float distSq = v_extract_x(v_distance_sq_to_bbox_x(cellsBboxes[idx].bmin, cellsBboxes[idx].bmax, origin));
       int lod = 0;
@@ -754,7 +756,7 @@ void GpuObjects::setGpuInstancingRelemParams(int cascade_no)
 
       ObjectManager &object = objects[objIdx];
       int layerIdx = layerRIOnLayerGpuobjRemap(object.layer);
-      RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(objectIds[objIdx]);
+      RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(objectIds[objIdx].id());
 
       bool lodExist = lod < res->lods.size();
       dag::ConstSpan<ShaderMesh::RElem> elems =
@@ -776,7 +778,7 @@ void GpuObjects::setGpuInstancingRelemParams(int cascade_no)
         // objects laying by objects: obj0_lod0, obj1_lod0 .. obj0_lod1, obj1_lod1 ...
         // offsets are static because we use indirect drawing, and real offsets and counts are stored in buffer
         cascades[cascade_no].layers[layerIdx].offsetsAndCounts.emplace_back(objIdx * MAX_LODS + lod, 1);
-        cascades[cascade_no].layers[layerIdx].objectIds.emplace_back(objectIds[objIdx]);
+        cascades[cascade_no].layers[layerIdx].objectIds.emplace_back(objectIds[objIdx].id());
       }
       objOffset += object.getMaxPossibleInstances();
     }
@@ -1061,7 +1063,7 @@ void GpuObjects::beforeDraw(rendinst::RenderPass render_pass, int cascade, const
 
       object.addMatricesToBuffer(cascades[cascade].matricesBuffer.get(), bufferOffset * ROWS_IN_MATRIX, lod);
       cascades[cascade].layers[layerIdx].offsetsAndCounts.emplace_back(bufferOffset * ROWS_IN_MATRIX, countByLod);
-      cascades[cascade].layers[layerIdx].objectIds.emplace_back(objectIds[i]);
+      cascades[cascade].layers[layerIdx].objectIds.emplace_back(objectIds[i].id());
       bufferOffset += countByLod;
     }
     if (volumePlacer)

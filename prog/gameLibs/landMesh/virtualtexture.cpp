@@ -56,6 +56,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_renderStates.h>
+#include <drv/dag_vr.h>
 #include <3d/dag_ringDynBuf.h>
 #include <3d/dag_eventQueryHolder.h>
 #include <3d/dag_lockTexture.h>
@@ -63,6 +64,7 @@
 #include <3d/dag_render.h>
 #include <render/dxtcompress.h>
 #include <render/bcCompressor.h>
+#include <render/daFrameGraph/daFG.h>
 
 #define USE_VIRTUAL_TEXTURE 1
 
@@ -736,6 +738,8 @@ public:
     float maxEffectiveTargetResolution);
   void closeVirtualTexture();
 
+  dafg::NodeHandle createPrepareRenderNode(ClipmapPrepareRenderCb prepare_render_cb);
+
   // fallbackTexelSize is fallbackPage size in meters
   // can be set to something like max(4, (1<<(getMaxTexMips()-1))*getPixelRatio*8) - 8 times bigger texel than last clip, but
   // not less than 4 meters if we allocate two pages, it results in minimum 4*256*2 == 1024meters (512 meters radius) of fallback
@@ -828,7 +832,7 @@ public:
     targetMipBias = mip_bias;
   };
 
-  void prepareRender(ClipmapRenderer &render, dag::Span<Texture *> buffer_tex, dag::Span<Texture *> compressor_tex,
+  void prepareRender(ClipmapRenderer &render, dag::ConstSpan<Texture *> buffer_tex, dag::ConstSpan<Texture *> compressor_tex,
     bool turn_off_decals_on_fallback = false);
 
   void prepareFeedback(const Point3 &viewer_pos, const TMatrix4 &globtm, const TMatrix4 *mirror_globtm_opt,
@@ -1111,6 +1115,11 @@ void Clipmap::initVirtualTexture(int cacheDimX, int cacheDimY, int tex_tile_size
 }
 void Clipmap::closeVirtualTexture() { clipmapImpl->closeVirtualTexture(); }
 
+dafg::NodeHandle Clipmap::createPrepareRenderNode(ClipmapPrepareRenderCb prepare_render_cb)
+{
+  return clipmapImpl->createPrepareRenderNode(eastl::move(prepare_render_cb));
+};
+
 void Clipmap::resetSecondaryFeedbackCenter() { clipmapImpl->resetSecondaryFeedbackCenter(); }
 void Clipmap::setSecondaryFeedbackCenter(const Point3 &center) { clipmapImpl->setSecondaryFeedbackCenter(center); }
 
@@ -1146,7 +1155,7 @@ void Clipmap::setMaxTexelSize(float max_texel_size) { clipmapImpl->setMaxTexelSi
 float Clipmap::getStartTexelSize() const { return clipmapImpl->getStartTexelSize(); }
 void Clipmap::setStartTexelSize(float st_texel_size) { clipmapImpl->setStartTexelSize(st_texel_size); }
 void Clipmap::setTargetSize(int w, int h, float mip_bias) { clipmapImpl->setTargetSize(w, h, mip_bias); }
-void Clipmap::prepareRender(ClipmapRenderer &render, dag::Span<Texture *> buffer_tex, dag::Span<Texture *> compressor_tex,
+void Clipmap::prepareRender(ClipmapRenderer &render, dag::ConstSpan<Texture *> buffer_tex, dag::ConstSpan<Texture *> compressor_tex,
   bool turn_off_decals_on_fallback)
 {
   clipmapImpl->prepareRender(render, buffer_tex, compressor_tex, turn_off_decals_on_fallback);
@@ -3569,6 +3578,7 @@ void ClipmapImpl::updateTileBlockRaw(ClipmapRenderer &renderer, const CacheCoord
 
   {
     TIME_D3D_PROFILE(renderTile);
+    DA_PROFILE_TAG(renderTile, "bbox = {%f, %f}, {%f, %f}", region.lim[0].x, region.lim[0].y, region.lim[1].x, region.lim[1].y);
     renderer.renderTile(region);
   }
 }
@@ -3857,10 +3867,10 @@ void ClipmapImpl::prepareSoftwareFeedback(int nextZoom, const Point3 &center, co
     points[3] = v_ray_intersect_plane(points[7], points[3], camPlanes[6], invalids[3], t);
     vec3f closePoints[4];
     vec4f invalid_cp[4];
-    closePoints[0] = closest_point_on_segment(origCenter, points[1], points[0]);
-    closePoints[1] = closest_point_on_segment(origCenter, points[2], points[0]);
-    closePoints[2] = closest_point_on_segment(origCenter, points[3], points[1]);
-    closePoints[3] = closest_point_on_segment(origCenter, points[3], points[2]);
+    closePoints[0] = v_closest_point_on_segment(origCenter, points[1], points[0]);
+    closePoints[1] = v_closest_point_on_segment(origCenter, points[2], points[0]);
+    closePoints[2] = v_closest_point_on_segment(origCenter, points[3], points[1]);
+    closePoints[3] = v_closest_point_on_segment(origCenter, points[3], points[2]);
     invalid_cp[0] = v_or(invalids[0], invalids[1]);
     invalid_cp[1] = v_or(invalids[0], invalids[2]);
     invalid_cp[2] = v_or(invalids[3], invalids[1]);
@@ -4446,8 +4456,8 @@ void ClipmapImpl::finalizeFeedback()
   threadpool::wait(&feedbackJob);
 }
 
-void ClipmapImpl::prepareRender(ClipmapRenderer &renderer, dag::Span<Texture *> buffer_tex, dag::Span<Texture *> compressor_tex,
-  bool turn_off_decals_on_fallback)
+void ClipmapImpl::prepareRender(ClipmapRenderer &renderer, dag::ConstSpan<Texture *> buffer_tex,
+  dag::ConstSpan<Texture *> compressor_tex, bool turn_off_decals_on_fallback)
 {
   TIME_D3D_PROFILE(prepareTiles);
 
@@ -4525,6 +4535,7 @@ void ClipmapImpl::updateRendinstLandclassRenderState()
       [this](int ri_offset) { return this->getMipPosition(ri_offset); });
     dataManager->updateClosestIndices(riIndices);
   }
+  updateLandclassData();
 }
 
 static void update_rendinst_landclass_subset(dag::Span<RendinstLandclassData> rendinst_landclass_data,
@@ -5018,4 +5029,67 @@ void ClipmapImpl::updateLandclassData()
 
   riLandclassDataManager->updateGpuData();
   heightmap_query::update_landclass_data(queryData);
+}
+
+dafg::NodeHandle ClipmapImpl::createPrepareRenderNode(ClipmapPrepareRenderCb prepare_render_cb)
+{
+  return dafg::register_node("vtex_clipmap_prepare_render", DAFG_PP_NODE_SRC,
+    [this, prepare_render_cb = eastl::move(prepare_render_cb)](dafg::Registry registry) {
+      registry.createBlob<eastl::monostate>("vtex_clipmap_prepare_render_done");
+      registry.multiplex(dafg::multiplexing::Mode::None);
+      registry.requestState().setFrameBlock(nullptr);
+      registry.executionHas(dafg::SideEffects::External);
+
+      IPoint2 bufferDim = getCacheBufferDim();
+      uint32_t bufferMips = (uint32_t)getCacheBufferMips();
+      dag::ConstSpan<uint32_t> bufferFlags = getCacheBufferFlags();
+      dag::ConstSpan<uint32_t> compressorFlags = getCacheCompressorFlags();
+
+      dag::Vector<dafg::VirtualResourceHandle<BaseTexture, true, false>> bufferHndls;
+      for (int i = 0; i < bufferFlags.size() && !useOwnBuffers; i++)
+      {
+        auto bufferHndl = registry.createTexture2d(getCacheBufferName(i), {bufferFlags[i], bufferDim, bufferMips})
+                            .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                            .atStage(dafg::Stage::PS_OR_CS)
+                            .handle();
+        bufferHndls.emplace_back(bufferHndl);
+      }
+
+      dag::Vector<dafg::VirtualResourceHandle<BaseTexture, true, false>> compressorHndls;
+      dag::Vector<int> compressorHndlsRemap; // covers the case where one cache might not have compression.
+      for (int i = 0; i < compressorFlags.size() && !useOwnBuffers; i++)
+      {
+        compressorHndlsRemap.emplace_back(-1);
+
+        uint32_t flags = compressorFlags[i];
+        if (flags != Clipmap::BAD_TEX_FLAGS)
+        {
+          String compressorBufName = String(30, "cache_compressor_buf_%i", i);
+          auto compressorHndl = registry.createTexture2d(compressorBufName, {flags, bufferDim / 4, bufferMips})
+                                  .useAs(flags & TEXCF_UNORDERED ? dafg::Usage::SHADER_RESOURCE : dafg::Usage::COLOR_ATTACHMENT)
+                                  .atStage(dafg::Stage::PS_OR_CS)
+                                  .handle();
+          compressorHndls.emplace_back(compressorHndl);
+          compressorHndlsRemap.back() = compressorHndls.size() - 1;
+        }
+      }
+
+      return [bufferHndls, compressorHndls, compressorHndlsRemap, prepare_render_cb = eastl::move(prepare_render_cb)]() {
+        auto linearRenderingToken = vr::suppress_non_linear_rendering();
+
+        eastl::fixed_vector<Texture *, Clipmap::MAX_TEXTURES, false> bufferTex;
+        for (const auto &hndl : bufferHndls)
+          bufferTex.emplace_back(hndl.get());
+
+        eastl::fixed_vector<Texture *, Clipmap::MAX_TEXTURES, false> compressorTex(compressorHndlsRemap.size(), nullptr);
+        for (int i = 0; i < compressorTex.size(); ++i)
+        {
+          int remap = compressorHndlsRemap[i];
+          if (remap >= 0)
+            compressorTex[i] = compressorHndls[remap].get();
+        }
+
+        prepare_render_cb(bufferTex, compressorTex);
+      };
+    });
 }

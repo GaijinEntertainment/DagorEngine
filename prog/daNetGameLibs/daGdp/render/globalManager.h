@@ -8,7 +8,7 @@
 #include <util/dag_oaHashNameMap.h>
 #include <daECS/core/entitySystem.h>
 #include <util/dag_multicastEvent.h>
-#include <render/dynamicShadowRenderExtensions.h>
+#include <render/lights/dynamicShadowRenderExtensions.h>
 #include "common.h"
 
 namespace dagdp

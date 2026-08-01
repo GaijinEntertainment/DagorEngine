@@ -1,0 +1,44 @@
+WARNING: w338 (same-args-in-call) Both arguments of 'max' are the same expression.
+testData/static_analyzer/w338_same_args_in_call.nut:13:16
+
+// Positives: symmetric select builtins with duplicated arguments.
+let deadClamp = max(10, 10)
+                ^----------
+let deadMin = min(x, x)
+
+
+WARNING: w338 (same-args-in-call) Both arguments of 'min' are the same expression.
+testData/static_analyzer/w338_same_args_in_call.nut:14:14
+
+let deadClamp = max(10, 10)
+let deadMin = min(x, x)
+              ^--------
+let deadMathMax = math.max(a, a)
+
+
+WARNING: w338 (same-args-in-call) Both arguments of 'max' are the same expression.
+testData/static_analyzer/w338_same_args_in_call.nut:15:18
+
+let deadMin = min(x, x)
+let deadMathMax = math.max(a, a)
+                  ^-------------
+let deadClampBounds = math.clamp(x, a, a)
+
+
+WARNING: w338 (same-args-in-call) Both arguments of 'clamp' are the same expression.
+testData/static_analyzer/w338_same_args_in_call.nut:16:22
+
+let deadMathMax = math.max(a, a)
+let deadClampBounds = math.clamp(x, a, a)
+                      ^------------------
+let deadCallArgs = min(getVal(), getVal())
+
+
+WARNING: w338 (same-args-in-call) Both arguments of 'min' are the same expression.
+testData/static_analyzer/w338_same_args_in_call.nut:17:19
+
+let deadClampBounds = math.clamp(x, a, a)
+let deadCallArgs = min(getVal(), getVal())
+                   ^----------------------
+
+

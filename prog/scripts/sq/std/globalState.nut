@@ -35,7 +35,7 @@ function readNewData(name){
 // it spamming too much, but without info about VM logs are useless
 }
 
-function globalWatched(name, ctor=null) {
+function globalWatched(name, ctor=null): table {
   assert(name not in registered, $"Global persistent state duplicate registration: {name}")
   let key = ["GLOBAL_PERSIST_STATE", name]
   local val

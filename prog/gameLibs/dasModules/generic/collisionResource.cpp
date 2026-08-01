@@ -134,7 +134,7 @@ public:
       "bind_dascript::collres_get_node_capsule");
     das::addExtern<DAS_BIND_FUN(collres_get_node_name)>(*this, lib, "collres_get_node_name", das::SideEffects::none,
       "bind_dascript::collres_get_node_name");
-    das::addExtern<DAS_BIND_FUN(collres_get_node_tm), das::SimNode_ExtFuncCallRef>(*this, lib, "collres_get_node_tm",
+    das::addExtern<DAS_BIND_FUN(collres_get_node_tm), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "collres_get_node_tm",
       das::SideEffects::none, "bind_dascript::collres_get_node_tm");
     das::addExtern<DAS_BIND_FUN(collres_get_node_max_tm_scale)>(*this, lib, "collres_get_node_max_tm_scale", das::SideEffects::none,
       "bind_dascript::collres_get_node_max_tm_scale");

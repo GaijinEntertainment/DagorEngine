@@ -24,6 +24,9 @@ static const char *const profiler_metric_names_arr[] = {
   "Bhv br",
   "ETree br",
   "Recalc layout *",
+  "FRP update",
+  "Rebuild invalidated",
+  "ETree rebuild *",
   "<dbg>",
 };
 static_assert(countof(profiler_metric_names_arr) == NUM_PROFILER_METRICS);
@@ -32,7 +35,7 @@ const char *const *profiler_metric_names = profiler_metric_names_arr;
 static bool is_metric_cumulative(ProfilerMetricId m)
 {
   return m == M_RENDER_TEXT || m == M_RENDER_9RECT || m == M_COMPONENT_SCRIPT || m == M_RECALC_LAYOUT || m == M_ETREE_BEFORE_RENDER ||
-         m == M_RENDER_LIST_REBUILD;
+         m == M_RENDER_LIST_REBUILD || m == M_ETREE_REBUILD;
 }
 
 
@@ -176,6 +179,7 @@ void Profiler::afterUpdate()
 {
   metrics[M_COMPONENT_SCRIPT].apply();
   metrics[M_RECALC_LAYOUT].apply();
+  metrics[M_ETREE_REBUILD].apply();
 }
 
 

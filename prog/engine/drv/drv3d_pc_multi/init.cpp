@@ -66,7 +66,7 @@ namespace d3d_multi_stub
 static constexpr auto release = d3d::drivercode::matcher::Const<DAGOR_DBGLEVEL == 0>{};
 
 #if !_TARGET_PC_WIN
-static constexpr eastl::array<eastl::pair<uint16_t, uint16_t>, 0> getGDIs() { return {}; }
+static constexpr eastl::array<eastl::pair<uint16_t, uint16_t>, 0> getDisplayDevices() { return {}; }
 #endif
 
 #if USE_MULTI_D3D_DX11
@@ -119,11 +119,11 @@ static void message_box_os_compatibility_mode()
 }
 #endif
 
-static bool test_preferred_driver(const DataBlock *gpu_cfg, auto &gdis)
+static bool test_preferred_driver(const DataBlock *gpu_cfg, auto &display_devices)
 {
   if (gpu_cfg)
   {
-    for (auto [vendorId, deviceId] : gdis)
+    for (auto [vendorId, deviceId] : display_devices)
     {
       if (gpu::is_preferred_device(*gpu_cfg, vendorId, deviceId, {}))
         return true;
@@ -140,13 +140,14 @@ static bool test_preferred_driver(const DataBlock *gpu_cfg, auto &gdis)
  * This is applied only on release builds. It is assumed on dev build the users know what they are doing
  * and this function won't override their decision.
  */
-static eastl::optional<DriverCode> override_driver_preference([[maybe_unused]] const auto candidate_driver, const auto &gdis)
+static eastl::optional<DriverCode> override_driver_preference([[maybe_unused]] const auto candidate_driver,
+  const auto &display_devices)
 {
-  if (gdis.empty())
+  if (display_devices.empty())
     return {};
 
   [[maybe_unused]] bool anyModernIntel = false;
-  for (auto [vendorId, deviceId] : gdis)
+  for (auto [vendorId, deviceId] : display_devices)
   {
     if (d3d_get_vendor(vendorId) != GpuVendor::INTEL)
       return {};
@@ -188,7 +189,7 @@ static DriverCode detect_driver()
 #endif
   };
 
-  const auto gDIs = getGDIs();
+  const auto displayDevices = getDisplayDevices();
 
   auto &video = *::dgs_get_settings()->getBlockByNameEx("video");
   const char *driver;
@@ -206,7 +207,7 @@ static DriverCode detect_driver()
       driver = video.getStr("autoDriver");
     else
     {
-      if (test_preferred_driver(::dgs_get_settings()->getBlockByNameEx("dx12")->getBlockByNameEx("gpuPreferences"), gDIs))
+      if (test_preferred_driver(::dgs_get_settings()->getBlockByNameEx("dx12")->getBlockByNameEx("gpuPreferences"), displayDevices))
         driver = "dx12";
     }
   }
@@ -216,10 +217,11 @@ static DriverCode detect_driver()
 
   if (video.getBool("overrideDriver", false))
   {
-    if (auto overrideDriver = override_driver_preference(candidateDriver, gDIs); overrideDriver)
+    if (auto overrideDriver = override_driver_preference(candidateDriver, displayDevices); overrideDriver)
       candidateDriver = *overrideDriver;
   }
 
+  // 31315844 = DX11; 32315844 = DX12; 4B4C5556 = VULK; 4C544D00 = MTL; 42555453 = STUB, FFFFFFFF = undefined
   logdbg("[DRV_MULTI] driver:t=%s mapped to %08X", driver, candidateDriver.asFourCC());
 
   for (int i = 0; i < 2; i++)

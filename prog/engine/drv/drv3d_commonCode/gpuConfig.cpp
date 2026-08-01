@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gpuConfig.h"
+#include "gpuVendorIntel.h"
 #include "gpuVendorAmd.h"
 #include "gpuVendorNvidia.h"
 
@@ -337,6 +338,7 @@ static void check_nvidia_driver(const GpuVideoSettings &video, const char *gpu_d
   // 347.88 and older - UAV causes VB Map to return random invalid pointers.
   if (nvidiaDriverVersion > 0 && nvidiaDriverVersion <= 34788)
   {
+    out_cfg.outdatedDriver = true;
     out_cfg.fallbackToCompatibilty = true; // UAV is required for normal DX11 shaders.
     debug("Disable UAV on outdated Nvidia driver.");
   }
@@ -633,3 +635,27 @@ const GpuUserConfig &d3d_get_gpu_cfg()
 const GpuDriverConfig &get_gpu_driver_cfg() { return gpu_driver_config; }
 
 void d3d_mark_gpu_driver_outdated() { gpu_driver_config.outdatedDriver = true; }
+
+DriverCode d3d_get_gpu_driver_switch_hint()
+{
+#if _TARGET_PC_WIN && !DAGOR_HOSTED_INTERNAL_SERVER
+  const DataBlock *video = ::dgs_get_settings()->getBlockByNameEx("video");
+  if (!video->getBool("recommendGpuDriverSwitch", false))
+    return DriverCode::make(d3d::undefined);
+  if (strcmp(video->getStr("driver", "auto"), "auto") == 0)
+    return DriverCode::make(d3d::undefined);
+
+  const DeviceAttributes &info = d3d::get_driver_desc().info;
+  if (info.vendor != GpuVendor::INTEL)
+    return DriverCode::make(d3d::undefined);
+
+  const DriverCode active = d3d::get_driver_code();
+  const bool modernIntel = !gpu::IsPreXe(info.deviceId) && !gpu::IsXeLP(info.deviceId);
+
+  if (active.is(d3d::dx11) && modernIntel)
+    return DriverCode::make(d3d::dx12);
+  if (active.is(d3d::dx12) && !modernIntel)
+    return DriverCode::make(d3d::dx11);
+#endif
+  return DriverCode::make(d3d::undefined);
+}

@@ -4,6 +4,7 @@
 #include <gamePhys/phys/physVars.h>
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animBlend.h>
+#include <anim/dag_animStateHolder.h>
 
 inline void AnimatedPhys::addRemap(int animNid, int physNid, bool pullable)
 {
@@ -28,8 +29,24 @@ void AnimatedPhys::init(const AnimV20::AnimcharBaseComponent &anim_char, const P
   remappedVars.clear();
   pullBitmap.clear();
   remappedVars.resize(phys_vars.getVarsCount(), -1);
-  phys_vars.iter(
-    [&](const char *name, int var_id) { addRemap(animGraph->getParamId(name), var_id, phys_vars.isVarPullable(var_id)); });
+  phys_vars.iter([&](const char *name, int var_id) {
+    const int id = animGraph->getParamId(name);
+    const int paramType = id >= 0 ? animGraph->getParamType(id) : -1;
+    if (paramType != -1 && paramType != AnimV20::AnimGraphStateHolder::PT_ScalarParam &&
+        paramType != AnimV20::AnimGraphStateHolder::PT_TimeParam)
+    {
+      debug("Phys vars dump for '%s'", anim_char.getResName());
+      phys_vars.iter([&](const char *name2, int var_id2) {
+        const int id2 = animGraph->getParamId(name2);
+        debug("    id: %d  name: %s  graph id: %d  graph type: %d", var_id2, name2, id2, id2 >= 0 ? animGraph->getParamType(id2) : -1);
+      });
+      logerr("AnimatedPhys: Char '%s': Trying to remap phys var name '%s' id '%d' to graph param id '%d' with type '%d' which is not "
+             "allowed. Phys vars dump in log.",
+        anim_char.getResName(), name, var_id, id, paramType);
+      return;
+    }
+    addRemap(id, var_id, phys_vars.isVarPullable(var_id));
+  });
 }
 
 void AnimatedPhys::appendVar(const char *var_name, const AnimV20::AnimcharBaseComponent &anim_char, const PhysVars &phys_vars)

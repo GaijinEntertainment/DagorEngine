@@ -383,6 +383,28 @@ void close()
 
 void beforeRender() { CALL_PHYS_FUNC(before_render, (), break); }
 
+void setJointsMotorSettings(float twist_freq, float twist_damp, float swing_freq, float swing_damp)
+{
+  CALL_PHYS_FUNC(set_joints_motor_settings, (twist_freq, twist_damp, swing_freq, swing_damp), break);
+}
+
+void *startRagdoll(AnimV20::AnimcharBaseComponent *ac, AnimV20::AnimcharFinalMat44 *fw, const Point3 &v0)
+{
+  CALL_PHYS_FUNC_RET(start_ragdoll, (ac, fw, v0), nullptr);
+  return nullptr;
+}
+
+void deleteRagdoll(void *&ragdoll) { CALL_PHYS_FUNC(delete_ragdoll, (ragdoll), break); }
+
+void setRagdollDriveToAnimchar(void *ragdoll, bool drive) { CALL_PHYS_FUNC(set_ragdoll_drive, (ragdoll, drive), break); }
+
+void wakeUpRagdoll(void *ragdoll) { CALL_PHYS_FUNC(wake_up_ragdoll, (ragdoll), break); }
+
+void setBodyStatic(int body_idx, bool make_static, float mass, const Point3 &momj)
+{
+  CALL_PHYS_FUNC(set_body_static, (body_idx, make_static, mass, momj), break);
+}
+
 void renderTrans(bool render_collision, bool render_geom, bool bodies, bool body_center, bool constraints, bool constraints_refsys,
   bool render_boxes)
 {

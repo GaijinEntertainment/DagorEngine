@@ -1,0 +1,9 @@
+ERROR: forward declaration 'value' must be initialized in its declaring scope
+testData/diagnostics/forward_let_other_scope.nut:3:2
+
+if (true) {
+  value = 1
+  ^----
+}
+
+

@@ -38,7 +38,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float viewZ = UnpackViewZ( gIn_ViewZ[ pixelPos ] );
     nonLinearAccumSpeed = !IsInDenoisingRange( viewZ ) ? 0.0 : nonLinearAccumSpeed; // less blur on "SKY" edges
 
-    #ifdef NRD_COMPILER_DXC
+    #if( NRD_SUPPORTS_WAVE_INTRINSICS == 1 )
     {
         // IMPORTANT: the spec says: "these routines assume that flow control execution is uniform at least across the quad"
         // Adapt to neighbors if they are more stable

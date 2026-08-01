@@ -20,7 +20,7 @@ static void show_usage();
 
 struct Mesh
 {
-  dag::Vector<uint16_t> indices;
+  dag::Vector<uint32_t> indices; // widened on read: addmesh takes uint32 either way, so both record forms land here
   dag::Vector<Point3> vertices;
   dag::Vector<mat43f> instances;
   BBox3 box;
@@ -28,10 +28,56 @@ struct Mesh
 };
 
 #include <render/primitiveObjects.h>
-void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
+#include <rendInst/riCollisionDump.h>
+
+// Fills Mesh storage straight from the shared dump walk. Narrow (16-bit) records go through a
+// scratch and are widened in endMesh; wide records are read in place. Every record is kept --
+// unlike the SWRT sample path, SDF generation has no 16-bit index constraint.
+struct DumpReadHandler
 {
-  dag::Vector<Mesh> meshes;
-  meshes.reserve(cb.readInt() + 3);
+  dag::Vector<Mesh> &meshes;
+  dag::Vector<uint16_t> indices16;
+  bool wantMesh(int, bool)
+  {
+    meshes.push_back();
+    return true;
+  }
+  void *indexBuffer(int count, bool wide)
+  {
+    if (wide)
+    {
+      meshes.back().indices.resize(count);
+      return meshes.back().indices.data();
+    }
+    indices16.resize(count);
+    return indices16.data();
+  }
+  Point3 *vertexBuffer(int count)
+  {
+    meshes.back().vertices.resize(count);
+    return meshes.back().vertices.data();
+  }
+  mat43f *instanceBuffer(int count)
+  {
+    meshes.back().instances.resize(count);
+    return meshes.back().instances.data();
+  }
+  void endMesh(int, bool wide, int index_count, int, int)
+  {
+    Mesh &mesh = meshes.back();
+    if (!wide)
+    {
+      mesh.indices.resize(index_count);
+      for (int i = 0; i < index_count; ++i)
+        mesh.indices[i] = indices16[i];
+    }
+    for (auto &v : mesh.vertices)
+      mesh.box += v;
+  }
+};
+
+static bool loadObjects(IGenLoad &cb, dag::Vector<Mesh> &meshes)
+{
   if (0)
   {
     Mesh &mesh = meshes.push_back();
@@ -41,8 +87,9 @@ void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
     box[1] = Point3(16, 16, 16);
     for (int vertNo = 0; vertNo < 8; ++vertNo)
       mesh.vertices[vertNo] = box.point(vertNo);
-    mesh.indices.resize(36);
-    create_cubic_indices(dag::Span<uint8_t>((uint8_t *)mesh.indices.data(), 36 * sizeof(uint16_t)), 36, false);
+    uint16_t cubeIdx[36];
+    create_cubic_indices(dag::Span<uint8_t>((uint8_t *)cubeIdx, sizeof(cubeIdx)), 36, false);
+    mesh.indices.assign(cubeIdx, cubeIdx + 36);
     for (auto &v : mesh.vertices)
       mesh.box += v;
   }
@@ -59,11 +106,14 @@ void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
     box[1] = Point3(12, 12, 12);
     for (int vertNo = 0; vertNo < 8; ++vertNo)
       mesh.vertices[8 + vertNo] = box.point(7 - vertNo);
+    uint16_t cubeIdx[36];
+    create_cubic_indices(dag::Span<uint8_t>((uint8_t *)cubeIdx, sizeof(cubeIdx)), 36, false);
     mesh.indices.resize(36 * 2);
-    create_cubic_indices(dag::Span<uint8_t>((uint8_t *)mesh.indices.data(), 36 * sizeof(uint16_t)), 36, false);
-    create_cubic_indices(dag::Span<uint8_t>((uint8_t *)(mesh.indices.data() + 36), 36 * sizeof(uint16_t)), 36, false);
-    for (int i = 36; i < 72; ++i)
-      mesh.indices[i] += 8;
+    for (int i = 0; i < 36; ++i)
+    {
+      mesh.indices[i] = cubeIdx[i];
+      mesh.indices[36 + i] = cubeIdx[i] + 8;
+    }
     for (auto &v : mesh.vertices)
       mesh.box += v;
   }
@@ -121,23 +171,12 @@ void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
       mesh.box += v;
   }
 #endif
-#if 1
-  for (int i = 0; cb.tell() < cb.getTargetDataSize(); ++i)
-  {
-    Mesh &mesh = meshes.push_back();
-    mesh.indices.resize(cb.readInt());
-    cb.read(mesh.indices.begin(), mesh.indices.size() * sizeof(*mesh.indices.data()));
-    mesh.vertices.resize(cb.readInt());
-    cb.read(mesh.vertices.begin(), mesh.vertices.size() * sizeof(*mesh.vertices.data()));
-    mesh.instances.resize(cb.readInt());
-    cb.read(mesh.instances.begin(), mesh.instances.size() * sizeof(*mesh.instances.data()));
-    for (auto &v : mesh.vertices)
-      mesh.box += v;
-    // if (i != 25)
-    //   meshes.pop_back();
-    // printf("mesh %d %d %d\n",mesh.indices.size(),mesh.vertices.size(),mesh.instances.size());
-  }
-#endif
+  DumpReadHandler h{meshes};
+  return read_ri_collision_dump(cb, h);
+}
+
+static void generateSDF(dag::Vector<Mesh> &meshes, IGenSave &scb, float density)
+{
   int verts = 0, inds = 0, inst = 0;
   for (auto &m : meshes)
   {
@@ -146,7 +185,6 @@ void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
     inst += m.instances.size();
   }
   printf("total %d meshes, %d vertices, %d tri, %d instances\n", (int)meshes.size(), verts, inds / 3, inst);
-  dag::Vector<uint32_t> indices;
   for (auto &m : meshes)
   {
     Point3 sz = m.box.width();
@@ -160,10 +198,7 @@ void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
     sz = max(sz, Point3(0.25f, 0.25f, 0.25f)); // there is no much sense in leaf size less than 0.25 cm. Even for raytracing it is too
                                                // detailed
     m.tr.reset(new BuildableStaticSceneRayTracer(sz, 3));
-    indices.resize(m.indices.size());
-    for (size_t i = 0, e = indices.size(); i < e; ++i)
-      indices[i] = m.indices[i];
-    m.tr->addmesh(m.vertices.data(), m.vertices.size(), indices.data(), sizeof(uint32_t) * 3, m.indices.size() / 3, nullptr, false);
+    m.tr->addmesh(m.vertices.data(), m.vertices.size(), m.indices.data(), sizeof(uint32_t) * 3, m.indices.size() / 3, nullptr, false);
     m.tr->setCullFlags(StaticSceneRayTracer::CULL_BOTH);
     m.tr->rebuild(true);
   }
@@ -220,10 +255,18 @@ int DagorWinMain(bool debugmode)
     return 2;
   }
   init_sdf_generate();
+  // Load before opening the output: a malformed/truncated dump must fail the run, not leave a
+  // partial or empty sdf.bin behind.
+  dag::Vector<Mesh> meshes;
+  if (!loadObjects(cb, meshes))
+  {
+    printf("ERROR: malformed or truncated collision dump <%s>\n", dgs_argv[1]);
+    return 3;
+  }
   FullFileSaveCB scb(dgs_argc > 3 ? dgs_argv[3] : "sdf.bin");
   float density = dgs_argc > 4 ? atof(dgs_argv[4]) : 2.0f;
   printf("%f density\n", density);
-  loadObjects(cb, scb, density);
+  generateSDF(meshes, scb, density);
   printf("done in %ds\n", int(time(NULL) - ctime));
   threadpool::shutdown();
   cpujobs::term(true, 1000);

@@ -775,7 +775,8 @@ cinematic_mode_settings{
     cinematic_mode__superPixels:i=2
     cinematic_mode__vignetteStrength:r=0.0
     cinematic_mode__chromaticAberration:p3=0.01, 0.007, 1 // red, green, offset
-    cinematic_mode__filmGrain:p4=0.0, 1.0, 1.0, 0 // base_strength, grain_scale, time_scale, exposure_correction
+    cinematic_mode__filmGrainNoise:p3=0.0, 1.0, 1.0  // base_strength, rate, pitch [0.5; 1.0]
+    cinematic_mode__filmGrainLut:p4=0.0, 1.0, 1.0, 0 // base_strength, grain_scale, time_scale, exposure_correction
     cinematic_mode__filmGrainMul:r=1.0
     cinematic_mode__lenseFlareIntensity:r=0.0
     cinematic_mode__lenseDust:b=no

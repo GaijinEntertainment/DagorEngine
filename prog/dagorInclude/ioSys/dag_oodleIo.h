@@ -34,6 +34,9 @@ public:
   KRNLIMP virtual void read(void *ptr, int size);
 
   KRNLIMP virtual int tryRead(void *ptr, int size);
+  // decoded bytes delivered so far: a soft consumer distinguishes the declared end (== the
+  // dec_size it was opened with) from a decode error, which also just stops producing
+  int decodedBytes() const { return rdPos; }
   virtual int tell()
   {
     issueFatal();

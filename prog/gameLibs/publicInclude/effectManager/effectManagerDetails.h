@@ -63,6 +63,8 @@ struct EffectManager::PendingData
   Point3 fakeBrightnessBackgroundPos = Point3(0, 0, 0);
   TMatrix4 splineGenData = TMatrix4::ZERO;
   int biomeQueryId = -1;
+  float warmupTime = 0.f;
+  float warmupStepDt = 0.f; // 0 = dafx config default
 
   PendingData() = delete;
   explicit PendingData(AcesEffect::FxId fx_id) : fxId(fx_id) {}

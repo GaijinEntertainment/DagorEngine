@@ -556,6 +556,12 @@ static CURLcode ldap_do(struct Curl_easy *data, bool *done)
 #else
       char *dn = name = ldap_get_dn(server, entryIterator);
 #endif
+      if(!name) {
+        /* ldap_get_dn() can return NULL on error */
+        ldap_memfree(dn);
+        result = CURLE_FAILED_INIT;
+        goto quit;
+      }
       name_len = strlen(name);
 
       result = Curl_client_write(data, CLIENTWRITE_BODY, (char *)"DN: ", 4);

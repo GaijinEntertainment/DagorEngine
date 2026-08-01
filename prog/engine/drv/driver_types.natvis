@@ -110,6 +110,7 @@
       <Item Name="[TEXFMT]" Condition="linearFormat == 0x0C">"TEXFMT_DXT3 (0x0C000000)",sb</Item>
       <Item Name="[TEXFMT]" Condition="linearFormat == 0x0D">"TEXFMT_DXT5 (0x0D000000)",sb</Item>
       <Item Name="[TEXFMT]" Condition="linearFormat == 0x0E">"TEXFMT_R32G32UI (0x0E000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x0F">"TEXFMT_BC5S (0x0F000000)",sb</Item>
       <Item Name="[TEXFMT]" Condition="linearFormat == 0x10">"TEXFMT_L16 (0x10000000)",sb</Item>
       <Item Name="[TEXFMT]" Condition="linearFormat == 0x11">"TEXFMT_A8 (0x11000000)",sb</Item>
       <Item Name="[TEXFMT]" Condition="linearFormat == 0x12">"TEXFMT_R8 (0x12000000)",sb</Item>
@@ -164,6 +165,7 @@
       <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1A">DXGI_FORMAT_BC4_UNORM</Item>
       <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1B">DXGI_FORMAT_BC5_UNORM</Item>
       <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x23">DXGI_FORMAT_BC6H_UF16</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0F">DXGI_FORMAT_BC5_SNORM</Item>
 
       <!-- Depth: always typeless (base) so different views can be made -->
       <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x27">DXGI_FORMAT_R24G8_TYPELESS</Item>
@@ -208,8 +210,8 @@
       <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x25">DXGI_FORMAT_R8_UINT</Item>
       <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x26">DXGI_FORMAT_R16_UINT</Item>
 
-      <!-- 0x0F, 0x16, 0x2B-0x32 are dummy/ASTC/ETC2 slots on PC -->
-      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0F || linearFormat == 0x16 || (linearFormat &gt;= 0x2B &amp;&amp; linearFormat &lt;= 0x32)">DXGI_FORMAT_UNKNOWN</Item>
+      <!-- 0x16, 0x2B-0x32 are dummy/ASTC/ETC2 slots on PC -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x16 || (linearFormat &gt;= 0x2B &amp;&amp; linearFormat &lt;= 0x32)">DXGI_FORMAT_UNKNOWN</Item>
     </Expand>
   </Type>
 

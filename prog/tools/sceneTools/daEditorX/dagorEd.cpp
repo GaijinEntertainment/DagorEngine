@@ -5,6 +5,7 @@
 #include <de3_interface.h>
 #include <de3_editorEvents.h>
 #include <de3_dynRenderService.h>
+#include <de3_hmapService.h>
 #include <de3_skiesService.h>
 #include <de3_waterSrv.h>
 
@@ -57,6 +58,7 @@ extern bool window_initing;
 }
 
 bool is_generic_water_service_initialized();
+bool is_generic_hmap_service_initialized();
 
 static constexpr const char *INITIAL_CAPTION = "DaEditorX";
 static constexpr const char *INITIAL_ICON = "RES_DE_ICON";
@@ -68,6 +70,9 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
     DAEDITOR3.conNote("notifying services (onBeforeReset3dDevice)...");
     if (IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
       drSrv->beforeD3DReset(full_reset);
+    if (is_generic_hmap_service_initialized())
+      if (IHmapService *hmapSrv = EDITORCORE->queryEditorInterface<IHmapService>())
+        hmapSrv->beforeD3DReset(full_reset);
     ((DagorEdAppWindow *)DAGORED2)->onBeforeReset3dDevice();
   }
 
@@ -79,6 +84,9 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
     rebuild_shaders_stateblocks();
     StdGuiRender::after_device_reset();
 
+    if (is_generic_hmap_service_initialized())
+      if (IHmapService *hmapSrv = EDITORCORE->queryEditorInterface<IHmapService>())
+        hmapSrv->afterD3DReset(full_reset);
     if (IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>())
       drSrv->afterD3DReset(full_reset);
     if (ISkiesService *skiesSrv = EDITORCORE->queryEditorInterface<ISkiesService>())
@@ -97,7 +105,7 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
       ddsx::reload_active_textures(0);
     }
     DAEDITOR3.conNote("notifying services (reset finished)...");
-    DAGORED2->spawnEvent(HUID_AfterD3DReset, NULL);
+    DAGORED2->spawnEvent(HUID_AfterD3DReset, (void *)(uintptr_t)full_reset);
   }
 } drv_3d_reset_cb;
 
@@ -424,9 +432,13 @@ extern void init_spline_gen_mgr_service();
 extern void init_ecs_mgr_service(const DataBlock &app_blk, const char *app_dir);
 extern void init_ecs_animchar_mgr_service(const DataBlock &app_blk);
 extern void init_webui_service();
+extern void init_hmap_debug_shading_service();
 extern void init_texgen_service();
 extern void init_landscape_preview_service();
 extern void init_das_mgr_service(const DataBlock &app_blk, bool dng_based_render_used);
+
+// used instead of init_ecs_mgr_service when using DNG based render to get templates for plugins
+extern void preload_ecs_templates_without_mgr(const DataBlock &app_blk, const char *app_dir);
 
 extern void init_plugin_heightmapland();
 extern void init_plugin_csg();
@@ -470,12 +482,15 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
 
   if (!useDngBasedSceneRender)
     ::init_ecs_mgr_service(app_blk, DAGORED2->getWorkspace().getAppDir());
+  else
+    ::preload_ecs_templates_without_mgr(app_blk, DAGORED2->getWorkspace().getAppDir());
 
-  if (app_blk.getBlockByNameEx("game")->getBool("enable_webui_de3", true) && !useDngBasedSceneRender)
+  if (app_blk.getBlockByNameEx("game")->getBool("enable_webui_de3", true))
     ::init_webui_service();
   else
-    debug("webUi disabled with game{ useDngBasedSceneRender:b=yes or enable_webui_de3:b=no;");
+    debug("webUi disabled with game{ enable_webui_de3:b=no;");
 
+  ::init_hmap_debug_shading_service();
   ::init_texgen_service();
   ::init_landscape_preview_service();
 

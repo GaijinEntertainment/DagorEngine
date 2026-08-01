@@ -14,7 +14,11 @@
 #include <ws2tcpip.h>
 #include <io.h>
 #include <iphlpapi.h>
-#define snprintf _snprintf
+/* snprintf is supported by Visual Studio 2015, mingw-w64 8.0.0, mingw-w64 with ucrt, mingw-w64 or mingw32 with ansi stdio */
+#if (defined(_MSC_VER) && _MSC_VER < 1900) || (defined(__MINGW64_VERSION_MAJOR) && __MINGW64_VERSION_MAJOR < 8 && !defined(_UCRT) && !defined(__USE_MINGW_ANSI_STDIO)) || (defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) && !defined(__USE_MINGW_ANSI_STDIO))
+/* _snprintf does not fill nul byte at the end of buffer and returns -1 on overflow */
+#define snprintf(buf, size, fmt, ...) ((_snprintf((buf), (size), (fmt), __VA_ARGS__), (((char *)buf)[(size_t)(size)-1] = 0), _scprintf((fmt), __VA_ARGS__)))
+#endif
 #define strdup _strdup
 #ifndef strncasecmp
 #if defined(_MSC_VER) && (_MSC_VER >= 1400)
@@ -110,7 +114,8 @@ char * simpleUPnPcommand2(int s, const char * url, const char * service,
 	snprintf(soapact, sizeof(soapact), "%s#%s", service, action);
 	if(args==NULL)
 	{
-		/*soapbodylen = */snprintf(soapbody, sizeof(soapbody),
+		int soapbodylen;
+		soapbodylen = snprintf(soapbody, sizeof(soapbody),
 						"<?xml version=\"1.0\"?>\r\n"
 	    	              "<" SOAPPREFIX ":Envelope "
 						  "xmlns:" SOAPPREFIX "=\"http://schemas.xmlsoap.org/soap/envelope/\" "
@@ -120,12 +125,15 @@ char * simpleUPnPcommand2(int s, const char * url, const char * service,
 						  "</" SERVICEPREFIX ":%s>"
 						  "</" SOAPPREFIX ":Body></" SOAPPREFIX ":Envelope>"
 					 	  "\r\n", action, service, action);
+		if ((unsigned int)soapbodylen >= sizeof(soapbody))
+			return NULL;
 	}
 	else
 	{
 		char * p;
 		const char * pe, * pv;
 		int soapbodylen;
+		const char * const pend = soapbody + sizeof(soapbody);
 		soapbodylen = snprintf(soapbody, sizeof(soapbody),
 						"<?xml version=\"1.0\"?>\r\n"
 	    	            "<" SOAPPREFIX ":Envelope "
@@ -134,42 +142,59 @@ char * simpleUPnPcommand2(int s, const char * url, const char * service,
 						"<" SOAPPREFIX ":Body>"
 						"<" SERVICEPREFIX ":%s xmlns:" SERVICEPREFIX "=\"%s\">",
 						action, service);
+		if ((unsigned int)soapbodylen >= sizeof(soapbody))
+			return NULL;
 		p = soapbody + soapbodylen;
 		while(args->elt)
 		{
-			/* check that we are never overflowing the string... */
-			if(soapbody + sizeof(soapbody) <= p + 100)
-			{
-				/* we keep a margin of at least 100 bytes */
+			if(p >= pend) /* check for space to write next byte */
 				return NULL;
-			}
 			*(p++) = '<';
+
 			pe = args->elt;
-			while(*pe)
+			while(p < pend && *pe)
 				*(p++) = *(pe++);
+
+			if(p >= pend) /* check for space to write next byte */
+				return NULL;
 			*(p++) = '>';
+
 			if((pv = args->val))
 			{
-				while(*pv)
+				while(p < pend && *pv)
 					*(p++) = *(pv++);
 			}
+
+			if((p+2) > pend) /* check for space to write next 2 bytes */
+				return NULL;
 			*(p++) = '<';
 			*(p++) = '/';
+
 			pe = args->elt;
-			while(*pe)
+			while(p < pend && *pe)
 				*(p++) = *(pe++);
+
+			if(p >= pend) /* check for space to write next byte */
+				return NULL;
 			*(p++) = '>';
+
 			args++;
 		}
+		if((p+4) > pend) /* check for space to write next 4 bytes */
+			return NULL;
 		*(p++) = '<';
 		*(p++) = '/';
 		*(p++) = SERVICEPREFIX2;
 		*(p++) = ':';
+
 		pe = action;
-		while(*pe)
+		while(p < pend && *pe)
 			*(p++) = *(pe++);
+
 		strncpy(p, "></" SOAPPREFIX ":Body></" SOAPPREFIX ":Envelope>\r\n",
-		        soapbody + sizeof(soapbody) - p);
+		        pend - p);
+		if(soapbody[sizeof(soapbody)-1]) /* strncpy pads buffer with 0s, so if it doesn't end in 0, could not fit full string */
+			return NULL;
 	}
 	if(!parseURL(url, hostname, &port, &path, NULL)) return NULL;
 	if(s < 0) {
@@ -515,6 +540,7 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 				 char * lanaddr, int lanaddrlen)
 {
 	struct xml_desc {
+		char lanaddr[40];
 		char * xml;
 		int size;
 		int is_igd;
@@ -547,7 +573,7 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 		/* we should choose an internet gateway device.
 		 * with st == urn:schemas-upnp-org:device:InternetGatewayDevice:1 */
 		desc[i].xml = miniwget_getaddr(dev->descURL, &(desc[i].size),
-		                               lanaddr, lanaddrlen,
+		                               desc[i].lanaddr, sizeof(desc[i].lanaddr),
 		                               dev->scope_id);
 #ifdef DEBUG
 		if(!desc[i].xml)
@@ -622,6 +648,9 @@ UPNP_GetValidIGD(struct UPNPDev * devlist,
 	}
 	state = 0;
 free_and_return:
+	/* copy the lanaddr of the selected device, not of the last probed one */
+	if(desc != NULL && lanaddr != NULL && state >= 1 && state <= 3 && i < ndev)
+		strncpy(lanaddr, desc[i].lanaddr, lanaddrlen);
 	if(desc) {
 		for(i = 0; i < ndev; i++) {
 			if(desc[i].xml) {

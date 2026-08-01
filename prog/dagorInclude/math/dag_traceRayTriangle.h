@@ -157,18 +157,16 @@ static int __forceinline traceray4Triangles(vec3f from, vec3f dir, float &min_t,
   vec4f valid = traceray4TrianglesVecMask(from, dir, T, p0, p1, p2, no_cull);
   valid = v_and(valid, mask);
 
-  if (v_test_all_bits_zeros(valid))
+  if (v_check_xyzw_all_false(valid))
     return -1;
 
   T = v_sel(V_C_MAX_VAL, T, valid);
-  vec4f minT = v_min(v_rot_1(T), T);
-  minT = v_min(v_rot_2(minT), minT);
-  minT = v_min(minT, v_splats(min_t));
+  vec4f minT = v_min(v_hmin(T), v_splats(min_t));
   min_t = v_extract_x(minT);
 
   // select one valid element by min t
   vec4f resultMask = v_cmp_eq(minT, T);
-  int signMask = v_signmask(resultMask);
+  int signMask = v_truemask(resultMask);
   return __bsf_unsafe(signMask);
 }
 
@@ -187,7 +185,7 @@ static int __forceinline traceray4TrianglesCullCCW(vec3f from, vec3f dir, float 
 static int __forceinline traceray4TrianglesMask(vec3f from, vec3f dir, vec4f &min_t, mat43f p0, mat43f p1, mat43f p2, bool no_cull)
 {
   vec4f valid = traceray4TrianglesVecMask(from, dir, min_t, p0, p1, p2, no_cull);
-  return v_signmask(valid);
+  return v_truemask(valid);
 }
 
 static int __forceinline rayhit4Triangles(vec3f from, vec3f dir, float len, mat43f p0, mat43f p1, mat43f p2, bool no_cull,
@@ -195,7 +193,7 @@ static int __forceinline rayhit4Triangles(vec3f from, vec3f dir, float len, mat4
 {
   vec4f T = v_splats(len);
   vec4f valid = traceray4TrianglesVecMask(from, dir, T, p0, p1, p2, no_cull);
-  return v_signmask(v_and(valid, mask));
+  return v_truemask(v_and(valid, mask));
 }
 
 // return vec4 - 0xFFFFFFFF or 0 for each triangle, and return hts of hits in ht (out param)
@@ -230,18 +228,16 @@ static int __forceinline get4TrianglesMaxHtId(vec3f from, vec4f &maxht, mat43f p
   valid = v_and(valid, v_cmp_gt(ht, maxht));
   if (below)
     valid = v_and(valid, v_cmp_gt(v_splat_y(from), ht));
-  if (v_test_all_bits_zeros(valid))
+  if (v_check_xyzw_all_false(valid))
     return -1;
 
   ht = v_sel(V_C_MIN_VAL, ht, valid);
-  vec4f maxHT = v_max(v_rot_1(ht), ht);
-  maxHT = v_max(v_rot_2(maxHT), maxHT);
-  maxHT = v_max(maxht, maxHT);
+  vec4f maxHT = v_max(v_hmax(ht), maxht);
   maxht = maxHT;
 
   // select one valid element by maxHT
   vec4f resultMask = v_cmp_eq(maxHT, ht);
-  int signMask = v_signmask(resultMask);
+  int signMask = v_truemask(resultMask);
   return __bsf_unsafe(signMask);
 }
 
@@ -255,15 +251,40 @@ static int __forceinline get4TrianglesMaxHt(vec3f from, vec4f &maxht, mat43f p0,
   valid = v_and(valid, v_cmp_gt(ht, maxht));
   if (below)
     valid = v_and(valid, v_cmp_gt(v_splat_y(from), ht));
-  if (v_test_all_bits_zeros(valid))
+  if (v_check_xyzw_all_false(valid))
     return 0;
 
   ht = v_sel(V_C_MIN_VAL, ht, valid);
-  ht = v_max(v_rot_1(ht), ht);
-  ht = v_max(v_rot_2(ht), ht);
-  maxht = v_max(ht, maxht);
+  maxht = v_max(v_hmax(ht), maxht);
 
   return 1;
+}
+
+// Water-tight sibling of get4TrianglesHt: 2D edge functions at the query XZ with exact
+// sign-consistency acceptance instead of the TRACE_EPSILON_HT band, so a triangulation sharing
+// edges and vertices has no coverage cracks and no near-edge double hits, and one division total.
+// u/v/w are the barycentric cross products in (x, z) component order; det = u + v + w =
+// e1.x*e2.z - e1.z*e2.x = -n.y for n = e1 x e2, so cullDown keeping det < 0 keeps n.y > 0,
+// i.e. up-facing triangles; without it the test is two-sided.
+template <bool cullDown>
+static vec4f __forceinline get4TrianglesHtWT(vec3f from, vec4f &ht, mat43f p0, mat43f p1, mat43f p2)
+{
+  const vec4f px = v_splat_x(from), pz = v_splat_z(from);
+  const vec4f d0x = v_sub(p0.row0, px), d0z = v_sub(p0.row2, pz);
+  const vec4f d1x = v_sub(p1.row0, px), d1z = v_sub(p1.row2, pz);
+  const vec4f d2x = v_sub(p2.row0, px), d2z = v_sub(p2.row2, pz);
+  const vec4f u = v_sub(v_mul(d1x, d2z), v_mul(d1z, d2x));
+  const vec4f v = v_sub(v_mul(d2x, d0z), v_mul(d2z, d0x));
+  const vec4f w = v_sub(v_mul(d0x, d1z), v_mul(d0z, d1x));
+  const vec4f det = v_add(v_add(u, v), w);
+  const vec4f zero = v_zero();
+  const vec4f inside = v_or(v_and(v_and(v_cmp_ge(u, zero), v_cmp_ge(v, zero)), v_cmp_ge(w, zero)),
+    v_and(v_and(v_cmp_ge(zero, u), v_cmp_ge(zero, v)), v_cmp_ge(zero, w)));
+  vec4f detOk = v_cmp_gt(v_abs(det), v_splats(1e-9f));
+  if (cullDown)
+    detOk = v_and(detOk, v_cmp_gt(zero, det));
+  ht = v_div(v_add(v_add(v_mul(u, p0.row1), v_mul(v, p1.row1)), v_mul(w, p2.row1)), det);
+  return v_and(inside, detOk);
 }
 
 static void __forceinline v_mat44_transpose_to_mat43(vec4f r0, vec4f r1, vec4f r2, vec4f r3, vec4f &c0, vec4f &c1, vec4f &c2)
@@ -416,11 +437,9 @@ getTrianglesMultiHtCullSOA(const vec4f *__restrict triangles, int tri_count,    
     }
   }
 #if _TARGET_SIMD_SSE
-  return _mm_movemask_ps(valid) != 0;
+  return v_check_xyzw_any_true(valid);
 #else
-  valid = v_or(valid, v_rot_1(valid)); // xyzw | yzwx = x|y y|z w|z x|w
-  valid = v_or(valid, v_rot_2(valid)); // x|y|w|z y|z|x|w w|z|x|y x|w|y|z
-  return valid;
+  return v_hor(valid); // any lane hit, broadcast to all lanes for the caller's lane-x test
 #endif
 }
 
@@ -523,6 +542,21 @@ static int __forceinline traceray4TrianglesMaskNoCull(vec4f from, vec4f dir, vec
   return traceray4TrianglesMask(from, dir, min_t, vertices, true);
 }
 
+// Single triangle through the same kernel as traceray4Triangles*: the result is bit-exact with
+// the batched paths, unlike traceRayToTriangle which uses different epsilon and det/t bounds.
+static bool __forceinline traceray1Triangle(vec3f from, vec3f dir, float &min_t, vec3f v0, vec3f v1, vec3f v2, bool no_cull)
+{
+  mat43f p0, p1, p2;
+  p0.row0 = v_splat_x(v0), p0.row1 = v_splat_y(v0), p0.row2 = v_splat_z(v0);
+  p1.row0 = v_splat_x(v1), p1.row1 = v_splat_y(v1), p1.row2 = v_splat_z(v1);
+  p2.row0 = v_splat_x(v2), p2.row1 = v_splat_y(v2), p2.row2 = v_splat_z(v2);
+  vec4f T = v_splats(min_t);
+  if (!v_check_xyzw_any_true(traceray4TrianglesVecMask(from, dir, T, p0, p1, p2, no_cull)))
+    return false;
+  min_t = v_extract_x(T);
+  return true;
+}
+
 #ifdef __AVX__
 #include <immintrin.h>
 
@@ -601,7 +635,7 @@ static vec4x2f __forceinline traceray8TrianglesVecMask(vec4x2f from, vec4x2f dir
   vec4x2f T = _mm256_xor_ps(v_mat43x2_dot(Ng, C), sgnDet);
   T = _mm256_div_ps(T, det);
   valid = _mm256_and_ps(valid, _mm256_and_ps(_mm256_cmp_ps(det, _mm256_setzero_ps(), _CMP_GT_OQ),
-                                 _mm256_and_ps(_mm256_cmp_ps(T, _mm256_setzero_ps(), _CMP_GE_OQ), _mm256_cmp_ps(T, t, _CMP_LE_OQ))));
+                                 _mm256_and_ps(_mm256_cmp_ps(T, _mm256_setzero_ps(), _CMP_GE_OQ), _mm256_cmp_ps(T, t, _CMP_LT_OQ))));
   t = _mm256_blendv_ps(t, T, valid);
   //_mm256_zeroupper(); will be inserted by compiler, don't add it manually
   return valid;

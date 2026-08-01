@@ -17,6 +17,7 @@
 class ILogWriter;
 class DataBlock;
 class DagorAsset;
+class DagorAssetMgrLoadAssetsBaseContext;
 class DagorAssetPrivate;
 class DagorVirtualAssetRule;
 class DagorAssetFolder;
@@ -30,7 +31,6 @@ namespace threadpool
 {
 struct JobPool;
 }
-
 
 class DagorAssetMgr
 {
@@ -58,8 +58,13 @@ public:
     return *msgPipe;
   }
 
+  //! create the loading context required for loadAssetsBase(). The context can and should be reused for multiple
+  //! loadAssetsBase() calls for better performance.
+  eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> makeLoadAssetsBaseContext();
+
   //! scans assets folder for *.res.blk and creates list of assets
-  bool loadAssetsBase(const char *assets_folder, const char *name_space);
+  //! load_context: use makeLoadAssetsBaseContext() to create it. See usage notes there.
+  bool loadAssetsBase(const char *assets_folder, const char *name_space, DagorAssetMgrLoadAssetsBaseContext &load_context);
 
   //! gathers built resources list and mounts to /<mount_folder_name> with resources-by-type tree
   //! returns false, if mount folder already exists
@@ -336,6 +341,10 @@ public:
     return sharedAssetNameMapOwner;
   }
 
+  // Key: asset type + asset name index. Use make_asset_index_map_key().
+  // Value: index to the assets array.
+  using AssetTypeAndNameToAssetIndexMap = HashedKeyMap<uint64_t, int, ~uint64_t(0), oa_hashmap_util::MumStepHash<uint64_t>>;
+
 protected:
   struct RootEntryRec;
   struct PerAssetIdNotifyTab;
@@ -378,10 +387,10 @@ protected:
   struct LoadingPool;
 
   void loadAssets(LoadingPool &job_pool, LoadedFolder *loaded, int nspace_id);
-  void addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded);
+  void addLoadedFolders(int parent_folder_idx, LoadedFolder *loaded, AssetTypeAndNameToAssetIndexMap &asset_idx_map);
   void readFoldersBlk(DagorAssetFolder &f, DagorAssetFolder *parent, const DataBlock &blk);
   bool checkAssetNotDuplicated(DagorAssetPrivate *&ca, DagorAssetFolder *f, const char *folder_path, const char *fname, int asset_type,
-    dag::Span<DagorAssetPrivate *> loaded_assets, int *start_rule_idx);
+    dag::Span<DagorAssetPrivate *> loaded_assets, int *start_rule_idx, const AssetTypeAndNameToAssetIndexMap *asset_idx_map = nullptr);
 
   bool addAsset(const char *folder_path, const char *fname, int nspace_id, DagorAssetPrivate *&ca, DagorAssetFolder *f,
     LoadedFolder *loaded, int &start_rule_idx, bool reg);
@@ -397,4 +406,19 @@ protected:
   inline eastl::vector<AssetMap>::const_iterator findAssetByName(unsigned name) const;
   void rebuildAssetMap() const;
   int addAssetNameId(const char *nm);
+};
+
+class DagorAssetMgrLoadAssetsBaseContext
+{
+public:
+  explicit DagorAssetMgrLoadAssetsBaseContext(bool use_shared_name_map_for_assets);
+  ~DagorAssetMgrLoadAssetsBaseContext();
+
+private:
+  friend class DagorAssetMgr;
+
+  DagorAssetMgr::AssetTypeAndNameToAssetIndexMap assetTypeAndNameToAssetIndexMap;
+
+  bool cpujobsInitedLocally = false;
+  bool threadpoolInitedLocally = false;
 };

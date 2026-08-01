@@ -1,0 +1,4 @@
+word boundary before punctuation: true
+empty capture group: 2..2
+unmatched group from failed branch: 0..0
+unmatched g1, matched g2: 0..0 1..2

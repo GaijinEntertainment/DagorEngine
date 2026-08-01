@@ -16,10 +16,10 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include "std_containers.h"
 #include "log.h"
 
-#include <shared/math.h>
-#include <shared/assert.h>
-#include <shared/bit_tricks.h>
-#include <shared/texture.h>
+#include "util/math.h"
+#include "util/assert.h"
+#include "util/bit_tricks.h"
+#include "util/texture.h"
 
 namespace omm
 {
@@ -44,7 +44,12 @@ namespace omm
 
         float Load(const int2& texCoord, int32_t mip) const;
 
+        template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eMode, bool bTexIsPow2>
+        float Bilinear(const float2& p, int32_t mip) const;
+
         float Bilinear(ommTextureAddressMode mode, const float2& p, int32_t mip) const;
+
+        ommResult GetTextureDesc(ommCpuTextureDesc& desc) const;
 
         TilingMode GetTilingMode() const {
             return m_tilingMode;
@@ -54,11 +59,23 @@ namespace omm
             return m_textureFormat;
         }
 
-        int2 GetSize(int32_t mip) const {
+        const int2& GetSize(int32_t mip) const {
             return m_mips[mip].size;
         }
 
-        float2 GetRcpSize(int32_t mip) const {
+        const int2& GetSizeLog2(int32_t mip) const {
+            return m_mips[mip].sizeLog2;
+        }
+
+        const float2& GetSizef(int32_t mip) const {
+            return m_mips[mip].sizef;
+        }
+
+        bool SizeIsPow2() const {
+            return m_mips[0].sizeIsPow2;
+        }
+
+        const float2& GetRcpSize(int32_t mip) const {
             return m_mips[mip].rcpSize;
         }
 
@@ -70,6 +87,9 @@ namespace omm
             return m_alphaCutoff >= 0.f;
         }
 
+        void SetAlphaCutoff(float alphaCutoff) {
+            m_alphaCutoff = alphaCutoff;
+        }
         float GetAlphaCutoff() const {
             return m_alphaCutoff;
         }
@@ -91,7 +111,6 @@ namespace omm
         {
             OMM_ASSERT(InTexture(s, mip));
             OMM_ASSERT(InTexture(e, mip));
-#if 1
             uint32_t* dataSAT = (uint32_t*)(m_dataSAT + m_mips[mip].dataOffsetSAT);
 
             int32_t s_x_minus_one = (s.x - 1);
@@ -103,37 +122,30 @@ namespace omm
             const uint32_t D = dataSAT[e.x + (e.y) * m_mips[mip].size.x];
             int32_t sum = D + A - B - C;
             return sum;
-#else
-
-            uint32_t sumTrue = 0;
-            for (int j = s.y; j <= e.y; ++j)
-            {
-                for (int i = s.x; i <= e.x; ++i)
-                {
-                    const float val = Load(int2(i, j), mip);
-                    sumTrue += val > m_alphaCutoff;
-                }
-            }
-            return sumTrue;
-#endif
         }
 
         template<class TMemoryStreamBuf>
         void Serialize(TMemoryStreamBuf& buffer) const;
 
         template<class TMemoryStreamBuf>
-        void Deserialize(TMemoryStreamBuf& buffer);
+        void Deserialize(TMemoryStreamBuf& buffer, int inputDescVersion);
 
     private:
+
         ommResult Validate(const ommCpuTextureDesc& desc) const;
         void Deallocate();
         template<TilingMode eTilingMode>
-        static uint64_t From2Dto1D(const int2& idx, const int2& size) {
+        static uint32_t From2Dto1D(const int2& idx, const int2& size) {
             OMM_ASSERT(false && "Not implemented");
             return 0;
         }
+        template<TilingMode eTilingMode>
+        static uint2 From1Dto2D(const uint32_t idx, const int2& size) {
+            OMM_ASSERT(false && "Not implemented");
+            return uint2(0, 0);
+        }
     private:
-        static constexpr uint2  kMaxDim = int2(65536);
+        static inline uint2  kMaxDim = int2(65536);
         static constexpr size_t kAlignment = 64;
 
         StdAllocator<uint8_t> m_stdAllocator;
@@ -142,6 +154,9 @@ namespace omm
         struct Mips
         {
             int2 size;
+            int2 sizeLog2;
+            float2 sizef;
+            bool sizeIsPow2;
             float2 rcpSize;
             int2 sizeMinusOne;
             uintptr_t dataOffset;
@@ -152,6 +167,7 @@ namespace omm
         vector<Mips> m_mips;
         TilingMode m_tilingMode;
         ommCpuTextureFormat m_textureFormat;
+        ommCpuTextureFlags m_textureFlags;
         float m_alphaCutoff;
         uint8_t* m_data;
         size_t m_dataSize;
@@ -167,6 +183,7 @@ namespace omm
         OMM_ASSERT(texCoord.x >= 0);
         OMM_ASSERT(texCoord.y >= 0);
         OMM_ASSERT(texCoord.x < m_mips[mip].size.x);
+        OMM_ASSERT(texCoord.y < m_mips[mip].size.y);
         OMM_ASSERT(texCoord.y < m_mips[mip].size.y);
         OMM_ASSERT(glm::all(glm::notEqual(texCoord, kTexCoordBorder2)));
         OMM_ASSERT(glm::all(glm::notEqual(texCoord, kTexCoordInvalid2)));
@@ -184,8 +201,33 @@ namespace omm
         }
     }
 
-   	template<> uint64_t TextureImpl::From2Dto1D<TilingMode::Linear>(const int2& idx, const int2& size);
-   	template<> uint64_t TextureImpl::From2Dto1D<TilingMode::MortonZ>(const int2& idx, const int2& size);
+
+    template<ommCpuTextureFormat eFormat, TilingMode eTilingMode, ommTextureAddressMode eMode, bool bTexIsPow2>
+    float TextureImpl::Bilinear(const float2& p, int32_t mip) const
+    {
+        float2 pixel = p * (float2)(m_mips[mip].size) - 0.5f;
+        float2 pixelFloor = glm::floor(pixel);
+        int2 coords[omm::TexelOffset::MAX_NUM];
+        omm::GatherTexCoord4<eMode, bTexIsPow2>(int2(pixelFloor), m_mips[mip].size, coords);
+
+        float a = Load<eFormat, eTilingMode>(coords[omm::TexelOffset::I0x0], mip);
+        float b = Load<eFormat, eTilingMode>(coords[omm::TexelOffset::I0x1], mip);
+        float c = Load<eFormat, eTilingMode>(coords[omm::TexelOffset::I1x0], mip);
+        float d = Load<eFormat, eTilingMode>(coords[omm::TexelOffset::I1x1], mip);
+
+        const float2 weight = glm::fract(pixel);
+        float ac = glm::lerp<float>(a, c, weight.x);
+        float bd = glm::lerp<float>(b, d, weight.x);
+        float bilinearValue = glm::lerp(ac, bd, weight.y);
+        return bilinearValue;
+    }
+
+   	template<> uint32_t TextureImpl::From2Dto1D<TilingMode::Linear>(const int2& idx, const int2& size);
+   	template<> uint32_t TextureImpl::From2Dto1D<TilingMode::MortonZ>(const int2& idx, const int2& size);
+
+    template<> uint2 TextureImpl::From1Dto2D<TilingMode::Linear>(const uint32_t idx, const int2& size);
+    template<> uint2 TextureImpl::From1Dto2D<TilingMode::MortonZ>(const uint32_t idx, const int2& size);
+
 
     template<class TMemoryStreamBuf>
     void TextureImpl::Serialize(TMemoryStreamBuf& buffer) const
@@ -210,6 +252,8 @@ namespace omm
         }
 
         os.write(reinterpret_cast<const char*>(&m_tilingMode), sizeof(m_tilingMode));
+        os.write(reinterpret_cast<const char*>(&m_textureFlags), sizeof(m_textureFlags));
+        os.write(reinterpret_cast<const char*>(&m_alphaCutoff), sizeof(m_alphaCutoff));
         os.write(reinterpret_cast<const char*>(&m_textureFormat), sizeof(m_textureFormat));
 
         os.write(reinterpret_cast<const char*>(&m_dataSize), sizeof(m_dataSize));
@@ -223,7 +267,7 @@ namespace omm
     }
 
     template<class TMemoryStreamBuf>
-    void TextureImpl::Deserialize(TMemoryStreamBuf& buffer)
+    void TextureImpl::Deserialize(TMemoryStreamBuf& buffer, int inputDescVersion)
     {
         OMM_ASSERT(m_data == nullptr);
         OMM_ASSERT(m_dataSize == 0);
@@ -248,10 +292,35 @@ namespace omm
                 os.read(reinterpret_cast<char*>(&mip.dataOffset), sizeof(mip.dataOffset));
                 os.read(reinterpret_cast<char*>(&mip.numElements), sizeof(mip.numElements));
                 os.read(reinterpret_cast<char*>(&mip.dataOffsetSAT), sizeof(mip.dataOffsetSAT));
+
+                mip.sizeLog2.x = ctz(mip.size.x);
+                mip.sizeLog2.y = ctz(mip.size.y);
+                mip.sizef = (float2)mip.size;
+                mip.sizeIsPow2 = isPow2(mip.size.x) && isPow2(mip.size.y);
             }
         }
 
         os.read(reinterpret_cast<char*>(&m_tilingMode), sizeof(m_tilingMode));
+
+        if (inputDescVersion >= 3)
+        {
+            os.read(reinterpret_cast<char*>(&m_textureFlags), sizeof(m_textureFlags));
+            os.read(reinterpret_cast<char*>(&m_alphaCutoff), sizeof(m_alphaCutoff));
+        }
+        else
+        {
+            if (m_tilingMode == TilingMode::MortonZ)
+            {
+                m_textureFlags = ommCpuTextureFlags_None;
+            }
+            else
+            {
+                m_textureFlags = ommCpuTextureFlags_DisableZOrder;
+            }
+
+            m_alphaCutoff = -1.f;
+        }
+
         os.read(reinterpret_cast<char*>(&m_textureFormat), sizeof(m_textureFormat));
 
         os.read(reinterpret_cast<char*>(&m_dataSize), sizeof(m_dataSize));

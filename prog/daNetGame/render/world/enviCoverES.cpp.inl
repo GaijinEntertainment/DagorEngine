@@ -57,3 +57,8 @@ static void set_envi_cover_params_es(const ecs::Event &,
     envi_cover_noise_mask_factor, envi_cover_depth_mask_threshold, envi_cover_normal_mask_threshold, envi_cover_depth_mask_contrast,
     envi_cover_normal_mask_contrast, envi_cover_lowest_intensity);
 }
+
+ECS_TAG(render)
+ECS_ON_EVENT(on_disappear)
+ECS_REQUIRE(const ecs::string &envi_cover_intensity_map)
+static void envi_cover_intensity_map_unload_es(const ecs::Event &) { envi_cover_vars::unset_intensity_map(); }

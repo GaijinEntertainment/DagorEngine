@@ -7,6 +7,8 @@ class RenderViewport
 {
 protected:
   TMatrix viewMatrix;
+  // reverse-Z (zn -> 1, zf -> 0) for both perspective and orthogonal projections;
+  // this exact matrix is set on the driver by setViewProjTms
   TMatrix4 projectionMatrix;
   Point2 lt, rb;
 

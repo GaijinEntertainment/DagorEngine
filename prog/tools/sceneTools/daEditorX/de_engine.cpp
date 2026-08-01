@@ -53,6 +53,7 @@
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <3d/dag_texPackMgr2.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_graphStat.h>
@@ -86,6 +87,7 @@ void clear();
 
 extern void terminate_interface_de3();
 extern void regular_update_interface_de3();
+extern void services_release();
 extern void services_act(float dt);
 extern void services_before_render();
 extern void services_render();
@@ -785,9 +787,10 @@ void DagorEdAppWindow::terminateInterface()
   if (IGPUGrassService *service = queryEditorInterface<IGPUGrassService>())
     service->closeGrass();
 
+  services_release();
   delete_visclipmesh();
-  reset_game_resources();
   terminate_interface_de3();
+  reset_game_resources();
   IDagorEd2Engine::set(NULL);
 }
 
@@ -1253,7 +1256,22 @@ void DagorEdAppWindow::switchToPlugin(int plgId)
     getMainMenu()->setCaptionById(CM_PLUGIN_PRIVATE_MENU, next->getMenuCommandName());
   }
 
+  getUndoSystem()->set_op_owner(curPlugin());
+
   EDITORCORE->managePropPanels();
+}
+
+void DagorEdAppWindow::switchToUndoOpOwner(void *owner)
+{
+  if (!owner || owner == static_cast<void *>(curPlugin()))
+  {
+    return;
+  }
+  const int idx = findPlugin(static_cast<IGenEditorPlugin *>(owner));
+  if (idx >= 0)
+  {
+    switchToPlugin(idx);
+  }
 }
 
 
@@ -1973,8 +1991,15 @@ void DagorEdAppWindow::renderGrid()
   vpw->getCameraTransform(camera);
 
   float dh = fabs(camera.getcol(3).y - grid.getGridHeight()) + 1;
+
+  // the grid must depth-match the pass being rendered (VR eye matrices, Environment
+  // z range override), which is the driver state here, not the viewport's own matrix
+  TMatrix gridViewTm;
+  TMatrix4 gridProjTm;
+  d3d::gettm(TM_VIEW, gridViewTm);
+  d3d::gettm(TM_PROJ, &gridProjTm);
   grid.render(pt.data(), dirs.data(), fabs(vpw->isOrthogonal() ? vpw->getOrthogonalZoom() : perspectiveZoom / dh),
-    ged.findViewportIndex(vpw));
+    ged.findViewportIndex(vpw), gridViewTm, gridProjTm);
 }
 
 

@@ -58,8 +58,10 @@ public:
   bool __stdcall exportAsset(DagorAsset &a, mkbindump::BinDumpSaveCB &cwr, ILogWriter &log) override
   {
     FpdExporter exp;
-    if (!getSkeleton(exp.nodeTree, a.getMgr(), a.props.getStr("skeleton", NULL), log))
+    GeomNodeTreeUniquePtr tree = getSkeleton(a.getMgr(), a.props.getStr("skeleton", NULL), log);
+    if (!tree)
       return false;
+    exp.nodeTree = *tree;
 
     if (!exp.load(a.props))
       return false;

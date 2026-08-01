@@ -12,12 +12,12 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include "bake_cpu_impl.h"
 #include "texture_impl.h"
 
-#include <shared/bird.h>
-#include <shared/math.h>
-#include <shared/geometry.h>
-#include <shared/cpu_raster.h>
-#include <shared/texture.h>
-#include <shared/parse.h>
+#include "util/bird.h"
+#include "util/math.h"
+#include "util/geometry.h"
+#include "util/cpu_raster.h"
+#include "util/texture.h"
+#include "util/parse.h"
 
 #include <stb_image_write.h>
 
@@ -63,7 +63,7 @@ namespace omm
 
         T Sample(ommTextureAddressMode mode, const float2& p) const {
             const int2 pi = (int2)(glm::floor(p * float2(_size)));
-            const int2 idx = omm::GetTexCoord(mode, pi, _size);
+            const int2 idx = omm::GetTexCoord(mode, false, pi, _size, { 0,0 });
             return Load(idx);
         }
 
@@ -72,7 +72,7 @@ namespace omm
 
             float2 pixelOffset = float2(p * (float2)_size - 0.5f);
             int2 coords[omm::TexelOffset::MAX_NUM];
-            omm::GatherTexCoord4(mode, int2(glm::floor(pixelOffset)), _size, coords);
+            omm::GatherTexCoord4(mode, false, int2(glm::floor(pixelOffset)), _size, {0,0}, coords);
 
             const float2 weight = glm::fract(pixelOffset);
             T2 a = (T2)Load(coords[omm::TexelOffset::I0x0]);
@@ -84,11 +84,6 @@ namespace omm
             T2 bd = glm::lerp<T2>(b, d, weight.x);
             T2 bilinearValue = glm::lerp(ac, bd, weight.y);
             return bilinearValue;
-        }
-
-        T Load(ommTextureAddressMode mode, const int2& idx) const {
-            const int2 idxAddessed = omm::GetTexCoord(mode, idx, _size);
-            return Load(idxAddessed);
         }
 
         void for_each(const std::function<void(int2, T&)>& cb) {
@@ -228,9 +223,10 @@ namespace omm
             int2 srcSize;
             int2 offset;
             int2 size;
+            const int2 kMaxDim = (int2)8192;
+
             if (ClippedViewport)
             {
-                const int2 kMaxDim = (int2)8192;
                 scale = glm::max(kMaxDim / (int2)alphaFps[0].GetSize(), 1);
                 srcSize = alphaFps[0].GetSize() * scale;
 
@@ -238,7 +234,7 @@ namespace omm
                 size = int2(glm::floor(float2(srcSize) * (macroTriangle.aabb_e - macroTriangle.aabb_s))) + int2{ 1,1 };
             }
             else {
-                scale = (int2)10;
+                scale = (int2)5;
                 srcSize = alphaFps[0].GetSize() * scale;
                 offset = (int2)0;// int2(float2(srcSize)* macroTriangle.aabb_s);
                 size = srcSize;// int2(float2(srcSize)* (macroTriangle.aabb_e - macroTriangle.aabb_s)) + int2{ 1,1 };
@@ -327,7 +323,7 @@ namespace omm
                         {
                             rgb = 255.f * float4(1.f - p->srcAlphaFp[p->mip].Sample(p->runtimeSamplerDesc.addressingMode, uv));
                         }
-                        const uchar4 finalRGBA = uchar4(rgb.r, rgb.g, rgb.b, 255);
+                        const uchar4 finalRGBA = uchar4(rgb.x, rgb.y, rgb.z, 255);
                         p->target->value().Store(dst, finalRGBA);
                     }
                     else if (p->mode == Mode::FillOMMStates)
@@ -352,7 +348,7 @@ namespace omm
                         //const float3 blend = glm::lerp(vmColor, prevVal, 0.75f);
                         const float3 blend = glm::lerp(vmColor, prevVal, 0.5f);
                         const float3 finalRGB = tint * blend;
-                        const uchar4 finalRGBA = uchar4(finalRGB.r * 255.f, finalRGB.g * 255.f,  finalRGB.b * 255.f, 255);
+                        const uchar4 finalRGBA = uchar4(finalRGB.x * 255.f, finalRGB.y * 255.f,  finalRGB.z * 255.f, 255);
                         p->target->value().Store(dst, finalRGBA);
                     }
                     else if (p->mode == Mode::DrawContourLine)
@@ -380,7 +376,7 @@ namespace omm
                             const bool isContour = (trans != 0 && opaque != 0) || (std::abs(delta) < epsilon);
                             if (isContour) {
                                 const float3 finalRGB = isContour ? float3(1.f, 0, 0) : float3(1.f, 0, 0);
-                                const uchar4 finalRGBA = uchar4(finalRGB.r * 255.f, finalRGB.g * 255.f, finalRGB.b * 255.f, 255);
+                                const uchar4 finalRGBA = uchar4(finalRGB.x * 255.f, finalRGB.y * 255.f, finalRGB.z * 255.f, 255);
                                 p->target->value().Store(dst, finalRGBA);
                             }
                         }
@@ -513,23 +509,42 @@ namespace omm
         return ommResult_SUCCESS;
     }
 
-    static ommDebugStats CollectStats(StdAllocator<uint8_t>& memoryAllocator, const ommCpuBakeResultDesc& resDesc) {
+    static ommDebugStats CollectStats(StdAllocator<uint8_t>& memoryAllocator, const ommCpuBakeResultDesc& resDesc, const float* area) {
 
         ommDebugStats stats = {0};
 
         const uint32_t triangleCount = resDesc.indexCount;
 
-        map<uint, uint> indices(memoryAllocator);
+        struct OmmDescInfo
+        {
+            uint numReferences;
+            float totalArea;
+        };
 
-        for (uint32_t i = 0; i < triangleCount; ++i) {
+        map<uint, OmmDescInfo> indices(memoryAllocator);
 
+        float totalArea = 0.f;
+        if (area)
+        {
+            for (uint32_t i = 0; i < triangleCount; ++i)
+            {
+                totalArea += area[i];
+            }
+        }
+        
+        float knownArea = 0.f;
+
+        for (uint32_t i = 0; i < triangleCount; ++i) 
+        {
             const int32_t vmIdx = omm::parse::GetOmmIndexForTriangleIndex(resDesc, i);
 
             if (vmIdx == (int32_t)ommSpecialIndex_FullyTransparent) {
                 stats.totalFullyTransparent++;
+                knownArea += area ? area[i] : 0;
             }
             else if (vmIdx == (int32_t)ommSpecialIndex_FullyOpaque) {
                 stats.totalFullyOpaque++;
+                knownArea += area ? area[i] : 0;
             }
             else if (vmIdx == (int32_t)ommSpecialIndex_FullyUnknownTransparent) {
                 stats.totalFullyUnknownTransparent++;
@@ -542,18 +557,21 @@ namespace omm
                 // Calculate later
                 
                 if (indices.find(vmIdx) == indices.end())
-                    indices.insert(std::make_pair(vmIdx, 1));
+                    indices.insert(std::make_pair<uint, OmmDescInfo>(vmIdx, { 1, area ? area[i] : 0}));
                 else
-                    indices[vmIdx]++;
+                {
+                    indices[vmIdx].numReferences++;
+                    indices[vmIdx].totalArea += area ? area[i] : 0;
+                }
             }
         }
 
         struct DescStats
         {
-            uint64_t totalOpaque = 0;
-            uint64_t totalTransparent = 0;
-            uint64_t totalUnknownOpaque = 0;
-            uint64_t totalUnknownTransparent = 0;
+            uint32_t totalOpaque = 0;
+            uint32_t totalTransparent = 0;
+            uint32_t totalUnknownOpaque = 0;
+            uint32_t totalUnknownTransparent = 0;
         };
 
         vector<DescStats> descStats(memoryAllocator);
@@ -566,6 +584,7 @@ namespace omm
             const uint8_t* ommArrayData = (const uint8_t*)((const char*)resDesc.arrayData) + vmDesc.offset;
             const uint32_t numMicroTriangles = 1u << (vmDesc.subdivisionLevel << 1u);
             const uint32_t is2State = (ommFormat)vmDesc.format == ommFormat_OC1_2_State ? 1 : 0;
+            uint32_t numKnown = 0;
             for (uint32_t uTriIt = 0; uTriIt < numMicroTriangles; ++uTriIt)
             {
                 int byteIndex = uTriIt >> (2 + is2State);
@@ -581,37 +600,54 @@ namespace omm
                     state == ommOpacityState_UnknownTransparent);
 
                 if (state == ommOpacityState_Opaque)
+                {
                     descStats[i].totalOpaque++;
+                }
                 else if (state == ommOpacityState_Transparent)
+                {
                     descStats[i].totalTransparent++;
+                }
                 else if (state == ommOpacityState_UnknownOpaque)
+                {
                     descStats[i].totalUnknownOpaque++;
+                }
                 else if (state == ommOpacityState_UnknownTransparent)
+                {
                     descStats[i].totalUnknownTransparent++;
+                }
             }
         }
 
-        for (auto [index, count] : indices)
+        for (auto [index, info] : indices)
         {
             OMM_ASSERT(index < descStats.size());
 
-            stats.totalOpaque += count * descStats[index].totalOpaque;
-            stats.totalTransparent += count * descStats[index].totalTransparent;
-            stats.totalUnknownOpaque += count * descStats[index].totalUnknownOpaque;
-            stats.totalUnknownTransparent += count * descStats[index].totalUnknownTransparent;
+            const uint32_t totalKnown = descStats[index].totalOpaque + descStats[index].totalTransparent;
+            const uint32_t totalUnknown = descStats[index].totalUnknownOpaque + descStats[index].totalUnknownTransparent;
+
+            const float known = (float)totalKnown / (float)(totalKnown + totalUnknown);
+
+            knownArea += known * info.totalArea;
+
+            stats.totalOpaque += info.numReferences * descStats[index].totalOpaque;
+            stats.totalTransparent += info.numReferences * descStats[index].totalTransparent;
+            stats.totalUnknownOpaque += info.numReferences * descStats[index].totalUnknownOpaque;
+            stats.totalUnknownTransparent += info.numReferences * descStats[index].totalUnknownTransparent;
         }
+
+        stats.knownAreaMetric = area ? knownArea / totalArea : 0;
 
         return stats;
     }
 
-    ommResult GetStatsImpl(StdAllocator<uint8_t>& memoryAllocator, const ommCpuBakeResultDesc* resDesc, ommDebugStats* out)
+    ommResult GetStatsImpl(StdAllocator<uint8_t>& memoryAllocator, const ommCpuBakeResultDesc* resDesc, const float* area, ommDebugStats* out)
     {
         if (resDesc == nullptr)
             return ommResult_INVALID_ARGUMENT;
         if (out == nullptr)
             return ommResult_INVALID_ARGUMENT;
 
-        *out = CollectStats(memoryAllocator, *resDesc);
+        *out = CollectStats(memoryAllocator, *resDesc, area);
         return ommResult_SUCCESS;
     }
 

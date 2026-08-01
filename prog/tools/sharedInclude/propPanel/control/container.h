@@ -98,8 +98,10 @@ public:
   //   instantly on every change
   virtual void createColorBox(int id, const char caption[], E3DCOLOR value = E3DCOLOR(0, 0, 0, 255), bool enabled = true,
     bool new_line = true, bool use_modal_color_selector = true);
+  // width: by default the color button width is getDefaultRightSideEditWidth() if there is a caption, otherwise it takes all the
+  //   available space. Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE can also be used.
   virtual void createSimpleColor(int id, const char caption[], E3DCOLOR value = E3DCOLOR(0, 0, 0, 255), bool enabled = true,
-    bool new_line = true);
+    bool new_line = true, hdpi::Px width = hdpi::Px::ZERO);
   virtual void createPoint2(int id, const char caption[], Point2 value = Point2(0, 0), int prec = 2, bool enabled = true,
     bool new_line = true);
   virtual void createPoint3(int id, const char caption[], Point3 value = Point3(0, 0, 0), int prec = 2, bool enabled = true,
@@ -421,7 +423,13 @@ public:
 
   // When there are more than one control on a line then the available space is distributed evenly among them by default.
   // After calling setUseFixedWidthColumns the width of the controls is used instead.
-  virtual void setUseFixedWidthColumns() { useFixedWidthColumns = true; }
+  virtual void setUseFixedWidthColumns(bool stretch_zero_width_columns = false)
+  {
+    useFixedWidthColumns = true;
+    stretchZeroWidthColumns = stretch_zero_width_columns;
+  }
+
+  void setUseFixedWidthColumnsWithZeroWidthStretch() { setUseFixedWidthColumns(true); }
 
   virtual void setHorizontalSpaceBetweenControls(hdpi::Px space);
 
@@ -477,6 +485,7 @@ private:
 
   int verticalSpaceBetweenControls;
   bool useFixedWidthColumns = false;
+  bool stretchZeroWidthColumns = false;
 
   bool useCustomHorizontalSpacing = false;
   float horizontalSpaceBetweenControls = 0.0f;

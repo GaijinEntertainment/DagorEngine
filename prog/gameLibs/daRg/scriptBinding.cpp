@@ -19,7 +19,6 @@
 #include "behaviors/bhvSlider.h"
 #include "behaviors/bhvPannable.h"
 #include "behaviors/bhvPannable2Touch.h"
-#include "behaviors/bhvSwipeScroll.h"
 #include "behaviors/bhvMoveResize.h"
 #include "behaviors/bhvSmoothScrollStack.h"
 #include "behaviors/bhvMarquee.h"
@@ -27,6 +26,7 @@
 #include "behaviors/bhvScrollEvent.h"
 #include "behaviors/bhvInspectPicker.h"
 #include "behaviors/bhvRtPropUpdate.h"
+#include "behaviors/bhvBoundProps.h"
 #include "behaviors/bhvRecalcHandler.h"
 #include "behaviors/bhvDragAndDrop.h"
 #include "behaviors/bhvEatInput.h"
@@ -45,6 +45,7 @@
 #include "behaviors/bhvProcessGesture.h"
 #include "behaviors/bhvTextAreaEdit.h"
 #include "behaviors/bhvJoystickScroll.h"
+#include "behaviors/bhvImageLoadState.h"
 #include "guiGlobals.h"
 
 #include "scriptUtil.h"
@@ -543,13 +544,13 @@ static void register_std_behaviors(SqModules *module_mgr)
 #define REG_BHV_DATA(name) Sqrat::Class<name, Sqrat::NoConstructor<name>> sq##name(vm, #name);
   REG_BHV_DATA(BhvButtonData)
   REG_BHV_DATA(BhvPannableData)
-  REG_BHV_DATA(BhvSwipeScrollData)
   REG_BHV_DATA(BhvPannable2touchData)
   REG_BHV_DATA(BhvTransitionSizeData)
   REG_BHV_DATA(BhvMarqueeData)
   REG_BHV_DATA(BhvSliderData)
   REG_BHV_DATA(BhvMoveResizeData)
   REG_BHV_DATA(BhvPieMenuData)
+  REG_BHV_DATA(BhvBoundPropsData)
 #undef REG_BHV_DATA
 
   Sqrat::Table tblBhv(vm);
@@ -594,9 +595,6 @@ static void register_std_behaviors(SqModules *module_mgr)
   @code Properties for behavior and rendObj:
     text: string
     textOverflowY = TOVERFLOW_LINE // TOVERFLOW_CLIP, TOVERFLOW_CHAR, TOVERFLOW_WORD
-    textOverflowX = TOVERFLOW_CHAR // TOVERFLOW_CLIP, TOVERFLOW_CHAR, TOVERFLOW_WORD
-    ellipsis = true
-    ellipsisSepLine = true
   code@
   */
   BHV(TextArea, bhv_text_area)
@@ -608,8 +606,6 @@ static void register_std_behaviors(SqModules *module_mgr)
   BHV(Pannable, bhv_pannable)
   ///@const Pannable2touch
   BHV(Pannable2touch, bhv_pannable_2touch)
-  ///@const SwipeScroll
-  BHV(SwipeScroll, bhv_swipe_scroll)
   ///@const MoveResize
   BHV(MoveResize, bhv_move_resize)
   ///@const ComboPopup
@@ -647,6 +643,8 @@ static void register_std_behaviors(SqModules *module_mgr)
   BHV(InspectPicker, bhv_inspect_picker)
   ///@const RtPropUpdate
   BHV(RtPropUpdate, bhv_rt_prop_update)
+  ///@const BoundProps
+  BHV(BoundProps, bhv_bound_props)
   ///@const RecalcHandler
   BHV(RecalcHandler, bhv_recalc_handler)
   ///@const DragAndDrop
@@ -701,6 +699,19 @@ static void register_std_behaviors(SqModules *module_mgr)
   BHV(TextAreaEdit, bhv_text_area_edit)
   ///@const JoystickScroll
   BHV(JoystickScroll, bhv_joystick_scroll)
+  /* qdox @const ImageLoadState
+
+    Reports async loading state of a Picture, so that script can show its own placeholder.
+
+    @code fields
+      image:Picture = picture to observe. The behavior never starts the load, it only reports it
+      imageLoading:Watched = true while the load is in flight. Seed it with Picture.prefetch(), which starts the load
+    code@
+
+    @note
+      See mkAsyncImage in darg_library.nut, it wires both up.
+  */
+  BHV(ImageLoadState, bhv_image_load_state)
 
 #undef BHV
   ///@resetscope
@@ -952,6 +963,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   pictureClass //
     .SquirrelCtor(picture_script_ctor<Picture>, 0, ". o|s o|t")
     .Func("getLoadedPicSize", &Picture::getLoadedPicSize)
+    .Func("prefetch", &Picture::prefetch)
     /**/;
 
   ///@class daRg/PictureImmediate
@@ -960,6 +972,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   immediatePictureClass //
     .SquirrelCtor(picture_script_ctor<PictureImmediate>, 0, ". o|s o|t")
     .Func("getLoadedPicSize", &PictureImmediate::getLoadedPicSize)
+    .Func("prefetch", &PictureImmediate::prefetch)
     /**/;
 
   ///@class daRg/FormattedText
@@ -1026,15 +1039,15 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   exports.Bind("MoveToAreaTarget", sqBhvMoveToAreaTarget);
   ///@module daRg
   exports //
-    .SquirrelFuncDeclString(encode_e3dcolor, "pure Color(r: number, g: number, b: number, [alpha: number]): int")
-    .SquirrelFuncDeclString(calc_screen_w_percent, "pure sw(percent: number): number")
-    .SquirrelFuncDeclString(calc_screen_h_percent, "pure sh(percent: number): number")
-    .SquirrelFuncDeclString(make_size<SizeSpec::FLEX>, "pure flex([weight: number]): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::FONT_H>, "pure fontH(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_W>, "pure pw(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_H>, "pure ph(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_W>, "pure elemw(percent: number): userdata")
-    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_H>, "pure elemh(percent: number): userdata")
+    .SquirrelFuncDeclString(encode_e3dcolor, "pure fastcall Color(r: number, g: number, b: number, [alpha: number]): int")
+    .SquirrelFuncDeclString(calc_screen_w_percent, "pure fastcall sw(percent: number): number")
+    .SquirrelFuncDeclString(calc_screen_h_percent, "pure fastcall sh(percent: number): number")
+    .SquirrelFuncDeclString(make_size<SizeSpec::FLEX>, "pure fastcall flex([weight: number]): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::FONT_H>, "pure fastcall fontH(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_W>, "pure fastcall pw(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_H>, "pure fastcall ph(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_W>, "pure fastcall elemw(percent: number): userdata")
+    .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_H>, "pure fastcall elemh(percent: number): userdata")
     .SquirrelFunc("locate_element_source", locate_element_source, 2, ".x")
     .SquirrelFunc("get_element_info", get_element_info, 2, ".x")
     .SquirrelFunc("resolve_button", resolve_button, 2, ".s")

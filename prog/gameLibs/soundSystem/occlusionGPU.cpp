@@ -629,14 +629,17 @@ void debug_render_3d()
       str.sprintf("{%.1f}", blob.finalOcclusion);
     add_debug_text_mark(spos, str.c_str(), -1, 0.5f);
 
-    TMatrix tm;
-    tm.setcol(0, occlusionRadius, 0, 0);
-    tm.setcol(1, 0, occlusionRadius, 0);
-    tm.setcol(2, 0, 0, occlusionRadius);
-    tm.setcol(3, spos.x, spos.y, spos.z);
-    set_cached_debug_lines_wtm(tm);
-    draw_cached_debug_trilist((const Point3 *)g_sphere_faces, g_num_sphere_faces, color);
-    set_cached_debug_lines_wtm(TMatrix::IDENT);
+    if (lengthSq(spos - g_listener.pos) > occlusionRadius * occlusionRadius)
+    {
+      TMatrix tm;
+      tm.setcol(0, occlusionRadius, 0, 0);
+      tm.setcol(1, 0, occlusionRadius, 0);
+      tm.setcol(2, 0, 0, occlusionRadius);
+      tm.setcol(3, spos.x, spos.y, spos.z);
+      set_cached_debug_lines_wtm(tm);
+      draw_cached_debug_trilist((const Point3 *)g_sphere_faces, g_num_sphere_faces, color);
+      set_cached_debug_lines_wtm(TMatrix::IDENT);
+    }
 
     draw_cached_debug_sphere(spos, occlusionRadius, 0xff000000);
   });

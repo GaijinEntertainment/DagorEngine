@@ -60,7 +60,7 @@ SplineGenGeometryManager::SplineGenGeometryManager(const eastl::string &template
     shader_name = "dynamic_refractive_spline_gen";
     type = SplineGenType::REFRACTIVE_SPLINE_GEN;
     G_ASSERTF(asset_name.empty(), "Refractive splineGen does not support attached objects!");
-    get_spline_gen_repository().createTransparentSplineGenNode();
+    get_spline_gen_repository().requestTransparentSplineGenNode();
   }
   else if (strcmp(shader_type.c_str(), "regular") == 0)
   {
@@ -307,7 +307,7 @@ void SplineGenGeometryManager::addInstancesToBVH(bvh::ContextId context_id)
   eastl::vector<eastl::pair<uint32_t, bvh::MeshInfo>> bvhMeshes;
   bvhMeshes.reserve(totalInstanceIds.size());
   int instanceVertexCount = getInstanceVertexCount();
-  int nextBufferIndex = (currentBufferIndex + 1) % 2;
+  Sbuffer *curVertexBuffer = vertexBuffer[currentBufferIndex].getBuf();
 
   for (InstanceId instanceId : totalInstanceIds)
   {
@@ -315,7 +315,7 @@ void SplineGenGeometryManager::addInstancesToBVH(bvh::ContextId context_id)
     meshInfo.indices = ibPtr.lock()->indexBuffer.getBuf();
     meshInfo.indexCount = getInstanceTriangleCount() * 3;
     meshInfo.startIndex = 0;
-    meshInfo.vertices = vertexBuffer[nextBufferIndex].getBuf();
+    meshInfo.vertices = curVertexBuffer;
     meshInfo.vertexCount = instanceVertexCount;
     meshInfo.startVertex = 0;
     meshInfo.vertexSize = sizeof(SplineGenVertex);
@@ -332,7 +332,7 @@ void SplineGenGeometryManager::addInstancesToBVH(bvh::ContextId context_id)
     bvhMeshes.push_back(eastl::make_pair(instanceId, meshInfo));
   }
 
-  bvh::gather_splinegen_instances(context_id, vertexBuffer[nextBufferIndex].getBuf(), bvhMeshes, instanceVertexCount, bvhId);
+  bvh::gather_splinegen_instances(context_id, curVertexBuffer, bvhMeshes, instanceVertexCount, bvhId);
 }
 
 void SplineGenGeometryManager::removeBVHContext() { bvhContextId = nullptr; }
@@ -430,7 +430,7 @@ void SplineGenGeometryManager::render(int cascade)
   if (getCurrentInstanceCount() == 0)
     return;
 
-  const int blocks[CASCADE_COUNT] = {dynamicSceneBlockId, dynamicDepthSceneBlockId, dynamicSceneTransBlockId};
+  const int blocks[CASCADE_COUNT] = {dynamicSceneBlockId, dynamicDepthSceneBlockId, dynamicTransSceneBlockId};
   const int block = blocks[cascade];
   SCENE_LAYER_GUARD(block);
 
@@ -504,6 +504,11 @@ void SplineGenGeometryManager::allocateBuffers()
     return;
 
   needsVertexGeneration = vertex_gen_phase_exists || neededInBVH;
+
+  // Queued BVH object builds hold raw pointers to the current vertex buffers, so drop them
+  // before the buffers are replaced or closed below.
+  if (bvhContextId)
+    bvh::remove_spline_gen_instances(bvhContextId);
 
   String buffName;
   buffName = String(0, "%i_splineGen_instancingStagingBuffer", templateName.c_str());

@@ -205,8 +205,12 @@ macro INIT_HDR(code)
 endmacro
 
 macro USE_HDR(code)
-  hlsl(code) {half3 pack_hdr(half3 a) {return a;}}
-  hlsl(code) {half3 unpack_hdr(half3 a) {return a;}}
+  hlsl(code) {
+    half3 pack_hdr(half3 a) {return a;}
+    half3 unpack_hdr(half3 a) {return a;}
+    half get_exposure_mul() {return 1;}
+    half get_exposure_inv() {return 1;}
+  }
 endmacro
 
 hlsl(ps) {

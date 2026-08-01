@@ -301,24 +301,19 @@ bool BhvTouchScreenButton::addAction(const eastl::string &action, eastl::vector<
 
 bool BhvTouchScreenButton::addMultipleActions(eastl::string objActions, eastl::vector<dainput::action_handle_t> &vec)
 {
-  if (objActions.size())
+  size_t pos = 0;
+  while (pos < objActions.size())
   {
-    eastl::string actsString = objActions;
-    int str_it = 0;
-    while (str_it < actsString.size() - 1)
+    size_t sep = objActions.find_first_of(", ", pos);
+    if (sep == eastl::string::npos)
+      sep = objActions.size();
+    if (sep > pos) // skip empty tokens from leading/consecutive separators
     {
-      const char *dev_symb = ", ";
-      str_it = actsString.find_first_of(dev_symb);
-      if (str_it > 0)
-      {
-        eastl::string act = actsString.substr(0, str_it);
-        actsString = actsString.substr(str_it + strlen(dev_symb), actsString.size() - 1);
-        if (!addAction(act, vec))
-          return false;
-      }
+      eastl::string act = objActions.substr(pos, sep - pos);
+      if (!addAction(act, vec))
+        return false;
     }
-    if (!addAction(actsString, vec))
-      return false;
+    pos = sep + 1;
   }
   return true;
 }

@@ -27,8 +27,8 @@ namespace dafx
 {
 GenerationReferencedData<ContextId, Context, uint8_t, 0> g_ctx_list;
 static Config mainCtxConfig;
-constexpr int INDEX_NR_PER_PARTICLE = 6; // 2 triangles per particle
-constexpr int EMISSION_LIMIT_16B = Config::emission_max_limit / INDEX_NR_PER_PARTICLE;
+constexpr int VERTEX_NR_PER_PARTICLE = 4;
+constexpr int EMISSION_LIMIT_16B = (1 << 16) / VERTEX_NR_PER_PARTICLE;
 
 void finish_async_update(Context &ctx);
 void exec_command_queue(Context &ctx);
@@ -292,7 +292,7 @@ void after_reset_device(ContextId cid)
 
   ctx.samplersCache.clear();
   ctx.frameBoundaryBufferManager.afterDeviceReset();
-  ctx.globalData.updateRequired = true;
+  interlocked_relaxed_store(ctx.globalData.updateRequired, true);
 
   for (int i = 0, ie = ctx.renderBuffers.size(); i < ie; ++i)
   {
@@ -871,23 +871,11 @@ void sort_shader_tasks(Context &ctx)
   }
 }
 
-void gather_warmup_instances(Context &ctx, int sid, eastl::vector<int> &dst)
-{
-  const int gpuReq = SYS_GPU_EMISSION_REQ | SYS_GPU_SIMULATION_REQ;
-  const uint32_t flags = ctx.instances.groups.get<INST_FLAGS>(sid);
-  if ((flags & SYS_EMITTER_REQ) && !(flags & gpuReq))
-    dst.push_back(sid);
-
-  const eastl::vector<int> &subinstances = ctx.instances.groups.get<INST_SUBINSTANCES>(sid); // -V758
-  for (int sub : subinstances)
-    gather_warmup_instances(ctx, sub, dst);
-};
-
 void warmup_instance_from_queue(Context &ctx, bool clear_debug_lods)
 {
   // note: slow per-instance simulation
   // but we are not expecting to warmup more that just a couple of instances per frame
-  if (ctx.commandQueue.instanceWarmup.empty())
+  if (ctx.instanceWarmupScheduled.empty())
     return;
 
   TIME_D3D_PROFILE(dafx_warmup);
@@ -900,21 +888,73 @@ void warmup_instance_from_queue(Context &ctx, bool clear_debug_lods)
   float origDt = 0;
   get_global_value(ctx, ctx.cfg.dt_global_id, &origDt, sizeof(float));
 
-  const unsigned int simSteps = clamp((unsigned int)(ctx.cfg.warmup_sims_budget / ctx.commandQueue.instanceWarmup.size()), 1U,
-    ctx.cfg.max_warmup_steps_per_instance);
+  const bool perInstanceEnabled = ctx.cfg.warmup_per_instance_mode && ctx.cfg.warmup_per_instance_step_dt > 0.f;
+  size_t sharedBudgetCount = 0;
+  for (const CommandQueue::InstanceWarmup &cq : ctx.instanceWarmupScheduled)
+    sharedBudgetCount += (!cq.perInstanceMode || !perInstanceEnabled) ? 1 : 0;
+  const unsigned int sharedSimSteps =
+    sharedBudgetCount == 0
+      ? 1U
+      : clamp((unsigned int)(ctx.cfg.warmup_shared_steps_budget / sharedBudgetCount), 1U, ctx.cfg.warmup_shared_steps_limit);
+  unsigned int remainingSubSteps = ctx.cfg.warmup_per_instance_batch_limit;
 
-  eastl::vector<int> subinstances;
+  eastl::vector<int, framemem_allocator> subinstances;
 
-  for (const CommandQueue::InstanceWarmup &cq : ctx.commandQueue.instanceWarmup)
+  for (const CommandQueue::InstanceWarmup &cq : ctx.instanceWarmupScheduled)
   {
     int *psid = ctx.instances.list.get(cq.iid);
     if (!psid) // could be dead
       continue;
 
     subinstances.clear();
-    gather_warmup_instances(ctx, *psid, subinstances);
+    gather_subinstances(ctx, *psid, SYS_EMITTER_REQ, SYS_GPU_EMISSION_REQ | SYS_GPU_SIMULATION_REQ, subinstances);
+    if (subinstances.empty()) // gpu-only fx: nothing to pre-simulate
+      continue;
 
-    float ldt = cq.time / simSteps;
+    float time = cq.time;
+    if (time < 0.f) // auto: one full particle lifetime, i.e. warmup to steady state
+    {
+      // note: emitter start delay is not included; effects with delayed subemitters under-warm by the delay
+      time = 0.f;
+      for (int sub : subinstances)
+        time = max(time, ctx.instances.groups.get<INST_EMITTER_STATE>(sub).lifeLimit);
+      if (time <= 0.f) // fixed/immortal emitters are fully populated on spawn, nothing to warmup
+        continue;
+    }
+
+    unsigned int simSteps = sharedSimSteps;
+    if (cq.perInstanceMode && perInstanceEnabled)
+    {
+      const float stepDt = cq.stepDt > 0.f ? cq.stepDt : ctx.cfg.warmup_per_instance_step_dt;
+      const unsigned int desiredSteps = (unsigned int)ceilf(time / stepDt);
+      const unsigned int fineSteps = clamp(desiredSteps, 1U, ctx.cfg.warmup_per_instance_steps_limit);
+      if (desiredSteps > fineSteps) // wanted more steps than warmup_per_instance_steps_limit allows: coarser ldt than intended
+      {
+        LOGWARN_ONCE("dafx: warmup wanted %d steps (time=%.1f step_dt=%.3f) but is capped at warmup_per_instance_steps_limit (%d); "
+                     "resulting ldt will be coarser than requested",
+          desiredSteps, time, stepDt, ctx.cfg.warmup_per_instance_steps_limit);
+      }
+      // widen to uint64_t to avoid overflow
+      const uint64_t requiredSubSteps = (uint64_t)fineSteps * subinstances.size();
+      if (requiredSubSteps <= remainingSubSteps)
+      {
+        simSteps = fineSteps;
+        remainingSubSteps -= (unsigned int)requiredSubSteps;
+      }
+      else // batch cap exhausted: fall back to shared-quality stepping instead of degrading to giant-dt steps
+      {
+        simSteps = clamp(fineSteps, 1U, ctx.cfg.warmup_shared_steps_limit);
+        LOGWARN_ONCE("dafx: warmup_per_instance_batch_limit (%d) exhausted, falling back to shared-quality warmup stepping",
+          ctx.cfg.warmup_per_instance_batch_limit);
+      }
+    }
+    else if (cq.perInstanceMode) // requested per-instance stepping, but the mode is off for this context
+    {
+      LOGWARN_ONCE("dafx: per-instance warmup requested but Config::warmup_per_instance_mode is off, "
+                   "using coarse shared-budget stepping");
+    }
+
+    float ldt = time / simSteps;
     set_global_value(ctx, ctx.cfg.dt_global_id, &ldt, sizeof(float));
 
     for (int sub : subinstances)
@@ -923,6 +963,8 @@ void warmup_instance_from_queue(Context &ctx, bool clear_debug_lods)
       {
         update_emitters(ctx, ldt, sub, sub + 1);
 
+        ctx.warmupWorkers.clear();
+        ctx.warmupWorkerStats.clear();
         prepare_workers(ctx, ldt, false, sub, sub + 1, false, clear_debug_lods, ctx.warmupWorkers, ctx.warmupWorkerStats);
         commit_prepared_workers(ctx, {&ctx.warmupWorkers, 1}, {&ctx.warmupWorkerStats, 1});
 
@@ -956,7 +998,7 @@ void warmup_instance_from_queue(Context &ctx, bool clear_debug_lods)
 
   set_global_value(ctx, ctx.cfg.dt_global_id, &origDt, sizeof(float));
 
-  ctx.commandQueue.instanceWarmup.clear();
+  ctx.instanceWarmupScheduled.clear();
 }
 
 void Context::asyncCpuJobsCompleted()
@@ -1361,6 +1403,8 @@ void start_async_interframe_jobs(ContextId cid, bool tp_wake_up)
   if (ctx.cfg.enable_cpu_defragmentation)
   {
     finish_async_interframe_jobs(ctx);
+    if (ctx.updateInProgress || ctx.asyncPrepareJob.cid)
+      return;
     ctx.asyncCpuDefragJob.cid = cid;
     start_job(ctx.cfg, ctx.asyncCpuDefragJob, tp_wake_up);
   }
@@ -1394,7 +1438,6 @@ void swap_command_queue(Context &ctx)
   SW(instanceValueFromSystemScaled);
 
   SW(instanceValueData);
-  SW(instanceWarmup);
 
 #undef SW
 }
@@ -1436,15 +1479,17 @@ void clear_command_queue(Context &ctx)
   ctx.commandQueue.instancePos.clear();
   ctx.commandQueue.instanceEmissionRate.clear();
   ctx.commandQueue.instanceValueData.clear();
-  ctx.commandQueue.instanceWarmup.clear();
 }
 
 void clear_all_command_queues_locked(Context &ctx)
 {
+  finish_async_update(ctx);
   os_spinlock_lock(&ctx.queueLock);
   clear_command_queue(ctx);
   swap_command_queue(ctx);
   clear_command_queue(ctx);
+  ctx.instanceWarmupRequests.clear();
+  ctx.instanceWarmupScheduled.clear();
   os_spinlock_unlock(&ctx.queueLock);
 }
 
@@ -1603,6 +1648,9 @@ void flush_command_queue(ContextId cid)
   os_spinlock_lock(&ctx.queueLock);
   swap_command_queue(ctx);
   exec_command_queue(ctx);
+  ctx.instanceWarmupScheduled.insert(ctx.instanceWarmupScheduled.end(), ctx.instanceWarmupRequests.begin(),
+    ctx.instanceWarmupRequests.end());
+  ctx.instanceWarmupRequests.clear();
   // FIXME: spinlock should be before exec_command_queue, to reduce waiting time for act from thread.
   // However if flush_command_queue is called from multiple threads (which we should avoid),
   // we need it like this, to avoid 2 command queue simultaneous excecution (data-race)
@@ -1746,6 +1794,12 @@ uint32_t get_debug_flags(ContextId cid)
 {
   GET_CTX_RET(0);
   return ctx.debugFlags;
+}
+
+bool is_simulation_paused(ContextId cid)
+{
+  GET_CTX_RET(false);
+  return ctx.simulationIsPaused;
 }
 
 void clear_stats(ContextId cid)

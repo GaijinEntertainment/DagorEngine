@@ -332,6 +332,41 @@ void set_str_param_by_name_if_default(dag::Vector<AnimParamData> &params, PropPa
   }
 }
 
+String get_default_varname_from_name(const dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
+{
+  const SimpleString nameValue = get_str_param_by_name_optional(params, panel, "name");
+  return String(0, "var%s", nameValue.c_str());
+}
+
+void set_varname_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
+{
+  const String defaultVarname = get_default_varname_from_name(params, panel);
+  set_str_param_by_name_if_default(params, panel, "varname", defaultVarname);
+}
+
+void update_varname_dependent_fields(AnimParamData &param, dag::Vector<AnimParamData> &params,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  if (param.name == "name")
+  {
+    const SimpleString nameValue = panel->getText(param.pid);
+    AnimParamData *varnameData = find_param_by_name(params, "varname");
+    if (varnameData == params.end())
+      return;
+
+    if (varnameData->dependent)
+    {
+      String defaultVarname(0, "var%s", nameValue.c_str());
+      panel->setText(varnameData->pid, defaultVarname.c_str());
+    }
+  }
+  else if (param.name == "varname")
+  {
+    const String expectedDefault = get_default_varname_from_name(params, panel);
+    param.dependent = panel->getText(param.pid) == expectedDefault.c_str();
+  }
+}
+
 void set_float_param_by_name_if_default(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel,
   const char *name, float set_value, float default_value)
 {
@@ -605,6 +640,43 @@ DataBlock *find_block_by_name(DataBlock *props, const String &name, bool should_
   }
 
   G_ASSERTF(!should_exist, "Can't find block with name <%s>", name);
+  return nullptr;
+}
+
+DataBlock *find_morph_block_by_name(DataBlock *parent, const String &caption)
+{
+  int nid_morph = parent->getNameId("morph");
+  if (caption == "new_morph")
+  {
+    for (int i = parent->blockCount() - 1; i >= 0; --i)
+    {
+      DataBlock *block = parent->getBlock(i);
+      if (block->getBlockNameId() != nid_morph)
+        continue;
+
+      if (!block->paramExists("from") && !block->paramExists("to"))
+        return block;
+    }
+    return nullptr;
+  }
+
+  // Parse caption in format "from -> to"
+  const char *sep = strstr(caption.c_str(), " -> ");
+  if (!sep)
+    return nullptr;
+
+  String from(caption.c_str(), sep - caption.c_str());
+  String to(sep + 4);
+
+  for (int i = 0; i < parent->blockCount(); ++i)
+  {
+    DataBlock *block = parent->getBlock(i);
+    if (block->getBlockNameId() != nid_morph)
+      continue;
+
+    if (from == block->getStr("from", "") && to == block->getStr("to", ""))
+      return block;
+  }
   return nullptr;
 }
 
@@ -976,8 +1048,8 @@ static int get_filter_pid_by_tree(int tree_pid)
     return PID_ANIM_STATES_FILTER;
   else if (tree_pid == PID_ANIM_BLEND_NODES_TREE)
     return PID_ANIM_BLEND_NODES_FILTER;
-  else if (tree_pid == PID_NODE_MASKS_FILTER)
-    return PID_NODE_MASKS_TREE;
+  else if (tree_pid == PID_NODE_MASKS_TREE)
+    return PID_NODE_MASKS_FILTER;
 
   G_ASSERT_FAIL("Unknown tree pid %d, can't return filter pid", tree_pid);
   return -1;
@@ -1142,6 +1214,57 @@ void move_param_blk(DataBlock &blk, int from, int to)
 void move_block_blk(DataBlock &blk, int from, int to)
 {
   move_item_blk(blk, from, to, [](DataBlock &b, int from, int to) { b.swapBlocks(from, to); });
+}
+
+dag::Vector<int> collect_block_positions_by_name(const DataBlock &target, const char *name)
+{
+  const int nid = target.getNameId(name);
+  dag::Vector<int> positions;
+  for (int i = 0; i < target.blockCount(); ++i)
+    if (target.getBlock(i)->getBlockNameId() == nid)
+      positions.push_back(i);
+  return positions;
+}
+
+void move_block_at_positions(DataBlock &target, dag::ConstSpan<int> positions, int from, int to)
+{
+  if (from < 0 || from >= positions.size() || to < 0 || to >= positions.size())
+    return;
+  move_block_blk(target, positions[from], positions[to]);
+}
+
+dag::Vector<int> collect_block_positions_by_names(const DataBlock &target, dag::ConstSpan<const char *> names)
+{
+  dag::Vector<int> nids;
+  nids.reserve(names.size());
+  for (const char *name : names)
+    nids.push_back(target.getNameId(name));
+
+  dag::Vector<int> positions;
+  for (int i = 0; i < target.blockCount(); ++i)
+  {
+    const int nid = target.getBlock(i)->getBlockNameId();
+    for (int candidate : nids)
+      if (nid == candidate)
+      {
+        positions.push_back(i);
+        break;
+      }
+  }
+  return positions;
+}
+
+void move_childs(dag::Vector<int> &childs, int from, int to)
+{
+  if (from < 0 || from >= childs.size() || to < 0 || to >= childs.size())
+    return;
+  int cur = from;
+  while (cur != to)
+  {
+    int next = cur < to ? cur + 1 : cur - 1;
+    eastl::swap(childs[cur], childs[next]);
+    cur = next;
+  }
 }
 
 bool is_comp_op_needs_p1(const char *op) { return strcmp(op, "inside") == 0 || strcmp(op, "outside") == 0 || strcmp(op, "dist") == 0; }

@@ -4,12 +4,13 @@
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/phys/physDebugDraw.h>
 #include <math/dag_Point2.h>
+#include <math/dag_mathUtils.h>
 #include <math/integer/dag_IPoint2.h>
 #include <gameMath/traceUtils.h>
 #include <perfMon/dag_statDrv.h>
 #include <rendInst/rendInstCollision.h>
 #include <landMesh/lmeshManager.h>
-#include <landMesh/landRayTracer.h>
+#include <landMesh/landRayTracerSoA4.h>
 #include <heightmap/heightmapHandler.h>
 #include <sceneRay/dag_sceneRay.h>
 #include <sceneRay/dag_cachedRtVecFaces.h>
@@ -82,7 +83,7 @@ void dacoll::validate_trace_cache(const bbox3f &query_box, const vec3f &expands,
 
   v_stu_bbox3(handle->box, extBox);
 
-  if (LandRayTracer *landTracer = dacoll::get_lmesh() ? dacoll::get_lmesh()->getLandTracer() : nullptr)
+  if (auto *landTracer = dacoll::get_lmesh() ? dacoll::get_lmesh()->getLandTracer() : nullptr)
   {
     int leftForLandmesh = TraceMeshFaces::MAX_TRIANGLES_PER_SYSTEM;
     handle->isLandmeshValid = landTracer->getFaces(extBox, handle->triangles.data(), leftForLandmesh);

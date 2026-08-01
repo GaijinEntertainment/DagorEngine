@@ -18,10 +18,11 @@
 #include <render/toroidal_update.h>
 #include <render/toroidal_update_regions.h>
 #include <render/toroidalHeightmap.h>
+#include <landMesh/vtexRenderMode.h>
 
 namespace var
 {
-static ShaderVariableInfo clipmap_writes_height_only("clipmap_writes_height_only", true);
+static ShaderVariableInfo render_with_normalmap("render_with_normalmap", true);
 };
 
 void ToroidalHeightmap::close() { toroidalHeightmap.close(); }
@@ -229,7 +230,8 @@ void ToroidalHeightmap::updateHeightmap(ToroidalHeightmapRenderer &renderer, con
   SCOPE_RENDER_TARGET;
   SCOPE_VIEW_PROJ_MATRIX;
 
-  STATE_GUARD_0(ShaderGlobal::set_int(var::clipmap_writes_height_only, VALUE), 1);
+  STATE_GUARD(ShaderGlobal::set_int(var::render_with_normalmap, VALUE), (int)VTEX_RENDER_DISPLACEMENT,
+    ShaderGlobal::get_int(var::render_with_normalmap));
   // update all generated regions for all cascades
   for (int cascadeNo = LOD_COUNT - 1; cascadeNo >= 0; cascadeNo--)
   {

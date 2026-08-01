@@ -18,7 +18,7 @@ macro TRANSMITTANCE(code)
       Number mu;
       GetRMuFromTransmittanceTextureUv(
           atmosphere, frag_coord / TRANSMITTANCE_TEXTURE_SIZE, r, mu);
-      return ComputeTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu, 2.*atmosphere.top_radius, 196,
+      return ComputeTransmittanceToTopAtmosphereBoundary(atmosphere, r, mu, 2.*atmosphere.top_radius, SKIES_TRANSMITTANCE_STEPS,
       Position(0,0,0), Direction(0,0,0)//custom fog should not affect extinction _COLOR_.
       //also, unfortunately, it won't affect transmittance to sun
       );
@@ -72,8 +72,13 @@ macro MS_APPROXIMATE(code)
     void calcRay(IN(AtmosphereParameters) atmosphere_p, float2 uv, uint rayI, uint rayJ, out float3 L, out float3 MultiScatAs1)
     {
       float PLANET_RADIUS_OFFSET = 0.01;
-      float viewHeight = atmosphere_p.bottom_radius + saturate(uv.y + PLANET_RADIUS_OFFSET) * (atmosphere_p.top_radius - atmosphere_p.bottom_radius - PLANET_RADIUS_OFFSET);
+      //remap to unit range BEFORE building viewHeight: the sampler inverts both axes
+      //through GetTextureCoordFromUnitRange, so generation must use the same mapping
       uv = float2(GetUnitRangeFromTextureCoord(uv.x, SKIES_MULTIPLE_SCATTERING_APPROX), GetUnitRangeFromTextureCoord(uv.y, SKIES_MULTIPLE_SCATTERING_APPROX));
+      //the offset is a radius length: apply it after the uv -> radius mapping, else the
+      //bottom row generates ~0.8 km above the ground the sampler maps it to
+      float viewHeight = clamp(atmosphere_p.bottom_radius + uv.y * (atmosphere_p.top_radius - atmosphere_p.bottom_radius),
+        atmosphere_p.bottom_radius + PLANET_RADIUS_OFFSET, atmosphere_p.top_radius - PLANET_RADIUS_OFFSET);
       const float sqrtSample = float(SQRTSAMPLECOUNT);
       float3 WorldDir = float3(0.0f, 0.0f, 1.0f);
 
@@ -139,7 +144,7 @@ shader skies_approximate_ms_lut_cs
       LSharedMem[dtId.z] = L;
 
       GroupMemoryBarrierWithGroupSync();
-      #if NUMRAYS > 64
+      #if NUM_RAYS > 64
         if (dtId.z < 64)
         {
             MultiScatAs1SharedMem[dtId.z] += MultiScatAs1SharedMem[dtId.z + 64];
@@ -214,7 +219,11 @@ shader skies_approximate_ms_lut_ps
       float2 uv = sp.xy / SKIES_MULTIPLE_SCATTERING_APPROX;
       // We adjust again viewHeight according to PLANET_RADIUS_OFFSET to be in a valid range.
       float3 summedInScatteredLuminance = 0, summedMultiScatAs1 = 0;
+      // LOOP: the march inside calcRay has data-dependent trip counts, unrolling
+      // 64 rays of it is neither possible for fxc nor desirable
+      LOOP
       for (int i = 0; i < SQRTSAMPLECOUNT; ++i)
+      LOOP
       for (int j = 0; j < SQRTSAMPLECOUNT; ++j)
       {
         float3 L, MultiScatAs1;

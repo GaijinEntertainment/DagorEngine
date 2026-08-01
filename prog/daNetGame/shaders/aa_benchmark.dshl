@@ -1,0 +1,559 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+texture aa_benchmark_frame_tex;
+texture aa_benchmark_ref_tex;
+texture aa_benchmark_temporal_hist;
+texture aa_benchmark_temporal_age_hist;
+texture aa_benchmark_temporal_tex;
+texture aa_benchmark_motion_tex;
+float4 aa_benchmark_jitter = (0, 0, 0, 0);
+float4 aa_benchmark_temporal_params = (128, 0, 0, 0);
+buffer aa_benchmark_mse_partials;
+buffer aa_benchmark_mse_result;
+int aa_benchmark_mse_partials_count = 0;
+float4 aa_benchmark_heatmap_params = (8, 0.75, 0, 0);
+
+texture aa_benchmark_freq_src;
+texture aa_benchmark_freq_coarse;
+texture aa_benchmark_freq_dst;
+buffer aa_benchmark_freq_partials;
+buffer aa_benchmark_freq_result;
+int aa_benchmark_freq_partials_count = 0;
+int aa_benchmark_freq_band = 0;
+
+// Accumulates one jittered subsample into the AA benchmark ground truth.
+// Runs once per subsample with additive blending (rgb = sum of weighted colors,
+// a = sum of weights); the reader must normalize rgb by a.
+shader aa_benchmark_accumulate
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  (ps)
+  {
+    // xy = subsample jitter in input pixels, zw = input resolution
+    jitter_and_res@f4 = aa_benchmark_jitter;
+    frame_tex@tex2d = aa_benchmark_frame_tex;
+  }
+
+  hlsl(ps)
+  {
+    #define LANCZOS_RADIUS 3
+
+    float lanczos3(float x)
+    {
+      x = abs(x);
+      if (x >= LANCZOS_RADIUS)
+        return 0;
+      if (x < 1e-4)
+        return 1;
+      const float pix = PI * x;
+      return LANCZOS_RADIUS * sin(pix) * sin(pix / LANCZOS_RADIUS) / (pix * pix);
+    }
+
+    float4 aa_benchmark_accumulate_ps(VsOutput input) : SV_Target
+    {
+      const float2 jitter = jitter_and_res.xy;
+      const float2 inputRes = jitter_and_res.zw;
+      const float2 outputPos = input.texcoord * inputRes;
+      const int2 baseTexel = int2(floor(outputPos + jitter - 0.5));
+      float4 result = 0;
+      UNROLL for (int j = -LANCZOS_RADIUS; j <= LANCZOS_RADIUS; ++j)
+      {
+        UNROLL for (int i = -LANCZOS_RADIUS; i <= LANCZOS_RADIUS; ++i)
+        {
+          const int2 texel = baseTexel + int2(i, j);
+          const float2 d = float2(texel) + 0.5 - jitter - outputPos;
+          const float w = lanczos3(d.x) * lanczos3(d.y);
+          const int2 clamped = clamp(texel, int2(0, 0), int2(inputRes) - 1);
+          result += float4(w * frame_tex[clamped].rgb, w);
+        }
+      }
+      return result;
+    }
+  }
+  compile("target_ps", "aa_benchmark_accumulate_ps");
+}
+
+// MSE and GMSD between the AA output and the normalized ground truth, reduced in
+// two passes: partial sums per 8x8 group, then a single-group total. Colors are
+// reinhard-mapped so the metric has a bounded [0, 1) range on HDR input; PSNR is
+// computed on the CPU with peak = 1. GMSD (gradient magnitude similarity
+// deviation, Xue et al. 2014) captures edge/aliasing fidelity that MSE misses; it
+// is the std of the per-pixel gradient similarity, so we accumulate its sum and
+// sum of squares and finish the variance in the reduce pass.
+shader aa_benchmark_mse_partial
+{
+  (cs)
+  {
+    frame_tex@tex2d = aa_benchmark_frame_tex;
+    ref_tex@tex2d = aa_benchmark_ref_tex;
+    frame_dim@u2 = get_dimensions(aa_benchmark_frame_tex, 0);
+    partials@uav = aa_benchmark_mse_partials hlsl { RWStructuredBuffer<float4> partials@uav; };
+  }
+
+  hlsl(cs)
+  {
+    // GMS stabilizer for luma gradients in the reinhard [0, 1) range (170 / 255^2).
+    #define GMSD_C 0.0026
+
+    // gms clusters near 1, so we accumulate the deviation d = 1 - gms instead:
+    // variance is shift-invariant and small sums avoid the cancellation that a
+    // sum-of-gms / sum-of-gms^2 pair would suffer.
+    groupshared float4 g_partial[64]; // (mse, d, d^2, unused)
+    // 8x8 block plus a 1px apron for the Prewitt window, shared across the group
+    groupshared float2 g_luma[10][10]; // .x = GT luma, .y = AA luma
+
+    float3 reinhard(float3 c)
+    {
+      c = max(c, 0);
+      return c / (1 + c);
+    }
+
+    float luma(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
+
+    // Reinhard-mapped luma of the ground truth (.x) and AA output (.y) at one
+    // texel, clamped to the image edge so the Prewitt window stays in bounds.
+    float2 ref_aa_luma(int2 p, int2 dim)
+    {
+      p = clamp(p, int2(0, 0), dim - 1);
+      const float4 ref = ref_tex[p];
+      return float2(luma(reinhard(ref.rgb / max(ref.a, 1e-6))), luma(reinhard(frame_tex[p].rgb)));
+    }
+
+    // Prewitt gradient magnitude of the ground truth (.x) and AA output (.y) luma,
+    // read from the shared tile. lc is the pixel's center in tile coordinates.
+    float2 grad_magnitude(int2 lc)
+    {
+      float2 g[3][3];
+      UNROLL for (int j = 0; j < 3; ++j)
+        UNROLL for (int i = 0; i < 3; ++i)
+          g[j][i] = g_luma[lc.y + j - 1][lc.x + i - 1];
+      const float2 gx = (g[0][2] + g[1][2] + g[2][2] - g[0][0] - g[1][0] - g[2][0]) / 3;
+      const float2 gy = (g[2][0] + g[2][1] + g[2][2] - g[0][0] - g[0][1] - g[0][2]) / 3;
+      return sqrt(gx * gx + gy * gy);
+    }
+
+    [numthreads(8, 8, 1)]
+    void aa_benchmark_mse_partial_cs(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID, uint tid : SV_GroupIndex)
+    {
+      const uint2 dim = frame_dim;
+      const int2 groupBase = int2(gid.xy) * 8;
+
+      // Cooperatively fill the 10x10 luma tile so each pixel's 3x3 Prewitt window
+      // reads shared memory instead of re-fetching its neighborhood from textures.
+      UNROLL for (int n = 0; n < 2; ++n)
+      {
+        const uint k = tid + n * 64;
+        if (k < 100)
+        {
+          const int2 tile = int2(k % 10, k / 10);
+          g_luma[tile.y][tile.x] = ref_aa_luma(groupBase + tile - 1, int2(dim));
+        }
+      }
+      GroupMemoryBarrierWithGroupSync();
+
+      float mse = 0;
+      float gms = 0;
+      if (all(dtid.xy < dim))
+      {
+        const float4 ref = ref_tex[dtid.xy];
+        // ground truth alpha holds the accumulated Lanczos weight sum
+        const float3 refColor = reinhard(ref.rgb / max(ref.a, 1e-6));
+        const float3 aaColor = reinhard(frame_tex[dtid.xy].rgb);
+        const float3 d = aaColor - refColor;
+        mse = dot(d, d) / 3;
+        const float2 m = grad_magnitude(int2(gtid.xy) + 1);
+        gms = (2 * m.x * m.y + GMSD_C) / (m.x * m.x + m.y * m.y + GMSD_C);
+      }
+      const float d = 1 - gms; // near 0 for matched/flat pixels
+      g_partial[tid] = float4(mse, d, d * d, 0);
+      GroupMemoryBarrierWithGroupSync();
+      UNROLL for (uint stride = 32; stride > 0; stride >>= 1)
+      {
+        if (tid < stride)
+          g_partial[tid] += g_partial[tid + stride];
+        GroupMemoryBarrierWithGroupSync();
+      }
+      if (tid == 0)
+        partials[gid.y * ((dim.x + 7) / 8) + gid.x] = g_partial[0];
+    }
+  }
+  compile("target_cs", "aa_benchmark_mse_partial_cs");
+}
+
+shader aa_benchmark_mse_reduce
+{
+  (cs)
+  {
+    ref_dim@u2 = get_dimensions(aa_benchmark_ref_tex, 0);
+    partials_count@i1 = aa_benchmark_mse_partials_count;
+    partials@buf = aa_benchmark_mse_partials hlsl { StructuredBuffer<float4> partials@buf; };
+    result@uav = aa_benchmark_mse_result hlsl { RWStructuredBuffer<float> result@uav; };
+  }
+
+  hlsl(cs)
+  {
+    groupshared float4 g_sum[256];
+
+    [numthreads(256, 1, 1)]
+    void aa_benchmark_mse_reduce_cs(uint tid : SV_GroupIndex)
+    {
+      float4 s = 0;
+      LOOP for (uint i = tid; i < uint(partials_count); i += 256)
+        s += partials[i];
+      g_sum[tid] = s;
+      GroupMemoryBarrierWithGroupSync();
+      UNROLL for (uint stride = 128; stride > 0; stride >>= 1)
+      {
+        if (tid < stride)
+          g_sum[tid] += g_sum[tid + stride];
+        GroupMemoryBarrierWithGroupSync();
+      }
+      if (tid == 0)
+      {
+        const float n = float(ref_dim.x * ref_dim.y);
+        // stats accumulated on d = 1 - gms; std(d) == std(gms) == GMSD
+        const float dMean = g_sum[0].y / n;
+        const float gmsVar = max(g_sum[0].z / n - dMean * dMean, 0.0);
+        result[0] = g_sum[0].x / n; // mean squared error
+        result[1] = sqrt(gmsVar);   // GMSD: std of the gradient similarity map
+      }
+    }
+  }
+  compile("target_cs", "aa_benchmark_mse_reduce_cs");
+}
+
+// Per-pixel temporal mean and variance of the ERROR (AA output minus normalized
+// ground truth), accumulated over frames. The history is motion-reprojected so the
+// estimate follows surface points through dynamic scenes; scene motion moves AA and
+// GT together and cancels in the error, so only the AA's failure to match GT is
+// measured. The mean isolates persistent bias (blur, ghosting), the variance the
+// temporal fluctuation (flicker). A second target tracks per-pixel age (frames since
+// this surface was last seen), giving each pixel its own EWMA weight 1/min(age,
+// window): freshly disoccluded pixels re-ramp from a single sample instead of
+// snapping to the global weight. Both the stats and the age are reprojected and
+// restart when they fall off-screen. stats: rgb = mean error, a = error variance.
+shader aa_benchmark_temporal
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  (ps)
+  {
+    temporal_params@f4 = aa_benchmark_temporal_params; // x = ewma window
+    frame_tex@tex2d = aa_benchmark_frame_tex;
+    ref_tex@tex2d = aa_benchmark_ref_tex;
+    hist_tex@tex2d = aa_benchmark_temporal_hist;
+    age_hist_tex@tex2d = aa_benchmark_temporal_age_hist;
+    motion_tex@tex2d = aa_benchmark_motion_tex;
+    hist_dim@f2 = get_dimensions(aa_benchmark_temporal_hist, 0);
+    motion_dim@f2 = get_dimensions(aa_benchmark_motion_tex, 0);
+  }
+
+  hlsl(ps)
+  {
+    struct TemporalOutput
+    {
+      float4 stats : SV_Target0; // rgb = mean error, a = error variance
+      float age : SV_Target1;
+    };
+
+    float3 reinhard(float3 c)
+    {
+      c = max(c, 0);
+      return c / (1 + c);
+    }
+
+    // Bilinear weights for a reprojected uv, plus the four clamped integer texels.
+    void reproject_taps(float2 uv, float2 dim, out int2 t[4], out float w[4])
+    {
+      const float2 p = uv * dim - 0.5;
+      const float2 f = frac(p);
+      const int2 p0 = int2(floor(p));
+      const int2 mx = int2(dim) - 1;
+      t[0] = clamp(p0, int2(0, 0), mx);
+      t[1] = clamp(p0 + int2(1, 0), int2(0, 0), mx);
+      t[2] = clamp(p0 + int2(0, 1), int2(0, 0), mx);
+      t[3] = clamp(p0 + int2(1, 1), int2(0, 0), mx);
+      w[0] = (1 - f.x) * (1 - f.y);
+      w[1] = f.x * (1 - f.y);
+      w[2] = (1 - f.x) * f.y;
+      w[3] = f.x * f.y;
+    }
+
+    TemporalOutput aa_benchmark_temporal_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      const int2 pos = int2(GET_SCREEN_POS(input.pos).xy);
+      const float2 uv = input.texcoord;
+      const float4 ref = ref_tex[pos];
+      // per-frame signed error between AA output and normalized ground truth
+      const float3 err = reinhard(frame_tex[pos].rgb) - reinhard(ref.rgb / max(ref.a, 1e-6));
+
+      // resolved motion vectors are unjittered uv-space current->previous
+      const float2 prevUv = uv + motion_tex[int2(uv * motion_dim)].xy;
+      const bool valid = all(prevUv == saturate(prevUv));
+
+      // off-screen reprojection has no valid history, so restart the estimate there
+      float4 h = 0;
+      float prevAge = 0;
+      if (valid)
+      {
+        int2 t[4];
+        float w[4];
+        reproject_taps(prevUv, hist_dim, t, w);
+        UNROLL for (int i = 0; i < 4; ++i)
+        {
+          h += w[i] * hist_tex[t[i]];
+          prevAge += w[i] * age_hist_tex[t[i]].r;
+        }
+      }
+
+      // per-pixel age -> per-pixel weight; age 1 (fresh) seeds the mean exactly
+      const float age = min(prevAge + 1, temporal_params.x);
+      const float alpha = 1.0 / age;
+      const float3 delta = err - h.rgb;
+      const float3 mean = h.rgb + alpha * delta;
+      // EWMA variance of the error, averaged over channels.
+      const float variance = (1 - alpha) * (h.a + alpha * dot(delta, delta) / 3);
+
+      TemporalOutput o;
+      o.stats = float4(mean, variance);
+      o.age = age;
+      return o;
+    }
+  }
+  compile("target_ps", "aa_benchmark_temporal_ps");
+}
+
+// Debug view drawn over the tonemapped debug target. Modes: error heatmap
+// (alpha-blended, same reinhard-mapped error as the PSNR metric), an opaque
+// reinhard-mapped view of the ground truth / AA output for A/B inspection, or the
+// temporal mean (opaque) / temporal stddev (heatmap) from aa_benchmark_temporal.
+shader aa_benchmark_debug_view
+{
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+  blend_src = sa;
+  blend_dst = isa;
+  POSTFX_VS_TEXCOORD(1, texcoord)
+
+  (ps)
+  {
+    // x = error scale, y = heatmap opacity, z = view mode
+    view_params@f4 = aa_benchmark_heatmap_params;
+    frame_tex@tex2d = aa_benchmark_frame_tex;
+    ref_tex@tex2d = aa_benchmark_ref_tex;
+    temporal_tex@tex2d = aa_benchmark_temporal_tex;
+  }
+
+  hlsl(ps)
+  {
+    #define VIEW_HEATMAP 1
+    #define VIEW_GROUND_TRUTH 2
+    #define VIEW_TEMPORAL_MEAN 4
+    #define VIEW_TEMPORAL_STDDEV 5
+
+    float3 reinhard(float3 c)
+    {
+      c = max(c, 0);
+      return c / (1 + c);
+    }
+
+    // blue -> cyan -> green -> yellow -> red
+    float3 heatmap_color(float t)
+    {
+      return saturate(float3(min(4 * t - 1.5, -4 * t + 4.5), min(4 * t - 0.5, -4 * t + 3.5), min(4 * t + 0.5, -4 * t + 2.5)));
+    }
+
+    // low-error areas stay mostly transparent so the scene remains readable
+    float4 heatmap_overlay(float heat, float opacity)
+    {
+      return float4(heatmap_color(heat), opacity * saturate(0.15 + 0.85 * heat));
+    }
+
+    float4 aa_benchmark_debug_view_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      const int2 pos = int2(GET_SCREEN_POS(input.pos).xy);
+      const float4 ref = ref_tex[pos];
+      const float3 refColor = reinhard(ref.rgb / max(ref.a, 1e-6));
+      const float3 aaColor = reinhard(frame_tex[pos].rgb);
+      const int mode = int(view_params.z + 0.5);
+      BRANCH
+      if (mode == VIEW_HEATMAP)
+      {
+        const float3 d = aaColor - refColor;
+        const float heat = saturate(sqrt(dot(d, d) / 3) * view_params.x);
+        return heatmap_overlay(heat, view_params.y);
+      }
+      BRANCH
+      if (mode == VIEW_TEMPORAL_MEAN || mode == VIEW_TEMPORAL_STDDEV)
+      {
+        const float4 t = temporal_tex[pos]; // rgb = mean error, a = error variance
+        // mean = persistent bias, stddev = temporal fluctuation of the error
+        const float metric = mode == VIEW_TEMPORAL_MEAN ? sqrt(dot(t.rgb, t.rgb) / 3) : sqrt(max(t.a, 0));
+        return heatmap_overlay(saturate(metric * view_params.x), view_params.y);
+      }
+      return float4(mode == VIEW_GROUND_TRUTH ? refColor : aaColor, 1);
+    }
+  }
+  compile("target_ps", "aa_benchmark_debug_view_ps");
+}
+
+// Octave-band frequency analysis (Laplacian pyramid): how much of each spatial
+// frequency band the AA output retains versus the ground truth, and how much error
+// lives in each band. A blur shows up as retained < 1 in the fine octaves; aliasing
+// or oversharpening as retained > 1 and/or high band error. Built by a box pyramid
+// of reinhard luma (r = GT, g = AA); band k = level k - nearest-upsampled level k+1.
+// Energies are summed per band and reduced; the CPU takes ratios (per-band pixel
+// count cancels), so raw sums are stored.
+shader aa_benchmark_freq_luma
+{
+  (cs)
+  {
+    frame_tex@tex2d = aa_benchmark_frame_tex;
+    ref_tex@tex2d = aa_benchmark_ref_tex;
+    frame_dim@u2 = get_dimensions(aa_benchmark_frame_tex, 0);
+    dstTex@uav = aa_benchmark_freq_dst hlsl { RWTexture2D<float2> dstTex@uav; };
+  }
+
+  hlsl(cs)
+  {
+    float3 reinhard(float3 c) { c = max(c, 0); return c / (1 + c); }
+    float luma(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
+
+    [numthreads(8, 8, 1)]
+    void aa_benchmark_freq_luma_cs(uint3 dtid : SV_DispatchThreadID)
+    {
+      const uint2 dim = frame_dim;
+      if (any(dtid.xy >= dim))
+        return;
+      const float4 ref = ref_tex[dtid.xy];
+      const float gt = luma(reinhard(ref.rgb / max(ref.a, 1e-6)));
+      const float aa = luma(reinhard(frame_tex[dtid.xy].rgb));
+      dstTex[dtid.xy] = float2(gt, aa);
+    }
+  }
+  compile("target_cs", "aa_benchmark_freq_luma_cs");
+}
+
+shader aa_benchmark_freq_downsample
+{
+  (cs)
+  {
+    src_tex@tex2d = aa_benchmark_freq_src;
+    src_dim@u2 = get_dimensions(aa_benchmark_freq_src, 0);
+    dst_dim@u2 = get_dimensions(aa_benchmark_freq_dst, 0);
+    dstTex@uav = aa_benchmark_freq_dst hlsl { RWTexture2D<float2> dstTex@uav; };
+  }
+
+  hlsl(cs)
+  {
+    [numthreads(8, 8, 1)]
+    void aa_benchmark_freq_downsample_cs(uint3 dtid : SV_DispatchThreadID)
+    {
+      const uint2 dstDim = dst_dim;
+      if (any(dtid.xy >= dstDim))
+        return;
+      const int2 mx = int2(src_dim) - 1;
+      const int2 s = int2(dtid.xy) * 2;
+      const float2 p00 = src_tex[min(s, mx)].rg;
+      const float2 p10 = src_tex[min(s + int2(1, 0), mx)].rg;
+      const float2 p01 = src_tex[min(s + int2(0, 1), mx)].rg;
+      const float2 p11 = src_tex[min(s + int2(1, 1), mx)].rg;
+      dstTex[dtid.xy] = (p00 + p10 + p01 + p11) * 0.25;
+    }
+  }
+  compile("target_cs", "aa_benchmark_freq_downsample_cs");
+}
+
+shader aa_benchmark_freq_band
+{
+  (cs)
+  {
+    src_tex@tex2d = aa_benchmark_freq_src;       // level k (fine)
+    coarse_tex@tex2d = aa_benchmark_freq_coarse; // level k+1 (coarse)
+    src_dim@u2 = get_dimensions(aa_benchmark_freq_src, 0);
+    coarse_dim@u2 = get_dimensions(aa_benchmark_freq_coarse, 0);
+    partials@uav = aa_benchmark_freq_partials hlsl { RWStructuredBuffer<float4> partials@uav; };
+  }
+
+  hlsl(cs)
+  {
+    groupshared float4 g_sum[64];
+
+    [numthreads(8, 8, 1)]
+    void aa_benchmark_freq_band_cs(uint3 dtid : SV_DispatchThreadID, uint3 gid : SV_GroupID, uint tid : SV_GroupIndex)
+    {
+      const uint2 dim = src_dim;
+      const uint2 coarseDim = coarse_dim;
+      float4 acc = 0; // GT band energy, AA band energy, band error energy
+      if (all(dtid.xy < dim))
+      {
+        const float2 fine = src_tex[dtid.xy].rg;
+        // nearest upsample of the coarser level (clamped for odd resolutions)
+        const float2 coarse = coarse_tex[min(int2(dtid.xy) >> 1, int2(coarseDim) - 1)].rg;
+        const float2 band = fine - coarse;                    // r = GT, g = AA octave detail
+        const float err = band.g - band.r;
+        acc = float4(band.r * band.r, band.g * band.g, err * err, 0);
+      }
+      g_sum[tid] = acc;
+      GroupMemoryBarrierWithGroupSync();
+      UNROLL for (uint stride = 32; stride > 0; stride >>= 1)
+      {
+        if (tid < stride)
+          g_sum[tid] += g_sum[tid + stride];
+        GroupMemoryBarrierWithGroupSync();
+      }
+      if (tid == 0)
+        partials[gid.y * ((dim.x + 7) / 8) + gid.x] = g_sum[0];
+    }
+  }
+  compile("target_cs", "aa_benchmark_freq_band_cs");
+}
+
+shader aa_benchmark_freq_reduce
+{
+  (cs)
+  {
+    partials_count@i1 = aa_benchmark_freq_partials_count;
+    band@i1 = aa_benchmark_freq_band;
+    partials@buf = aa_benchmark_freq_partials hlsl { StructuredBuffer<float4> partials@buf; };
+    result@uav = aa_benchmark_freq_result hlsl { RWStructuredBuffer<float> result@uav; };
+  }
+
+  hlsl(cs)
+  {
+    groupshared float4 g_sum[256];
+
+    [numthreads(256, 1, 1)]
+    void aa_benchmark_freq_reduce_cs(uint tid : SV_GroupIndex)
+    {
+      float4 s = 0;
+      LOOP for (uint i = tid; i < uint(partials_count); i += 256)
+        s += partials[i];
+      g_sum[tid] = s;
+      GroupMemoryBarrierWithGroupSync();
+      UNROLL for (uint stride = 128; stride > 0; stride >>= 1)
+      {
+        if (tid < stride)
+          g_sum[tid] += g_sum[tid + stride];
+        GroupMemoryBarrierWithGroupSync();
+      }
+      if (tid == 0)
+      {
+        const int b = band * 3;
+        result[b + 0] = g_sum[0].x; // sum of GT octave energy
+        result[b + 1] = g_sum[0].y; // sum of AA octave energy
+        result[b + 2] = g_sum[0].z; // sum of squared octave error
+      }
+    }
+  }
+  compile("target_cs", "aa_benchmark_freq_reduce_cs");
+}

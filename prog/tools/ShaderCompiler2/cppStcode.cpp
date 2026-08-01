@@ -1001,6 +1001,9 @@ dag::Expected<Tab<proc::ProcessTask>, StcodeMakeTaskError> make_stcode_compilati
     sourcesList.c_str(), customCppOpts};
   write_file(jamPath.c_str(), jamContent.c_str(), jamContent.length());
 
+  if (shc::config().cppStcodeNoJam)
+    return dag::Unexpected(StcodeMakeTaskError::DISABLED);
+
   auto requiredArchs = shc::config().cppStcodeArchs;
   if (requiredArchs.empty())
     requiredArchs.push_back(StcodeTargetArch::DEFAULT);

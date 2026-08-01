@@ -6263,6 +6263,66 @@ shader_category{
     }
   }
   shader{
+    name:t="dynamic_hair_morph"
+    parameter{
+      name:t="micro_detail_layer_intensity"
+      type:t="r"
+      default:r=1.0
+    }
+    parameter{
+      name:t="aoTex"
+      type:t="b"
+      default:b=no
+    }
+    parameter{
+      name:t="num_bones"
+      type:t="i"
+      default:i=0
+    }
+    parameter{
+      name:t="paint_color_to"
+      type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.5
+    }
+    parameter{
+      name:t="paint_color_from"
+      type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.5
+    }
+    parameter{
+      name:t="microDetailMask"
+      type:t="b"
+      default:b=no
+    }
+    parameter{
+      name:t="atest"
+      type:t="i"
+      default:i=0
+      soft_min:i=0
+      soft_max:i=1
+      description:t="Integer, but works as boolean. 0 or less -> opaque, 1 or more -> alpha mask is clipped at medium gray"
+    }
+    parameter{
+      name:t="micro_detail_layer"
+      type:t="i"
+      default:i=-1
+    }
+    parameter{
+      name:t="micro_detail_layer_v_scale"
+      type:t="r"
+      default:r=1.0
+    }
+    parameter{
+      name:t="micro_detail_layer_uv_scale"
+      type:t="r"
+    }
+    parameter{
+      name:t="micro_detail_layer_swap_uv"
+      type:t="i"
+      default:i=0
+    }
+  }
+  shader{
     name:t="dynamic_refraction"
     parameter{
       name:t="transparency_mul"
@@ -6485,6 +6545,86 @@ shader_category{
   }
   shader{
     name:t="dynamic_skin"
+    parameter{
+      name:t="dynamic_details_transform_2"
+      type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
+    }
+    parameter{
+      name:t="micro_detail_layer_intensity"
+      type:t="r"
+      default:r=1.0
+    }
+    parameter{
+      name:t="aoTex"
+      type:t="b"
+      default:b=no
+    }
+    parameter{
+      name:t="num_bones"
+      type:t="i"
+      default:i=0
+    }
+    parameter{
+      name:t="dynamic_details_transform_0"
+      type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
+    }
+    parameter{
+      name:t="micro_detail_layer"
+      type:t="i"
+      default:i=-1
+    }
+    parameter{
+      name:t="dynamic_details_transform_3"
+      type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
+    }
+    parameter{
+      name:t="dynamic_details"
+      type:t="p4"
+      default:p4=-1.0, -1.0, -1.0, -1.0
+    }
+    parameter{
+      name:t="micro_detail_layer_uv_scale"
+      type:t="r"
+    }
+    parameter{
+      name:t="micro_detail_layer_v_scale"
+      type:t="r"
+      default:r=1.0
+    }
+    parameter{
+      name:t="microDetailMask"
+      type:t="b"
+      default:b=no
+    }
+    parameter{
+      name:t="dynamic_details_transform_1"
+      type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
+    }
+    parameter{
+      name:t="micro_detail_layer_swap_uv"
+      type:t="i"
+      default:i=0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="has_burning"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="has_wounds"
+        type:t="i"
+        default:i=0
+      }
+    }
+  }
+  shader{
+    name:t="dynamic_skin_morph"
     parameter{
       name:t="dynamic_details_transform_2"
       type:t="p4"

@@ -9,6 +9,7 @@
 #include <dasModules/aotDaWeapons.h>
 #include <dasModules/dasModulesCommon.h>
 #include <daScript/simulate/runtime_matrices.h>
+#include <util/dag_bitwise_cast.h>
 #include <ecs/game/weapons/gunES.h>
 #include <ecs/game/weapons/gunDeviation.h>
 #include <ecs/game/weapons/mountedGun.h>
@@ -29,15 +30,17 @@ DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(::daweap::EFiringModeType, EFiringModeType);
 namespace bind_dascript
 {
 
-inline void gun_shoot_node_data_calc_shoot_tm(const ::daweap::GunShootNodeData &data, const Point3 &dir, TMatrix &tm)
+inline void gun_shoot_node_data_calc_shoot_tm(const ::daweap::GunShootNodeData &data, const Point3 &dir, das::float3x4 &tm)
 {
-  v_mat_43cu_from_mat44(tm.array, data.calcShootTm(v_ldu(&dir.x), V_C_UNIT_0100));
+  TMatrix res;
+  v_mat_43cu_from_mat44(res.array, data.calcShootTm(v_ldu_p3_safe(&dir.x), V_C_UNIT_0100));
+  tm = dag::bit_cast<das::float3x4>(res);
 }
 
-inline TMatrix gun_shoot_node_data_calc_shoot_tm2(const ::daweap::GunShootNodeData &data, const Point3 &gun_dir, const TMatrix &vis_tm,
-  const TMatrix &phys_tm)
+inline das::float3x4 gun_shoot_node_data_calc_shoot_tm2(const ::daweap::GunShootNodeData &data, const Point3 &gun_dir,
+  const das::float3x4 &vis_tm, const das::float3x4 &phys_tm)
 {
-  return data.calcShootTm(gun_dir, vis_tm, phys_tm);
+  return dag::bit_cast<das::float3x4>(data.calcShootTm(gun_dir, dag::bit_cast<TMatrix>(vis_tm), dag::bit_cast<TMatrix>(phys_tm)));
 }
 
 inline Point3 gun_shoot_node_data_calc_root_relative_shoot_pos(const ::daweap::GunShootNodeData &data, const GeomNodeTree &tree)
@@ -50,19 +53,21 @@ inline void gun_force_next_shot_time(daweap::Gun &gun, const float at_time) { gu
 inline void gun_calculate_shoot_tm(const daweap::Gun &gun, const Point3 &gun_dir, const Point3 *gunPos, const das::float3x4 *vis_tm,
   const das::float3x4 *phys_tm, das::float3x4 &out_tm, das::Context *context, das::LineInfoArg *line_info)
 {
-  TMatrix &result = reinterpret_cast<TMatrix &>(out_tm);
+  TMatrix result;
   if (gunPos)
-    v_mat_43cu_from_mat44(result.array, gun.shootNodeData.calcShootTm(v_ldu(&gun_dir.x), V_C_UNIT_0100, v_ldu(&gunPos->x)));
+  {
+    vec3f gunPosV = v_ldu_p3_safe(&gunPos->x);
+    v_mat_43cu_from_mat44(result.array, gun.shootNodeData.calcShootTm(v_ldu_p3_safe(&gun_dir.x), V_C_UNIT_0100, gunPosV));
+  }
   else
   {
     if (!vis_tm)
       context->throw_error_at(line_info, "vis_tm is null");
     if (!phys_tm)
       context->throw_error_at(line_info, "phys_tm is null");
-    const TMatrix *visM = reinterpret_cast<const TMatrix *>(vis_tm);
-    const TMatrix *physM = reinterpret_cast<const TMatrix *>(phys_tm);
-    result = gun.shootNodeData.calcShootTm(gun_dir, *visM, *physM);
+    result = gun.shootNodeData.calcShootTm(gun_dir, dag::bit_cast<TMatrix>(*vis_tm), dag::bit_cast<TMatrix>(*phys_tm));
   }
+  out_tm = dag::bit_cast<das::float3x4>(result);
 }
 
 inline void gun_deviation_getAppliedCT(daweap::GunDeviation &gun_deviation,

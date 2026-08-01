@@ -374,8 +374,11 @@ static void read_tcp_data(ares_channel channel, fd_set *read_fds,
               server->tcp_length = server->tcp_lenbuf[0] << 8
                 | server->tcp_lenbuf[1];
               server->tcp_buffer = malloc(server->tcp_length);
-              if (!server->tcp_buffer)
+              if (!server->tcp_buffer) {
                 handle_error(channel, i, now);
+                return; /* bail out on malloc failure. TODO: make this
+                           function return error codes */
+              }
               server->tcp_buffer_pos = 0;
             }
         }
@@ -400,8 +403,8 @@ static void read_tcp_data(ares_channel channel, fd_set *read_fds,
                */
               process_answer(channel, server->tcp_buffer, server->tcp_length,
                              i, 1, now);
-          if (server->tcp_buffer)
-                        free(server->tcp_buffer);
+              if (server->tcp_buffer)
+                free(server->tcp_buffer);
               server->tcp_buffer = NULL;
               server->tcp_lenbuf_pos = 0;
               server->tcp_buffer_pos = 0;
@@ -460,7 +463,7 @@ static void read_udp_packets(ares_channel channel, fd_set *read_fds,
        * packets as we can. */
       do {
         if (server->udp_socket == ARES_SOCKET_BAD)
-          count = 0;
+          count = -1;
 
         else {
 #ifdef HAVE_RECVFROM
@@ -475,20 +478,27 @@ static void read_udp_packets(ares_channel channel, fd_set *read_fds,
 #endif
         }
 
-        if (count == -1 && try_again(SOCKERRNO))
+        if (count == 0)
+          /* UDP is connectionless, so result code of 0 is a 0-length UDP
+           * packet, and not an indication the connection is closed like on
+           * tcp */
           continue;
-        else if (count <= 0)
-          handle_error(channel, i, now);
+        else if (count < 0)
+          {
+            if (try_again(SOCKERRNO))
+              continue;
+            handle_error(channel, i, now);
+          }
 #ifdef HAVE_RECVFROM
         else if (!same_address(&from.sa, &server->addr))
           /* The address the response comes from does not match the address we
            * sent the request to. Someone may be attempting to perform a cache
            * poisoning attack. */
-          break;
+          continue;
 #endif
         else
           process_answer(channel, buf, (int)count, i, 0, now);
-       } while (count > 0);
+       } while (count >= 0);
     }
 }
 
@@ -575,7 +585,7 @@ static void process_answer(ares_channel channel, unsigned char *abuf,
       packetsz = channel->ednspsz;
       if (rcode == NOTIMP || rcode == FORMERR || rcode == SERVFAIL)
       {
-          int qlen = alen - EDNSFIXEDSZ;
+          int qlen = (query->tcplen - 2) - EDNSFIXEDSZ;
           channel->flags ^= ARES_FLAG_EDNS;
           query->tcplen -= EDNSFIXEDSZ;
           query->qlen -= EDNSFIXEDSZ;
@@ -583,6 +593,7 @@ static void process_answer(ares_channel channel, unsigned char *abuf,
           query->tcpbuf[1] = (unsigned char)(qlen & 0xff);
           DNS_HEADER_SET_ARCOUNT(query->tcpbuf + 2, 0);
           query->tcpbuf = realloc(query->tcpbuf, query->tcplen);
+          query->qbuf = query->tcpbuf + 2;
           ares__send_query(channel, query, now);
           return;
       }

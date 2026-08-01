@@ -85,13 +85,20 @@ void NetContext::update(int ms) { network.update(ms, NC_REPLICATION); }
 // File-private. Access only through the predicates / publish / clear below.
 static ecs::EntityManager *g_net_em = nullptr;
 static OSSpinlock g_net_em_lock;
+// Mirror of g_net_em's owner tid (0 = no session) for the lock-free check below.
+// Written under g_net_em_lock; owner handoffs must go through change_em_ownership().
+// -1 marks an in-progress handoff: no real thread id matches it, so every lock-free
+// reader falls back to the read pin while the mirror and the EM owner are out of sync.
+static constexpr int64_t NET_EM_OWNER_IN_HANDOFF = -1;
+static volatile int64_t g_net_em_owner_tid = 0;
 
 bool is_this_thread_net_em_owner()
 {
-  OSSpinlockScopedLock guard(g_net_em_lock);
-  if (!g_net_em)
-    return true; // no session -- vacuously "owner enough" for callers that want to skip locks
-  return g_net_em->getOwnerThreadId() == get_current_thread_id();
+  // acquire pairs with the release stores below: a reader that sees 0 (no session) must also
+  // see the teardown that preceded clear_net_em, or skipping the read pin would be a UAF
+  const int64_t owner = interlocked_acquire_load(g_net_em_owner_tid);
+  // no session -- treat as owner so callers can skip lock/scope
+  return owner == 0 || owner == get_current_thread_id();
 }
 
 bool net_em_matches_or_unset(ecs::EntityManager &mgr)
@@ -110,12 +117,42 @@ void publish_net_em(ecs::EntityManager &mgr)
 {
   OSSpinlockScopedLock guard(g_net_em_lock);
   g_net_em = &mgr;
+  // This thread now owns the session; seed its TLS from current authoritative and mark valid.
+  // publish_net_state_now() (also on this thread) keeps TLS and authoritative in lockstep
+  // from here on. TLS stays valid on the owner until clear_net_em() flips it off.
+  {
+    OSSpinlockScopedLock slock(g_net_globals.snapshotLock);
+    net_snap = g_net_globals.authoritativeSnapshot;
+    net_snap_tls_version = g_net_globals.snapshotVersion.load(std::memory_order_relaxed);
+  }
+  net_snap_valid = true;
+  // Publish the owner mirror last: a lock-free reader that sees the tid also sees the
+  // session state set up above.
+  interlocked_release_store(g_net_em_owner_tid, mgr.getOwnerThreadId());
 }
 
 void clear_net_em()
 {
   OSSpinlockScopedLock guard(g_net_em_lock);
   g_net_em = nullptr;
+  net_snap_valid = false;
+  interlocked_release_store(g_net_em_owner_tid, 0);
+}
+
+void change_em_ownership(ecs::EntityManager &mgr, int64_t new_owner_tid)
+{
+  OSSpinlockScopedLock guard(g_net_em_lock);
+  if (g_net_em != &mgr)
+  {
+    mgr.setOwnerThreadId(new_owner_tid);
+    return;
+  }
+  // the mirror and mgr.ownerThreadId cannot be updated atomically, so mark the handoff
+  // first: while it runs neither the departing nor the arriving owner may skip the read
+  // pin (both would observe a mirror/owner mismatch), then publish the new owner
+  interlocked_release_store(g_net_em_owner_tid, NET_EM_OWNER_IN_HANDOFF);
+  mgr.setOwnerThreadId(new_owner_tid);
+  interlocked_release_store(g_net_em_owner_tid, new_owner_tid);
 }
 
 bool topology_read_pin_active() { return TopologyLock::this_thread_holds_read(); }
@@ -169,8 +206,10 @@ bool create_net_ctx(ecs::EntityManager &mgr, net::INetDriver *drv, net::create_n
     drv->destroy();
     return false;
   }
-  net_context.demandInit(mgr, drv, obs_cb);
+  // bind the em before init so off-owner ReadScopes pin (mirror != them) while the context
+  // is built under this WriteScope; a bound em with no NetContext is already a valid SP state
   net::publish_net_em(mgr);
+  net_context.demandInit(mgr, drv, obs_cb);
   return true;
 }
 
@@ -184,9 +223,9 @@ bool destroy_net_ctx()
     return false;
   }
   net::TopologyLock::WriteScope topoWrite(net_context->entityMgr);
-  // Destroy first, then null the binding. The reverse order opens a window where
-  // is_this_thread_net_em_owner() returns true (no session bound) so off-thread ReadScopes
-  // skip the read lock via topology_skip_pin() and race the in-progress demandDestroy.
+  // Destroy first, then clear the binding: clear_net_em() is what publishes owner tid 0
+  // (letting every thread skip the read pin), so while demandDestroy runs the mirror
+  // still names the session owner and off-owner ReadScopes keep taking the read pin.
   net_context.demandDestroy();
   net::clear_net_em();
   return true;
@@ -294,31 +333,20 @@ void on_client_disconnected(ecs::EntityManager &manager, DisconnectionCause caus
   manager.broadcastEventImmediate(EventOnDisconnectedFromServer(cause));
 }
 
-net::ServerFlags net::get_server_flags()
+// Live impls used by READ_CURRENT_OR_SNAPSHOT (owner branch) and publish_net_state_now.
+// Valid only on the net-em owner thread.
+bool has_network_live() { return net_context.get() != nullptr; }
+bool is_server_live() { return !net_context || net_context->getNet().isServer(); }
+bool is_true_net_server_live()
 {
-  if (net::is_this_thread_net_em_owner())
-    return net_context ? net_context->srvFlags : net::ServerFlags::None;
-  return READ_NET_SNAPSHOT_FIELD(srvFlags);
+  return net_context && net_context->getNet().isServer() && net_context->getNet().getDriver()->getControlIface() != nullptr;
 }
+net::ServerFlags get_server_flags_live() { return net_context ? net_context->srvFlags : net::ServerFlags::None; }
 
-bool is_server()
-{
-  if (net::is_this_thread_net_em_owner())
-    return !net_context || net_context->getNet().isServer();
-  return READ_NET_SNAPSHOT_FIELD(isServer);
-}
-bool is_true_net_server()
-{
-  if (net::is_this_thread_net_em_owner())
-    return net_context && net_context->getNet().isServer() && net_context->getNet().getDriver()->getControlIface() != NULL;
-  return READ_NET_SNAPSHOT_FIELD(isTrueNetServer);
-}
-bool has_network()
-{
-  if (net::is_this_thread_net_em_owner())
-    return net_context.get() != nullptr;
-  return READ_NET_SNAPSHOT_FIELD(hasNetwork);
-}
+net::ServerFlags net::get_server_flags() { return READ_CURRENT_OR_SNAPSHOT(get_server_flags); }
+bool is_server() { return READ_CURRENT_OR_SNAPSHOT(is_server); }
+bool is_true_net_server() { return READ_CURRENT_OR_SNAPSHOT(is_true_net_server); }
+bool has_network() { return READ_CURRENT_OR_SNAPSHOT(has_network); }
 
 net::IConnection *get_server_conn()
 {
@@ -397,40 +425,6 @@ void net_disconnect(net::IConnection &conn, DisconnectionCause cause)
   conn.disconnect(cause);
   conn.getConnFlagsRW() |= net::CF_PENDING;
 }
-
-namespace net
-{
-
-void ConnectionsIterator::advance()
-{
-  NetContext *nctx = net_context.get();
-  auto net = nctx ? &nctx->getNet() : NULL;
-  if (!net)
-    ;
-  else if (net->isServer())
-  {
-    auto &conns = net->getClientConnections();
-    for (; i < conns.size(); ++i)
-      if (conns[i] && !(conns[i]->getConnFlags() & net::CF_PENDING))
-        return;
-  }
-  else if (i == 0 && net->getServerConnection())
-    return;
-  i = -1;
-}
-
-IConnection &ConnectionsIterator::operator*() const
-{
-  G_ASSERT(*this);
-  auto net = GET_NET();
-  G_ASSERT(net);
-  Connection *conn = net->isServer() ? net->getClientConnections()[i].get() : net->getServerConnection();
-  G_ASSERT(conn != NULL);
-  return *conn;
-}
-
-}; // namespace net
-
 
 // Relay helpers fire on matching-client callback threads. ReadScope pins NetContext lifetime.
 void disconnect_from_relay()
@@ -577,24 +571,30 @@ void install_session_routes_and_connect(ecs::EntityManager &mgr, dag::Vector<eas
 void net_update(ecs::EntityManager &mgr)
 {
   auto *nctx = GET_NET_CTX_FOR(mgr);
-  if (!nctx)
-    return;
-  TIME_PROFILE(net_update);
-  int curMs = get_time_mgr().getAsyncMillis();
-  nctx->update(curMs);
-  netstat::update(curMs, static_cast<DaNetPeerInterface *>(nctx->network.getDriver()->getControlIface()));
-
-  if (nctx->pendingConnect.fireAtMs != 0 && danet::GetTime() >= nctx->pendingConnect.fireAtMs)
+  if (nctx)
   {
-    eastl::string url = eastl::move(nctx->pendingConnect.url);
-    int gen = nctx->pendingConnect.connectGen;
-    nctx->pendingConnect.fireAtMs = 0;
-    nctx->pendingConnect.url.clear();
-    net_do_connect(url, gen);
-  }
+    TIME_PROFILE(net_update);
+    int curMs = get_time_mgr().getAsyncMillis();
+    nctx->update(curMs);
+    netstat::update(curMs, static_cast<DaNetPeerInterface *>(nctx->network.getDriver()->getControlIface()));
 
-  nctx->network.getEntityManager().broadcastEventImmediate(OnNetUpdate{});
-  switch_unresponsive_server_addr(nctx->network.getEntityManager(), *nctx);
+    if (nctx->pendingConnect.fireAtMs != 0 && danet::GetTime() >= nctx->pendingConnect.fireAtMs)
+    {
+      eastl::string url = eastl::move(nctx->pendingConnect.url);
+      int gen = nctx->pendingConnect.connectGen;
+      nctx->pendingConnect.fireAtMs = 0;
+      nctx->pendingConnect.url.clear();
+      net_do_connect(url, gen);
+    }
+
+    nctx->network.getEntityManager().broadcastEventImmediate(OnNetUpdate{});
+    switch_unresponsive_server_addr(nctx->network.getEntityManager(), *nctx);
+  }
+  // Per-frame publish. Skip if not the active net-EM owner: when called from a misrouted thread
+  // (wrong EM or wrong thread) we just bailed out of the update block; running the publisher
+  // anyway would trip its owner-thread assert without doing useful work.
+  if (net::is_this_thread_net_em_owner())
+    publish_net_state_now();
 }
 
 static void net_dump_stats()

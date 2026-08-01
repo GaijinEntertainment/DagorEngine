@@ -35,7 +35,7 @@
   file:t = "../rendinst_uv_debug.dshl"
   file:t = "../rendinst_vcolor_layered.dshl"
   file:t = "../rendinst_cliff.dshl"
-  file:t = "../clipmap_compression.dshl"
+  file:t = "clipmap_compression.dshl"
   file:t = "../make_clipmap.dshl"
   file:t = "clipmap_histogram.dshl"
   file:t = "tileConstantFiller.dshl"
@@ -43,6 +43,7 @@
   file:t = "../water_3d.dshl"
   file:t = "../water_3d_depth.dshl"
   file:t = "../water_3d_distant.dshl"
+  file:t = "../water_3d_normal.dshl"
   file:t = "../water_3d_ssr.dshl"
   file:t = "../water_3d_rt.dshl"
   file:t = "../distortion_postfx.dshl"
@@ -50,6 +51,7 @@
   file:t = "../film_grain.dshl"
   file:t = "../static_upsample.dshl"
   file:t = "../screenshot_composer.dshl"
+  file:t = "../aa_benchmark.dshl"
   file:t = "rendinst_impostor_shadow_atlas.dshl"
   file:t = "rendinst_voxel.dshl"
   file:t = "downsampleDepth.dshl"
@@ -138,6 +140,7 @@
   file:t = "bc1_compression.dshl"
 
   file:t = "node_based_envi_cover_common.dshl"
+  file:t = "node_based_clouds_common.dshl"
   file:t = "node_based_fog_common.dshl"
 
   include fftWaterList.blk

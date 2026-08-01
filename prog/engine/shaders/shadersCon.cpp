@@ -14,6 +14,7 @@
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_shaderVar.h>
+#include <math/dag_TMatrix.h>
 #include "shStateBlk.h"
 #include <debug/dag_debug3d.h>
 #include <util/dag_texMetaData.h>
@@ -164,6 +165,8 @@ public:
             else
               ShaderGlobal::set_buffer(id, get_managed_res_id(argv[2]));
             break;
+          case SHVT_FLOAT4X4:
+          case SHVT_FLOAT4x3: console::print_d(" cannot set matrix from console"); break;
           default: break;
         };
       }
@@ -176,6 +179,13 @@ public:
             TMatrix4 mat = ShaderGlobal::get_float4x4(id);
             console::print_d("%g %g %g %g\n%g %g %g %g\n%g %g %g %g\n%g %g %g %g", P4D(mat.getrow(0)), P4D(mat.getrow(1)),
               P4D(mat.getrow(2)), P4D(mat.getrow(3)));
+          }
+          break;
+          case SHVT_FLOAT4x3:
+          {
+            TMatrix mat = ShaderGlobal::get_float4x3(id);
+            console::print_d("%g %g %g\n%g %g %g\n%g %g %g\n%g %g %g", mat.m[0][0], mat.m[0][1], mat.m[0][2], mat.m[1][0], mat.m[1][1],
+              mat.m[1][2], mat.m[2][0], mat.m[2][1], mat.m[2][2], mat.m[3][0], mat.m[3][1], mat.m[3][2]);
           }
           break;
           case SHVT_COLOR4:
@@ -389,7 +399,14 @@ public:
     }
 #endif
     CONSOLE_CHECK_NAME("app", "stcode_avg_perf_dump", 1, 1) { stcode::profile::dump_avg_time(); }
-    CONSOLE_CHECK_NAME("render", "reset_device", 1, 1) { dagor_d3d_force_driver_reset = true; }
+    CONSOLE_CHECK_NAME("render", "reset_device", 1, 1)
+    {
+#if _TARGET_XBOX || _TARGET_C1 || _TARGET_C2
+      console::print("There is no device reset support on consoles. OS just kills the app in such cases");
+#else
+      dagor_d3d_force_driver_reset = true;
+#endif
+    }
     CONSOLE_CHECK_NAME("render", "hang_device", 2, 2)
     {
       logdbg("Registering GPU hang on %s", argv[1]);

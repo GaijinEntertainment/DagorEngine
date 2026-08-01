@@ -6,6 +6,7 @@
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
+#include <EditorCore/ec_gizmofilter.h>
 #include <EditorCore/ec_wndGlobal.h>
 #include <EditorCore/ec_wndPublic.h>
 #include <libTools/renderViewports/cachedViewports.h>
@@ -95,6 +96,8 @@
 #include <windows.h>
 #endif
 
+static constexpr float SPARSE_SHADOW_UPDATE_MINDIST = 40.0f;
+static constexpr int SPARSE_SHADOW_UPDATE_FRAME = 4;
 static const uint32_t EXPOSURE_BUF_SIZE = 8;
 static TexStreamingContext currentTexCtx = {0};
 
@@ -256,8 +259,8 @@ public:
     deferred_mrt_cnt = 0;
     memset(deferred_mrt_fmts, 0, sizeof(deferred_mrt_fmts));
     srgb_backbuf_wr = false;
-    csmMinSparseDist = 100000;
-    csmMinSparseFrame = -1000;
+    csmMinSparseDist = SPARSE_SHADOW_UPDATE_MINDIST;
+    csmMinSparseFrame = SPARSE_SHADOW_UPDATE_FRAME;
     csmLambda = 0.8;
     csmMaxDist = 2000;
     vsmSz = 512;
@@ -311,6 +314,11 @@ public:
     if (VariableMap::isVariablePresent(get_shader_variable_id("Exposure", true)))
     {
       exposureBuffer = dag::buffers::create_ua_sr_structured(4, EXPOSURE_BUF_SIZE, "Exposure");
+      writeExposure(1.0f);
+    }
+    else if (VariableMap::isVariablePresent(get_shader_variable_id("exposure_params", true)))
+    {
+      exposureParamsVarId = get_shader_variable_id("exposure_params", true);
       writeExposure(1.0f);
     }
 
@@ -465,6 +473,11 @@ public:
       else
         memset(&ltSun1, 0, sizeof(ltSun1));
     }
+    if (deferredCsm && !are_approximately_equal(ltSun0.ltDir, lastSunDir))
+    {
+      lastSunDir = ltSun0.ltDir;
+      deferredCsm->invalidate();
+    }
 
     if (tryToggleVr)
     {
@@ -567,7 +580,7 @@ public:
       TMatrix4 projTm;
       d3d::gettm(TM_PROJ, &projTm);
       postFx->downsample(sceneRt, sceneRtId);
-      postFx->apply(sceneRt, postfxRt, ::grs_cur_view.tm, projTm, true);
+      postFx->apply(sceneRt, postfxRt, curView.tm, projTm, true);
       d3d::set_render_target({deferredTarget->getDepth(), 0, 0}, DepthAccess::SampledRO, {{postfxRt, 0, 0}});
       return postfxRt;
     }
@@ -585,13 +598,19 @@ public:
     return sceneRt;
   }
 
-  void setupMotionParams(const ViewportWindow &vpw)
+  void setupMotionParams(const ViewportWindow &vpw, const TMatrix4 &proj_tm)
   {
     TMatrix viewItm;
     vpw.getCameraTransform(viewItm);
     float zn, zf;
     vpw.getZnearZfar(zn, zf);
-    motion_vector_access::CameraParams currentCamera{vpw.getViewTm(), viewItm, vpw.getProjTm(), viewItm.getcol(3), zn, zf};
+    Driver3dPerspective p;
+    if (d3d::getpersp(p)) // beforeRender hooks (Environment plugin) may override the z range
+    {
+      zn = p.zn;
+      zf = p.zf;
+    }
+    motion_vector_access::CameraParams currentCamera{vpw.getViewTm(), viewItm, proj_tm, viewItm.getcol(3), zn, zf};
     motion_vector_access::set_motion_vector_type(motion_vector_access::MotionVectorType::StaticUVZ);
     motion_vector_access::set_params(currentCamera, previousCamera.has_value() ? previousCamera.value() : currentCamera, {}, {},
       eastl::nullopt);
@@ -616,6 +635,10 @@ public:
     int viewportX, viewportY, viewportW, viewportH;
     float viewportMinZ, viewportMaxZ;
     bool use_postfx = (::hdr_render_mode != HDR_MODE_NONE) && postFx && !renderNoPostfx;
+
+    curView.tm = vpw->getViewTm();
+    vpw->getCameraTransform(curView.itm);
+    curView.pos = curView.itm.getcol(3);
 
     d3d::get_render_target(rt);
     d3d::getview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
@@ -665,8 +688,12 @@ public:
     }
     else if (rtype == RTYPE_DYNAMIC_DEFERRED)
     {
-      setupMotionParams(*vpw);
-      deferredRender(vpw->getViewTm(), vpw->getProjTm(), false);
+      // beforeRender let plugins adjust the driver projection (Environment z range);
+      // render with the projection actually set, not the viewport's own matrix
+      TMatrix4 projTm;
+      d3d::gettm(TM_PROJ, &projTm);
+      setupMotionParams(*vpw, projTm);
+      deferredRender(vpw->getViewTm(), projTm, false);
     }
 
     if (use_heat_haze)
@@ -767,6 +794,12 @@ public:
 
     d3d::get_render_target(rt);
     d3d::getview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
+
+    // screenshot paths set up the view directly on the driver
+    d3d::gettm(TM_VIEW, curView.tm);
+    curView.itm = orthonormalized_inverse(curView.tm);
+    curView.pos = curView.itm.getcol(3);
+
     bool rt_ready = (sceneRt && viewportW == targetW && viewportH == targetH && sceneFmt == hdr_render_format);
     updateBackBufSize(viewportW, viewportH);
 
@@ -930,8 +963,8 @@ public:
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     BBox3 viewBox;
     static Point3 oldViewPos(0, 0, 0);
-    if (lengthSq(::grs_cur_view.pos - oldViewPos) > 400)
-      oldViewPos = ::grs_cur_view.pos;
+    if (lengthSq(curView.pos - oldViewPos) > 400)
+      oldViewPos = curView.pos;
     viewBox[0] = oldViewPos - Point3(vsmMaxDist, 2000, vsmMaxDist);
     viewBox[1] = oldViewPos + Point3(vsmMaxDist, 2000, vsmMaxDist);
 
@@ -978,7 +1011,7 @@ public:
     SCOPE_VIEW_PROJ_MATRIX;
 
     Point3 dirToSun = ltSun0.ltDir;
-    Point3 groundPos = Point3::xVz(::grs_cur_view.pos, worldLevel);
+    Point3 groundPos = Point3::xVz(curView.pos, worldLevel);
     Point3 fomViewPos = groundPos + dirToSun * (fomZDistance + fomZViewBoxSize / dirToSun.y);
 
     BBox3 worldBox(groundPos + Point3(-fomXyViewBoxSize, 0, -fomXyViewBoxSize),
@@ -1031,7 +1064,7 @@ public:
   void beforeRender()
   {
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
-    ShaderGlobal::set_float4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
+    ShaderGlobal::set_float4(worldViewPosVarId, Color4(curView.pos.x, curView.pos.y, curView.pos.z, 1.f));
     IEditorCoreEngine::get()->beforeRenderObjects();
     if (hasEnvironmentSnapshot())
       applyEnvironmentSnapshot();
@@ -1039,7 +1072,7 @@ public:
     for (int i = 0; i < rendSrv.size(); i++)
       rendSrv[i]->renderGeometry(IRenderingService::STG_BEFORE_RENDER);
 
-    ShaderGlobal::set_float4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
+    ShaderGlobal::set_float4(worldViewPosVarId, Color4(curView.pos.x, curView.pos.y, curView.pos.z, 1.f));
 
     mat44f viewMatrix4;
     d3d::gettm(TM_VIEW, viewMatrix4);
@@ -1052,8 +1085,8 @@ public:
     Frustum f;
     f.construct(pv);
     d3d::getpersp(p);
-    EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder().set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1,
-      p.hk, current_occlusion);
+    EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder().set(v_ldu(&curView.pos.x), f, 0, 0, 1, p.hk,
+      current_occlusion);
     currentTexCtx = TexStreamingContext(p, targetW);
 
 
@@ -1087,12 +1120,12 @@ public:
         mode.maxDist = csmMaxDist;
         mode.shadowStart = p.zn;
         mode.numCascades = 4;
-        deferredCsm->prepareShadowCascades(mode, ltSun0.ltDir, ::grs_cur_view.tm, ::grs_cur_view.pos, projTm, Frustum(globtm),
-          Point2(p.zn, p.zf), p.zn);
+        deferredCsm->prepareShadowCascades(mode, ltSun0.ltDir, curView.tm, curView.pos, projTm, Frustum(globtm), Point2(p.zn, p.zf),
+          p.zn);
       }
 
       TMatrix viewRot;
-      d3d::gettm(TM_VIEW, viewRot);
+      v_mat_43cu_from_mat44(viewRot.array, viewMatrix4);
       viewRot.setcol(3, 0.f, 0.f, 0.f);
 
       TMatrix4 resTm;
@@ -1250,13 +1283,7 @@ public:
       if (upscaleSamplingRenderer)
         upscaleSamplingRenderer->render();
       if (renderSSAO)
-      {
-        TMatrix viewTm;
-        TMatrix4 projTm;
-        d3d::gettm(TM_VIEW, viewTm);
-        d3d::gettm(TM_PROJ, &projTm);
-        ssao->render(viewTm, projTm, downsampledFarDepth.getTex2D());
-      }
+        ssao->render(view_tm, proj_tm, downsampledFarDepth.getTex2D());
       if (renderSSR)
       {
         static int causticsOptionsVarId = get_shader_variable_id("caustics_options", true);
@@ -1275,13 +1302,9 @@ public:
         static int ssrWorldViewPosVarId = get_shader_variable_id("ssr_world_view_pos", true);
         if (ssrWorldViewPosVarId >= 0)
         {
-          ShaderGlobal::set_float4(ssrWorldViewPosVarId, Color4::xyz1(::grs_cur_view.pos));
+          ShaderGlobal::set_float4(ssrWorldViewPosVarId, Color4::xyz1(curView.pos));
         }
-        TMatrix viewTm;
-        TMatrix4 projTm;
-        d3d::gettm(TM_VIEW, viewTm);
-        d3d::gettm(TM_PROJ, &projTm);
-        ssr->render(viewTm, projTm);
+        ssr->render(view_tm, proj_tm);
       }
     }
     if (!renderSSAO)
@@ -1342,7 +1365,7 @@ public:
 
     renderGeomEffects();
 
-    d3d::set_depth(deferredTarget->getDepth(), DepthAccess::RW);
+    d3d::set_render_target({deferredTarget->getDepth(), 0, 0}, DepthAccess::RW, {{sceneRt, 0, 0}});
 
     if (enable_wireframe)
     {
@@ -1361,7 +1384,8 @@ public:
       int use_atest = ShaderGlobal::get_int(use_atestVarId);
       ShaderGlobal::set_int(use_atestVarId, 0);
 
-      d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
+      BaseTexture *wireframeColor = wireframeTex ? wireframeTex.getTex2D() : sceneRt;
+      d3d::set_render_target({deferredTarget->getDepth(), 0, 0}, DepthAccess::SampledRO, {{wireframeColor, 0, 0}});
       shaders::overrides::set(wireframeState);
       renderGeomForWireframe();
       shaders::overrides::reset();
@@ -1376,20 +1400,19 @@ public:
     // Workaround for z-fighting
     constexpr float drawCollisionsBias = 0.00001f;
 
-    TMatrix4 proj;
-    d3d::gettm(TM_PROJ, &proj);
+    TMatrix4 proj = proj_tm;
     TMatrix4 savedProj = proj;
     proj[3][2] += drawCollisionsBias;
     d3d::settm(TM_PROJ, &proj);
 
     mat44f globtm;
     d3d::getglobtm(globtm);
-    rendinst::drawDebugCollisions(collisionFlags, globtm, ::grs_cur_view.pos, true);
+    rendinst::drawDebugCollisions(collisionFlags, globtm, curView.pos, true);
 
     d3d::settm(TM_PROJ, &savedProj);
 #endif
   }
-  Point4 getCascadeShadowAnchor(int cascade_no) override { return Point4::xyz0(-::grs_cur_view.itm.getcol(3)); }
+  Point4 getCascadeShadowAnchor(int cascade_no) override { return Point4::xyz0(-curView.pos); }
   void renderCascadeShadowDepth(int cascade_no, const Point2 &znzf) override
   {
     d3d::settm(TM_VIEW, TMatrix::IDENT);
@@ -1411,8 +1434,16 @@ public:
   void getCascadeShadowSparseUpdateParams(int cascade_no, const Frustum & /*cascade_frustum*/, float &out_min_sparse_dist,
     int &out_min_sparse_frame) override
   {
-    out_min_sparse_dist = csmMinSparseDist;
-    out_min_sparse_frame = csmMinSparseFrame;
+    if (IEditorCoreEngine::get()->getGizmoEventFilter().isStarted())
+    {
+      out_min_sparse_dist = 100000;
+      out_min_sparse_frame = -1000;
+    }
+    else
+    {
+      out_min_sparse_dist = csmMinSparseDist;
+      out_min_sparse_frame = csmMinSparseFrame;
+    }
   }
 
   void restartPostfx(const DataBlock &game_params)
@@ -1472,7 +1503,7 @@ public:
   void renderGeomOpaque()
   {
     TIME_D3D_PROFILE_NAME(render_vsm, "render_opaque");
-    windEffect.setShaderVars(::grs_cur_view.itm);
+    windEffect.setShaderVars(curView.itm);
 
     for (int i = 0; i < rendSrv.size(); i++)
       rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_STATIC_OPAQUE);
@@ -1491,8 +1522,8 @@ public:
   }
   void renderGeomDistortion()
   {
-    ShaderGlobal::set_float4(camera_rightVarId, ::grs_cur_view.itm.getcol(0));
-    ShaderGlobal::set_float4(camera_upVarId, ::grs_cur_view.itm.getcol(1));
+    ShaderGlobal::set_float4(camera_rightVarId, curView.itm.getcol(0));
+    ShaderGlobal::set_float4(camera_upVarId, curView.itm.getcol(1));
 
     TIME_D3D_PROFILE_NAME(render_vsm, "render_distortion");
     for (int i = 0; i < rendSrv.size(); i++)
@@ -1655,8 +1686,8 @@ public:
     csmSettings.splitsH = blk.getInt("csmH", 2);
     csmSettings.shadowFadeOut = 10.0f;
     csmSettings.fadeOutMul = 1.0f;
-    csmMinSparseDist = blk.getReal("csmMinSparseDist", 100000);
-    csmMinSparseFrame = blk.getReal("csmMinSparseFrame", -1000);
+    csmMinSparseDist = blk.getReal("csmMinSparseDist", SPARSE_SHADOW_UPDATE_MINDIST);
+    csmMinSparseFrame = blk.getReal("csmMinSparseFrame", SPARSE_SHADOW_UPDATE_FRAME);
     csmLambda = blk.getReal("csmLambda", 0.8);
     csmMaxDist = blk.getReal("csmMaxDist", 100);
     deferredCsm = CascadeShadows::make(this, csmSettings);
@@ -1678,8 +1709,8 @@ public:
     d3d::getglobtm(globtm);
     TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
-    deferredCsm->prepareShadowCascades(mode, Point3(0, -1, 0), ::grs_cur_view.tm, ::grs_cur_view.pos, projTm, Frustum(globtm),
-      Point2(1, 15000), 1.f);
+    deferredCsm->prepareShadowCascades(mode, Point3(0, -1, 0), curView.tm, curView.pos, projTm, Frustum(globtm), Point2(1, 15000),
+      1.f);
 
     fomZDistance = blk.getInt("fom_z_distance", 80);
     fomXyViewBoxSize = blk.getInt("fom_xy_distance", 128);
@@ -1807,6 +1838,8 @@ public:
       updateEnviProbe(); // call this once before reqEnviProbeUpdate to get non-black probe
       reqEnviProbeUpdate = true;
     }
+    if (deferredCsm)
+      deferredCsm->invalidate();
     after_device_reset_ambient_wind();
   }
 
@@ -2099,6 +2132,8 @@ public:
     if (render_shadow() && !is_managed_textures_streaming_load_on_demand())
       ddsx::tex_pack2_perform_delayed_data_loading();
     rendinst::set_global_shadows_needed(render_shadow());
+    if (deferredCsm)
+      deferredCsm->invalidate();
     if (!render_shadow())
       if (rtype == RTYPE_DYNAMIC_DEFERRED)
         deferredCsm->renderShadowsCascades();
@@ -2231,7 +2266,7 @@ public:
       postFx->getDemonPostFx()->setSettings(set);
   }
 
-  bool hasExposure() const { return exposureBuffer.getBufId() != BAD_TEXTUREID; }
+  bool hasExposure() const { return exposureBuffer.getBufId() != BAD_TEXTUREID || exposureParamsVarId != VariableMap::BAD_ID; }
 
   float getExposure() const { return exposure; }
 
@@ -2245,7 +2280,14 @@ private:
   bool writeExposure(float exposure_value)
   {
     if (!exposureBuffer.getBuf())
+    {
+      if (exposureParamsVarId != VariableMap::BAD_ID)
+      {
+        ShaderGlobal::set_float4(exposureParamsVarId, exposure_value, 1.0f / max(1e-4f, exposure_value), 1.0f, 0.0f);
+        return true;
+      }
       return false;
+    }
 
     float *exposureDestination;
     if (exposureBuffer.getBuf()->lock(0, 0, (void **)&exposureDestination, VBLOCK_WRITEONLY) && exposureDestination)
@@ -2317,11 +2359,16 @@ private:
   eastl::unique_ptr<UpscaleSamplingTex> upscaleSamplingRenderer;
   PostFxRenderer applyLowResFx;
   eastl::optional<motion_vector_access::CameraParams> previousCamera;
+  // view of the frame being rendered; captured at each render entry
+  // (viewport frame, screenshot, VR eye) so internal passes do not
+  // depend on the ::grs_cur_view global
+  DagorCurView curView;
 
   PostFxUserSettings pfx;
   const DataBlock *pfxLevelBlk;
 
   UniqueBufWithShaderVar exposureBuffer;
+  int exposureParamsVarId = VariableMap::BAD_ID;
   float exposure = 1.0f;
   bool hasExposureChanged = true;
 
@@ -2356,6 +2403,7 @@ private:
   float csmMinSparseFrame;
   float csmLambda;
   float csmMaxDist;
+  Point3 lastSunDir = Point3::ZERO;
   int vsmSz;
   float vsmMaxDist;
   Variance::VsmType vsmType;
@@ -2454,17 +2502,23 @@ private:
     auto &view = frame_data.views[stereo_index == StereoIndex::Right ? 1 : 0];
     auto viewTransform = TMatrix(view.viewTransform);
     auto cameraTransform = TMatrix(view.cameraTransform);
-    TMatrix4 projTransform;
-    d3d::calcproj(view.projection, projTransform);
 
     d3d::settm(TM_VIEW, viewTransform);
     d3d::setpersp(view.projection);
 
+    // other plugins still read the eye view from the global during this frame
     ::grs_cur_view.tm = viewTransform;
     ::grs_cur_view.itm = cameraTransform;
     ::grs_cur_view.pos = cameraTransform.getcol(3);
 
+    curView.tm = viewTransform;
+    curView.itm = cameraTransform;
+    curView.pos = cameraTransform.getcol(3);
+
     beforeRender();
+    // as in renderViewportFrame: pick up beforeRender projection overrides (keeps eye wk/hk)
+    TMatrix4 projTransform;
+    d3d::gettm(TM_PROJ, &projTransform);
     d3d::set_render_target({}, DepthAccess::RW, {{vrResources.sceneRt.getTex2D(), 0, 0}});
     d3d::setview(0, 0, width, height, 0, 1);
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);

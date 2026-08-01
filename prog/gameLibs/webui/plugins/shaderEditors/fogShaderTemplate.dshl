@@ -12,12 +12,17 @@ shader
     // [[dshl_preshader]]
   }
 
-  hlsl (cs) {
+  hlsl {
     #include "fogDefines.hlsli"
     #include "../../../daSDF/shaders/world_sdf.hlsli"
     #include "../../../publicInclude/render/grav_zones_gpu/gravity_zones_def.hlsli"
     #include "../../../publicInclude/render/nbs_spheres.hlsli"
     #include "globalHlslFunctions.hlsl"
+  }
+
+  USE_CLOUDS_BSM(cs) // Needs defines and funcs from globalHlslFunctions.hlsl
+
+  hlsl (cs) {
     #include "../../../daSkies2/shaders/clouds2/clouds_rain_map.hlsl"
     #include "../../../publicInclude/render/lights/light_consts.hlsli"
     #include "../../../render/shaders/camera_in_camera.hlsl"

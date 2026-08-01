@@ -2,6 +2,7 @@ include shaders_dx12_fast.blk
 
 "@override:outDumpName":t="*"
 outMiniDumpName:t="../../tools/common/compiledShaders/tools.exp"
+compileRefinedBlock:b=no
 
 "@delete:source" {}
 source

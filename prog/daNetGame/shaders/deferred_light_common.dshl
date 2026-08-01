@@ -125,6 +125,7 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
 
 ##if gi_quality > off
       #define HAS_AMBIENT_TARGET 1
+      #include <dagi_specular_clamp.hlsl>
 ##endif
 
       void ComputeDeferredLight(ProcessedGbuffer gbuffer, float3 worldPos, float rawDepth, float2 viewTexcoord, float2 viewPixcoord,
@@ -198,7 +199,6 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
             ##endif
               #define HAS_CONST_SPECULAR 1
               #define HACK_SPECULAR_BRIGHTNESS 1
-              #define HACK_SPECULAR_BRIGHTNESS_LIMITED 1
               #define HACK_ROUGH_SPECULAR_TO_IRRADIANCE 1
             }
             ##elif (gi_quality == colored)
@@ -254,29 +254,19 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
             #if HACK_SPECULAR_BRIGHTNESS
             {
               //fixme: we can and probably should use sh1 for SkyVis and radiance grid for colored GI
-              //another (much faster) fake from Volumetric Global Illumination at Treyarch
-              float mipForTrick = gbuffer.linearRoughness*NUM_PROBE_MIPS;
-              float maximumSpecValue = max3(
               ##if gi_quality == screen_probes
-                4.0,
+              const float minSpecScale = 8.0;
+              ##elif (gi_quality == colored)
+              const float minSpecScale = 4.0;
               ##else
-                1.26816,
+              const float minSpecScale = 1.26816;
               ##endif
-                9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV,
-                9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
-              maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
-              float3 adjustedMaxSpec = ambient * maximumSpecValue;
-              float3 reflection = environmentAmbientReflection * (adjustedMaxSpec / ( adjustedMaxSpec + environmentAmbientReflection + 0.001));//avoid nans
-              #if HACK_SPECULAR_BRIGHTNESS_LIMITED
-              //only apply hack to ratehr rough surfaces
-              const float maxRoughnessToUseRadianceHack = 0.8;
-              const float minRoughnessToUseIrradianceHack = 0.9;
-              const float roughnessToIrradianceHackA = rcp(minRoughnessToUseIrradianceHack - maxRoughnessToUseRadianceHack),
-                          roughnessToIrradianceHackB = -maxRoughnessToUseRadianceHack*roughnessToIrradianceHackA;
-              environmentAmbientReflection = lerp(environmentAmbientReflection, reflection, saturate(gbuffer.linearRoughness*roughnessToIrradianceHackA + roughnessToIrradianceHackB));
-              #else
-              environmentAmbientReflection = reflection;
-              #endif
+              float maxSpecScale = dagi_max_specular_scale(gbuffer.linearRoughness, NdotV, minSpecScale, NUM_PROBE_MIPS);
+              ##if gi_quality == screen_probes
+                environmentAmbientReflection = dagi_bound_probe_specular(environmentAmbientReflection, ambient, maxSpecScale);
+              ##else
+                environmentAmbientReflection = dagi_clamp_untrusted_specular(environmentAmbientReflection, ambient, maxSpecScale);
+              ##endif
             }
             #endif
             #if HACK_ROUGH_SPECULAR_TO_IRRADIANCE

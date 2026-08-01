@@ -20,8 +20,9 @@ if (compatibility_mode == compatibility_mode_off)
 {
   USE_INDOOR_PROBE_CELL(code)
   (code) {
-    light_probe_specular_cubes@smpCubeArray = light_probe_specular_cubes;
+    light_probe_specular_cubes@texCubeArray = light_probe_specular_cubes;
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   if (indoor_probes_to_use == active_probes)
   {
     (code) {
@@ -56,6 +57,7 @@ if (compatibility_mode == compatibility_mode_off)
 
   USE_INDOOR_LIGHT_PROBE_DFS(code)
   hlsl(code) {
+    #define light_probe_specular_cubes_samplerstate global_linear_wrap_sampler
     float3 get_local_dir(float3 world_dir, float3 xAxis, float3 yAxis, float3 zAxis)
     {
       return float3
@@ -326,7 +328,10 @@ if (compatibility_mode == compatibility_mode_off)
 
           float3 color = texCUBEArraylod(light_probe_specular_cubes, float4(correctedRoughR_weight.rgb, cubeId), roughnessMip).rgb;
 
-          BRANCH
+          ##if !hardware.ps4
+            //this attribute causes artifacts on ps4 (checked on enlisted, task RE-6208)
+            BRANCH
+          ##endif
           if (weight >= 1)
             return float4(color * fadeWeight, 1-fadeWeight);
 

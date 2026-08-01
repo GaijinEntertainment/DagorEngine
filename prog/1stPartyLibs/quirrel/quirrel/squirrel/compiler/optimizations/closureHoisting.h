@@ -183,6 +183,7 @@ private:
     void visitVarDecl(VarDecl *v) override;
     void visitParamDecl(ParamDecl *p) override;
     void visitConstDecl(ConstDecl *c) override;
+    void visitEnumDecl(EnumDecl *e) override;
     void visitTryStatement(TryStatement *stmt) override;
     void visitForStatement(ForStatement *f) override;
     void visitForeachStatement(ForeachStatement *fe) override;

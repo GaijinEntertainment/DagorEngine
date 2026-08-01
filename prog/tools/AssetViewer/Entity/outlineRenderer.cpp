@@ -4,6 +4,7 @@
 #include <de3_interface.h>
 #include <perfMon/dag_statDrv.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_ViewportWindow.h>
 #include <de3_dynRenderService.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/visibility.h>
@@ -12,7 +13,8 @@
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
-#include <render/dag_cur_view.h>
+#include <math/dag_TMatrix4.h>
+#include <math/dag_vecMathCompatibility.h>
 
 int OutlineRenderer::simple_outline_colorVarId = -1;
 int OutlineRenderer::simple_outline_color_rtVarId = -1;
@@ -81,10 +83,16 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElem
   ShaderGlobal::setBlock(global_frame_block_id, ShaderGlobal::LAYER_FRAME);
 
   // rendinst
+  const ViewportWindow &vpw = static_cast<ViewportWindow &>(wnd);
+  TMatrix4 globtm4;
+  d3d::calcglobtm(vpw.getViewTm(), vpw.getProjTm(), globtm4);
   mat44f globtm;
-  d3d::getglobtm(globtm);
-  rendinst::prepareRIGenExtraVisibility(globtm, ::grs_cur_view.pos, *globalVisibility, false, nullptr);
-  rendinst::prepareRIGenVisibility(Frustum(globtm), ::grs_cur_view.pos, globalVisibility, false, nullptr);
+  v_mat44_make_from_44cu(globtm, globtm4.m[0]);
+  TMatrix cameraTm;
+  wnd.getCameraTransform(cameraTm);
+  const Point3 cameraPos = cameraTm.getcol(3);
+  rendinst::prepareRIGenExtraVisibility(globtm, cameraPos, *globalVisibility, false, nullptr);
+  rendinst::prepareRIGenVisibility(Frustum(globtm), cameraPos, globalVisibility, false, nullptr);
 
   rendinst::VisibilityExternalIdFilter ri_id_filter = [&riElements](int ri_idx, const TMatrix &tm) -> bool {
     auto range = riElements.equal_range(ri_idx);
@@ -97,7 +105,7 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElem
   rendinst::filterRIGenExtraVisibilityById(globalVisibility, filteredVisibility, ri_id_filter);
   {
     SCENE_LAYER_GUARD(rendinst_scene_block_id);
-    rendinst::render::renderRIGen(rendinst::RenderPass::Normal, filteredVisibility, ::grs_cur_view.itm,
+    rendinst::render::renderRIGen(rendinst::RenderPass::Normal, filteredVisibility, cameraTm,
       rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra, rendinst::OptimizeDepthPass::Yes);
   }
 

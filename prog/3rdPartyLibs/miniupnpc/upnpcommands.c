@@ -372,10 +372,11 @@ UPNP_AddPortMapping(const char * controlURL, const char * servicetype,
 	AddPortMappingArgs[6].val = desc?desc:"libminiupnpc";
 	AddPortMappingArgs[7].elt = "NewLeaseDuration";
 	AddPortMappingArgs[7].val = leaseDuration?leaseDuration:"0";
-	if(!(buffer = simpleUPnPcommand(-1, controlURL, servicetype,
-	                                "AddPortMapping", AddPortMappingArgs,
-	                                &bufsize))) {
-		free(AddPortMappingArgs);
+	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
+	                           "AddPortMapping", AddPortMappingArgs,
+	                           &bufsize);
+	free(AddPortMappingArgs);
+	if(!buffer) {
 		return UPNPCOMMAND_HTTP_ERROR;
 	}
 	/*DisplayNameValueList(buffer, bufsize);*/
@@ -392,7 +393,6 @@ UPNP_AddPortMapping(const char * controlURL, const char * servicetype,
 		ret = UPNPCOMMAND_SUCCESS;
 	}
 	ClearNameValueList(&pdata);
-	free(AddPortMappingArgs);
 	return ret;
 }
 
@@ -436,10 +436,11 @@ UPNP_AddAnyPortMapping(const char * controlURL, const char * servicetype,
 	AddPortMappingArgs[6].val = desc?desc:"libminiupnpc";
 	AddPortMappingArgs[7].elt = "NewLeaseDuration";
 	AddPortMappingArgs[7].val = leaseDuration?leaseDuration:"0";
-	if(!(buffer = simpleUPnPcommand(-1, controlURL, servicetype,
-	                                "AddAnyPortMapping", AddPortMappingArgs,
-	                                &bufsize))) {
-		free(AddPortMappingArgs);
+	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
+	                           "AddAnyPortMapping", AddPortMappingArgs,
+	                           &bufsize);
+	free(AddPortMappingArgs);
+	if(!buffer) {
 		return UPNPCOMMAND_HTTP_ERROR;
 	}
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -461,7 +462,6 @@ UPNP_AddAnyPortMapping(const char * controlURL, const char * servicetype,
 		}
 	}
 	ClearNameValueList(&pdata);
-	free(AddPortMappingArgs);
 	return ret;
 }
 
@@ -490,10 +490,11 @@ UPNP_DeletePortMapping(const char * controlURL, const char * servicetype,
 	DeletePortMappingArgs[1].val = extPort;
 	DeletePortMappingArgs[2].elt = "NewProtocol";
 	DeletePortMappingArgs[2].val = proto;
-	if(!(buffer = simpleUPnPcommand(-1, controlURL, servicetype,
-	                               "DeletePortMapping",
-	                               DeletePortMappingArgs, &bufsize))) {
-		free(DeletePortMappingArgs);
+	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
+	                          "DeletePortMapping",
+	                          DeletePortMappingArgs, &bufsize);
+	free(DeletePortMappingArgs);
+	if(!buffer) {
 		return UPNPCOMMAND_HTTP_ERROR;
 	}
 	/*DisplayNameValueList(buffer, bufsize);*/
@@ -507,7 +508,6 @@ UPNP_DeletePortMapping(const char * controlURL, const char * servicetype,
 		ret = UPNPCOMMAND_SUCCESS;
 	}
 	ClearNameValueList(&pdata);
-	free(DeletePortMappingArgs);
 	return ret;
 }
 
@@ -539,10 +539,11 @@ UPNP_DeletePortMappingRange(const char * controlURL, const char * servicetype,
 	DeletePortMappingArgs[3].elt = "NewManage";
 	DeletePortMappingArgs[3].val = manage;
 
-	if(!(buffer = simpleUPnPcommand(-1, controlURL, servicetype,
-	                                "DeletePortMappingRange",
-	                                DeletePortMappingArgs, &bufsize))) {
-		free(DeletePortMappingArgs);
+	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
+	                           "DeletePortMappingRange",
+	                           DeletePortMappingArgs, &bufsize);
+	free(DeletePortMappingArgs);
+	if(!buffer) {
 		return UPNPCOMMAND_HTTP_ERROR;
 	}
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -555,7 +556,6 @@ UPNP_DeletePortMappingRange(const char * controlURL, const char * servicetype,
 		ret = UPNPCOMMAND_SUCCESS;
 	}
 	ClearNameValueList(&pdata);
-	free(DeletePortMappingArgs);
 	return ret;
 }
 
@@ -587,10 +587,11 @@ UPNP_GetGenericPortMappingEntry(const char * controlURL,
 		return UPNPCOMMAND_MEM_ALLOC_ERROR;
 	GetPortMappingArgs[0].elt = "NewPortMappingIndex";
 	GetPortMappingArgs[0].val = index;
-	if(!(buffer = simpleUPnPcommand(-1, controlURL, servicetype,
-	                               "GetGenericPortMappingEntry",
-	                               GetPortMappingArgs, &bufsize))) {
-		free(GetPortMappingArgs);
+	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
+	                           "GetGenericPortMappingEntry",
+	                           GetPortMappingArgs, &bufsize);
+	free(GetPortMappingArgs);
+	if(!buffer) {
 		return UPNPCOMMAND_HTTP_ERROR;
 	}
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -652,7 +653,6 @@ UPNP_GetGenericPortMappingEntry(const char * controlURL,
 		sscanf(p, "%d", &r);
 	}
 	ClearNameValueList(&pdata);
-	free(GetPortMappingArgs);
 	return r;
 }
 
@@ -728,10 +728,11 @@ UPNP_GetSpecificPortMappingEntry(const char * controlURL,
 	GetPortMappingArgs[1].val = extPort;
 	GetPortMappingArgs[2].elt = "NewProtocol";
 	GetPortMappingArgs[2].val = proto;
-	if(!(buffer = simpleUPnPcommand(-1, controlURL, servicetype,
-	                                "GetSpecificPortMappingEntry",
-	                                GetPortMappingArgs, &bufsize))) {
-		free(GetPortMappingArgs);
+	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
+	                           "GetSpecificPortMappingEntry",
+	                           GetPortMappingArgs, &bufsize);
+	free(GetPortMappingArgs);
+	if(!buffer) {
 		return UPNPCOMMAND_HTTP_ERROR;
 	}
 	/*DisplayNameValueList(buffer, bufsize);*/
@@ -779,7 +780,6 @@ UPNP_GetSpecificPortMappingEntry(const char * controlURL,
 	}
 
 	ClearNameValueList(&pdata);
-	free(GetPortMappingArgs);
 	return ret;
 }
 
@@ -824,13 +824,13 @@ UPNP_GetListOfPortMappings(const char * controlURL,
 	GetListOfPortMappingsArgs[4].elt = "NewNumberOfPorts";
 	GetListOfPortMappingsArgs[4].val = numberOfPorts?numberOfPorts:"1000";
 
-	if(!(buffer = simpleUPnPcommand(-1, controlURL, servicetype,
-	                                "GetListOfPortMappings",
-	                                GetListOfPortMappingsArgs, &bufsize))) {
-		free(GetListOfPortMappingsArgs);
+	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
+	                           "GetListOfPortMappings",
+	                           GetListOfPortMappingsArgs, &bufsize);
+	free(GetListOfPortMappingsArgs);
+	if(!buffer) {
 		return UPNPCOMMAND_HTTP_ERROR;
 	}
-	free(GetListOfPortMappingsArgs);
 
 	/*DisplayNameValueList(buffer, bufsize);*/
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -954,6 +954,7 @@ UPNP_GetOutboundPinholeTimeout(const char * controlURL, const char * servicetype
 	GetOutboundPinholeTimeoutArgs[4].val = intClient;
 	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
 	                           "GetOutboundPinholeTimeout", GetOutboundPinholeTimeoutArgs, &bufsize);
+	free(GetOutboundPinholeTimeoutArgs);
 	if(!buffer)
 		return UPNPCOMMAND_HTTP_ERROR;
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -972,7 +973,6 @@ UPNP_GetOutboundPinholeTimeout(const char * controlURL, const char * servicetype
 			*opTimeout = my_atoui(p);
 	}
 	ClearNameValueList(&pdata);
-	free(GetOutboundPinholeTimeoutArgs);
 	return ret;
 }
 
@@ -1031,6 +1031,7 @@ UPNP_AddPinhole(const char * controlURL, const char * servicetype,
 	AddPinholeArgs[5].val = leaseTime;
 	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
 	                           "AddPinhole", AddPinholeArgs, &bufsize);
+	free(AddPinholeArgs);
 	if(!buffer)
 		return UPNPCOMMAND_HTTP_ERROR;
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -1053,7 +1054,6 @@ UPNP_AddPinhole(const char * controlURL, const char * servicetype,
 		ret = UPNPCOMMAND_SUCCESS;
 	}
 	ClearNameValueList(&pdata);
-	free(AddPinholeArgs);
 	return ret;
 }
 
@@ -1081,6 +1081,7 @@ UPNP_UpdatePinhole(const char * controlURL, const char * servicetype,
 	UpdatePinholeArgs[1].val = leaseTime;
 	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
 	                           "UpdatePinhole", UpdatePinholeArgs, &bufsize);
+	free(UpdatePinholeArgs);
 	if(!buffer)
 		return UPNPCOMMAND_HTTP_ERROR;
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -1097,7 +1098,6 @@ UPNP_UpdatePinhole(const char * controlURL, const char * servicetype,
 		ret = UPNPCOMMAND_SUCCESS;
 	}
 	ClearNameValueList(&pdata);
-	free(UpdatePinholeArgs);
 	return ret;
 }
 
@@ -1122,6 +1122,7 @@ UPNP_DeletePinhole(const char * controlURL, const char * servicetype, const char
 	DeletePinholeArgs[0].val = uniqueID;
 	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
 	                           "DeletePinhole", DeletePinholeArgs, &bufsize);
+	free(DeletePinholeArgs);
 	if(!buffer)
 		return UPNPCOMMAND_HTTP_ERROR;
 	/*DisplayNameValueList(buffer, bufsize);*/
@@ -1138,7 +1139,6 @@ UPNP_DeletePinhole(const char * controlURL, const char * servicetype, const char
 		ret = UPNPCOMMAND_SUCCESS;
 	}
 	ClearNameValueList(&pdata);
-	free(DeletePinholeArgs);
 	return ret;
 }
 
@@ -1163,6 +1163,7 @@ UPNP_CheckPinholeWorking(const char * controlURL, const char * servicetype,
 	CheckPinholeWorkingArgs[0].val = uniqueID;
 	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
 	                           "CheckPinholeWorking", CheckPinholeWorkingArgs, &bufsize);
+	free(CheckPinholeWorkingArgs);
 	if(!buffer)
 		return UPNPCOMMAND_HTTP_ERROR;
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -1185,7 +1186,6 @@ UPNP_CheckPinholeWorking(const char * controlURL, const char * servicetype,
 	}
 
 	ClearNameValueList(&pdata);
-	free(CheckPinholeWorkingArgs);
 	return ret;
 }
 
@@ -1210,6 +1210,7 @@ UPNP_GetPinholePackets(const char * controlURL, const char * servicetype,
 	GetPinholePacketsArgs[0].val = uniqueID;
 	buffer = simpleUPnPcommand(-1, controlURL, servicetype,
 	                           "GetPinholePackets", GetPinholePacketsArgs, &bufsize);
+	free(GetPinholePacketsArgs);
 	if(!buffer)
 		return UPNPCOMMAND_HTTP_ERROR;
 	ParseNameValue(buffer, bufsize, &pdata);
@@ -1230,7 +1231,6 @@ UPNP_GetPinholePackets(const char * controlURL, const char * servicetype,
 	}
 
 	ClearNameValueList(&pdata);
-	free(GetPinholePacketsArgs);
 	return ret;
 }
 

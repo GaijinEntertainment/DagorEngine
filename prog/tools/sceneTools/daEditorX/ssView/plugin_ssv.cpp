@@ -50,9 +50,18 @@ void ssviewplugin::Plugin::setVisible(bool vis)
       {
         DAEDITOR3.conNote("Waiting for streaming to shutdown...");
 
+        // streaming only needs an approximate observer position to finish loading
+        Point3 camPos(0, 0, 0);
+        if (IGenViewportWnd *viewport = DAGORED2->getCurrentViewport())
+        {
+          TMatrix cameraTm;
+          viewport->getCameraTransform(cameraTm);
+          camPos = cameraTm.getcol(3);
+        }
+
         while (streamingScene->getSsm()->isLoading())
         {
-          streamingScene->act(grs_cur_view.tm.getcol(3));
+          streamingScene->act(camPos);
           perform_delayed_actions();
         }
 
@@ -125,8 +134,9 @@ void ssviewplugin::Plugin::actObjects(float dt)
     if (!viewport)
       return;
 
-    viewport->getCameraTransform(grs_cur_view.tm);
-    streamingScene->act(grs_cur_view.tm.getcol(3));
+    TMatrix cameraTm;
+    viewport->getCameraTransform(cameraTm);
+    streamingScene->act(cameraTm.getcol(3));
   }
 }
 

@@ -12,9 +12,14 @@ def mkFunctionStub(info):
     params = []
     for param in info["params"]:
       if "defvalue" in param:
-        params.append(f'{param["name"]} = {cvtValue(param["defvalue"])}')
+        default_value = param.get("defvalue_source")
+        if default_value is None:
+          default_value = cvtValue(param["defvalue"])
+        params.append(f'{param["name"]} = {default_value}')
       else:
         params.append(param["name"])
+    if info.get("vargved"):
+      params.append("...")
 
     params_str = ", ".join(params)
 

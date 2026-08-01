@@ -179,6 +179,11 @@ bool sq_parse_function_type_string(SQVM* vm, const char* s, SQFunctionType& res,
             res.nodiscard = true;
             p = skip_spaces(p + 10);
         }
+        else if (strncmp(p, "fastcall ", 9) == 0)
+        {
+            res.fastcall = true;
+            p = skip_spaces(p + 9);
+        }
         else
             break;
     }
@@ -697,6 +702,9 @@ SQObjectPtr sq_stringify_function_type(SQVM* vm, const SQFunctionType& ft)
 
     if (ft.nodiscard)
         append("nodiscard ");
+
+    if (ft.fastcall)
+        append("fastcall ");
 
     if (ft.objectTypeMask != ~0u)
     {

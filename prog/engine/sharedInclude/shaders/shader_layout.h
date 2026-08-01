@@ -597,4 +597,10 @@ BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV5, ScriptedShadersBinDumpV4)
   int32_t refinedBlockStcodeId = -1;
   int32_t cppRefinedBlockStcodeId = -1;
 BINDUMP_END_LAYOUT()
+
+// Header version used by stripped minidump for export shaders. Frozed to increase binary stability, as newer header versions are more
+// volatile. Only increase if you actually need the new features for export shaders as well.
+// @NOTE: templated 'using' for some reason trips clang up.
+#define stripped_bindump_frozen_version_t ScriptedShadersBinDumpV4
+
 } // namespace shader_layout

@@ -16,14 +16,17 @@ namespace darg
 #define DARG_STRING_KEYS_LIST    \
   KEY(action)                    \
   KEY(active)                    \
+  KEY(allowTags)                 \
   KEY(angle)                     \
   KEY(animations)                \
   KEY(attach)                    \
   KEY(behavior)                  \
   KEY(bgColor)                   \
+  KEY(bindProps)                 \
   KEY(borderColor)               \
   KEY(borderRadius)              \
   KEY(borderWidth)               \
+  KEY(boundPropsData)            \
   KEY(brightness)                \
   KEY(btnId)                     \
   KEY(btnName)                   \
@@ -115,6 +118,7 @@ namespace darg
   KEY(image)                     \
   KEY(imageAffectsLayout)        \
   KEY(imageHalign)               \
+  KEY(imageLoading)              \
   KEY(imageValign)               \
   KEY(imeNoAutoCap)              \
   KEY(imeNoCopy)                 \

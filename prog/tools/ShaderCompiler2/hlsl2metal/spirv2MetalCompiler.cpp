@@ -45,9 +45,13 @@ static int bin_system(const char *command)
 
     return status;
   }
-  else
+  else if (pid == 0)
   {
     _exit(execl("/bin/sh", "sh", "-c", command, NULL));
+  }
+  else
+  {
+    return pid;
   }
 }
 
@@ -235,7 +239,7 @@ uint32_t CompilerMSLlocal::getTypeSize(const spirv_cross::SPIRType &type, uint32
       const SPIRType &mtype = get_type(memb);
       uint32_t local_align = 0;
       const uint32_t msize = getTypeSize(mtype, local_align);
-      const uint32_t offset = struct_size % local_align ? align - struct_size % local_align : 0;
+      const uint32_t offset = struct_size % local_align ? local_align - struct_size % local_align : 0;
       struct_size += offset + msize;
     }
     align = 16;

@@ -159,36 +159,30 @@ static ecs::EntitySystemDesc outline_render_resolution_es_event_handler_es_desc
   ecs::EventSetBuilder<SetResolutionEvent>::build(),
   0
 ,"render");
-static constexpr ecs::ComponentDesc create_outline_node_es_comps[] =
+static constexpr ecs::ComponentDesc outline_view_nodes_es_comps[] =
 {
-//start of 2 rw components at [0]
-  {ECS_HASH("outline_prepare_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("outline_apply_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+//start of 1 rq components at [0]
+  {ECS_HASH("outline_renderer"), ecs::ComponentTypeInfo<OutlineRenderer>()}
 };
-static void create_outline_node_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void outline_view_nodes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    create_outline_node_es(evt
+  G_FAST_ASSERT(evt.is<OnCameraMainViewNodeConstruction>());
+  outline_view_nodes_es(static_cast<const OnCameraMainViewNodeConstruction&>(evt)
         , components.manager()
-    , ECS_RW_COMP(create_outline_node_es_comps, "outline_prepare_node", dafg::NodeHandle)
-    , ECS_RW_COMP(create_outline_node_es_comps, "outline_apply_node", dafg::NodeHandle)
     );
-  while (++comp != compE);
 }
-static ecs::EntitySystemDesc create_outline_node_es_es_desc
+static ecs::EntitySystemDesc outline_view_nodes_es_es_desc
 (
-  "create_outline_node_es",
+  "outline_view_nodes_es",
   "prog/daNetGameLibs/outline/render/outlineRendererES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, create_outline_node_es_all_events),
-  make_span(create_outline_node_es_comps+0, 2)/*rw*/,
+  ecs::EntitySystemOps(nullptr, outline_view_nodes_es_all_events),
   empty_span(),
   empty_span(),
+  make_span(outline_view_nodes_es_comps+0, 1)/*rq*/,
   empty_span(),
-  ecs::EventSetBuilder<ChangeRenderFeatures,
-                       ecs::EventEntityCreated,
-                       ecs::EventComponentsAppear>::build(),
+  ecs::EventSetBuilder<OnCameraMainViewNodeConstruction>::build(),
   0
-);
+,"render");
 static constexpr ecs::ComponentDesc render_outline_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]

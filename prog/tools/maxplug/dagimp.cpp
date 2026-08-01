@@ -4,6 +4,8 @@
 #include <regex>
 #include <unordered_set>
 #include <vector>
+#include <string_view>
+#include <filesystem>
 #include <max.h>
 #include <CommCtrl.h>
 #include <plugapi.h>
@@ -28,7 +30,8 @@
 #include "layout.h"
 #include "common.h"
 #include "dagorLogWindow.h"
-#include <io.h>
+
+namespace fs = std::filesystem;
 
 #define ERRMSG_DELAY 5000
 
@@ -67,16 +70,20 @@ static bool read_char_string(int len, FILE *h, std::wstring &out)
   std::string s(len, 0);
   if (fread(&s[0], len, 1, h) != 1)
     return false;
-  out = strToWide(s.data());
+  out = strToWide(s);
   return true;
 }
 
+// isolate struct Block to avoid linker confusion with struct Block in expUtil.cpp
 
+namespace
+{
 struct Block
 {
   int ofs, len;
   int t;
 };
+} // namespace
 
 static Tab<Block> blk;
 static FILE *fileh = NULL;
@@ -148,89 +155,69 @@ static int blk_rest()
 
 //===============================================================================//
 
-static void do_files_include_re(std::vector<TSTR> &result, const std::vector<TSTR> &files, const TSTR &re)
+static void do_files_include_re(std::vector<fs::path> &result, const std::vector<fs::path> &files, const std::wstring &re)
 {
   try
   {
-    std::unordered_set<std::wstring> tmp_files;
+    std::unordered_set<std::wstring> seen;
 
     std::wregex reg(re, std::regex_constants::icase);
-    for (const TSTR &f : files)
-    {
-      TSTR filename, ext;
-      SplitFilename(f, 0, &filename, &ext);
-      if (std::regex_match(filename.data(), reg) || std::regex_match((filename + ext).data(), reg))
-        tmp_files.insert(f.data());
-    }
+    for (const fs::path &f : files)
+      if (std::regex_match(f.stem().wstring(), reg) || std::regex_match(f.filename().wstring(), reg))
+        seen.insert(f.wstring());
 
-    for (const std::wstring &f : tmp_files)
-      result.push_back(f.data());
+    for (const std::wstring &f : seen)
+      result.emplace_back(f);
   }
   catch (std::regex_error &e)
   {
-    TSTR msg;
-    msg.printf(_T("%s\n%s"), re, strToWide(e.what()));
-    MessageBox(NULL, msg.data(), _T("Include error"), MB_ICONERROR | MB_OK);
+    std::wstring msg = format_str(_T("%s\n%s"), re.c_str(), strToWide(e.what()).c_str());
+    MessageBox(NULL, msg.c_str(), _T("Include error"), MB_ICONERROR | MB_OK);
   }
 }
 
-static void do_files_exclude_re(std::vector<TSTR> &result, const std::vector<TSTR> &files, const TSTR &re)
+static void do_files_exclude_re(std::vector<fs::path> &result, const std::vector<fs::path> &files, const std::wstring &re)
 {
   try
   {
-    std::unordered_set<std::wstring> tmp_files;
+    std::unordered_set<std::wstring> seen;
 
     std::wregex reg(re, std::regex_constants::icase);
-    for (const TSTR &f : files)
+    for (const fs::path &f : files)
     {
-      TSTR filename, ext;
-      SplitFilename(f, 0, &filename, &ext);
-      if (std::regex_match(filename.data(), reg) || std::regex_match((filename + ext).data(), reg))
+      if (std::regex_match(f.stem().wstring(), reg) || std::regex_match(f.filename().wstring(), reg))
         continue;
-      tmp_files.insert(f.data());
+      seen.insert(f.wstring());
     }
 
-    for (const std::wstring &f : tmp_files)
-      result.push_back(f.data());
+    for (const std::wstring &f : seen)
+      result.emplace_back(f);
   }
   catch (std::regex_error &e)
   {
-    TSTR msg;
-    msg.printf(_T("%s\n%s"), re, strToWide(e.what()));
-    MessageBox(NULL, msg.data(), _T("Exclude error"), MB_ICONERROR | MB_OK);
+    std::wstring msg = format_str(_T("%s\n%s"), re.c_str(), strToWide(e.what()).c_str());
+    MessageBox(NULL, msg.c_str(), _T("Exclude error"), MB_ICONERROR | MB_OK);
   }
 }
 
-static std::vector<TSTR> files_include_re(const std::vector<TSTR> &files, const TSTR &re)
+static std::vector<fs::path> files_include_re(const std::vector<fs::path> &files, const std::wstring &re)
 {
-  std::vector<TSTR> result;
+  std::vector<fs::path> result;
   result.reserve(32);
   do_files_include_re(result, files, re);
   return result;
 }
 
-static std::vector<TSTR> files_exclude_re(const std::vector<TSTR> &files, const TSTR &re)
-{
-  std::vector<TSTR> result;
-  result.reserve(32);
-  do_files_exclude_re(result, files, re);
-  return result;
-}
-
-static bool probe_match_re(const std::vector<TSTR> &files, const TSTR &re)
+static bool probe_match_re(const std::vector<fs::path> &files, const std::wstring &re)
 {
   std::wregex reg(re, std::regex_constants::icase);
-  for (const TSTR &f : files)
-  {
-    TSTR filename, ext;
-    SplitFilename(f, 0, &filename, &ext);
-    if (std::regex_match(filename.data(), reg) || std::regex_match((filename + ext).data(), reg))
+  for (const fs::path &f : files)
+    if (std::regex_match(f.stem().wstring(), reg) || std::regex_match(f.filename().wstring(), reg))
       return true;
-  }
   return false;
 }
 
-static std::wstring fnmatch_to_regex(const std::wstring &wildcard)
+static std::wstring fnmatch_to_regex(std::wstring_view wildcard)
 {
   size_t i = 0, n = wildcard.size();
   std::wstring result;
@@ -308,21 +295,21 @@ static std::wstring fnmatch_to_regex(const std::wstring &wildcard)
 
 struct ImportedFile
 {
-  std::wstring fullpath;
-  std::wstring basename;
+  fs::path fullpath;
+  fs::path basename;
 
-  explicit ImportedFile(const TCHAR *fname) : fullpath(fname), basename(extract_basename(fname).data()) {}
+  explicit ImportedFile(const TCHAR *fname) : fullpath(fname), basename(fullpath.filename()) {}
   bool operator==(const ImportedFile &other) const { return fullpath == other.fullpath; }
-  bool equalBasename(const TSTR &bname) const { return basename == std::wstring(bname.data()); }
+  bool equalBasename(const fs::path &bname) const { return basename == bname; }
 };
 
 struct ImportedFileHash
 {
   size_t operator()(const ImportedFile &imp) const
   {
-    size_t h1 = std::hash<std::wstring>()(imp.fullpath);
-    size_t h2 = std::hash<std::wstring>()(imp.basename);
-    return h1 ^ (h2 << 1);
+    size_t h1 = std::hash<std::wstring>()(imp.fullpath.wstring());
+    size_t h2 = std::hash<std::wstring>()(imp.basename.wstring());
+    return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
   }
 };
 
@@ -376,19 +363,19 @@ public:
   static struct Categories detected;
   static ToolTipExtender tooltipExtender;
 
-  static std::vector<TSTR> batchImportFiles;
+  static std::vector<fs::path> batchImportFiles;
   static std::unordered_set<ImportedFile, ImportedFileHash> importedFiles;
 
 private:
-  int doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, bool suppressPrompts);
-  void makeHierLayer(const std::vector<TSTR> &fnames, ImpInterface *ii, Interface *ip, bool nomsg);
-  void makeHierLayer(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg);
+  int doHierImport(const fs::path &fname, ImpInterface *ii, Interface *ip, bool suppressPrompts);
+  void makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii, Interface *ip, bool nomsg);
+  void makeHierLayer(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg);
 
   int doLegacyImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, bool nomsg);
   int doBatchImport(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg);
   int doMaxscriptImport(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg);
 
-  bool isNamesake(const TSTR &fname) const;
+  bool isNamesake(const fs::path &fname) const;
 };
 
 class DagImpCD : public ClassDesc
@@ -397,11 +384,7 @@ public:
   int IsPublic() override { return TRUE; }
   void *Create(BOOL loading) override { return new DagImp; }
   const TCHAR *ClassName() override { return GetString(IDS_DAGIMP); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return SCENE_IMPORT_CLASS_ID; }
   Class_ID ClassID() override { return DAGIMP_CID; }
   const TCHAR *Category() override { return _T(""); }
@@ -421,8 +404,8 @@ public:
   struct Rules
   {
     bool isWildcard;
-    std::vector<TSTR> incl;
-    std::vector<TSTR> excl;
+    std::vector<std::wstring> incl;
+    std::vector<std::wstring> excl;
 
     explicit Rules(bool isWildcard_) : isWildcard(isWildcard_) {}
 
@@ -441,8 +424,8 @@ public:
 
   Rules wildcard, regex;
 
-  TSTR dirPath;
-  TSTR filePath;
+  fs::path dirPath;
+  fs::path filePath;
 
   ToolTipExtender tooltipExtender;
 
@@ -507,7 +490,7 @@ void ImpUtil::updateUi() const
     default: break;
   }
 
-  SetDlgItemText(hImpPanel, IDC_DAGORPATH, filePath.data());
+  SetDlgItemText(hImpPanel, IDC_DAGORPATH, filePath.c_str());
 }
 
 LPCTSTR ImpUtil::tabResourceName() const
@@ -520,7 +503,6 @@ LPCTSTR ImpUtil::tabResourceName() const
 
 static INT_PTR CALLBACK legacy_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 static INT_PTR CALLBACK standard_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-static INT_PTR CALLBACK regex_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 static INT_PTR CALLBACK regex_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 DLGPROC ImpUtil::tabDlgProc() const
@@ -588,7 +570,6 @@ void ImpUtil::updateTab() const
 
   RECT rct;
   GetWindowRect(hTabVisible, &rct);
-  // update_layout(hTabVisible, MAKELPARAM(rc.right - rc.left, rct.bottom - rct.top));
 
   // hack: force repaint ALL the area of the panel
   ShowWindow(hTabVisible, SW_HIDE);
@@ -611,7 +592,6 @@ void ImpUtil::onTabChanged(HWND hDlg)
   DagImp::useLegacyImport = (selectedTab == 0);
 
   hTabVisible = CreateDialogParam(hInstance, tabResourceName(), hDlg, tabDlgProc(), tabInitParam());
-  // attach_layout_to_dialog(hTabVisible, tabResourceName());
   updateTab();
 
   SetWindowText(GetDlgItem(hImpHelp, IDC_STATIC1), tabHelp());
@@ -621,13 +601,12 @@ void ImpUtil::onTabChanged(HWND hDlg)
   EnableWindow(GetDlgItem(hImpParam, IDC_REIMPORT_EXISTING), selectedTab >= 1);
 }
 
-static bool do_open_import_directory(TSTR &path)
+static bool do_open_import_directory(fs::path &path)
 {
-  DWORD attr = GetFileAttributes(path.data());
-  if (!(attr & FILE_ATTRIBUTE_DIRECTORY))
-    path = extract_directory(path);
+  if (!fs::is_directory(path))
+    path = path.parent_path();
 
-  INT_PTR result = (INT_PTR)ShellExecute(NULL, _T("explore"), path.data(), NULL, NULL, SW_SHOW);
+  INT_PTR result = (INT_PTR)ShellExecute(NULL, _T("explore"), path.c_str(), NULL, NULL, SW_SHOW);
   if (result <= 32)
     return false;
 
@@ -636,9 +615,12 @@ static bool do_open_import_directory(TSTR &path)
 
 void ImpUtil::openImportDirectory() const
 {
-  TSTR path = (selectedTab <= 1) ? filePath.data() : dirPath.data();
-  if (path.isNull() || !do_open_import_directory(path))
-    MessageBox(NULL, (TSTR(_T("Failed to open directory: \"")) + path + TSTR(_T("\""))).data(), _T("Error"), MB_ICONERROR | MB_OK);
+  fs::path path = (selectedTab <= 1) ? filePath : dirPath;
+  if (path.empty() || !do_open_import_directory(path))
+  {
+    std::wstring msg = L"Failed to open directory: \"" + path.wstring() + L"\"";
+    MessageBox(NULL, msg.c_str(), _T("Error"), MB_ICONERROR | MB_OK);
+  }
 }
 
 void ImpUtil::openDocumentation() const
@@ -655,17 +637,17 @@ void ImpUtil::openDocumentation() const
   ShellExecute(NULL, _T("open"), url[selectedTab], NULL, NULL, SW_SHOWNORMAL);
 }
 
-static bool is_regex_empty(const TSTR &re)
+static bool is_regex_empty(std::wstring_view re)
 {
   // rule that consists solely of spaces is invalid
-  for (int i = 0; i < re.Length(); ++i)
-    if (re[i] != _T(' '))
+  for (wchar_t c : re)
+    if (c != L' ')
       return false;
 
   return true;
 }
 
-static bool is_regex_valid(bool isWildcard, TSTR &re)
+static bool is_regex_valid(bool isWildcard, std::wstring &re)
 {
   if (is_regex_empty(re))
     return false;
@@ -673,7 +655,7 @@ static bool is_regex_valid(bool isWildcard, TSTR &re)
   try
   {
     if (isWildcard)
-      re = fnmatch_to_regex(re.data()).data();
+      re = fnmatch_to_regex(re);
 
     std::wregex reg(re, std::regex_constants::icase);
   }
@@ -685,14 +667,14 @@ static bool is_regex_valid(bool isWildcard, TSTR &re)
   return true;
 }
 
-static std::vector<TSTR> get_valid_rules(bool isWildcard, const std::vector<TSTR> &rules)
+static std::vector<std::wstring> get_valid_rules(bool isWildcard, const std::vector<std::wstring> &rules)
 {
-  std::vector<TSTR> result;
+  std::vector<std::wstring> result;
   result.reserve(rules.size());
 
-  for (TSTR r : rules)
-    if (is_regex_valid(isWildcard, r))
-      result.push_back(r);
+  for (std::wstring re : rules)
+    if (is_regex_valid(isWildcard, re))
+      result.push_back(std::move(re));
 
   return result;
 }
@@ -700,19 +682,19 @@ static std::vector<TSTR> get_valid_rules(bool isWildcard, const std::vector<TSTR
 void ImpUtil::doStandardImport() const
 {
   Autotoggle guard(DagImp::nonInteractive);
-  GetCOREInterface()->ImportFromFile(filePath, true);
+  GetCOREInterface()->ImportFromFile(filePath.c_str(), true);
 }
 
 void ImpUtil::doRegexImport(const Rules &rules)
 {
-  std::vector<TSTR> files = glob(dirPath.data(), DagImp::searchInSubfolders);
+  std::vector<fs::path> files = glob(dirPath, DagImp::searchInSubfolders);
 
-  std::vector<TSTR> valid_rules = get_valid_rules(rules.isWildcard, rules.incl);
+  std::vector<std::wstring> valid_rules = get_valid_rules(rules.isWildcard, rules.incl);
   if (!valid_rules.empty())
   {
-    std::vector<TSTR> tmp_files;
+    std::vector<fs::path> tmp_files;
     tmp_files.reserve(files.size());
-    for (const TSTR &re : valid_rules)
+    for (const std::wstring &re : valid_rules)
       do_files_include_re(tmp_files, files, re);
     files = tmp_files;
   }
@@ -720,9 +702,9 @@ void ImpUtil::doRegexImport(const Rules &rules)
   valid_rules = get_valid_rules(rules.isWildcard, rules.excl);
   if (!valid_rules.empty())
   {
-    std::vector<TSTR> tmp_files;
+    std::vector<fs::path> tmp_files;
     tmp_files.reserve(files.size());
-    for (const TSTR &re : valid_rules)
+    for (const std::wstring &re : valid_rules)
       do_files_exclude_re(tmp_files, files, re);
     files = tmp_files;
   }
@@ -735,7 +717,6 @@ void ImpUtil::doRegexImport(const Rules &rules)
 void ImpUtil::doImport()
 {
   assert(selectedTab < 4);
-  // DagorLogWindow::clearLog();
   switch (selectedTab)
   {
     case 0:
@@ -752,10 +733,10 @@ class WListView
 {
   HWND hw;
   bool isWildcard;
-  std::vector<TSTR> &rules;
+  std::vector<std::wstring> &rules;
 
 public:
-  WListView(HWND hw_, bool isWildcard_, std::vector<TSTR> &rules_);
+  WListView(HWND hw_, bool isWildcard_, std::vector<std::wstring> &rules_);
 
   void AddRule();
   void DelRule();
@@ -763,10 +744,10 @@ public:
   void UpdateView();
 
 private:
-  COLORREF ruleColor(TSTR rule);
+  COLORREF ruleColor(std::wstring rule);
 };
 
-WListView::WListView(HWND hw_, bool isWildcard_, std::vector<TSTR> &rules_) : hw(hw_), isWildcard(isWildcard_), rules(rules_)
+WListView::WListView(HWND hw_, bool isWildcard_, std::vector<std::wstring> &rules_) : hw(hw_), isWildcard(isWildcard_), rules(rules_)
 {
   ListView_SetExtendedListViewStyle(hw, LVS_EX_FULLROWSELECT);
 
@@ -789,7 +770,7 @@ void WListView::AddRule()
   lvi.iSubItem = 0;
   lvi.pszText = 0;
   ListView_InsertItem(hw, &lvi);
-  rules.push_back(lvi.pszText);
+  rules.emplace_back();
 }
 
 void WListView::DelRule()
@@ -850,7 +831,7 @@ INT_PTR WListView::EditRule(LPARAM lParam)
 void WListView::UpdateView()
 {
   ListView_DeleteAllItems(hw);
-  for (TSTR &s : rules)
+  for (std::wstring &s : rules)
   {
     LVITEM lvi;
     memset(&lvi, 0, sizeof(lvi));
@@ -858,18 +839,20 @@ void WListView::UpdateView()
     lvi.cchTextMax = MAX_PATH;
     lvi.iItem = ListView_GetItemCount(hw);
     lvi.iSubItem = 0;
-    lvi.pszText = (LPWSTR)s.data();
+    lvi.pszText = s.data();
     ListView_InsertItem(hw, &lvi);
   }
 }
 
-COLORREF WListView::ruleColor(TSTR rule) { return is_regex_valid(isWildcard, rule) ? VALID_REGEX_COLOR_BG : INVALID_REGEX_COLOR_BG; }
+COLORREF WListView::ruleColor(std::wstring rule)
+{
+  return is_regex_valid(isWildcard, rule) ? VALID_REGEX_COLOR_BG : INVALID_REGEX_COLOR_BG;
+}
 
 //==========================================================================//
 
 static INT_PTR CALLBACK legacy_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  static TCHAR path[MAX_PATH] = _T("");
   static bool prevent_enchange = false;
 
   switch (message)
@@ -906,14 +889,14 @@ static INT_PTR CALLBACK legacy_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, 
             case EN_CHANGE:
               if (!prevent_enchange)
               {
-                GetDlgItemText(hDlg, IDC_DAGORPATH, path, MAX_PATH);
+                const std::wstring path = get_window_text(GetDlgItem(hDlg, IDC_DAGORPATH));
 
-                TSTR new_path = drop_quotation_marks(path);
+                std::wstring new_path = drop_quotation_marks(path);
                 if (path != new_path)
                 {
-                  Autotoggle eguard(prevent_enchange);
-                  update_path_edit_control(hDlg, IDC_DAGORPATH, new_path);
                   util.filePath = new_path;
+                  Autotoggle eguard(prevent_enchange);
+                  update_path_edit_control(hDlg, IDC_DAGORPATH, util.filePath);
                 }
               }
               break;
@@ -933,7 +916,6 @@ static INT_PTR CALLBACK legacy_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, 
 
 static INT_PTR CALLBACK standard_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  static TCHAR path[MAX_PATH];
   static bool prevent_enchange = false;
 
   switch (message)
@@ -984,16 +966,15 @@ static INT_PTR CALLBACK standard_dlg_proc(HWND hDlg, UINT message, WPARAM wParam
             case EN_CHANGE:
               if (!prevent_enchange)
               {
-                GetDlgItemText(hDlg, IDC_DAGORPATH, path, MAX_PATH);
+                const std::wstring path = get_window_text(GetDlgItem(hDlg, IDC_DAGORPATH));
 
-                TSTR new_path = drop_quotation_marks(path);
+                std::wstring new_path = drop_quotation_marks(path);
+                util.filePath = new_path;
                 if (path != new_path)
                 {
                   Autotoggle eguard(prevent_enchange);
-                  update_path_edit_control(hDlg, IDC_DAGORPATH, new_path);
+                  update_path_edit_control(hDlg, IDC_DAGORPATH, util.filePath);
                 }
-
-                util.filePath = new_path;
               }
               break;
           }
@@ -1015,7 +996,6 @@ static INT_PTR CALLBACK regex_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, L
 {
   static const wchar_t *PROP_INCL = _T("INCL");
   static const wchar_t *PROP_EXCL = _T("EXCL");
-  static TCHAR path[MAX_PATH];
   static bool prevent_enchange = false;
 
   switch (message)
@@ -1055,11 +1035,13 @@ static INT_PTR CALLBACK regex_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, L
 
         case IDC_SET_DAGORPATH:
         {
-          _tcscpy(path, util.dirPath.data());
-          util.ip->ChooseDirectory(hDlg, GetString(IDS_CHOOSE_DAGOR_PATH), path);
-          if (path[0])
+          static TCHAR dir[MAX_PATH];
+
+          _tcscpy(dir, util.dirPath.c_str());
+          util.ip->ChooseDirectory(hDlg, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
+          if (dir[0])
           {
-            util.dirPath = path;
+            util.dirPath = dir;
             Autotoggle eguard(prevent_enchange);
             update_path_edit_control(hDlg, IDC_DAGORPATH, util.dirPath);
           }
@@ -1074,32 +1056,30 @@ static INT_PTR CALLBACK regex_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, L
             case EN_CHANGE:
               if (!prevent_enchange)
               {
-                GetDlgItemText(hDlg, IDC_DAGORPATH, path, MAX_PATH);
+                const std::wstring path = get_window_text(GetDlgItem(hDlg, IDC_DAGORPATH));
 
-                TSTR new_path = drop_quotation_marks(path);
-                if (path != new_path)
+                const fs::path new_path = drop_quotation_marks(path);
+                if (path != new_path.native())
                 {
                   Autotoggle eguard(prevent_enchange);
                   update_path_edit_control(hDlg, IDC_DAGORPATH, new_path);
                 }
 
-                DWORD attr = GetFileAttributes(new_path.data());
-                if (!(attr & FILE_ATTRIBUTE_DIRECTORY))
+                std::error_code ec;
+                const fs::file_status status = fs::status(new_path, ec);
+                if (fs::exists(status) && !fs::is_directory(status))
                 {
-                  TSTR dir, filename, ext;
-                  SplitFilename(new_path.data(), &dir, &filename, &ext);
-                  filename += ext;
+                  util.dirPath = new_path.parent_path();
 
                   Autotoggle eguard(prevent_enchange);
-                  update_path_edit_control(hDlg, IDC_DAGORPATH, dir);
-
-                  util.dirPath = dir;
+                  update_path_edit_control(hDlg, IDC_DAGORPATH, util.dirPath);
 
                   util.wildcard.clear();
                   util.regex.clear();
 
-                  util.wildcard.incl.push_back(filename.data());
-                  util.regex.incl.push_back((TSTR(_T("^")) + filename + TSTR(_T("$"))).data());
+                  const std::wstring filename = new_path.filename();
+                  util.wildcard.incl.push_back(filename);
+                  util.regex.incl.push_back(L'^' + filename + L'$');
 
                   ((WListView *)GetProp(hDlg, PROP_INCL))->UpdateView();
                   ((WListView *)GetProp(hDlg, PROP_EXCL))->UpdateView();
@@ -1263,11 +1243,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading = FALSE) override { return &util; }
   const TCHAR *ClassName() override { return GetString(IDS_IMPUTIL_NAME); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
   Class_ID ClassID() override { return ImpUtil_CID; }
   const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
@@ -1293,17 +1269,13 @@ struct Impnode
 {
   ImpNode *in;
   INode *n;
-  //      ushort pid;
   Mtl *mtl;
 };
 
 static std::vector<std::wstring> tex;
 static std::vector<ImpMat> mat;
-// static Tab<Impnode> node;
 static std::vector<std::wstring> keylabel;
 static Tab<DefNoteTrack *> ntrack;
-// static Tab<DagNoteKey*> ntrack;
-// static Tab<int> ntrack_knum;
 
 static TSTR scene_name = _T("");
 
@@ -1378,9 +1350,8 @@ static void make_mtl(ImpMat &m, int ind, Class_ID cid)
       }
       else
       {
-        TSTR nm;
-        nm.printf(_T("%s #%02d"), scene_name, ind);
-        m.mtl->SetName(nm);
+        std::wstring nm = format_str(_T("%s #%02d"), scene_name, ind);
+        m.mtl->SetName(nm.c_str());
       }
     }
     d->set_param(i, 0);
@@ -1454,7 +1425,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
     ii->AddNodeToScene(in);
     n = in->GetINode();
     assert(n);
-    // pnode->AttachChild(n,0);
   }
   else
   {
@@ -1503,7 +1473,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
       if (pnode->IsRootNode())
         adj_wtm(tm);
       in->SetTransform(0, tm);
-      // n->SetNodeTM(0,tm);
     }
     else if (blk_type() == DAG_NODE_ANIM && in)
     {
@@ -1518,7 +1487,12 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
         {
           DefNoteTrack *nnt = (DefNoteTrack *)NewDefaultNoteTrack();
           assert(nnt);
-          nnt->keys = nt->keys;
+          // deep copy (eliminate double delete)
+          for (int ki = 0; ki < nt->keys.Count(); ++ki)
+          {
+            NoteKey *k = new NoteKey(*nt->keys[ki]);
+            nnt->keys.Append(1, &k);
+          }
           n->AddNoteTrack(nnt);
         }
       }
@@ -1753,7 +1727,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
           }
           uchar numch;
           rd(&numch, 1);
-#if MAX_RELEASE >= 3000
           for (int ch = 0; ch < numch; ++ch)
           {
             uint ntv = 0;
@@ -1781,62 +1754,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
               tf[i].t[1] = f.t[2];
             }
           }
-#else
-          if (numch >= 1)
-          {
-            uint ntv = 0;
-            rd(&ntv, 4);
-            uchar tcsz, chid;
-            rd(&tcsz, 1);
-            rd(&chid, 1);
-            verify(m.setNumTVFaces(nf));
-            verify(m.setNumTVerts(ntv));
-            Point3 *tv = m.tVerts;
-            for (; ntv; --ntv, ++tv)
-            {
-              for (i = 0; i < tcsz && i < 3; ++i)
-                rd((float *)*tv + i, 4);
-              for (; i < 3; ++i)
-                ((float *)*tv)[i] = 0;
-            }
-            TVFace *tf = m.tvFace;
-            for (i = 0; i < nf; ++i)
-            {
-              DagBigTFace f;
-              rd(&f, sizeof(f));
-              tf[i].t[0] = f.t[0];
-              tf[i].t[2] = f.t[1];
-              tf[i].t[1] = f.t[2];
-            }
-          }
-          if (numch >= 2)
-          {
-            uint ntv = 0;
-            rd(&ntv, 4);
-            uchar tcsz, chid;
-            rd(&tcsz, 1);
-            rd(&chid, 1);
-            verify(m.setNumVCFaces(nf));
-            verify(m.setNumVertCol(ntv));
-            Point3 *tv = m.vertCol;
-            for (; ntv; --ntv, ++tv)
-            {
-              for (i = 0; i < tcsz && i < 3; ++i)
-                rd((float *)*tv + i, 4);
-              for (; i < 3; ++i)
-                ((float *)*tv)[i] = 0;
-            }
-            TVFace *tf = m.vcFace;
-            for (i = 0; i < nf; ++i)
-            {
-              DagBigTFace f;
-              rd(&f, sizeof(f));
-              tf[i].t[0] = f.t[0];
-              tf[i].t[2] = f.t[1];
-              tf[i].t[1] = f.t[2];
-            }
-          }
-#endif
           if (n->GetNodeTM(0).Parity())
             flip_normals(m);
         }
@@ -1875,7 +1792,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
           }
           uchar numch;
           rd(&numch, 1);
-#if MAX_RELEASE >= 3000
           for (int ch = 0; ch < numch; ++ch)
           {
             uint ntv = 0;
@@ -1903,65 +1819,8 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
               tf[i].t[1] = f.t[2];
             }
           }
-#else
-          if (numch >= 1)
-          {
-            uint ntv = 0;
-            rd(&ntv, 2);
-            uchar tcsz, chid;
-            rd(&tcsz, 1);
-            rd(&chid, 1);
-            verify(m.setNumTVFaces(nf));
-            verify(m.setNumTVerts(ntv));
-            Point3 *tv = m.tVerts;
-            for (; ntv; --ntv, ++tv)
-            {
-              for (i = 0; i < tcsz && i < 3; ++i)
-                rd((float *)*tv + i, 4);
-              for (; i < 3; ++i)
-                ((float *)*tv)[i] = 0;
-            }
-            TVFace *tf = m.tvFace;
-            for (i = 0; i < nf; ++i)
-            {
-              DagTFace f;
-              rd(&f, sizeof(f));
-              tf[i].t[0] = f.t[0];
-              tf[i].t[2] = f.t[1];
-              tf[i].t[1] = f.t[2];
-            }
-          }
-          if (numch >= 2)
-          {
-            uint ntv = 0;
-            rd(&ntv, 2);
-            uchar tcsz, chid;
-            rd(&tcsz, 1);
-            rd(&chid, 1);
-            verify(m.setNumVCFaces(nf));
-            verify(m.setNumVertCol(ntv));
-            Point3 *tv = m.vertCol;
-            for (; ntv; --ntv, ++tv)
-            {
-              for (i = 0; i < tcsz && i < 3; ++i)
-                rd((float *)*tv + i, 4);
-              for (; i < 3; ++i)
-                ((float *)*tv)[i] = 0;
-            }
-            TVFace *tf = m.vcFace;
-            for (i = 0; i < nf; ++i)
-            {
-              DagTFace f;
-              rd(&f, sizeof(f));
-              tf[i].t[0] = f.t[0];
-              tf[i].t[2] = f.t[1];
-              tf[i].t[1] = f.t[2];
-            }
-          }
-#endif
           if (n->GetNodeTM(0).Parity())
             flip_normals(m);
-#if MAX_RELEASE >= 12000
         }
         else if (blk_type() == DAG_OBJ_BONES)
         {
@@ -1974,7 +1833,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
           rd(&sd.numvert, 4);
           sd.wt.SetCount(sd.numvert * sd.numb);
           rd(&sd.wt[0], sd.wt.Count() * sizeof(float));
-#endif
         }
         else if (blk_type() == DAG_OBJ_SPLINES)
         {
@@ -2010,7 +1868,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
               s.AddKnot(k);
             }
             s.SetClosed(flg & DAG_SPLINE_CLOSED ? 1 : 0);
-            //                                              s.InvalidateGeomCache();
             s.ComputeBezPoints();
           }
           shp.UpdateSels();
@@ -2053,7 +1910,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
           lt.SetAtten(time, ATTEN_START, dl.range);
           lt.SetAtten(time, ATTEN_END, dl.range);
           lt.SetUseAtten(TRUE);
-          // lt.SetAttenDisplay(TRUE);
           lt.SetDecayType(dl.decay);
           lt.SetDecayRadius(time, dl.drad);
           lt.SetShadow(nflg & DAG_NF_CASTSHADOW ? 1 : 0);
@@ -2152,7 +2008,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, std
   {
     if (!obj)
     {
-      //                      obj=(Object*)ii->Create(HELPER_CLASS_ID,Class_ID(DUMMY_CLASS_ID,0));
       obj = (Object *)ii->Create(GEOMOBJECT_CLASS_ID, Dummy_CID);
       assert(obj);
     }
@@ -2171,89 +2026,79 @@ read_err:
   return 0;
 }
 
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
-static bool trail_stricmp(const TCHAR *str, const TCHAR *str2)
+static bool find_co_files(const fs::path &fname, std::vector<std::wstring> &fnames)
 {
-  size_t l = _tcslen(str), l2 = _tcslen(str2);
-  return (l >= l2) ? _tcsncicmp(str + l - l2, str2, l2) == 0 : false;
-}
-
-static bool find_co_files(const TCHAR *fname, std::vector<std::wstring> &fnames)
-{
-  if (!trail_stricmp(fname, _T(".lod00.dag")))
+  if (!is_dag_file(fname) || !iequal(fname.stem().extension().c_str(), _T(".lod00")))
     return false;
-  int base_len = int(_tcslen(fname) - _tcslen(_T(".lod00.dag")));
+  const fs::path base = fname.parent_path() / fname.stem().stem();
 
   fnames.push_back(fname);
   fnames.push_back(_T("LOD00"));
 
-  TCHAR str_buf[512];
+  std::wstring formatted_name;
   int i;
   for (i = 1; i < 16; i++)
   {
-    _stprintf_s(str_buf, _T("%.*s.lod%02d.dag"), base_len, fname, i);
-    if (::_taccess(str_buf, 4) == 0)
+    formatted_name = format_str(_T("%s.lod%02d.dag"), base.c_str(), i);
+    if (fs::exists(formatted_name))
     {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _T("LOD%02d"), i);
-      fnames.push_back(str_buf);
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("LOD%02d"), i);
+      fnames.push_back(formatted_name);
     }
   }
 
-  _stprintf_s(str_buf, _T("%.*s_destr.lod00.dag"), base_len, fname);
-  if (::_taccess(str_buf, 4) == 0)
+  formatted_name = format_str(_T("%s_destr.lod00.dag"), base.c_str());
+  if (fs::exists(formatted_name))
   {
-    fnames.push_back(str_buf);
+    fnames.push_back(formatted_name);
     fnames.push_back(_T("DESTR"));
   }
 
-  // if (base_len > 2 && _tcsncmp(&fname[base_len-2], _T("_a"), 2)==0)
-  //   base_len -= 2;
-
-  _stprintf_s(str_buf, _T("%.*s_dm.dag"), base_len, fname);
-  if (::_taccess(str_buf, 4) == 0)
+  formatted_name = format_str(_T("%s_dm.dag"), base.c_str());
+  if (fs::exists(formatted_name))
   {
-    fnames.push_back(str_buf);
+    fnames.push_back(formatted_name);
     fnames.push_back(_T("DM"));
   }
 
   for (i = 0; i < 16; i++)
   {
-    _stprintf_s(str_buf, _T("%.*s_dmg.lod%02d.dag"), base_len, fname, i);
-    if (::_taccess(str_buf, 4) == 0)
+    formatted_name = format_str(_T("%s_dmg.lod%02d.dag"), base.c_str(), i);
+    if (fs::exists(formatted_name))
     {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _T("DMG_LOD%02d"), i);
-      fnames.push_back(str_buf);
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("DMG_LOD%02d"), i);
+      fnames.push_back(formatted_name);
     }
   }
 
   for (i = 0; i < 16; i++)
   {
-    _stprintf_s(str_buf, _T("%.*s_dmg2.lod%02d.dag"), base_len, fname, i);
-    if (::_taccess(str_buf, 4) == 0)
+    formatted_name = format_str(_T("%s_dmg2.lod%02d.dag"), base.c_str(), i);
+    if (fs::exists(formatted_name))
     {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _T("DMG2_LOD%02d"), i);
-      fnames.push_back(str_buf);
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("DMG2_LOD%02d"), i);
+      fnames.push_back(formatted_name);
     }
   }
 
   for (i = 0; i < 16; i++)
   {
-    _stprintf_s(str_buf, _T("%.*s_expl.lod%02d.dag"), base_len, fname, i);
-    if (::_taccess(str_buf, 4) == 0)
+    formatted_name = format_str(_T("%s_expl.lod%02d.dag"), base.c_str(), i);
+    if (fs::exists(formatted_name))
     {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _T("EXPL_LOD%02d"), i);
-      fnames.push_back(str_buf);
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("EXPL_LOD%02d"), i);
+      fnames.push_back(formatted_name);
     }
   }
 
-  _stprintf_s(str_buf, _T("%.*s_xray.dag"), base_len, fname);
-  if (::_taccess(str_buf, 4) == 0)
+  formatted_name = format_str(_T("%s_xray.dag"), base.c_str());
+  if (fs::exists(formatted_name))
   {
-    fnames.push_back(str_buf);
+    fnames.push_back(formatted_name);
     fnames.push_back(_T("XRAY"));
   }
 
@@ -2263,7 +2108,6 @@ static bool find_co_files(const TCHAR *fname, std::vector<std::wstring> &fnames)
   fnames.clear();
   return false;
 }
-#endif
 
 bool DagImp::separateLayers = true;
 bool DagImp::useLegacyImport = false;
@@ -2277,7 +2121,7 @@ DagImp::Categories DagImp::checked = {true, true, true, true, true};
 DagImp::Categories DagImp::detected = {false, false, false, false, false};
 ToolTipExtender DagImp::tooltipExtender;
 
-std::vector<TSTR> DagImp::batchImportFiles;
+std::vector<fs::path> DagImp::batchImportFiles;
 std::unordered_set<ImportedFile, ImportedFileHash> DagImp::importedFiles;
 
 static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -2370,7 +2214,7 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
   return FALSE;
 }
 
-static TSTR filenameToRegex(const TSTR &filename, bool dp, bool lods, bool destr, bool dmg, bool dm, TSTR &base_name,
+static TSTR filenameToRegex(const fs::path &filename, bool dp, bool lods, bool destr, bool dmg, bool dm, TSTR &base_name,
   bool &exact_match)
 {
   static const int dag_length = 4; // ".dag"
@@ -2380,11 +2224,11 @@ static TSTR filenameToRegex(const TSTR &filename, bool dp, bool lods, bool destr
 
   static std::wregex reg(_T("\\.lod\\d\\d\\.dag$"), std::regex_constants::icase);
   std::wsmatch lod_info;
-  std::wstring fn = filename.data();
+  std::wstring fn = filename.wstring();
   if (!std::regex_search(fn, lod_info, reg))
   {
     TSTR re;
-    re.printf(_T("^%s$"), filename);
+    re.printf(_T("^%s$"), filename.c_str());
     exact_match = true;
     return re;
   }
@@ -2396,22 +2240,19 @@ static TSTR filenameToRegex(const TSTR &filename, bool dp, bool lods, bool destr
   TSTR dp_re = dp ? _T("(_dp_\\d\\d|)") : _T("()");
   TSTR dmg_re = dmg ? _T("(_dmg|)") : _T("()");
   TSTR lods_re = lods ? _T("\\.lod\\d\\d") : base_lod.data();
+  TSTR destr_re = destr ? _T("(_destr|)") : _T("");
 
   TSTR variants_re;
-  variants_re.printf(_T("^%s%s%s%s\\.dag$"), base_name, dp_re, dmg_re, lods_re);
+  variants_re.printf(_T("^%s%s%s%s%s\\.dag$"), base_name.data(), dp_re.data(), dmg_re.data(), destr_re.data(), lods_re.data());
 
   if (dm)
-    variants_re.printf(_T("(%s)|(^%s_dm\\.dag$)"), variants_re, base_name);
+  {
+    TSTR with_dm;
+    with_dm.printf(_T("(%s)|(^%s_dm\\.dag$)"), variants_re.data(), base_name.data());
+    variants_re = with_dm;
+  }
 
-  if (!destr)
-    return variants_re;
-
-  TSTR destr_re;
-  destr_re.printf(_T("^%s%s%s_destr\\.lod00\\.dag$"), base_name, dp_re, dmg_re);
-
-  TSTR combined_re;
-  combined_re.printf(_T("(%s|%s)"), variants_re, destr_re);
-  return combined_re;
+  return variants_re;
 }
 
 static void deleteNode(INode *node)
@@ -2506,17 +2347,15 @@ static ResolvedLayer resolveLayerNameCollision(const TSTR &layerName)
   return ResolvedLayer(layer, mangledLayerName);
 }
 
-void DagImp::makeHierLayer(const std::vector<TSTR> &fnames, ImpInterface *ii, Interface *ip, bool nomsg)
+void DagImp::makeHierLayer(const std::vector<fs::path> &fnames, ImpInterface *ii, Interface *ip, bool nomsg)
 {
-  static const int dag_length = 4; // ".dag"
   static const int ext_length = 6; // ".lodNN"
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
 
-  for (const TSTR &fn : fnames)
+  for (const fs::path &fn : fnames)
   {
-    TSTR basename = extract_basename(fn);
-    TSTR layerName = basename.Substr(0, basename.length() - dag_length);
+    TSTR layerName = fn.stem().c_str();
 
     ResolvedLayer resolved = resolveLayerNameCollision(layerName);
     ILayer *subLayer = resolved.layer;
@@ -2539,78 +2378,66 @@ void DagImp::makeHierLayer(const std::vector<TSTR> &fnames, ImpInterface *ii, In
 
     manager->SetCurrentLayer(layerName);
 
-    if (!doImportOne(fn, ii, ip, nomsg))
+    if (!doImportOne(fn.c_str(), ii, ip, nomsg))
     {
       manager->DeleteLayer(layerName);
       if (rootLayerJustCreated)
         manager->DeleteLayer(root_layerName);
-      DebugPrint(_T("import error '%s'\n"), fn);
+      DebugPrint(_T("import error '%s'\n"), fn.c_str());
     }
   }
 }
 
-void DagImp::makeHierLayer(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg)
+void DagImp::makeHierLayer(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg)
 {
-  static const int dag_length = 4; // ".dag"
-
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
 
-  TSTR basename = extract_basename(fname);
-  TSTR layerName = basename.Substr(0, basename.length() - dag_length);
+  TSTR layerName = fname.stem().c_str();
 
   ResolvedLayer resolved = resolveLayerNameCollision(layerName);
   ILayer *rootLayer = resolved.layer;
   layerName = resolved.name;
 
-  if (!doImportOne(fname, ii, ip, nomsg))
+  if (!doImportOne(fname.c_str(), ii, ip, nomsg))
   {
     manager->DeleteLayer(layerName);
-    DebugPrint(_T("import error '%s'\n"), fname);
+    DebugPrint(_T("import error '%s'\n"), fname.c_str());
   }
 }
 
-int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg)
+int DagImp::doHierImport(const fs::path &fname, ImpInterface *ii, Interface *ip, bool nomsg)
 {
   // show UI even on drag&drop
   if (!nonInteractive)
     nomsg = false;
 
-  TSTR dir, filename, ext;
-  SplitFilename(fname, &dir, &filename, &ext);
-  filename.Append(ext);
+  const fs::path dirPath = fname.parent_path();
 
   // investigate all files to hilite UI options
   TSTR basename;
   bool exact_match;
-  TSTR rex = filenameToRegex(filename, true, true, true, true, true, basename, exact_match);
-  std::vector<TSTR> files = files_include_re(glob(dir, searchInSubfolders), rex);
+  TSTR rex = filenameToRegex(fname.filename(), true, true, true, true, true, basename, exact_match);
+  std::vector<fs::path> files = files_include_re(glob(dirPath, searchInSubfolders), rex.data());
 
-  TSTR lod_re;
-  lod_re.printf(_T("^%s\\.lod\\d\\d\\.dag$"), basename);
+  std::wstring lod_re = format_str(_T("^%s\\.lod\\d\\d\\.dag$"), basename);
   detected.lod = probe_match_re(files, lod_re);
 
-  TSTR dmg_re;
-  dmg_re.printf(_T("^%s_dmg\\.lod\\d\\d\\.dag$"), basename);
+  std::wstring dmg_re = format_str(_T("^%s_dmg\\.lod\\d\\d\\.dag$"), basename);
   detected.dmg = probe_match_re(files, dmg_re);
 
-  TSTR destr_re;
-  destr_re.printf(_T("^%s_destr\\.lod00\\.dag$"), basename);
+  std::wstring destr_re = format_str(_T("^%s_destr\\.lod\\d\\d\\.dag$"), basename);
   detected.destr = probe_match_re(files, destr_re);
 
-  TSTR dp_re;
-  dp_re.printf(_T("^%s_dp_\\d\\d\\.lod\\d\\d\\.dag$"), basename);
+  std::wstring dp_re = format_str(_T("^%s_dp_\\d\\d\\.lod\\d\\d\\.dag$"), basename);
   detected.dp = probe_match_re(files, dp_re);
 
-  TSTR dp_dmg_re;
-  dp_dmg_re.printf(_T("^%s_dp_\\d\\d_dmg\\.lod\\d\\d\\.dag$"), basename);
+  std::wstring dp_dmg_re = format_str(_T("^%s_dp_\\d\\d_dmg\\.lod\\d\\d\\.dag$"), basename);
   detected.dmg |= probe_match_re(files, dp_dmg_re);
 
-  TSTR dp_destr_re;
-  dp_destr_re.printf(_T("^%s_dp_\\d\\d_destr\\.lod\\d\\d\\.dag$"), basename);
+  std::wstring dp_destr_re = format_str(_T("^%s_dp_\\d\\d_destr\\.lod\\d\\d\\.dag$"), basename);
   detected.destr |= probe_match_re(files, dp_destr_re);
 
-  TSTR dm_re;
-  dm_re.printf(_T("^%s_dm\\.dag$"), basename);
+  std::wstring dm_re = format_str(_T("^%s_dm\\.dag$"), basename);
   detected.dm = probe_match_re(files, dm_re);
 
   if (!nomsg)
@@ -2623,8 +2450,8 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
     return 0;
 
   // get proper list of files based on actual user's choice
-  rex = filenameToRegex(filename, checked.dp, checked.lod, checked.destr, checked.dmg, checked.dm, basename, exact_match);
-  files = files_include_re(glob(dir, searchInSubfolders), rex);
+  rex = filenameToRegex(fname.filename(), checked.dp, checked.lod, checked.destr, checked.dmg, checked.dm, basename, exact_match);
+  files = files_include_re(glob(dirPath, searchInSubfolders), rex.data());
 
   if (exact_match)
   {
@@ -2636,7 +2463,7 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
     return 0;
   }
 
-  std::vector<TSTR> layer_files;
+  std::vector<fs::path> layer_files;
   layer_files.reserve(32);
 
   if (checked.lod)
@@ -2644,7 +2471,7 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
   else
   {
     layer_files.clear();
-    layer_files.push_back(dir + TSTR(_T("\\")) + filename);
+    layer_files.push_back(fname);
   }
   if (!layer_files.empty())
     makeHierLayer(layer_files, ii, ip, nomsg);
@@ -2663,19 +2490,17 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
 
   for (int i = 0; i < 100; ++i)
   {
-    TSTR re;
-
-    re.printf(_T("^%s_dp_%02d.lod\\d\\d\\.dag$"), basename, i);
+    std::wstring re = format_str(_T("^%s_dp_%02d.lod\\d\\d\\.dag$"), basename, i);
     layer_files = files_include_re(files, re);
     if (!layer_files.empty())
       makeHierLayer(layer_files, ii, ip, nomsg);
 
-    re.printf(_T("^%s_dp_%02d_dmg.lod\\d\\d\\.dag$"), basename, i);
+    re = format_str(_T("^%s_dp_%02d_dmg.lod\\d\\d\\.dag$"), basename, i);
     layer_files = files_include_re(files, re);
     if (!layer_files.empty())
       makeHierLayer(layer_files, ii, ip, nomsg);
 
-    re.printf(_T("^%s_dp_%02d_destr.lod\\d\\d\\.dag$"), basename, i);
+    re = format_str(_T("^%s_dp_%02d_destr.lod\\d\\d\\.dag$"), basename, i);
     layer_files = files_include_re(files, re);
     if (!layer_files.empty())
       makeHierLayer(layer_files, ii, ip, nomsg);
@@ -2692,12 +2517,11 @@ int DagImp::doLegacyImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, 
   if (!find_co_files(fname, fnames))
     return doImportOne(fname, ii, ip, nomsg);
 
-  TCHAR buf[1024];
   int fn_len = (int)_tcslen(fname);
-  _stprintf(buf, _T("We detected that %s%s\nhas %d linked DAGs.\nLoad them at once into separate layers?"),
+  std::wstring buf = format_str(_T("We detected that %s%s\nhas %d linked DAGs.\nLoad them at once into separate layers?"),
     fn_len > 64 ? _T("...") : _T(""), fn_len > 64 ? fname + fn_len - 64 : fname, (int)fnames.size() / 2 - 1);
   if ((nomsg && !DagImp::separateLayers) ||
-      (!nomsg && MessageBox(GetFocus(), buf, _T("Import layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES))
+      (!nomsg && MessageBox(GetFocus(), buf.c_str(), _T("Import layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES))
     return doImportOne(fname, ii, ip, nomsg);
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
@@ -2726,17 +2550,16 @@ int DagImp::doBatchImport(const TSTR & /* ignored */, ImpInterface *ii, Interfac
 
   Autotoggle guard(nonInteractive);
 
-  std::vector<TSTR> tmp_files;
+  std::vector<fs::path> tmp_files;
   tmp_files.reserve(1);
 
   importedFiles.clear();
-  for (const TSTR &fname : batchImportFiles)
+  for (const fs::path &fname : batchImportFiles)
   {
     if (reimportExisting && isNamesake(fname))
       continue;
 
-    std::wstring fn = fname.data();
-    if (std::regex_match(fn, re))
+    if (std::regex_match(fname.wstring(), re))
     {
       tmp_files.clear();
       tmp_files.push_back(fname);
@@ -2754,7 +2577,7 @@ int DagImp::doBatchImport(const TSTR & /* ignored */, ImpInterface *ii, Interfac
 
 int DagImp::doMaxscriptImport(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg)
 {
-  return doHierImport(fname, ii, ip, nomsg);
+  return doHierImport(fname.data(), ii, ip, nomsg);
 }
 
 //
@@ -2762,8 +2585,6 @@ int DagImp::doMaxscriptImport(const TSTR &fname, ImpInterface *ii, Interface *ip
 //
 int DagImp::DoImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOOL nomsg)
 {
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
-
   if (useLegacyImport)
     return doLegacyImport(fname, ii, ip, nomsg);
 
@@ -2788,25 +2609,21 @@ int DagImp::DoImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOOL n
     return doLegacyImport(fname, ii, ip, nomsg);
 
   return res;
-
-#else
-  return doImportOne(fname, ii, ip, nomsg);
-#endif
 }
 
-bool DagImp::isNamesake(const TSTR &fname) const
+bool DagImp::isNamesake(const fs::path &fname) const
 {
-  const TSTR basename = extract_basename(fname);
+  const fs::path basename = fname.filename();
 
   auto it = std::find_if(importedFiles.begin(), importedFiles.end(),
     [&basename](const ImportedFile &imp) { return imp.equalBasename(basename); });
 
   if (it != importedFiles.end())
   {
-    if (fname.data() != it->fullpath)
+    if (fname != it->fullpath)
     {
-      DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, _T("ignore duplicated \"%s\" (already have \"%s\")\r\n"), fname,
-        it->fullpath.data());
+      DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, _T("ignore duplicated \"%s\" (already have \"%s\")\r\n"),
+        fname.c_str(), it->fullpath.c_str());
       DagorLogWindow::show();
     }
     return true;
@@ -2830,7 +2647,7 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
   cleanup();
   std::vector<SkinData> skin_data;
   Tab<NodeId> node_id;
-  SplitFilename(TSTR(fname), NULL, &scene_name, NULL);
+  scene_name = fs::path(fname).stem().c_str();
   FILE *h = _tfopen(fname, _T("rb"));
   if (!h)
   {
@@ -3069,10 +2886,6 @@ static IDagorImportUtil dagorimputiliface(Interface_ID(0x20906172, 0x435c11e0),
   _T("importDp"), -1, TYPE_BOOL, f_keyArgDefault, true,
   _T("importDmg"), -1, TYPE_BOOL, f_keyArgDefault, true,
   _T("importDm"), -1, TYPE_BOOL, f_keyArgDefault, true,
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
   p_end
-#else
-  end
-#endif
 );
 // clang-format on

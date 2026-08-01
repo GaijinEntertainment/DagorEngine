@@ -3,16 +3,24 @@ from "math" import max
 
 let cursors = require("samples_prog/_cursors.nut")
 
-/*
-let editableText = EditableText(@"Lorem ipsum
+let text = @"Lorem ipsum <pic1/> felis tortor,
+sed finibus <pic1/> elit hendrerit et. <canvas/>Vivamus in tortor <button/> sagittis."
 
-dolor")
-*/
+let defBtnStyle = { color = Color(120, 150, 150) }
 
+// Height is the font ascent: embeds anchor bottom-to-baseline, so this aligns
+// the button's text baseline with the line's.
+function mkEmbedButton(label, onClick, style = defBtnStyle) {
+  return {
+    rendObj = ROBJ_TEXT
+    text = label
+    size = [calc_str_box(label, style)[0], get_font_metrics(style?.font ?? 0, style?.fontSize ?? 0).ascent]
+    behavior = Behaviors.Button
+    onClick
+  }.__merge(style)
+}
 
-let text = @"Lorem ipsum <pic1/> felis
-tortor, sed finibus elit hendrerit et. <canvas/>Vivamus in tortor sagittis."
-
+let button = mkEmbedButton("button", @() dlog("clicked"))
 
 let textarea = {
   size = flex()
@@ -23,6 +31,7 @@ let textarea = {
   text
 
   embed = {
+    button
     pic1 = {
       size = [fontH(150), fontH(150)]
       rendObj = ROBJ_IMAGE

@@ -1,3 +1,6 @@
+// Altered source version of recastnavigation DetourTileCache, modified for
+// Dagor Engine; not the original library (github.com/recastnavigation).
+
 #include "DetourTileCache.h"
 #include "DetourTileCacheBuilder.h"
 #include "DetourNavMeshBuilder.h"
@@ -71,13 +74,14 @@ dtTileCache::dtTileCache() :
 	m_talloc(0),
 	m_tcomp(0),
 	m_tmproc(0),
-	m_obstacles(0),
+	m_nobstaclePages(0),
 	m_nextFreeObstacle(0),
 	m_nreqs(0),
 	m_nupdate(0)
 {
 	memset(&m_params, 0, sizeof(m_params));
 	memset(m_reqs, 0, sizeof(ObstacleRequest) * MAX_REQUESTS);
+	memset(m_obstaclePages, 0, sizeof(m_obstaclePages));
 }
 	
 dtTileCache::~dtTileCache()
@@ -90,8 +94,12 @@ dtTileCache::~dtTileCache()
 			m_tiles[i].data = 0;
 		}
 	}
-	dtFree(m_obstacles);
-	m_obstacles = 0;
+	for (int i = 0; i < m_nobstaclePages; ++i)
+	{
+		dtFree(m_obstaclePages[i]);
+		m_obstaclePages[i] = 0;
+	}
+	m_nobstaclePages = 0;
 	dtFree(m_posLookup);
 	m_posLookup = 0;
 	dtFree(m_tiles);
@@ -126,19 +134,10 @@ dtStatus dtTileCache::init(const dtTileCacheParams* params,
 	m_nreqs = 0;
 	memcpy(&m_params, params, sizeof(m_params));
 	
-	// Alloc space for obstacles.
-	m_obstacles = (dtTileCacheObstacle*)dtAlloc(sizeof(dtTileCacheObstacle)*m_params.maxObstacles, DT_ALLOC_PERM);
-	if (!m_obstacles)
-		return DT_FAILURE | DT_OUT_OF_MEMORY;
-	memset(m_obstacles, 0, sizeof(dtTileCacheObstacle)*m_params.maxObstacles);
+	// The obstacle pool is paged on demand (allocObstacle); m_params keeps the
+	// caller's maxObstacles only for getParams() serialization, see dtTileCacheParams.
 	m_nextFreeObstacle = 0;
-	for (int i = m_params.maxObstacles-1; i >= 0; --i)
-	{
-		m_obstacles[i].salt = 1;
-		m_obstacles[i].next = m_nextFreeObstacle;
-		m_nextFreeObstacle = &m_obstacles[i];
-	}
-	
+
 	// Init tiles
 	m_tileLutSize = dtNextPow2(m_params.maxTiles/4);
 	if (!m_tileLutSize) m_tileLutSize = 1;
@@ -221,8 +220,7 @@ dtCompressedTileRef dtTileCache::getTileRef(const dtCompressedTile* tile) const
 dtObstacleRef dtTileCache::getObstacleRef(const dtTileCacheObstacle* ob) const
 {
 	if (!ob) return 0;
-	const unsigned int idx = (unsigned int)(ob - m_obstacles);
-	return encodeObstacleId(ob->salt, idx);
+	return encodeObstacleId(ob->salt, ob->index);
 }
 
 const dtTileCacheObstacle* dtTileCache::getObstacleByRef(dtObstacleRef ref)
@@ -230,9 +228,9 @@ const dtTileCacheObstacle* dtTileCache::getObstacleByRef(dtObstacleRef ref)
 	if (!ref)
 		return 0;
 	unsigned int idx = decodeObstacleIdObstacle(ref);
-	if ((int)idx >= m_params.maxObstacles)
+	if ((int)idx >= getObstacleCount())
 		return 0;
-	const dtTileCacheObstacle* ob = &m_obstacles[idx];
+	const dtTileCacheObstacle* ob = getObstacle((int)idx);
 	unsigned int salt = decodeObstacleIdSalt(ref);
 	if (ob->salt != salt)
 		return 0;
@@ -351,24 +349,48 @@ dtStatus dtTileCache::removeTile(dtCompressedTileRef ref, unsigned char** data, 
 }
 
 
-dtStatus dtTileCache::addObstacle(const float* pos, const float radius, const float height, dtObstacleRef* result)
+dtTileCacheObstacle* dtTileCache::allocObstacle()
 {
-	if (m_nreqs >= MAX_REQUESTS)
-		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
-	
+	if (!m_nextFreeObstacle && m_nobstaclePages < DT_MAX_OBSTACLE_PAGES)
+	{
+		dtTileCacheObstacle* page = (dtTileCacheObstacle*)dtAlloc(sizeof(dtTileCacheObstacle)*DT_OBSTACLES_PER_PAGE, DT_ALLOC_PERM);
+		if (page)
+		{
+			memset(page, 0, sizeof(dtTileCacheObstacle)*DT_OBSTACLES_PER_PAGE);
+			const int base = m_nobstaclePages*DT_OBSTACLES_PER_PAGE;
+			for (int i = DT_OBSTACLES_PER_PAGE-1; i >= 0; --i)
+			{
+				page[i].salt = 1;
+				page[i].index = (unsigned int)(base + i);
+				page[i].next = m_nextFreeObstacle ? m_nextFreeObstacle->index : page[i].index;
+				m_nextFreeObstacle = &page[i];
+			}
+			m_obstaclePages[m_nobstaclePages++] = page;
+		}
+	}
 	dtTileCacheObstacle* ob = 0;
 	if (m_nextFreeObstacle)
 	{
 		ob = m_nextFreeObstacle;
-		m_nextFreeObstacle = ob->next;
-		ob->next = 0;
+		m_nextFreeObstacle = (ob->next == ob->index) ? 0 : getObstacleForModify((int)ob->next);
 	}
+	return ob;
+}
+
+dtStatus dtTileCache::addObstacle(const float* pos, const float radius, const float height, dtObstacleRef* result)
+{
+	if (m_nreqs >= MAX_REQUESTS)
+		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+
+	dtTileCacheObstacle* ob = allocObstacle();
 	if (!ob)
 		return DT_FAILURE | DT_OUT_OF_MEMORY;
 	
 	unsigned short salt = ob->salt;
+	unsigned int index = ob->index;
 	memset(ob, 0, sizeof(dtTileCacheObstacle));
 	ob->salt = salt;
+	ob->index = index;
 	ob->state = DT_OBSTACLE_PROCESSING;
 	ob->type = DT_OBSTACLE_CYLINDER;
 	dtVcopy(ob->cylinder.pos, pos);
@@ -390,20 +412,16 @@ dtStatus dtTileCache::addBoxObstacle(const float* bmin, const float* bmax, dtObs
 {
 	if (m_nreqs >= MAX_REQUESTS)
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
-	
-	dtTileCacheObstacle* ob = 0;
-	if (m_nextFreeObstacle)
-	{
-		ob = m_nextFreeObstacle;
-		m_nextFreeObstacle = ob->next;
-		ob->next = 0;
-	}
+
+	dtTileCacheObstacle* ob = allocObstacle();
 	if (!ob)
 		return DT_FAILURE | DT_OUT_OF_MEMORY;
 	
 	unsigned short salt = ob->salt;
+	unsigned int index = ob->index;
 	memset(ob, 0, sizeof(dtTileCacheObstacle));
 	ob->salt = salt;
+	ob->index = index;
 	ob->state = DT_OBSTACLE_PROCESSING;
 	ob->type = DT_OBSTACLE_BOX;
 	dtVcopy(ob->box.bmin, bmin);
@@ -425,19 +443,15 @@ dtStatus dtTileCache::addBoxObstacle(const float* center, const float* halfExten
 	if (m_nreqs >= MAX_REQUESTS)
 		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 
-	dtTileCacheObstacle* ob = 0;
-	if (m_nextFreeObstacle)
-	{
-		ob = m_nextFreeObstacle;
-		m_nextFreeObstacle = ob->next;
-		ob->next = 0;
-	}
+	dtTileCacheObstacle* ob = allocObstacle();
 	if (!ob)
 		return DT_FAILURE | DT_OUT_OF_MEMORY;
 
 	unsigned short salt = ob->salt;
+	unsigned int index = ob->index;
 	memset(ob, 0, sizeof(dtTileCacheObstacle));
 	ob->salt = salt;
+	ob->index = index;
 	ob->state = DT_OBSTACLE_PROCESSING;
 	ob->type = DT_OBSTACLE_ORIENTED_BOX;
 	dtVcopy(ob->orientedBox.center, center);
@@ -527,9 +541,9 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 			ObstacleRequest* req = &m_reqs[i];
 			
 			unsigned int idx = decodeObstacleIdObstacle(req->ref);
-			if ((int)idx >= m_params.maxObstacles)
+			if ((int)idx >= getObstacleCount())
 				continue;
-			dtTileCacheObstacle* ob = &m_obstacles[idx];
+			dtTileCacheObstacle* ob = getObstacleForModify((int)idx);
 			unsigned int salt = decodeObstacleIdSalt(req->ref);
 			if (ob->salt != salt)
 				continue;
@@ -544,14 +558,14 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				queryTiles(bmin, bmax, ob->touched, &ntouched, DT_MAX_TOUCHED_TILES);
 				ob->ntouched = (unsigned char)ntouched;
 				// Add tiles to update list.
-				ob->npending = 0;
+				ob->pending = 0;
 				for (int j = 0; j < ob->ntouched; ++j)
 				{
 					if (m_nupdate < MAX_UPDATE)
 					{
 						if (!contains(m_update, m_nupdate, ob->touched[j]))
 							m_update[m_nupdate++] = ob->touched[j];
-						ob->pending[ob->npending++] = ob->touched[j];
+						ob->pending |= 1ULL << j;
 					}
 				}
 			}
@@ -560,14 +574,14 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 				// Prepare to remove obstacle.
 				ob->state = DT_OBSTACLE_REMOVING;
 				// Add tiles to update list.
-				ob->npending = 0;
+				ob->pending = 0;
 				for (int j = 0; j < ob->ntouched; ++j)
 				{
 					if (m_nupdate < MAX_UPDATE)
 					{
 						if (!contains(m_update, m_nupdate, ob->touched[j]))
 							m_update[m_nupdate++] = ob->touched[j];
-						ob->pending[ob->npending++] = ob->touched[j];
+						ob->pending |= 1ULL << j;
 					}
 				}
 			}
@@ -588,24 +602,23 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 			memmove(m_update, m_update+1, m_nupdate*sizeof(dtCompressedTileRef));
 
 		// Update obstacle states.
-		for (int i = 0; i < m_params.maxObstacles; ++i)
+		for (int i = 0; i < getObstacleCount(); ++i)
 		{
-			dtTileCacheObstacle* ob = &m_obstacles[i];
+			dtTileCacheObstacle* ob = getObstacleForModify(i);
 			if (ob->state == DT_OBSTACLE_PROCESSING || ob->state == DT_OBSTACLE_REMOVING)
 			{
-				// Remove handled tile from pending list.
-				for (int j = 0; j < (int)ob->npending; j++)
+				// Clear handled tile from the pending mask.
+				for (int j = 0; j < (int)ob->ntouched; j++)
 				{
-					if (ob->pending[j] == ref)
+					if (ob->touched[j] == ref)
 					{
-						ob->pending[j] = ob->pending[(int)ob->npending-1];
-						ob->npending--;
+						ob->pending &= ~(1ULL << j);
 						break;
 					}
 				}
-				
+
 				// If all pending tiles processed, change state.
-				if (ob->npending == 0)
+				if (ob->pending == 0)
 				{
 					if (ob->state == DT_OBSTACLE_PROCESSING)
 					{
@@ -619,7 +632,7 @@ dtStatus dtTileCache::update(const float /*dt*/, dtNavMesh* navmesh,
 						if (ob->salt == 0)
 							ob->salt++;
 						// Return obstacle to free list.
-						ob->next = m_nextFreeObstacle;
+						ob->next = m_nextFreeObstacle ? m_nextFreeObstacle->index : ob->index;
 						m_nextFreeObstacle = ob;
 					}
 				}
@@ -675,9 +688,9 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 		return status;
 	
 	// Rasterize obstacles.
-	for (int i = 0; i < m_params.maxObstacles; ++i)
+	for (int i = 0; i < getObstacleCount(); ++i)
 	{
-		const dtTileCacheObstacle* ob = &m_obstacles[i];
+		const dtTileCacheObstacle* ob = getObstacle(i);
 		if (ob->state == DT_OBSTACLE_EMPTY || ob->state == DT_OBSTACLE_REMOVING)
 			continue;
 		if (contains(ob->touched, ob->ntouched, ref))

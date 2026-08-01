@@ -11,6 +11,7 @@
 #include <shaders/dag_shaders.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_convar.h>
+#include <generic/dag_align.h>
 
 #include <render/lightProbeSpecularCubesContainer.h>
 
@@ -19,8 +20,8 @@ LightProbeSpecularCubesContainer::~LightProbeSpecularCubesContainer() = default;
 
 static int bc6h_compression_modeVarId = -1;
 static int bc6h_src_mipVarId = -1;
-static int bc6h_src_faceVarId = -1;
 static int bc6h_src_texVarId = -1;
+static int bc6h_blocks_sideVarId = -1;
 
 CONSOLE_BOOL_VAL("render", debug_probes_output, false);
 
@@ -59,21 +60,14 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
   specularMips = get_log2w(cubeSize);
   texture_format |= TEXCF_RTARGET;
 
-  compressionAvailable = BcCompressor::isAvailable(BcCompressor::COMPRESSION_BC6H);
+  bc6hFastCompressor = eastl::unique_ptr<ComputeShaderElement>(new_compute_shader("bc6h_fast_cs", true));
+  bc6hHighQualityCompressor = eastl::unique_ptr<ComputeShaderElement>(new_compute_shader("bc6h_high_quality_cs", true));
+
+  compressionAvailable = BcCompressor::isAvailable(BcCompressor::COMPRESSION_BC6H) && bc6hFastCompressor && bc6hHighQualityCompressor;
   if (compressionAvailable)
   {
     sizeInCompressedBlocks = cubeSize / 4;
     compressedMips = get_log2w(sizeInCompressedBlocks) + 1;
-
-    compressor =
-      eastl::make_unique<BcCompressor>(BcCompressor::COMPRESSION_BC6H, compressedMips, cubeSize, cubeSize, 1, "bc6h_compressor");
-
-    if (!compressor->isValid())
-    {
-      logwarn("Can't create a compressor for light probes specular");
-      compressionAvailable = false;
-      compressor.reset();
-    }
   }
 
   uint32_t cube_format = compressionAvailable ? TEXFMT_BC6H | TEXCF_UPDATE_DESTINATION : texture_format;
@@ -81,7 +75,6 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
   const char *texName = "light_probe_specular_cubes";
   cubesArray =
     dag::create_cube_array_tex(cubeSize, CAPACITY, cube_format | TEXCF_CLEAR_ON_CREATE, specularMips, texName, RESTAG_LIGHTS);
-  ShaderGlobal::set_sampler(get_shader_variable_id("light_probe_specular_cubes_samplerstate", true), d3d::request_sampler({}));
 
   rtCube.reset(light_probe::create("light_probe_rt_cube", cubeSize, texture_format));
 
@@ -90,8 +83,8 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
 
   bc6h_compression_modeVarId = ::get_shader_variable_id("bc6h_compression_mode", true);
   bc6h_src_mipVarId = ::get_shader_variable_id("bc6h_cs_src_mip", true);
-  bc6h_src_faceVarId = ::get_shader_variable_id("bc6h_cs_src_face", true);
   bc6h_src_texVarId = ::get_shader_variable_id("bc6h_cs_src_tex", true);
+  bc6h_blocks_sideVarId = ::get_shader_variable_id("bc6h_cs_blocks_side", true);
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
@@ -100,7 +93,6 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
   usedIndices.reset();
 
   const char *lastMipsFaceTexName = "bc6h_high_quality_compression_target";
-  bc6hHighQualityCompressor = eastl::unique_ptr<ComputeShaderElement>(new_compute_shader("bc6h_high_quality_cs", true));
   lastMipsBc6HTarget = dag::create_array_tex(sizeInCompressedBlocks, sizeInCompressedBlocks, 6,
     TEXFMT_A32B32G32R32UI | TEXCF_UNORDERED, compressedMips, lastMipsFaceTexName, RESTAG_LIGHTS);
 
@@ -279,32 +271,35 @@ void LightProbeSpecularCubesContainer::compressMips(int cube_index, int face_sta
       continue;
     }
 
+    const bool useHighQuality = mip >= HQ_MIN_MIP_INDEX;
     const int cubeMipSide = sizeInCompressedBlocks >> min(mip, compressedMips - 1);
-    if (mip > 2)
+
+    ComputeShaderElement *mipCompressor = useHighQuality ? bc6hHighQualityCompressor.get() : bc6hFastCompressor.get();
+    ShaderGlobal::set_float(bc6h_src_mipVarId, mip);
+    ShaderGlobal::set_int(bc6h_blocks_sideVarId, cubeMipSide);
+    ShaderGlobal::set_texture(bc6h_src_texVarId, *light_probe::getManagedTex(rtCube.get()));
+    d3d::set_rwtex(STAGE_CS, 0, lastMipsBc6HTarget.getArrayTex(), 0, min(mip, compressedMips - 1));
+
+    if (useHighQuality)
+      mipCompressor->dispatch(cubeMipSide, cubeMipSide, 6);
+    else
     {
-      ShaderGlobal::set_float(bc6h_src_mipVarId, mip);
-      ShaderGlobal::set_texture(bc6h_src_texVarId, *light_probe::getManagedTex(rtCube.get()));
-      d3d::set_rwtex(STAGE_CS, 0, lastMipsBc6HTarget.getArrayTex(), 0, min(mip, compressedMips - 1));
-      bc6hHighQualityCompressor->dispatch(cubeMipSide, cubeMipSide, 6);
-      d3d::set_rwtex(STAGE_CS, 0, 0, 0, min(mip, compressedMips - 1));
+      const auto groupSizes = mipCompressor->getThreadGroupSizes();
+      const int groupSizeX = dag::divide_align_up(cubeMipSide, (int)groupSizes[0]);
+      const int groupSizeY = dag::divide_align_up(cubeMipSide, (int)groupSizes[1]);
+      mipCompressor->dispatch(groupSizeX, groupSizeY, 6);
     }
+    d3d::set_rwtex(STAGE_CS, 0, 0, 0, min(mip, compressedMips - 1));
+
     for (int faceNumber = face_start; faceNumber < face_start + face_count; ++faceNumber)
     {
       const int destCubeFace = mip + specularMips * (faceNumber + cube_index * 6);
-      if (mip <= 2)
-      {
-        compressor->updateFromFaceMip(light_probe::getManagedTex(rtCube.get())->getTexId(), faceNumber, mip,
-          min(mip, compressedMips - 1));
-        compressor->copyToMip(arrayTex, destCubeFace, 0, 0, min(mip, compressedMips - 1));
-      }
-      else
-      {
-        d3d::resource_barrier({lastMipsBc6HTarget.getArrayTex(), RB_RO_COPY_SOURCE,
-          (unsigned)(compressedMips * faceNumber + min(mip, compressedMips - 1)), 1});
-        arrayTex->updateSubRegion(lastMipsBc6HTarget.getArrayTex(),
-          BaseTexture::calcSubResIdx(min(mip, compressedMips - 1), faceNumber, compressedMips), 0, 0, 0, max(1, cubeMipSide),
-          max(1, cubeMipSide), 1, destCubeFace, 0, 0, 0);
-      }
+
+      d3d::resource_barrier({lastMipsBc6HTarget.getArrayTex(), RB_RO_COPY_SOURCE,
+        (unsigned)(compressedMips * faceNumber + min(mip, compressedMips - 1)), 1});
+      arrayTex->updateSubRegion(lastMipsBc6HTarget.getArrayTex(),
+        BaseTexture::calcSubResIdx(min(mip, compressedMips - 1), faceNumber, compressedMips), 0, 0, 0, max(1, cubeMipSide),
+        max(1, cubeMipSide), 1, destCubeFace, 0, 0, 0);
     }
   }
 }

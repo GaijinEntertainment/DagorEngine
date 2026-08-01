@@ -17,7 +17,7 @@ let isArray = @(v) type(v)=="array"
 let isString = @(v) type(v)=="string"
 let isFunction = @(v) type(v)=="function"
 
-function isDataBlock(obj) {
+function isDataBlock(obj): bool {
   //prefer this as it can handle any DataBlock binding and implementation
   if (obj?.paramCount!=null && obj?.blockCount != null)
     return true
@@ -27,7 +27,7 @@ function isDataBlock(obj) {
 let callableTypes = const ["function","table","instance"].totable()
 let recursivetypes = const ["table","array","class"].totable()
 
-function isCallable(v) {
+function isCallable(v): bool {
   let typ = typeof v
   return typ=="function" || (typ in callableTypes && (v.getfuncinfos() != null))
 }
@@ -47,7 +47,7 @@ function mkIteratee(func){
 /**
   Check for proper iteratee and so on - under construction
 */
-function funcCheckArgsNum(func, numRequired){
+function funcCheckArgsNum(func, numRequired): bool {
   let infos = func.getfuncinfos()
   let params = infos.parameters
   local plen = params.len() - 1
@@ -75,7 +75,7 @@ Split list into two arrays:
 one whose elements all satisfy predicate and one whose elements all do not satisfy predicate.
 predicate is transformed through iteratee to facilitate shorthand syntaxes.
 */
-function partition(list, predicate){
+function partition(list, predicate): array {
   let ok = []
   let not_ok = []
   predicate = mkIteratee(predicate)
@@ -121,7 +121,7 @@ function pluck(list, propertyName){
  * values the keys. For this to work, all of your table's values should be
  * unique and string serializable.
  */
-function invert(table) {
+function invert(table): table {
   let res = {}
   foreach (key, val in table)
     res[val] <- key
@@ -133,7 +133,7 @@ function invert(table) {
    if addParams=true), and for each key maps value func(tbl1Value, tbl2Value)
  * If value not exist in one of table it will be pushed to func as defValue
  */
-function tablesCombine(tbl1, tbl2, func=null, defValue = null, addParams = true) {
+function tablesCombine(tbl1, tbl2, func=null, defValue = null, addParams = true): table {
   let res = {}
   if (func == null)
     func = function (_val1, val2) {return val2}
@@ -170,12 +170,43 @@ function isEqual(val1, val2, customIsEqual={}){
   }
 
   if (valType == "instance") {
-    foreach(classRef, func in customIsEqual)
-      if (val1 instanceof classRef && val2 instanceof classRef)
+    if ("isEqual" in val1)
+      return val1.isEqual(val2)
+    foreach(classRef, func in customIsEqual) {
+      let t = type(classRef)
+      if (t=="function" && classRef(val1) && classRef(val2))
         return func(val1, val2)
+      if (t=="class" && val1 instanceof classRef && val2 instanceof classRef)
+        return func(val1, val2)
+    }
     return false
   }
 
+  return false
+}
+
+/**
+ * Return true for null, false, zero, empty string/table/array, and for an
+ * instance that reports itself empty via a customIsEmpty entry or its own
+ * isEmpty() method
+ */
+function isEmpty(val, customIsEmpty = {}) {
+  if (!val)
+    return true
+  let valType = type(val)
+  if (valType == "string" || valType == "table" || valType == "array")
+    return val.len() == 0
+  if (valType == "instance") {
+    if ("isEmpty" in val)
+      return val.isEmpty()
+    foreach(classRef, func in customIsEmpty) {
+      let t = type(classRef)
+      if (t=="function" && classRef(val))
+        return func(val)
+      if (t=="class" && val instanceof classRef)
+        return func(val)
+    }
+  }
   return false
 }
 /*
@@ -183,7 +214,7 @@ function isEqual(val1, val2, customIsEqual={}){
 * equals to python list(set(<list>)), and with optional hash function
 * (for example to extract key form list of tables to make unique by that)
 */
-function unique(list, hashfunc=null, replace=false){
+function unique(list, hashfunc=null, replace=false): array {
   let values = {}
 
   let res = []
@@ -221,7 +252,7 @@ function range(m, n=null, step=1) {
 }
 
 //not recursive isEqual, for simple lists or tables
-function isEqualSimple(list1, list2, compareFunc=null) {
+function isEqualSimple(list1, list2, compareFunc=null): bool {
   compareFunc = compareFunc ?? @(a,b) a!=b
   if (list1 == list2)
     return true
@@ -235,7 +266,7 @@ function isEqualSimple(list1, list2, compareFunc=null) {
 }
 
 //create from one-dimentional array two-dimentional array by slice it to rows with fixed amount of columns
-function arrayByRows(arr, columns) {
+function arrayByRows(arr, columns): array {
   let res = []
   for(local i = 0; i < arr.len(); i += columns)
     res.append(arr.slice(i, i + columns))
@@ -246,7 +277,7 @@ function arrayByRows(arr, columns) {
 **Chunk a single array into multiple arrays, each containing count or fewer items.
 */
 
-function chunk(list, count) {
+function chunk(list, count): array {
   if (count == null || count < 1) return []
   let result = []
   local i = 0
@@ -264,7 +295,7 @@ function chunk(list, count) {
  * element in the array (or a property name), returns an object with an index
  * of each item.
  */
-function indexBy(list, iteratee) {
+function indexBy(list, iteratee): table {
   let res = {}
   if (isString(iteratee)){
     foreach (val in list)
@@ -396,7 +427,7 @@ function do_in_scope(obj, doFn){
   return res
 }
 
-function insertGap(list, gap){
+function insertGap(list, gap): array {
   let res = []
   let len = list.len()
   foreach (idx, l in list){
@@ -424,6 +455,7 @@ return freeze({
   invert
   tablesCombine
   isEqual
+  isEmpty
   isEqualSimple
   prevIfEqual = @(prev, cur) isEqual(cur, prev) ? prev : cur
   funcCheckArgsNum

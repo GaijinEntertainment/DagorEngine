@@ -3,7 +3,6 @@ include "gbuffer.dshl"
 include "reprojected_motion_vectors.dshl"
 include "viewVecVS.dshl"
 include "dof/dof_composite.dshl"
-include "dynamic_resolution.dshl"
 
 //include "dacloud_mask.dshl"
 
@@ -82,8 +81,6 @@ shader dof_downsample
 
   INIT_READ_DEPTH_GBUFFER()
 
-  INIT_DYNAMIC_RESOLUTION(ps)
-
   if (dof_downsampled_frame_tex != NULL)
   {
     (ps) { downsampled_frame@tex2d = dof_downsampled_frame_tex; }
@@ -97,12 +94,14 @@ shader dof_downsample
     jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
     downsampled_close_depth_tex@smp2d = dof_downsampled_close_depth_tex;
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    dof_coc_history@smp2d = dof_coc_history;
+    dof_coc_history@tex2d = dof_coc_history;
     dof_mask@smp2d = dof_mask;
   }
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
   NEAR_FAR_DEFINES()
 
   hlsl(ps) {
+    #define dof_coc_history_samplerstate global_linear_clamp_sampler
     #include <dof/circleOfConfusion.hlsl>
 
     struct OutDownscaleDof
@@ -133,7 +132,7 @@ shader dof_downsample
     OutDownscaleDof dof_downsample_ps(VsOutput IN HW_USE_SCREEN_POS)
     {
       float4 pos = GET_SCREEN_POS(IN.pos);
-      float2 posDepth = pos.xy * current_dynamic_resolution_scale;
+      float2 posDepth = pos.xy;
       OutDownscaleDof OUT = (OutDownscaleDof) 0;
 
       // downsampled frame affects area 4x4 of original frame because of interpolation
@@ -146,7 +145,7 @@ shader dof_downsample
         //farDepth is calculated from area 2x2 for each mip level
         //so to get real min within the surrounding area we need to sample from left up quarter
         //todo: check if GatherRed op can make it faster
-        float2 far_depth_tc = IN.tc.xy * current_dynamic_resolution_scale;
+        float2 far_depth_tc = IN.tc.xy;
         ##if simplified_dof == on
         float4 depths = downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, far_depth_tc, int2(0, 0));
         farDepth = min4(depths.x, depths.y, depths.z, depths.w);
@@ -233,7 +232,7 @@ shader dof_downsample
         ##endif
       ##else  // FIXME : usage of fullsize depthmap requires usage of 16 samples
               // downsampled frame affects area 4x4 of original frame so we need to sample depth from area 4x4 too
-        float2 depthTc = IN.tc.xy * current_dynamic_resolution_scale + 0.0001;
+        float2 depthTc = IN.tc.xy + 0.0001;
         float4 depths = float4(
             depth_gbuf_read.SampleLevel(depth_gbuf_read_samplerstate, depthTc, 0, int2(-1,-1)).x,
             depth_gbuf_read.SampleLevel(depth_gbuf_read_samplerstate, depthTc, 0, int2(+1,-1)).x,

@@ -218,7 +218,7 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
     matricesBuffer.expandBuffer();
 
   gpu_object_placer_fill_ecs_query(*g_entity_mgr,
-    [&](ecs::EntityId eid, int gpu_object_placer__ri_asset_idx, float gpu_object_placer__visible_distance_squared,
+    [&](ecs::EntityId eid, rendinst::ClientRiexPool gpu_object_placer__ri_asset_idx, float gpu_object_placer__visible_distance_squared,
       bool gpu_object_placer__place_on_geometry, bool gpu_object_placer__use_strict_decal_placement,
       const Point2 &gpu_object_placer__spoofed_decal_size, float gpu_object_placer__min_gathered_triangle_size,
       float gpu_object_placer__triangle_edge_length_ratio_cutoff, float &gpu_object_placer__current_distance_squared,
@@ -324,7 +324,7 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
         return;
 
       gpu_object_placer__filled =
-        placeInBox(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx, gpu_object_placer__buffer_offset, transform,
+        placeInBox(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx.id(), gpu_object_placer__buffer_offset, transform,
           gpu_object_placer__object_scale_range, gpu_object_placer__object_up_vector_threshold,
           gpu_object_placer__distance_based_scale, gpu_object_placer__min_scale_radius, gpu_object_placer__place_on_geometry,
           gpu_object_placer__min_gathered_triangle_size, gpu_object_placer__triangle_edge_length_ratio_cutoff,
@@ -332,7 +332,7 @@ void VolumePlacer::performPlacing(const Point3 &camera_pos)
           gpu_object_placer__object_density, gpu_object_placer__surface_riex_handles, needGeometryGather);
 
       TMatrix decalTm = gpu_object_placer__use_original_tm_for_strict_decal_placement ? original_tm : transform;
-      moveDecals(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx, gpu_object_placer__buffer_offset, decalTm,
+      moveDecals(gpu_object_placer__buffer_size, gpu_object_placer__ri_asset_idx.id(), gpu_object_placer__buffer_offset, decalTm,
         gpu_object_placer__distance_emitter_buffer_size, gpu_object_placer__use_strict_decal_placement,
         gpu_object_placer__decal_buffer_size, gpu_object_placer__spoofed_decal_size, gpu_object_placer__place_on_geometry);
       updateDistanceEmitterMatrix(gpu_object_placer__buffer_offset, gpu_object_placer__distance_emitter_buffer_size,
@@ -901,7 +901,8 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
     numInstances = 0;
 
   gpu_object_placer_visibility_ecs_query(*g_entity_mgr,
-    [&](ECS_REQUIRE(ecs::Tag box_zone, eastl::true_type gpu_object_placer__filled) int gpu_object_placer__ri_asset_idx,
+    [&](ECS_REQUIRE(ecs::Tag box_zone, eastl::true_type gpu_object_placer__filled)
+          rendinst::ClientRiexPool gpu_object_placer__ri_asset_idx,
       int gpu_object_placer__buffer_size, float gpu_object_placer__current_distance_squared, int gpu_object_placer__buffer_offset,
       int gpu_object_placer__distance_emitter_buffer_size, int gpu_object_placer__decal_buffer_size, bool gpu_object_placer__opaque,
       bool gpu_object_placer__decal, bool gpu_object_placer__distorsion, bool gpu_object_placer__render_into_shadows,
@@ -919,7 +920,7 @@ void VolumePlacer::updateVisibility(const Frustum &frustum, ShadowPass for_shado
       vec4f center2 = v_add(tm.col3, tm.col3);
       if (frustum.testBoxExtentB(center2, extent2))
       {
-        int riIdx = gpu_object_placer__ri_asset_idx;
+        int riIdx = gpu_object_placer__ri_asset_idx.id();
         uint32_t layerBits = (gpu_object_placer__opaque << LAYER_OPAQUE) | (gpu_object_placer__decal << LAYER_DECAL) |
                              (gpu_object_placer__distorsion << LAYER_DISTORSION);
         uint32_t key = (riIdx & RI_IDX_MASK) | (layerBits << LAYER_BITS_SHIFT);
@@ -1018,22 +1019,6 @@ void VolumePlacer::RingBuffer::invalidate()
   dataStart = 0;
   dataEnd = 0;
   dataLastUsed = 0;
-}
-
-static int load_ri_asset(const ecs::string &ri_asset_name)
-{
-  using namespace rendinst;
-  const char *name = ri_asset_name.c_str();
-  int id = getRIGenExtraResIdx(name);
-  if (id < 0)
-  {
-    debug("GPUObjectsPlacer: auto adding <%s> as riExtra.", name);
-    auto riaddf = AddRIFlag::UseShadow | AddRIFlag::GameresPreLoaded; // Expected to be preloaded by `GpuObjectRiResourcePreload`
-    id = addRIGenExtraResIdx(name, -1, -1, riaddf);
-    if (id < 0)
-      logerr("loading <%s> riExtra failed", name);
-  }
-  return id;
 }
 
 static DistanceEmitterParameters get_distance_emitter_entity_params(ecs::EntityId gpu_object_placer__distance_emitter_eid)
@@ -1188,7 +1173,7 @@ ECS_REQUIRE(float gpu_object_placer__distance_to_rotation_from, float gpu_object
   bool gpu_object_placer__distance_affect_decals, Point2 gpu_object_placer__boxBorderX, Point2 gpu_object_placer__boxBorderY,
   Point2 gpu_object_placer__boxBorderZ, bool gpu_object_placer__use_strict_decal_placement)
 static __forceinline void gpu_object_placer_changed_es_event_handler(const ecs::Event &, const ecs::string &ri_gpu_object__name,
-  int &gpu_object_placer__ri_asset_idx, bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset,
+  rendinst::ClientRiexPool &gpu_object_placer__ri_asset_idx, bool &gpu_object_placer__filled, int &gpu_object_placer__buffer_offset,
   int &gpu_object_placer__decal_buffer_size, int &gpu_object_placer__distance_emitter_buffer_size, int &gpu_object_placer__buffer_size,
   int &gpu_object_placer__on_rendinst_geometry_count, int &gpu_object_placer__on_terrain_geometry_count,
   Point4 &gpu_object_placer__object_up_vector_threshold, ecs::EntityId &gpu_object_placer__distance_emitter_eid,
@@ -1211,7 +1196,11 @@ static __forceinline void gpu_object_placer_changed_es_event_handler(const ecs::
   if (lengthSq(upVector - Point3::xyz(gpu_object_placer__object_up_vector_threshold)) > 0.0001)
     gpu_object_placer__object_up_vector_threshold = Point4::xyzV(upVector, gpu_object_placer__object_up_vector_threshold.w);
 
-  gpu_object_placer__ri_asset_idx = load_ri_asset(ri_gpu_object__name);
+  // Expected to be preloaded by `GpuObjectRiResourcePreload`
+  gpu_object_placer__ri_asset_idx =
+    rendinst::ClientRiexPool::add(ri_gpu_object__name.c_str(), rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::GameresPreLoaded);
+  if (!gpu_object_placer__ri_asset_idx.valid())
+    logerr("loading <%s> riExtra failed", ri_gpu_object__name);
   selectClosestDistanceEmitter(gpu_object_placer__distance_emitter_eid, gpu_object_placer__distance_emitter_is_dirty,
     transform.getcol(3));
 }
@@ -1220,7 +1209,7 @@ static int gpu_object_placers_count = 0;
 
 ECS_TAG(render)
 static __forceinline void gpu_object_placer_create_es_event_handler(const ecs::EventEntityCreated &,
-  const ecs::string &ri_gpu_object__name, int &gpu_object_placer__ri_asset_idx, bool &gpu_object_placer__filled,
+  const ecs::string &ri_gpu_object__name, rendinst::ClientRiexPool &gpu_object_placer__ri_asset_idx, bool &gpu_object_placer__filled,
   int &gpu_object_placer__buffer_size, int &gpu_object_placer__on_rendinst_geometry_count,
   int &gpu_object_placer__on_terrain_geometry_count, int &gpu_object_placer__buffer_offset,
   int &gpu_object_placer__distance_emitter_buffer_size, int &gpu_object_placer__decal_buffer_size, bool gpu_object_placer__opaque,
@@ -1249,7 +1238,11 @@ static __forceinline void gpu_object_placer_create_es_event_handler(const ecs::E
   normalizeDef(upVector, Point3(0, 0, 0));
   gpu_object_placer__object_up_vector_threshold = Point4::xyzV(upVector, gpu_object_placer__object_up_vector_threshold.w);
 
-  gpu_object_placer__ri_asset_idx = load_ri_asset(ri_gpu_object__name);
+  // Expected to be preloaded by `GpuObjectRiResourcePreload`
+  gpu_object_placer__ri_asset_idx =
+    rendinst::ClientRiexPool::add(ri_gpu_object__name.c_str(), rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::GameresPreLoaded);
+  if (!gpu_object_placer__ri_asset_idx.valid())
+    logerr("loading <%s> riExtra failed", ri_gpu_object__name);
   rendinst::gpuobjects::init_r(); // Implicitly depends on it
   if (!volume_placer_mgr)
     init_volume_placer_mgr();

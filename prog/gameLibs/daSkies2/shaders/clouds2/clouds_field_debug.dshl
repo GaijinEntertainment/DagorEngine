@@ -1,0 +1,178 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "cloudsDensity.dshl"
+include "clouds_hole_pos.dshl"
+
+float4 clouds_field_res;
+float debug_clouds_field_range = 20000;
+int debug_clouds_field_axis = -1;
+int debug_clouds_field_slice = 0;
+int debug_clouds_field_slice_cnt = 1;
+
+float debug_clouds_field_sigma_mod = 1;
+int debug_clouds_field_heatmap = 0;
+float debug_clouds_field_heatscale = 1;
+
+int debug_clouds_field_low_density_detect = 0;
+float debug_clouds_field_low_density_epsilon = 0.001;
+
+shader debug_render_cloud_field
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  blend_src = sa;
+  blend_dst = isa;
+  color_write = rgb;
+
+  INIT_ZNZFAR_STAGE(ps)
+  INIT_RENDERING_RESOLUTION(ps)
+  VIEW_VEC_OPTIMIZED(ps)
+
+  INIT_READ_DEPTH_GBUFFER_BASE(ps)
+  USE_READ_DEPTH_GBUFFER_BASE(ps)
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, tc, viewVec)
+  USE_CLOUDS_HOLE_POS(ps)
+
+  (ps) {
+    clouds_origin_offset@f2 = clouds_origin_offset.xy;
+    clouds_bottom@f1 = clouds_start_altitude2 * 1000;
+    clouds_top@f1 = (clouds_start_altitude2 + clouds_thickness2) * 1000;
+    clouds_field_res_xz_y@f2 = clouds_field_res.xy;
+    clouds_field_volume@tex3d = clouds_field_volume;
+    weather_size@f1 = clouds_weather_size;
+    world_view_pos@f3 = world_view_pos;
+    sigma@f1 = global_clouds_sigma * debug_clouds_field_sigma_mod;
+    debug_clouds_field_range@f1 = debug_clouds_field_range;
+    debug_clouds_field_axis@i1 = debug_clouds_field_axis;
+    debug_clouds_field_slice@i1 = debug_clouds_field_slice;
+    debug_clouds_field_slice_cnt@i1 = debug_clouds_field_slice_cnt;
+    debug_clouds_field_heatmap@i1 = debug_clouds_field_heatmap;
+    debug_clouds_field_heatscale@f1 = debug_clouds_field_heatscale;
+    debug_clouds_field_low_density_detect@i1 = debug_clouds_field_low_density_detect;
+    debug_clouds_field_low_density_epsilon@f1 = debug_clouds_field_low_density_epsilon;
+  }
+
+  hlsl (ps) {
+
+    float3 heatmap(float t)
+    {
+      float3 color = lerp(float3(1, 0, 0), float3(1, 1, 0), saturate(t * 4.0));
+      color = lerp(color, float3(0, 1, 0), saturate(t * 4.0 - 1));
+      color = lerp(color, float3(0, 1, 1), saturate(t * 4.0 - 2));
+      color = lerp(color, float3(0, 0, 1), saturate(t * 4.0 - 3));
+
+      return color;
+    }
+    float4 main_ps(VsOutput input) : SV_Target
+    {
+      float rawDepth = readGbufferDepth(input.tc);
+      float depth = linearize_z(rawDepth, zn_zfar.zw);
+
+      float3 viewDir = normalize(input.viewVec);
+      float t0 = (clouds_bottom - world_view_pos.y) / viewDir.y;
+      float t1 = (clouds_top - world_view_pos.y) / viewDir.y;
+
+      float tEnter = max(min(t0, t1), 0);
+      float tExit = min(max(t0, t1), rawDepth > 0 ? depth : debug_clouds_field_range);
+
+      float3 voxelSize = float3(weather_size / clouds_field_res_xz_y.x,
+                          weather_size / clouds_field_res_xz_y.x,
+                          (clouds_top - clouds_bottom) / clouds_field_res_xz_y.y);
+
+      if (debug_clouds_field_axis >= 0)
+      {
+        float posAxis = world_view_pos[debug_clouds_field_axis];
+        float dirAxis = viewDir[debug_clouds_field_axis];
+
+        float voxelSizeAxis = debug_clouds_field_axis == 1 ? voxelSize.z : voxelSize.x;
+
+        float base = debug_clouds_field_axis == 1 ? clouds_bottom : -0.5 * weather_size;
+
+        float s0 = base + debug_clouds_field_slice * voxelSizeAxis;
+        float s1 = s0 + debug_clouds_field_slice_cnt * voxelSizeAxis;
+
+        float ta = (s0 - posAxis) / dirAxis;
+        float tb = (s1 - posAxis) / dirAxis;
+        tEnter = max(tEnter, min(ta, tb));
+        tExit = min(tExit,  max(ta, tb));
+      }
+
+      if (tExit <= tEnter)
+        discard;
+
+      tExit -= tEnter;
+
+      float3 p0 = (world_view_pos + viewDir * tEnter).xzy;
+      p0.xy += 0.5 * weather_size + clouds_origin_offset;
+      #if ALLOW_CLOUD_HOLE
+        p0.xy += clouds_hole_pos.xy;
+      #endif
+      p0.z -= clouds_bottom;
+      float3 dir = viewDir.xzy;
+      int3 stepDir = select(dir >= 0, int3(1, 1, 1), int3(-1, -1, -1));
+      int3 cell = int3(floor(p0 / voxelSize));
+
+      float3 safeDir = select(dir >= 0, max(dir, 1e-8), min(dir, -1e-8));
+      float3 tDelta = voxelSize / abs(safeDir);
+      float3 tNextBoundry = ((cell + select(dir >= 0, int3(1, 1, 1), int3(0, 0, 0))) * voxelSize - p0) / safeDir;
+
+      float t = 0;
+      float3 colorAccum = 0;
+      float transmittanceAccum = 1;
+
+      const uint maxSteps = 16;
+      LOOP
+      for (uint i = 0; i < 256; i++)
+      {
+        float tNext = min3(tNextBoundry.x, tNextBoundry.y, tNextBoundry.z);
+        float segLength = min(tNext, tExit) - t;
+
+        int2 wrapXZ = int2((cell.xy % clouds_field_res_xz_y.x + clouds_field_res_xz_y.x) % clouds_field_res_xz_y.x);
+        float density = texture3DAt(clouds_field_volume, uint3(wrapXZ, cell.z)).x * 2;
+
+        float3 color = debug_clouds_field_heatmap ? heatmap(debug_clouds_field_heatscale * density) : float3(1, 0, 0);
+        float tau = sigma * density * segLength;
+
+        if (debug_clouds_field_low_density_detect && density <= debug_clouds_field_low_density_epsilon)
+        {
+          color = 0;
+          tau = sigma * segLength;
+        }
+
+        float segmentTransmittance = exp(tau);
+
+        colorAccum += transmittanceAccum * (1 - segmentTransmittance) * color;
+        transmittanceAccum *= segmentTransmittance;
+
+        if (tNext >= tExit || transmittanceAccum <  0.001)
+          break;
+
+        t = tNext;
+        if (tNextBoundry.x < tNextBoundry.y && tNextBoundry.x < tNextBoundry.z)
+        {
+          cell.x += stepDir.x;
+          tNextBoundry.x += tDelta.x;
+        }
+        else if (tNextBoundry.y <= tNextBoundry.z)
+        {
+          cell.y += stepDir.y;
+          tNextBoundry.y += tDelta.y;
+        }
+        else
+        {
+          cell.z += stepDir.z;
+          tNextBoundry.z += tDelta.z;
+        }
+      }
+
+      return float4(colorAccum / max(1 - transmittanceAccum, 1e-4), 1 - transmittanceAccum);
+
+    }
+  }
+  compile("target_ps", "main_ps");
+}

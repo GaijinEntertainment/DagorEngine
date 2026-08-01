@@ -3,6 +3,8 @@
 #define INSIDE_RENDERER 1
 #include <main/appProfile.h>
 #include <render/world/frameGraphHelpers.h>
+#include "frameGraphNodes.h"
+#include <daEditorE/editorCommon/inGameEditor.h>
 #include <render/daFrameGraph/daFG.h>
 #include <3d/dag_render.h>
 #include <EASTL/fixed_vector.h>
@@ -57,14 +59,41 @@ eastl::unique_ptr<DebugLightProbeSpheres> debugLightProbeMirrorSphere;
 eastl::unique_ptr<DebugLightProbeShapeRenderer> debugShapeRenderer;
 DynamicShaderHelper static_shadow_debug_mesh_shader;
 
+namespace var
+{
+static ShaderVariableInfo source_depth_for_copy_const_no("source_depth_for_copy_const_no");
+}
+
+static dafg::NodeHandle makeUpsampleDepthForDebugNode()
+{
+  return dafg::register_node("upsample_depth_for_debug_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto downsampledDepthHndl =
+      registry.readTexture("depth_for_postfx").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+
+    registry.requestRenderPass().depth(
+      registry.createTexture2d("depth_for_debug", {get_gbuffer_depth_format() | TEXCF_RTARGET, registry.getResolution<2>("display")}));
+
+    return [downsampledDepthHndl, renderer = PostFxRenderer("copy_depth")] {
+      d3d::settex(var::source_depth_for_copy_const_no.get_int(), downsampledDepthHndl.get());
+      d3d::set_sampler(STAGE_PS, var::source_depth_for_copy_const_no.get_int(), d3d::request_sampler({}));
+      renderer.render();
+      d3d::settex(var::source_depth_for_copy_const_no.get_int(), nullptr);
+    };
+  });
+}
+
 static void setupTargetForDebug(dafg::Registry registry)
 {
-  registry.requestRenderPass().color({"target_for_debug"}).depthReadTestOnly("depth_for_postfx");
+  const char *depthTexName = WRDispatcher::isUpsampling() ? "depth_for_debug" : "depth_for_postfx";
+  registry.requestRenderPass().color({"target_for_debug"}).depthReadTestOnly(depthTexName);
 }
 
 void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handles)
 {
   auto ns = dafg::root() / "debug";
+
+  if (WRDispatcher::isUpsampling())
+    fg_node_handles.emplace_back(makeUpsampleDepthForDebugNode());
 
 #if DAGOR_DBGLEVEL > 0
   // low latency node
@@ -486,8 +515,9 @@ void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handle
       {
         if (auto *lmeshMgr = WRDispatcher::getLandMeshManager())
         {
-          lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
-          lmeshRenderer->render(*lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, cameraPos);
+          LandMeshRenderDesc desc;
+          desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+          lmeshRenderer->render(*lmeshMgr, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, cameraPos, HmapOrigin(cameraPos));
         }
       }
       if (g_entity_mgr)
@@ -518,6 +548,13 @@ void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handle
     };
   }));
 #endif
+
+#if DAGOR_DBGLEVEL == 0 && _TARGET_PC
+  if (has_in_game_editor())
+#elif DAGOR_DBGLEVEL == 0
+  if constexpr (false)
+#endif
+    fg_node_handles.emplace_back(makeShowSceneDebugNode());
 }
 
 ECS_TAG(render)

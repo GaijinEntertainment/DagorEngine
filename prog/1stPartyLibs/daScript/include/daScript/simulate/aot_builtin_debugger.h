@@ -4,6 +4,8 @@ namespace das {
 
     DAS_API DebugAgentPtr makeDebugAgent ( const void * pClass, const StructInfo * info, Context * context );
     DAS_API void debuggerStackWalk ( Context & context, const LineInfo & lineInfo );
+    DAS_API char * debuggerGetStackWalk ( Context & context, const LineInfo & lineInfo,
+        bool args, bool vars, bool outOfScope, bool topOnly, Context * toContext, LineInfoArg * at );
     DAS_API void debuggerSetContextSingleStep ( Context & context, bool step );
 
     DAS_API void makeDataWalker ( const void * pClass, const StructInfo * info,

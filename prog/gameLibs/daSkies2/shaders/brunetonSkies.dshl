@@ -21,11 +21,22 @@ endmacro
 macro USE_SKIES_LUT(code)
   SKIES_LUT_ENCODING(code)
   hlsl(code) {
+    //mie lut alpha is the polarizable share of the non-mie lut, not color: keep it out of the sum
     float4 sample_skies_scattering_color_tc(float2 lut_tc, float3 view, float mie_phase)
     {
       float4 noPhased = tex2Dlod(skies_view_lut_tex, float4(lut_tc, 0,0));
-      float4 miePhased = tex2Dlod(skies_view_lut_mie_tex, float4(lut_tc, 0,0))*mie_phase;
-      return noPhased + miePhased;
+      float4 mieL = tex2Dlod(skies_view_lut_mie_tex, float4(lut_tc, 0,0));
+      return float4(noPhased.rgb + mieL.rgb*mie_phase, noPhased.a);
+    }
+    //ray_mul (polarizer emulation) darkens only the polarizable share of the non-mie lut
+    //(primary sun Rayleigh+MS): the secondary sun trace folded into the same lut, including
+    //its mie aureole, and other additive light stay bright
+    float4 sample_skies_scattering_color_tc(float2 lut_tc, float3 view, float mie_phase, float ray_mul)
+    {
+      float4 noPhased = tex2Dlod(skies_view_lut_tex, float4(lut_tc, 0,0));
+      float4 mieL = tex2Dlod(skies_view_lut_mie_tex, float4(lut_tc, 0,0));
+      noPhased.rgb *= lerp(1., ray_mul, mieL.a);
+      return float4(noPhased.rgb + mieL.rgb*mie_phase, noPhased.a);
     }
     float2 get_skies_lut_tc(float2 screen_texcoord, float3 view)
     {

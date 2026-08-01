@@ -9,6 +9,7 @@
 #include <generic/dag_align.h>
 #include <3d/gpuLatency.h>
 #include <drv_returnAddrStore.h>
+#include <gpuVendor.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_statDrv.h>
 #include <stereoHelper.h>
@@ -123,7 +124,7 @@ TextureMipsCopyInfo drv3d_dx12::calculate_texture_mips_copy_info(const Image &te
     auto subResInfo = calculate_texture_mip_info(texture, MipMapIndex::make(j));
     copy = {{offset, subResInfo.footprint}, calculate_subresource_index(j, array_slice, 0, mip_levels, array_size), {0, 0, 0}};
     G_ASSERT(copy.layout.Offset % D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT == 0);
-    offset += subResInfo.rowCount * subResInfo.footprint.RowPitch * subResInfo.footprint.Depth;
+    offset += uint64_t{subResInfo.rowCount} * subResInfo.footprint.RowPitch * subResInfo.footprint.Depth;
     offset = (offset + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
   }
   return copies;
@@ -144,7 +145,7 @@ void FrameInfo::init(ID3D12Device *device)
 
   progressEvent.reset(CreateEvent(nullptr, FALSE, FALSE, nullptr));
 }
-void FrameInfo::shutdown(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
+void FrameInfo::shutdown(Device &device, DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
 {
   // have to check if the queue group was initialized properly to wait on frame progress
   // also if progress is 0, this frame info was never used
@@ -159,12 +160,8 @@ void FrameInfo::shutdown(DeviceQueueGroup &queue_group, PipelineManager &pipe_ma
   preFrameCommands.shutdown();
   frameConcurrentCommands.shutdown();
 
-  for (auto &&prog : deletedPrograms)
-    pipe_man.removeProgram(prog);
+  pipe_man.removePrograms(deletedPrograms, deletedGraphicPrograms);
   deletedPrograms.clear();
-
-  for (auto &&prog : deletedGraphicPrograms)
-    pipe_man.removeProgram(prog);
   deletedGraphicPrograms.clear();
 
   deletedShaderModules.clear();
@@ -172,7 +169,7 @@ void FrameInfo::shutdown(DeviceQueueGroup &queue_group, PipelineManager &pipe_ma
   resourceViewHeaps = ShaderResourceViewDescriptorHeapManager{};
   samplerHeaps = SamplerDescriptorHeapManager{};
 
-  backendQueryManager.shutdown();
+  backendQueryManager.shutdown(device);
   progress = 0;
 }
 
@@ -199,12 +196,8 @@ int64_t FrameInfo::beginFrame(DeviceQueueGroup &queue_group, PipelineManager &pi
     pipe_man.asyncPipelineCompiler.finishAllCompilations();
 #endif
 
-  for (auto &&prog : deletedPrograms)
-    pipe_man.removeProgram(prog);
+  pipe_man.removePrograms(deletedPrograms, deletedGraphicPrograms);
   deletedPrograms.clear();
-
-  for (auto &&prog : deletedGraphicPrograms)
-    pipe_man.removeProgram(prog);
   deletedGraphicPrograms.clear();
 
   deletedShaderModules.clear();
@@ -221,7 +214,7 @@ int64_t FrameInfo::beginFrame(DeviceQueueGroup &queue_group, PipelineManager &pi
   return waitTicks;
 }
 
-void FrameInfo::preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
+void FrameInfo::preRecovery(Device &device, DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
 {
   wait_for_frame_progress_with_event(queue_group, progress, progressEvent.get(), "FrameInfo::preRecovery");
 
@@ -231,12 +224,8 @@ void FrameInfo::preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe
   preFrameCommands.shutdown();
   frameConcurrentCommands.shutdown();
 
-  for (auto &&prog : deletedPrograms)
-    pipe_man.removeProgram(prog);
+  pipe_man.removePrograms(deletedPrograms, deletedGraphicPrograms);
   deletedPrograms.clear();
-
-  for (auto &&prog : deletedGraphicPrograms)
-    pipe_man.removeProgram(prog);
   deletedGraphicPrograms.clear();
 
   // handle?
@@ -244,7 +233,7 @@ void FrameInfo::preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe
   deletedShaderModules.clear();
   resourceViewHeaps = ShaderResourceViewDescriptorHeapManager{};
   samplerHeaps = SamplerDescriptorHeapManager{};
-  backendQueryManager.shutdown();
+  backendQueryManager.shutdown(device);
   progress = 0;
 }
 
@@ -517,6 +506,10 @@ void DeviceContext::initMode(CommandExecutionMode mode)
 {
   const DataBlock *dxCfg = ::dgs_get_settings()->getBlockByNameEx("dx12");
   minPipelinesToCompilePerFrame = dxCfg->getInt("minPipelinesToCompilePerFrame", 10);
+#if _TARGET_XBOX
+  xboxMainThreadFramePacing = dxCfg->getBool("xboxMainThreadFramePacing", true);
+  back.swapchain.setMainThreadFramePacing(xboxMainThreadFramePacing);
+#endif
   bool recordResourceStates = dxCfg->getBool("recordResourceStates", false);
   uint32_t framesToInitiallyRecord = dxCfg->getInt("recordResourceStatesFrames", 0);
   ResourceUsageHistoryDataSetDebugger::configure(recordResourceStates, framesToInitiallyRecord);
@@ -529,7 +522,10 @@ void DeviceContext::initMode(CommandExecutionMode mode)
   constexpr uint32_t command_stream_default_size = 1024 * 1024 / 4;
 #endif
 
-  commandStream.resize(dxCfg->getInt("commandStreamSize", command_stream_default_size));
+  const bool useMirror = dxCfg->getBool("commandStreamMirror", true);
+  commandStream.resize(dxCfg->getInt("commandStreamSize", command_stream_default_size), useMirror);
+  logdbg("DX12: command stream ring size %u bytes, mirror %s", static_cast<unsigned>(commandStream.getRingSize()),
+    commandStream.usesMirror() ? "on" : "off (fallback storage)");
 
 #if !DX12_FIXED_EXECUTION_MODE
   setExecutionMode(mode);
@@ -1548,12 +1544,13 @@ void report_metrics(VariantContainerNullMetricsCollector<A> &)
 void DeviceContext::shutdownFrameStates()
 {
   back.sharedContextState.frames.walkAll([DX12_CAPTURE_DEF_EQ](auto &frame) //
-    { frame.shutdown(device.queues, device.pipeMan); });
+    { frame.shutdown(device, device.queues, device.pipeMan); });
 
   back.sharedContextState.bindlessSetManager.shutdown();
 
   back.sharedContextState.drawIndirectSignatures.reset();
   back.sharedContextState.drawIndexedIndirectSignatures.reset();
+  back.sharedContextState.dispatchRaySignatures.reset();
   back.sharedContextState.dispatchIndirectSignature.Reset();
   back.sharedContextState.readBackManager = {};
 
@@ -1579,8 +1576,10 @@ void DeviceContext::pushConstRegisterData(uint32_t stage, eastl::span<const Cons
 {
   // Const buffers size must be aligned
   const auto size = align_value<size_t>(sizeof(ConstRegisterType) * data.size(), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-  auto update =
-    device.resources.allocatePushMemory(device.getDXGIAdapter(), device, size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+  auto update = device.resources
+                  .allocatePushMemory(device.getDXGIAdapter(), device, size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
+                    eastl::distance(front.latchedFrameSet.begin(), front.recordingLatchedFrame))
+                  .value_or({});
   if (!update)
   {
     return;
@@ -1637,6 +1636,7 @@ void DeviceContext::setUAVTexture(uint32_t stage, size_t unit, Image *image, Ima
 
 void DeviceContext::setSRVBuffer(uint32_t stage, size_t unit, BufferResourceReferenceAndShaderResourceView buffer)
 {
+  G_FAST_ASSERT(buffer.srv.ptr != 0);
   auto cmd = make_command<CmdSetSRVBuffer>(stage, static_cast<uint32_t>(unit), buffer);
   commandStream.pushBack(cmd);
   immediateModeExecute();
@@ -1644,6 +1644,7 @@ void DeviceContext::setSRVBuffer(uint32_t stage, size_t unit, BufferResourceRefe
 
 void DeviceContext::setUAVBuffer(uint32_t stage, size_t unit, BufferResourceReferenceAndUnorderedResourceView buffer)
 {
+  G_FAST_ASSERT(buffer.uav.ptr != 0);
   auto cmd = make_command<CmdSetUAVBuffer>(stage, static_cast<uint32_t>(unit), buffer);
   commandStream.pushBack(cmd);
   immediateModeExecute();
@@ -1800,54 +1801,10 @@ void DeviceContext::draw(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t start, uint32_t 
   immediateModeExecute(true);
 }
 
-void DeviceContext::drawUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t stride, const void *vertex_data,
-  uint32_t num_prims_for_stats)
-{
-  auto vertexDataBytes = count * stride;
-  // vertex data needs to be dword aligned or some GPUs will render garbage
-  auto vertexData = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, vertexDataBytes, sizeof(uint32_t));
-  if (!vertexData)
-  {
-    return;
-  }
-  memcpy(vertexData.cpuPointer(), vertex_data, vertexDataBytes);
-  vertexData.flush();
-
-  auto cmd = make_command<CmdDrawUserData>(top, count, stride, vertexData, num_prims_for_stats);
-  commandStream.pushBack(cmd);
-  immediateModeExecute(true);
-}
-
 void DeviceContext::drawIndexed(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t index_start, uint32_t count, int32_t vertex_base,
   uint32_t first_instance, uint32_t instance_count, uint32_t num_prims_for_stats)
 {
   auto cmd = make_command<CmdDrawIndexed>(top, index_start, count, vertex_base, first_instance, instance_count, num_prims_for_stats);
-  commandStream.pushBack(cmd);
-  immediateModeExecute(true);
-}
-
-void DeviceContext::drawIndexedUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t vertex_stride, const void *vertex_data,
-  uint32_t vertex_count, const void *index_data, uint32_t num_prims_for_stats)
-{
-  auto vertexDataBytes = vertex_count * vertex_stride;
-  // vertex data needs to be dword aligned or some GPUs will render garbage
-  auto vertexData = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, vertexDataBytes, sizeof(uint32_t));
-  if (!vertexData)
-  {
-    return;
-  }
-  auto indexDataBytes = count * sizeof(uint16_t);
-  auto indexData = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, indexDataBytes, sizeof(uint16_t));
-  if (!indexData)
-  {
-    return;
-  }
-  memcpy(vertexData.cpuPointer(), vertex_data, vertexDataBytes);
-  memcpy(indexData.cpuPointer(), index_data, indexDataBytes);
-  vertexData.flush();
-  indexData.flush();
-
-  auto cmd = make_command<CmdDrawIndexedUserData>(top, count, vertex_stride, vertexData, indexData, num_prims_for_stats);
   commandStream.pushBack(cmd);
   immediateModeExecute(true);
 }
@@ -2120,12 +2077,12 @@ void DeviceContext::destroyBuffer(BufferState buffer)
   }
 }
 
-BufferState DeviceContext::discardBuffer(BufferState to_discared, DeviceMemoryClass memory_class, FormatStore format,
+void DeviceContext::discardBuffer(BufferState &to_discared_ref, DeviceMemoryClass memory_class, FormatStore format,
   uint32_t struct_size, bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name)
 {
   DX12_LOCK_FRONT();
-  return device.resources.discardBuffer(device.getDXGIAdapter(), device, eastl::move(to_discared), memory_class, format, struct_size,
-    raw_view, struct_view, flags, cflags, name, front.frameIndex,
+  to_discared_ref = device.resources.discardBuffer(device.getDXGIAdapter(), device, eastl::move(to_discared_ref), memory_class, format,
+    struct_size, raw_view, struct_view, flags, cflags, name, front.frameIndex,
     device.config.features.test(DeviceFeaturesConfig::DISABLE_BUFFER_SUBALLOCATION));
 }
 
@@ -2222,7 +2179,22 @@ void DeviceContext::finishFrame(uint32_t frame_id, bool present_on_swapchain)
 
   callFrameEndCallbacks();
 
+#if _TARGET_XBOX
+  FRAME_PIPELINE_TOKEN pacingFrameToken = {};
+  const bool acquirePacingToken = xboxMainThreadFramePacing && present_on_swapchain;
+  if (acquirePacingToken)
+    pacingFrameToken = back.swapchain.acquireFrameToken(device.device.get());
+#endif
+
   DX12_LOCK_FRONT();
+
+#if _TARGET_XBOX
+  if (acquirePacingToken)
+  {
+    commandStream.pushBack(make_command<CmdSwapchainOnFrameBegin>(pacingFrameToken));
+    immediateModeExecute();
+  }
+#endif
 
 #if DX12_RECORD_TIMING_DATA
   auto &frameTiming = front.timingHistory[front.frameIndex % timing_history_length];
@@ -2884,7 +2856,7 @@ void DeviceContext::preRecovery(bool is_device_lost)
 
   closeFrameEndCallbacks();
 
-  back.sharedContextState.preRecovery(device.queues, device.pipeMan);
+  back.sharedContextState.preRecovery(device, device.queues, device.pipeMan);
 
   // clear out all vectors
   front.latchedFrameSet.fill({});
@@ -2902,24 +2874,25 @@ void DeviceContext::preRecovery(bool is_device_lost)
   back.swapchain.preRecovery();
 }
 
-void DeviceContext::ContextState::preRecovery(DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
+void DeviceContext::ContextState::preRecovery(Device &device, DeviceQueueGroup &queue_group, PipelineManager &pipe_man)
 {
   // simply set to zero descriptor for now, we don't have a valid one for that
   onFrameStateInvalidate({0});
   purgeAllBindings();
 
-  frames.walkAll([&queue_group, &pipe_man](auto &frame) //
-    { frame.preRecovery(queue_group, pipe_man); });
+  frames.walkAll([&device, &queue_group, &pipe_man](auto &frame) //
+    { frame.preRecovery(device, queue_group, pipe_man); });
 
   bindlessSetManager.preRecovery();
 
   drawIndirectSignatures.reset();
   drawIndexedIndirectSignatures.reset();
+  dispatchRaySignatures.reset();
   dispatchIndirectSignature.Reset();
-  activeTextureUploads.clear();
+  textureConcurrentTextureCopyManager.reset();
 
   graphicsCommandListBarrierBatch.purgeAll();
-  pendingPreFrameBarriers.clear();
+  pendingPreFrameBarrierBatch.purgeAll();
 
   initialResourceStateSet = {};
   resourceStates = {};
@@ -3251,25 +3224,6 @@ void DeviceContext::initXeSS()
 
 void DeviceContext::initFSR() { fsrWrapper.fsrInit(); }
 
-void DeviceContext::initFsr2()
-{
-#if !_TARGET_XBOX
-  if (fsr2Wrapper.init(static_cast<void *>(device.device.as<ID3D12Device>())))
-  {
-    int fsr2Quality = dgs_get_settings()->getBlockByNameEx("video")->getInt("fsr2Quality", -1);
-    const int FSR2_AA_MODE_IDX = 7;
-    bool fsrEnabled = dgs_get_settings()->getBlockByNameEx("video")->getInt("antiAliasingMode", -1) == FSR2_AA_MODE_IDX;
-    if (fsrEnabled && fsr2Quality >= 0)
-    {
-      Extent2D targetResolution = stereo_config_callback && stereo_config_callback->desiredStereoRender()
-                                    ? to_extent_2d(stereo_config_callback->desiredRendererSize())
-                                    : front.swapchain.getCurrentExtent();
-      fsr2Wrapper.createContext(targetResolution.width, targetResolution.height, fsr2Quality);
-    }
-  }
-#endif
-}
-
 void DeviceContext::initDLSS()
 {
 #if !_TARGET_XBOX
@@ -3311,9 +3265,22 @@ void DeviceContext::initStreamline([[maybe_unused]] DXGIAdapter *adapter)
                                    extensionCommandCount.CommandCount > 0;
 
   StreamlineAdapter::SupportOverrideMap supportOverride;
+  constexpr uint32_t kFeatureDLSS = 0;
   constexpr uint32_t kFeatureDLSS_G = 1000;
+  constexpr uint32_t kFeatureDLSS_RR = 1001;
   if (!hasVideoExtensionCommands)
     supportOverride[kFeatureDLSS_G] = nv::SupportState::NoVideoExtensions;
+
+  DXGI_ADAPTER_DESC1 adapterDesc{};
+  if (adapter && DX12_CHECK_OK(adapter->GetDesc1(&adapterDesc)) &&
+      gpu::is_nvidia_turing_without_tensor_cores(adapterDesc.VendorId, adapterDesc.DeviceId))
+  {
+    logdbg("DX12: GPU %04X has no tensor cores, DLSS features will not be requested", adapterDesc.DeviceId);
+    supportOverride[kFeatureDLSS] = nv::SupportState::AdapterNotSupported;
+    supportOverride[kFeatureDLSS_G] = nv::SupportState::AdapterNotSupported;
+    supportOverride[kFeatureDLSS_RR] = nv::SupportState::AdapterNotSupported;
+  }
+
   if (StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::DX12, supportOverride))
   {
     const auto index = device.device.getVersionIndex();
@@ -3356,13 +3323,6 @@ void DeviceContext::shutdownStreamline()
 void DeviceContext::shutdownXess() { xessWrapper.xessShutdown(); }
 
 void DeviceContext::shutdownFSR() { fsrWrapper.fsrShutdown(); }
-
-void DeviceContext::shutdownFsr2()
-{
-#if !_TARGET_XBOX
-  fsr2Wrapper.shutdown();
-#endif
-}
 
 void DeviceContext::createDlssFeature(bool stereo_render, int output_width, int output_height)
 {
@@ -3520,36 +3480,6 @@ void DeviceContext::executeFSR(const amd::FSR::UpscalingArgs &params)
   DX12_LOCK_FRONT();
   auto cmd = make_command<CmdDispatchFSR>(args);
   VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatchFSR used during a generic render pass");
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-}
-
-void DeviceContext::executeFSR2(const Fsr2Params &params)
-{
-  auto cast_to_image = [](BaseTexture *src) {
-    if (src)
-      return cast_to_texture_base(src)->getDeviceImage();
-    return (Image *)nullptr;
-  };
-  Fsr2ParamsDx12 paramsDx12{};
-  paramsDx12.inColor = cast_to_image(params.color);
-  paramsDx12.inDepth = cast_to_image(params.depth);
-  paramsDx12.inMotionVectors = cast_to_image(params.motionVectors);
-  paramsDx12.outColor = cast_to_image(params.output);
-  paramsDx12.frameTimeDelta = params.frameTimeDelta;
-  paramsDx12.sharpness = params.sharpness;
-  paramsDx12.jitterOffsetX = params.jitterOffsetX;
-  paramsDx12.jitterOffsetY = params.jitterOffsetY;
-  paramsDx12.motionVectorScaleX = params.motionVectorScaleX;
-  paramsDx12.motionVectorScaleY = params.motionVectorScaleY;
-  paramsDx12.renderSizeX = params.renderSizeX;
-  paramsDx12.renderSizeY = params.renderSizeY;
-  paramsDx12.cameraNear = params.cameraNear;
-  paramsDx12.cameraFar = params.cameraFar;
-  paramsDx12.cameraFovAngleVertical = params.cameraFovAngleVertical;
-  DX12_LOCK_FRONT();
-  auto cmd = make_command<CmdDispatchFSR2>(paramsDx12);
-  VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatchFSR2 used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -3858,7 +3788,10 @@ void DeviceContext::pushBufferUpdateNoLock(BufferResourceReferenceAndOffset buff
     logwarn("DX12: pushBufferUpdateNoLock: buffer.buffer was null, skipping");
     return;
   }
-  auto update = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, data_size, 1);
+  auto update = device.resources
+                  .allocatePushMemory(device.getDXGIAdapter(), device, data_size, 1,
+                    eastl::distance(front.latchedFrameSet.begin(), front.recordingLatchedFrame))
+                  .value_or({});
   if (!update)
   {
     logwarn("DX12: pushBufferUpdateNoLock: update was null, skipping");
@@ -4090,7 +4023,10 @@ void DeviceContext::aliasFlush(GpuPipeline gpu_pipeline)
 HostDeviceSharedMemoryRegion DeviceContext::allocatePushMemory(uint32_t size, uint32_t alignment)
 {
   DX12_LOCK_FRONT();
-  return device.resources.allocatePushMemory(device.getDXGIAdapter(), device, size, alignment);
+  return device.resources
+    .allocatePushMemory(device.getDXGIAdapter(), device, size, alignment,
+      eastl::distance(front.latchedFrameSet.begin(), front.recordingLatchedFrame))
+    .value_or({});
 }
 
 
@@ -4301,14 +4237,7 @@ void DeviceContext::ExecutionContext::setSRVTexture(uint32_t stage, uint32_t uni
     image->dbgValidateImageViewStateCompatibility(view_state);
     if (!image->getGlobalSubResourceIdBase().isValid())
     {
-      auto newEnd = eastl::remove_if(contextState.activeTextureUploads.begin(), contextState.activeTextureUploads.end(),
-        [this, image](const auto &record) {
-          const bool imageMatches = record.target == image;
-          if (imageMatches)
-            hostToDeviceTextureCopy(record);
-          return imageMatches;
-        });
-      contextState.activeTextureUploads.erase(newEnd, contextState.activeTextureUploads.end());
+      contextState.textureConcurrentTextureCopyManager.onTextureAccess(BufferUploadCommandListWrapper{*this}, image);
     }
   }
   contextState.stageState[stage].setSRVTexture(unit, image, view_state, as_const_ds, view);
@@ -4600,7 +4529,7 @@ bool DeviceContext::ExecutionContext::prepareCommandExecution(CommandRequirement
     auto &resourceUsageDebugger = static_cast<ResourceUsageHistoryDataSetDebugger &>(self);
     contextState.resourceStates.setRecordingState(resourceUsageDebugger.shouldRecordResourceUsage());
 
-    frame.backendQueryManager.resumePipelineStatsQueries(contextState.cmdBuffer.getHandle(), device.device.get());
+    frame.backendQueryManager.resumePipelineStatsQueries(contextState.cmdBuffer.getHandle(), device);
   }
   return true;
 }
@@ -4643,7 +4572,11 @@ void DeviceContext::ExecutionContext::makeSureCmdBufferHasCommands()
   auto dummyBuf = (GenericBufferInterface *)device.dummyUavBuffer;
   dummyBuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsUAVBuffer(); });
   decltype(auto) bufferRef = dummyBuf->getDeviceBuffer();
-  G_ASSERT(bufferRef.currentClearUAV().ptr != D3D12_CPU_DESCRIPTOR_HANDLE{}.ptr);
+  if (bufferRef.currentClearUAV().ptr == D3D12_CPU_DESCRIPTOR_HANDLE{}.ptr)
+  {
+    logwarn("DX12: dummyBuf has no clear UAV, skipping the clear...");
+    return;
+  }
   const float values[4] = {0};
   clearBufferFloat(bufferRef, values);
 }
@@ -4773,9 +4706,7 @@ int64_t DeviceContext::ExecutionContext::flush(uint64_t progress, const FrameCom
   if (contextState.activePreFrameCommands)
   {
     // add all outstanding barriers at the end of the cmd list
-    contextState.activePreFrameCommands.resourceBarrier(static_cast<UINT>(contextState.pendingPreFrameBarriers.size()),
-      contextState.pendingPreFrameBarriers.data());
-    contextState.pendingPreFrameBarriers.clear();
+    contextState.pendingPreFrameBarrierBatch.execute(contextState.activePreFrameCommands);
 
     auto cmdList = contextState.activePreFrameCommands.get();
     checkCloseCommandListResult(cmdList->Close(), "Pre Frame Commands", contextState.activePreFrameCommands);
@@ -4796,38 +4727,16 @@ int64_t DeviceContext::ExecutionContext::flush(uint64_t progress, const FrameCom
     device.queues.synchronizeWithPreviousFrame(nextGraphicsSyncPoint);
   }
 
+  device.queues.synchronizeUploadWithGraphics();
+
   if (submitCount)
   {
     // flush the frame and possible uploaded resource flush
     device.queues[DeviceQueueType::GRAPHICS].enqueueCommands(submitCount, submits);
   }
 
-  if (!contextState.activeTextureUploads.empty())
-  {
-    if (readyTextureUploadCommandList())
-    {
-      D3D12_TEXTURE_COPY_LOCATION dst = {
-        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-      };
+  contextState.textureConcurrentTextureCopyManager.onFlush(ConcurrentCopyQueueCommandListWrapper{*this});
 
-      D3D12_TEXTURE_COPY_LOCATION src = {
-        .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-      };
-      for (auto &&upload : contextState.activeTextureUploads)
-      {
-        dst.pResource = upload.target->getHandle();
-        dst.SubresourceIndex = upload.region.subresourceIndex;
-
-        src.pResource = upload.source.buffer;
-        src.PlacedFootprint = upload.region.layout;
-        src.PlacedFootprint.Offset += upload.source.range.front();
-
-        contextState.activeFrameConcurrentCommands.copyTextureRegion(&dst, upload.region.imageOffset.x, upload.region.imageOffset.y,
-          upload.region.imageOffset.z, &src, nullptr);
-      }
-    }
-    contextState.activeTextureUploads.clear();
-  }
 
   // we schedule the upload copy on the copy queue concurrently to the frame render and sync after its completion
   if (contextState.activeFrameConcurrentCommands)
@@ -4968,9 +4877,8 @@ void DeviceContext::ExecutionContext::writeTimestamp(Query *query)
 {
   if (readyCommandList())
   {
-    contextState.cmdBuffer.recordExternalCommands([this, query](auto cmd) {
-      contextState.getFrameData().backendQueryManager.makeTimeStampQuery(query, device.device.get(), cmd);
-    });
+    contextState.cmdBuffer.recordExternalCommands(
+      [this, query](auto cmd) { contextState.getFrameData().backendQueryManager.makeTimeStampQuery(query, device, cmd); });
   }
 }
 
@@ -5074,7 +4982,10 @@ void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(uint32_t 
       contextState.bufferAccessTracker.updateLastFrameAccess(ref.ommIndexBuffer.resourceId);
       dirtyBufferState(ref.ommIndexBuffer.resourceId);
     }
-    if (ref.ommTriangleArray) {}
+    if (ref.ommTriangleArray)
+    {
+      // intentionally empty so as not to block batching
+    }
 #endif
   }
 
@@ -5182,6 +5093,10 @@ void DeviceContext::ExecutionContext::buildBottomAccelerationStructureNvidia(Ray
       contextState.resourceStates.useBufferAsRTASBuildSource(contextState.graphicsCommandListBarrierBatch, ref.ommIndexBuffer);
       contextState.bufferAccessTracker.updateLastFrameAccess(ref.ommIndexBuffer.resourceId);
       dirtyBufferState(ref.ommIndexBuffer.resourceId);
+    }
+    if (ref.ommTriangleArray)
+    {
+      // intentionally empty so as not to block batching
     }
   }
 
@@ -5509,17 +5424,22 @@ void DeviceContext::ExecutionContext::finishFrame(uint64_t progress, Drv3dTiming
   self.initNextFrameLog();
   bool keepDecompressionCache = false;
 #if _TARGET_PC_WIN
-  constexpr size_t decompressionCacheSizeThreshold = 1024ull * 1024; // 1 MB
+  constexpr size_t decompressionCacheSizeThreshold = 1024ull * 1024 * 8; // 8 MB
   const size_t decompressionCacheSize = device.pipeMan.getBytecodeCacheMemoryUsage();
   const bool forceEvict = decompressionCacheSize > decompressionCacheSizeThreshold;
   if (forceEvict)
     logdbg("DX12: Current decompression cache is too big (size: %u), force eviction...", decompressionCacheSize);
-  keepDecompressionCache = device.pipeMan.asyncPipelineCompiler.waitForOutstandingCompilationAndSuspend(forceEvict);
+  const bool asyncKeepsCache = device.pipeMan.asyncPipelineCompiler.waitForOutstandingCompilationAndSuspend(forceEvict);
+  const bool workerKeepsCache = device.pipeMan.pipelineSetCompileWorker &&
+                                device.pipeMan.pipelineSetCompileWorker->waitForOutstandingCompilationAndSuspend(forceEvict);
+  keepDecompressionCache = asyncKeepsCache || workerKeepsCache;
 #endif
   if (!keepDecompressionCache)
     device.pipeMan.evictDecompressionCache();
 #if _TARGET_PC_WIN
   device.pipeMan.asyncPipelineCompiler.resumeCompilation();
+  if (device.pipeMan.pipelineSetCompileWorker)
+    device.pipeMan.pipelineSetCompileWorker->resumeCompilation();
 #endif
   continuePipelineSetCompilation();
   self.back.previousPresentEndTicks = ref_time_ticks();
@@ -5827,7 +5747,11 @@ void DeviceContext::ExecutionContext::clearColorImage(Image *image, ImageViewSta
   }
   else
   {
-    contextState.cmdBuffer.discardResource(image->getHandle(), nullptr);
+    D3D12_DISCARD_REGION discard_region{};
+    discard_region.NumSubresources = 1;
+    discard_region.FirstSubresource =
+      image->mipAndLayerResourceIndex(view.getMipBase(), view.getArrayBase(), view.getPlaneIndex()).index();
+    contextState.cmdBuffer.discardResource(image->getHandle(), &discard_region);
 
     auto &frame = contextState.getFrameData();
 
@@ -5862,10 +5786,8 @@ void DeviceContext::ExecutionContext::copyImage(Image *src, Image *dst, const Im
 
   if (is_whole_resource_copy_info(copy))
   {
-    contextState.onTextureAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, src);
-    contextState.onTextureAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, dst);
+    contextState.textureConcurrentTextureCopyManager.onTextureAccess(GraphicsCommandListWrapperNoCreate{*this}, src);
+    contextState.textureConcurrentTextureCopyManager.onTextureAccess(GraphicsCommandListWrapperNoCreate{*this}, dst);
 
     contextState.resourceStates.useTextureAsCopySourceForWholeCopy(contextState.graphicsCommandListBarrierBatch,
       contextState.graphicsCommandListSplitBarrierTracker, src);
@@ -5882,10 +5804,10 @@ void DeviceContext::ExecutionContext::copyImage(Image *src, Image *dst, const Im
   }
   else
   {
-    contextState.onTextureAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, src, copy.srcSubresource);
-    contextState.onTextureAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
-      contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, dst, copy.dstSubresource);
+    contextState.textureConcurrentTextureCopyManager.onTextureAccess(GraphicsCommandListWrapperNoCreate{*this}, src,
+      copy.srcSubresource);
+    contextState.textureConcurrentTextureCopyManager.onTextureAccess(GraphicsCommandListWrapperNoCreate{*this}, dst,
+      copy.dstSubresource);
 
     contextState.resourceStates.useTextureAsCopySource(contextState.graphicsCommandListBarrierBatch,
       contextState.graphicsCommandListSplitBarrierTracker, src, copy.srcSubresource);
@@ -5995,8 +5917,19 @@ void DeviceContext::ExecutionContext::blitImage(Image *src, Image *dst, ImageVie
   contextState.readBackManager.onTextureWriteAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
     contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, dst);
 
-  contextState.resourceStates.useTextureAsBlitSource(contextState.graphicsCommandListBarrierBatch,
-    contextState.graphicsCommandListSplitBarrierTracker, src, src_view);
+  G_ASSERT(0 == src_view.getPlaneIndex().index());
+
+  if (src->hasTrackedState())
+  {
+    contextState.resourceStates.useTextureAsBlitSource(contextState.graphicsCommandListBarrierBatch,
+      contextState.graphicsCommandListSplitBarrierTracker, src, src_view);
+  }
+  else
+  {
+    src_view.iterateSubresources(src->getType(), src->getMipLevelRange(), [&](auto sub_res) {
+      contextState.textureConcurrentTextureCopyManager.onTextureAccess(GraphicsCommandListWrapperNoCreate{*this}, src, sub_res);
+    });
+  }
 
   contextState.resourceStates.useTextureAsBlitDestination(contextState.graphicsCommandListBarrierBatch,
     contextState.graphicsCommandListSplitBarrierTracker, dst, dst_view);
@@ -6312,17 +6245,6 @@ void DeviceContext::ExecutionContext::setComputePipeline(ProgramID program)
   }
 }
 
-void DeviceContext::ExecutionContext::bindVertexUserData(HostDeviceSharedMemoryRegion bsa, uint32_t stride)
-{
-  if (readyCommandList())
-  {
-    D3D12_VERTEX_BUFFER_VIEW view{bsa.gpuPointer(), static_cast<UINT>(bsa.range.size()), stride};
-    contextState.cmdBuffer.iaSetVertexBuffers(0, 1, &view);
-    // on next non user draw this will then set the vertex buffer again, no need to set state bit dirty though
-    contextState.graphicsState.statusBits.set(GraphicsState::VERTEX_BUFFER_0_DIRTY);
-  }
-}
-
 void DeviceContext::ExecutionContext::drawIndirect(BufferResourceReferenceAndOffset buffer, uint32_t count, uint32_t stride)
 {
   if (!contextState.graphicsState.basePipeline || !readyCommandList())
@@ -6332,8 +6254,7 @@ void DeviceContext::ExecutionContext::drawIndirect(BufferResourceReferenceAndOff
 
   if (checkDrawCallHasOutput("Skipped: drawIndirect"))
   {
-    contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
-      contextState.cmdBuffer.getHandle());
+    contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device, contextState.cmdBuffer.getHandle());
     contextState.resourceStates.useBufferAsIA(contextState.graphicsCommandListBarrierBatch, buffer);
     contextState.bufferAccessTracker.updateLastFrameAccess(buffer.resourceId);
 
@@ -6367,8 +6288,7 @@ void DeviceContext::ExecutionContext::drawIndexedIndirect(BufferResourceReferenc
 
   if (checkDrawCallHasOutput("Skipped: drawIndexedIndirect"))
   {
-    contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
-      contextState.cmdBuffer.getHandle());
+    contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device, contextState.cmdBuffer.getHandle());
     contextState.resourceStates.useBufferAsIA(contextState.graphicsCommandListBarrierBatch, buffer);
     contextState.bufferAccessTracker.updateLastFrameAccess(buffer.resourceId);
 
@@ -6405,8 +6325,7 @@ void DeviceContext::ExecutionContext::draw(uint32_t count, uint32_t instance_cou
   if (checkDrawCallHasOutput("Skipped: draw"))
   {
     if (contextState.graphicsState.basePipeline->hasTessellationStage() || contextState.graphicsState.basePipeline->hasGeometryStage())
-      contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
-        contextState.cmdBuffer.getHandle());
+      contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device, contextState.cmdBuffer.getHandle());
     else
       contextState.getFrameData().backendQueryManager.accumulateInactiveLazyQueries(contextState.cmdBuffer.getHandle(),
         num_prims_for_stats);
@@ -6436,8 +6355,7 @@ void DeviceContext::ExecutionContext::drawIndexed(uint32_t count, uint32_t insta
   if (checkDrawCallHasOutput("Skipped: drawIndexed"))
   {
     if (contextState.graphicsState.basePipeline->hasTessellationStage() || contextState.graphicsState.basePipeline->hasGeometryStage())
-      contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
-        contextState.cmdBuffer.getHandle());
+      contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device, contextState.cmdBuffer.getHandle());
     else
       contextState.getFrameData().backendQueryManager.accumulateInactiveLazyQueries(contextState.cmdBuffer.getHandle(),
         num_prims_for_stats);
@@ -6454,17 +6372,6 @@ void DeviceContext::ExecutionContext::drawIndexed(uint32_t count, uint32_t insta
       contextState.stageState[STAGE_VS], contextState.stageState[STAGE_PS], *contextState.graphicsState.basePipeline,
       *contextState.graphicsState.pipeline, count, instance_count, index_start, vertex_base, first_instance,
       contextState.cmdBuffer.getPrimitiveTopology());
-  }
-}
-
-void DeviceContext::ExecutionContext::bindIndexUser(HostDeviceSharedMemoryRegion bsa)
-{
-  if (readyCommandList())
-  {
-    D3D12_INDEX_BUFFER_VIEW view{bsa.gpuPointer(), static_cast<UINT>(bsa.range.size()), DXGI_FORMAT_R16_UINT};
-    contextState.cmdBuffer.iaSetIndexBuffer(&view);
-    // on next non user draw this will then set the index buffer again
-    contextState.graphicsState.statusBits.set(GraphicsState::INDEX_BUFFER_DIRTY);
   }
 }
 
@@ -6646,6 +6553,10 @@ void DeviceContext::ExecutionContext::flushGraphicsMeshState()
 
   if (!contextState.graphicsState.pipeline)
   {
+    if (device.pipeMan.staticRenderStateHasDualSourceBlend(contextState.graphicsState.staticRenderStateIdent) &&
+        (contextState.graphicsState.framebufferState.framebufferLayout.colorTargetMask & ~1u))
+      D3D_CONTRACT_ERROR("Can't use dual source blending with MRT, please set only one render target");
+
     contextState.graphicsState.pipeline =
       &contextState.graphicsState.basePipeline->getMeshVariantFromConfiguration(contextState.graphicsState.staticRenderStateIdent,
         contextState.graphicsState.framebufferLayoutID, contextState.graphicsState.statusBits.test(GraphicsState::USE_WIREFRAME));
@@ -6679,6 +6590,11 @@ bool DeviceContext::ExecutionContext::loadGraphicsPipelineVariant(D3D12_PRIMITIV
   const auto onError =
     get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR));
+
+#if _TARGET_PC_WIN
+  if (device.pipeMan.pipelineSetCompileWorker && device.pipeMan.pipelineSetCompileWorker->claimOrWaitGraphics(pipeline))
+    return true;
+#endif
 
   if (!device.pipeMan.isAsyncCompileEnabledGraphics())
   {
@@ -6721,6 +6637,11 @@ bool DeviceContext::ExecutionContext::loadMeshPipelineVariant(const RenderStateS
     get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR));
 
+#if _TARGET_PC_WIN
+  if (device.pipeMan.pipelineSetCompileWorker && device.pipeMan.pipelineSetCompileWorker->claimOrWaitMesh(pipeline))
+    return true;
+#endif
+
   if (!device.pipeMan.isAsyncCompileEnabledGraphics())
   {
 #if _TARGET_PC_WIN
@@ -6760,6 +6681,11 @@ bool DeviceContext::ExecutionContext::loadComputePipeline(ComputePipeline *pipel
   const auto onError =
     get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR));
+
+#if _TARGET_PC_WIN
+  if (device.pipeMan.pipelineSetCompileWorker && device.pipeMan.pipelineSetCompileWorker->claimOrWaitCompute(pipeline))
+    return true;
+#endif
 
   if (!device.pipeMan.isAsyncCompileEnabledCompute())
   {
@@ -6810,6 +6736,10 @@ void DeviceContext::ExecutionContext::flushGraphicsState(D3D12_PRIMITIVE_TOPOLOG
   if (!contextState.graphicsState.pipeline || contextState.graphicsState.topology != topType)
   {
     contextState.graphicsState.topology = topType;
+
+    if (device.pipeMan.staticRenderStateHasDualSourceBlend(contextState.graphicsState.staticRenderStateIdent) &&
+        (contextState.graphicsState.framebufferState.framebufferLayout.colorTargetMask & ~1u))
+      D3D_CONTRACT_ERROR("Can't use dual source blending with MRT, please set only one render target");
 
     auto inputLayoutMask = contextState.graphicsState.basePipeline->getVertexShaderInputMask();
     auto internlInputLayout = device.pipeMan.remapInputLayout(contextState.graphicsState.inputLayoutIdent, inputLayoutMask);
@@ -6895,6 +6825,7 @@ void DeviceContext::ExecutionContext::flushVertexBuffers()
       auto viewIt = views;
       for (uint32_t i = first; i < last; ++i)
       {
+        D3D_CONTRACT_ASSERT(contextState.graphicsState.vertexBuffers[i].size <= eastl::numeric_limits<uint32_t>::max());
         *viewIt++ = {
           .BufferLocation = contextState.graphicsState.vertexBuffers[i].gpuPointer,
           .SizeInBytes = static_cast<uint32_t>(contextState.graphicsState.vertexBuffers[i].size),
@@ -7008,6 +6939,13 @@ void DeviceContext::ExecutionContext::ensureActivePass() {}
 
 void DeviceContext::ExecutionContext::changePresentInterval(int interval) { self.back.swapchain.changePresentInterval(interval); }
 
+#if _TARGET_XBOX
+void DeviceContext::ExecutionContext::swapchainOnFrameBegin(FRAME_PIPELINE_TOKEN frame_token)
+{
+  self.back.swapchain.setPendingFrameToken(frame_token);
+}
+#endif
+
 void DeviceContext::ExecutionContext::updateVertexShaderName(ShaderID shader, StringIndexRef::RangeType name)
 {
   device.pipeMan.setVertexShaderName(shader, name);
@@ -7115,7 +7053,7 @@ void DeviceContext::ExecutionContext::beginVisibilityQuery(Query *q)
   if (readyCommandList())
   {
     contextState.cmdBuffer.recordExternalCommands(
-      [this, q](auto cmd) { contextState.getFrameData().backendQueryManager.makeVisibilityQuery(q, device.device.get(), cmd); });
+      [this, q](auto cmd) { contextState.getFrameData().backendQueryManager.makeVisibilityQuery(q, device, cmd); });
   }
 }
 
@@ -7136,7 +7074,7 @@ void DeviceContext::ExecutionContext::beginPipelineStatsQuery(PipelineStatsQuery
       if (lazy)
         contextState.getFrameData().backendQueryManager.pushLazyPipelineStatsQuery(q);
       else
-        contextState.getFrameData().backendQueryManager.makePipelineStatsQuery(q, device.device.get(), cmd);
+        contextState.getFrameData().backendQueryManager.makePipelineStatsQuery(q, device, cmd);
     });
   }
 }
@@ -7542,20 +7480,6 @@ void DeviceContext::ExecutionContext::executeXeFg(const XessFgParamsDx12 &params
   contextState.cmdBuffer.dirtyAll();
 }
 
-void DeviceContext::ExecutionContext::executeFSR2(const Fsr2ParamsDx12 &params)
-{
-  if (!readyCommandList())
-  {
-    return;
-  }
-
-  prepareExecuteAA({params.inColor, params.inDepth, params.inMotionVectors}, {params.outColor});
-  contextState.cmdBuffer.recordExternalCommands(
-    [this, &params](auto cmd) { self.fsr2Wrapper.evaluateFsr2(cmd, static_cast<const void *>(&params)); });
-
-  contextState.cmdBuffer.dirtyAll();
-}
-
 void DeviceContext::ExecutionContext::executeFSR(const FSRUpscalingArgs &params)
 {
   if (!readyCommandList())
@@ -7667,69 +7591,8 @@ void DeviceContext::ExecutionContext::hostToDeviceMemoryCopy(BufferResourceRefer
   contextState.activePreFrameCommands.copyBufferRegion(target.buffer, target.offset, source.buffer,
     source.range.front() + source_offset, target.size);
 
-  const auto at = eastl::find_if(contextState.pendingPreFrameBarriers.begin(), contextState.pendingPreFrameBarriers.end(),
-    [target](auto &barrier) { return barrier.Transition.pResource == target.buffer; });
-  if (contextState.pendingPreFrameBarriers.end() == at)
-  {
-    D3D12_RESOURCE_BARRIER newBarrier = {
-      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-      .Transition =
-        {
-          .pResource = target.buffer,
-          .Subresource = 0,
-          .StateBefore = D3D12_RESOURCE_STATE_COPY_DEST,
-          .StateAfter = D3D12_RESOURCE_STATE_COMMON,
-        },
-    };
-    contextState.pendingPreFrameBarriers.push_back(newBarrier);
-  }
-}
-
-void DeviceContext::ExecutionContext::hostToDeviceTextureCopy(ContextState::TextureUploadRecord upload)
-{
-  if (!readyBufferUploadCommandList())
-  {
-    return;
-  }
-
-  D3D12_TEXTURE_COPY_LOCATION dst = {
-    .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-  };
-
-  D3D12_TEXTURE_COPY_LOCATION src = {
-    .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-  };
-  dst.pResource = upload.target->getHandle();
-  dst.SubresourceIndex = upload.region.subresourceIndex;
-
-  src.pResource = upload.source.buffer;
-  src.PlacedFootprint = upload.region.layout;
-  src.PlacedFootprint.Offset += upload.source.range.front();
-
-  contextState.activePreFrameCommands.copyTextureRegion(&dst, upload.region.imageOffset.x, upload.region.imageOffset.y,
-    upload.region.imageOffset.z, &src, nullptr);
-
-  const auto at = eastl::find_if(contextState.pendingPreFrameBarriers.begin(), contextState.pendingPreFrameBarriers.end(),
-    [resource = dst.pResource, subres = upload.region.subresourceIndex](auto &barrier) {
-      return barrier.Transition.pResource == resource &&
-             (barrier.Transition.Subresource == subres || barrier.Transition.Subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-    });
-  if (contextState.pendingPreFrameBarriers.end() == at)
-  {
-    D3D12_RESOURCE_BARRIER newBarrier = {
-      .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-      .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-      .Transition =
-        {
-          .pResource = dst.pResource,
-          .Subresource = upload.region.subresourceIndex,
-          .StateBefore = D3D12_RESOURCE_STATE_COPY_DEST,
-          .StateAfter = D3D12_RESOURCE_STATE_COMMON,
-        },
-    };
-    contextState.pendingPreFrameBarriers.push_back(newBarrier);
-  }
+  contextState.pendingPreFrameBarrierBatch.transitionUnique(target.buffer, SubresourceIndex::make(0), D3D12_RESOURCE_STATE_COPY_DEST,
+    D3D12_RESOURCE_STATE_COMMON);
 }
 
 void DeviceContext::ExecutionContext::initializeTextureState(D3D12_RESOURCE_STATES state,
@@ -7766,68 +7629,77 @@ void DeviceContext::ExecutionContext::uploadTexture(Image *target, BufferImageCo
       shouldUseGraphicsQueue = true;
     }
   }
-  if (shouldUseGraphicsQueue)
-  {
-    if (!readyCommandList())
-    {
-      return;
-    }
-    disablePredication();
 
-    for (auto &&region : regions)
+  TextureConcurrentTextureCopyManager::BufferToTextureCopyHandlingContext context{
+    contextState.textureConcurrentTextureCopyManager, target, shouldUseGraphicsQueue};
+
+  bool executedEverything = true;
+  bool hadConccurentUploads = false;
+  for (auto &&region : regions)
+  {
+    if (context.tryUpload(region, source))
     {
+      hadConccurentUploads = true;
+    }
+    else
+    {
+      executedEverything = false;
+      if (!readyCommandList())
+      {
+        return;
+      }
+      disablePredication();
+
       contextState.readBackManager.onTextureWriteAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
         contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, target);
 
       contextState.resourceStates.useTextureAsUploadDestination(contextState.graphicsCommandListBarrierBatch,
         contextState.graphicsCommandListSplitBarrierTracker, target, SubresourceIndex::make(region.subresourceIndex));
     }
+  }
 
+  if (!executedEverything)
+  {
     contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
-
-    D3D12_TEXTURE_COPY_LOCATION dst = {
-      .pResource = target->getHandle(),
-      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-    };
-
-    D3D12_TEXTURE_COPY_LOCATION src = {
-      .pResource = source.buffer,
-      .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-    };
 
     for (auto &&region : regions)
     {
-      dst.SubresourceIndex = region.subresourceIndex;
+      if (hadConccurentUploads && context.canUpload(region))
+      {
+        continue;
+      }
 
-      src.PlacedFootprint = region.layout;
+      const D3D12_TEXTURE_COPY_LOCATION dst = {
+        .pResource = target->getHandle(),
+        .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+        .SubresourceIndex = region.subresourceIndex,
+      };
+
+      D3D12_TEXTURE_COPY_LOCATION src = {
+        .pResource = source.buffer,
+        .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+        .PlacedFootprint = region.layout,
+      };
+
       src.PlacedFootprint.Offset += source.range.front();
 
       contextState.cmdBuffer.copyTexture(&dst, region.imageOffset.x, region.imageOffset.y, region.imageOffset.z, &src, nullptr);
-    }
 
-    for (auto &&region : regions)
-    {
-      contextState.resourceStates.finishUseTextureAsUploadDestination(contextState.graphicsCommandListBarrierBatch,
-        contextState.graphicsCommandListSplitBarrierTracker, target, SubresourceIndex::make(region.subresourceIndex));
-    }
-
-    target->updateLastFrameAccess(self.back.frameProgress);
-
-    dirtyTextureState(target);
-  }
-  else
-  {
-    // resources with global id will always be uploaded by the GFX queue
-    ContextState::TextureUploadRecord record = {
-      .target = target,
-      .source = source,
-    };
-    for (auto &&region : regions)
-    {
-      record.region = region;
-      contextState.activeTextureUploads.push_back(record);
+      if (target->hasTrackedState())
+      {
+        contextState.resourceStates.finishUseTextureAsUploadDestination(contextState.graphicsCommandListBarrierBatch,
+          contextState.graphicsCommandListSplitBarrierTracker, target, SubresourceIndex::make(region.subresourceIndex));
+      }
+      else
+      {
+        // on untracked resources we have to manually go back to common to keep expectations about state consistent
+        GraphicsCommandListWrapperNoCreate{*this}.exitTransition(dst.pResource, SubresourceIndex::make(region.subresourceIndex));
+      }
     }
   }
+
+  target->updateLastFrameAccess(self.back.frameProgress);
+  dirtyTextureState(target);
 }
 
 #if _TARGET_XBOX
@@ -8133,7 +8005,7 @@ inline D3D12_BARRIER_LAYOUT translate_texture_layout_to_d3d12(d3d::TextureLayout
   {
     case d3d::TextureLayout::Undefined: return D3D12_BARRIER_LAYOUT_UNDEFINED;
     case d3d::TextureLayout::GenericRead: return D3D12_BARRIER_LAYOUT_GENERIC_READ;
-    case d3d::TextureLayout::RenderTarget: return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+    case d3d::TextureLayout::RenderTarget: return D3D12_BARRIER_LAYOUT_RENDER_TARGET; //-V1037
     case d3d::TextureLayout::UnorderedAccess: return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
     case d3d::TextureLayout::DepthRwStencilRw:
     case d3d::TextureLayout::DepthRwStencilRo:
@@ -8141,7 +8013,7 @@ inline D3D12_BARRIER_LAYOUT translate_texture_layout_to_d3d12(d3d::TextureLayout
     case d3d::TextureLayout::DepthRw: return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
     case d3d::TextureLayout::DepthRoStencilRo:
     case d3d::TextureLayout::DepthRo: return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
-    case d3d::TextureLayout::ShaderResource: return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+    case d3d::TextureLayout::ShaderResource: return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE; //-V1037
     case d3d::TextureLayout::CopySource: return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
     case d3d::TextureLayout::CopyDest: return D3D12_BARRIER_LAYOUT_COPY_DEST;
     // In DX12 blits are implemented through draw calls, so the source is bound as SRV
@@ -8504,8 +8376,7 @@ void DeviceContext::ExecutionContext::moveTexture(Image *from, Image *to)
   if (!readyCommandList())
     return;
 
-  contextState.onTextureAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
-    contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, from);
+  contextState.textureConcurrentTextureCopyManager.onTextureAccess(GraphicsCommandListWrapperNoCreate{*this}, from);
 
   G_ASSERT(from->hasTrackedState() == to->hasTrackedState());
   const bool hasTrackedState = from->hasTrackedState();
@@ -8543,8 +8414,7 @@ void DeviceContext::ExecutionContext::twoPhaseMoveTexture(Image *from, Image *to
   if (!readyCommandList())
     return;
 
-  contextState.onTextureAccess(contextState.resourceStates, contextState.graphicsCommandListBarrierBatch,
-    contextState.graphicsCommandListSplitBarrierTracker, contextState.cmdBuffer, from);
+  contextState.textureConcurrentTextureCopyManager.onTextureAccess(GraphicsCommandListWrapperNoCreate{*this}, from);
 
   G_ASSERT(from->hasTrackedState() == to->hasTrackedState());
   const bool hasTrackedState = from->hasTrackedState();
@@ -8600,7 +8470,7 @@ void DeviceContext::ExecutionContext::twoPhaseMoveTexture(Image *from, Image *to
 
         contextState.cmdBuffer.copyTexture(&scratchLocation, 0, 0, 0, &srcLocation);
 
-        scratchOffset += subResInfo.rowCount * subResInfo.footprint.RowPitch * subResInfo.footprint.Depth;
+        scratchOffset += uint64_t{subResInfo.rowCount} * subResInfo.footprint.RowPitch * subResInfo.footprint.Depth;
         scratchOffset = (scratchOffset + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
       }
     }
@@ -8627,7 +8497,7 @@ void DeviceContext::ExecutionContext::twoPhaseMoveTexture(Image *from, Image *to
 
         contextState.cmdBuffer.copyTexture(&dstLocation, 0, 0, 0, &scratchLocation);
 
-        scratchOffset += subResInfo.rowCount * subResInfo.footprint.RowPitch * subResInfo.footprint.Depth;
+        scratchOffset += uint64_t{subResInfo.rowCount} * subResInfo.footprint.RowPitch * subResInfo.footprint.Depth;
         scratchOffset = (scratchOffset + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1);
       }
     }
@@ -8674,28 +8544,8 @@ void DeviceContext::ExecutionContext::resizeImageMipMapTransfer(Image *src, Imag
   Extent3D blockExtent{1, 1, 1};
   format.getBytesPerPixelBlock(&blockExtent.width, &blockExtent.height);
 
-  D3D12_TEXTURE_COPY_LOCATION dstLocation = {
-    .pResource = dst->getHandle(),
-    .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-  };
-
-  D3D12_TEXTURE_COPY_LOCATION srcLocation = {
-    .pResource = src->getHandle(),
-    .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-  };
-
-  D3D12_BOX copyBox = {
-    .left = 0,
-    .top = 0,
-    .front = 0,
-  };
-
-  // We only execute size change copies for texture that are "static", all others we do on GFX for simplicity
-  const bool doConcurrentlyToFrame = !src->getGlobalSubResourceIdBase().isValid();
-  if (!doConcurrentlyToFrame)
-  {
-    logdbg("DX12: resizeImageMipMapTransfer %p -> %p [%u]", src, dst, self.back.frameProgress);
-  }
+  TextureConcurrentTextureCopyManager::TextureToTextureCopyHandlingContext context{
+    contextState.textureConcurrentTextureCopyManager, src, dst};
 
   for (auto level : mip_map_range)
   {
@@ -8719,10 +8569,6 @@ void DeviceContext::ExecutionContext::resizeImageMipMapTransfer(Image *src, Imag
       });
     }
 
-    copyBox.right = copyExtent.width;
-    copyBox.bottom = copyExtent.height;
-    copyBox.back = copyExtent.depth;
-
     for (auto layer : arrayLayers)
     {
       for (auto plane : formatPlanes)
@@ -8730,21 +8576,7 @@ void DeviceContext::ExecutionContext::resizeImageMipMapTransfer(Image *src, Imag
         const auto dstSubRes = dst->mipAndLayerResourceIndex(dstLevel, layer, plane);
         const auto srcSubRes = src->mipAndLayerResourceIndex(srcLevel, layer, plane);
 
-        dstLocation.SubresourceIndex = dstSubRes.index();
-        srcLocation.SubresourceIndex = srcSubRes.index();
-
-        // Should be the most common path, resizing "static" textures, this can be safely done on
-        // the copy queue concurrently to the frame.
-        if (doConcurrentlyToFrame)
-        {
-          if (!readyTextureUploadCommandList())
-          {
-            break;
-          }
-          // no barriers needed, everything is handled by auto promote and decay rules
-          contextState.activeFrameConcurrentCommands.copyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &copyBox);
-        }
-        else
+        if (!context.tryUpload(srcSubRes, dstSubRes, GraphicsCommandListWrapperNoCreate{*this}))
         {
           if (!readyCommandList())
           {
@@ -8752,17 +8584,48 @@ void DeviceContext::ExecutionContext::resizeImageMipMapTransfer(Image *src, Imag
           }
 
           contextState.resourceStates.useTextureAsCopySource(contextState.graphicsCommandListBarrierBatch,
-            contextState.graphicsCommandListSplitBarrierTracker, src, dstSubRes);
+            contextState.graphicsCommandListSplitBarrierTracker, src, srcSubRes);
 
           contextState.resourceStates.useTextureAsCopyDestination(contextState.graphicsCommandListBarrierBatch,
             contextState.graphicsCommandListSplitBarrierTracker, dst, dstSubRes);
 
           contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
+          const D3D12_TEXTURE_COPY_LOCATION dstLocation = {
+            .pResource = dst->getHandle(),
+            .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            .SubresourceIndex = dstSubRes.index(),
+          };
+
+          const D3D12_TEXTURE_COPY_LOCATION srcLocation = {
+            .pResource = src->getHandle(),
+            .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            .SubresourceIndex = srcSubRes.index(),
+          };
+
+          const D3D12_BOX copyBox = {
+            .left = 0,
+            .top = 0,
+            .front = 0,
+            .right = copyExtent.width,
+            .bottom = copyExtent.height,
+            .back = copyExtent.depth,
+          };
+
           contextState.cmdBuffer.copyTexture(&dstLocation, 0, 0, 0, &srcLocation, &copyBox);
 
-          contextState.resourceStates.finishUseTextureAsCopyDestination(contextState.graphicsCommandListBarrierBatch,
-            contextState.graphicsCommandListSplitBarrierTracker, dst, dstSubRes);
+          if (dst->getGlobalSubResourceIdBase().isValid())
+          {
+            contextState.resourceStates.finishUseTextureAsCopyDestination(contextState.graphicsCommandListBarrierBatch,
+              contextState.graphicsCommandListSplitBarrierTracker, dst, dstSubRes);
+
+            // this needs no tracking by the manager as state tracked resources are always executed this way
+          }
+          else
+          {
+            // on untracked resources we have to manually go back to common to keep expectations about state consistent
+            GraphicsCommandListWrapperNoCreate{*this}.exitTransition(dstLocation.pResource, dstSubRes);
+          }
         }
       }
     }
@@ -8855,8 +8718,6 @@ void DeviceContext::ExecutionContext::dispatchMeshIndirect(BufferResourceReferen
 void DeviceContext::ExecutionContext::addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader,
   StringIndexRef::RangeType name)
 {
-  if (device.isIll())
-    return;
   device.pipeMan.addShaderGroup(device, &device.pipelineCache, &contextState.framebufferLayouts, group, dump, null_pixel_shader,
     {name.data(), name.size()});
 }
@@ -8882,6 +8743,11 @@ bool DeviceContext::ExecutionContext::should_pipeline_set_compilation_spread_ove
   return dgs_get_settings()->getBlockByNameEx("dx12")->getBool("spreadCompilationOverFrames", true);
 }
 
+bool DeviceContext::ExecutionContext::should_use_pipeline_set_compile_worker()
+{
+  return dgs_get_settings()->getBlockByNameEx("dx12")->getBool("usePipelineSetCompileWorker", true);
+}
+
 void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
   DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, DynamicArray<FramebufferLayoutWithHash> &&framebuffer_layouts,
   DynamicArray<cacheBlk::SignatureEntry> &&scripted_shader_dump_signature, DynamicArray<cacheBlk::ComputeClassUse> &&compute_pipelines,
@@ -8895,7 +8761,8 @@ void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayou
     eastl::forward<DynamicArray<cacheBlk::SignatureEntry>>(scripted_shader_dump_signature),
     eastl::forward<DynamicArray<cacheBlk::ComputeClassUse>>(compute_pipelines),
     eastl::forward<DynamicArray<cacheBlk::GraphicsVariantGroup>>(graphics_pipelines),
-    eastl::forward<DynamicArray<cacheBlk::GraphicsVariantGroup>>(graphics_with_null_override_pipelines), null_pixel_shader);
+    eastl::forward<DynamicArray<cacheBlk::GraphicsVariantGroup>>(graphics_with_null_override_pipelines), null_pixel_shader,
+    should_use_pipeline_set_compile_worker());
   if (!should_pipeline_set_compilation_spread_over_frames())
   {
     device.pipeMan.continuePipelineSetCompilation(device, device.pipelineCache, contextState.framebufferLayouts,
@@ -9045,7 +8912,7 @@ void DeviceContext::ExecutionContext::applyRaytraceState(const RayDispatchBasicP
 
       contextState.resourceStates.useTextureAsUAV(contextState.graphicsCommandListBarrierBatch,
         contextState.graphicsCommandListSplitBarrierTracker, STAGE_CS, uav.image, uav.imageView);
-      contextState.resourceStates.beginImplicitUAVAccess(uav.image->getHandle());
+      contextState.resourceStates.beginImplicitUAVAccess(uav.image);
     }
     else if (uav.bufferRef)
     {
@@ -9053,7 +8920,7 @@ void DeviceContext::ExecutionContext::applyRaytraceState(const RayDispatchBasicP
         contextState.cmdBuffer, uav.bufferRef);
 
       contextState.resourceStates.useBufferAsUAV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, uav.bufferRef);
-      contextState.resourceStates.beginImplicitUAVAccess(uav.bufferRef.buffer);
+      contextState.resourceStates.beginImplicitUAVAccess(uav.bufferRef);
     }
   }
 

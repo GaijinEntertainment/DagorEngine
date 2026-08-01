@@ -115,6 +115,12 @@ void GPUGrassBase::close()
   grassGenerator.reset(0);
   grassRandomTypesCB.close();
   grassColorsVSCB.close();
+  grassTex.close();
+  grassNTex.close();
+  grassAlphaTex.close();
+  textureNames.diffuse.clear();
+  textureNames.normal.clear();
+  textureNames.alpha.clear();
   if (indexBufferInited)
     index_buffer::release_quads_32bit();
   alreadyLoaded = false;
@@ -143,23 +149,20 @@ static float get_quality_multiplier(GrassQuality quality)
 #if DAGOR_DBGLEVEL > 0
 CONSOLE_BOOL_VAL("grass", debugGrassInstanceCount, false);
 
-static void debug_grass_inctances_count(Sbuffer *readback_buffer, int max_instance_count, int allocated_buf_size)
+static void debug_grass_inctances_count(int instance_count, int max_instance_count, int allocated_buf_size)
 {
-  if (!debugGrassInstanceCount || !readback_buffer)
+  if (!debugGrassInstanceCount || max_instance_count <= 0)
     return;
-  // NOTE: Not sure that it is ok to lock without waiting readback query, but it works and debug functionality anyway
-  if (auto bufferData = lock_sbuffer<const uint32_t>(readback_buffer, 0, 1, VBLOCK_READONLY))
-  {
-    int instanceCount = bufferData[0];
-    visuallog::setOffset(IPoint2(30, 40)); // To not overdraw fps
-    visuallog::setMaxItems(1);
-    visuallog::logmsg(String(0, "Grass instances count %d/%d (%d%%), allocated size %.2f Mb (%d%%)", instanceCount, max_instance_count,
-      instanceCount * 100 / max_instance_count, (allocated_buf_size >> 10) / 1024.f,
-      allocated_buf_size * 100 / (max_instance_count * sizeof(GrassInstance))));
-  }
+
+  const int64_t maxBufSize = int64_t(max_instance_count) * int64_t(sizeof(GrassInstance));
+  visuallog::setOffset(IPoint2(30, 40)); // To not overdraw fps
+  visuallog::setMaxItems(1);
+  visuallog::logmsg(String(0, "Grass instances count %d/%d (%d%%), allocated size %.2f Mb (%d%%)", instance_count, max_instance_count,
+    int(int64_t(instance_count) * 100 / max_instance_count), (allocated_buf_size >> 10) / 1024.f,
+    int(int64_t(allocated_buf_size) * 100 / maxBufSize)));
 }
 #else
-static void debug_grass_inctances_count(Sbuffer *, int, int) {}
+static void debug_grass_inctances_count(int, int, int) {}
 #endif
 
 int GPUGrassBase::mapTextureIndexToType(int tex_index) const
@@ -828,21 +831,20 @@ void GPUGrassBase::generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &
 
     instances = min<int>(MAX_GRASS * grassInstancesMul, instances);
 
-    int generatedInstances = 0;
     if (gen_ctx.readbackQueryIssued && d3d::get_event_query_status(gen_ctx.readbackQuery.get(), false))
     {
       if (auto bufferData = lock_sbuffer<const uint>(gen_ctx.grassInstancesCountRB.getBuf(), 0, 1, 0))
-        generatedInstances = bufferData[0];
+        gen_ctx.generatedInstanceCount = bufferData[0];
       gen_ctx.readbackQueryIssued = false;
     }
     if (instances != gen_ctx.maxInstanceCount ||
-        (generatedInstances > gen_ctx.allocatedInstances && gen_ctx.allocatedInstances < instances))
+        (gen_ctx.generatedInstanceCount > gen_ctx.allocatedInstances && gen_ctx.allocatedInstances < instances))
     {
       gen_ctx.maxInstanceCount = instances;
       constexpr float ALLOCATION_STEP = 0.1f;
-      if (gen_ctx.allocatedInstances == 0 || generatedInstances > gen_ctx.allocatedInstances)
+      if (gen_ctx.allocatedInstances == 0 || gen_ctx.generatedInstanceCount > gen_ctx.allocatedInstances)
         gen_ctx.allocatedInstances =
-          max(int(gen_ctx.allocatedInstances + ceilf(ALLOCATION_STEP * gen_ctx.maxInstanceCount)), generatedInstances);
+          max(int(gen_ctx.allocatedInstances + ceilf(ALLOCATION_STEP * gen_ctx.maxInstanceCount)), gen_ctx.generatedInstanceCount);
       gen_ctx.allocatedInstances = min(gen_ctx.allocatedInstances, gen_ctx.maxInstanceCount);
       debug("grass: maxInstanceCount = %d (%d %d %d), allocatedCount = %d", gen_ctx.maxInstanceCount, lodInstancesCount[0],
         lodInstancesCount[1], lodInstancesCount[2], gen_ctx.allocatedInstances);
@@ -1004,8 +1006,7 @@ void GPUGrassBase::render(const GrassView view, RenderType rtype)
 
   if (rtype == GRASS_AFTER_PREPASS && !isOverrideStateSet)
     shaders::overrides::reset();
-  debug_grass_inctances_count(genContext.grassInstancesCountRB.getBuf(), genContext.maxInstanceCount,
-    genContext.grassInstances->getSize());
+  debug_grass_inctances_count(genContext.generatedInstanceCount, genContext.maxInstanceCount, genContext.grassInstances->getSize());
 }
 
 void GPUGrassBase::resolveVisibility(const GrassView view)
@@ -1035,7 +1036,14 @@ void GPUGrassBase::invalidate()
 GPUGrassBase::~GPUGrassBase() { close(); }
 GPUGrassBase::GPUGrassBase() = default;
 
-void GPUGrass::close() { copy_grass_decals.clear(); }
+void GPUGrass::close()
+{
+  colorTex.close();
+  maskTex.close();
+  farColorTex.close();
+  farMaskTex.close();
+  copy_grass_decals.clear();
+}
 
 void GPUGrass::init(const DataBlock &grassSettings, const bool has_cam_in_cam)
 {

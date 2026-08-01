@@ -112,3 +112,27 @@ static ecs::EntitySystemDesc set_envi_cover_params_es_es_desc
   ecs::EventSetBuilder<OnLevelLoaded>::build(),
   0
 ,"render",nullptr,"*");
+static constexpr ecs::ComponentDesc envi_cover_intensity_map_unload_es_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("envi_cover_intensity_map"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static void envi_cover_intensity_map_unload_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  envi_cover_intensity_map_unload_es(evt
+        );
+}
+static ecs::EntitySystemDesc envi_cover_intensity_map_unload_es_es_desc
+(
+  "envi_cover_intensity_map_unload_es",
+  "prog/daNetGame/render/world/enviCoverES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, envi_cover_intensity_map_unload_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(envi_cover_intensity_map_unload_es_comps+0, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityDestroyed,
+                       ecs::EventComponentsDisappear>::build(),
+  0
+,"render");

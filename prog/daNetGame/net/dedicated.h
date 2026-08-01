@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <matching/types.h>
 #include <daECS/net/msgSink.h>
+#include "net/netConsts.h"
 #include "net/plosscalc.h"
 
 class String;
@@ -36,7 +37,10 @@ net::msg_handler_t get_sync_vroms_done_msg_handler();
 String setup_log();
 bool init_statsd(const char *circuit_name); // return false if stubbed
 void statsd_report_ctrl_ploss(ControlsPlossCalc &ploss_calc, uint16_t &last_reported_ctrl_seq, uint16_t new_ctrl_seq);
-net::INetDriver *create_listen_net_driver();
+// TODO(net-api): params struct when a third call site appears.
+net::INetDriver *create_listen_net_driver(
+  const char *url_override = nullptr, int max_connections = NET_MAX_PLAYERS, bool no_fatal_on_failure = false);
+// TODO(net-race): wrap binded_net_port in std::atomic or pass through the caller.
 uint16_t get_binded_port();
 const char *get_host_url(eastl::string &hurl, int &it);
 net::INetworkObserver *create_server_net_observer(void *buf, size_t bufsz);

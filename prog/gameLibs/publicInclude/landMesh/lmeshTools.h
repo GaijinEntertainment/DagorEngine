@@ -19,3 +19,7 @@ typedef BaseTexture ArrayTexture;
 // Number of mega-detail texture stacks (albedo / reflectance / ...). Shared by the
 // land-mesh manager and the land-class / virtual-texture renderer.
 static constexpr int NUM_TEXTURES_STACK = 3;
+
+// Number of land-class detail textures per land mesh cell. Single definition; LandMeshManager,
+// LandMeshRenderer and LandVtexRenderer alias it as class constants.
+static constexpr int DET_TEX_NUM = 7;

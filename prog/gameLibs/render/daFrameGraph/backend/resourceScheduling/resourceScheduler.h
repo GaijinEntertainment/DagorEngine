@@ -53,6 +53,9 @@ public:
   // reuse as history for the current frame
   IrHistoryPairing pairPreviousHistory(const IntermediateResources &old_resources, const IntermediateResources &new_resources) const;
 
+  // res_idx is a ResourceIndex of the graph that computeSchedule just
+  // scheduled (the freshly compiled intermediateGraph), NOT of the previously
+  // cached graph: preservedResources is filled against the new graph's indices.
   bool isResourcePreserved(int frame, intermediate::ResourceIndex res_idx) const;
 
   void invalidateTemporalResources();
@@ -67,7 +70,10 @@ private:
   void scheduleResourcesIntoHeaps(int prev_frame, const ResourceProperties &resources, const PlacementChangedFlags &placement_changed,
     const SchedulingContext &ctx);
 
-  using ActiveHeapRequestMap = dag::VectorMap<ResourceHeapGroup *, HeapIndex>;
+  // (heap group, holds untracked resources): tracked and untracked resources
+  // never share a heap, so they form distinct heap classes.
+  using HeapClass = eastl::pair<ResourceHeapGroup *, bool>;
+  using ActiveHeapRequestMap = dag::VectorMap<HeapClass, HeapIndex>;
 
   eastl::pair<HeapRequests, ActiveHeapRequestMap> initializeHeapRequests(const ResourceProperties &resources,
     const SchedulingContext &ctx);

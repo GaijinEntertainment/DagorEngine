@@ -40,10 +40,9 @@
 
 void ares_free_data(void *dataptr)
 {
-  struct ares_data *ptr;
-
-  if (!dataptr)
-    return;
+  while (dataptr != NULL) {
+    struct ares_data *ptr;
+    void *next_data = NULL;
 
 #ifdef __INTEL_COMPILER
 #  pragma warning(push)
@@ -51,73 +50,75 @@ void ares_free_data(void *dataptr)
    /* 1684: conversion from pointer to same-sized integral type */
 #endif
 
-  ptr = (void *)((char *)dataptr - offsetof(struct ares_data, data));
+    ptr = (void *)((char *)dataptr - offsetof(struct ares_data, data));
 
 #ifdef __INTEL_COMPILER
 #  pragma warning(pop)
 #endif
 
-  if (ptr->mark != ARES_DATATYPE_MARK)
-    return;
+    if (ptr->mark != ARES_DATATYPE_MARK)
+      return;
 
-  switch (ptr->type)
-    {
-      case ARES_DATATYPE_MX_REPLY:
+    switch (ptr->type)
+      {
+        case ARES_DATATYPE_MX_REPLY:
 
-        if (ptr->data.mx_reply.next)
-          ares_free_data(ptr->data.mx_reply.next);
-        if (ptr->data.mx_reply.host)
-          free(ptr->data.mx_reply.host);
-        break;
+          if (ptr->data.mx_reply.next)
+            next_data = ptr->data.mx_reply.next;
+          if (ptr->data.mx_reply.host)
+            free(ptr->data.mx_reply.host);
+          break;
 
-      case ARES_DATATYPE_SRV_REPLY:
+        case ARES_DATATYPE_SRV_REPLY:
 
-        if (ptr->data.srv_reply.next)
-          ares_free_data(ptr->data.srv_reply.next);
-        if (ptr->data.srv_reply.host)
-          free(ptr->data.srv_reply.host);
-        break;
+          if (ptr->data.srv_reply.next)
+            next_data = ptr->data.srv_reply.next;
+          if (ptr->data.srv_reply.host)
+            free(ptr->data.srv_reply.host);
+          break;
 
-      case ARES_DATATYPE_TXT_REPLY:
+        case ARES_DATATYPE_TXT_REPLY:
 
-        if (ptr->data.txt_reply.next)
-          ares_free_data(ptr->data.txt_reply.next);
-        if (ptr->data.txt_reply.txt)
-          free(ptr->data.txt_reply.txt);
-        break;
+          if (ptr->data.txt_reply.next)
+            next_data = ptr->data.txt_reply.next;
+          if (ptr->data.txt_reply.txt)
+            free(ptr->data.txt_reply.txt);
+          break;
 
-      case ARES_DATATYPE_ADDR_NODE:
+        case ARES_DATATYPE_ADDR_NODE:
 
-        if (ptr->data.addr_node.next)
-          ares_free_data(ptr->data.addr_node.next);
-        break;
+          if (ptr->data.addr_node.next)
+            next_data = ptr->data.addr_node.next;
+          break;
 
-      case ARES_DATATYPE_NAPTR_REPLY:
+        case ARES_DATATYPE_NAPTR_REPLY:
 
-        if (ptr->data.naptr_reply.next)
-          ares_free_data(ptr->data.naptr_reply.next);
-        if (ptr->data.naptr_reply.flags)
-          free(ptr->data.naptr_reply.flags);
-        if (ptr->data.naptr_reply.service)
-          free(ptr->data.naptr_reply.service);
-        if (ptr->data.naptr_reply.regexp)
-          free(ptr->data.naptr_reply.regexp);
-        if (ptr->data.naptr_reply.replacement)
-          free(ptr->data.naptr_reply.replacement);
-        break;
+          if (ptr->data.naptr_reply.next)
+            next_data = ptr->data.naptr_reply.next;
+          if (ptr->data.naptr_reply.flags)
+            free(ptr->data.naptr_reply.flags);
+          if (ptr->data.naptr_reply.service)
+            free(ptr->data.naptr_reply.service);
+          if (ptr->data.naptr_reply.regexp)
+            free(ptr->data.naptr_reply.regexp);
+          if (ptr->data.naptr_reply.replacement)
+            free(ptr->data.naptr_reply.replacement);
+          break;
 
-      case ARES_DATATYPE_SOA_REPLY:
-        if (ptr->data.soa_reply.nsname)
-          free(ptr->data.soa_reply.nsname);
-        if (ptr->data.soa_reply.hostmaster)
-          free(ptr->data.soa_reply.hostmaster);
-	break;
+        case ARES_DATATYPE_SOA_REPLY:
+          if (ptr->data.soa_reply.nsname)
+            free(ptr->data.soa_reply.nsname);
+          if (ptr->data.soa_reply.hostmaster)
+            free(ptr->data.soa_reply.hostmaster);
+          break;
 
-      default:
-        return;
-    }
+        default:
+          return;
+      }
 
-  free(ptr);
+    free(ptr);
+    dataptr = next_data;
+  }
 }
 
 

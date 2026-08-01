@@ -563,7 +563,7 @@ bool ImguiHelper::treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNod
     // if (is_open && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
     //     TreePushOverrideID(id); // Could use TreePush(label) but this avoid computing twice
     //
-    // IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
+    IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
 
     end_data.draw = true;
     end_data.id = id;
@@ -684,6 +684,8 @@ void ImguiHelper::treeNodeWithSpecialHoverBehaviorEnd(const TreeNodeWithSpecialH
   if (end_data.isOpen && !(end_data.flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
     ImGui::TreePushOverrideID(end_data.id); // Could use TreePush(label) but this avoid computing twice
 
+  const bool is_leaf = (end_data.flags & ImGuiTreeNodeFlags_Leaf) != 0;
+  const bool is_open = end_data.isOpen;
   IMGUI_TEST_ENGINE_ITEM_INFO(end_data.id, end_data.label,
     g.LastItemData.StatusFlags | (is_leaf ? 0 : ImGuiItemStatusFlags_Openable) | (is_open ? ImGuiItemStatusFlags_Opened : 0));
 

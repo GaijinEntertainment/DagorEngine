@@ -26,6 +26,9 @@ float4 underwater_fade = (0.35, 0.055, 0.0095, 0);
 float scroll_time = 0;
 int special_vision = 0;
 
+float4 camera_base_offset = (0, 0, 0, 0);
+float4 prev_camera_base_offset = (0, 0, 0, 0);
+
 float4 world_view_pos;
 float global_transp_r;
 
@@ -592,7 +595,7 @@ macro USE_COMPAT_HDR_WRITE(code)
 endmacro
 
 
-hlsl(ps) {
+hlsl {
   half3 restore_normal(half2 xy)
   {
     half3 normal;

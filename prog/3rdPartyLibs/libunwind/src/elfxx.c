@@ -112,6 +112,23 @@ elf_w (string_table) (const struct elf_image *ei, int section)
   return ei->image + str_shdr->sh_offset;
 }
 
+/* Segments are not guaranteed to share one base virtual address, so a
+   dynamic-section virtual address must be mapped through the PT_LOAD
+   segment that actually contains it. */
+static Elf_W (Off)
+dynamic_va_to_file_offset (Elf_W (Addr) va, Elf_W (Phdr) *phdr, size_t phnum)
+{
+  for (size_t i = 0; i < phnum; ++i)
+    {
+      if (phdr[i].p_type != PT_LOAD)
+        continue;
+
+      if (va >= phdr[i].p_vaddr && (va + sizeof(Elf_W (Addr))) < phdr[i].p_vaddr + phdr[i].p_filesz)
+        return phdr[i].p_offset + (va - phdr[i].p_vaddr);
+    }
+  return 0;
+}
+
 static int
 elf_w (lookup_symbol_from_dynamic) (unw_addr_space_t as UNUSED,
                                     const struct symbol_lookup_context *context,
@@ -126,8 +143,9 @@ elf_w (lookup_symbol_from_dynamic) (unw_addr_space_t as UNUSED,
   Elf_W (Ehdr) *ehdr = ei->image;
   Elf_W (Sym) *sym = NULL, *symtab = NULL;
   Elf_W (Phdr) *phdr;
-  Elf_W (Word) sym_num;
-  Elf_W (Word) *hash = NULL, *gnu_hash = NULL;
+  Elf_W (Word) sym_num = 0;
+  Elf_W (Word) *hash = NULL;
+  uint32_t *gnu_hash = NULL;
   Elf_W (Addr) val;
   const char *strtab = NULL;
   int ret = -UNW_ENOINFO;
@@ -163,8 +181,11 @@ elf_w (lookup_symbol_from_dynamic) (unw_addr_space_t as UNUSED,
           hash = (Elf_W (Word) *) ((char *) ei->image + dyn->d_un.d_ptr - file_offset);
           break;
         case DT_GNU_HASH:
-          gnu_hash = (Elf_W (Word) *) ((char *) ei->image + dyn->d_un.d_ptr - file_offset);
-          break;
+          {
+            Elf_W (Off) gh_file_offset = dynamic_va_to_file_offset (dyn->d_un.d_ptr, phdr, ehdr->e_phnum);
+            gnu_hash = (uint32_t *) ((char *) ei->image + gh_file_offset);
+            break;
+          }
         default:
           break;
         }
@@ -173,24 +194,57 @@ elf_w (lookup_symbol_from_dynamic) (unw_addr_space_t as UNUSED,
   if (!symtab || !strtab || (!hash && !gnu_hash))
       return -UNW_ENOINFO;
 
-  if (gnu_hash)
+  /* Prefer the SYSV hash table when present since, unlike the GNU
+     hash, it directly encodes the symbol count. */
+  if (hash)
     {
-        uint32_t *buckets = gnu_hash + 4 + (gnu_hash[2] * sizeof(size_t)/4);
-        uint32_t *hashval;
-        for (i = sym_num = 0; i < gnu_hash[0]; i++)
-          if (buckets[i] > sym_num)
-            sym_num = buckets[i];
-
-        if (sym_num)
-          {
-            hashval = buckets + gnu_hash[0] + (sym_num - gnu_hash[1]);
-            do sym_num++;
-            while (!(*hashval++ & 1));
-          }
+      sym_num = hash[1];
     }
   else
     {
-      sym_num = hash[1];
+      uint32_t nbuckets    = gnu_hash[0];
+      uint32_t symoffset   = gnu_hash[1];
+      uint32_t bloom_size  = gnu_hash[2];
+      /* Bloom filter words are 32- or 64-bit according to the ELF class. */
+      Elf_W (Addr) *bloom  = (Elf_W (Addr) *) &gnu_hash[4];
+      uint32_t *buckets    = (uint32_t *) (bloom + bloom_size);
+
+      /* Sanity check GNU_HASH header */
+      if (nbuckets == 0 || bloom_size == 0 || symoffset == 0)
+        return -UNW_ENOINFO;
+
+      /* Ensure we don't read past the ELF image */
+      if ((char *) (buckets + nbuckets) > (char *) ei->image + ei->size)
+        return -UNW_ENOINFO;
+
+      for (i = 0; i < nbuckets; i++)
+        if (buckets[i] != 0)
+          {
+            if (buckets[i] < sym_num)
+              return -UNW_ENOINFO;
+            sym_num = buckets[i];
+          }
+
+      if (sym_num)
+        {
+          if (sym_num < symoffset)
+            return -UNW_ENOINFO;
+
+          uint32_t *hashval = buckets + nbuckets + (sym_num - symoffset);
+
+          /* Bounds check before dereferencing */
+          if ((char *) hashval >= (char *) ei->image + ei->size)
+            return -UNW_ENOINFO;
+
+          do
+            {
+              /* Stop if a malformed chain would walk past the image end. */
+              if ((char *) hashval >= (char *) ei->image + ei->size)
+                return -UNW_ENOINFO;
+              sym_num++;
+            }
+          while (!(*hashval++ & 1));
+        }
     }
 
   for (i = 0; i < sym_num; ++i)
@@ -207,18 +261,21 @@ elf_w (lookup_symbol_from_dynamic) (unw_addr_space_t as UNUSED,
           Debug (16, "0x%016lx info=0x%02x %s\n",
                  (long) val, sym->st_info, strtab + sym->st_name);
 
-          /* as long as found one, the return will be success*/
           struct symbol_info syminfo =
             {
               .strtab = strtab,
               .sym = sym,
               .start_ip = val
             };
-          if ((*callback) (context, &syminfo, data) == UNW_ESUCCESS)
+          ret = (*callback) (context, &syminfo, data);
+
+          /* Keep going if the IP is not found in this symtab entry. */
+          if (ret == -UNW_ENOINFO)
             {
-              if (ret != UNW_ESUCCESS)
-                ret = UNW_ESUCCESS;
+              continue;
             }
+
+          break;
         }
     }
 
@@ -249,7 +306,7 @@ elf_w (lookup_symbol_closeness) (unw_addr_space_t as UNUSED,
   if (!shdr)
     return -UNW_ENOINFO;
 
-  for (i = 0; i < ehdr->e_shnum; ++i)
+  for (i = 0; i < ehdr->e_shnum && ret == -UNW_ENOINFO; ++i)
     {
       switch (shdr->sh_type)
         {
@@ -281,18 +338,21 @@ elf_w (lookup_symbol_closeness) (unw_addr_space_t as UNUSED,
                   Debug (16, "0x%016lx info=0x%02x %s\n",
                          (long) val, sym->st_info, strtab + sym->st_name);
 
-                  /* as long as found one, the return will be success*/
                   struct symbol_info syminfo =
                     {
                       .strtab = strtab,
                       .sym = sym,
                       .start_ip = val
                     };
-                  if ((*callback) (context, &syminfo, data) == UNW_ESUCCESS)
+                  ret = (*callback) (context, &syminfo, data);
+
+                  /* Keep going if the IP is not found in this symtab entry. */
+                  if (ret == -UNW_ENOINFO)
                     {
-                      if (ret != UNW_ESUCCESS)
-                        ret = UNW_ESUCCESS;
+                      continue;
                     }
+
+                  break;
                 }
             }
           break;
@@ -303,7 +363,8 @@ elf_w (lookup_symbol_closeness) (unw_addr_space_t as UNUSED,
       shdr = (Elf_W (Shdr) *) (((char *) shdr) + ehdr->e_shentsize);
     }
 
-  if (ret != UNW_ESUCCESS)
+  /* If it wasn't found in the ELF symtab, check the dynamic symtab. */
+  if (ret == -UNW_ENOINFO)
     ret = elf_w (lookup_symbol_from_dynamic) (as, context, callback, data);
 
   return ret;
@@ -313,21 +374,32 @@ static int
 elf_w (lookup_symbol_callback)(const struct symbol_lookup_context *context,
                                const struct symbol_info *syminfo, void *data)
 {
-  int ret = -UNW_ENOINFO;
   struct symbol_callback_data *d = data;
+  int ret = -UNW_ENOINFO;
 
-  if (context->ip < syminfo->start_ip ||
-      context->ip >= (syminfo->start_ip + syminfo->sym->st_size))
-    return -UNW_ENOINFO;
-
-  if ((Elf_W (Addr)) (context->ip - syminfo->start_ip) < *(context->min_dist))
+  if (context->ip >= syminfo->start_ip &&
+      context->ip < (syminfo->start_ip + syminfo->sym->st_size))
     {
-      *(context->min_dist) = (Elf_W (Addr)) (context->ip - syminfo->start_ip);
-      Debug (1, "candidate sym: %s@0x%lx\n", syminfo->strtab + syminfo->sym->st_name, syminfo->start_ip);
-      strncpy (d->buf, syminfo->strtab + syminfo->sym->st_name, d->buf_len);
-      d->buf[d->buf_len - 1] = '\0';
-      ret = (strlen (syminfo->strtab + syminfo->sym->st_name) >= d->buf_len
-             ? -UNW_ENOMEM : UNW_ESUCCESS);
+      if ((Elf_W (Addr)) (context->ip - syminfo->start_ip) < *(context->min_dist))
+        {
+          *(context->min_dist) = (Elf_W (Addr)) (context->ip - syminfo->start_ip);
+          char const* const sym_name     = syminfo->strtab + syminfo->sym->st_name;
+          size_t            sym_name_len = strlen(sym_name);
+          Debug (1, "candidate sym: %s@%#010lx\n", sym_name, syminfo->start_ip);
+          if (sym_name_len >= d->buf_len)
+            {
+              Debug (1, "symbol length %zu exceeds buffer of length %zu\n",
+                     sym_name_len+1, d->buf_len);
+              sym_name_len = d->buf_len - 1; /* adjust for null terminator */
+              ret = -UNW_ENOMEM; /* indicate truncation of symbol name */
+            }
+          else
+            {
+              ret = UNW_ESUCCESS;
+            }
+          memcpy(d->buf, sym_name, sym_name_len);
+          d->buf[sym_name_len] = 0; /* null terminate */
+        }
     }
 
   return ret;

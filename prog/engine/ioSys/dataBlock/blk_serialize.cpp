@@ -715,7 +715,7 @@ static void read_packed(DataBlockInfo &d, IGenLoad &cr)
     d.fBlock = 0;
 }
 
-void DataBlock::saveToBinStreamWithoutNames(const DataBlockShared &names, IGenSave &cwr) const
+void DataBlock::saveToBinStreamWithoutNames(const DataBlockShared &names, IGenSave &cwr, bool dedup) const
 {
   const bool differentNameMap = (void *)&names != (void *)shared;
   uint32_t blocks_count = 0;
@@ -800,17 +800,86 @@ void DataBlock::saveToBinStreamWithoutNames(const DataBlockShared &names, IGenSa
     ++cBlock;
   }
 
-  // const uint32_t totalSize = newParams.size()*sizeof(DataBlock::Param) + complex.data.size();
+  if (!dedup)
+  {
+    // const uint32_t totalSize = newParams.size()*sizeof(DataBlock::Param) + complex.data.size();
+    writeCompressedUnsignedGeneric(blocks_count, cwr);
+    writeCompressedUnsignedGeneric(newParams.size(), cwr);
+    writeCompressedUnsignedGeneric(complex.data.size(), cwr);
+    cwr.write(complex.data.data(), complex.data.size());
+    cwr.write(newParams.data(), newParams.size() * sizeof(DataBlock::Param));
+    for (auto &d : dataBlocks)
+      write_packed(d, cwr);
+    return;
+  }
+
+  // deduplicated layout: blocks with identical param runs share one range of the params
+  // array (referenced by explicit per-block offset that follows each block descriptor).
+  // NOTE: sub-block ranges are intentionally NOT shared between parents: DataBlock dtor,
+  // removeBlock and clearData destroy RO child blocks in place, so a block reachable from
+  // two parents would be destroyed twice; param data is never freed per-block, so sharing
+  // it is safe with copy-on-write mutation
+  const DataBlockInfo *__restrict info = dataBlocks.data();
+  const DataBlock::Param *__restrict parms = newParams.data();
+
+  FRAMEMEM_REGION;
+
+  // the dedup params pool is never materialized: it is the concatenation of first-seen
+  // unique runs, which are referenced (and later written) directly from newParams.
+  // framemem is a bump allocator: fixed-size arrays go first, the growing map goes last
+  // so that its reallocations happen at the top of the frame
+  SmallTab<uint32_t, framemem_allocator> paramOfs; // per block, offset of its param run in pool (in Param units)
+  paramOfs.resize(blocks_count);
+  struct UniqueRun
+  {
+    uint32_t srcOfs, cnt; // in Param units, into newParams
+  };
+  SmallTab<UniqueRun, framemem_allocator> uniqueRuns;
+  uniqueRuns.reserve(blocks_count); // upper bound
+  // param run hash -> (srcOfs | pool ofs << 32)
+  HashedKeyMap<uint64_t, uint64_t, 0, oa_hashmap_util::NoHash<uint64_t>, framemem_allocator> poolMap;
+  uint32_t poolSize = 0;
+  constexpr uint64_t NOT_FOUND = ~uint64_t(0);
+  for (uint32_t i = 0, s = 0; i < blocks_count; s += info[i].paramsCount, ++i)
+  {
+    const DataBlockInfo &d = info[i];
+    paramOfs[i] = 0;
+    if (!d.paramsCount)
+      continue;
+    const DataBlock::Param *p = parms + s;
+    const uint32_t bytes = d.paramsCount * sizeof(DataBlock::Param);
+    uint64_t h = wyhash(p, bytes, d.paramsCount);
+    h = h ? h : 1;
+    const uint64_t found = poolMap.findOr(h, NOT_FOUND, [&](uint64_t v) {
+      const uint32_t srcOfs = uint32_t(v);
+      return srcOfs + d.paramsCount <= totalParamsCount && memcmp(parms + srcOfs, p, bytes) == 0;
+    });
+    if (found != NOT_FOUND)
+      paramOfs[i] = uint32_t(found >> 32);
+    else
+    {
+      paramOfs[i] = poolSize;
+      poolMap.emplace(h, uint64_t(s) | (uint64_t(poolSize) << 32));
+      uniqueRuns.push_back(UniqueRun{s, d.paramsCount});
+      poolSize += d.paramsCount;
+    }
+  }
+
   writeCompressedUnsignedGeneric(blocks_count, cwr);
-  writeCompressedUnsignedGeneric(newParams.size(), cwr);
+  writeCompressedUnsignedGeneric(poolSize, cwr);
   writeCompressedUnsignedGeneric(complex.data.size(), cwr);
   cwr.write(complex.data.data(), complex.data.size());
-  cwr.write(newParams.data(), newParams.size() * sizeof(DataBlock::Param));
-  for (auto &d : dataBlocks)
-    write_packed(d, cwr);
+  for (const UniqueRun &r : uniqueRuns)
+    cwr.write(parms + r.srcOfs, r.cnt * sizeof(DataBlock::Param));
+  for (uint32_t i = 0; i < blocks_count; ++i)
+  {
+    write_packed(info[i], cwr);
+    if (info[i].paramsCount)
+      writeCompressedUnsignedGeneric(paramOfs[i], cwr);
+  }
 }
 
-bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro)
+bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro, bool dedup_ofs)
 {
   unsigned blkFlags = shared ? shared->blkFlags : 0;
   deleteShared();
@@ -824,6 +893,10 @@ bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro)
   readCompressedUnsignedGeneric(roDataBlocks, cr);
   readCompressedUnsignedGeneric(paramsCnt, cr);
   readCompressedUnsignedGeneric(complexDataSize, cr);
+  const uint64_t paramsBytes = uint64_t(paramsCnt) * sizeof(DataBlock::Param);
+  const uint64_t blocksBytes = uint64_t(roDataBlocks) * sizeof(DataBlock);
+  if (complexDataSize > BLK_MAX_MEMORY_FOR_NAMES || paramsBytes > BLK_MAX_MEMORY_FOR_NAMES || blocksBytes > BLK_MAX_MEMORY_FOR_NAMES)
+    return false;
   const uint32_t complexDataSizeAligned = dag::align_up<DataBlock::Param>(complexDataSize);
   const uint32_t blocksStartsAt = dag::align_up<DataBlock>(complexDataSizeAligned + paramsCnt * sizeof(DataBlock::Param));
   const size_t sharedSize = roDataBlocks * sizeof(DataBlock) + blocksStartsAt + sizeof(DataBlockShared);
@@ -836,17 +909,69 @@ bool DataBlock::loadFromBinDump(IGenLoad &cr, const DBNameMap *ro)
     shared->ro->addRef();
   shared->blkFlags = blkFlags;
   eastl::swap(shared->rw, rw);
+  const uint32_t nameCnt = shared->nameCount();
 
   cr.read(shared->get(0), complexDataSize);
   cr.read(shared->get(complexDataSizeAligned), paramsCnt * sizeof(DataBlock::Param));
+
+  const Param *pp = (const Param *)shared->getUnsafe(complexDataSizeAligned);
+  for (uint32_t i = 0; i < paramsCnt; ++i, ++pp)
+  {
+    if (pp->nameId >= nameCnt || pp->type == TYPE_NONE || pp->type >= TYPE_COUNT)
+    {
+      issue_error_load_failed(cr.getTargetName(), "BLK binary dump has bad param nameId/type");
+      return false;
+    }
+    const uint32_t sz = dblk::get_type_size(pp->type);
+    if (pp->type == TYPE_STRING)
+    {
+      if (is_string_id_in_namemap(pp->v))
+      {
+        if (namemap_id_from_string_id(pp->v) >= nameCnt)
+          return false;
+      }
+      else if (pp->v >= complexDataSize)
+        return false;
+    }
+    else if (sz > INPLACE_PARAM_SIZE && uint64_t(pp->v) + sz > complexDataSize)
+      return false;
+  }
+
   uint32_t cOfs = complexDataSizeAligned;
+  uint32_t paramsSeen = 0;
   DataBlock *blData = shared->getROBlockUnsafe(0);
   for (uint32_t i = 0, e = shared->roDataBlocks; i < e; ++i, ++blData)
   {
     DataBlockInfo d;
     read_packed(d, cr);
-    new (blData, _NEW_INPLACE) DataBlock(shared, d.nameId - 1, d.paramsCount, d.blocksCount, d.fBlock, cOfs);
-    cOfs += d.paramsCount * sizeof(DataBlock::Param);
+    if (d.nameId > nameCnt || (d.blocksCount && uint64_t(d.fBlock) + d.blocksCount > roDataBlocks))
+    {
+      if (!dedup_ofs)
+        issue_error_load_failed(cr.getTargetName(), "BLK binary dump has inconsistent block layout");
+      return false;
+    }
+
+    uint32_t blkOfs = cOfs;
+    if (dedup_ofs) // param data offset is explicit, several blocks may share one param run
+    {
+      uint32_t paramOfs = 0;
+      if (d.paramsCount)
+        readCompressedUnsignedGeneric(paramOfs, cr);
+      if (paramOfs > paramsCnt || d.paramsCount > paramsCnt - paramOfs)
+        return false;
+      blkOfs = complexDataSizeAligned + paramOfs * (uint32_t)sizeof(DataBlock::Param);
+    }
+    else if (d.paramsCount > paramsCnt - paramsSeen)
+    {
+      issue_error_load_failed(cr.getTargetName(), "BLK binary dump has inconsistent block layout");
+      return false;
+    }
+    else
+    {
+      cOfs += d.paramsCount * sizeof(DataBlock::Param);
+      paramsSeen += d.paramsCount;
+    }
+    new (blData, _NEW_INPLACE) DataBlock(shared, d.nameId - 1, d.paramsCount, d.blocksCount, d.fBlock, blkOfs);
   }
   blData = shared->getROBlockUnsafe(0);
   nameIdAndFlags = blData->nameIdAndFlags | IS_TOPMOST;
@@ -893,7 +1018,7 @@ void DataBlock::appendNamemapToSharedNamemap(DBNameMap &to, const DBNameMap *ski
     to.addNameId(shared->rw.getName(i));
 }
 
-bool DataBlock::saveDumpToBinStream(IGenSave &cwr, const DBNameMap *ro) const
+bool DataBlock::saveDumpToBinStream(IGenSave &cwr, const DBNameMap *ro, bool dedup) const
 {
   DAGOR_TRY
   {
@@ -910,7 +1035,7 @@ bool DataBlock::saveDumpToBinStream(IGenSave &cwr, const DBNameMap *ro) const
     }
     // todo:if we write with a shared namemap (ro!=NULL), we should write an identifier (hash of ro content)
     dblk::write_names_base(cwr, dbShared->rw, NULL);
-    saveToBinStreamWithoutNames(*dbShared, cwr);
+    saveToBinStreamWithoutNames(*dbShared, cwr, dedup);
   }
   DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
 
@@ -921,6 +1046,12 @@ bool DataBlock::saveToStream(IGenSave &cwr) const
 {
   cwr.writeIntP<1>(dblk::BBF_full_binary_in_stream);
   return saveDumpToBinStream(cwr, NULL);
+}
+
+bool DataBlock::saveToStreamDedup(IGenSave &cwr) const
+{
+  cwr.writeIntP<1>(dblk::BBF_full_binary_in_stream_dedup);
+  return saveDumpToBinStream(cwr, NULL, /*dedup*/ true);
 }
 
 

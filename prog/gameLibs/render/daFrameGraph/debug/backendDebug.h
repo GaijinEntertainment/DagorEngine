@@ -3,11 +3,14 @@
 
 #include <EASTL/span.h>
 #include <util/dag_convar.h>
+#include <drv/3d/dag_enhanced_barrier.h>
 
 #include <render/daFrameGraph/externalResources.h>
 
 #include <backend/intermediateRepresentation.h>
+#include <backend/nodeStateDeltas.h>
 #include <backend/passColoring.h>
+#include <frontend/multiplexingInternal.h>
 
 namespace dafg
 {
@@ -24,6 +27,10 @@ void debug_clear_resource_placements();
 void debug_clear_resource_barriers();
 void debug_rec_resource_placement(ResNameId id, int frame, int heap, int offset, int size, bool is_cpu);
 void debug_rec_resource_barrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame, ResourceBarrier barrier);
+void debug_rec_enhanced_buffer_barrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::BufferBarrier &barrier);
+void debug_rec_enhanced_texture_barrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::TextureBarrier &barrier);
 
 void validation_restart();
 void validation_set_current_node(const InternalRegistry &registry, NodeNameId node);

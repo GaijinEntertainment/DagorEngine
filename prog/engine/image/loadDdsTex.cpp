@@ -13,6 +13,7 @@ static uint32_t get_dagor_texformat_image_size_alignment(uint32_t f)
     case TEXFMT_DXT5:
     case TEXFMT_ATI1N:
     case TEXFMT_ATI2N:
+    case TEXFMT_BC5S:
     case TEXFMT_BC7:
     case TEXFMT_BC6H: return 4; break;
     default: return 0;

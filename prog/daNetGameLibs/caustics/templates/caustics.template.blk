@@ -1,8 +1,9 @@
 caustics{
   _singleton:b=yes
   _tags:t="render"
-  "caustics__perCameraResNode:dafg::NodeHandle"{}
-  "caustics__renderNode:dafg::NodeHandle"{}
+  dafg_camera_registrator__name:t="caustics"
+  "caustics_nodes_registrator:tag"{}
+  caustics__active:b=no
   "caustics__indoor_probe_mask:UniqueTexWithShaderVar"{}
   "caustics__indoor_probe_shader:ShadersECS"{}
   caustics__indoor_probe_shader_name:t = "indoor_probe_to_depth"

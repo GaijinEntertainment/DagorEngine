@@ -70,6 +70,10 @@ macro PROJECT_TRACE(code, supports_raygen)
 
           uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | (dagi_force_opaque_trace ? RAY_FLAG_FORCE_OPAQUE : RAY_FLAG_NONE);
 
+          #ifdef HAS_RAYQUERY_FLAG_ALLOW_OPACITY_MICROMAPS
+            flags |= RAY_FLAG_FORCE_OMM_2_STATE;
+          #endif
+
           TraceRay(bvhMain, flags, bvhGroupGI, 0, 0, 0, ray, payload);
 
           hit.hitAt = pl_get_distance(payload);
@@ -82,10 +86,9 @@ macro PROJECT_TRACE(code, supports_raygen)
           HitInfo hitInfo;
           float3 bvhFrom = (origin - bvh_origin) + cam_from;
           uint flags = dagi_force_opaque_trace ? RAY_FLAG_FORCE_OPAQUE : RAY_FLAG_NONE;
-          const half3 defaultColor = 1;
           float3 ray_color;
           float translucent_t;
-          if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupGI, hitInfo, ray_color, translucent_t, defaultColor, flags))
+          if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupGI, hitInfo, ray_color, translucent_t, flags))
           {
             SurfaceParams hitSurface = calc_surface_params(hitInfo, -worldDir, -TRACING_LOD);
             hit.hitAt = hitInfo.t;
@@ -112,8 +115,7 @@ macro PROJECT_TRACE(code, supports_raygen)
                                              ObjectToWorld3x4(),
                                              WorldToObject3x4(),
                                              HitKind() == HIT_KIND_TRIANGLE_FRONT_FACE,
-                                             InstanceIndex(),
-                                             1);
+                                             InstanceIndex());
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD); // Use fix texture LOD
         pl_set_albedo(payload, hitSurface.albedo);
         pl_set_normal(payload, hitSurface.normal);
@@ -121,7 +123,6 @@ macro PROJECT_TRACE(code, supports_raygen)
       }
 
       RaytracingShaderConfig shader_config={sizeof(RayPayload), sizeof(BuiltInTriangleIntersectionAttributes)};
-      RaytracingPipelineConfig pipeline_config = {1}; // No recursion
     ##endif
     }
 

@@ -1,0 +1,144 @@
+include "node_based_clouds_common.dshl"
+include "common.dshl"
+include "bc_compression_bc4_macros.dshl"
+
+// [[dshl_gvars]]
+
+shader
+// [[shader_name]]
+{
+  NBS_CLOUDS_BLOCK();
+
+  (cs) {
+    // [[dshl_preshader]]
+    clouds_field_res_packed@f4 = (clouds_field_res.x, clouds_field_res.y, 1. / clouds_field_res.x, 1. / clouds_field_res.y);
+    samples_count@f2 = (max(clouds_field_res.z / clouds_field_res.x + 0.5, 1), max(clouds_field_res.w / clouds_field_res.y + 0.5, 1), 0, 0);
+    clouds_alt_to_world@f2 = (clouds_thickness2 * 1000, clouds_start_altitude2 * 1000, 0, 0);
+  }
+
+  // metal does not compile half1, so pack through half2 (same as compress_voltex.dshl)
+  if (hardware.metal)
+  {
+    hlsl (cs) {
+      #define bc4_type half2
+    }
+  }
+  else
+  {
+    hlsl (cs) {
+      #define bc4_type half1
+    }
+  }
+  USE_BC4_COMPRESSION(cs)
+
+  hlsl (cs) {
+    #define clouds_weather_texture_samplerstate global_linear_wrap_sampler
+    #define gen_cloud_shape_samplerstate global_linear_wrap_sampler
+    #define gen_cloud_detail_samplerstate global_linear_wrap_sampler
+    #define clouds_curl_2d_samplerstate global_linear_wrap_sampler
+
+    #include "../../../publicInclude/render/nbs_spheres.hlsli"
+    #include "globalHlslFunctions.hlsl"
+    #include "../../../daSkies2/shaders/clouds2/cloud_settings.hlsli"
+    #include "../../../daSkies2/shaders/clouds2/clouds_density_height_lut.hlsli"
+    #include "cloudsNbsCommon.hlsl"
+    #include "../../../render/shaders/noise/Value3D.hlsl"
+
+    ##if clouds_shader_type == field_compressed
+      RWTexture3D<uint2> nbs_clouds_field_output : register(u0);
+    ##else
+      RWTexture3D<float> nbs_clouds_field_output : register(u0);
+    ##endif
+    RWTexture2D<float> nbs_clouds_layer_ht : register(u1);
+
+
+    // [[shader_local_functions]]
+
+    float get_density(float3 tc)
+    {
+      float3 world_pos = float3((tc.xy - 0.5) * weather_size, tc.z * clouds_alt_to_world.x + clouds_alt_to_world.y).xzy;
+      float height_fraction = tc.z;
+      float density = 0;
+
+      // [[shader_code]]
+
+      return density;
+    }
+
+    float encode_density(float result)
+    {
+      result *= 0.5;
+      return result >= 0.5 / 255 ? ceil(result * 255) / 255.0 : 0;
+    }
+
+    float getFinalDensity(uint3 tid)
+    {
+      float result = 0;
+      float samples_count_xz = samples_count.x;
+      float samples_count_y = samples_count.y;
+
+      BRANCH
+      if (max(samples_count_xz, samples_count_y) >= 2)
+      {
+        float avg = 0;
+        float3 tc = tid.xyz * clouds_field_res_packed.zzw;
+        float3 ofs = clouds_field_res_packed.zzw * float2(1. / samples_count_xz, 1. / samples_count_y).xxy;
+        tc += ofs * 0.5;
+        float total = samples_count_xz * samples_count_xz * samples_count_y;
+
+        for (uint y = 0; y < samples_count_y; ++y)
+          for (uint xz = 0; xz < samples_count_xz * samples_count_xz; ++xz)
+          {
+            float3 useTc = tc + float3(int(xz % samples_count_xz), int(xz / samples_count_xz), y) * ofs;
+            float dens = get_density(useTc);
+            result = max(result, dens);
+            avg += dens;
+          }
+        result = lerp(result, avg / total, clouds_average_weight);
+      }
+      else
+        result = get_density((tid.xyz + 0.5f) * clouds_field_res_packed.zzw);
+
+      return encode_density(result);
+    }
+
+    ##if clouds_shader_type == field_compressed
+    [numthreads(CLOUD_WARP_SIZE, CLOUD_WARP_SIZE, CLOUD_WARP_SIZE)]
+    void node_based_clouds_field_cs(uint3 tid : SV_DispatchThreadID)
+    {
+      uint3 dim;
+      nbs_clouds_field_output.GetDimensions(dim.x, dim.y, dim.z);
+      if (any(tid >= dim))
+        return;
+
+      bc4_type texels[4*4], minV = 2, maxV = -2;
+      uint3 srcId = uint3(tid.x<<2, tid.y<<2, tid.z);
+      #define GET_TEXEL(x, y)\
+      {\
+        bc4_type v = getFinalDensity(srcId + uint3(x,y,0));\
+        texels[x+(y*4)] = v; minV = min(minV, v); maxV = max(maxV, v);\
+      }
+      GET_TEXEL(0,0);GET_TEXEL(1,0);GET_TEXEL(2,0);GET_TEXEL(3,0);
+      GET_TEXEL(0,1);GET_TEXEL(1,1);GET_TEXEL(2,1);GET_TEXEL(3,1);
+      GET_TEXEL(0,2);GET_TEXEL(1,2);GET_TEXEL(2,2);GET_TEXEL(3,2);
+      GET_TEXEL(0,3);GET_TEXEL(1,3);GET_TEXEL(2,3);GET_TEXEL(3,3);
+      #undef GET_TEXEL
+
+      texture3DAt(nbs_clouds_field_output, tid) = pack_bc4_block(texels, minV, maxV).xy;
+      if (maxV.x > 0)
+        texture2DAt(nbs_clouds_layer_ht, uint2(tid.z, 0)) = 1; // all-or-nothing write, faster than interlocked
+    }
+    ##else
+    [numthreads(CLOUD_WARP_SIZE, CLOUD_WARP_SIZE, CLOUD_WARP_SIZE)]
+    void node_based_clouds_field_cs(uint3 tid : SV_DispatchThreadID)
+    {
+      float encodedResult = getFinalDensity(tid);
+      if (encodedResult > 0)
+        texture2DAt(nbs_clouds_layer_ht, uint2(tid.z, 0)) = 1;
+      texture3DAt(nbs_clouds_field_output, tid) = encodedResult;
+    }
+    ##endif
+  }
+
+  compile("target_cs", "node_based_clouds_field_cs");
+}

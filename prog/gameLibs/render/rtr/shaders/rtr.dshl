@@ -9,7 +9,7 @@ include "bvh_common_includes.dshl"
 include "camera_in_camera.dshl"
 include "rtao_use.dshl"
 include "ssao_use.dshl"
-include "dynamic_resolution.dshl"
+include "use_downsampled_checkerboard_depth_tex.dshl"
 
 float4x4 inv_proj_tm;
 
@@ -51,6 +51,11 @@ int rtr_hack_reflection_dir_by_geometry_normal = 0;
 interval rtr_hack_reflection_dir_by_geometry_normal: no < 1, yes;
 assume_if_not_assumed rtr_hack_reflection_dir_by_geometry_normal = no;
 
+int rtr_depth_mode = 0;
+interval rtr_depth_mode : def < 1, checker < 2, smart;
+
+texture half_selected_depth_rtr;
+
 hlsl {
   #pragma hlsl2021
 
@@ -72,7 +77,7 @@ shader rt_reflection
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtr_resolutionI;
-    inv_aligned_resolution@f2 = (rtr_res_mul * screen_pos_to_texcoord.xy / (current_dynamic_resolution.xy / current_dynamic_resolution.zw));
+    inv_aligned_resolution@f2 = rtr_res_mul * screen_pos_to_texcoord.xy;
     hit_dist_params@f3 = rtr_hit_dist_params;
     rough_ray_length@f1 = rtr_rough_ray_length;
     frame_index@i1 = rtr_frame_index;
@@ -88,6 +93,15 @@ shader rt_reflection
     rtr_is_binocular@i1 = rtr_is_binocular;
     rtr_output_type@u1 = rtr_output_type;
     nr_texture@tex2d = rt_nr;
+  }
+
+  if (rtr_depth_mode == checker)
+  {
+    (cs) { rtr_tracing_depth@smp2d = downsampled_checkerboard_depth_tex; }
+  }
+  else if (rtr_depth_mode == smart)
+  {
+    (cs) { rtr_tracing_depth@smp2d = half_selected_depth_rtr; }
   }
 
   hlsl(cs) {
@@ -180,12 +194,6 @@ shader rt_reflection
     [numthreads(8, 8, 1)]
     void rt_reflection_cs(uint2 dtid : SV_DispatchThreadID)
     {
-      #ifndef BVH_TWO_SIDED
-        #define BVH_TWO_SIDED 0
-      #endif
-      #ifndef BVH_UNSTABLE
-        #define BVH_UNSTABLE 0
-      #endif
       #ifndef BVH_GRASS
         #define BVH_GRASS 0
       #endif
@@ -217,7 +225,11 @@ shader rt_reflection
 
       float rawDepth;
       ##if rtr_res_mul == half_res
-        rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
+        ##if rtr_depth_mode != def
+          rawDepth = texture2DAt(rtr_tracing_depth, rayIndex).r;
+        ##else
+          rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
+        ##endif
       ##else
         rawDepth = loadGbufferDepth(rayIndex);
       ##endif
@@ -384,7 +396,7 @@ shader rt_reflection
       if (shootReflectionRay)
       {
         float fxt = -1;
-        trace_ray_fx_translucent(relPos, sampleDir, 0, isHit ? hitInfo.t : maxReflectionDistance, w, reflectionColor, fxt, 1.0 - roughness, 1);
+        trace_ray_fx_translucent(relPos, sampleDir, 0, isHit ? hitInfo.t : maxReflectionDistance, w, reflectionColor, fxt, 1.0 - roughness);
 
         if (!isHit && fxt > 0)
           reflectionDistance = fxt;
@@ -497,15 +509,13 @@ shader rt_glass_reflection
 
   USE_CALC_CAMERA_RELATIVE_POS(cs)
 
-  INIT_DYNAMIC_RESOLUTION(cs)
-
   hlsl (cs)
   {
     RT_GROUP_SIZE
     void rt_glass_reflection_cs(uint2 dtid : SV_DispatchThreadID)
     {
       BRANCH
-      if (any(dtid >= resolution * current_dynamic_resolution_scale))
+      if (any(dtid >= resolution))
         return;
 
       float2 tc = float2(dtid + 0.5) * inv_resolution;
@@ -530,7 +540,7 @@ shader rt_glass_reflection
       float4 gbuffer = texture2DAt(rt_glass_gbuffer, dtid);
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float3 relPos = calc_camera_relative_pos(dtid, w, inv_resolution * current_inv_dynamic_resolution_scale);
+      float3 relPos = calc_camera_relative_pos(dtid, w, inv_resolution);
 
       float3 worldNormal = gbuffer.xyz * 2 - 1;
       float3 reflectionVector = reflect(normalize(relPos), worldNormal);

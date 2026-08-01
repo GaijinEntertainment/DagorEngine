@@ -140,7 +140,7 @@ static eastl::array<dafg::NodeHandle, 3> gen_gtao_node(int w, int h, uint32_t gt
                       .atStage(stage)
                       .useAs(usage)
                       .handle();
-    auto ssaoHistHndl = registry.historyFor("ssao_tex").texture().atStage(stage).useAs(usage).handle();
+    auto ssaoHistHndl = registry.historyFor("ssao_tex").texture().atStage(stage).useAs(dafg::Usage::SHADER_RESOURCE).handle();
     auto ssaoTmpHndl = registry.modifyTexture("ssao_tmp_tex").atStage(stage).useAs(usage).handle();
 
     read_gbuffer_material_only(registry);

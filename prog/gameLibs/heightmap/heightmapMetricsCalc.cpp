@@ -661,10 +661,9 @@ void MetricsErrors::calc_lod_errors(const HeightmapHandler &h, uint16_t min_leve
     }
     else
     {
-      dag::Vector<float> dist;
-      dist.resize_noinit(w * w);
+      sdf::DistField dist;
       int64_t t0 = profile_ref_ticks();
-      sdf::build_edt(water_mask.data(), w, dist.data());
+      sdf::build_edt(water_mask.data(), w, dist);
       debug("river masks: sdf::build_edt %fms", profile_time_usec(t0) / 1000.f);
 
       dag::Vector<uint32_t> critical_path;
@@ -672,8 +671,8 @@ void MetricsErrors::calc_lod_errors(const HeightmapHandler &h, uint16_t min_leve
       static constexpr float SDF_CONTOUR_DIST = 64.0f;
       static constexpr int SDF_MIN_BRANCH_LEN = 50;
       static constexpr int SDF_MIN_COMP_SIZE = 30;
-      int path_count = hmap_sdf_extract_critical_path(make_span_const(dist), make_span_const(water_mask), w, SDF_CONTOUR_DIST,
-        SDF_MIN_BRANCH_LEN, SDF_MIN_COMP_SIZE, critical_path);
+      int path_count = hmap_sdf_extract_critical_path(dist, make_span_const(water_mask), w, SDF_CONTOUR_DIST, SDF_MIN_BRANCH_LEN,
+        SDF_MIN_COMP_SIZE, critical_path);
       debug("river masks: critical_path %fms, %d pixels", profile_time_usec(t0) / 1000.f, path_count);
 
       t0 = profile_ref_ticks();

@@ -8,9 +8,13 @@ ECS_DEF_PULL_VAR(postFxNodes);
 static void create_postfx_nodes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_UNUSED(components);
-  G_FAST_ASSERT(evt.is<OnCameraNodeConstruction>());
-  create_postfx_nodes_es(static_cast<const OnCameraNodeConstruction&>(evt)
-        );
+if (evt.is<OnCameraNodeConstruction>()) {
+    create_postfx_nodes_es(static_cast<const OnCameraNodeConstruction&>(evt)
+            );
+} else if (evt.is<OnCameraNodeWithSlotsConstruction>()) {
+    create_postfx_nodes_es(static_cast<const OnCameraNodeWithSlotsConstruction&>(evt)
+            );
+  } else {G_ASSERTF(0, "Unexpected event type <%s> in create_postfx_nodes_es", evt.getName());}
 }
 static ecs::EntitySystemDesc create_postfx_nodes_es_es_desc
 (
@@ -21,6 +25,7 @@ static ecs::EntitySystemDesc create_postfx_nodes_es_es_desc
   empty_span(),
   empty_span(),
   empty_span(),
-  ecs::EventSetBuilder<OnCameraNodeConstruction>::build(),
+  ecs::EventSetBuilder<OnCameraNodeWithSlotsConstruction,
+                       OnCameraNodeConstruction>::build(),
   0
 ,"render");

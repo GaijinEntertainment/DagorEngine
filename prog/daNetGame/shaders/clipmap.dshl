@@ -2,9 +2,6 @@ include "clipmap_common.dshl"
 
 int supports_uav = 1 always_referenced;
 
-int clipmap_writes_height_only = 0;
-interval clipmap_writes_height_only : no < 1, yes;
-
 hlsl(ps) {
   ##if in_editor == yes
     #define sample_ltmaptex_h4(tex, tc) h4tex2D(tex, tc).arbg
@@ -52,8 +49,9 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
   USE_CLIPMAP_OPT_DEBUG(code)
   //USE_PIXEL_TANGENT_SPACE()
   USE_MICRODETAIL_DESC_BASE(code)
-  USE_GATHER_MICRODETAIL_ID(code, cache_tex2, cache_tex0_samplerstate, GatherAlpha, cache_tex_size)
+  USE_GATHER_MICRODETAIL_ID(code, cache_tex0, cache_tex0_samplerstate, GatherAlpha, cache_tex_size)
   USE_CLIPMAP_INDIRECTION_SAMPLING(code)
+  READ_PACKED_VTEX_BASE(code)
   hlsl(code) {
     #define cache_tex1_samplerstate cache_tex0_samplerstate
     #define cache_tex2_samplerstate cache_tex0_samplerstate
@@ -69,8 +67,8 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
       return all(abs(fallbackUV*2-1) < (255./256.)); // we assume 4 pages, and border is 2 pixels
     }
 
-    bool sampleFallBack(float2 worldPosXZ, float4 world_pos_xz_gradients, inout float4 lastDiffuse_smoothness,
-                        inout float2 lastNormal, inout float4 lastAo_reflectance_emission_detail, inout DetailDesc lastDetail, half blend)
+    bool sampleFallBack(float2 worldPosXZ, float4 world_pos_xz_gradients, half3 lastDiffuse, half blend,
+                        out Vtex vtex, out DetailDesc lastDetail)
     {
       float2 fallbackUV;
       BRANCH
@@ -78,14 +76,19 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
       {
         float2 uv = fallbackUV*fallback_info1.xy;
         float4 gradients = world_pos_xz_gradients * fallback_info1.zwzw;
-        lastDiffuse_smoothness = tex2Dgrad ( cache_tex0, uv, gradients.xy, gradients.zw);
-        lastNormal = tex2Dgrad( cache_tex1, uv, gradients.xy, gradients.zw).xy;
-        lastAo_reflectance_emission_detail = tex2Dgrad( cache_tex2, uv, gradients.xy, gradients.zw);
-        lastDetail = gatherMicrodetailId(lastAo_reflectance_emission_detail.w, uv);
+        half4 cache0 = tex2Dgrad( cache_tex0, uv, gradients.xy, gradients.zw);
+        half2 cache1 = tex2Dgrad( cache_tex1, uv, gradients.xy, gradients.zw).xy;
+        half4 cache2 = tex2Dgrad( cache_tex2, uv, gradients.xy, gradients.zw);
+        vtex = unpack_vtex(cache0, cache1, cache2);
+        lastDetail = gatherMicrodetailId(vtex.micro_detail, uv);
         return true;
       }
       else
       {
+        vtex = create_vtex();
+        set_diffuse(vtex, lastDiffuse);
+        lastDetail.id = 0;
+        lastDetail.lerpFactor = 0;
         return false;
       }
     }
@@ -108,13 +111,6 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
       inout half reflectance, inout half emission, inout DetailDesc detailNo, half smooth_mip,
       UvWithDerivates clipmapUv, int indirection_offset)
     {
-      half4 lastDiffuse_smoothness = 0;
-      half2 lastNormal = half2(0.5,0.5);
-      half4 lastAo_reflectance_emission_detail = half4(1, 0, 0, 0);
-      DetailDesc lastDetail;
-      lastDetail.id = 0;
-      lastDetail.lerpFactor = 0;
-
       BRANCH
       if (is_clipmap_indirection_invalid(indirection_offset))
       {
@@ -134,38 +130,33 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
       float2 gradients_factor = get_l2uv(indirection_offset).xy * cache_dd_scale;
       float4 scaled_gradients = world_pos_xz_gradients * (ind.tcScale * gradients_factor).xyxy;
       half blend = ind.blend;
-      half4 virtualDiffuse_smoothness;
-      half2 virtualNormalMap;
-      half4 ao_reflectance_emission_detail;
+
+      half3 lastDiffuse = float3(0, 0, 0);
       BRANCH
       if (blend > 0)
-        lastDiffuse_smoothness = half4(tex2Dgrad(last_clip_tex, clipmapUv.uv, clipmapUv.uv_ddx, clipmapUv.uv_ddy).rgb, 0);
+        lastDiffuse = tex2Dgrad(last_clip_tex, clipmapUv.uv, clipmapUv.uv_ddx, clipmapUv.uv_ddy).rgb;
 
-      bool is_fb = sampleFallBack(worldPosXZ, world_pos_xz_gradients, lastDiffuse_smoothness, lastNormal, lastAo_reflectance_emission_detail, lastDetail, blend);
+      Vtex lastVtex; DetailDesc lastDetail;
+      bool is_fb = sampleFallBack(worldPosXZ, world_pos_xz_gradients, lastDiffuse, blend, lastVtex, lastDetail);
 
-      virtualDiffuse_smoothness = tex2Dgrad ( cache_tex0, tex_uv, scaled_gradients.xy, scaled_gradients.zw);
-      virtualNormalMap = tex2Dgrad( cache_tex1, tex_uv, scaled_gradients.xy, scaled_gradients.zw).xy;
-      ao_reflectance_emission_detail = tex2Dgrad( cache_tex2, tex_uv, scaled_gradients.xy, scaled_gradients.zw);
+      half4 cache0 = tex2Dgrad( cache_tex0, tex_uv, scaled_gradients.xy, scaled_gradients.zw);
+      half2 cache1 = tex2Dgrad( cache_tex1, tex_uv, scaled_gradients.xy, scaled_gradients.zw).xy;
+      half4 cache2 = tex2Dgrad( cache_tex2, tex_uv, scaled_gradients.xy, scaled_gradients.zw);
 
-      DetailDesc detail = gatherMicrodetailId(ao_reflectance_emission_detail.w, tex_uv);
+      Vtex vtex = unpack_vtex(cache0, cache1, cache2);
+      DetailDesc detail = gatherMicrodetailId(vtex.micro_detail, tex_uv);
 
-      virtualDiffuse_smoothness = lerp(virtualDiffuse_smoothness, lastDiffuse_smoothness, blend);
-      virtualNormalMap = lerp(virtualNormalMap, lastNormal, blend);
-      ao_reflectance_emission_detail.xyz = lerp(ao_reflectance_emission_detail.xyz, lastAo_reflectance_emission_detail.xyz, blend);
-
-      normal_xy = virtualNormalMap.xy;
-      color = virtualDiffuse_smoothness.rgb;
-
-      get_clipmap_debug_color(color, tile_mip, intile_uv, is_fb, smooth_mip, blend);
-
-      smoothness = virtualDiffuse_smoothness.a;
+      color = lerp(vtex.diffuse, lastVtex.diffuse, blend);
+      normal_xy = lerp(vtex.normal, lastVtex.normal, blend).xy*0.5 + 0.5;
+      smoothness = lerp(vtex.smoothness, lastVtex.smoothness, blend);
+      ao =  lerp(vtex.ao, lastVtex.ao, blend);
+      reflectance =  lerp(vtex.reflectance, lastVtex.reflectance, blend);
+      emission = lerp(vtex.emission, lastVtex.emission, blend);
+      detailNo = detail;
       if (blend > 0.95)
         detailNo = lastDetail;
-      else
-        detailNo = detail;
-      ao = ao_reflectance_emission_detail.x;
-      reflectance = ao_reflectance_emission_detail.y;
-      emission = ao_reflectance_emission_detail.z;
+
+      get_clipmap_debug_color(color, tile_mip, intile_uv, is_fb, smooth_mip, blend);
     }
 
     void sample_clipmaps(float2 worldPosXZ, float4 world_pos_xz_gradients,
@@ -318,21 +309,5 @@ macro USE_UAV_RENDERING_FEEDBACK_RENDINST()
   } else
   {
     NO_UAV_RENDERING_FEEDBACK()
-  }
-endmacro
-
-macro USE_CLIPMAP_MRT_OUTPUT()
-  hlsl(ps) {
-    struct MRT_OUPUT
-    {
-      ##if clipmap_writes_height_only == yes
-        float4 height : SV_Target0;
-      ##else
-        float4 color : SV_Target0;
-        float4 normal : SV_Target1;
-        float4 detail_ao_reflectance : SV_Target2;
-        float4 height : SV_Target3;
-      ##endif
-    };
   }
 endmacro

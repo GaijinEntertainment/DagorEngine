@@ -137,6 +137,14 @@ public:
         kick();
         return old;
       }
+      case WATCHDOG_OPTION_FREEZE_CB:
+      {
+        auto old = interlocked_exchange_ptr(cfg.on_freeze_cb, (decltype(cfg.on_freeze_cb))p0);
+        if (!p1)
+          debug("set watchdog freeze cb %p", (void *)p0);
+        kick();
+        return (intptr_t)old;
+      }
       case WATCHDOG_OPTION_DUMP_THREADS:
       {
         if (p1)
@@ -235,8 +243,8 @@ public:
       if (!freeze)
         continue;
 
-      if (cfg.on_freeze_cb)
-        cfg.on_freeze_cb(e_time, cfg.user_data);
+      if (auto freeze_cb = interlocked_acquire_load_ptr(cfg.on_freeze_cb))
+        freeze_cb(e_time, cfg.user_data);
 
       kick();
     }

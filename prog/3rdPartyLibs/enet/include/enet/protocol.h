@@ -53,7 +53,7 @@ typedef enum _ENetProtocolFlag
    ENET_PROTOCOL_HEADER_SESSION_SHIFT   = 12
 } ENetProtocolFlag;
 
-#ifdef _MSC_VER_
+#ifdef _MSC_VER
 #pragma pack(push, 1)
 #define ENET_PACKED
 #elif defined(__GNUC__)
@@ -192,7 +192,7 @@ typedef union _ENetProtocol
    _DAGOR_ENET_INJECT_PROTOCOL_TYPES
 } ENET_PACKED ENetProtocol;
 
-#ifdef _MSC_VER_
+#ifdef _MSC_VER
 #pragma pack(pop)
 #endif
 

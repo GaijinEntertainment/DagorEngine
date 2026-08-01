@@ -23,6 +23,8 @@ public:
       das::SideEffects::worstDefault, "::try_get_entity_animchar_base_comp");
     das::addExtern<DAS_BIND_FUN(add_anim_state_to_history)>(*this, lib, "add_anim_state_to_history", das::SideEffects::worstDefault,
       "::add_anim_state_to_history");
+    das::addExtern<DAS_BIND_FUN(bind_dascript::get_application_blk_path)>(*this, lib, "get_application_blk_path",
+      das::SideEffects::accessExternal, "bind_dascript::get_application_blk_path");
 
     verifyAotReady();
   }

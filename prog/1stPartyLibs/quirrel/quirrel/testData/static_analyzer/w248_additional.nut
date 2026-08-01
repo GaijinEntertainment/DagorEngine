@@ -19,10 +19,48 @@ function bar(_x = null) {}
     ? (b != null ? a.val + b.val : a.val)
     : (b != null ? b.val : 0)
 
-  // KNOWN LIMITATION: a.missing is in else branch where a wasn't checked,
-  // but analyzer doesn't track ternary else-branch nullable state deeply
+  // EXPECT WARNING: a.missing is in an else branch where a was not checked;
+  // the earlier a != null narrowing must not survive its join
   let c = foo()?.z
   let _bad = c != null ? c.val : a.missing
+}
+
+{
+  // TRUE NEGATIVE: ternary null-check guarantees the bound result is non-null
+  let maybe = foo()?.style
+  let sty = maybe != null ? maybe : { def = 1 }
+  foo(sty.def)
+}
+
+{
+  // TRUE NEGATIVE: a parenthesized checked arm still narrows
+  let maybe = foo()?.style
+  let sty = maybe != null ? (maybe) : { def = 1 }
+  foo(sty.def)
+}
+
+{
+  // TRUE NEGATIVE: inverted null-check narrows the else arm
+  let maybe = foo()?.style
+  let sty = maybe == null ? { def = 1 } : maybe
+  foo(sty.def)
+}
+
+{
+  // TRUE NEGATIVE: bare truthiness check narrows the then arm
+  let maybe = foo()?.style
+  let sty = maybe ? maybe : { def = 1 }
+  foo(sty.def)
+}
+
+{
+  // TRUE NEGATIVE: instanceof check narrows the then arm
+  class Style {
+    def = 0
+  }
+  let maybe = foo()?.style
+  let sty = maybe instanceof Style ? maybe : { def = 1 }
+  foo(sty.def)
 }
 
 //=============================================================================

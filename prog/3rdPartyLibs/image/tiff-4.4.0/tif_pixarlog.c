@@ -756,7 +756,7 @@ PixarLogDecode(TIFF* tif, uint8_t* op, tmsize_t occ, uint16_t s)
 	PixarLogState* sp = DecoderState(tif);
 	tmsize_t i;
 	tmsize_t nsamples;
-	int llen;
+	tmsize_t llen;
 	uint16_t *up;
 
 	switch (sp->user_datafmt) {
@@ -779,7 +779,49 @@ PixarLogDecode(TIFF* tif, uint8_t* op, tmsize_t occ, uint16_t s)
 		return 0;
 	}
 
-	llen = sp->stride * td->td_imagewidth;
+	llen = (tmsize_t)sp->stride * td->td_imagewidth;
+
+	/* ABGR with stride=3 expands 3 samples to 4 output bytes per pixel */
+	if (sp->user_datafmt == PIXARLOGDATAFMT_8BITABGR && sp->stride == 3)
+	{
+		tmsize_t required = (tmsize_t)td->td_imagewidth * 4;
+		tmsize_t max_rows;
+		tmsize_t max_nsamples;
+
+		/* Ensure at least one expanded output row fits. */
+		if (occ < required)
+		{
+			TIFFErrorExt(tif->tif_clientdata, module,
+			    "Output buffer too small for PixarLog ABGR data");
+			return (0);
+		}
+
+		/*
+		 * The caller-provided output buffer size must represent a whole
+		 * number of expanded ABGR scanlines.
+		 */
+		if (occ % required)
+		{
+			TIFFErrorExt(tif->tif_clientdata, module,
+			    "Fractional scanline not supported for PixarLog ABGR data");
+			return (0);
+		}
+
+		/*
+		 * PixarLogDecode() may process multiple rows per call
+		 * (e.g. strip decoding). Limit nsamples so the total
+		 * output written by the loop below never exceeds occ.
+		 */
+		max_rows = occ / required;
+		max_nsamples = max_rows * llen;
+
+		if (nsamples > max_nsamples)
+		{
+			TIFFErrorExt(tif->tif_clientdata, module,
+			    "Output buffer too small for PixarLog ABGR data");
+			return (0);
+		}
+	}
 
 	(void) s;
 	assert(sp != NULL);
@@ -843,9 +885,9 @@ PixarLogDecode(TIFF* tif, uint8_t* op, tmsize_t occ, uint16_t s)
 	 * may overflow the output buffer, so truncate it enough to prevent
 	 * that but still salvage as much data as possible.
 	 */
-	if (nsamples % llen) { 
+	if (nsamples % llen) {
 		TIFFWarningExt(tif->tif_clientdata, module,
-			"stride %d is not a multiple of sample count, "
+			"stride %"TIFF_SSIZE_FORMAT" is not a multiple of sample count, "
             "%"TIFF_SSIZE_FORMAT", data truncated.", llen, nsamples);
 		nsamples -= nsamples % llen;
 	}
@@ -880,7 +922,10 @@ PixarLogDecode(TIFF* tif, uint8_t* op, tmsize_t occ, uint16_t s)
 		case PIXARLOGDATAFMT_8BITABGR:
 			horizontalAccumulate8abgr(up, llen, sp->stride,
 					(unsigned char *)op, sp->ToLinear8);
-			op += llen * sizeof(unsigned char);
+			if (sp->stride == 3)
+				op += (tmsize_t)td->td_imagewidth * 4;
+			else
+				op += llen * sizeof(unsigned char);
 			break;
 		default:
 			TIFFErrorExt(tif->tif_clientdata, module,
@@ -1120,7 +1165,7 @@ PixarLogEncode(TIFF* tif, uint8_t* bp, tmsize_t cc, uint16_t s)
 	PixarLogState *sp = EncoderState(tif);
 	tmsize_t i;
 	tmsize_t n;
-	int llen;
+	tmsize_t llen;
 	unsigned short * up;
 
 	(void) s;
@@ -1145,7 +1190,7 @@ PixarLogEncode(TIFF* tif, uint8_t* bp, tmsize_t cc, uint16_t s)
 		return 0;
 	}
 
-	llen = sp->stride * td->td_imagewidth;
+	llen = (tmsize_t)sp->stride * td->td_imagewidth;
     /* Check against the number of elements (of size uint16_t) of sp->tbuf */
     if( n > ((tmsize_t)td->td_rowsperstrip * llen) )
     {

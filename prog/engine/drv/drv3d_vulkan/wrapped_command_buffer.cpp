@@ -307,6 +307,27 @@ void WrappedCommandBuffer::flush()
           cmdPar.pAccelerationStructures, cmdPar.queryType, cmdPar.queryPool, cmdPar.firstQuery);
         break;
       }
+#if VK_EXT_opacity_micromap
+      case BuildMicromapsEXTParameters::ID:
+      {
+        FILL_CMD_PAR(BuildMicromapsEXTParameters);
+        Globals::VK::dev.vkCmdBuildMicromapsEXT(cb, cmdPar.infoCount, cmdPar.pInfos);
+        break;
+      }
+      case CopyMicromapEXTParameters::ID:
+      {
+        FILL_CMD_PAR(CopyMicromapEXTParameters);
+        Globals::VK::dev.vkCmdCopyMicromapEXT(cb, &cmdPar.info);
+        break;
+      }
+      case WriteMicromapsPropertiesEXTParameters::ID:
+      {
+        FILL_CMD_PAR(WriteMicromapsPropertiesEXTParameters);
+        Globals::VK::dev.vkCmdWriteMicromapsPropertiesEXT(cb, cmdPar.micromapCount, cmdPar.pMicromaps, cmdPar.queryType,
+          cmdPar.queryPool, cmdPar.firstQuery);
+        break;
+      }
+#endif
 #endif
       case CopyQueryPoolResultsParameters::ID:
       {
@@ -393,6 +414,176 @@ void WrappedCommandBuffer::flush()
         break;
       }
 #endif
+#if VK_EXT_extended_dynamic_state
+      case BindVertexBuffers2EXTParameters::ID:
+      {
+        FILL_CMD_PAR(BindVertexBuffers2EXTParameters);
+        Globals::VK::dev.vkCmdBindVertexBuffers2EXT(cb, cmdPar.firstBinding, cmdPar.bindingCount, cmdPar.pBuffers, cmdPar.pOffsets,
+          cmdPar.pSizes, cmdPar.pStrides);
+        break;
+      }
+      case SetCullModeEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetCullModeEXTParameters);
+        Globals::VK::dev.vkCmdSetCullModeEXT(cb, cmdPar.cullMode);
+        break;
+      }
+      case SetDepthBoundsTestEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetDepthBoundsTestEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetDepthBoundsTestEnableEXT(cb, cmdPar.depthBoundsTestEnable);
+        break;
+      }
+      case SetDepthCompareOpEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetDepthCompareOpEXTParameters);
+        Globals::VK::dev.vkCmdSetDepthCompareOpEXT(cb, cmdPar.depthCompareOp);
+        break;
+      }
+      case SetDepthTestEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetDepthTestEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetDepthTestEnableEXT(cb, cmdPar.depthTestEnable);
+        break;
+      }
+      case SetDepthWriteEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetDepthWriteEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetDepthWriteEnableEXT(cb, cmdPar.depthWriteEnable);
+        break;
+      }
+      case SetFrontFaceEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetFrontFaceEXTParameters);
+        Globals::VK::dev.vkCmdSetFrontFaceEXT(cb, cmdPar.frontFace);
+        break;
+      }
+      case SetPrimitiveTopologyEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetPrimitiveTopologyEXTParameters);
+        Globals::VK::dev.vkCmdSetPrimitiveTopologyEXT(cb, cmdPar.primitiveTopology);
+        break;
+      }
+      case SetScissorWithCountEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetScissorWithCountEXTParameters);
+        Globals::VK::dev.vkCmdSetScissorWithCountEXT(cb, cmdPar.scissorCount, cmdPar.pScissors);
+        break;
+      }
+      case SetStencilOpEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetStencilOpEXTParameters);
+        Globals::VK::dev.vkCmdSetStencilOpEXT(cb, cmdPar.faceMask, cmdPar.failOp, cmdPar.passOp, cmdPar.depthFailOp, cmdPar.compareOp);
+        break;
+      }
+      case SetStencilTestEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetStencilTestEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetStencilTestEnableEXT(cb, cmdPar.stencilTestEnable);
+        break;
+      }
+      case SetViewportWithCountEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetViewportWithCountEXTParameters);
+        Globals::VK::dev.vkCmdSetViewportWithCountEXT(cb, cmdPar.viewportCount, cmdPar.pViewports);
+        break;
+      }
+#endif // VK_EXT_extended_dynamic_state
+#if VK_EXT_extended_dynamic_state2
+      case SetDepthBiasEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetDepthBiasEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetDepthBiasEnableEXT(cb, cmdPar.depthBiasEnable);
+        break;
+      }
+      case SetLogicOpEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetLogicOpEXTParameters);
+        Globals::VK::dev.vkCmdSetLogicOpEXT(cb, cmdPar.logicOp);
+        break;
+      }
+      case SetPatchControlPointsEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetPatchControlPointsEXTParameters);
+        Globals::VK::dev.vkCmdSetPatchControlPointsEXT(cb, cmdPar.patchControlPoints);
+        break;
+      }
+      case SetPrimitiveRestartEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetPrimitiveRestartEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetPrimitiveRestartEnableEXT(cb, cmdPar.primitiveRestartEnable);
+        break;
+      }
+      case SetRasterizerDiscardEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetRasterizerDiscardEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetRasterizerDiscardEnableEXT(cb, cmdPar.rasterizerDiscardEnable);
+        break;
+      }
+#endif // VK_EXT_extended_dynamic_state2
+#if VK_EXT_extended_dynamic_state3
+      case SetAlphaToCoverageEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetAlphaToCoverageEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetAlphaToCoverageEnableEXT(cb, cmdPar.alphaToCoverageEnable);
+        break;
+      }
+      case SetAlphaToOneEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetAlphaToOneEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetAlphaToOneEnableEXT(cb, cmdPar.alphaToOneEnable);
+        break;
+      }
+      case SetColorBlendEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetColorBlendEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetColorBlendEnableEXT(cb, cmdPar.firstAttachment, cmdPar.attachmentCount, cmdPar.pColorBlendEnables);
+        break;
+      }
+      case SetColorBlendEquationEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetColorBlendEquationEXTParameters);
+        Globals::VK::dev.vkCmdSetColorBlendEquationEXT(cb, cmdPar.firstAttachment, cmdPar.attachmentCount,
+          cmdPar.pColorBlendEquations);
+        break;
+      }
+      case SetColorWriteMaskEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetColorWriteMaskEXTParameters);
+        Globals::VK::dev.vkCmdSetColorWriteMaskEXT(cb, cmdPar.firstAttachment, cmdPar.attachmentCount, cmdPar.pColorWriteMasks);
+        break;
+      }
+      case SetDepthClampEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetDepthClampEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetDepthClampEnableEXT(cb, cmdPar.depthClampEnable);
+        break;
+      }
+      case SetLogicOpEnableEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetLogicOpEnableEXTParameters);
+        Globals::VK::dev.vkCmdSetLogicOpEnableEXT(cb, cmdPar.logicOpEnable);
+        break;
+      }
+      case SetPolygonModeEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetPolygonModeEXTParameters);
+        Globals::VK::dev.vkCmdSetPolygonModeEXT(cb, cmdPar.polygonMode);
+        break;
+      }
+      case SetRasterizationSamplesEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetRasterizationSamplesEXTParameters);
+        Globals::VK::dev.vkCmdSetRasterizationSamplesEXT(cb, cmdPar.rasterizationSamples);
+        break;
+      }
+      case SetSampleMaskEXTParameters::ID:
+      {
+        FILL_CMD_PAR(SetSampleMaskEXTParameters);
+        Globals::VK::dev.vkCmdSetSampleMaskEXT(cb, cmdPar.samples, cmdPar.pSampleMask);
+        break;
+      }
+#endif // VK_EXT_extended_dynamic_state3
       default: G_ASSERTF(0, "vulkan: unrecognized command %u at reorder flush", *((CmdID *)cmdPtr)); break;
     }
   }

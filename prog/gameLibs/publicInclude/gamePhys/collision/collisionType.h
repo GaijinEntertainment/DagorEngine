@@ -25,4 +25,6 @@ enum CollType : uint32_t
   ETF_ALL = -1 & ~ETF_RI_PHYS // Always specify use of phys collision explicitly
 };
 
+static constexpr float NO_SURFACE_TRACE_HEIGHT = -5e3f;
+
 }; // namespace dacoll

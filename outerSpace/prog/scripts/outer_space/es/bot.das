@@ -7,6 +7,8 @@ require outer_space.events_outer_space
 require DngPhysObj
 require outer_space.es.space_ship_common
 require math
+require math.base
+require DagorMath
 
 enum TargetChoosing
   CLOSEST = 0
@@ -156,22 +158,79 @@ def spaceship_ai_controls(evt : CmdPrePhysUpdate;
     target = transform[3]
     for b_eid in checkpoint__visited_by_player
       if b_eid == possessedByPlr
-        broadcastEvent(EventOnBotVisitedCheckpoint(byBot = shEid, checkpoint = eid))
+        broadcastEventImmediate(EventOnBotVisitedCheckpoint(byBot = shEid, checkpoint = eid))
 
   var ct = get_phys_obj_produced_controls(phys_obj_net_phys)
   if ct != null
-    let dL = rotate(inverse(transform), phys_obj_net_phys.phys.currentState.velocity)
-    let dW = normalize(target - pos)
-    let heading = atan2(dW.z, dW.x)
-    let pitch = atan2(-dW.y, length(dW.xz))
+    let canThrust = can_move
 
-    (*ct).use_fwd_stabilization = true
-    (*ct).use_stabilization = true
-    (*ct).free_look_around = !can_move
-    (*ct).rotateView_base_quat = float4(0, 0, 0, 1)
-    (*ct).rotateView_rad = float2(-heading, -pitch)
+    let dL = rotate(inverse(transform), phys_obj_net_phys.phys.currentState.velocity)
+    let toTarget = target - pos
+    let dW = normalize(toTarget)
+
+    let cur_tm_q = math::quat(transform)
+    let cur_tm_quat = quat(cur_tm_q)
+    var curHeading, curPitch, curRoll : float
+    quat_to_euler(cur_tm_quat, curHeading, curPitch, curRoll)
+
+    // bearing to target is only meaningful with real horizontal separation - flying almost
+    // directly over/under a checkpoint makes the required heading sweep through the full
+    // circle in a fraction of a second (correct, but not something the ship can track), so
+    // hold the current heading instead of chasing an unfollowable target while this close
+    var heading = curHeading
+    if length_sq(toTarget.xz) > 25.f // more than 5m of horizontal separation
+      heading = atan2(dW.z, dW.x)
+    var pitch = atan2(-dW.y, length(dW.xz))
+    // never request a fully vertical attitude: the dynamics' heading/pitch/roll
+    // decomposition of the ship's own orientation (matrix_to_euler) gimbal-locks at
+    // pitch=+-90deg, which is exactly what a checkpoint straight above/below causes
+    pitch = clamp(pitch, -80.f * PI / 180.f, 80.f * PI / 180.f)
+
+    // if the ship is already spinning fast, chasing a new target heading on top of that
+    // just fights the existing angular momentum - let go of the heading lock (free_look)
+    // so the plain self-leveling/damping in the dynamics can arrest the spin first, then
+    // resume aiming at the target once it settles
+    let isSpinningFast = length_sq(phys_obj_net_phys.phys.currentState.omega) > 4.f // ~2 rad/s
+    // fwd stabilization cancels local Y/Z velocity with a dt-scaled gain - strong relative
+    // to a small actual velocity, so only engage it once actually moving, not while slow/hovering
+    let isMovingFast = length_sq(phys_obj_net_phys.phys.currentState.velocity) > 25.f // 5 m/s
+
+    // don't accelerate while still far from facing the target - cruise thrust at a large
+    // attitude error just launches the ship past the target before it can finish turning,
+    // producing a divergent overshoot-and-reverse oscillation instead of converging on it
+    let fwdWorld = rotate(transform, float3(1, 0, 0))
+    let alignment = dot(fwdWorld, dW)
+    let isAligned = alignment > 0.7f // roughly within 45deg of facing the target
+
+    // use_stabilization's altitude control is a ground-hover spring-damper relative to
+    // terrain trace - only meaningful on a gravity mission (matches spawn_player_entity's
+    // has_gravity check in player.das). It also disables the forward stabilization's
+    // vertical velocity damping, so in zero-g open space (no ground to hover over) leave
+    // it off and let fwd_stabilization damp all three axes instead
+    var has_gravity : bool = false
+    query() <| $ [es] (phys_props__gravity : float)
+      has_gravity = abs(phys_props__gravity) > 0.0f
+
+    (*ct).use_fwd_stabilization = isMovingFast
+    (*ct).use_stabilization = has_gravity
+    (*ct).free_look_around = !canThrust || isSpinningFast
+
+    // target in ship-relative coordspace, same as the human input path (spaceship_input_es):
+    // express the desired absolute attitude as an offset from the ship's current orientation
+    // instead of from world identity - required by the use_stabilization=false attitude
+    // controller, which uses rotateView_rad directly as the error term with no
+    // reconstruction against current orientation of its own
+    var q : quat
+    euler_heading_attitude_to_quat(-heading, -pitch, q)
+    q = quat(quat_mul(float4(inverse(quat(cur_tm_q))), float4(q)))
+    var newRad : float2
+    var roll_ : float
+    quat_to_euler(q, newRad.x, newRad.y, roll_)
+    (*ct).rotateView_rad = newRad
+    (*ct).rotateView_base_quat = cur_tm_q
+
     (*ct).rot = float3(0, 0, 0)
-    if !can_move
+    if !canThrust || !isAligned
       (*ct).lin = float3(0, 0, 0)
     elif thrusting == 0  // fast
       if dL.x < 80.0

@@ -84,12 +84,13 @@ def run_cmd(cmd):
 def normalize_output(s):
     s = s.replace(".no-opt.nut", ".nut").replace(".opt.nut", ".nut")
     s = re.sub(r"0[xX][0-9a-fA-F]+", "0xHEXNUMBER", s)
-    # Remove [this] sections (closure hoisting changes local variable visibility)
-    s = re.sub(r"\[this\][^\n]*.*?(?====)", "", s, flags=re.DOTALL)
+    # Cut error dump up to the next === separator only: csq continues with the
+    # remaining batch files after an error, and their output must stay compared
+    s = re.sub(r"CALLSTACK.*?(?====)|CALLSTACK.*", "", s, flags=re.DOTALL)
     return s
 
 
-_MINIMIZE_TIMEOUT = 60      # seconds per file
+_MINIMIZE_TIMEOUT = 180     # seconds per file
 _MINIMIZE_CSQ_TIMEOUT = 5   # seconds per csq execution during minimize
 
 

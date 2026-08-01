@@ -114,6 +114,9 @@ public:
       return sq_throwerror(vm, "Cursor requires component as argument");
 
     GuiScene *scene = GuiScene::get_from_sqvm(vm);
+    if (scene->isBeingCleared())
+      return sq_throwerror(vm, "Can't create cursor while clearing the scene");
+
     Sqrat::Var<Sqrat::Object> markup(vm, 2);
     Cursor *inst = new Cursor(scene);
     inst->init(markup.value);

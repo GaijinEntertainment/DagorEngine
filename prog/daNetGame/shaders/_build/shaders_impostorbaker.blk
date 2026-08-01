@@ -14,6 +14,7 @@ source
   file:t = "generate_imp_mipmaps.dshl"
   file:t = "bc4_compression.dshl"
   file:t = "rendinst_voxel.dshl"
+  file:t = "frustum_planes.dshl"
 
   include rendinstImpostorbakeableShadersList.blk
 

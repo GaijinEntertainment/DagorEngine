@@ -1,15 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-// temporarily disabled due to visible artifacts
-
 #include <vector>
 #include <max.h>
 
 struct DialogLayout;
 
-void attach_layout_to_rollup(HWND hWnd, LPCWSTR dialog_name);
 void attach_layout_to_dialog(HWND hWnd, LPCWSTR dialog_name);
+void detach_layout_from_dialog(HWND hWnd);
 void update_layout(HWND hWnd, LPARAM lParam);
 
 #ifndef IDC_STATIC

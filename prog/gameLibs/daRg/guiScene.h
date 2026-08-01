@@ -20,6 +20,7 @@
 #include "sceneStatus.h"
 #include "touchPointers.h"
 #include "kbFocus.h"
+#include "perfStats.h"
 
 #include <drv/hid/dag_hiDecl.h>
 #include <drv/hid/dag_hiXInputMappings.h>
@@ -172,6 +173,10 @@ public:
 
   virtual void activateProfiler(bool on) override;
   virtual Profiler *getProfiler() const override { return profiler.get(); }
+  PerfStats &getPerfStats() { return perfStats; }
+  void dumpPerfStatsToLog();               // scene thread only
+  void requestPerfStatsDump(bool reset);   // any thread
+  void requestProfilerActivation(bool on); // any thread
   IGuiSceneCallback *getCb() const { return guiSceneCb; }
 
   CursorPosState &activePointerState();
@@ -196,6 +201,8 @@ public:
 
   void addCursor(Cursor *c);
   void removeCursor(Cursor *c);
+
+  bool isBeingCleared() const { return isClearing; }
 
   void onPictureLoaded(const Picture *pic);
   virtual void setPictureDiscardAllowed(bool discardAllowed) override { pictureDiscardAllowed = discardAllowed; }
@@ -310,6 +317,7 @@ private:
   static SQInteger set_update_handler(HSQUIRRELVM vm);
   static SQInteger set_shutdown_handler(HSQUIRRELVM vm);
   static SQInteger set_hotkeys_nav_handler(HSQUIRRELVM vm);
+  static SQInteger get_perf_stats(HSQUIRRELVM vm);
   static SQInteger move_mouse_cursor(HSQUIRRELVM vm);
   static SQInteger add_panel(HSQUIRRELVM vm);
   static SQInteger remove_panel(HSQUIRRELVM vm);
@@ -354,6 +362,8 @@ public:
 
   bool needToDiscardPictures = false;
   bool isRebuildingInvalidatedParts = false;
+
+  bool isEvaluatingBuilder = false;
 
   int screensPanelsIterDepth = 0;
 
@@ -430,6 +440,11 @@ private:
   JoystickHandler joystickHandler;
 
   eastl::unique_ptr<Profiler> profiler;
+  // AutoProfileScope holds a raw Profiler* and script can disable it mid-scope; destroy only in update()
+  bool profilerOffPending = false;
+  PerfStats perfStats;
+  int pendingPerfDumpFlags = 0;       // set by requestPerfStatsDump(), consumed by update()
+  int pendingProfilerActivation = -1; // -1 none, else 0/1; set by requestProfilerActivation()
 
   Tab<Timer *> timers;
   bool lockTimersList = false; // lock for deletion/modification while iterating
@@ -491,6 +506,7 @@ private:
   mutable volatile int apiThreadId = 0;
   mutable void *threadCheckCallStack[32];
   friend class ApiThreadCheck;
+  friend struct BuilderEvalGuard;
 
   bool dbgIsInUpdateHover = false;
   bool dbgIsInTryRestoreSavedXmbFocus = false;
@@ -501,6 +517,26 @@ private:
   bool pictureDiscardAllowed = true;
 
   friend class Screen; // for localToDisplay/displayToLocal, to be removed later
+};
+
+
+// Requests a perf stats dump of every live GuiScene to the debug log (see
+// darg.perf_stats console command); any thread, served by each scene's update().
+void dump_all_gui_scenes_perf_stats(bool reset_counters);
+
+// Enables/disables the per-stage profiler on every live GuiScene (see
+// darg.profiler console command); any thread, served by each scene's update().
+void set_all_gui_scenes_profiler(bool on);
+
+
+struct BuilderEvalGuard
+{
+  GuiScene *scene;
+  bool prev;
+  explicit BuilderEvalGuard(HSQUIRRELVM vm);
+  ~BuilderEvalGuard();
+  BuilderEvalGuard(const BuilderEvalGuard &) = delete;
+  BuilderEvalGuard &operator=(const BuilderEvalGuard &) = delete;
 };
 
 } // namespace darg

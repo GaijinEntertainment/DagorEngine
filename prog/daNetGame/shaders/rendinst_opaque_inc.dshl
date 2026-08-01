@@ -16,6 +16,7 @@ include "tree_burning_stub.dshl"
 include "gbuffer_mixing_tex.dshl"
 include_optional "burnt_ground/shaders/burnt_grass.dshl"
 include_optional "triangle_size_debug.dshl"
+include "parallax_shadow.dshl"
 
 define_macro_if_not_defined INIT_BURNT_GRASS_BASE_VARS(needs_perlin_noise)
 endmacro
@@ -111,6 +112,7 @@ block(scene) rendinst_scene
   INIT_TREE_BURNING_FOR_RI_BLOCK()
   INIT_GBUFFER_MIXING_UAV()
   INIT_BURNT_GRASS_BASE_VARS(false)
+  INIT_PARALLAX_SHADOW_RUNTIME()
   if (compatibility_mode != compatibility_mode_on)
   {
     INIT_HMAP_FOR_RI_BLOCK()

@@ -15,7 +15,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include <stddef.h>
 
 #define OMM_VERSION_MAJOR 1
-#define OMM_VERSION_MINOR 6
+#define OMM_VERSION_MINOR 9
 #define OMM_VERSION_BUILD 1
 
 #define OMM_MAX_TRANSIENT_POOL_BUFFERS 8
@@ -152,9 +152,10 @@ typedef enum ommIndexFormat
 {
    ommIndexFormat_UINT_16,
    ommIndexFormat_UINT_32,
+   ommIndexFormat_UINT_8,
+   ommIndexFormat_MAX_NUM,
    ommIndexFormat_I16_UINT OMM_DEPRECATED_MSG("ommIndexFormat_I16_UINT is deprecated, please use ommIndexFormat_UINT_16 instead") = ommIndexFormat_UINT_16,
    ommIndexFormat_I32_UINT OMM_DEPRECATED_MSG("ommIndexFormat_I32_UINT is deprecated, please use ommIndexFormat_UINT_32 instead") = ommIndexFormat_UINT_32,
-   ommIndexFormat_MAX_NUM,
 } ommIndexFormat;
 
 typedef enum ommTextureAddressMode
@@ -306,7 +307,7 @@ typedef enum ommCpuBakeFlags
    // special indices may still be set.
    ommCpuBakeFlags_DisableSpecialIndices        = 1u << 1,
 
-   // Force 32-bit index format in ommIndexFormat
+   // Force 32-bit index format for the output OMM index buffer
    ommCpuBakeFlags_Force32BitIndices            = 1u << 2,
 
    // Will disable reuse of OMMs and instead produce duplicates omm-array data. Generally only needed for debug purposes.
@@ -324,6 +325,9 @@ typedef enum ommCpuBakeFlags
    // which may help diagnose omm bake result or longer than expected bake times.
    // *** NOTE messageInterface must be set when using this flag *** 
    ommCpuBakeFlags_EnableValidation             = 1u << 5,
+
+   // Allow 8-bit index format for the output OMM index buffer
+   ommCpuBakeFlags_Allow8BitIndices             = 1u << 6,
 
    ommCpuBakeFlags_EnableWorkloadValidation OMM_DEPRECATED_MSG("EnableWorkloadValidation is deprecated, use EnableValidation instead") = 1u << 5,
 
@@ -401,6 +405,7 @@ typedef struct ommCpuBakeInputDesc
    // Texel opacity = texture > alphaCutoff ? alphaCutoffGT : alphaCutoffLE
    // This can be used to construct different pairings such as transparent and unknown opaque which is useful 
    // for applications requiring partial accumulated opacity, like smoke and particle effects
+   float                    nearDuplicateDeduplicationFactor;
    union
    {
        OMM_DEPRECATED_MSG("alphaCutoffLE has been deprecated, please use alphaCutoffLessEqual")
@@ -433,6 +438,10 @@ typedef struct ommCpuBakeInputDesc
    // When dynamicSubdivisionScale is disabled maxSubdivisionLevel is the subdivision level applied uniformly to all
    // triangles.
    uint8_t                  maxSubdivisionLevel;
+   // Max allowed size in bytes of ommCpuBakeResultDesc::arrayData
+   // The baker will choose to downsample the most appropriate omm blocks (based on area, reuse, coverage and other factors)
+   // until this limit is met.
+   uint32_t                 maxArrayDataSize;
    // [optional] Use subdivisionLevels to control subdivision on a per triangle granularity.
    // +14 - reserved for future use.
    // 13 - use global value specified in 'subdivisionLevel.
@@ -466,6 +475,7 @@ inline ommCpuBakeInputDesc ommCpuBakeInputDescDefault()
    v.dynamicSubdivisionScale       = 2;
    v.rejectionThreshold            = 0;
    v.alphaCutoff                   = 0.5f;
+   v.nearDuplicateDeduplicationFactor = 0.15f;
    v.alphaCutoffLessEqual          = ommOpacityState_Transparent;
    v.alphaCutoffGreater            = ommOpacityState_Opaque;
    v.format                        = ommFormat_OC1_4_State;
@@ -473,6 +483,7 @@ inline ommCpuBakeInputDesc ommCpuBakeInputDescDefault()
    v.unknownStatePromotion         = ommUnknownStatePromotion_ForceOpaque;
    v.unresolvedTriState            = ommSpecialIndex_FullyUnknownOpaque;
    v.maxSubdivisionLevel           = 8;
+   v.maxArrayDataSize              = 0xFFFFFFFF;
    v.subdivisionLevels             = NULL;
    v.maxWorkloadSize               = 0xFFFFFFFFFFFFFFFF;
    return v;
@@ -555,6 +566,8 @@ inline ommCpuDeserializedDesc ommCpuDeserializedDescDefault()
 }
 
 OMM_API ommResult ommCpuCreateTexture(ommBaker baker, const ommCpuTextureDesc* desc, ommCpuTexture* outTexture);
+
+OMM_API ommResult ommCpuGetTextureDesc(ommCpuTexture texture, ommCpuTextureDesc* outDesc);
 
 OMM_API ommResult ommCpuDestroyTexture(ommBaker baker, ommCpuTexture texture);
 
@@ -716,7 +729,7 @@ typedef enum ommGpuBakeFlags
    // up scratch memory.
    ommGpuBakeFlags_DisableTexCoordDeduplication = 1u << 5,
 
-   // Force 32-bit indices in OUT_OMM_INDEX_BUFFER
+   // Force 32-bit index format for the output OMM index buffer
    ommGpuBakeFlags_Force32BitIndices            = 1u << 6,
 
    // Use only for debug purposes. Level Line Intersection method is vastly superior in 4-state mode.
@@ -724,6 +737,9 @@ typedef enum ommGpuBakeFlags
 
    // Slightly modifies the dispatch to aid frame capture debugging.
    ommGpuBakeFlags_EnableNsightDebugMode        = 1u << 8,
+
+   // Allow 8-bit index format for the output OMM index buffer
+   ommGpuBakeFlags_Allow8BitIndices             = 1u << 9,
 } ommGpuBakeFlags;
 OMM_DEFINE_ENUM_FLAG_OPERATORS(ommGpuBakeFlags);
 
@@ -997,6 +1013,7 @@ typedef struct ommGpuDispatchConfigDesc
    ommIndexFormat            indexFormat;
    // The actual number of indices can be lower.
    uint32_t                  indexCount;
+   uint32_t                  indexOffset;
    // If zero packed aligment is assumed.
    uint32_t                  indexStrideInBytes;
    // The alpha cutoff value. By default it's Texel Opacity = texture > alphaCutoff ? Opaque : Transparent
@@ -1051,6 +1068,7 @@ inline ommGpuDispatchConfigDesc ommGpuDispatchConfigDescDefault()
    v.texCoordStrideInBytes         = 0;
    v.indexFormat                   = ommIndexFormat_MAX_NUM;
    v.indexCount                    = 0;
+   v.indexOffset                   = 0;
    v.indexStrideInBytes            = 0;
    v.alphaCutoff                   = 0.5f;
    v.alphaCutoffLessEqual          = ommOpacityState_Transparent;
@@ -1159,6 +1177,7 @@ typedef struct ommDebugStats
    uint32_t totalFullyTransparent;
    uint32_t totalFullyUnknownOpaque;
    uint32_t totalFullyUnknownTransparent;
+   float knownAreaMetric; // this is known area in uv space, divided by the total uv space. -1.f if unknown
 } ommDebugStats;
 
 inline ommDebugStats ommDebugStatsDefault()
@@ -1172,6 +1191,7 @@ inline ommDebugStats ommDebugStatsDefault()
    v.totalFullyTransparent         = 0;
    v.totalFullyUnknownOpaque       = 0;
    v.totalFullyUnknownTransparent  = 0;
+   v.knownAreaMetric               = 0;
    return v;
 }
 
@@ -1179,6 +1199,7 @@ inline ommDebugStats ommDebugStatsDefault()
 OMM_API ommResult ommDebugSaveAsImages(ommBaker baker, const ommCpuBakeInputDesc* bakeInputDesc, const ommCpuBakeResultDesc* res, const ommDebugSaveImagesDesc* desc);
 
 OMM_API ommResult ommDebugGetStats(ommBaker baker, const ommCpuBakeResultDesc* res, ommDebugStats* out);
+OMM_API ommResult ommDebugGetStats2(ommBaker baker, ommCpuBakeResult res, ommDebugStats* out);
 
 OMM_API ommResult ommDebugSaveBinaryToDisk(ommBaker baker, const ommCpuBlobDesc& data, const char* path);
 

@@ -3,7 +3,6 @@
 // Land-class / detail-texture (virtual texture content) loading.
 // Split out of lmeshManager.cpp; part of the same gameLibs/landMesh library.
 
-#include <landMesh/landRayTracer.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
@@ -661,5 +660,8 @@ void LandMeshManager::loadDetailData(IGenLoad &cb)
 {
   loadLandClasses(cb);
 
-  detailMap.load(cb, baseDataOffset, toolsInternal);
+  srcFileDetailMapOfs = cb.tell(); // where afterDeviceReset() reads the weights back from
+  // a system copy is only worth carrying when nothing would reload the atlas
+  const unsigned weightCflg = dataReset == LandMeshReset::SysCopy ? TEXCF_SYSTEXCOPY | TEXCF_LOADONCE : 0;
+  detailMap.load(cb, baseDataOffset, toolsInternal, d3d::is_stub_driver() ? nullptr : &weightAtlas, weightCflg);
 }

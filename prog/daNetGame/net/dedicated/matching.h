@@ -25,6 +25,7 @@ void ban_player_in_room(matching::UserId user_id);
 void on_level_loaded();
 int get_room_members_count();
 const char *get_player_custom_info(matching::UserId uid);
+bool has_player_penalty(matching::UserId uid, const char *penalty);
 matching::RoomId get_current_room_id();
 eastl::string get_current_cluster();
 

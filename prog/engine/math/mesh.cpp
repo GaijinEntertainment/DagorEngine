@@ -16,7 +16,6 @@
 #include <debug/dag_log.h>
 #include <ioSys/dag_genIo.h>
 #include <util/dag_bitArray.h>
-#include <util/dag_stlqsort.h>
 #include <EASTL/hash_map.h>
 #include <hash/mum_hash.h>
 
@@ -96,12 +95,10 @@ Mesh::Mesh() {}
 
 static Face *faces;
 
-#ifndef __clang__
 struct FaceMatCompare
 {
   static int compare(const int a, const int b) { return faces[a].mat - faces[b].mat; }
 };
-#endif
 
 void MeshData::erasefaces(int at, int n)
 {
@@ -251,11 +248,9 @@ sort_codepath:
   for (int j = 0; j < fi.size(); ++j)
     fi[j] = j;
   faces = &face[0];
-#ifdef __clang__
-  stlsort::sort(fi.data(), fi.data() + fi.size(), [&](auto a, auto b) { return faces[a].mat < faces[b].mat; });
-#else
+  // one sort algorithm for all compilers: relative order of faces with equal
+  // mat is algorithm-defined and any difference cascades into built vdata
   SimpleQsort<int, FaceMatCompare>::sort(&fi[0], fi.size());
-#endif
   return reorder_faces(fi.data());
 }
 
@@ -1092,13 +1087,12 @@ static void remove_faces(MeshData &m, const CanRemove &c)
 
 void MeshData::kill_bad_faces(float fa_thres) { remove_faces(*this, RemoveDegenerate(fa_thres)); }
 
-void MeshData::kill_bad_faces2(float fa_thresh, float fa_to_check_thresh, float fa_to_perim_ratio_thresh)
+void MeshData::kill_sliver_faces(float fa_thresh, float ratio)
 {
   struct RemoveDegenerateByPerimeterToFaceAreaRatio
   {
     float faceAreaThres;
-    float faceAreaCheckThres;
-    float faceAreaToPerimeterRatioThres;
+    float perimeterTo2FaceAreaRatioThres;
     bool can_remove(const Face &f, dag::ConstSpan<Point3> verts, int) const
     {
       if (f.v[0] == f.v[1] || f.v[0] == f.v[2] || f.v[1] == f.v[2])
@@ -1110,21 +1104,19 @@ void MeshData::kill_bad_faces2(float fa_thresh, float fa_to_check_thresh, float 
       vec3f v10 = v_sub(v1, v0);
       vec3f v20 = v_sub(v2, v0);
       vec3f vfa2 = v_length3_sq_x(v_cross3(v10, v20));
-      if (DAGOR_UNLIKELY(v_extract_x(vfa2) < faceAreaCheckThres))
-      {
-        if (v_extract_x(vfa2) < faceAreaThres)
-          return true;
-        vec4f v21fa2 = v_perm_xaxa(v_length3_sq_x(v_sub(v2, v1)), vfa2);
-        vec4f vpfa = v_sqrt(v_perm_xyab(v_perm_xaxa(v_length3_sq_x(v10), v_length3_sq_x(v20)), v21fa2));
-        if (v_extract_x(v_hadd3_x(vpfa)) / v_extract_w(vpfa) > faceAreaToPerimeterRatioThres)
-          return true;
-      }
+
+      if (v_extract_x(vfa2) < faceAreaThres)
+        return true;
+
+      vec4f v21fa2 = v_perm_xaxa(v_length3_sq_x(v_sub(v2, v1)), vfa2);
+      vec4f vpfa = v_sqrt(v_perm_xyab(v_perm_xaxa(v_length3_sq_x(v10), v_length3_sq_x(v20)), v21fa2));
+      if (v_extract_x(v_hadd3_x(vpfa)) / v_extract_w(vpfa) > perimeterTo2FaceAreaRatioThres)
+        return true;
 
       return false;
     }
   };
-  RemoveDegenerateByPerimeterToFaceAreaRatio cb{fa_thresh, fa_to_check_thresh, fa_to_perim_ratio_thresh};
-  remove_faces(*this, cb);
+  remove_faces(*this, RemoveDegenerateByPerimeterToFaceAreaRatio{fa_thresh, ratio});
 }
 
 class RemoveUnused

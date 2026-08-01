@@ -86,27 +86,23 @@ void add(const eastl::string &name, int cell_tile, int grid_size, float cell_siz
       return;
     }
     using namespace rendinst;
-    int id = riExtraMap.getNameId(name.c_str());
-    if (id == -1)
-    {
-      debug("GPUObjects: auto adding <%s> as riExtra.", name);
-      auto riaddf = AddRIFlag::UseShadow | AddRIFlag::GameresPreLoaded; // Expected to be preloaded by `GpuObjectRiResourcePreload`
-      id = addRIGenExtraResIdx(name.c_str(), -1, -1, riaddf);
-      if (id < 0)
-        return;
-    }
+    // Expected to be preloaded by `GpuObjectRiResourcePreload`
+    const rendinst::ClientRiexPool id =
+      rendinst::ClientRiexPool::add(name.c_str(), rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::GameresPreLoaded);
+    if (!id.valid())
+      return;
 
-    float boundingSphereRadius = rendinst::riExtra[id].sphereRadius;
-    dag::ConstSpan<float> distSqLod(rendinst::riExtra[id].distSqLOD, rendinst::riExtra[id].res->lods.size());
+    float boundingSphereRadius = rendinst::riExtra[id.id()].sphereRadius;
+    dag::ConstSpan<float> distSqLod(rendinst::riExtra[id.id()].distSqLOD, rendinst::riExtra[id.id()].res->lods.size());
     manager->addObject(name.c_str(), id, cell_tile, grid_size, cell_size, boundingSphereRadius, distSqLod, parameters);
     gpu_objects::PlacingParameters nodeBasedMetadataAppliedParams;
     // if node based shader has metadata block with parameters, this values are used instead of stored in entity description
     manager->getParameters(id, nodeBasedMetadataAppliedParams);
     manager->getCellData(id, cell_tile, grid_size, cell_size);
-    rendinst::riExtra[id].radiusFade = grid_size * cell_size * 0.5;
-    rendinst::riExtra[id].radiusFadeDrown = 0.5;
-    rendinst::riExtra[id].softness = clamp(1.0f - nodeBasedMetadataAppliedParams.hardness, 0.0f, 1.0f);
-    rendinst::render::update_per_draw_gathered_data(id);
+    rendinst::riExtra[id.id()].radiusFade = grid_size * cell_size * 0.5;
+    rendinst::riExtra[id.id()].radiusFadeDrown = 0.5;
+    rendinst::riExtra[id.id()].softness = clamp(1.0f - nodeBasedMetadataAppliedParams.hardness, 0.0f, 1.0f);
+    rendinst::render::update_per_draw_gathered_data(id.id());
   }
 }
 
@@ -159,14 +155,14 @@ void change_parameters(const eastl::string &name, const gpu_objects::PlacingPara
 {
   d3d::GpuAutoLock lock;
   if (manager)
-    manager->changeParameters(rendinst::riExtraMap.getNameId(name.c_str()), parameters);
+    manager->changeParameters(rendinst::ClientRiexPool::get(name.c_str()), parameters);
 }
 
 void change_grid(const eastl::string &name, int cell_tile, int grid_size, float cell_size)
 {
   d3d::GpuAutoLock lock;
   if (manager)
-    manager->changeGrid(rendinst::riExtraMap.getNameId(name.c_str()), cell_tile, grid_size, cell_size);
+    manager->changeGrid(rendinst::ClientRiexPool::get(name.c_str()), cell_tile, grid_size, cell_size);
 }
 
 void invalidate_inside_bbox(const BBox2 &bbox)

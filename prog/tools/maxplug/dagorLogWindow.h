@@ -7,11 +7,7 @@
 class DagorLogWindow
 {
 public:
-#if (__cplusplus >= 201100L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201100L)
   enum class LogLevel
-#else
-  enum LogLevel
-#endif
   {
     Note,
     Warning,
@@ -47,3 +43,8 @@ public:
 private:
   bool hasWarningOrError;
 };
+
+// shorthands for DagorLogWindow::addToLog() with the matching level
+void explog(const TCHAR *s, ...);
+void explogWarning(const TCHAR *s, ...);
+void explogError(const TCHAR *s, ...);

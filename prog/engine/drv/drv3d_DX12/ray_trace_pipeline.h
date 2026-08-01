@@ -32,6 +32,7 @@ class RayTracePipeline
     uint32_t minRecursion = 0;
     uint32_t minPayload = 0;
     uint32_t minAttributes = 0;
+    bool allowOpacityMicroMaps = false;
   };
   ComPtr<ID3D12StateObject> object;
   RaytracePipelineSignature rootSignature;
@@ -50,16 +51,19 @@ public:
 
   struct BuildConfig
   {
-    bool useEmbeddedShaderConfig = false;
-    bool useEmbeddedPipelineConfig = false;
+    // Collection-style libraries (raygen-only / hit-group imports) carry their shader and pipeline
+    // config subobjects in the DXIL, so the driver must not emit duplicates. When set, the driver
+    // trusts the embedded configs. The builder still forces a CPU-side pipeline config when a library
+    // carries a DSHL raytrace_pipeline block, which it detects from the per-shader flags itself.
+    bool useEmbeddedObjects = false;
   };
 
-  bool build(AnyDevicePtr device_ptr, bool has_native_expand, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer, RayTracePipeline *base,
-    const ::raytrace::PipelineCreateInfo &ci);
+  bool build(AnyDevicePtr device_ptr, bool has_native_expand, bool device_allows_omm, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializer,
+    RayTracePipeline *base, const ::raytrace::PipelineCreateInfo &ci);
   // build function for simpler pipeline builds with supplied root signature, currently used for CS on RayGen
   bool build(D3DDevice *device, const RaytracePipelineSignature &root_signature,
-    const RayTracePipelineResourceTypeTable &res_type_table, const ::raytrace::PipelineCreateInfo &ci,
-    const BuildConfig &build_config);
+    const RayTracePipelineResourceTypeTable &res_type_table, const ::raytrace::PipelineCreateInfo &ci, const BuildConfig &build_config,
+    bool device_allows_omm);
   RayTracePipeline *expand(ID3D12Device7 *device, const ::raytrace::PipelineExpandInfo &ei) const;
   ID3D12StateObject *get() { return object.Get(); }
   const RaytracePipelineSignature &getSignature() { return rootSignature; }

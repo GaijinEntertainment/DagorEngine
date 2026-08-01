@@ -37,7 +37,7 @@
 
 #include <math/dag_occlusionZBuffer.h>
 #include <3d/dag_maskedOcclusionCulling.h>
-#include <daBVH/dag_swBLAS_ray.h>
+#include <daBVH/dag_swBLAS_leaf.h>
 
 #ifndef MOC_SINGLE_IMPLEMENTATION
 

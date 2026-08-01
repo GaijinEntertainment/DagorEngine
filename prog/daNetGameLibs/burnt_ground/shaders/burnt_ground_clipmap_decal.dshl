@@ -9,7 +9,7 @@ shader clipmap_burnt_ground_decal
   hlsl(ps){
     #define NO_GRADIENTS_IN_SHADER 1
   }
-  if (clipmap_writes_height_only == yes)
+  if (render_with_normalmap == render_displacement)
   {
     dont_render;
   }
@@ -52,9 +52,9 @@ shader clipmap_burnt_ground_decal
   CLIPMAP_DECALS_COMMON()
 
   hlsl(ps) {
-    MRT_OUPUT landmesh_decal_clipmap_ps(VsOutput input)
+    VTEX_MRT landmesh_decal_clipmap_ps(VsOutput input)
     {
-      MRT_OUPUT ret;
+      VTEX_MRT ret;
       float decalSize = input.diffuseTexcoord.w;
       float3 tc = float3(getBurntGroundTc(input.worldPosXZ), input.diffuseTexcoord.z);
 
@@ -71,12 +71,10 @@ shader clipmap_burnt_ground_decal
       float smoothness = material_params.a;
       float emission = getBurntGroundEmission(diffuse, input.worldPosXZ, 0);
 
-      ret.height = float4(0, 0, 0, 0);
-      ret.color.rgb = diffuse.rgb;
-      ret.color.a = alpha;
-
-      ret.normal.xyz = float3(normal.xy, smoothness);
-      ret.normal.a = alpha;
+      Vtex vtex = create_vtex();
+      set_diffuse(vtex, diffuse.rgb);
+      set_smoothness(vtex, smoothness);
+      set_normalXY(vtex, normal.xy*2 - 1);
 
       BRANCH
       if (emission > 0.0)
@@ -89,10 +87,16 @@ shader clipmap_burnt_ground_decal
         float wetness = saturate((waterLevel - worldHeight) * waterLevel_wetnessAboveRcp.y + 1);
         float emissionModifier = pow2(1.0 - wetness);
         emission *= emissionModifier;
-        ret.color.rgb *= emissionModifier;
+        set_diffuse(vtex, diffuse.rgb * emissionModifier);
       }
-      ret.detail_ao_reflectance = half4(pack_detail_ao_reflectance_emission(detail, ao, reflectance, emission), alpha);
+      set_emission(vtex, emission);
 
+      set_micro_detail(vtex, detail);
+      set_ao(vtex, ao);
+      set_reflectance(vtex, reflectance);
+
+      ret = create_render_vtex(vtex);
+      set_alpha(ret, alpha);
       return ret;
     }
   }

@@ -17,3 +17,45 @@ long pattern error: pattern exceeds maximum allowed nesting depth
 zero-width bounded: true
 quantifier min>max error: invalid quantifier range: min > max
 large quantifier no crash: true
+[0,4]
+[0,7]
+[0,6]
+m0=OAB/SP no.:205844;
+m1=OAB
+m2=/SP no.:
+m3=205844
+m4=;
+plus [0,5]
+g0=[0,3]
+g1=[1,2]
+g2=[1,2]
+z0=[0,1]
+z1=[0,0]
+encl [0,3] g1=[0,2]
+alt retry: true
+leak g2=[0,0] g3=[0,0]
+zero-rep g1=[0,0] g4=[0,1]
+empty input: true
+empty at end: [3,3]
+lazy quantifier error: lazy quantifiers are not supported
+backreference error: backreferences are not supported
+atom alt [0,3]
+atom alt cap [0,3] g1=[0,1]
+fullmatch alt: true
+fullmatch greedy: true
+fullmatch neg: false
+zw min empty: true
+zw min one: true
+zw min over: false
+zw min open: true
+zw min cap [0,1] g1=[0,0]
+zw bt min: true
+zw bt two: true
+zw bt over: false
+zw bt cap [0,1] g1=[0,0]
+nocap unwrap: true
+nocap unwrap cap [1,6]
+cap w1 [4,9] g1=[8,9]
+cap w1 zero g1=[0,0]
+cap w1 bt [0,4] g1=[2,3]
+budget error: regexp match aborted: pattern too complex for this input

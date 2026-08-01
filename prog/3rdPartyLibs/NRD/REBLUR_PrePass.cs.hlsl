@@ -23,7 +23,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 // frequent gpu crash on nVidia gpus will happen in other case.
 float SampleViewZ(int2 coord)
 {
-    return gIn_ViewZ.SampleLevel(gNearestClamp, (coord.xy + 0.5f) * gRectSizeInv, 0);
+    return gIn_ViewZ.SampleLevel(gNearestClamp, (coord.xy + 0.5f) * gResourceSizeInv, 0);
 }
 
 [numthreads( GROUP_X, GROUP_Y, 1 )]

@@ -69,6 +69,9 @@ public:
 
     //starts a native call return when the NATIVE closure returns
     bool CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newbase, SQObjectPtr &retval, SQInt32 target, bool &suspend,bool &tailcall);
+    bool CheckNativeParamTypes(SQNativeClosure *nclosure, SQInteger base, SQInteger nargs);
+    bool CheckNativeResult(SQNativeClosure *nclosure, SQObjectType retType, bool discarded);
+    void RaiseFastcallError(SQNativeClosure *nclosure, SQInteger base, SQInteger top, SQInteger r);
     bool TailCall(SQClosure *closure, SQInteger firstparam, SQInteger nparams);
     //starts a SQUIRREL call in the same "Execution loop"
     template <bool debughookPresent>

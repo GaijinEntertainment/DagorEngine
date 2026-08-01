@@ -14,6 +14,8 @@ struct AnimParamData;
 struct AnimCtrlData;
 struct DependentParamData;
 class DataBlock;
+class AnimTreePlugin;
+class IListReorderHandler;
 
 void animate_node_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx);
 void animate_node_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
@@ -30,3 +32,5 @@ void animate_node_remove_anim_node_re(PropPanel::ContainerPropertyControl *panel
 const char *animate_node_get_child_name_by_idx(const DataBlock &settings, int idx);
 String animate_node_get_child_prefix_name(const DataBlock &settings, int idx);
 void animate_node_update_child_name(DataBlock &settings, const char *name, const String &old_name);
+IListReorderHandler *animate_node_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data);

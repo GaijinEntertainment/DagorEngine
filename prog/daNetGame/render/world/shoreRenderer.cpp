@@ -100,8 +100,7 @@ void ShoreRenderer::buildShore(const FFTWater *water)
 
   Point3 origin(0, 0, 0);
   Point4 world_to_heightmap;
-  const float water_level = water ? fft_water::get_level(water) : HeightmapHeightCulling::NO_WATER_ON_LEVEL;
-  render_landmesh_to_heightmap(shoreHeightmapTex.getTex2D(), shoreHmapSize, Point2::xz(origin), NULL, water_level, world_to_heightmap);
+  render_landmesh_to_heightmap(shoreHeightmapTex.getTex2D(), shoreHmapSize, Point2::xz(origin), NULL, world_to_heightmap);
   ShaderGlobal::set_float4(get_shader_variable_id("world_to_heightmap", true), world_to_heightmap);
 
   // TextureInfo tinfo;
@@ -173,7 +172,7 @@ void ShoreRenderer::updateShore(FFTWater *water, int32_t water_quality, const DP
     if (needShore && (hasShore || land_panel.generate_shore))
     {
       fft_water::WaterFlowmap *waterFlowmap = fft_water::get_flowmap(water);
-      if (waterFlowmap && waterFlowmap->enabled && (waterFlowmap->flowmapWaveFade.y > fft_water::get_max_wave(water)))
+      if (waterFlowmap && waterFlowmap->enabled && (waterFlowmap->flowmapWaveFade.y > fft_water::get_max_wave_height(water)))
       {
         if (waterFlowmap->hasSlopes || water_quality >= 1)
         {

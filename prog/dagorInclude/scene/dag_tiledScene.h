@@ -501,12 +501,149 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
   }
 
   if constexpr (use_occlusion)
-    if (!occlusion->isVisibleBox(bbox.bmin, bbox.bmax))
+    if (!occlusion->isVisibleBoxInFrustum(bbox.bmin, bbox.bmax)) // tileVis above frustum-classified the box
       return;
   // float invMinOcclusionSphereRad2 = MAX_REAL;
   // if (use_occlusion)
   //   invMinOcclusionSphereRad2 = (256/0.5f)*(256/0.5f)*v_extract_w(pos_distscale);
   const bool intersectFrustum = (tileVis == Frustum::INTERSECT);
+
+  // Prefetch the node matrix several iterations ahead: it is a scattered cold load whose latency the short
+  // per-node test cannot hide at distance 1, and every cull workload is memory-bound on this load.
+  constexpr int PREFETCH_AHEAD = 4;
+
+  // Cull one contiguous run of tile nodes. leaf_dist_bound is a conservative lower bound of every run
+  // node's own scaled distance (the kd-leaf box nearest point): kd-leaf runs are sorted by disappear
+  // distance (descending) at build, so the scan can STOP at the first node whose disappear distance falls
+  // below the bound - the rest are provably out of range. Pass v_zero() for unsorted ranges (the
+  // whole-tile fallback); the break can never fire there.
+  auto cullRun = [&](int rstart, int rend, bool intersect_frustum, vec4f leaf_dist_bound) {
+    G_UNUSED(leaf_dist_bound);
+    for (int i = rstart; i < rend; ++i)
+    {
+      const node_index ni = tile.nodes[i];
+      if (i + PREFETCH_AHEAD < rend) // issue the scattered matrix load several iters early to hide cold-load latency
+        prefetchNode(tile.nodes[i + PREFETCH_AHEAD]);
+#if DAGOR_DBGLEVEL > 1
+      const mat44f &m = getNode(ni);
+      G_FAST_ASSERT(!isInvalidIndex(getNodeIndex(ni)));
+#else
+      const uint32_t index = getNodeIndexInternal(ni);
+      const mat44f &m = nodes.data()[index];
+#endif
+
+      if constexpr (use_dist)
+        // sorted run: every node's own distance is >= the bound, so the first disappear distance below it
+        // ends the whole run (the exact per-node distance test below still culls individually - a node's
+        // own distance is not monotonic along the run, only the bound is common to it)
+        if (v_test_vec_x_lt(v_splat_w(m.col0), leaf_dist_bound))
+          break;
+      uint32_t poolFlags = get_node_pool_flags(m);
+      if constexpr (use_flags)
+        if ((test_flags & poolFlags) != equal_flags)
+          continue;
+      vec4f sphere = get_node_bsphere(m); // broad phase
+      vec4f sphereRad = v_splat_w(sphere);
+
+      // Cheap distance cull first: a node past its disappear distance is skipped without paying for the
+      // 8-plane sphere-frustum test below. This is only a reorder - the visible set is unchanged, since a
+      // node still has to pass both tests.
+      vec3f distToSphereSqScaled = v_zero();
+      if constexpr (use_dist)
+      {
+        // eucledian (not z) distance, to stay view independent
+        distToSphereSqScaled = v_mul_x(v_length3_sq_x(v_sub(pos_distscale, sphere)), v_splat_w(pos_distscale));
+        if (v_test_vec_x_lt(v_splat_w(m.col0), distToSphereSqScaled))
+          continue;
+      }
+
+      int sphereVis = 1;
+      if (intersect_frustum) // may be move this if outside loop?
+      {
+        if constexpr (use_external_filter)
+        {
+          sphereVis = external_filter(v_sub(sphere, sphereRad), v_add(sphere, sphereRad));
+        }
+        else
+        {
+          bool checkSphere;
+          if constexpr (use_occlusion)
+            checkSphere = true;
+          else
+            checkSphere = !use_pools;
+          if (checkSphere)
+            sphereVis =
+              v_is_visible_sphere(sphere, sphereRad, plane03X, plane03Y, plane03Z, plane03W, plane47X, plane47Y, plane47Z, plane47W);
+          else
+            sphereVis =
+              v_sphere_intersect(sphere, sphereRad, plane03X, plane03Y, plane03Z, plane03W, plane47X, plane47Y, plane47Z, plane47W);
+        }
+        if (!sphereVis)
+          continue;
+      }
+
+      if constexpr (use_pools) // can be if poolFlags < poolBox.size(), but less optimal. assume it never happen
+      {
+        // narrow check
+        if (use_occlusion || sphereVis == 2) //(use_dist && v_test_vec_x_lt(v_splats(min_dist_scale_sq), invClipSpaceRadius)))
+        {
+          poolFlags &= 0xFFFF;
+          G_FAST_ASSERT(poolFlags < poolBox.size());
+          // precise distance check
+          bbox3f pool = poolBox.data()[poolFlags];
+
+          if constexpr (use_occlusion)
+          {
+            // if sphereVis==1 and use_occlusion, first check sphere screen size (based on radius and distance).
+            // It can be, that size is less than occlusion pixel (which is fixed 1./256), and so there is no reason to transform
+            // matrix and check anything In practice, however, we try to disappear objects earlier than that if (use_dist &&
+            // sphereVis == 1 && v_test_vec_x_lt(v_splats(invMinOcclusionSphereRad2), invClipSpaceRadiusSqScaled))
+            //{
+            //   if (!occlusion->isVisibleSphere(sphere, sphereRad))
+            //     continue;
+            // } else
+            {
+              mat44f clipTm;
+              v_mat44_mul43(clipTm, globtm, m);
+              if (!occlusion->isVisibleBox(pool.bmin, pool.bmax, clipTm))
+                continue;
+            }
+          }
+          else if (sphereVis == 2)
+          {
+            if constexpr (use_external_filter)
+            {
+              bbox3f transformed;
+              v_bbox3_init(transformed, m, pool);
+              if (!external_filter(transformed.bmin, transformed.bmax))
+                continue;
+            }
+            else
+            {
+              mat44f clipTm;
+              v_mat44_mul43(clipTm, globtm, m);
+              if (!v_is_visible_b_fast_8planes(pool.bmin, pool.bmax, clipTm))
+                continue;
+            }
+          }
+        }
+      }
+      else
+      {
+        if constexpr (use_occlusion)
+          if (!occlusion->isVisibleSphere(sphere, v_splat_w(sphere)))
+            continue;
+      }
+      if constexpr (use_dist)
+      {
+        visible_nodes(ni, m, distToSphereSqScaled);
+      }
+      else
+      {
+        visible_nodes(ni, m, v_zero());
+      }
+    }
+  };
 
   eastl::fixed_vector<kdtree::VisibleLeaf, 256, true, framemem_allocator> visible; // 2kb size
   const uint16_t kdTreeNodeCount = flags_and_kdtreenodes_count & 0xFFFF;
@@ -531,12 +668,14 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
       if constexpr (use_flags)
         if (isTileFlagsValid && ((flags_nodes_count & equal_flags) != equal_flags)) //-V1051
           continue;
+      float leafDistBound = 0.f;
       if constexpr (use_dist)
       {
         vec4f sqDistScaled =
           v_mul_x(v_distance_sq_to_bbox_x(kdNode.getBox().bmin, kdNode.getBox().bmax, pos_distscale), v_splat_w(pos_distscale));
         if (v_test_vec_x_lt(v_splat_w(kdNode.getBox().bmax), sqDistScaled))
           continue;
+        leafDistBound = v_extract_x(sqDistScaled);
       }
 
       int vis = Frustum::INSIDE;
@@ -554,10 +693,18 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
           continue;
       }
       if constexpr (use_occlusion)
-        if (!occlusion->isVisibleBox(kdNode.getBox().bmin, kdNode.getBox().bmax))
+        if (!occlusion->isVisibleBoxInFrustum(kdNode.getBox().bmin, kdNode.getBox().bmax)) // vis above classified it
           continue;
       // const int start = kdNode.getStart(), count = kdNode.getCount();
       const uint32_t fully_inside = (vis == Frustum::INSIDE ? kdtree::fully_inside_node_flag : 0);
+      if constexpr (use_dist)
+      {
+        // process the run right here: the leaf's distance bound stays in a register, and deferring via
+        // `visible` buys nothing under use_dist - coalescing would concatenate independently sorted runs,
+        // which breaks the sorted early break
+        cullRun(start, start + count, fully_inside == 0, v_splats(leafDistBound));
+        continue;
+      }
       if (visible.size()) // optimize reallocation by collapsing node
       {
         auto &last = visible.back();
@@ -628,6 +775,8 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
       for (int i = vl.start; i < end; ++i)
       {
         const node_index ni = tile.nodes[i];
+        if (i + PREFETCH_AHEAD < end) // issue the scattered matrix load several iters early to hide cold-load latency
+          prefetchNode(tile.nodes[i + PREFETCH_AHEAD]);
 #if DAGOR_DBGLEVEL > 1
         const mat44f &m = getNode(ni);
 #else
@@ -666,124 +815,7 @@ __forceinline void scene::TiledScene::internalFrustumCull(bbox3f_cref bbox, cons
       }
     }
     else
-      for (int i = vl.start; i < end; ++i)
-      {
-        const node_index ni = tile.nodes[i];
-#if DAGOR_DBGLEVEL > 1
-        const mat44f &m = getNode(ni);
-        G_FAST_ASSERT(!isInvalidIndex(getNodeIndex(ni)));
-#else
-        const uint32_t index = getNodeIndexInternal(ni);
-        const mat44f &m = nodes.data()[index];
-#endif
-
-        uint32_t poolFlags = get_node_pool_flags(m);
-        if constexpr (use_flags)
-          if ((test_flags & poolFlags) != equal_flags)
-            continue;
-        vec4f sphere = get_node_bsphere(m); // broad phase
-        vec4f sphereRad = v_splat_w(sphere);
-
-        int sphereVis = 1;
-        if (intersectFrustum) // may be move this if outside loop?
-        {
-          if constexpr (use_external_filter)
-          {
-            sphereVis = external_filter(v_sub(sphere, sphereRad), v_add(sphere, sphereRad));
-          }
-          else
-          {
-            bool checkSphere;
-            if constexpr (use_occlusion)
-              checkSphere = true;
-            else
-              checkSphere = !use_pools;
-            if (checkSphere)
-              sphereVis =
-                v_is_visible_sphere(sphere, sphereRad, plane03X, plane03Y, plane03Z, plane03W, plane47X, plane47Y, plane47Z, plane47W);
-            else
-              sphereVis =
-                v_sphere_intersect(sphere, sphereRad, plane03X, plane03Y, plane03Z, plane03W, plane47X, plane47Y, plane47Z, plane47W);
-          }
-          if (!sphereVis)
-            continue;
-        }
-
-        vec3f distToSphereSqScaled;
-        if constexpr (use_dist)
-        {
-          distToSphereSqScaled = v_mul_x(v_length3_sq_x(v_sub(pos_distscale, sphere)), v_splat_w(pos_distscale)); // more correct is
-                                                                                                                  // using z-distance,
-                                                                                                                  // but it will be
-                                                                                                                  // view dependent. We
-                                                                                                                  // avoid that by
-                                                                                                                  // using eucledian
-                                                                                                                  // distance.
-          if (v_test_vec_x_lt(v_splat_w(m.col0), distToSphereSqScaled))
-            continue;
-        }
-
-        if constexpr (use_pools) // can be if poolFlags < poolBox.size(), but less optimal. assume it never happen
-        {
-          // narrow check
-          if (use_occlusion || sphereVis == 2) //(use_dist && v_test_vec_x_lt(v_splats(min_dist_scale_sq), invClipSpaceRadius)))
-          {
-            poolFlags &= 0xFFFF;
-            G_FAST_ASSERT(poolFlags < poolBox.size());
-            // precise distance check
-            bbox3f pool = poolBox.data()[poolFlags];
-
-            if constexpr (use_occlusion)
-            {
-              // if sphereVis==1 and use_occlusion, first check sphere screen size (based on radius and distance).
-              // It can be, that size is less than occlusion pixel (which is fixed 1./256), and so there is no reason to transform
-              // matrix and check anything In practice, however, we try to disappear objects earlier than that if (use_dist &&
-              // sphereVis == 1 && v_test_vec_x_lt(v_splats(invMinOcclusionSphereRad2), invClipSpaceRadiusSqScaled))
-              //{
-              //   if (!occlusion->isVisibleSphere(sphere, sphereRad))
-              //     continue;
-              // } else
-              {
-                mat44f clipTm;
-                v_mat44_mul43(clipTm, globtm, m);
-                if (!occlusion->isVisibleBox(pool.bmin, pool.bmax, clipTm))
-                  continue;
-              }
-            }
-            else if (sphereVis == 2)
-            {
-              if constexpr (use_external_filter)
-              {
-                bbox3f transformed;
-                v_bbox3_init(transformed, m, pool);
-                if (!external_filter(transformed.bmin, transformed.bmax))
-                  continue;
-              }
-              else
-              {
-                mat44f clipTm;
-                v_mat44_mul43(clipTm, globtm, m);
-                if (!v_is_visible_b_fast_8planes(pool.bmin, pool.bmax, clipTm))
-                  continue;
-              }
-            }
-          }
-        }
-        else
-        {
-          if constexpr (use_occlusion)
-            if (!occlusion->isVisibleSphere(sphere, v_splat_w(sphere)))
-              continue;
-        }
-        if constexpr (use_dist)
-        {
-          visible_nodes(ni, m, distToSphereSqScaled);
-        }
-        else
-        {
-          visible_nodes(ni, m, v_zero());
-        }
-      }
+      cullRun(vl.start, end, intersectFrustum, v_zero()); // whole-tile fallback and !use_dist entries
   }
 }
 

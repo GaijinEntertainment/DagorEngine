@@ -144,7 +144,11 @@ public:
   uint16_t wasCopiedToStage : 1;
   uint16_t dirtyRt : 1;
   uint16_t wasUsed : 1;
+  uint16_t hasUavViews : 1;
   uint16_t backbufferCount : 3 = 1; // > 1 for swapchain created textures
+  // a TEXLOCK_DONOTUPDATE unlock left staging content pending; next updating unlock must upload all
+  // subresources instead of only the locked one
+  uint16_t uploadSkipped : 1;
 
   static BaseTex *create_tex(uint32_t cflg, D3DResourceType type);
   static void destroy_tex(BaseTex *);

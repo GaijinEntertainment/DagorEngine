@@ -2,7 +2,10 @@
 
 #include <de3_dynRenderService.h>
 #include <de3_skiesService.h>
+#include <de3_gpuGrassService.h>
 #include <EditorCore/ec_imguiInitialization.h>
+#include <de3_hmapService.h>
+#include <de3_landmesh.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_ViewportWindow.h>
@@ -12,6 +15,8 @@
 #include <libTools/renderViewports/cachedViewports.h>
 #include <dafxToolsHelper/dafxToolsHelper.h>
 
+#include <landMesh/lmeshManager.h>
+#include <heightmap/heightmapHandler.h>
 #include <render/dag_cur_view.h>
 #include <render/fx/dag_demonPostFx.h>
 #include <startup/dag_globalSettings.h>
@@ -50,7 +55,6 @@
 #include "main/gameProjConfig.h"
 #include "main/gameLoad.h"
 #include "main/level.h"
-#include "main/webui.h"
 #include "main/app.h"
 #include "game/dasEvents.h"
 #include "game/gameEvents.h"
@@ -60,6 +64,7 @@
 #include "render/renderer.h"
 #include "render/renderEvent.h"
 #include "render/skies.h"
+#include <render/grass/grassRender.h>
 #include <render/dynmodelRenderer.h>
 #include "camera/sceneCam.h"
 
@@ -111,7 +116,7 @@ extern CachedRenderViewports *ec_cached_viewports;
 extern void ec_init_stat3d();
 extern void ec_stat3d_wait_frame_end(bool frame_start);
 extern ShaderBlockIdHolder dynamicSceneBlockId;
-extern ShaderBlockIdHolder dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder dynamicTransSceneBlockId;
 extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
 extern ShaderBlockIdHolder globalFrameBlockId;
 extern void init_fx();
@@ -164,6 +169,11 @@ static void draw_scene();
 static void after_draw_scene();
 static void set_motion_blur_enabled(bool enabled);
 static void set_cinematic_mode_enabled(bool suppress);
+static void setup_editor_heightmap(ILandmesh &landmesh, LandMeshManager &lmesh_mgr);
+
+static const DataBlock *grass_init_request_settings = nullptr;
+static float grass_last_reinit_gametime_sec = -1000.f;
+static constexpr float GRASS_REINIT_COOLDOWN_SEC = 0.1f;
 }; // namespace dng_based_render
 
 using dng_based_render::rendSrv;
@@ -456,6 +466,9 @@ public:
     TMatrix viewTm;
     d3d::gettm(TM_VIEW, viewTm);
 
+    dng_based_render::set_motion_blur_enabled(false);
+    g_entity_mgr->tick(true);
+
     dng_based_render::before_draw_scene(1, 1e-6f);
     beforeRender(viewTm, persp, isOrtho, viewportW);
     d3d::set_render_target({}, DepthAccess::RW, {{getRenderBuffer(), 0, 0}});
@@ -463,6 +476,9 @@ public:
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(64, 64, 64, 0), 0, 0);
     dng_based_render::draw_scene();
     dng_based_render::after_draw_scene();
+
+    dng_based_render::set_motion_blur_enabled(true);
+    g_entity_mgr->tick(true);
 
     Texture *finalRt = getRenderBuffer();
 
@@ -512,6 +528,9 @@ public:
 
   void beforeRender(const TMatrix &viewTm, const Driver3dPerspective &persp, bool isOrtho, int viewportWidth)
   {
+    if (auto *daSkies = get_daskies())
+      daSkies->setPanoramaBelowSkiesFillColor(Color3(0.05, 0.1, 0));
+
     if (prevIsOrtho != isOrtho)
     {
       if (auto *daSkies = get_daskies())
@@ -609,8 +628,12 @@ public:
   {
     dynScene = new DngBasedRenderScene;
 
-    String base_game_dir = make_eff_app_relative_path(appblk.getBlockByNameEx("game")->getStr("game_folder", ""), true);
+    const DataBlock *gameBlk = appblk.getBlockByNameEx("game");
+    String base_game_dir = make_eff_app_relative_path(gameBlk->getStr("game_folder", ""), true);
     dd_add_base_path(base_game_dir);
+    for (int i = 0; i < gameBlk->paramCount(); ++i)
+      if (gameBlk->getParamType(i) == DataBlock::TYPE_STRING && strcmp(gameBlk->getParamName(i), "base_path") == 0)
+        dd_add_base_path(make_eff_app_relative_path(gameBlk->getStr(i), true));
     dng_based_render::main_vromfs_fpath_str = appblk.getBlockByNameEx("game")->getStr("main_vromfs", "");
     dng_based_render::main_vromfs_mount_dir_str = appblk.getBlockByNameEx("game")->getStr("main_vromfs_mnt", "");
     if (const char *emptyScn = appblk.getBlockByNameEx("game")->getStr("empty_scene", nullptr))
@@ -680,15 +703,38 @@ public:
 
   void enableRender(bool enable) override { render_enabled = enable; }
 
+  void setupEditorLandmesh()
+  {
+    if (auto landmesh = EDITORCORE->getInterfaceEx<ILandmesh>())
+    {
+      LandMeshManager *landmeshMgr = landmesh->getLandMeshManager();
+      LandMeshRenderer *landmeshRenderer = landmesh->getLandMeshRenderer();
+      auto wr = get_world_renderer();
+      if (wr && landmeshMgr && landmeshRenderer)
+      {
+        IHmapService *hmlService = EDITORCORE->queryEditorInterface<IHmapService>();
+        const auto decalsCb = hmlService ? hmlService->getDecalsRenderCb() : nullptr;
+        wr->setLandmesh(landmeshMgr, landmeshRenderer, decalsCb);
+        dng_based_render::setup_editor_heightmap(*landmesh, *landmeshMgr);
+      }
+    }
+  }
+
   void selectAsGameScene() override
   {
     ::dagor_reset_spent_work_time();
+    // Drain all possible work after app_start
+    // (we have sq scripts in delayed actions that add more delayed actions, most importantly level switch)
+    for (int i = 0; i < 10; ++i)
+      dagor_work_cycle();
     while (!dng_based_render::scene_ready_for_render())
     {
       dagor_work_cycle();
       dng_based_render::act_scene();
       sleep_msec(10);
     }
+
+    setupEditorLandmesh();
 
     dagor_select_game_scene(dynScene);
   }
@@ -699,6 +745,14 @@ public:
   void restartPostfx(const DataBlock &game_params) override {}
   void onLightingSettingsChanged() override {}
   void reloadCharacterMicroDetails(const DataBlock &, const DataBlock &) override {}
+
+  void invalidateEditorClipmap() override
+  {
+    if (auto *wr = get_world_renderer())
+      wr->invalidateClipmap(false);
+  }
+
+  void updateEditorLandmesh() override { setupEditorLandmesh(); }
 
   void beforeD3DReset(bool full_reset) override
   {
@@ -852,7 +906,7 @@ public:
       case Stage::STG_RENDER_DYNAMIC_OPAQUE: needPrevMatrices = dynrend::NeedPreviousMatrices::Yes; break;
       case Stage::STG_RENDER_DYNAMIC_TRANS:
         sm0 = sm1 = ShaderMesh::STG_trans;
-        blockId = dynamicSceneTransBlockId;
+        blockId = dynamicTransSceneBlockId;
         break;
       case Stage::STG_RENDER_DYNAMIC_DISTORTION: sm0 = sm1 = ShaderMesh::STG_distortion; break;
       case Stage::STG_RENDER_SHADOWS:
@@ -894,6 +948,12 @@ public:
     }
 
     d3d::settm(TM_VIEW, oldViewTm);
+  }
+
+  void onGrassCreated(const DataBlock *settings) override
+  {
+    if (settings)
+      dng_based_render::grass_init_request_settings = settings;
   }
 
   static void render_viewport_frame(ViewportWindow *vpw);
@@ -984,7 +1044,7 @@ static void dng_based_render::act_scene()
   }
   if (sceneload::is_scene_switch_in_progress() || !acesfx::get_dafx_context())
     return;
-  if (!get_world_renderer() && !is_level_loaded())
+  if (!get_world_renderer() && (!is_level_loaded() || !is_level_loaded_not_empty()))
     dng_create_world();
   else if (empty_world_created && is_level_loaded())
     empty_world_created = false;
@@ -1051,6 +1111,17 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
   last_dt_realtime_usec = dt_realtime_usec;
   last_gametime_sec += dt_gametime_sec;
 
+  if (dng_based_render::grass_init_request_settings &&
+      last_gametime_sec - dng_based_render::grass_last_reinit_gametime_sec >= dng_based_render::GRASS_REINIT_COOLDOWN_SEC)
+  {
+    const auto *blk = eastl::exchange(dng_based_render::grass_init_request_settings, nullptr);
+    if (!g_entity_mgr->getSingletonEntity(ECS_HASH("grass_render")))
+      init_grass(blk);
+    else
+      reinit_grass(blk);
+    dng_based_render::grass_last_reinit_gametime_sec = last_gametime_sec;
+  }
+
   // this has to happen before setting constrained mt mode, because it calls tick between ECS entity deletion and creation
   update_delayed_weather_selection();
 
@@ -1080,6 +1151,7 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
     dafx_helper_globals::ctx = acesfx::get_dafx_context();
     dafx_helper_globals::cull_id = acesfx::get_cull_id();
     dafx_helper_globals::cull_fom_id = acesfx::get_cull_fom_id();
+    dafx_helper_globals::context_is_owned = false;
 
     phys_fetch_sim_res(true);
   }
@@ -1237,6 +1309,14 @@ static void dng_based_render::init_dng_framework()
       const auto giAlgorithm = graphics->getStr("giAlgorithm", NULL);
       if (!giAlgorithm || String(giAlgorithm) == "high")
         graphics->setStr("giAlgorithm", "medium"); // TODO: high gi quality has broken screen probes
+      // boost default shadow quality for editor
+      const auto shadowQuality = graphics->getStr("shadowQuality", NULL);
+      if (!shadowQuality || String(shadowQuality) == "low" || String(shadowQuality) == "medium")
+      {
+        graphics->setStr("shadowQuality", "ultra");
+        graphics->setInt("dynamicShadowsResolution", 4096);
+        graphics->setReal("dynamicShadowsDistance", 700.0f);
+      }
     }
     // TODO: debug visualization flickers in TSR
     if (auto *video = config->getBlockByName("video"))
@@ -1250,7 +1330,6 @@ static void dng_based_render::init_dng_framework()
 
   hdrrender::init_globals(*::dgs_get_settings()->getBlockByNameEx("video"));
   das::daScriptEnvironment::ensure();
-  init_webui();
   init_device_reset();
 
   ::register_fast_phys_gameres_factory();
@@ -1276,6 +1355,7 @@ static void dng_based_render::init_dng_framework()
   dafx_helper_globals::ctx = acesfx::get_dafx_context();
   dafx_helper_globals::cull_id = acesfx::get_cull_id();
   dafx_helper_globals::cull_fom_id = acesfx::get_cull_fom_id();
+  dafx_helper_globals::context_is_owned = false;
   G_ASSERT(dafx_helper_globals::ctx);
 }
 static void dng_based_render::term_dng_framework()
@@ -1284,6 +1364,56 @@ static void dng_based_render::term_dng_framework()
   game_scene::on_scene_deselected();
   destroy_world_renderer();
   app_close();
+}
+static void dng_based_render::setup_editor_heightmap(ILandmesh &landmesh, LandMeshManager &lmesh_mgr)
+{
+  EditorHeightmapInfo info;
+  if (!landmesh.getEditorHeightmapInfo(&info))
+    return;
+
+  if (!lmesh_mgr.getHmapHandler())
+  {
+    DynamicMemGeneralSaveCB cwr(tmpmem, 0, 256 << 10);
+    if (!landmesh.buildEditorHeightmap(&cwr))
+      return;
+
+    InPlaceMemLoadCB crd(cwr.data(), cwr.size());
+    if (!lmesh_mgr.loadHeightmapDump(crd, false))
+      return;
+  }
+
+  HeightmapHandler *h = lmesh_mgr.getHmapHandler();
+  if (!h)
+    return;
+
+  h->initMetrics(HeightmapHeightCulling::NO_WATER_ON_LEVEL);
+
+  static ShaderVariableInfo world_to_hmap_high("world_to_hmap_high", true);
+  static ShaderVariableInfo tex_hmap_high("tex_hmap_high", true);
+  static ShaderVariableInfo tex_hmap_high_samplerstate("tex_hmap_high_samplerstate", true);
+  if (info.detTexId != BAD_TEXTUREID && info.detSize.x > 0 && info.detSize.y > 0)
+  {
+    ShaderGlobal::set_float4(world_to_hmap_high, 1.f / info.detSize.x, 1.f / info.detSize.y, -info.detOrigin.x / info.detSize.x,
+      -info.detOrigin.y / info.detSize.y);
+    ShaderGlobal::set_texture(tex_hmap_high, info.detTexId);
+    ShaderGlobal::set_sampler(tex_hmap_high_samplerstate, info.detSampler);
+  }
+  else
+  {
+    // No detail rect: point high mapping far away so the shader's saturate() test never selects it.
+    ShaderGlobal::set_float4(world_to_hmap_high, 10e+3, 10e+3, 10e+10, 10e+10);
+    ShaderGlobal::set_texture(tex_hmap_high, BAD_TEXTUREID);
+  }
+
+  lmesh_mgr.forceHeightmapRendering = true;
+
+  // Prime render state; per-frame prepareClipmap/renderGround update it afterwards.
+  h->prepare(Point3(0, 0, 0), 1.f);
+
+  if (auto wr = get_world_renderer())
+    wr->invalidateClipmap(false);
+
+  debug("DNG: editor heightmap (%dx%d, det=%d)", info.mainTexSize.x, info.mainTexSize.y, info.detTexId != BAD_TEXTUREID);
 }
 
 namespace webui

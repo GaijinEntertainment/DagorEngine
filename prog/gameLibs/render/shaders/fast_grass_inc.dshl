@@ -404,8 +404,8 @@ macro USE_FAST_GRASS()
       half hitGrassHeight = 0;
       half2 hitRandom = 0;
       half hitFade = 0;
+      half4 hitPackedN = 0;
       uint hitChannel = GRASS_MAX_CHANNELS;
-      int hitSlice = -1;
       bool hit = false;
 
       int wStep = dot(posStep.xz, sliceNorm) > 0 ? 1 : -1;
@@ -490,8 +490,6 @@ macro USE_FAST_GRASS()
           * (1 - random4Top1.x * getHeightVariance(grassChannel1)) * sliceHeight1 * heightScale;
         float ti0 = fast_grass_types[grassChannel0].texIndex;
         float ti1 = fast_grass_types[grassChannel1].texIndex;
-        float stiffness0 = fast_grass_types[grassChannel0].stiffness;
-        float stiffness1 = fast_grass_types[grassChannel1].stiffness;
 
         bool hasGrass0 = (grassHeight0 >= 0.01 && maskScale0 >= 0.01); // && ( uq   &3) == 0;
         bool hasGrass1 = (grassHeight1 >= 0.01 && maskScale1 >= 0.01); // && ((uq+1)&3) == 0;
@@ -526,6 +524,8 @@ macro USE_FAST_GRASS()
           u1 += (pcg_hash(vq + uq*17 + 17) & 0xffff) / float(1<<16);
           float v1 = (surfaceY - hitPos.y) * grassHeightRcp1 + 1;
 
+          float stiffness0 = fast_grass_types[grassChannel0].stiffness;
+          float stiffness1 = fast_grass_types[grassChannel1].stiffness;
           float3 wind0 = getFastGrassWind(u0, v0, hitPos, grassHeight0, stiffness0);
           u0 -= dot(wind0.xz, sliceTang) * sliceTileRcp0;
           v0 -= wind0.y * grassHeightRcp0;
@@ -538,8 +538,6 @@ macro USE_FAST_GRASS()
 
           half4 packedA0 = tex3Dlod(fast_grass_tex_a, float4(u0, v0, ti0, lod));
           half4 packedA1 = tex3Dlod(fast_grass_tex_a, float4(u1, v1, ti1, lod));
-          half4 packedN0 = tex3Dlod(fast_grass_tex_n, float4(u0, v0, ti0, lod));
-          half4 packedN1 = tex3Dlod(fast_grass_tex_n, float4(u1, v1, ti1, lod));
 
           packedA0.a = hasGrass0 ? packedA0.a : 0;
           packedA1.a = hasGrass1 ? packedA1.a : 0;
@@ -551,7 +549,6 @@ macro USE_FAST_GRASS()
           packedA1.a = blendA1;
 
           half4 packedA = select0 ? packedA0 : packedA1;
-          half4 packedN = select0 ? packedN0 : packedN1;
           packedA.a = packedA.a < 4.5/255.0 ? 0 : packedA.a; // cut off for BC7 compression artefacts
 
           float sliceDepth = (1 - packedA.a) / (packedA.a + 1e-8);
@@ -564,13 +561,12 @@ macro USE_FAST_GRASS()
             hitChannel = select0 ? grassChannel0 : grassChannel1;
             hitRandom = (select0 ? random4Top0 : random4Top1).yz;
             worldPos = hitPos + sliceEyeRay * sd;
-            albedo = packedA.rgb * packedA.rgb;
+            albedo = packedA.rgb;
             hitV = select0 ? v0 : v1;
             hitGrassHeight = select0 ? grassHeight0 : grassHeight1;
-            worldNormal = restore_normal(packedN.ga);
-            translucency = packedN.r;
-            smoothness = 1 - packedN.b;
-            hitSlice = slice;
+            // sample only the accepted slice's normal: select0 depends on albedo alpha only
+            hitPackedN = tex3Dlod(fast_grass_tex_n,
+              float4(select0 ? float3(u0, v0, ti0) : float3(u1, v1, ti1), lod));
             hitFade = fade;
 
             FAST_GRASS_PS_HIT
@@ -582,6 +578,11 @@ macro USE_FAST_GRASS()
       }
 
       if (!hit) discard;
+
+      albedo = albedo * albedo;
+      worldNormal = restore_normal(hitPackedN.ga);
+      translucency = hitPackedN.r;
+      smoothness = 1 - hitPackedN.b;
 
       worldNormal = normalize(worldNormal);
 
@@ -618,7 +619,7 @@ macro USE_FAST_GRASS()
       // if (bendFactor>0) grassAlbedo = half3(bendFactor, 0, 1-bendFactor); //== for debugging bending range / transition
       // if (dirMixFactor>0) grassAlbedo = half3(dirMixFactor, 0, 1-dirMixFactor); //== for debugging direction mixing below camera
       // grassAlbedo = saturate(half3(di&1, di&2, 1)) * 0.3; //== for debugging direction transitions
-      // grassAlbedo = half3(hitSlice==0 || hitSlice>2, hitSlice==1 || hitSlice>2, hitSlice>=2); //== for debugging slices
+      // for debugging slices, track the hit slice index in the loop and: grassAlbedo = half3(hitSlice==0 || hitSlice>2, hitSlice==1 || hitSlice>2, hitSlice>=2);
     }
   }
 endmacro

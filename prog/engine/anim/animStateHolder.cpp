@@ -43,43 +43,35 @@ AnimV20::AnimGraphStateHolder::AnimGraphStateHolder(const AnimGraphStateHolder &
     }
 }
 
-static int getIntParam(const DataBlock &b, const char *nm, int def)
-{
-  int i = b.findParam(nm);
-  if (i < 0)
-    return def;
-  if (b.getParamType(i) == b.TYPE_STRING)
-    return AnimV20::getEnumValueByName(b.getStr(i));
-  if (b.getParamType(i) == b.TYPE_INT)
-    return b.getInt(i);
-  return def;
-}
-static float getFloatParam(const DataBlock &b, const char *nm, float def)
-{
-  int i = b.findParam(nm);
-  if (i < 0)
-    return def;
-  if (b.getParamType(i) == b.TYPE_STRING)
-    return (float)AnimV20::getEnumValueByName(b.getStr(i));
-  if (b.getParamType(i) == b.TYPE_REAL)
-    return b.getReal(i);
-  return def;
-}
-
 void AnimGraphStateHolder::init()
 {
   clear_and_resize(val, paramNames.nameCount());
   mem_set_0(val);
 
   if (const DataBlock *init = graph.getInitState())
-    iterate_names(paramNames, [&](int id, const char *name) {
+    for (int i = init->paramCount() - 1; i >= 0; i--)
+    {
+      const int id = paramNames.getNameId(init->getParamName(i));
+      if (id < 0)
+        continue;
+      const int type = init->getParamType(i);
       switch (paramTypes[id])
       {
         case PT_ScalarParam:
-        case PT_TimeParam: val[id].scalar = getFloatParam(*init, name, val[id].scalar); break;
-        case PT_ScalarParamInt: val[id].scalarInt = getIntParam(*init, name, val[id].scalarInt); break;
+        case PT_TimeParam:
+          if (type == DataBlock::TYPE_STRING)
+            val[id].scalar = (float)AnimV20::getEnumValueByName(init->getStr(i));
+          else if (type == DataBlock::TYPE_REAL)
+            val[id].scalar = init->getReal(i);
+          break;
+        case PT_ScalarParamInt:
+          if (type == DataBlock::TYPE_STRING)
+            val[id].scalarInt = AnimV20::getEnumValueByName(init->getStr(i));
+          else if (type == DataBlock::TYPE_INT)
+            val[id].scalarInt = init->getInt(i);
+          break;
       }
-    });
+    }
 }
 void AnimGraphStateHolder::term()
 {

@@ -1131,9 +1131,9 @@ public:
     graphicsState.dirtyState &= ~unsupportedMask;
 #endif
     GraphicsState::DirtySet::type igonreMask;
-    igonreMask.set(GraphicsState::DirtySet::DEPTH_BOUNDS, 0 == graphicsState.pipelineDynamicStateUse.hasDepthBoundsTest);
-    igonreMask.set(GraphicsState::DirtySet::STENCIL_REFERENCE, 0 == graphicsState.pipelineDynamicStateUse.hasStencilTest);
-    igonreMask.set(GraphicsState::DirtySet::BLEND_CONSTANT_FACTOR, 0 == graphicsState.pipelineDynamicStateUse.hasBlendConstants);
+    igonreMask.set(GraphicsState::DirtySet::DEPTH_BOUNDS, !graphicsState.pipelineDynamicStateUse.hasDepthBoundsTest);
+    igonreMask.set(GraphicsState::DirtySet::STENCIL_REFERENCE, !graphicsState.pipelineDynamicStateUse.hasStencilTest);
+    igonreMask.set(GraphicsState::DirtySet::BLEND_CONSTANT_FACTOR, !graphicsState.pipelineDynamicStateUse.hasBlendConstants);
     if (PrimitivePipeline::MESH == prim_pipe)
     {
       igonreMask.set(GraphicsState::DirtySet::PRIMITIVE_TOPOLOGY);

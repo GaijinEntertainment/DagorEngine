@@ -29,6 +29,7 @@
 #include "acl/compression/impl/optimize_looping.transform.h"
 #include "acl/compression/impl/pre_process.common.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
 #include <rtm/qvvf.h>
@@ -60,7 +61,7 @@ namespace acl
 					rtm::qvvf& sample = track_[sample_index];
 
 					if (!rtm::quat_is_normalized(sample.rotation))
-						sample.rotation = rtm::quat_normalize(sample.rotation);
+						sample.rotation = quat_normalize_stable(sample.rotation);
 				}
 			}
 		}

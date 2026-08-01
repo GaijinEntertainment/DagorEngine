@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 // ---------------------------------------------------------------------------
@@ -234,14 +235,22 @@ avifBool avifROStreamReadAndEnforceVersion(avifROStream * stream, uint8_t enforc
 #define AVIF_STREAM_BUFFER_INCREMENT (1024 * 1024)
 static void makeRoom(avifRWStream * stream, size_t size)
 {
-    size_t neededSize = stream->offset + size;
-    size_t newSize = stream->raw->size;
-    while (newSize < neededSize) {
-        newSize += AVIF_STREAM_BUFFER_INCREMENT;
+    // This API has no failure path, so on size_t overflow treat it like the
+    // OOM policy of avifAlloc().
+    if (size > SIZE_MAX - stream->offset) {
+        abort();
     }
-    if (stream->raw->size != newSize) {
-        avifRWDataRealloc(stream->raw, newSize);
+    size_t newSize = stream->offset + size;
+    if (newSize <= stream->raw->size) {
+        return;
     }
+    // Make newSize a multiple of AVIF_STREAM_BUFFER_INCREMENT.
+    size_t rem = newSize % AVIF_STREAM_BUFFER_INCREMENT;
+    size_t padding = (rem == 0) ? 0 : AVIF_STREAM_BUFFER_INCREMENT - rem;
+    if (newSize > SIZE_MAX - padding) {
+        abort();
+    }
+    avifRWDataRealloc(stream->raw, newSize + padding);
 }
 
 void avifRWStreamStart(avifRWStream * stream, avifRWData * raw)

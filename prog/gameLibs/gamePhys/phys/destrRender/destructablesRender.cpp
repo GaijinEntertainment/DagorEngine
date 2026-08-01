@@ -3,6 +3,7 @@
 #include <gamePhys/phys/destructableRendObject.h>
 #include <render/dynmodelRenderer.h>
 #include <shaders/dag_dynSceneRes.h>
+#include <scene/dag_occlusion.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_driver.h>
 #include <3d/dag_render.h>
@@ -11,6 +12,9 @@
 #include <phys/dag_physResource.h>
 #include <gamePhys/phys/destructableObject.h>
 #include <math/dag_frustum.h>
+#include <daFracture/render/renderMesh.h>
+#include <daFracture/render/renderList.h>
+#include <phys/dag_physics.h>
 
 destructables::deform_create_instance_cb_type deform_create_instance_cb = nullptr;
 destructables::deform_before_render_cb_type deform_before_render_cb = nullptr;
@@ -24,27 +28,75 @@ void destructables::DestrRendDataDeleter::operator()(destructables::DestrRendDat
   rd ? clear_rend_data(rd) : (void)0;
 };
 
-
-void destructables::before_render(const Point3 &view_pos, bool has_motion_vectors)
+void destructables::before_render(const Point3 &view_pos, const Frustum &frustum, Occlusion *occlusion, bool has_motion_vectors)
 {
-  for (const auto destr : destructables::getDestructableObjects())
+  for (gamephys::DestructableObject *destr : destructables::getDestructableObjects())
   {
-    if (destr->isAlive())
-    {
-      if (has_motion_vectors)
+    if (!destr->isAlive())
+      continue;
+    if (has_motion_vectors)
+      for (const DestrRendData::RendData &rdata : destr->rendData->rendData)
       {
-        for (const DestrRendData::RendData &rdata : destr->rendData->rendData)
-        {
-          if (rdata.inst)
-            rdata.inst->savePrevNodeWtm();
-        }
+        if (rdata.inst)
+          rdata.inst->savePrevNodeWtm();
       }
-      destr->physObj->beforeRender(view_pos);
+    if (destr->physObj)
+      destr->physObj->beforeRender(
+        view_pos, [&](int i) -> TMatrix { return destr->pieces[i].visualLoc.makeTM(); },
+        [&](int i) -> bool { return destr->pieces[i].isAlive(); });
+
+    if (destr->rendData)
+    {
+      bool visible = !destr->fracturePhysObjects.empty(); // skip visibility calculations for fracture destructables
+      for (DestrRendData::RendData &rdata : destr->rendData->rendData)
+      {
+        if (!rdata.inst)
+          continue;
+        rdata.bsph = rdata.inst->getBoundingSphere();
+        vec4f bsph = v_ldu(&rdata.bsph.c.x);
+        visible = visible || (frustum.testSphereB(bsph, v_splat_w(bsph)) &&
+                               (occlusion == nullptr || occlusion->isVisibleSphere(bsph, v_splat_w(bsph))));
+      }
+      if (destr->fracturePhysObjects.empty())
+        for (gamephys::DestructableObject::Piece &piece : destr->pieces)
+          piece.visibleFrames = visible ? piece.visibleFrames + 1 : 0;
+    }
+
+    for (int i = 0; i < destr->fracturePhysObjects.size(); i++)
+    {
+      gamephys::FracturePhysObject &obj = destr->fracturePhysObjects[i];
+      gamephys::DestructableObject::Piece &piece = destr->pieces[i];
+      if (has_motion_vectors)
+        obj.prevTm = obj.tm;
+      obj.tm = piece.visualLoc.makeTM();
+      vec4f bsphC = v_ldu(&obj.tm.getcol(3).x), bsphR = v_splats(obj.mesh->bSphereRad);
+      const bool visible = frustum.testSphereB(bsphC, bsphR) && (occlusion == nullptr || occlusion->isVisibleSphere(bsphC, bsphR));
+      piece.visibleFrames = visible ? piece.visibleFrames + 1 : 0;
     }
   }
 
   if (deform_before_render_cb)
     deform_before_render_cb(destructables::getDestructableObjects());
+}
+
+void destructables::render_fractured_rendinst(frx::MeshRenderList &list, const Frustum &frustum, const Occlusion *)
+{
+  list.clear();
+  for (const auto *destr : destructables::getDestructableObjects())
+  {
+    if (!destr->isAlive())
+      continue;
+    for (int i = 0; i < destr->fracturePhysObjects.size(); i++)
+    {
+      if (!destr->pieces[i].isAlive())
+        continue;
+      const gamephys::FracturePhysObject &obj = destr->fracturePhysObjects[i];
+      if (frustum.testSphereB(obj.tm.getcol(3), obj.mesh->bSphereRad))
+        list.add(*obj.mesh, obj.tm, obj.prevTm);
+    }
+  }
+  list.prepare();
+  list.finalizeForRi();
 }
 
 void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, float min_bbox_radius)
@@ -92,7 +144,7 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, 
         }
       }
     }
-    else
+    else if (destr->physObj)
     {
       if (instanceInitPosConstNo >= 0)
         d3d::set_vs_const(instanceInitPosConstNo, &initialPos.x, 1);
@@ -105,17 +157,21 @@ void destructables::render(dynrend::ContextId inst_ctx, const Frustum &frustum, 
 destructables::DestrRendData *destructables::init_rend_data(DynamicPhysObjectClass<PhysWorld> *phys_obj, bool is_fully_deformed)
 {
   DestrRendData *rdata = new DestrRendData();
-  clear_and_resize(rdata->rendData, phys_obj->getModelCount());
-  for (int i = 0; i < phys_obj->getModelCount(); ++i)
+
+  if (phys_obj)
   {
-    rdata->rendData[i].inst = phys_obj->getModel(i);
-    rdata->rendData[i].initialNodes = (dynrend::is_initialized() && rdata->rendData[i].inst && phys_obj->getData()->skeleton)
-                                        ? new dynrend::InitialNodes(rdata->rendData[i].inst, phys_obj->getData()->skeleton)
-                                        : NULL;
+    clear_and_resize(rdata->rendData, phys_obj->getModelCount());
+    for (int i = 0; i < phys_obj->getModelCount(); ++i)
+    {
+      rdata->rendData[i].inst = phys_obj->getModel(i);
+      rdata->rendData[i].initialNodes = (dynrend::is_initialized() && rdata->rendData[i].inst && phys_obj->getData()->skeleton)
+                                          ? new dynrend::InitialNodes(rdata->rendData[i].inst, phys_obj->getData()->skeleton)
+                                          : NULL;
+    }
   }
 
   // TODO: pass true to a sec arg if it needs to be fully deformed (i.e. - by explosion)
-  rdata->deformationId = deform_create_instance_cb ? deform_create_instance_cb(rdata, is_fully_deformed) : -1;
+  rdata->deformationId = phys_obj && deform_create_instance_cb ? deform_create_instance_cb(rdata, is_fully_deformed) : -1;
   return rdata;
 }
 

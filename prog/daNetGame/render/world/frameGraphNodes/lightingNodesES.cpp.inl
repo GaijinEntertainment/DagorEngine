@@ -51,12 +51,8 @@ dafg::NodeHandle makePrepareLightsNode()
       if (dynamic_lights.get() && (wr.lights.hasClusteredLights() || wr.lights.hasDeferredLights()))
         wr.lights.fillAndSetInsideOfFrustumLightsBuffers();
 
-      const int spotsCount = wr.lights.getVisibleClusteredSpotsCount();
-      const int omniCount = wr.lights.getVisibleClusteredOmniCount();
-
-      DynLightsOptimizationMode dynLightsMode = (dynamic_lights.get() && wr.lights.hasClusteredLights())
-                                                  ? get_lights_count_interval(spotsCount, omniCount)
-                                                  : DynLightsOptimizationMode::NO_LIGHTS;
+      DynLightsOptimizationMode dynLightsMode =
+        dynamic_lights.get() ? wr.lights.getLightsCountInterval() : DynLightsOptimizationMode::NO_LIGHTS;
 
       ShaderGlobal::set_int(dynamic_lights_countVarId, eastl::to_underlying(dynLightsMode));
       hasAnyDynamicLightsHndl.ref() = dynLightsMode != DynLightsOptimizationMode::NO_LIGHTS;
@@ -438,6 +434,7 @@ eastl::array<dafg::NodeHandle, 10> makeVolumetricLightsNodes()
   auto volfog_ff_result_node =
     dafg::register_node("volfog_ff_result_node", DAFG_PP_NODE_SRC, [bindShaderVar](dafg::Registry registry) {
       registry.orderMeAfter("prepare_lights_node");
+      registry.readBlob<OrderingToken>("dynamic_lights_shadow_buffers_ready_token").optional();
 
       registry.createBlob<OrderingToken>("volfog_ff_result_token");
 

@@ -386,6 +386,7 @@ void set_add_lod_bias(float add, const char *required_part)
 
 void set_add_lod_bias_batch(dag::Span<const LODBiasRule> rules)
 {
+  TEX_REC_AUTO_LOCK();
   for (auto &rule : rules)
     add_mip_bias_rule(rule.substring, rule.bias);
 

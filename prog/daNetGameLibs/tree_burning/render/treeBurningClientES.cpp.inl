@@ -430,11 +430,10 @@ static void init_burnable_ri_extra_es(const ecs::Event &,
   };
 
   G_ASSERT(tree_burning_manager.leavesOnlyRiExtra.empty());
-  for (uint32_t poolId = 0, n = rendinst::getRIGenExtraPoolCount(); poolId < n; ++poolId)
-  {
+  rendinst::iterateRiGenExtraResId([&](int poolId) {
     if (rendinst::isRIExtraGenPosInst(poolId) && riResHasOnlyLeaves(rendinst::getRIGenExtraRes(poolId)))
       tree_burning_manager.leavesOnlyRiExtra.push_back_unsorted(poolId);
-  }
+  });
   for (uint32_t poolId : tree_burning_manager.burnableRiExtraTypes)
   {
     if (riResHasOnlyLeaves(rendinst::getRIGenExtraRes(poolId)))

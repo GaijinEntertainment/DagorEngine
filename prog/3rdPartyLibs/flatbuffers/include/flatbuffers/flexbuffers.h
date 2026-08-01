@@ -144,7 +144,8 @@ inline uint64_t ReadUInt64(const uint8_t *data, uint8_t byte_width) {
   // TODO: GCC apparently replaces memcpy by a rep movsb, but only if count is a
   // constant, which here it isn't. Test if memcpy is still faster than
   // the conditionals in ReadSizedScalar. Can also use inline asm.
-  #ifdef _MSC_VER
+  #if defined(_MSC_VER) && defined(_M_X64) && !defined(_M_ARM64EC)
+    // This is 64-bit Windows only, __movsb does not work on 32-bit Windows.
     uint64_t u = 0;
     __movsb(reinterpret_cast<uint8_t *>(&u),
             reinterpret_cast<const uint8_t *>(data), byte_width);
@@ -804,7 +805,7 @@ class Builder FLATBUFFERS_FINAL_CLASS {
   void Int(const char *key, int64_t i) { Key(key); Int(i); }
 
   void UInt(uint64_t u) { stack_.push_back(Value(u, TYPE_UINT, WidthU(u))); }
-  void UInt(const char *key, uint64_t u) { Key(key); Int(u); }
+  void UInt(const char *key, uint64_t u) { Key(key); UInt(u); }
 
   void Float(float f) { stack_.push_back(Value(f)); }
   void Float(const char *key, float f) { Key(key); Float(f); }
@@ -1285,6 +1286,7 @@ class Builder FLATBUFFERS_FINAL_CLASS {
     // TODO: instead of asserting, could write vector with larger elements
     // instead, though that would be wasteful.
     assert(WidthU(len) <= bit_width);
+    Align(bit_width);
     if (!fixed) Write<uint64_t>(len, byte_width);
     auto vloc = buf_.size();
     for (size_t i = 0; i < len; i++) Write(elems[i], byte_width);
@@ -1308,7 +1310,7 @@ class Builder FLATBUFFERS_FINAL_CLASS {
     Type vector_type = TYPE_KEY;
     // Check bit widths and types for all elements.
     for (size_t i = start; i < stack_.size(); i += step) {
-      auto elem_width = stack_[i].ElemWidth(buf_.size(), i + prefix_elems);
+      auto elem_width = stack_[i].ElemWidth(buf_.size(), i - start + prefix_elems);
       bit_width = std::max(bit_width, elem_width);
       if (typed) {
         if (i == start) {

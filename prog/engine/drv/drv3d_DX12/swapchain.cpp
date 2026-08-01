@@ -610,7 +610,7 @@ void backend::Swapchain::preRecovery()
       DXGI_SWAP_CHAIN_DESC desc;
       swapchain->GetDesc(&desc);
       // Resize with 0 size to invalidate the backbuffer, triggering a release on the old resources in overlays.
-      swapchain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, desc.Flags);
+      StreamlineAdapter::unhook(info.swapchain)->ResizeBuffers(0, 1, 1, DXGI_FORMAT_UNKNOWN, desc.Flags);
       info.swapchain.Reset();
     }
     if (info.colorTarget)
@@ -643,7 +643,7 @@ void backend::Swapchain::shutdownSwapchainInfo(uint32_t swapchain_index)
     DXGI_SWAP_CHAIN_DESC desc;
     swapchain->GetDesc(&desc);
     // Resize to invalidate the backbuffer, triggering a release on the old resources in overlays.
-    swapchain->ResizeBuffers(0, 1, 1, DXGI_FORMAT_UNKNOWN, desc.Flags);
+    StreamlineAdapter::unhook(info.swapchain)->ResizeBuffers(0, 1, 1, DXGI_FORMAT_UNKNOWN, desc.Flags);
     info.swapchain.Reset();
   }
 #endif

@@ -76,6 +76,16 @@ struct SamplerInfoAnnotation : das::ManagedStructureAnnotation<d3d::SamplerInfo,
   }
 };
 
+struct RenderTargetAnnotation : das::ManagedStructureAnnotation<RenderTarget, false>
+{
+  RenderTargetAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("RenderTarget", ml, "RenderTarget")
+  {
+    addField<DAS_BIND_MANAGED_FIELD(tex)>("tex");
+    addField<DAS_BIND_MANAGED_FIELD(mip_level)>("mip_level");
+    addField<DAS_BIND_MANAGED_FIELD(layer)>("layer");
+  }
+};
+
 struct TexStreamingContextAnnotation : das::ManagedStructureAnnotation<TexStreamingContext, false>
 {
   TexStreamingContextAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("TexStreamingContext", ml)
@@ -145,6 +155,7 @@ public:
     addEnumeration(new EnumerationBorderColor_Color());
     addAnnotation(new BorderColorAnnotation(lib));
     addAnnotation(new SamplerInfoAnnotation(lib));
+    addAnnotation(new RenderTargetAnnotation(lib));
     addEnumeration(new EnumerationDriverBackgroundProcessingMode());
     addEnumeration(new EnumerationDriverMeasurementsAction());
 
@@ -171,6 +182,7 @@ public:
     BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, DepthAccess));
     BIND_FUNC_SIGNATURE(d3d::set_depth, "d3d_set_depth", modifyArgumentAndExternal, bool (*)(BaseTexture *, int, DepthAccess));
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)());
+    BIND_WRAP_FUNC(d3d_set_render_target, "d3d_set_render_target", modifyArgumentAndExternal);
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal, bool (*)(BaseTexture *, uint8_t));
     BIND_FUNC_SIGNATURE(d3d::set_render_target, "d3d_set_render_target", modifyArgumentAndExternal,
       bool (*)(int, BaseTexture *, uint8_t));

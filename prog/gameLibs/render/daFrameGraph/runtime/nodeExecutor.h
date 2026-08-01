@@ -7,6 +7,7 @@
 
 #include <osApiWrappers/dag_stackHlp.h>
 
+#include <dag/dag_vectorMap.h>
 #include <frontend/internalRegistry.h>
 #include <frontend/nameResolver.h>
 #include <backend/intermediateRepresentation.h>
@@ -19,6 +20,9 @@
 
 namespace dafg
 {
+
+void activate_untracked_texture(BaseTexture *tex, uint32_t cflags, const d3d::TextureBarrier &first_use,
+  ResourceActivationAction action, const ResourceClearValue &clear_value);
 
 class NodeExecutor
 {
@@ -34,8 +38,10 @@ public:
     bindlessSlots{bindless_slots}
   {}
 
+  using BlockProviderMap = dag::VectorMap<RefinedBlockNameId, const RefinedBlockProvider *>;
+
   void execute(int prev_frame, int curr_frame, multiplexing::Extents multiplexing_extents, const BarrierScheduler::FrameEvents &events,
-    const sd::NodeStateDeltas &state_deltas);
+    const sd::NodeStateDeltas &state_deltas, const BlockProviderMap &block_provider_map);
 
 #if TIME_PROFILER_ENABLED
   void parseGraphMarks() { graphMarksParser.parseGraphMarks(registry, graph); }

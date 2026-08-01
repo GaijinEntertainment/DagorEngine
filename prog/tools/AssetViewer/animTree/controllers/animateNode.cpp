@@ -5,9 +5,11 @@
 #include "../animParamData.h"
 #include "../animTreePanelPids.h"
 #include "../animTree.h"
+#include "../animTreeDragListHandler.h"
 #include "animCtrlData.h"
 #include <ioSys/dag_dataBlock.h>
 #include <propPanel/control/container.h>
+#include <generic/dag_tab.h>
 
 static const int DEFAULT_E_KEY = 100;
 static const float DEFAULT_P_MUL = 1.f;
@@ -251,11 +253,10 @@ void animate_node_set_selected_node_list_settings(PropPanel::ContainerPropertyCo
 
 void animate_node_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int animNid = settings->getNameId("anim");
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (settings->getBlock(i)->getBlockNameId() == animNid && removeName == settings->getBlock(i)->getStr("param", nullptr))
-      settings->removeBlock(i);
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "anim");
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
 }
 
 static int count_anim_block_params(PropPanel::ContainerPropertyControl *group, int first_pid, int last_pid)
@@ -335,6 +336,11 @@ void AnimTreePlugin::animateNodeFindChilds(PropPanel::ContainerPropertyControl *
         const int childIdx = add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, bnl);
         check_ctrl_child_idx(childIdx, settings.getStr("name"), bnl);
       }
+      else
+      {
+        data.childs.emplace_back(AnimCtrlData::NOT_FOUND_CHILD);
+        logerr("animateNode <%s>: anim block <%s> has no bnl", settings.getStr("name"), block->getStr("param", ""));
+      }
     }
   }
 }
@@ -367,4 +373,35 @@ void animate_node_update_child_name(DataBlock &settings, const char *name, const
         block->setStr("bnl", writeName.c_str());
     }
   }
+}
+
+class AnimateNodeReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  AnimateNodeReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data) :
+    BaseCtrlReorderHandler(plugin, controllers, panel), ctrlData(ctrl_data)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    // animateAndProcNode keeps anim blocks under a child "animateNode" block;
+    // animateNode holds them directly. Children-only lookup tells them apart.
+    DataBlock *target = settings.getBlockByName("animateNode");
+    if (!target)
+      target = &settings;
+    dag::Vector<int> positions = collect_block_positions_by_name(*target, "anim");
+    move_block_at_positions(*target, positions, from, to);
+    if (ctrlData && positions.size() == ctrlData->childs.size())
+      move_childs(ctrlData->childs, from, to);
+  }
+
+  AnimCtrlData *ctrlData;
+};
+
+IListReorderHandler *animate_node_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel, AnimCtrlData *ctrl_data)
+{
+  return new AnimateNodeReorderHandler(plugin, controllers, panel, ctrl_data);
 }

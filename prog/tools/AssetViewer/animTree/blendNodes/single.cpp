@@ -2,7 +2,6 @@
 
 #include "single.h"
 #include "../animTreeUtils.h"
-#include "../animTreePanelPids.h"
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
 

@@ -22,8 +22,13 @@ public:
   static SQInteger script_ctor(HSQUIRRELVM vm);
   static SQInteger get_text(HSQUIRRELVM vm);
   static SQInteger set_text(HSQUIRRELVM vm);
+  static SQInteger insert_text(HSQUIRRELVM vm);
 
   void setText(const char *text, int textLen = -1);
+
+  void reformatFrom(const char *text, int textLen);
+
+  void parsePastedText(Tab<textlayout::TextBlock *> &out_blocks, const char *text, int len);
 
   static void bind_script(Sqrat::Table &exports);
 };

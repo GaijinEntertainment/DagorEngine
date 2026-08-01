@@ -28,6 +28,11 @@ The following properties can be animated using the ``AnimProp`` enum:
 * ``AnimProp.fillColor`` - Fill color (for boxes, frames)
 * ``AnimProp.borderColor`` - Border color
 
+Colors are interpolated in Oklch (polar Oklab), so lightness, chroma and hue advance in
+perceptually even steps and hue takes the shorter way around the wheel. An achromatic
+endpoint (white, black, grey) borrows the other endpoint's hue. Alpha is interpolated on
+its own, without premultiplying the color.
+
 **Rendering**
 
 * ``AnimProp.opacity`` - Element opacity (0.0 - 1.0)
@@ -87,7 +92,11 @@ Animation properties
 * ``from`` - Starting value (type depends on property)
 * ``to`` - Ending value (type depends on property)
 
-If ``from`` or ``to`` is omitted, the current element property value is used.
+If ``from`` or ``to`` is omitted, the element's own property value is used.
+
+On a ``playFadeOut`` animation an omitted ``from`` is the value the element has when it is
+removed, so an element that is still animating does not jump before fading out.
+``duration`` is not shortened to match the smaller distance.
 
 **Playback control**
 

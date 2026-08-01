@@ -11,6 +11,7 @@
 #include <math/dag_mathUtils.h>
 #include <util/dag_console.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <generic/dag_span.h>
 #include <EASTL/string.h>
 
 namespace pathfinder
@@ -88,9 +89,10 @@ void tilecache_cleanup()
   tilecache_stop();
   dtFreeTileCache(tileCache);
   tileCache = nullptr;
-  tileObstacleResNameHashes.clear();
-  obstaclesToAdd.clear();
-  obstaclesToRemove.clear();
+  // free the bucket arrays too; obstaclesToAdd peaks at level load with all obstacles pending
+  clear_and_shrink(tileObstacleResNameHashes);
+  clear_and_shrink(obstaclesToAdd);
+  clear_and_shrink(obstaclesToRemove);
 }
 
 void tilecache_restart() { tilecache_start(tileCacheCheckCb, tileCacheObstacleSettingsPath.c_str()); }
@@ -128,7 +130,7 @@ void tilecache_stop()
     return;
   tilecache_ri_stop();
   nextHandle = 0;
-  handle2obstacle.clear();
+  clear_and_shrink(handle2obstacle); // release bucket array, not just elements
 }
 
 static bool tilecache_step()

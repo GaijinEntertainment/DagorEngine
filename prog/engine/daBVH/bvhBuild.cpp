@@ -4,9 +4,11 @@
 #include <generic/dag_tab.h>
 #include <vecmath/dag_vecMath.h>
 #include <util/dag_stlqsort.h>
+#include <util/dag_radix.h>
 #include <generic/dag_carray.h>
 #include <memory/dag_framemem.h>
 #include <daBVH/dag_bvhBuild.h>
+#include <daBVH/swBLASLeafDefs.hlsli> // QUAD_O_MIN / QUAD_O_MAX (default leaf-offset window)
 
 // based on https://github.com/kayru/RayTracedShadows/blob/master/Source/BVHBuilder.cpp
 // Presorted SAH (Wald 2007): boxes[] is sorted in-place along axis 0 once; idx1/idx2 are
@@ -16,21 +18,36 @@
 namespace build_bvh
 {
 
-static void sortAlongAxis(bbox3f *boxes, bbox3f *end, int axis)
+// Presort key: per-box center*2 along one axis, paired with the box position. Sorting these
+// 8-byte pairs makes exactly the same comparison decisions as sorting the boxes (or index
+// arrays) with a per-comparison v_add gather -- introsort's resulting permutation depends only
+// on the comparison outcomes -- but touches 4x less memory, sequentially.
+struct AxisSortKey
 {
-  const int axisMask = 1 << axis;
-  stlsort::sort(boxes, end, [axisMask](const bbox3f &a, const bbox3f &b) {
-    int mask = v_signmask(v_cmp_gt(v_add(b.bmin, b.bmax), v_add(a.bmin, a.bmax)));
-    return mask & axisMask;
-  });
+  float key;
+  uint32_t pos;
+};
+
+// ascending, the same predicate the replaced box comparator computed via v_cmp_gt(b, a)
+static void sortAxisKeys(AxisSortKey *k, uint32_t count)
+{
+  stlsort::sort(k, k + count, [](const AxisSortKey &a, const AxisSortKey &b) { return a.key < b.key; });
 }
 
-static void sortIndicesByAxis(uint32_t *idx, uint32_t count, const bbox3f *boxes, int axis)
+
+// Stable LSD radix sort (util/dag_radix.h) of the (key,pos) pairs by the float key. Gives
+// equal keys a DEFINED order (their input order) where introsort's tie placement is
+// algorithm-defined, so the resulting permutation -- and the tree built from it -- differs
+// on tied keys; quality is equivalent (see dag_bvhBuild.h). Pure integer work:
+// deterministic on any thread in any FP mode.
+struct AxisSortKeyRadixPred
 {
-  const int axisMask = 1 << axis;
-  stlsort::sort(idx, idx + count, [=](uint32_t a, uint32_t b) {
-    return v_signmask(v_cmp_gt(v_add(boxes[b].bmin, boxes[b].bmax), v_add(boxes[a].bmin, boxes[a].bmax))) & axisMask;
-  });
+  unsigned operator()(const AxisSortKey &v) const { return radix_float_predicate()(v.key); }
+};
+
+static void radixSortAxisKeys(AxisSortKey *k, uint32_t count, AxisSortKey *tmp)
+{
+  radix_sort_4pass(k, tmp, count, AxisSortKeyRadixPred()); // 4 passes: result lands back in k
 }
 
 struct ChildInfo
@@ -44,6 +61,14 @@ struct Area
   float left, right;
 };
 
+
+enum
+{
+  // Below this count findBestSplit/partitionNode keep all scratch in stack arrays: at mean
+  // node count ~10 the shared-vector resizes and small memcpy calls dominate the real work.
+  SPLIT_SMALL_COUNT = 8
+};
+
 struct SplitHelper
 {
   Tab<bbox3f> &curNodes;
@@ -54,19 +79,30 @@ struct SplitHelper
   void reWriteNode(uint32_t at, const bbox3f &b) { curNodes[at] = b; }
   void writeNode(const bbox3f &b) { curNodes.push_back(b); }
 
+  // Both-direction area table: the interleaved dual-direction sweep keeps two gather
+  // streams in flight (splitting it into two single-direction passes measures slower).
   dag::Vector<Area, framemem_allocator> area;
   // Partition scratch -- reserved to root size so resize() inside the recursion is a no-op.
   dag::Vector<uint8_t, framemem_allocator> mark;
-  dag::Vector<uint32_t, framemem_allocator> remap, tempIdx;
+  dag::Vector<uint32_t, framemem_allocator> remap, tempIdx, tempIdx2;
   dag::Vector<bbox3f, framemem_allocator> tempBoxes;
 
   int maxChildrenCount = 2;
   int maxDepth = 0;
-  bool allowAnyChildrenCount = true;
+  SplitAxes splitAxes = SplitAxes::XYZ;
+  // Hard cap on a node's TOTAL fanout, flattened clusters included. Unsplittable clusters (SAH cost
+  // prefers keeping them whole) may still be flattened into direct leaf children, but never past this
+  // bound -- fixed-fanout consumers (SoA4 nodes, ordered traversal chunks) rely on it. 252 is the
+  // bvhIO stream format limit (higher child-count byte values are leaf markers).
+  int allowMaxChildrenCount = 252;
   SplitHelper(Tab<bbox3f> &n) : curNodes(n) {}
 };
 
-static inline int findBestSplit(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int &out_axis, Point2 &surface_area, Point2 &costSplit)
+// out_total_bounds, when non-null, receives the union of the whole range: the axis-0 sweep
+// computes it anyway (its forward accumulator after the last element), so the full-range
+// caller saves a separate calculateBounds pass. Bit-exact: the same sequential adds.
+static inline int findBestSplit(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int &out_axis, Point2 &surface_area, Point2 &costSplit,
+  bbox3f *out_total_bounds = nullptr)
 {
   const int count = end - bboxData;
   const uint32_t s = uint32_t(bboxData - h.boxes);
@@ -76,10 +112,21 @@ static inline int findBestSplit(bbox3f *bboxData, bbox3f *end, SplitHelper &h, i
   float splitCost = FLT_MAX;
 
   int split = 0;
-  h.area.resize(count);
+  // Most calls are tiny (mean node count ~10 at fanout 4, and the re-split loop issues up
+  // to 3 calls per node): keep their area table on the stack, skipping the shared-vector
+  // machinery. Same loops either way -- only the storage differs.
+  Area areaSmall[SPLIT_SMALL_COUNT];
+  Area *area = areaSmall;
+  if (count > SPLIT_SMALL_COUNT)
+  {
+    h.area.resize_noinit(count); // both fields of every element are written by the sweep below
+    area = h.area.data();
+  }
 
   for (int i = 0; i < 3; i++)
   {
+    if (i == 1 && h.splitAxes == SplitAxes::XZ)
+      continue;
     // Replaces sortAlongAxis(bboxData, end, i) of the old builder: pick the presorted ordering.
     const uint32_t *idx = (i == 0) ? nullptr : (i == 1) ? h.idx1 : h.idx2;
     auto boxAt = [&](int k) -> const bbox3f & { return idx ? h.boxes[idx[s + k]] : bboxData[k]; };
@@ -95,17 +142,19 @@ static inline int findBestSplit(bbox3f *bboxData, bbox3f *end, SplitHelper &h, i
       v_bbox3_add_box(boundsLeft, boxAt(indexLeft));
       v_bbox3_add_box(boundsRight, boxAt(indexRight));
 
-      h.area[indexLeft].left = calculateSurfaceArea(boundsLeft);
-      h.area[indexRight].right = calculateSurfaceArea(boundsRight);
+      area[indexLeft].left = calculateSurfaceArea(boundsLeft);
+      area[indexRight].right = calculateSurfaceArea(boundsRight);
     }
+    if (i == 0 && out_total_bounds)
+      *out_total_bounds = boundsLeft;
 
     float bestCost = FLT_MAX;
     Point2 bestArea(0, 0);
     Point2 bestCostSplit(0, 0);
     for (int mid = 1; mid < count; ++mid)
     {
-      float surfaceAreaLeft = h.area[mid - 1].left;
-      float surfaceAreaRight = h.area[mid].right;
+      float surfaceAreaLeft = area[mid - 1].left;
+      float surfaceAreaRight = area[mid].right;
 
       float childrenCostLeft = mid;
       float childrenCostRight = count - mid;
@@ -144,57 +193,104 @@ static inline int findBestSplit(bbox3f *bboxData, bbox3f *end, SplitHelper &h, i
 static void partitionNode(SplitHelper &h, uint32_t s, uint32_t e, int axis, uint32_t K)
 {
   const uint32_t count = e - s;
-  h.mark.resize(count);
-  memset(h.mark.data(), 0, count);
 
-  if (axis == 0)
-  {
-    for (uint32_t k = 0; k < K; ++k)
-      h.mark[k] = 1;
-  }
-  else
+  // Small nodes (the common case, see SPLIT_SMALL_COUNT) keep all scratch on the stack and
+  // copy back with plain loops: the shared-vector resizes and sub-32-byte memcpy calls cost
+  // more than the partition itself down there. Same loops either way.
+  const bool small = count <= SPLIT_SMALL_COUNT;
+  alignas(16) bbox3f tempBoxesSmall[SPLIT_SMALL_COUNT];
+  uint8_t markSmall[SPLIT_SMALL_COUNT];
+  uint32_t remapSmall[SPLIT_SMALL_COUNT], tempIdxSmall[SPLIT_SMALL_COUNT], tempIdx2Small[SPLIT_SMALL_COUNT];
+
+  // Axis 0 needs no mark at all: the split is positional (left half == first K boxes), so
+  // the filter below tests oldLocal < K directly. Axis 1/2 keep the mark only for the box
+  // scatter; the filter derives the side from remap (wL slots are < K by construction).
+  const uint32_t *remap = nullptr;
+  if (axis != 0)
   {
     const uint32_t *chosen = (axis == 1) ? h.idx1 : h.idx2;
+    uint8_t *mark = markSmall;
+    bbox3f *tempBoxes = tempBoxesSmall;
+    uint32_t *remapW = remapSmall;
+    if (!small)
+    {
+      h.mark.resize_noinit(count);      // fully overwritten: memset + K marks
+      h.tempBoxes.resize_noinit(count); // every slot written by the scatter below
+      h.remap.resize_noinit(count);
+      mark = h.mark.data();
+      tempBoxes = h.tempBoxes.data();
+      remapW = h.remap.data();
+    }
+    memset(mark, 0, count);
     for (uint32_t k = 0; k < K; ++k)
-      h.mark[chosen[s + k] - s] = 1;
+      mark[chosen[s + k] - s] = 1;
 
-    h.tempBoxes.resize(count);
-    h.remap.resize(count);
     uint32_t wL = 0, wR = K;
     for (uint32_t k = 0; k < count; ++k)
     {
-      if (h.mark[k])
+      if (mark[k])
       {
-        h.tempBoxes[wL] = h.boxes[s + k];
-        h.remap[k] = wL++;
+        tempBoxes[wL] = h.boxes[s + k];
+        remapW[k] = wL++;
       }
       else
       {
-        h.tempBoxes[wR] = h.boxes[s + k];
-        h.remap[k] = wR++;
+        tempBoxes[wR] = h.boxes[s + k];
+        remapW[k] = wR++;
       }
     }
-    memcpy(h.boxes + s, h.tempBoxes.data(), count * sizeof(bbox3f));
+    if (small)
+      for (uint32_t k = 0; k < count; ++k)
+        h.boxes[s + k] = tempBoxes[k];
+    else
+      memcpy(h.boxes + s, tempBoxes, count * sizeof(bbox3f));
+    remap = remapW;
   }
 
-  // Stable-filter both idx arrays. For axis 0 the box positions are unchanged so old->new
-  // is identity; for axis 1/2 we go through remap[] built above.
-  h.tempIdx.resize(count);
-  auto filterIdx = [&](uint32_t *arr) {
-    uint32_t wL = 0, wR = K;
+  // Stable-filter both idx arrays in one pass. For axis 0 the box positions are unchanged
+  // so old->new is identity and the side test is positional; for axis 1/2 both come from
+  // remap (one load per element instead of a separate mark byte).
+  uint32_t *tempIdx = tempIdxSmall, *tempIdx2 = tempIdx2Small;
+  if (!small)
+  {
+    h.tempIdx.resize_noinit(count); // every slot written below (wL/wR cover [0, count))
+    h.tempIdx2.resize_noinit(count);
+    tempIdx = h.tempIdx.data();
+    tempIdx2 = h.tempIdx2.data();
+  }
+  uint32_t *arr1 = h.idx1 ? h.idx1 + s : nullptr, *arr2 = h.idx2 + s;
+  uint32_t wL1 = 0, wR1 = K, wL2 = 0, wR2 = K;
+  for (uint32_t k = 0; k < count; ++k)
+  {
+    if (arr1) // absent for XZ-only builds: axis 1 is never swept or partitioned
+    {
+      const uint32_t oldLocal1 = arr1[k] - s;
+      const uint32_t newLocal1 = remap ? remap[oldLocal1] : oldLocal1; // remap set iff axis != 0 (identity otherwise)
+      if (newLocal1 < K)
+        tempIdx[wL1++] = s + newLocal1;
+      else
+        tempIdx[wR1++] = s + newLocal1;
+    }
+    const uint32_t oldLocal2 = arr2[k] - s;
+    const uint32_t newLocal2 = remap ? remap[oldLocal2] : oldLocal2;
+    if (newLocal2 < K)
+      tempIdx2[wL2++] = s + newLocal2;
+    else
+      tempIdx2[wR2++] = s + newLocal2;
+  }
+  if (small)
     for (uint32_t k = 0; k < count; ++k)
     {
-      const uint32_t oldLocal = arr[k] - s;
-      const uint32_t newLocal = (axis == 0) ? oldLocal : h.remap[oldLocal];
-      if (h.mark[oldLocal])
-        h.tempIdx[wL++] = s + newLocal;
-      else
-        h.tempIdx[wR++] = s + newLocal;
+      if (arr1)
+        arr1[k] = tempIdx[k];
+      arr2[k] = tempIdx2[k];
     }
-    memcpy(arr, h.tempIdx.data(), count * sizeof(uint32_t));
-  };
-  filterIdx(h.idx1 + s);
-  filterIdx(h.idx2 + s);
+  else
+  {
+    if (arr1)
+      memcpy(arr1, tempIdx, count * sizeof(uint32_t));
+    memcpy(arr2, tempIdx2, count * sizeof(uint32_t));
+  }
 }
 
 static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int depth = 1, float currentCost = 1e29f)
@@ -214,9 +310,16 @@ static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int d
   }
   else
   {
+    // The node box comes for free from the first findBestSplit call, whose axis-0 sweep
+    // unions the whole range (bit-identical to a calculateBounds pass: same sequential
+    // adds). Write a placeholder now to reserve the slot; reWriteNode below stores the
+    // real box together with the counts. The empty init is overwritten on every path
+    // (first-sweep union or the calculateBounds fallback) -- it only proves initialization
+    // to flow analysis (MSVC C4701).
     bbox3f bounds;
-    calculateBounds(bboxData, end, bounds);
-    h.writeNode(bounds);
+    v_bbox3_init_empty(bounds);
+    bool boundsKnown = false;
+    h.writeNode(*bboxData);
 
     const int curChildrenCount = min<int>(count, h.maxChildrenCount);
     enum
@@ -236,9 +339,14 @@ static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int d
       --childrenCount;
       Point2 area(0, 0), cost(0, 0);
       int bestAxis = 0;
-      const uint32_t split = findBestSplit(bboxData + i.s, bboxData + i.s + i.c, h, bestAxis, area, cost);
-      if (h.allowAnyChildrenCount && cost.x + cost.y > currentCost && (split > 1 || i.c - split > 1))
+      const bool fullRange = i.s == 0 && i.c == count && !boundsKnown;
+      const uint32_t split =
+        findBestSplit(bboxData + i.s, bboxData + i.s + i.c, h, bestAxis, area, cost, fullRange ? &bounds : nullptr);
+      boundsKnown |= fullRange;
+      if (cost.x + cost.y > currentCost && (split > 1 || i.c - split > 1))
       {
+        // Unsplittable by SAH cost: mark flattened (negative cost; i.cost > 0 here, the pop loop
+        // breaks on cost <= 0). The fanout cap below may still revert this to a forced split.
         children[childrenCount] = i;
         children[childrenCount].cost = -i.cost;
         childrenCount++;
@@ -262,26 +370,42 @@ static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int d
     }
     stlsort::sort(children.begin(), children.begin() + childrenCount, [](const auto &a, const auto &b) { return a.area > b.area; });
 
+    if (!boundsKnown) // the pop loop never ran findBestSplit over the full range (count == 1 root)
+      calculateBounds(bboxData, end, bounds);
+
     const int startAt = h.getCurrentNodes();
     int totalChildrenCount = childrenCount;
-    if (h.allowAnyChildrenCount)
+    for (int i = 0; i < childrenCount; ++i)
+      if (children[i].cost <= 0)
+        totalChildrenCount += children[i].c - 1;
+    // Enforce the fanout cap: un-flatten the widest flattened clusters until the total fits. An
+    // un-flattened cluster recurses with an "infinite" cost (same value as the root call) so the next
+    // level performs a real split before flattening can be reconsidered for the smaller halves.
+    while (totalChildrenCount > h.allowMaxChildrenCount)
     {
+      int widest = -1;
       for (int i = 0; i < childrenCount; ++i)
+        if (children[i].cost <= 0 && (widest < 0 || children[i].c > children[widest].c))
+          widest = i;
+      if (widest < 0)
+        break; // no flattened slots left: totalChildrenCount == childrenCount <= maxChildrenCount
+      totalChildrenCount -= children[widest].c - 1;
+      children[widest].cost = 1e29f;
+    }
+    for (int i = 0; i < childrenCount; ++i)
+    {
+      if (children[i].cost <= 0)
       {
-        if (children[i].cost <= 0)
-        {
-          totalChildrenCount += children[i].c - 1;
-          int ci = children[i].s, ce = ci + children[i].c;
-          stlsort::sort(bboxData + ci, bboxData + ce,
-            [](const auto &a, const auto &b) { return calculateSurfaceArea(a) > calculateSurfaceArea(b); });
-          for (; ci < ce; ++ci)
-            h.writeNode(bboxData[ci]);
-        }
+        int ci = children[i].s, ce = ci + children[i].c;
+        stlsort::sort(bboxData + ci, bboxData + ce,
+          [](const auto &a, const auto &b) { return calculateSurfaceArea(a) > calculateSurfaceArea(b); });
+        for (; ci < ce; ++ci)
+          h.writeNode(bboxData[ci]);
       }
     }
     for (int i = 0; i < childrenCount; ++i)
     {
-      if (!h.allowAnyChildrenCount || children[i].cost > 0)
+      if (children[i].cost > 0)
         createBVHNodeSAH(bboxData + children[i].s, bboxData + children[i].s + children[i].c, h, depth + 1, children[i].cost);
     }
     const int endAt = h.getCurrentNodes();
@@ -332,24 +456,80 @@ bbox3f calcBox(const vec4f *vertices, int vertex_count)
   return box;
 }
 
-int create_bvh_node_sah(Tab<bbox3f> &nodes, bbox3f *boxes, const uint32_t boxes_cnt, int max_children_count, int &max_depth)
+// The default presort_use_radix_threshold is the measured introsort/radix crossover on real
+// keys (swrtRiBench -sortBench): radix pays a fixed histogram + 5-pass overhead, so it is
+// 29% slower at 16 elements, break-even at 32, 27% faster at 64 and 5x+ from 2048 up.
+int create_bvh_node_sah(Tab<bbox3f> &nodes, bbox3f *boxes, const uint32_t boxes_cnt, int max_children_count, int &max_depth,
+  SplitAxes split_axes, uint32_t presort_use_radix_threshold)
 {
   if (boxes_cnt == 0)
     return (int)nodes.size();
 
-  SplitHelper h{nodes};
-  h.maxChildrenCount = max_children_count;
-  h.boxes = boxes;
-
   // Presort: axis 0 in-place (boxes become the implicit axis-0 ordering), idx1/idx2 are
   // index arrays revealing axis-1/2 orderings. Maintained through partitionNode at every split.
-  sortAlongAxis(boxes, boxes + boxes_cnt, 0);
-  dag::Vector<uint32_t, framemem_allocator> idx1(boxes_cnt), idx2(boxes_cnt);
-  for (uint32_t i = 0; i < boxes_cnt; ++i)
-    idx1[i] = idx2[i] = i;
-  sortIndicesByAxis(idx1.data(), boxes_cnt, boxes, 1);
-  sortIndicesByAxis(idx2.data(), boxes_cnt, boxes, 2);
-  h.idx1 = idx1.data();
+  // All presort scratch is fully overwritten before any read: skip the sized-constructor
+  // zero-fill (~25 MB of dead memsets at 437K boxes) via resize_noinit.
+  // XZ-only builds never sweep or partition along axis 1, so the whole Y presort (keys, sort,
+  // idx1) is skipped and idx1 stays null; partitionNode skips its idx1 maintenance accordingly.
+  const bool useAxis1 = split_axes != SplitAxes::XZ;
+  dag::Vector<uint32_t, framemem_allocator> idx1, idx2;
+  if (useAxis1)
+    idx1.resize_noinit(boxes_cnt);
+  idx2.resize_noinit(boxes_cnt);
+  {
+    dag::Vector<AxisSortKey, framemem_allocator> keys0, keys1, keys2;
+    keys0.resize_noinit(boxes_cnt);
+    if (useAxis1)
+      keys1.resize_noinit(boxes_cnt);
+    keys2.resize_noinit(boxes_cnt);
+    auto sortKeys = [&](AxisSortKey *arr) {
+      if (boxes_cnt >= presort_use_radix_threshold)
+      {
+        dag::Vector<AxisSortKey, framemem_allocator> tmp;
+        tmp.resize_noinit(boxes_cnt); // radix scatters every slot in each pass
+        radixSortAxisKeys(arr, boxes_cnt, tmp.data());
+      }
+      else
+        sortAxisKeys(arr, boxes_cnt);
+    };
+    for (uint32_t i = 0; i < boxes_cnt; ++i)
+      keys0[i] = AxisSortKey{v_extract_x(v_add(boxes[i].bmin, boxes[i].bmax)), i};
+    sortKeys(keys0.data());
+    // idx1/idx2 order positions of the axis-0-sorted boxes; identity-initialized pair arrays
+    // reproduce the old sortIndicesByAxis(identity) decisions exactly. Their keys are gathered
+    // through the axis-0 permutation (boxes[keys0[i].pos] IS sorted position i) before the
+    // boxes move -- after that only bytes move and ready-made keys are compared.
+    for (uint32_t i = 0; i < boxes_cnt; ++i)
+    {
+      vec4f c2 = v_add(boxes[keys0[i].pos].bmin, boxes[keys0[i].pos].bmax);
+      if (useAxis1)
+        keys1[i] = AxisSortKey{v_extract_y(c2), i};
+      keys2[i] = AxisSortKey{v_extract_z(c2), i};
+    }
+    {
+      dag::Vector<bbox3f, framemem_allocator> sorted;
+      sorted.resize_noinit(boxes_cnt);
+      for (uint32_t i = 0; i < boxes_cnt; ++i)
+        sorted[i] = boxes[keys0[i].pos];
+      memcpy(boxes, sorted.data(), boxes_cnt * sizeof(bbox3f));
+    }
+    if (useAxis1)
+    {
+      sortKeys(keys1.data());
+      for (uint32_t i = 0; i < boxes_cnt; ++i)
+        idx1[i] = keys1[i].pos;
+    }
+    sortKeys(keys2.data());
+    for (uint32_t i = 0; i < boxes_cnt; ++i)
+      idx2[i] = keys2[i].pos;
+  }
+
+  SplitHelper h{nodes};
+  h.maxChildrenCount = max_children_count;
+  h.allowMaxChildrenCount = max_children_count; // flattened clusters honor the same fanout cap
+  h.splitAxes = split_axes;
+  h.boxes = boxes;
+  h.idx1 = useAxis1 ? idx1.data() : nullptr;
   h.idx2 = idx2.data();
 
   nodes.reserve(nodes.size() + boxes_cnt * 3 / 2);
@@ -358,27 +538,47 @@ int create_bvh_node_sah(Tab<bbox3f> &nodes, bbox3f *boxes, const uint32_t boxes_
   h.remap.reserve(boxes_cnt);
   h.tempBoxes.reserve(boxes_cnt);
   h.tempIdx.reserve(boxes_cnt);
+  h.tempIdx2.reserve(boxes_cnt);
 
   int ret = createBVHNodeSAH(boxes, boxes + boxes_cnt, h);
   max_depth = max(max_depth, h.maxDepth);
   return ret;
 }
 
+// A triangle is encodable iff some vertex (apex) reaches the other two within the signed offset range
+// [minOff, maxOff]. The range is asymmetric, so a well-centered apex covers up to (maxOff - minOff) of
+// index spread -- roughly twice a single positive window -- and far fewer triangles need duplicating.
+static inline bool triEncodable(long a, long b, long c, int minOff, int maxOff)
+{
+  auto apexFits = [minOff, maxOff](long ap, long x, long y) {
+    const long ox = x - ap, oy = y - ap;
+    return ox >= minOff && ox <= maxOff && oy >= minOff && oy <= maxOff;
+  };
+  return apexFits(a, b, c) || apexFits(b, a, c) || apexFits(c, a, b);
+}
+
 // File-local second phase of leafOrderVertexFetch (its only caller) so the prep sequence cannot be
 // skipped or misordered by external callers.
 template <class IdxT>
-static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, unsigned window, dag::Vector<vec4f> &outVerts);
+static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, int minOff, int maxOff, dag::Vector<vec4f> &outVerts);
 
 template <class IdxT>
-unsigned leafOrderVertexFetch(IdxT *idx, unsigned idxCount, const vec4f *srcVerts, unsigned srcVertCount, unsigned window,
-  dag::Vector<vec4f> &outVerts)
+unsigned leafOrderVertexFetch(IdxT *idx, unsigned idxCount, const vec4f *srcVerts, unsigned srcVertCount, dag::Vector<vec4f> &outVerts,
+  int minOff, int maxOff)
 {
+  // LEAF_OFF_DEFAULT means "default leaf-offset window": resolve to the quad-BLAS range before it reaches
+  // dedupWindowDup, which derives blockCap from maxOff and must never see the sentinel. minOff is a real
+  // signed bound that may legitimately be negative, so test the exact sentinel rather than minOff < 0.
+  if (minOff == LEAF_OFF_DEFAULT)
+    minOff = QUAD_O_MIN;
+  if (maxOff == LEAF_OFF_DEFAULT)
+    maxOff = QUAD_O_MAX;
   outVerts.clear();
   const unsigned faceCount = idxCount / 3u;
   if (faceCount == 0)
     return 0;
 
-  // Triangle AABBs with the source-tri index in bmin.w (addQuadPrimitivesAABBList / writeQuadLeaf
+  // Triangle AABBs with the source-tri index in bmin.w (addQuadPrimitivesAABBList
   // convention) so the in-place SAH reorder stays traceable back to triangles. Default allocator: bbox3f
   // needs 16-byte alignment for the vec ops.
   dag::Vector<bbox3f> triBoxes(faceCount);
@@ -418,27 +618,28 @@ unsigned leafOrderVertexFetch(IdxT *idx, unsigned idxCount, const vec4f *srcVert
   }
   for (unsigned i = 0; i < idxCount; ++i)
     idx[i] = (IdxT)newIdx[idx[i]];
-  // Second phase: duplicate the residual over-spread verts so every triangle fits the leaf window.
-  return dedupWindowDup(idx, idxCount, window, outVerts);
+  // Second phase: duplicate the residual over-spread verts so every triangle fits the leaf offset range.
+  return dedupWindowDup(idx, idxCount, minOff, maxOff, outVerts);
 }
 
 template <class IdxT>
-static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, unsigned window, dag::Vector<vec4f> &outVerts)
+static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, int minOff, int maxOff, dag::Vector<vec4f> &outVerts)
 {
   const unsigned baseCount = (unsigned)outVerts.size();
-  if (baseCount <= window)
-    return baseCount; // every index is within one window already -- nothing can over-spread
+  // Dup'd verts land at consecutive tail slots, so a block this wide keeps a min-apex (offsets
+  // 0..blockCap-1) inside [0, maxOff]; the over-spread gate itself uses the wider asymmetric test.
+  const unsigned blockCap = (unsigned)maxOff + 1u;
+  if (baseCount <= blockCap)
+    return baseCount; // max possible index span < blockCap -- nothing can over-spread
   const unsigned faceCount = idxCount / 3u;
-  // After the SAH-leaf-order renumber verts are spatially local, so most >window nodes still have
-  // every triangle inside the window. Cheap scan first: skip the O(baseCount) dup state unless a
-  // triangle actually over-spreads.
+  // After the SAH-leaf-order renumber verts are spatially local, so most large nodes still have
+  // every triangle encodable. Cheap scan first: skip the O(baseCount) dup state unless a triangle
+  // actually over-spreads.
   bool anyOverSpread = false;
   for (unsigned t = 0; t < faceCount; ++t)
   {
     const IdxT *tri = idx + (size_t)t * 3u;
-    const unsigned mn = min(min(tri[0], tri[1]), tri[2]);
-    const unsigned mx = max(max(tri[0], tri[1]), tri[2]);
-    if (mx - mn > window)
+    if (!triEncodable(tri[0], tri[1], tri[2], minOff, maxOff))
     {
       anyOverSpread = true;
       break;
@@ -450,16 +651,14 @@ static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, unsigned window, da
   for (unsigned i = 0; i < baseCount; ++i)
     stamp[i] = -1;
   int blockId = 0;
-  unsigned blockFill = window; // force a fresh block on the first over-spread triangle
+  unsigned blockFill = blockCap; // force a fresh block on the first over-spread triangle
   for (unsigned t = 0; t < faceCount; ++t)
   {
     IdxT *tri = idx + (size_t)t * 3u;
-    const unsigned mn = min(min(tri[0], tri[1]), tri[2]);
-    const unsigned mx = max(max(tri[0], tri[1]), tri[2]);
-    if (mx - mn <= window)
+    if (triEncodable(tri[0], tri[1], tri[2], minOff, maxOff))
       continue; // fits in place -- keep the base verts
     const unsigned need = (stamp[tri[0]] != blockId) + (stamp[tri[1]] != blockId) + (stamp[tri[2]] != blockId);
-    if (blockFill + need > window) // this tri's verts would not fit the open block -- start a new one
+    if (blockFill + need > blockCap) // this tri's verts would not fit the open block -- start a new one
     {
       ++blockId;
       blockFill = 0;
@@ -481,7 +680,7 @@ static unsigned dedupWindowDup(IdxT *idx, unsigned idxCount, unsigned window, da
   return (unsigned)outVerts.size();
 }
 
-template unsigned leafOrderVertexFetch<uint16_t>(uint16_t *, unsigned, const vec4f *, unsigned, unsigned, dag::Vector<vec4f> &);
-template unsigned leafOrderVertexFetch<uint32_t>(uint32_t *, unsigned, const vec4f *, unsigned, unsigned, dag::Vector<vec4f> &);
+template unsigned leafOrderVertexFetch<uint16_t>(uint16_t *, unsigned, const vec4f *, unsigned, dag::Vector<vec4f> &, int, int);
+template unsigned leafOrderVertexFetch<uint32_t>(uint32_t *, unsigned, const vec4f *, unsigned, dag::Vector<vec4f> &, int, int);
 
 }; // namespace build_bvh

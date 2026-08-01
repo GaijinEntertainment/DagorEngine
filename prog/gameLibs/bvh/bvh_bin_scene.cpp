@@ -63,7 +63,7 @@ struct ElemCallback : public RenderScene::ElemCallback
 
 void add_meshes(ContextId context_id, BaseStreamingSceneHolder &bin_scene)
 {
-  if (!context_id->has(Features::BinScene))
+  if (!context_id->hasAny(Features::BinScene))
     return;
 
   elemCallback.bvhCtx = context_id;
@@ -80,7 +80,7 @@ void add_meshes(ContextId context_id, BaseStreamingSceneHolder &bin_scene)
 
 void update_instances(ContextId context_id)
 {
-  if (!context_id->has(Features::BinScene))
+  if (!context_id->hasAny(Features::BinScene))
     return;
 
   mat43f instanceTransform;
@@ -96,7 +96,7 @@ void update_instances(ContextId context_id)
 
 void on_unload_scene(ContextId context_id)
 {
-  if (!context_id->has(Features::BinScene))
+  if (!context_id->hasAny(Features::BinScene))
     return;
 
   for (auto objectId : context_id->binSceneObjectIds)

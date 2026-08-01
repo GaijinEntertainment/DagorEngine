@@ -18,6 +18,7 @@
 #include "translate_d3d_to_vk.h"
 #include "basetexture.h"
 #include "vk_format_utils.h"
+#include <validation/texture.h>
 
 namespace drv3d_vulkan
 {
@@ -349,10 +350,11 @@ struct BaseTex final : public D3dResourceNameImpl<BaseTexture>
     pars.updateLevelsIfNeeded();
     D3D_CONTRACT_ASSERT(pars.levels > 0);
 
+    setTexName(stat_name);
+    check_texture_srgb_format(pars.flg, getTexName());
     fmt = FormatStore::fromCreateFlags(pars.flg);
     maxMipLevel = 0;
     minMipLevel = pars.levels - 1;
-    setTexName(stat_name);
 
     setInitialImageViewState();
   }

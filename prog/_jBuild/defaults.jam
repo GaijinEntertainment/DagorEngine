@@ -92,17 +92,17 @@ if ! $(__DEFAULTS_INCLUDED) {
   DefOpenSSLVer = 3.x ;
   OpenSSLVer    ?= $(DefOpenSSLVer) ;
   UseZlibVer    ?= ng ;
-  OpenXrVer     ?= 1.0.27 ;
-  DlssEnabled   ?= no ;
+  OpenXrVer     ?= 1.1.54 ;
   XessEnabled   ?= no ;
   AgsEnabled    ?= no ;
-  Fsr2Enabled   ?= no ;
   BundleVersion ?= 1.0.0 ;
   ZstdVer       ?= 1.4.5 ;
   DbgDigest     ?= once ;  # once, min, max, stop
-  AgilitySdkVer ?= 1.619.0 ;
+  AgilitySdkVer ?= 1.619.3 ;
   AgsSdkVer     ?= 6.3.0 ;
-  NvApiVer      ?= R590 ;
+  AftermathSdkVer ?= 2025.5.0.251114 ;
+  NvApiVer      ?= R610 ;
+  NvtxSdkVersion ?= 3.5 ;
   DefFreeTypeVer = 2.8 ;
   FreeTypeVer   ?= $(DefFreeTypeVer) ;
   FidelityFXVer ?= 2.1.1 ;
@@ -168,6 +168,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   }
 
   UseWholeOpt ?= no ;
+  UseWholeOptDevirt ?= $(UseWholeOpt) ; # whole-program devirt, on with LTO unless overridden
 
   if $(Config) in rel irel { MimDebug ?= 0 ; }
   else { MimDebug ?= 2 ; }
@@ -461,9 +462,6 @@ if ! $(__DEFAULTS_INCLUDED) {
     if $(OutputSuffix) {
       out = $(out)~$(OutputSuffix) ;
     }
-    if $(UseLtoJobs) != 0 {
-      out = $(out)~lto ;
-    }
     if $(CheckedContainers) = yes {
       local defines = -D_DEBUG_TAB_ -DEASTL_DEBUG -DEASTL_DEBUGPARAMS_LEVEL=0 -DEASTL_NAME_ENABLED=0 ;
       for d in $(defines) { if ! $(d) in $(GlobalCPPopt) { GlobalCPPopt += $(d) ; } }
@@ -488,8 +486,8 @@ if ! $(__DEFAULTS_INCLUDED) {
       out = $(out)~nmb ;
     }
 
-    if $(UseWholeOpt) != no {
-      out = $(out)~who ;
+    if $(UseWholeOpt) != no || $(UseLtoJobs) != 0 {
+      out = $(out)~lto ;
     }
 
     if $(UseSystemOpenSSL) = yes {
@@ -522,5 +520,6 @@ if ! $(__DEFAULTS_INCLUDED) {
   }
 
   include $(Root)/prog/_jBuild/jCommonRules.jam ;
+  include $(Root)/prog/_jBuild/cocoapods.jam ;
   NotFile ALL_CODEGEN_TARGET ;
 }

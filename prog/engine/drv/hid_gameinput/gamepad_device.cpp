@@ -229,9 +229,8 @@ void HumanInput::GameInputGamepadDevice::doRumble(float lowFreq, float highFreq)
 bool HumanInput::GameInputGamepadDevice::isConnected()
 {
   if (isVirtual)
-    return true;
+    return is_any_gamepad_connected();
 
-  TIME_PROFILE(HID_GINP_isConnected);
   return is_gamepad_connected(userId);
 }
 

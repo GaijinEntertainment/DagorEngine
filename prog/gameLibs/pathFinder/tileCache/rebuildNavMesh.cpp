@@ -694,9 +694,13 @@ void rebuildNavMesh_addBBox(const BBox3 &bbox)
 }
 
 static void rebuildNavMesh_update_reloadNavMesh();
+static bool rebuildNavMesh_update_checkTileArrays();
 static void rebuildNavMesh_update_removeTiles();
 static bool rebuildNavMesh_update_buildTiles(int n);
 static bool rebuildNavMesh_update_buildLadders();
+
+// worst case tiles (nav mesh layers) one rebuilt tile position can produce
+static constexpr int max_tiles_per_rebuilt_pos = 8;
 
 bool rebuildNavMesh_update(bool interactive)
 {
@@ -711,6 +715,16 @@ bool rebuildNavMesh_update(bool interactive)
     case RS_WAIT_ADD_TILES:
       if (rebuildShouldReloadOriginalNavmesh)
         rebuildNavMesh_update_reloadNavMesh();
+      else if (!rebuildNavMesh_update_checkTileArrays())
+      {
+        // without the capacity the rebuild would only destroy the tiles it removes
+        // first; keep the existing navmesh and finish with nothing rebuilt
+        logerr("Rebuild NavMesh: no tile capacity for the requested area, rebuild skipped");
+        rebuildedTiles.clear();
+        rebuildStep = RS_FINISHED;
+        result = true;
+        break;
+      }
       rebuildNavMesh_update_removeTiles();
       generateTiles = rebuildedTiles;
       rebuildStep = RS_REBUILDING_TILES;
@@ -737,10 +751,56 @@ bool rebuildNavMesh_update(bool interactive)
 
 void rebuildNavMesh_update_reloadNavMesh()
 {
-  const int maxTiles = 8;
-  const int extraTiles = rebuildedTiles.size() * maxTiles;
+  const int extraTiles = rebuildedTiles.size() * max_tiles_per_rebuilt_pos;
   reload_nav_mesh(extraTiles);
   getNavMeshPtr()->reconstructFreeList();
+}
+
+// Rebuilding from the current navmesh cannot reload with extra headroom like the
+// reload path does without losing runtime state, and the load-time array sizing
+// cannot predict rebuilds over previously empty areas; check the capacity up front
+// instead. Positions that already have tiles free their slots before the rebuild
+// adds new ones, so only the missing layers count. Returns false when the rebuild
+// worst case does not fit, so the caller can keep the existing tiles instead of
+// destroying what it cannot rebuild.
+bool rebuildNavMesh_update_checkTileArrays()
+{
+  const dtNavMesh *navMesh = getNavMeshPtr();
+  if (!navMesh || !tileCache || rebuildedTiles.empty())
+    return true;
+  int neededNavTiles = 0, neededTcTiles = 0;
+  for (const auto &it : rebuildedTiles)
+  {
+    const int tx = it.first.first;
+    const int ty = it.first.second;
+    dtCompressedTileRef tcRefs[max_tiles_per_rebuilt_pos];
+    neededTcTiles += max(max_tiles_per_rebuilt_pos - tileCache->getTilesAt(tx, ty, tcRefs, max_tiles_per_rebuilt_pos), 0);
+    const dtMeshTile *navTiles[max_tiles_per_rebuilt_pos];
+    neededNavTiles += max(max_tiles_per_rebuilt_pos - navMesh->getTilesAt(tx, ty, navTiles, max_tiles_per_rebuilt_pos), 0);
+  }
+  int freeNavTiles = 0, freeTcTiles = 0;
+  for (int i = 0, n = navMesh->getMaxTiles(); i < n; ++i)
+    if (!navMesh->getTile(i)->header)
+      ++freeNavTiles;
+  for (int i = 0, n = tileCache->getTileCount(); i < n; ++i)
+    if (!tileCache->getTile(i)->header)
+      ++freeTcTiles;
+  bool fits = true;
+  if (neededNavTiles > freeNavTiles)
+  {
+    logerr("Rebuild NavMesh: %d nav tiles needed but only %d slots free; raise the load sizing headroom or make the tile "
+           "arrays growable (growMaxTiles follow-up change)",
+      neededNavTiles, freeNavTiles);
+    fits = false;
+  }
+  if (neededTcTiles > freeTcTiles)
+  {
+    logerr("Rebuild NavMesh: %d tile cache tiles needed but only %d slots free; raise the load sizing headroom or make the "
+           "tile arrays growable (growMaxTiles follow-up change)",
+      neededTcTiles, freeTcTiles);
+    fits = false;
+  }
+  return fits;
 }
 
 void rebuildNavMesh_update_removeTiles()
@@ -836,6 +896,7 @@ bool rebuildNavMesh_update_buildTiles(int n)
         recastbuild::build_edges(edges, tile_ctx.cset, tile_ctx.chf, rebuildParams.mergeParams, nullptr);
         recastbuild::build_jumplinks_connstorage(connStorage, nullptr, edges, rebuildParams.jlkParams, tile_ctx.chf, tile_ctx.solid,
           bbox);
+        tile_ctx.clearIntermediate(nullptr);
       }
 
       init_tile_config(cfg, vertices);

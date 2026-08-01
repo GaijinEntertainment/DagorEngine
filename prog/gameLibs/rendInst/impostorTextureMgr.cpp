@@ -49,21 +49,20 @@ static ShaderBlockIdHolder rendinstSceneBlockId{"rendinst_scene"};
 
 #define GLOBAL_VARS_LIST
 
-#define GLOBAL_OPTIONAL_VARS_LIST       \
-  VAR(impostor_bounding_sphere)         \
-  VAR(impostor_shadow_texture)          \
-  VAR(impostor_data_offset)             \
-  VAR(rendinst_render_pass)             \
-  VAR(impostor_atlas_mask)              \
-  VAR(impostor_atlas_mask_samplerstate) \
-  VAR(impostor_shadow_x)                \
-  VAR(impostor_shadow_y)                \
-  VAR(impostor_shadow_z)                \
-  VAR(impostor_options)                 \
-  VAR(impostor_shadow)                  \
-  VAR(impostor_scale)                   \
-  VAR(impostor_slice)                   \
-  VAR(texture_size)                     \
+#define GLOBAL_OPTIONAL_VARS_LIST \
+  VAR(impostor_bounding_sphere)   \
+  VAR(impostor_shadow_texture)    \
+  VAR(impostor_data_offset)       \
+  VAR(rendinst_render_pass)       \
+  VAR(impostor_atlas_mask)        \
+  VAR(impostor_shadow_x)          \
+  VAR(impostor_shadow_y)          \
+  VAR(impostor_shadow_z)          \
+  VAR(impostor_options)           \
+  VAR(impostor_shadow)            \
+  VAR(impostor_scale)             \
+  VAR(impostor_slice)             \
+  VAR(texture_size)               \
   VAR(treeCrown_buf_slot)
 
 #define VAR(a) static int a##VarId = -1;
@@ -690,14 +689,6 @@ bool ImpostorTextureManager::update_shadow(RenderableInstanceLodsResource *res, 
     SCOPE_RENDER_TARGET;
     const auto &params = res->getImpostorParams();
     ShaderGlobal::set_texture(impostor_atlas_maskVarId, res->getImpostorTextures().albedo_alpha);
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      smpInfo.anisotropic_max = 1;
-      smpInfo.filter_mode = d3d::FilterMode::Linear;
-      smpInfo.mip_map_bias = 0;
-      ShaderGlobal::set_sampler(impostor_atlas_mask_samplerstateVarId, d3d::request_sampler(smpInfo));
-    }
     ShaderGlobal::set_float4(impostor_optionsVarId, params.horizontalSamples, params.verticalSamples, 0, 0);
     ShaderGlobal::set_float4(impostor_scaleVarId, Color4(params.scale.x, params.scale.y, 0, 0));
     ShaderGlobal::set_float4(impostor_bounding_sphereVarId,

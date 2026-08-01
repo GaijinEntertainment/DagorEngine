@@ -231,9 +231,16 @@ href="https://en.wikipedia.org/wiki/Trapezoidal_rule">trapezoidal rule</a>):
 */
 
 INLINE Number GetMieDensity(IN(AtmosphereParameters) atmosphere_p, Length altitude) {
-  //return saturate(exp(atmosphere_p.mie_density_altitude_exp_term * altitude));//todo: exp2
-  return saturate(exp(atmosphere_p.mie_density_altitude_exp_term * altitude))
+  Number density = saturate(exp(atmosphere_p.mie_density_altitude_exp_term * altitude))
         +atmosphere_p.mie2_strength * saturate(exp(atmosphere_p.mie2_density_altitude_exp_term * max(0., altitude-atmosphere_p.mie2_altitude)));//todo: exp2
+  //cloud droplet aerosol: one asymmetric lobe per cloud layer, centered on the deck
+  //(sub-cloud haze below, thin overshoot above), plus a ground slab while raining
+  Number d0 = atmosphere_p.cloud_aerosol0.y - altitude;
+  Number d1 = atmosphere_p.cloud_aerosol1.y - altitude;
+  density += atmosphere_p.cloud_aerosol0.x * exp(-(max(0., d0)*atmosphere_p.cloud_aerosol0.z + max(0., -d0)*atmosphere_p.cloud_aerosol0.w));
+  density += atmosphere_p.cloud_aerosol1.x * exp(-(max(0., d1)*atmosphere_p.cloud_aerosol1.z + max(0., -d1)*atmosphere_p.cloud_aerosol1.w));
+  density += atmosphere_p.cloud_aerosol_rain.x * saturate(exp(-max(altitude, 0.) * atmosphere_p.cloud_aerosol_rain.y));
+  return density;
 }
 
 INLINE Number GetRayDensity(IN(AtmosphereParameters) atmosphere_p, Length altitude) {
@@ -287,6 +294,132 @@ INLINE void SampleMedium(IN(AtmosphereParameters) atmosphere_p, Length altitude,
 compute (we continue to assume that the segment does not intersect the ground):
 */
 
+// The cloud droplet aerosol lobes (GetMieDensity) are narrow in altitude compared to
+// the step of the low-count integrators (multiple scattering LUT, prepared loss), so
+// instead of raising uniform step counts the integrators place a few dedicated steps
+// inside the lobe altitude bands. The rain slab is ground-hugging like the base mie
+// and is left to the uniform steps.
+// Accuracy contract: the bands guarantee the lobes are never missed and, being
+// deck-anchored, keep the in-band trapezoid bias stable as decks move; the bias
+// itself stays a fraction of the lobe's own column (~1e-3 optical depth), which is
+// far below visibility. Exact quadrature of the exponential is not attempted.
+static const int SKIES_AEROSOL_BAND_STEPS = 4;
+static const Number SKIES_AEROSOL_BAND_TAIL = 4.5; // band ends where a lobe falls to e^-4.5 ~ 1%
+
+// first stretch [t0, t1] of the ray inside the radius shell [r_lo, r_hi]; a ray that
+// dips under r_lo re-enters the shell past its perigee, but there dr/dt is small
+// (near-tangent chord), so the uniform steps already resolve it in altitude terms
+INLINE bool RayShellFirstInterval(Length r, Number mu, Length r_lo, Length r_hi, Length t_end,
+  OUT(Length) t0, OUT(Length) t1)
+{
+  Area disc_hi = r * r * (mu * mu - 1.0) + r_hi * r_hi;
+  t0 = t1 = t_end;
+  if (disc_hi <= 0.0 * m2)
+    return false;
+  Length s_hi = SafeSqrt(disc_hi);
+  t0 = max(-r * mu - s_hi, 0.0 * meter);
+  t1 = min(-r * mu + s_hi, t_end);
+  Area disc_lo = r * r * (mu * mu - 1.0) + r_lo * r_lo;
+  if (disc_lo > 0.0 * m2)
+  {
+    Length s_lo = SafeSqrt(disc_lo);
+    Length below_in = -r * mu - s_lo, below_out = -r * mu + s_lo;
+    if (t0 < below_in)
+      t1 = min(t1, below_in);
+    else if (t0 < below_out) // starts under the shell: inside only after crossing r_lo upward
+      t0 = below_out;
+  }
+  return t1 > t0;
+}
+
+// ray intervals of up to two aerosol lobe bands, ordered along the ray and collapsed
+// to [dist, dist] when absent; lobes overlapping in altitude merge into band A.
+// returns the step count for band A (band B, when present, is a single lobe)
+INLINE int CloudAerosolRayIntervals(IN(AtmosphereParameters) atmosphere_p, Length r, Number mu, Length dist,
+  OUT(Length) a0, OUT(Length) a1, OUT(Length) b0, OUT(Length) b1)
+{
+  a0 = a1 = b0 = b1 = dist;
+  bool has0 = atmosphere_p.cloud_aerosol0.x > 0.0, has1 = atmosphere_p.cloud_aerosol1.x > 0.0;
+  if (!has0 && !has1)
+    return 0;
+  Length lo0 = atmosphere_p.cloud_aerosol0.y - SKIES_AEROSOL_BAND_TAIL / max(atmosphere_p.cloud_aerosol0.z, Number(0.05));
+  Length hi0 = atmosphere_p.cloud_aerosol0.y + SKIES_AEROSOL_BAND_TAIL / max(atmosphere_p.cloud_aerosol0.w, Number(0.05));
+  Length lo1 = atmosphere_p.cloud_aerosol1.y - SKIES_AEROSOL_BAND_TAIL / max(atmosphere_p.cloud_aerosol1.z, Number(0.05));
+  Length hi1 = atmosphere_p.cloud_aerosol1.y + SKIES_AEROSOL_BAND_TAIL / max(atmosphere_p.cloud_aerosol1.w, Number(0.05));
+  int aSteps = SKIES_AEROSOL_BAND_STEPS;
+  if (has0 && has1 && lo0 <= hi1 && lo1 <= hi0)
+  {
+    lo0 = min(lo0, lo1);
+    hi0 = max(hi0, hi1);
+    has1 = false;
+    aSteps *= 2; // merged band holds two lobes, keep their sampling density
+  }
+  else if (!has0)
+  {
+    // only layer 1 present: promote it to band A, the single-lobe path
+    lo0 = lo1;
+    hi0 = hi1;
+    has0 = true;
+    has1 = false;
+  }
+  Length t0, t1;
+  if (has0 && RayShellFirstInterval(r, mu, atmosphere_p.bottom_radius + lo0, atmosphere_p.bottom_radius + hi0, dist, t0, t1))
+  {
+    a0 = t0;
+    a1 = t1;
+  }
+  if (has1 && RayShellFirstInterval(r, mu, atmosphere_p.bottom_radius + lo1, atmosphere_p.bottom_radius + hi1, dist, t0, t1))
+  {
+    b0 = t0;
+    b1 = t1;
+  }
+  if (b0 < a0)
+  {
+    t0 = a0; a0 = b0; b0 = t0;
+    t1 = a1; a1 = b1; b1 = t1;
+  }
+  b0 = max(b0, a1); // disjoint altitude bands can still touch along the ray
+  b1 = max(b1, b0);
+  return aSteps;
+}
+
+// step count for segment s of the 5-segment split around the aerosol bands
+// (0 clear, 1 band A, 2 clear, 3 band B, 4 clear - the CloudAerosolRayIntervals
+// layout): bands get their dedicated steps, and every segment keeps at least its
+// uniform share of the budget (a grazing band chord is long and carries the
+// smooth media too)
+INLINE int CloudAerosolSegmentSteps(int s, int a_steps, int sample_count, Length seg_len, Length dist)
+{
+  // ceil: never fewer steps than the unsplit march would spend on this stretch
+  int share = max(1, int(ceil(Number(sample_count) * (seg_len / dist))));
+  return max(s == 1 ? a_steps : (s == 3 ? SKIES_AEROSOL_BAND_STEPS : 1), share);
+}
+
+INLINE DimensionlessSpectrum OpticalDepthSegment(
+    IN(AtmosphereParameters) atmosphere_p, Length r, Number mu, Length t_a, Length t_b, int SAMPLE_COUNT,
+    IN(Position) worldPos, IN(Direction) worldDir)
+{
+  Length dx = (t_b - t_a) / Number(SAMPLE_COUNT);
+  //generic loop, works for any medium
+  DimensionlessSpectrum sampleScattering, sampleExtinction;
+  SampleMedium(atmosphere_p, sqrt(t_a * t_a + 2.0 * r * mu * t_a + r * r) - atmosphere_p.bottom_radius, worldPos + worldDir*t_a,
+    sampleScattering, sampleExtinction);
+  DimensionlessSpectrum extinction = sampleExtinction*0.5;
+  LOOP
+  for (int i = 1; i < SAMPLE_COUNT; ++i)
+  {
+    Length d_i = t_a + Number(i) * dx;
+    // Distance between the current sample point and the planet center.
+    Length r_i = sqrt(d_i * d_i + 2.0 * r * mu * d_i + r * r);
+    SampleMedium(atmosphere_p, r_i - atmosphere_p.bottom_radius, worldPos + worldDir*d_i, sampleScattering, sampleExtinction);
+    extinction += sampleExtinction;
+  }
+  SampleMedium(atmosphere_p, sqrt(t_b * t_b + 2.0 * r * mu * t_b + r * r) - atmosphere_p.bottom_radius, worldPos + worldDir*t_b,
+    sampleScattering, sampleExtinction);
+  extinction += sampleExtinction*0.5;
+  return dx*extinction;
+}
+
 INLINE DimensionlessSpectrum ComputeTransmittanceToTopAtmosphereBoundary(
     IN(AtmosphereParameters) atmosphere_p, Length r, Number mu, Length maxDist, int SAMPLE_COUNT,
     IN(Position) worldPos, IN(Direction) worldDir//only for custom fog
@@ -296,24 +429,23 @@ INLINE DimensionlessSpectrum ComputeTransmittanceToTopAtmosphereBoundary(
   assert(mu >= -1.0 && mu <= 1.0);
 
   Length dist = min(maxDist, DistanceToTopAtmosphereBoundary(atmosphere_p, r, mu));
-  Length dx = dist / Number(SAMPLE_COUNT);
-  // Integration loop.
-  //generic loop, works for any medium
-  DimensionlessSpectrum sampleScattering, sampleExtinction;
-  SampleMedium(atmosphere_p, r - atmosphere_p.bottom_radius, worldPos, sampleScattering, sampleExtinction);
-  DimensionlessSpectrum extinction = sampleExtinction*0.5;
-  for (int i = 1; i < SAMPLE_COUNT; ++i)
+  // per-segment trapezoids around the aerosol bands
+  Length bounds[6];
+  int aSteps = CloudAerosolRayIntervals(atmosphere_p, r, mu, dist, bounds[1], bounds[2], bounds[3], bounds[4]);
+  bounds[0] = 0.0 * meter;
+  bounds[5] = dist;
+  DimensionlessSpectrum opticalDepth = DimensionlessSpectrum(0, 0, 0);
+  // LOOP: the trip counts are data-dependent, fxc must not try to unroll
+  LOOP
+  for (int s = 0; s < 5; ++s)
   {
-    Length d_i = Number(i) * dx;
-    // Distance between the current sample point and the planet center.
-    Length r_i = sqrt(d_i * d_i + 2.0 * r * mu * d_i + r * r);
-    SampleMedium(atmosphere_p, r_i - atmosphere_p.bottom_radius, worldPos + worldDir*d_i, sampleScattering, sampleExtinction);
-    extinction += sampleExtinction;
+    Length len = bounds[s + 1] - bounds[s];
+    if (len <= 0.0 * meter)
+      continue;
+    int n = CloudAerosolSegmentSteps(s, aSteps, SAMPLE_COUNT, len, dist);
+    opticalDepth += OpticalDepthSegment(atmosphere_p, r, mu, bounds[s], bounds[s + 1], n, worldPos, worldDir);
   }
-  SampleMedium(atmosphere_p, sqrt(dist * dist + 2.0 * r * mu * dist + r * r) - atmosphere_p.bottom_radius, worldPos + worldDir*dist,
-    sampleScattering, sampleExtinction);
-  extinction += sampleExtinction*0.5;
-  return exp(-dx*extinction);
+  return exp(-opticalDepth);
 }
 
 /*

@@ -7,6 +7,8 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_consts.h>
 #include <generic/dag_sort.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <3d/dag_textureIDHolder.h>
@@ -44,7 +46,7 @@ SHADOW_SYSTEM_SHADER_VARS
 
 static mat44f buildTexTM(uint16_t ofsX, uint16_t ofsY, uint16_t sw, uint16_t sh, uint16_t tex_w, uint16_t tex_h);
 
-ShadowSystem::ShadowSystem(const char *name_suffix) : nameSuffix(name_suffix)
+ShadowSystem::ShadowSystem(const LightsResourcesManager *lights_res_mgr) : lightsResMgr(lights_res_mgr)
 {
   octahedralPacker.init("octahedral_shadow_packer");
   v_bbox3_init_empty(activeShadowVolume);
@@ -232,31 +234,6 @@ Point4 ShadowSystem::getShadowUvMinMax(uint32_t id) const
   return Point4(safediv((float)shadow.x, (float)atlasWidth), safediv((float)shadow.y, (float)atlasHeight),
     safediv((float)shadow.x + (float)shadow.width, (float)atlasWidth),
     safediv((float)shadow.y + (float)shadow.height, (float)atlasHeight));
-}
-
-uint32_t ShadowSystem::getShadowRectPacked(uint32_t id) const
-{
-  constexpr uint32_t POSITION_BITS = SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_BITS;
-  constexpr uint32_t EXPONENT_BITS = SPOT_LIGHT_SHADOW_ATLAS_RECT_EXP_BITS;
-  G_STATIC_ASSERT((1u << EXPONENT_BITS) >= POSITION_BITS);
-  constexpr uint32_t TOTAL_BITS = POSITION_BITS * 2u + EXPONENT_BITS;
-  G_STATIC_ASSERT(SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK == (1u << (POSITION_BITS * 2u + EXPONENT_BITS)) - 1u);
-  G_STATIC_ASSERT(TOTAL_BITS + SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET <= 32u);
-  G_STATIC_ASSERT(((SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK << SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET) & SPOT_LIGHT_ROLL_MASK) == 0);
-  G_ASSERT(atlasWidth / minShadow < int(1u << POSITION_BITS));
-
-  const AtlasRect &shadow = volumes[id].dynamicShadow.isEmpty() ? volumes[id].shadow : volumes[id].dynamicShadow;
-  G_ASSERT(atlasWidth == atlasHeight);
-  G_ASSERT(shadow.width == shadow.height);
-  if (shadow.width == 0)
-    return 0; // empty shadow - no atlas rect needed, 0 will unpack to unit rect
-  const uint32_t relSize = atlasWidth / shadow.width;
-  G_ASSERT(is_pow_of2(relSize));
-  const uint32_t exp = get_log2i(relSize);
-  const uint32_t x = shadow.x / shadow.width;
-  const uint32_t y = shadow.y / shadow.width;
-  G_ASSERT(exp < (1u << EXPONENT_BITS) && x < (1u << POSITION_BITS) && y < (1u << POSITION_BITS));
-  return x | (y << POSITION_BITS) | (exp << (POSITION_BITS * 2u));
 }
 
 void ShadowSystem::Volume::buildProj(mat44f &proj) const { v_mat44_make_persp_reverse(proj, wk, wk, zn, zf); }
@@ -558,10 +535,14 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
 {
   TIME_D3D_PROFILE(copyAtlasRegion);
 
-  // copy is faster
+  // copy is faster, but with exclusions
   // dx11 has different issues syncing copies of depth with followup usage
   // dx12 DS formats disallows copy of region (only whole subresource)
-  if (!d3d::get_driver_code().is(d3d::dx11 || d3d::dx12))
+  // vk + AMD slower due to layout recompression
+  const auto driver = d3d::get_driver_code();
+  const bool useShaderCopy =
+    driver.is(d3d::dx11 || d3d::dx12) || (driver.is(d3d::vulkan) && d3d::get_driver_desc().info.vendor == GpuVendor::AMD);
+  if (!useShaderCopy)
   {
     tempCopy.getTex2D()->updateSubRegion(dynamic_light_shadows.getTex2D(), 0, src_x, src_y, 0, w, h, 1, 0, 0, 0, 0);
     dynamic_light_shadows.getTex2D()->updateSubRegion(tempCopy.getTex2D(), 0, 0, 0, 0, w, h, 1, 0, dst_x, dst_y, 0);
@@ -578,14 +559,12 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
     d3d::set_ps_const(77, (float *)v_from, 1);
     if (w < maxShadow || h < maxShadow)
       d3d::setview(0, 0, w, h, 0, 1);
-    d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     d3d::settex(15, dynamic_light_shadows.getTex2D());
     d3d::set_sampler(STAGE_PS, 15, shadowSampler);
     copyDepth->render();
 
     d3d::set_render_target({dynamic_light_shadows.getTex2D(), 0, 0}, DepthAccess::RW, {});
     d3d::setview(dst_x, dst_y, w, h, 0, 1);
-    d3d::resource_barrier({tempCopy.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     d3d::settex(15, tempCopy.getTex2D());
     int v[4] = {-dst_x, -dst_y, 0, 0};
     d3d::set_ps_const(77, (float *)v, 1);
@@ -959,14 +938,29 @@ void ShadowSystem::pruneFreeVolumes()
       bool operator()(const uint16_t a, const uint16_t b) const { return a < b; }
     };
     fast_sort(freeVolumes, AscCompare());
+    // drop free ids past the last live volume; if none survive, freeVolumes is fully cleared
+    int keep = 0;
     for (int i = freeVolumes.size() - 1; i >= 0; --i)
       if (freeVolumes[i] <= lastUsed)
       {
-        freeVolumes.resize(i + 1);
+        keep = i + 1;
         break;
       }
+    freeVolumes.resize(keep);
   }
   validateConsistency();
+}
+
+void ShadowSystem::shrink()
+{
+  pruneFreeVolumes();
+  volumesBox.shrink_to_fit();
+  volumesSphere.shrink_to_fit();
+  volumesFrustum.shrink_to_fit();
+  volumesTexTM.shrink_to_fit();
+  volumesOctahedralData.shrink_to_fit();
+  volumes.shrink_to_fit();
+  freeVolumes.shrink_to_fit();
 }
 
 void ShadowSystem::Volume::invalidate()
@@ -1020,7 +1014,7 @@ static float projected_sphere_area_look_center(float z2, float r2, float fl) // 
 }
 
 void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volumesToRender, int max_shadow_volumes_to_update,
-  float max_area_part_to_update, const Point3 &viewPos, float cameraFocal, mat44f_cref clip)
+  int max_static_views_to_update, float max_area_part_to_update, const Point3 &viewPos, float cameraFocal, mat44f_cref clip)
 {
   G_ASSERTF(currentState == UPDATE_STARTED, "start without end has been called");
   volumesToRender.clear();
@@ -1035,6 +1029,7 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volum
   float screen_to_shadow_texels_ratio = lowest_quality_scale / full_screen_side_size; //
   // vec4f screen_to_shadow_texels = v_splats(screen_to_shadow_texels_ratio*0.5);
   int totalUpdateArea = max_area_part_to_update * atlasWidth * atlasHeight; // since all volumes are quads
+  int staticViewsLeft = max_static_views_to_update > 0 ? max_static_views_to_update : INT_MAX;
   // 1. sort volumesToUpdate by (time_not_updated)*volumes.priority
 
   Tab<LRUEntry> lruUpdateList(framemem_ptr()); // only valid for lruListFrame
@@ -1060,14 +1055,24 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volum
   Frustum cameraFrustum(clip);
   vec4f cameraSphere = v_make_vec4f(viewPos.x, viewPos.y, viewPos.z, 0.1);
   // TMatrix view = orthonormalized_inverse(viewItm);
+
+  // total atlas demand of this frame's used volumes if quality is upgraded one step;
+  // volumes that would not resize are counted at their current size
+  float predictedUpgradedArea = 0;
+
   int volumesChecked = 0;
   for (; volumesChecked < lruUpdateList.size(); volumesChecked++)
   {
     const uint16_t id = lruUpdateList[volumesChecked].id;
     if (!cameraFrustum.testSphereB(volumesSphere[id], v_splat_w(volumesSphere[id])) ||
         !cameraFrustum.testBoxB(volumesBox[id].bmin, volumesBox[id].bmax))
+    {
+      predictedUpgradedArea += volumes[id].getCurrentAtlasArea();
       continue;
+    }
     Volume &volume = volumes[id];
+    if (!volumesToRender.empty() && (int)volume.getNumViews() > staticViewsLeft)
+      break;
     // float screenSize = 16.f*16.f;
     const Point4 &sphC = as_point4(&volumesSphere[id]);
     float area = 10000.0;
@@ -1109,6 +1114,21 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volum
         insertToAtlas(id, targetShadowSize);
         // debug("real target size %d", volume.shadow.height);
       }
+
+      {
+        // same size selection as above, evaluated at the next quality step: pow2 quantization
+        const float upgradedSide = sideSize * upgrade_quality_step;
+        const int upgradedTarget = calcTargetShadowSize(upgradedSide);
+        int upgradedSize = volume.shadow.height;
+        if (volume.shadow.isEmpty() || (abs(upgradedTarget - volume.shadow.height) > shadowStep &&
+                                         volume.shadow.height != calcTargetShadowSize(upgradedSide * retainShadowSizeMul)))
+          upgradedSize = clamp(upgradedTarget, minShadow, maxShadowSize);
+
+        // static lights with dynamic content need a second rect of the same size
+        const int numRects = volume.isStaticLightWithDynamicContent(currentFrame) ? 2 : 1;
+        predictedUpgradedArea += float(upgradedSize * upgradedSize * numRects);
+      }
+
       if (!volume.shadow.isEmpty())
       {
         if (volume.isStaticLightWithDynamicContent(currentFrame))
@@ -1133,9 +1153,11 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volum
 
         if (volume.shouldBeRendered(currentFrame))
         {
+          const int staticViews = (getVolumeRenderFlags(id) & RENDER_STATIC) ? (int)volume.getNumViews() : 0;
           volumesToRender.push_back(id);
+          staticViewsLeft -= staticViews;
           totalUpdateArea -= volume.shadow.width * volume.shadow.width;
-          if (volumesToRender.size() >= max_shadow_volumes_to_update || totalUpdateArea < 0)
+          if (volumesToRender.size() >= max_shadow_volumes_to_update || staticViewsLeft <= 0 || totalUpdateArea < 0)
             break;
         }
         else if (!volume.dynamicShadow.isEmpty())
@@ -1169,13 +1191,18 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volum
         DEBUG_OCCUPANCY("no space for shadow volume");
       }
     }
+    else
+      predictedUpgradedArea += volume.getCurrentAtlasArea();
   }
+
+  for (int i = volumesChecked + 1; i < lruUpdateList.size(); ++i)
+    predictedUpgradedArea += volumes[lruUpdateList[i].id].getCurrentAtlasArea();
 
   const int framesToUpdateScaled = frames_to_change_quality * (volumesChecked ? lruUpdateList.size() / volumesChecked : 16);
   if (
     notEnoughSpaceMul < max_upgraded_quality / upgrade_quality_step && currentFrame - lastFrameQualityUpgraded > framesToUpdateScaled)
   {
-    upgradeQuality();
+    upgradeQuality(predictedUpgradedArea / float(atlasWidth * atlasHeight));
   }
   currentState = UPDATE_ENDED;
 
@@ -1310,7 +1337,7 @@ bool ShadowSystem::degradeQuality()
   return true;
 }
 
-bool ShadowSystem::upgradeQuality()
+bool ShadowSystem::upgradeQuality(float predicted_upgraded_occupancy)
 {
   if (lastFrameQualityDegraded == currentFrame || lastFrameQualityUpgraded == currentFrame)
     return false;
@@ -1329,6 +1356,9 @@ bool ShadowSystem::upgradeQuality()
   }
   if (occupancy < thresholdOccupancy)
   {
+    if (predicted_upgraded_occupancy >= occupancy_to_upgrade_quality)
+      return false;
+
     notEnoughSpaceMul = min(max_upgraded_quality, notEnoughSpaceMul * upgrade_quality_step);
     DEBUG_OCCUPANCY("occupancy = %f upgrade quality %f", occupancy, notEnoughSpaceMul);
     return true;

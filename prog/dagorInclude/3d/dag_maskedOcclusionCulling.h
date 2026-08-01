@@ -114,6 +114,13 @@
 // Masked occlusion culling class
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// RenderBlasSOA4 takes a SoA4 tree root by const-ref; forward-declared so this public header stays
+// free of the daBVH/vecmath include (callers of RenderBlasSOA4 include daBVH/dag_swBLAS_soa4.h).
+namespace soa4
+{
+struct RootRef;
+}
+
 class MaskedOcclusionCulling
 {
 public:
@@ -347,13 +354,22 @@ public:
     ClipPlanes clipPlaneMask = CLIP_PLANE_ALL) MOC_PURE;
 
   /*!
-   * \brief Renders occluder quads by walking the BLAS quad-BVH tree directly.
-   *        Each BVH node's AABB is tested against the frustum to skip invisible
-   *        subtrees and switch to the no-clip fast path for fully-inside subtrees.
+   * \brief Renders a BLAS quad-BVH with optional index caching by walking the tree directly.
+   *        Each BVH node's AABB is tested against the frustum to skip invisible subtrees and
+   *        switch to the no-clip fast path for fully-inside subtrees.
    *
-   *        Vertices are vert21 (8 bytes each, 21-bit packed).  BVH nodes are 16
-   *        bytes (UINT16 boxes + skip word), leaves are 20 bytes (node + 4-byte
-   *        self-relative vertex offset).  See daBVH/dag_swBLAS_ray.h for the format.
+   *        Vertices are vert21 (8 bytes each, 21-bit packed). BVH nodes are 16 bytes (UINT16
+   *        boxes + skip word); a leaf is 28 bytes (node + 12 bytes encoding up to two edge-paired
+   *        quads = 4 triangles). See daBVH/dag_swBLAS_ray.h for the format.
+   *
+   *        CACHE_FILL:  Walk BVH without frustum culling, emit triangle indices into
+   *                     cacheIndices, render via indexed vert21 gather. On return
+   *                     *cacheTriCount holds the emitted triangle count.
+   *        CACHE_USE:   Skip BVH walk, render *cacheTriCount triangles from cacheIndices.
+   *        CACHE_INSUFFICIENT: No usable cache - walk BVH with frustum culling and stream
+   *                     indices to provided cacheIndices. It can be faster, if significant
+   *                     chunk of blas is culled. When clipPlaneMask == CLIP_PLANE_NONE the
+   *                     frustum walk is skipped and this falls back to the CACHE_FILL path.
    *
    * \param blasData      Pointer to the BLAS buffer (BVH tree + vert21 data). Tree-walk and gather base.
    * \param vertOffset    Byte offset of the vert21 stream within blasData (gather base = blasData +
@@ -367,22 +383,7 @@ public:
    *                        Must include the 1/(32*scale) and offset factors, i.e.
    *                        rawToClip = rawToWorld * worldToClip, where rawToWorld
    *                        converts 21-bit packed integer coordinates to world space.
-   * \param bfWinding     Backface winding order for culling.
-   * \return VIEW_CULLED if all quads culled, VISIBLE otherwise.
-   */
-  /*!
-   * \brief Renders a BLAS quad-BVH with optional index caching.
-   *
-   *        CACHE_FILL:  Walk BVH without frustum culling, emit triangle indices into
-   *                     cacheIndices, render via indexed vert21 gather. On return
-   *                     *cacheTriCount holds the emitted triangle count.
-   *        CACHE_USE:   Skip BVH walk, render *cacheTriCount triangles from cacheIndices.
-   *        CACHE_INSUFFICIENT: No usable cache - walk BVH with frustum culling and stream
-   *                     indices to provided cacheIndices. It can be faster, if significant
-   *                     chunk of blas is culled. When clipPlaneMask == CLIP_PLANE_NONE the
-   *                     frustum walk is skipped and this falls back to the CACHE_FILL path.
-   *
-   * \param cacheIndices  Caller-owned uint32 buffer, size >= cacheIndicesCapacity*3. uint32 is
+   * \param cacheIndices  Caller-owned uint32 buffer, size >= cacheIndicesCapacityTriangles*3. uint32 is
    *                      required because BLAS vert indices are a vert21-stream byte offset /
    *                      VERT21_STRIDE and BLAS sizes are not capped at 65535 verts -- truncating
    *                      to uint16 would wrap silently.
@@ -391,6 +392,7 @@ public:
    *                      range would overflow this capacity, dropping the remaining triangles
    *                      rather than overrunning the buffer.
    * \param cacheTriCount In/out triangle count. Written by CACHE_FILL, read by CACHE_USE.
+   * \param bfWinding     Backface winding order for culling.
    * \param clipPlaneMask Clip planes active for the final rasterization. Pass CLIP_PLANE_NONE
    *                      when the caller has already established that the BLAS bounds are fully
    *                      inside the frustum; this also skips the per-node frustum walk in
@@ -399,9 +401,35 @@ public:
    *                      writing into cacheIndices. Lets the caller partition a BLAS into
    *                      bounded sub-jobs sharing one walk order.
    * \param triLimit      Max triangles to emit before the walk stops. The default (1u<<31) is
-   *                      effectively unbounded; only cacheIndicesCapacity caps the output.
+   *                      effectively unbounded; only cacheIndicesCapacityTriangles caps the output.
+   * \return VIEW_CULLED if all quads culled, VISIBLE otherwise.
    */
-  MOC_VIRTUAL CullingResult RenderBLAS(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd,
+  MOC_VIRTUAL CullingResult RenderBlasStackless(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd,
+    const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacityTriangles, uint32_t &cacheTriCount,
+    CacheMode cacheMode, BackfaceWinding bfWinding = BACKFACE_CW, ClipPlanes clipPlaneMask = CLIP_PLANE_ALL, uint32_t triSkip = 0,
+    uint32_t triLimit = 1u << 31) MOC_PURE;
+
+  /*!
+   * \brief RenderBlasStackless for the SoA4 CPU BLAS layout (daBVH/dag_swBLAS_soa4.h). Only the
+   *        tree walk differs: the SoA4 walk visits leaves in the same pre-order as the stackless
+   *        walk over the equivalent tree, so both emit an identical triangle stream and produce
+   *        identical depth.
+   *
+   * \param root  SoA4 tree root (soa4::buildFromStackless result); replaces treeStart/treeEnd
+   *              (the SoA4 tree is self-locating from it). blasData/vertOffset locate the shared
+   *              buffer and its vert21 stream exactly as in RenderBlasStackless.
+   * \param cacheIndices,cacheIndicesCapacityTriangles,cacheTriCount  Same triangle-index cache
+   *              contract as RenderBlasStackless: CACHE_FILL walks the BLAS, writes the cache and
+   *              cacheTriCount; CACHE_USE rasterizes the cached indices without walking;
+   *              CACHE_INSUFFICIENT walks without caching. A leaf range that would overflow the
+   *              capacity stops the walk (logerr_once) rather than overrunning.
+   * \param clipPlaneMask  CLIP_PLANE_NONE promises the BLAS bounds are fully inside the frustum
+   *              and skips the per-node frustum walk in CACHE_INSUFFICIENT.
+   * \param triSkip,triLimit  BLAS-order partition window for bounded sub-jobs sharing one walk
+   *              order, as in RenderBlasStackless.
+   * \return VIEW_CULLED if all quads culled, VISIBLE otherwise.
+   */
+  MOC_VIRTUAL CullingResult RenderBlasSOA4(const unsigned char *blasData, int vertOffset, const soa4::RootRef &root,
     const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacityTriangles, uint32_t &cacheTriCount,
     CacheMode cacheMode, BackfaceWinding bfWinding = BACKFACE_CW, ClipPlanes clipPlaneMask = CLIP_PLANE_ALL, uint32_t triSkip = 0,
     uint32_t triLimit = 1u << 31) MOC_PURE;

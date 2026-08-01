@@ -1,8 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "paramsCtrl.h"
+#include "animCtrlData.h"
 #include "paramsCtrlDragDropHandlers.h"
 #include "../animTree.h"
+#include "../animTreeDragListHandler.h"
 #include "../animTreeUtils.h"
 #include "../animParamData.h"
 #include "../animTreePanelPids.h"
@@ -66,6 +68,9 @@ static String get_if_math_operand(const DataBlock &blk, const char *float_key, c
     return String(0, "@%s", v);
   if (const char *v = blk.getStr(slot_key, nullptr))
     return String(0, "#%s", v);
+  int pidx = blk.findParam(float_key);
+  if (pidx >= 0 && blk.getParamType(pidx) == DataBlock::TYPE_STRING)
+    return String(blk.getStr(pidx));
   return String(0, "%g", blk.getReal(float_key, 0.f));
 }
 
@@ -159,10 +164,12 @@ static String if_math_blk_to_string(const DataBlock &blk, int indent, String &ou
 struct IfMathParser
 {
   String error;
+  int currentLine = 0;
 
   bool setError(const String &msg)
   {
-    record_error(msg, error);
+    const String withLine = currentLine > 0 ? String(0, "line %d: %s", currentLine, msg.c_str()) : msg;
+    record_error(withLine, error);
     return false;
   }
 
@@ -243,7 +250,7 @@ struct IfMathParser
 
   // Write a parsed operand back into a DataBlock using the appropriate key.
   static void setOperand(DataBlock &blk, const Operand &operand, const char *p_key, const char *v_key, const char *named_key,
-    const char *slot_key)
+    const char *slot_key, bool ident_as_enum = false)
   {
     if (operand.text.empty())
       return;
@@ -252,12 +259,17 @@ struct IfMathParser
       case OperandType::Named: blk.setStr(named_key, operand.text.c_str()); break;
       case OperandType::Slot: blk.setStr(slot_key, operand.text.c_str()); break;
       case OperandType::Float: blk.setReal(p_key, strtof(operand.text.c_str(), nullptr)); break;
-      case OperandType::Ident: blk.setStr(v_key, operand.text.c_str()); break;
+      case OperandType::Ident:
+        if (ident_as_enum)
+          blk.setStr(p_key, operand.text.c_str());
+        else
+          blk.setStr(v_key, operand.text.c_str());
+        break;
     }
   }
 
   // Parse "(p0, p1)" — p must point just past the opening '('. Writes p0/v0/... and p1/v1/... into blk.
-  bool parseTwoOperands(const char *&p, DataBlock &blk)
+  bool parseTwoOperands(const char *&p, DataBlock &blk, bool ident_as_enum = false)
   {
     Operand p0, p1;
     if (!readOperand(p, p0))
@@ -272,8 +284,8 @@ struct IfMathParser
     if (*p != ')')
       return setError(String(0, "expected ')' to close the value list, got %s", charOrEol(*p).c_str()));
     ++p;
-    setOperand(blk, p0, "p0", "v0", "named_p0", "slot_p0");
-    setOperand(blk, p1, "p1", "v1", "named_p1", "slot_p1");
+    setOperand(blk, p0, "p0", "v0", "named_p0", "slot_p0", ident_as_enum);
+    setOperand(blk, p1, "p1", "v1", "named_p1", "slot_p1", ident_as_enum);
     return true;
   }
 
@@ -433,7 +445,7 @@ struct IfMathParser
         return setError(String(0, "if \"%s\": operator \"%s\" requires two values in parentheses, e.g.: %s %s(0.0, 1.0)",
           param.c_str(), compOp.c_str(), param.c_str(), compOp.c_str()));
       ++p;
-      if (!parseTwoOperands(p, out))
+      if (!parseTwoOperands(p, out, /*ident_as_enum*/ true))
         return false;
     }
     else
@@ -441,7 +453,7 @@ struct IfMathParser
       Operand operand;
       if (!readOperand(p, operand))
         return setError(String(0, "if \"%s\": expected a value after \"%s\" (e.g. 0.5, otherParam)", param.c_str(), compOp.c_str()));
-      setOperand(out, operand, "p0", "v0", "named_p0", "slot_p0");
+      setOperand(out, operand, "p0", "v0", "named_p0", "slot_p0", /*ident_as_enum*/ true);
     }
 
     p = skipWs(p);
@@ -464,7 +476,11 @@ struct IfMathParser
   bool parseNestedBlock(const Tab<String> &lines, int &idx, DataBlock &parent)
   {
     if (idx >= lines.size())
+    {
+      currentLine = (int)lines.size();
       return setError(String("unexpected end of input inside if body; expected a math line or '}'"));
+    }
+    currentLine = idx + 1;
     const char *trimmed = skipWs(lines[idx].c_str());
     const bool isIf = startsWithIf(trimmed);
     DataBlock *child = parent.addNewBlock(isIf ? "if" : "math");
@@ -479,6 +495,7 @@ struct IfMathParser
   // Parse a full if block (first line + body + closing '}') from lines starting at idx; advances idx.
   bool parseIfBlock(const Tab<String> &lines, int &idx, DataBlock &out)
   {
+    currentLine = idx + 1;
     if (!parseIfFirstLine(skipWs(lines[idx].c_str()), out))
       return false;
     ++idx;
@@ -493,6 +510,7 @@ struct IfMathParser
       if (!parseNestedBlock(lines, idx, out))
         return false;
     }
+    currentLine = (int)lines.size();
     return setError(String("if: missing closing '}' -- every \"if (...) {\" must have a matching \"}\" on its own line"));
   }
 };
@@ -529,6 +547,7 @@ static bool parse_if_math_text(const char *text, DataBlock &out, String &error, 
   }
 
   IfMathParser parser;
+  parser.currentLine = 1;
   int idx = 0;
   const char *firstTrimmed = IfMathParser::skipWs(lines[0].c_str());
   const bool isIf = IfMathParser::startsWithIf(firstTrimmed);
@@ -936,19 +955,11 @@ void params_ctrl_save_block_settings(PropPanel::ContainerPropertyControl *panel,
 
 void params_ctrl_remove_change_param(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  const int changeParamNid = settings->getNameId("changeParam");
-  const int paramRemapNid = settings->getNameId("paramRemap");
-  for (int i = 0; i < settings->blockCount(); ++i)
-  {
-    const DataBlock *block = settings->getBlock(i);
-    if ((block->getBlockNameId() == changeParamNid || block->getBlockNameId() == paramRemapNid) &&
-        removeName == block->getStr("param", nullptr))
-    {
-      settings->removeBlock(i);
-      break;
-    }
-  }
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  const char *names[] = {"changeParam", "paramRemap"};
+  dag::Vector<int> positions = collect_block_positions_by_names(*settings, make_span_const(names));
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
 }
 
 void params_ctrl_change_rate_src_changed(PropPanel::ContainerPropertyControl *panel)
@@ -1107,4 +1118,27 @@ void AnimTreePlugin::changeParamsCtrlBlockType(PropPanel::ContainerPropertyContr
     if (DataBlock *settings = find_block_by_name(ctrlsProps, tree->getCaption(leaf)))
       params_ctrl_block_type_changed(group, settings);
   group->createButton(PID_CTRLS_SETTINGS_SAVE, "Save");
+}
+
+class ParamsCtrlReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  ParamsCtrlReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    const char *names[] = {"changeParam", "paramRemap"};
+    dag::Vector<int> positions = collect_block_positions_by_names(settings, make_span_const(names));
+    move_block_at_positions(settings, positions, from, to);
+  }
+};
+
+IListReorderHandler *params_ctrl_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new ParamsCtrlReorderHandler(plugin, controllers, panel);
 }

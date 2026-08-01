@@ -164,7 +164,8 @@ bool is_ptgi_ray_reconstruction_enabled();
 void prepare(const FrameParams &params);
 
 // The RT system is working with the pointer values, not the string contents!
-void get_required_persistent_texture_descriptors(TexInfoMap &persistent_textures, bool need_half_res);
+void get_required_persistent_texture_descriptors(TexInfoMap &persistent_textures, bool need_half_res_close_set,
+  bool need_checkerboard_set, bool need_smart_depth_set);
 
 void get_required_persistent_texture_descriptors_for_ao(TexInfoMap &persistent_textures);
 void get_required_transient_texture_descriptors_for_ao(TexInfoMap &transient_textures);
@@ -180,11 +181,15 @@ void get_required_transient_texture_descriptors_for_gi(TexInfoMap &transient_tex
 
 struct TextureNames
 {
-#define ENUM_PERSISTENT_NAMES          \
-  NAME(denoiser_normal_roughness)      \
-  NAME(denoiser_view_z)                \
-  NAME(denoiser_half_normal_roughness) \
-  NAME(denoiser_half_view_z)
+#define ENUM_PERSISTENT_NAMES              \
+  NAME(denoiser_normal_roughness)          \
+  NAME(denoiser_view_z)                    \
+  NAME(denoiser_half_normal_roughness)     \
+  NAME(denoiser_half_view_z)               \
+  NAME(denoiser_half_normal_roughness_rtr) \
+  NAME(denoiser_half_view_z_rtr)           \
+  NAME(denoiser_half_motion_vectors_rtr)   \
+  NAME(half_selected_depth_rtr)
 
 #define NAME(name) static const char *name;
   ENUM_PERSISTENT_NAMES
@@ -322,6 +327,7 @@ struct ReflectionDenoiser
   bool antiFirefly = true;
   bool performanceMode = true;
   bool checkerboard = true;
+  bool useSmartDepth = false;
   TexMap textures;
 
 #define ENUM_RTR_DENOISED_REBLUR_PERSISTENT_NAMES \

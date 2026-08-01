@@ -258,7 +258,7 @@ void BhvDragAndDrop::activateTarget(ElementTree *etree, Element *elem, DragAndDr
 }
 
 
-void BhvDragAndDrop::callDragModeHandler(IGuiScene *scene, Element *elem, bool mode_on)
+void BhvDragAndDrop::callDragModeHandler(IGuiScene *scene, Element *elem, bool mode_on, bool allow_on_shutdown)
 {
   Sqrat::Object onDragMode = elem->props.scriptDesc.RawGetSlot(elem->csk->onDragMode);
   if (!onDragMode.IsNull())
@@ -266,7 +266,9 @@ void BhvDragAndDrop::callDragModeHandler(IGuiScene *scene, Element *elem, bool m
     HSQUIRRELVM vm = onDragMode.GetVM();
     Sqrat::Function f(vm, Sqrat::Object(vm), onDragMode);
     Sqrat::Object data = elem->props.getObject(elem->csk->dropData);
-    scene->queueScriptHandler(new ScriptHandlerSqFunc<bool, Sqrat::Object>(f, mode_on, data));
+    auto *handler = new ScriptHandlerSqFunc<bool, Sqrat::Object>(f, mode_on, data);
+    handler->allowOnShutdown = allow_on_shutdown;
+    scene->queueScriptHandler(handler);
   }
 }
 
@@ -512,7 +514,7 @@ void BhvDragAndDrop::onDetach(Element *elem, DetachMode)
     {
       elem->etree->updateSceneStateFlags(ElementTree::F_DRAG_ACTIVE, false);
       GuiScene *guiScene = GuiScene::get_from_elem(elem);
-      callDragModeHandler(guiScene, elem, false);
+      callDragModeHandler(guiScene, elem, false, /*allow_on_shutdown*/ true);
     }
 
     if (ddState == activeDrag)

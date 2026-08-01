@@ -17,9 +17,9 @@ endmacro
 macro USE_WEIGHT_FOR_AO()
   hlsl (ps) {
     #define CHANGE_AO_WEIGHT 1
-    void init_gbuffer_ao(inout UnpackedGbuffer gbuffer, float ao)
+    void apply_additional_gbuffer_ao(inout UnpackedGbuffer gbuffer, float ao)
     {
-      init_ao(gbuffer, lerp(1.0, ao, saturate(get_ao_weight())));
+      init_ao(gbuffer, gbuffer.ao * lerp(1.0, ao, saturate(get_ao_weight())));
     }
   }
 endmacro
@@ -56,9 +56,9 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
     }
 
     #ifndef CHANGE_AO_WEIGHT
-      void init_gbuffer_ao(inout UnpackedGbuffer gbuffer, float ao)
+      void apply_additional_gbuffer_ao(inout UnpackedGbuffer gbuffer, float ao)
       {
-        init_ao(gbuffer, ao);
+        init_ao(gbuffer, gbuffer.ao * ao);
       }
     #endif
 
@@ -117,11 +117,11 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
             ao1 = smoothstep(crown_transmittance_brightness_falloff_start.y, crown_transmittance_falloff_stop_distance.x, min(ao1, ao2));
             float vignette = saturate((pointToEyeLen - crown_transmittance_falloff_stop_distance.y) * 10 - 9);
             ao1 = lerp(1, ao1, vignette);
-            init_gbuffer_ao(gbuffer, ao1*input.normal.a);
+            apply_additional_gbuffer_ao(gbuffer, ao1*input.normal.a);
           }
           else
           ##endif //(is_rendinst && use_simplified_vegetation == no)
-          init_gbuffer_ao(gbuffer, input.normal.a);
+          apply_additional_gbuffer_ao(gbuffer, input.normal.a);
         ##else
           ##if is_impostorbaker
             half2 crown_transmittance_falloff_stop_distance = treeCrown[0].zw;
@@ -145,22 +145,22 @@ macro FILL_CURRENT_GBUFFER(is_impostorbaker, is_rendinst)
               ao1 = smoothstep(crown_transmittance_brightness_falloff_start.y, crown_transmittance_falloff_stop_distance.x, min(ao1, ao2));
               float vignette = saturate((pointToEyeLen - crown_transmittance_falloff_stop_distance.y) * 10 - 9);
               ao1 = lerp(1, ao1, vignette);
-              init_gbuffer_ao(gbuffer, ao1*input.normal.a);
+              apply_additional_gbuffer_ao(gbuffer, ao1*input.normal.a);
             }
           ##else
-            init_gbuffer_ao(gbuffer, input.normal.a);
+            apply_additional_gbuffer_ao(gbuffer, input.normal.a);
           ##endif
         ##endif
         init_translucency(gbuffer, translucency);
         //init_reflectance(gbuffer, 0.5 * (1.0 - translucency));
       ##else
-        init_gbuffer_ao(gbuffer, input.normal.a);
+        apply_additional_gbuffer_ao(gbuffer, input.normal.a);
         half translucency = 0;
       ##endif
       init_material(gbuffer, translucency > 0 ? SHADING_FOLIAGE : SHADING_NORMAL);
 
       #ifdef MOTION_VECTORS_ENABLED
-        init_motion_vector(gbuffer, encode_motion_vector(input.out_pos.xyw, input.out_pos_prev.xyw));
+        init_motion_vector(gbuffer, encode_motion_vector(input.out_pos, input.out_pos_prev));
       #endif
       init_smoothness(gbuffer, smoothness);
       init_normal(gbuffer, worldNormal);

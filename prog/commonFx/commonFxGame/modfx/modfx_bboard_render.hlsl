@@ -49,44 +49,35 @@
     return attenuation * lightColor.xyz;
   }
 
+  float3 get_omni_lighting_indexed(uint omni_light_index, float3 pos)
+  {
+    RenderOmniLight light = omni_lights_cb[omni_light_index];
+    return get_omni_lighting(pos, light.posRadius.xyz, light.posRadius.a, get_omni_light_color(light).rgb);
+  }
+
   float3 get_lighting_from_clustered_lights(float3 pos, float3 view_dir_norm, float2 tc, float proj_dist)
   {
     float3 lighting = 0;
 
     // Find omni lights outside of current modfx
-    uint sliceId = min(frustum_clusters_get_slice_at_depth(proj_dist, depthSliceScale, depthSliceBias), CLUSTERS_D);
-    uint clusterIndex = frustum_clusters_get_cluster_index(tc, sliceId);
+    uint clusterIndex = frustum_clusters_get_cluster_index(tc, proj_dist, depthSliceScale, depthSliceBias);
 
-    uint omniAddress = clusterIndex*omniLightsWordCount;
-    LOOP
-    for ( uint omniWordIndex = 0; omniWordIndex < omniLightsWordCount; omniWordIndex++ )
-    {
-      // Can't use MERGE_MASK in the vertex shader, so just read mask for current vertex
-      uint mask = flatBitArray[omniAddress + omniWordIndex];
-      while ( mask != 0 )
-      {
-        uint bitIndex = firstbitlow( mask );
-        mask ^= ( 1U << bitIndex );
-        uint omni_light_index = ((omniWordIndex<<5) + bitIndex);
-        RenderOmniLight light = omni_lights_cb[omni_light_index];
-        lighting += get_omni_lighting(pos, light.posRadius.xyz, light.posRadius.a, get_omni_light_color(light).rgb);
-      }
-    }
+    uint omniAddress = get_cluster_grid_omni_address(clusterIndex, omniLightsWordCount);
+    // Can't use MERGE_MASK in the vertex shader, so just read mask for current vertex
+    #define CLUSTER_GRID_WALK_MERGE_MASK(m) (m)
+    #define CLUSTER_GRID_WALK_WORD_LOOP_ATTR LOOP
+    #define CLUSTER_GRID_WALK_ADDRESS omniAddress
+    #define CLUSTER_GRID_WALK_WORD_COUNT omniLightsWordCount
+    #define CLUSTER_GRID_WALK_LIGHT_BODY(omni_light_index) lighting += get_omni_lighting_indexed(omni_light_index, pos);
+    #include <cluster_grid_lights_walk.hlsli>
 
-    uint spotAddress = clusterIndex*spotLightsWordCount + ((CLUSTERS_D+1)*CLUSTERS_H*CLUSTERS_W*omniLightsWordCount);
-    LOOP
-    for ( uint spotWordIndex = 0; spotWordIndex < spotLightsWordCount; spotWordIndex++ )
-    {
-      // Can't use MERGE_MASK in the vertex shader, so just read mask for current vertex
-      uint mask = flatBitArray[spotAddress + spotWordIndex];
-      while ( mask != 0 )
-      {
-        uint bitIndex = firstbitlow( mask );
-        mask ^= ( 1U << bitIndex );
-        uint spot_light_index = ((spotWordIndex<<5) + bitIndex);
-        lighting += get_spot_lighting(pos, view_dir_norm, spot_light_index);
-      }
-    }
+    uint spotAddress = get_cluster_grid_spot_address(clusterIndex, spotLightsWordCount, omniLightsWordCount);
+    #define CLUSTER_GRID_WALK_MERGE_MASK(m) (m)
+    #define CLUSTER_GRID_WALK_WORD_LOOP_ATTR LOOP
+    #define CLUSTER_GRID_WALK_ADDRESS spotAddress
+    #define CLUSTER_GRID_WALK_WORD_COUNT spotLightsWordCount
+    #define CLUSTER_GRID_WALK_LIGHT_BODY(spot_light_index) lighting += get_spot_lighting(pos, view_dir_norm, spot_light_index);
+    #include <cluster_grid_lights_walk.hlsli>
 
     return lighting;
   }
@@ -1151,7 +1142,7 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
       ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
       float4 cloud_tc = viewport_tc;
       cloud_tc.xy = reproject_scattering(distortedToLinearTc(cloud_tc.xy), cloud_tc.z / cloud_tc.w);
-      depth_mask = dafx_get_soft_depth_mask(viewport_tc * float4(current_dynamic_resolution_scale, 1, 1), cloud_tc, pp.depth_softness_rcp, gdata);
+      depth_mask = dafx_get_soft_depth_mask(viewport_tc, cloud_tc, pp.depth_softness_rcp, gdata);
 
   #if !MODFX_SHADER_VOLFOG_INJECTION
       if (depth_mask < 1e-03)
@@ -1188,7 +1179,7 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
     float radius_pow = dafx_get_1f( 0, parent_data.mods_offsets[MODFX_RMOD_VOLSHAPE_PARAMS] + 1u );
 
 #ifdef DAFX_DEPTH_TEX
-    float dst_depth = dafx_get_depth_base(viewport_tc.xy * current_dynamic_resolution_scale, gdata);
+    float dst_depth = dafx_get_depth_base(viewport_tc.xy, gdata);
 #else
     float dst_depth = gdata.zn_zfar.y;
 #endif
@@ -1224,9 +1215,9 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
     alpha *= dafx_get_screen_cloud_volume_mask(distortedToLinearTc(viewport_tc.xy), viewport_tc.w);
 #endif
 
-    float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy * current_dynamic_resolution_scale);
+    float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
     float wboit_r = wboit_accum.w;
-    wboit_accum.w = tex2D(wboit_alpha, viewport_tc.xy * current_dynamic_resolution_scale).r;
+    wboit_accum.w = tex2D(wboit_alpha, viewport_tc.xy).r;
 
     float3 col = wboit_accum.xyz / clamp(wboit_accum.w, 0.0000001f, 1000.f);
     float a = 1.f - wboit_r;
@@ -1370,7 +1361,7 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
     float4 result = float4( emissive_part + lighting_part, alpha );
     float depth = 0;
 #if MODFX_SHADER_DISTORTION
-    float depthScene = tex2Dlod(haze_scene_depth_tex, float4(viewport_tc.xy * current_dynamic_resolution_scale, 0, haze_scene_depth_tex_lod)).x;
+    float depthScene = tex2Dlod(haze_scene_depth_tex, float4(viewport_tc.xy, 0, haze_scene_depth_tex_lod)).x;
 #if MODFX_USE_DEPTH_MASK
     if (!(gdata.flags & DAFX_GLOBAL_DATA_FLAG_RENDERING_WATER_REFLECTION) && parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] )
     {

@@ -4,8 +4,11 @@
 
 #include "include/wrapper/cef_message_router.h"
 
+#include <algorithm>
+#include <limits>
 #include <map>
 #include <set>
+#include <vector>
 
 #include "include/base/cef_callback.h"
 #include "include/cef_task.h"
@@ -41,7 +44,8 @@ bool ValidateConfig(CefMessageRouterConfig& config) {
   return true;
 }
 
-// Helper template for generated ID values.
+// Helper template for generated ID values. Generates monotonically
+// increasing IDs in the interval [kReservedId + 1, numeric_limits<T>::max()].
 template <typename T>
 class IdGenerator {
  public:
@@ -51,10 +55,9 @@ class IdGenerator {
   IdGenerator& operator=(const IdGenerator&) = delete;
 
   T GetNextId() {
-    T id = ++next_id_;
-    if (id == kReservedId)  // In case the integer value wraps.
-      id = ++next_id_;
-    return id;
+    if (next_id_ == std::numeric_limits<T>::max())
+      next_id_ = kReservedId;
+    return ++next_id_;
   }
 
  private:
@@ -160,9 +163,9 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
 
   bool AddHandler(Handler* handler, bool first) override {
     CEF_REQUIRE_UI_THREAD();
-    if (handler_set_.find(handler) == handler_set_.end()) {
-      handler_set_.insert(first ? handler_set_.begin() : handler_set_.end(),
-                          handler);
+    if (std::find(handlers_.begin(), handlers_.end(), handler) ==
+        handlers_.end()) {
+      handlers_.insert(first ? handlers_.begin() : handlers_.end(), handler);
       return true;
     }
     return false;
@@ -170,7 +173,9 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
 
   bool RemoveHandler(Handler* handler) override {
     CEF_REQUIRE_UI_THREAD();
-    if (handler_set_.erase(handler) > 0) {
+    auto it = std::find(handlers_.begin(), handlers_.end(), handler);
+    if (it != handlers_.end()) {
+      handlers_.erase(it);
       CancelPendingFor(nullptr, handler, true);
       return true;
     }
@@ -259,7 +264,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
       const CefString& request = args->GetString(2);
       const bool persistent = args->GetBool(3);
 
-      if (handler_set_.empty()) {
+      if (handlers_.empty()) {
         // No handlers so cancel the query.
         CancelUnhandledQuery(browser, frame, context_id, request_id);
         return true;
@@ -273,7 +278,7 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
 
       // Make a copy of the handler list in case the user adds or removes a
       // handler while we're iterating.
-      HandlerSet handler_set = handler_set_;
+      HandlerSet handler_set = handlers_;
 
       bool handled = false;
       HandlerSet::const_iterator it_handler = handler_set.begin();
@@ -581,9 +586,10 @@ class CefMessageRouterBrowserSideImpl : public CefMessageRouterBrowserSide {
   IdGenerator<int64> query_id_generator_;
 
   // Set of currently registered handlers. An entry is added when a handler is
-  // registered and removed when a handler is unregistered.
-  using HandlerSet = std::set<Handler*>;
-  HandlerSet handler_set_;
+  // registered and removed when a handler is unregistered. Ordered so that
+  // AddHandler() can insert at the front or back of the dispatch order.
+  using HandlerSet = std::vector<Handler*>;
+  HandlerSet handlers_;
 
   // Map of query ID to QueryInfo instance. An entry is added when a Handler
   // indicates that it will handle the query and removed when either the query

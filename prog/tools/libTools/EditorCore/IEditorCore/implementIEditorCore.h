@@ -47,6 +47,7 @@ public:
   void addTriangleToVbuffer(DebugPrimitivesVbuffer &vbuf, const Point3 p[3], E3DCOLOR color) const override;
   bool isLinesVbufferValid(DebugPrimitivesVbuffer &vbuf) const override;
   void setVbufferTm(DebugPrimitivesVbuffer &vbuf, const TMatrix &tm) const override;
+  void setVbufferZBias(DebugPrimitivesVbuffer &vbuf, float z_bias, float slope_z_bias) const override;
 
   // DynamicShadersBuffer
   DynamicShadersBuffer *newDynamicShadersBuffer(IMemAlloc *alloc) const override;
@@ -309,7 +310,7 @@ public:
   void addConProc(console::ICommandProcessor *proc) override;
   bool delConProc(console::ICommandProcessor *proc) override;
   int conCollectorCmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description,
-    const char *argsDescription, const char *varValue, eastl::vector<console::CommandOptions> &&cmdOptions) override;
+    const char *argsDescription, const char *varValue, eastl::vector<console::CommandOptions> *cmdOptions) override;
 };
 
 

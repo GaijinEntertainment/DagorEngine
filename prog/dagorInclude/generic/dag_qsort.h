@@ -79,6 +79,7 @@ class SimpleQsort
 public:
   static void __sort(T *a, int n)
   {
+  restart:
     if (n <= 1)
       return;
 
@@ -110,15 +111,20 @@ public:
     --l;
     SWAP(0, l)
 
-    if (l <= 1)
+    // recurse into smaller partition and restart on the larger one: caps stack
+    // depth at O(log n) for long equal-key runs; result order is unchanged
+    if (n - r <= l)
+    {
       __sort(a + r, n - r);
-    else if (n - r <= 1)
-      __sort(a, l);
+      n = l;
+    }
     else
     {
       __sort(a, l);
-      __sort(a + r, n - r);
+      a += r;
+      n -= r;
     }
+    goto restart;
 
 #undef SWAP
   }

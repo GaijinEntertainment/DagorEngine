@@ -52,6 +52,7 @@ decl_dclassid(0x2000031C, AnimPostBlendHasAttachment);
 decl_dclassid(0x2000031D, AnimPostBlendHumanAimCtrl);
 decl_dclassid(0x2000031E, AnimPostBlendTwoBonesIK);
 decl_dclassid(0x2000031F, DasAnimPostBlendCtrl);
+decl_dclassid(0x20000320, AnimPostBlendEyeCtrl);
 
 //
 // Controller to compute node's rotation and shift
@@ -1245,7 +1246,7 @@ public:
   virtual void init(AnimGraphStateHolder &, const GeomNodeTree &);
 
   const char *class_name() const override { return "AnimPostBlendEyeCtrl"; }
-  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendTwistCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
+  virtual bool isSubOf(DClassID id) { return id == AnimPostBlendEyeCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
 
   virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 

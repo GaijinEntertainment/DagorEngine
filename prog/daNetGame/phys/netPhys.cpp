@@ -321,6 +321,8 @@ void teleport_phys_actor(ecs::EntityId eid, const TMatrix &tm)
 void reset_phys_actor(ecs::EntityId eid)
 {
   BasePhysActor *physObj = get_phys_actor(eid);
+  if (!physObj)
+    return;
   if (is_server())
     send_net_msg(eid, PhysReset());
   physObj->reset();

@@ -833,19 +833,10 @@ namespace das {
         using MatT = Matrix<VecT,size>;
         static __forceinline VecT & at ( MatT & value, int32_t index, Context * __context__ ) {
             if ( index<0 || uint32_t(index)>=uint32_t(size) ) __context__->throw_error_ex("matrix index out of range, %d of %d", index, size);
-#if defined(__clang__) && defined(DAS_STRICT_ALIASING)
-            // Compiler barrier: prevents ThinLTO SROA from substituting a stale virtual-register
-            // value for value.m[idx] after a write through an aliased pointer of a different type
-            // (e.g. TMatrix & aliasing float3x4). No machine instruction is emitted.
-            std::atomic_signal_fence(std::memory_order_seq_cst);
-#endif
             return value.m[index];
         }
         static __forceinline VecT & at ( MatT & value, uint32_t idx, Context * __context__ ) {
             if ( idx>=uint32_t(size) ) __context__->throw_error_ex("matrix index out of range, %u of %d", idx, size);
-#if defined(__clang__) && defined(DAS_STRICT_ALIASING)
-            std::atomic_signal_fence(std::memory_order_seq_cst);
-#endif
             return value.m[idx];
         }
     };
@@ -1187,7 +1178,7 @@ namespace das {
     };
 
     template <typename... TA>
-    constexpr int max_alignof() { return std::max({TypeAlign<TA>::align...}); }
+    constexpr int max_alignof() { return std::max({TypeAlign<TA>::align..., 1}); }
 
     template <typename... TA>
     constexpr int variant_align() {
@@ -1273,6 +1264,16 @@ namespace das {
             memcpy ( data, &arr, tupleSize );
         }
         alignas(max_alignof<TA...>()) char data[tupleSize];
+    };
+
+    template <int tupleSize>
+    struct TTuple<tupleSize> : Tuple {
+        static_assert(tupleSize == 0);
+        TTuple() {}
+        TTuple(const TTuple &) {}
+        TTuple(TTuple &&) {}
+        TTuple & operator = ( const TTuple & ) { return *this; }
+        TTuple & operator = ( TTuple && ) { return *this; }
     };
 
     template <typename ...TA>

@@ -170,6 +170,11 @@ bool traceRayRIGenNormalized(dag::Span<Trace> traces, TraceFlags trace_flags, in
   rendinst::RendInstDesc *ri_desc = nullptr, const TraceMeshFaces *ri_cache = nullptr,
   riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
 
+// Closest-hit ray batch that fills one RendInstDesc per ray (unlike traceRayRIGenNormalized,
+// whose single ri_desc collapses a batch). ri_descs must be the same size as traces.
+bool traceRayRIGenNormalizedMultiRay(dag::Span<Trace> traces, TraceFlags trace_flags, dag::Span<rendinst::RendInstDesc> ri_descs,
+  int ray_mat_id = -1, const TraceMeshFaces *ri_cache = nullptr, riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
+
 bool traceRayRIGenNormalizedWithIgnoreFunc(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id = -1,
   rendinst::RendInstDesc *ri_desc = nullptr, const TraceMeshFaces *ri_cache = nullptr, TraceRayIgnoreRiExtraCbType ignore_func = {});
 

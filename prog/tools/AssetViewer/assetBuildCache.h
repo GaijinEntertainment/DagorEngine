@@ -40,6 +40,9 @@ String get_asset_pack_name(DagorAsset *asset);
 String get_asset_pkg_name(DagorAsset *asset);
 
 bool check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, bool res);
+
+// Fast, approximate variant for the startup scan only - see IDaBuildInterface::quickCheckUpToDate().
+bool quick_check_assets_base_up_to_date(dag::ConstSpan<const char *> packs, bool tex, bool res);
 void rebuild_assets_in_folders_single(unsigned trg_code, dag::ConstSpan<int> folders_idx, bool tex, bool res);
 void rebuild_assets_in_folders(dag::ConstSpan<unsigned> tc, dag::ConstSpan<int> folders_idx, bool tex, bool res);
 void rebuild_assets_in_root(dag::ConstSpan<unsigned> tc, bool build_tex, bool build_res);

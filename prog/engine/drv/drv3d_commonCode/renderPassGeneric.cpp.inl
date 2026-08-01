@@ -9,6 +9,7 @@
 #include <drv/3d/dag_barrier.h>
 #include <drv/3d/dag_variableRateShading.h>
 #include <startup/dag_globalSettings.h>
+#include <EASTL/array.h>
 #include <EASTL/fixed_string.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_assert.h>
@@ -33,6 +34,13 @@ inline dag::RelocatableFixedVector<RenderPassTarget, 16> targets;
 inline RenderPassArea activeRenderArea;
 inline int32_t subpass = 0;
 inline bool activeVRSTarget = false;
+
+// Current RT/DS set for the active subpass. The generic path binds targets one slot per execute(), but the unified
+// d3d::set_render_target rebinds the whole set atomically, so we accumulate the set here and re-issue it per bind.
+inline eastl::array<RenderTarget, Driver3dRenderTarget::MAX_SIMRT> colorTargets{};
+inline uint32_t colorTargetCount = 0;
+inline RenderTarget depthTarget{};
+inline DepthAccess depthAccess = DepthAccess::RW;
 
 } // namespace rp_impl
 
@@ -69,6 +77,21 @@ struct RenderPass
 };
 
 inline RenderPass *activeRP = nullptr;
+
+static void apply_render_targets()
+{
+  set_render_target(rp_impl::depthTarget, rp_impl::depthAccess,
+    dag::ConstSpan<RenderTarget>(rp_impl::colorTargets.data(), rp_impl::colorTargetCount));
+}
+
+static void reset_render_targets()
+{
+  for (auto &t : rp_impl::colorTargets)
+    t = RenderTarget{};
+  rp_impl::colorTargetCount = 0;
+  rp_impl::depthTarget = RenderTarget{};
+  rp_impl::depthAccess = DepthAccess::RW;
+}
 
 void RenderPass::addSubpassToList(const RenderPassDesc &rp_desc, int32_t subpass)
 {
@@ -107,23 +130,23 @@ void RenderPass::execute(uint32_t idx)
     else
     {
       D3D_CONTRACT_ASSERTF(target.resource.mip_level == 0, "using mip level for depth bind is not supported (rp %s)", getDebugName());
-      set_depth(target.resource.tex, target.resource.layer, DepthAccess::SampledRO);
+      rp_impl::depthTarget = target.resource;
+      rp_impl::depthAccess = DepthAccess::SampledRO;
     }
   }
   else if (bind.action & RP_TA_SUBPASS_WRITE)
   {
     if (bind.slot != RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
-      set_render_target(bind.slot, target.resource.tex, target.resource.layer, target.resource.mip_level);
+    {
+      rp_impl::colorTargets[bind.slot] = target.resource;
+      if (uint32_t(bind.slot) + 1 > rp_impl::colorTargetCount)
+        rp_impl::colorTargetCount = bind.slot + 1;
+    }
     else
     {
       D3D_CONTRACT_ASSERTF(target.resource.mip_level == 0, "using mip level for depth bind is not supported (rp %s)", getDebugName());
-      set_depth(target.resource.tex, target.resource.layer, DepthAccess::RW);
-    }
-
-    // process clears
-    if (bind.action & (RP_TA_LOAD_CLEAR | RP_TA_LOAD_NO_CARE | RP_TA_LOAD_STENCIL_CLEAR))
-    {
-      clear_render_pass(target, rp_impl::activeRenderArea, bind);
+      rp_impl::depthTarget = target.resource;
+      rp_impl::depthAccess = DepthAccess::RW;
     }
   }
   else if (bind.action & RP_TA_SUBPASS_RESOLVE)
@@ -259,15 +282,20 @@ void next_subpass()
   D3D_CONTRACT_ASSERTF(rp_impl::subpass + 1 < seq.size(), "trying to run non existent subpass %u of rp %s", rp_impl::subpass,
     activeRP->getDebugName());
 
-  // bind fully empty RT/DS set
-  set_render_target();
-  set_render_target(0, nullptr, 0);
+  reset_render_targets();
   reset_vrs_texture();
 
   activeRP->resolveMSAATargets();
 
+  // execute() accumulates per-slot binds into the rp_impl RT/DS state without rebinding; apply once
+  // here so the unified d3d::set_render_target gets the full subpass set in one call.
   for (int i = seq[rp_impl::subpass], e = seq[rp_impl::subpass + 1]; i < e; ++i)
     activeRP->execute(i);
+  apply_render_targets();
+  for (int i = seq[rp_impl::subpass], e = seq[rp_impl::subpass + 1]; i < e; ++i)
+    if (activeRP->actions[i].action & RP_TA_SUBPASS_WRITE)
+      if (activeRP->actions[i].action & (RP_TA_LOAD_CLEAR | RP_TA_LOAD_NO_CARE | RP_TA_LOAD_STENCIL_CLEAR))
+        clear_render_pass(rp_impl::targets[activeRP->actions[i].target], rp_impl::activeRenderArea, activeRP->actions[i]);
 
   // reset viewport to render area on any subpass change
   setview(rp_impl::activeRenderArea.left, rp_impl::activeRenderArea.top, rp_impl::activeRenderArea.width,

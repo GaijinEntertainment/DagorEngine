@@ -11,8 +11,11 @@ Sources =
   src/clusterizer.cpp
   src/indexcodec.cpp
   src/indexgenerator.cpp
+  src/meshletcodec.cpp
+  src/meshletutils.cpp
   src/overdrawanalyzer.cpp
   src/overdrawoptimizer.cpp
+  src/partition.cpp
   src/simplifier.cpp
   src/spatialorder.cpp
   src/stripifier.cpp

@@ -179,11 +179,11 @@ shader water_blur_reflection_mips
 
       float rawDepth = tex2Dlod(with_water_depth_tex, float4(input.texcoord00.xy, 0, 0)).x;
       float worldDist = linearize_z(rawDepth, zn_zfar.zw);
-      float3 cameraToPoint = lerp_view_vec(input.texcoord00.xy * current_inv_dynamic_resolution_scale) * worldDist;
+      float3 cameraToPoint = lerp_view_vec(input.texcoord00.xy) * worldDist;
 
       float4 prevTarget;
       float weight;
-      getReflectionReprojection(input.texcoord00.xy * current_inv_dynamic_resolution_scale, ssr_target_size.xy, cameraToPoint, worldDist, worldDist, result, mip_target_level, mip_target_size.xy, prevTarget, weight);
+      getReflectionReprojection(input.texcoord00.xy, ssr_target_size.xy, cameraToPoint, worldDist, worldDist, result, mip_target_level, mip_target_size.xy, prevTarget, weight);
 
       ReflAlphaDecoded currAlpha = DecodeReflAlpha(result.a);
       ReflAlphaDecoded prevAlphaDecoded = DecodeReflAlpha(prevTarget.a);

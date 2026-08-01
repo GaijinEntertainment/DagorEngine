@@ -3,6 +3,7 @@ include "rt/grass_generate_rt_inc.dshl"
 include "toroidal_grass.dshl"
 include "heightmap_ofs.dshl"
 include "frustum.dshl"
+include "gpu_occlusion.dshl"
 
 float grassify_vcol_discard_threshold = 0.6;
 float grassify_vcol_discard_move_weight = 2.0;
@@ -34,6 +35,11 @@ macro COMPILE_GRASSIFY_PS()
   USE_GRASS_PUSH_INSTANCE(ps)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(ps)
 
+  if (grass_use_hzb_occlusion == yes) {
+    USE_REPROJECTED_HZB_OCCLUSION(ps)
+    GPU_OCCLUSION(ps)
+  }
+
   z_write = false;
   z_test = false;
   color_write = 0;
@@ -41,14 +47,15 @@ macro COMPILE_GRASSIFY_PS()
 
   (ps){
     grass_mask_islands_size@f2 = get_dimensions(grass_mask_islands_tex, 0);
-    grass_mask_islands_tex@smp2d = grass_mask_islands_tex;
-    grass_color_islands_tex@smp2d = grass_color_islands_tex;
+    grass_mask_islands_tex@tex2d = grass_mask_islands_tex;
+    grass_color_islands_tex@tex2d = grass_color_islands_tex;
     grass_color_tex@smp2d = grass_color_tex;
     water_level_displacement@f4 = (water_level, 0, hmap_displacement_up-hmap_displacement_down, hmap_displacement_down);
     world_to_grass_slice@f4 = world_to_grass_slice;
     grassify_vcol_discard_threshold@f1 = grassify_vcol_discard_threshold;
     grassify_vcol_discard_move_weight@f1 = grassify_vcol_discard_move_weight;
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   INIT_GPU_GRASS_BVH_RANGE(ps)
   USE_GPU_GRASS_BVH_RANGE(ps)
@@ -56,6 +63,8 @@ macro COMPILE_GRASSIFY_PS()
   USE_GPU_GRASS_BVH_RANDOM_DISCARD(ps)
 
   hlsl(ps) {
+    #define grass_mask_islands_tex_samplerstate global_linear_wrap_sampler
+    #define grass_color_islands_tex_samplerstate global_linear_wrap_sampler
     #define ht_displacement (water_level_displacement.zw)
 
     void grassify_ps(VsOutput input HW_USE_SCREEN_POS)
@@ -158,11 +167,17 @@ macro COMPILE_GRASSIFY_PS()
       if (min(min(height_horSize.x, height_horSize.y) - HEIGHT_THRESHOLD, probability-grassTypeRand) < 0)
         discard;
 
-      float3 boundingSphereWpos = worldPos+float3(0,height_horSize.x*0.5,0);
+      float3 boundingSphereWpos = worldPos + input.normal * (height_horSize.x * 0.5);
       float boundingSphereRadius = 0.5*length(height_horSize);
       worldPos = round_grass_world_pos_for_bvh(worldPos);
       if (!testSphereB(boundingSphereWpos, boundingSphereRadius) && !(keep_grass_for_bvh_sphere(boundingSphereWpos, boundingSphereRadius, world_view_pos) && keep_grass_randomly(worldPos)))
         discard;
+
+    ##if grass_use_hzb_occlusion == yes
+      float3 extent = boundingSphereRadius.xxx;
+      if (!check_box_occl_visible(boundingSphereWpos - extent, boundingSphereWpos + extent))
+        discard;
+    ##endif
 
       uint grassVariation = (uint)floor(random4_high.w*255+0.5f);
 

@@ -23,12 +23,10 @@ public:
   struct ExtendedVariantDescription
   {
     GraphicsPipelineVariantDescription base;
-    GraphicsPipelineDynamicStateMask mask;
     Index index;
   };
 
-  ExtendedVariantDescription &get(const GraphicsPipelineVariantDescription &dsc, GraphicsPipelineVariantDescription::Hash hash,
-    RenderStateSystemBackend &rs_backend, RenderPassResource *native_rp);
+  ExtendedVariantDescription &get(const GraphicsPipelineVariantDescription &dsc, GraphicsPipelineVariantDescription::Hash hash);
 
 private:
   typedef eastl::pair<GraphicsPipelineVariantDescription::Hash, Index> KeyIndexPair;

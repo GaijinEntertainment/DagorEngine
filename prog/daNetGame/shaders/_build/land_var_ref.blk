@@ -7,7 +7,6 @@
   ref:t=lmesh_ps_const__land_detail_map_tc
   ref:t=lmesh_ps_const__mul_offset_base
   ref:t=lmesh_sampler__land_detail_map
-  ref:t=lmesh_sampler__land_detail_map2
   ref:t=lmesh_sampler__land_detail_tex1
   ref:t=lmesh_ps_const__mirror_scale
 

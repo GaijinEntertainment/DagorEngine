@@ -951,6 +951,58 @@ bool SQVM::trapMatches(const SQExceptionTrap &et, const SQObjectPtr &err)
 
 extern SQInstructionDesc g_InstrDesc[];
 
+// Defined before Execute/CallNative so both inline it within this TU.
+inline bool SQVM::CheckNativeParamTypes(SQNativeClosure *nclosure, SQInteger base, SQInteger nargs)
+{
+    SQIntVec &tc = nclosure->_typecheck;
+    SQInteger tcs = tc.size();
+    for (SQInteger i = 0; i < nargs && i < tcs; i++) {
+        if ((tc._vals[i] != -1) && !check_typemask(sq_type(_stack._vals[base+i]), tc._vals[i])) {
+            Raise_ParamTypeError(i, tc._vals[i], sq_type(_stack._vals[base+i]),
+                sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : nullptr);
+            return false;
+        }
+    }
+    return true;
+}
+
+inline bool SQVM::CheckNativeResult(SQNativeClosure *nclosure, SQObjectType retType, bool discarded)
+{
+#if SQ_RUNTIME_TYPE_CHECK
+    if (!discarded) {
+        if (!check_typemask(retType, nclosure->_result_type_mask)) {
+            char buf[160];
+            sq_stringify_type_mask(buf, sizeof(buf), nclosure->_result_type_mask);
+            Raise_Error("Function '%s' returned invalid type '%s', expected '%s'",
+                sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>",
+                IdType2Name(retType), buf);
+            return false;
+        }
+    } else if (nclosure->_nodiscard) {
+        Raise_Error("Discarding return value of function '%s' with 'nodiscard' attribute",
+            sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+        return false;
+    }
+#else
+    (void)nclosure; (void)retType; (void)discarded;
+#endif
+    return true;
+}
+
+SQ_NOINLINE void SQVM::RaiseFastcallError(SQNativeClosure *nclosure, SQInteger base, SQInteger top, SQInteger r)
+{
+    for (SQInteger i = base; i < top; i++)
+        _stack._vals[i].Null();
+    // A fastcall native must not suspend or tailcall (contract); those flag
+    // returns carry no _lasterror, so diagnose them instead of raising a
+    // stale/empty error.
+    if (r == SQ_SUSPEND_FLAG || r == SQ_TAILCALL_FLAG)
+        Raise_Error("fastcall function '%s' must not suspend or tailcall",
+            sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+    else
+        Raise_Error(_lasterror);
+}
+
 template <bool debughookPresent>
 bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackbase,SQObjectPtr &outres, SQBool invoke_err_handler,ExecutionType et)
 {
@@ -1072,6 +1124,58 @@ exception_restore:
                     continue;
                 }
                               }
+            case _OP_FASTCALL:
+            {
+                    const SQObjectPtr &fclo = STK(arg1);
+                    if (SQ_LIKELY(sq_type(fclo) == OT_NATIVECLOSURE && _nativeclosure(fclo)->_isfastcall)) {
+                        SQNativeClosure *nc = _nativeclosure(fclo);
+                        SQInteger newbase = _stackbase + arg2;
+
+                        // Arity is already checked at codegen for the emitted callee.
+                        if (!CheckNativeParamTypes(nc, newbase, arg3))
+                            SQ_THROW();
+
+                        // The caller frame's EnterFrame reserves STACK_GROW_THRESHOLD
+                        // headroom and eligible natives push O(1) values, so _stack
+                        // never reallocates here: _stkbase stays valid (no RELOAD_STK)
+                        // and TARGET below still points into the caller frame.
+                        // A fastcall native is a leaf (no VM re-entry per its
+                        // contract), so it does not participate in _nnativecalls
+                        // depth accounting - nothing to bump or bound here.
+                        SQInteger savedBase = _stackbase, savedTop = _top;
+                        _stackbase = newbase;
+                        _top = newbase + arg3;
+                        SQObjectPtr *dbgStackVals = _stack._vals;
+                        (void)dbgStackVals;
+                        SQInteger r = (nc->_function)(this);
+                        SQInteger pushedTop = _top;
+                        _stackbase = savedBase;
+                        _top = savedTop;
+                        assert(_stack._vals == dbgStackVals && "fastcall native reallocated the VM stack");
+
+                        if (SQ_UNLIKELY(r < 0)) {
+                            RaiseFastcallError(nc, newbase + arg3, pushedTop, r);
+                            SQ_THROW();
+                        }
+
+                        SQObjectType rt = r ? sq_type(_stack._vals[pushedTop - 1]) : OT_NULL;
+                        if (!CheckNativeResult(nc, rt, arg0 == 255)) {
+                            for (SQInteger i = newbase + arg3; i < pushedTop; i++)
+                                _stack._vals[i].Null();
+                            SQ_THROW();
+                        }
+
+                        if (arg0 != 255) {
+                            if (r)
+                                _Swap(TARGET, _stack._vals[pushedTop - 1]);
+                            else
+                                TARGET.Null();
+                        }
+                        for (SQInteger i = newbase + arg3; i < pushedTop; i++)
+                            _stack._vals[i].Null();
+                        continue;
+                    }
+            } // fall through to the generic call path on guard failure
             case _OP_CALL:
             case _OP_NULLCALL:
             {
@@ -2068,17 +2172,8 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
         return false;
     }
 
-    SQInteger tcs;
-    SQIntVec &tc = nclosure->_typecheck;
-    if((tcs = tc.size())) {
-        for(SQInteger i = 0; i < nargs && i < tcs; i++) {
-            if((tc._vals[i] != -1) && !check_typemask(sq_type(_stack._vals[newbase+i]), tc._vals[i])) {
-                Raise_ParamTypeError(i,tc._vals[i], sq_type(_stack._vals[newbase+i]),
-                    sq_type(nclosure->_name) == OT_STRING ? _stringval(nclosure->_name) : nullptr);
-                return false;
-            }
-        }
-    }
+    if(!CheckNativeParamTypes(nclosure, newbase, nargs))
+        return false;
 
     if(!EnterFrame(newbase, newtop, false)) return false;
     ci->_closure  = nclosure;
@@ -2118,21 +2213,8 @@ bool SQVM::CallNative(SQNativeClosure *nclosure, SQInteger nargs, SQInteger newb
     }
     LeaveFrame();
 
-#if SQ_RUNTIME_TYPE_CHECK
-    if (target != -1) {
-        if (!check_typemask(sq_type(retval), nclosure->_result_type_mask)) {
-            char buf[160];
-            sq_stringify_type_mask(buf, sizeof(buf), nclosure->_result_type_mask);
-            Raise_Error("Function '%s' returned invalid type '%s', expected '%s'",
-                sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>",
-                GetTypeName(retval), buf);
-            return false;
-        }
-    } else if (nclosure->_nodiscard) {
-        Raise_Error("Discarding return value of function '%s' with 'nodiscard' attribute", sq_isstring(nclosure->_name) ? _stringval(nclosure->_name) : "<unknown>");
+    if (!CheckNativeResult(nclosure, sq_type(retval), target == -1))
         return false;
-    }
-#endif
 
     return true;
 }

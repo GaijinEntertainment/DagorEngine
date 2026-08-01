@@ -86,8 +86,6 @@ void DebugBoxRenderer::render(const RiGenVisibility *visibility, const Point3 &v
     BBox3 box(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5));
 
     float squareDistanceMax = verifyRIDistance * verifyRIDistance;
-    mat44f globtm;
-    d3d::getglobtm(globtm);
     constexpr int binCount = 10;
     eastl::vector<eastl::vector_map<eastl::string_view, int>> name_count_bins(binCount);
 

@@ -278,7 +278,7 @@ static ecs::EntitySystemDesc init_vehicle_reactive_mask_node_es_event_handler_es
 ,"render");
 static constexpr ecs::ComponentDesc animchar_render_objects_prepare_ecs_query_comps[] =
 {
-//start of 8 rw components at [0]
+//start of 9 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>()},
   {ECS_HASH("animchar_attaches_bbox"), ecs::ComponentTypeInfo<bbox3f>(), ecs::CDF_OPTIONAL},
@@ -287,7 +287,8 @@ static constexpr ecs::ComponentDesc animchar_render_objects_prepare_ecs_query_co
   {ECS_HASH("animchar_shadow_cull_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("animchar_render__shadow_cast_dist"), ecs::ComponentTypeInfo<float>()},
-//start of 12 ro components at [8]
+  {ECS_HASH("animchar__switched_lod"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 12 ro components at [9]
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>()},
   {ECS_HASH("animchar_render__dist_sq"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("animchar_attaches_bbox_precalculated"), ecs::ComponentTypeInfo<bbox3f>(), ecs::CDF_OPTIONAL},
@@ -304,8 +305,8 @@ static constexpr ecs::ComponentDesc animchar_render_objects_prepare_ecs_query_co
 static ecs::CompileTimeQueryDesc animchar_render_objects_prepare_ecs_query_desc
 (
   "animchar_render_objects_prepare_ecs_query",
-  make_span(animchar_render_objects_prepare_ecs_query_comps+0, 8)/*rw*/,
-  make_span(animchar_render_objects_prepare_ecs_query_comps+8, 12)/*ro*/,
+  make_span(animchar_render_objects_prepare_ecs_query_comps+0, 9)/*rw*/,
+  make_span(animchar_render_objects_prepare_ecs_query_comps+9, 12)/*ro*/,
   empty_span(),
   empty_span()
   , 4);
@@ -332,6 +333,7 @@ inline void animchar_render_objects_prepare_ecs_query(ecs::EntityManager &manage
             , ECS_RW_COMP(animchar_render_objects_prepare_ecs_query_comps, "animchar_shadow_cull_bbox", bbox3f)
             , ECS_RW_COMP(animchar_render_objects_prepare_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RW_COMP(animchar_render_objects_prepare_ecs_query_comps, "animchar_render__shadow_cast_dist", float)
+            , ECS_RW_COMP_PTR(animchar_render_objects_prepare_ecs_query_comps, "animchar__switched_lod", bool)
             , ECS_RO_COMP_OR(animchar_render_objects_prepare_ecs_query_comps, "animchar__usePrecalculatedData", bool(false))
             , ECS_RO_COMP_OR(animchar_render_objects_prepare_ecs_query_comps, "animchar_render__enabled", bool(true))
             , ECS_RO_COMP_PTR(animchar_render_objects_prepare_ecs_query_comps, "animchar__actOnDemand", ecs::Tag)
@@ -346,11 +348,12 @@ inline void animchar_render_objects_prepare_ecs_query(ecs::EntityManager &manage
 }
 static constexpr ecs::ComponentDesc animchar_process_objects_in_shadow_ecs_query_comps[] =
 {
-//start of 3 rw components at [0]
+//start of 4 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
-//start of 3 ro components at [3]
+  {ECS_HASH("animchar__switched_lod"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 3 ro components at [4]
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>()},
   {ECS_HASH("animchar_bsph"), ecs::ComponentTypeInfo<vec4f>()},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
@@ -358,8 +361,8 @@ static constexpr ecs::ComponentDesc animchar_process_objects_in_shadow_ecs_query
 static ecs::CompileTimeQueryDesc animchar_process_objects_in_shadow_ecs_query_desc
 (
   "animchar_process_objects_in_shadow_ecs_query",
-  make_span(animchar_process_objects_in_shadow_ecs_query_comps+0, 3)/*rw*/,
-  make_span(animchar_process_objects_in_shadow_ecs_query_comps+3, 3)/*ro*/,
+  make_span(animchar_process_objects_in_shadow_ecs_query_comps+0, 4)/*rw*/,
+  make_span(animchar_process_objects_in_shadow_ecs_query_comps+4, 3)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -376,6 +379,7 @@ inline void animchar_process_objects_in_shadow_ecs_query(ecs::EntityManager &man
             , ECS_RW_COMP(animchar_process_objects_in_shadow_ecs_query_comps, "animchar_bbox", bbox3f)
             , ECS_RO_COMP(animchar_process_objects_in_shadow_ecs_query_comps, "animchar_bsph", vec4f)
             , ECS_RW_COMP(animchar_process_objects_in_shadow_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
+            , ECS_RW_COMP_PTR(animchar_process_objects_in_shadow_ecs_query_comps, "animchar__switched_lod", bool)
             , ECS_RO_COMP_OR(animchar_process_objects_in_shadow_ecs_query_comps, "animchar_render__enabled", bool(true))
             );
 
@@ -429,10 +433,11 @@ inline void update_animchar_hmap_deform_ecs_query(ecs::EntityManager &manager, C
 }
 static constexpr ecs::ComponentDesc preprocess_visible_animchars_in_frustum_ecs_query_comps[] =
 {
-//start of 2 rw components at [0]
+//start of 3 rw components at [0]
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
-//start of 3 ro components at [2]
+  {ECS_HASH("animchar__switched_lod"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 3 ro components at [3]
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>()},
   {ECS_HASH("animchar_bsph"), ecs::ComponentTypeInfo<vec4f>()},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>()}
@@ -440,8 +445,8 @@ static constexpr ecs::ComponentDesc preprocess_visible_animchars_in_frustum_ecs_
 static ecs::CompileTimeQueryDesc preprocess_visible_animchars_in_frustum_ecs_query_desc
 (
   "preprocess_visible_animchars_in_frustum_ecs_query",
-  make_span(preprocess_visible_animchars_in_frustum_ecs_query_comps+0, 2)/*rw*/,
-  make_span(preprocess_visible_animchars_in_frustum_ecs_query_comps+2, 3)/*ro*/,
+  make_span(preprocess_visible_animchars_in_frustum_ecs_query_comps+0, 3)/*rw*/,
+  make_span(preprocess_visible_animchars_in_frustum_ecs_query_comps+3, 3)/*ro*/,
   empty_span(),
   empty_span()
   , 4);
@@ -459,6 +464,7 @@ inline void preprocess_visible_animchars_in_frustum_ecs_query(ecs::EntityManager
             , ECS_RO_COMP(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_bsph", vec4f)
             , ECS_RW_COMP(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
             , ECS_RO_COMP(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar_render__enabled", bool)
+            , ECS_RW_COMP_PTR(preprocess_visible_animchars_in_frustum_ecs_query_comps, "animchar__switched_lod", bool)
             );
 
         }while (++comp != compE);

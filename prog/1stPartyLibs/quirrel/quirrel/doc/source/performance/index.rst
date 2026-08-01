@@ -21,7 +21,10 @@ Notes & Builds
 ==============
 
 Everything was built for Window 64bit and with clang-cl (if possible).
-All code for tests and binaries of interpreters are included in github source folder of documentation
+All benchmark sources, harnesses and prebuilt third-party interpreter binaries
+live in the ``bench/`` folder at the repository root; this page only keeps the
+committed results. The Quirrel rows are measured on the release csq built from
+this repository (the shipped runtime configuration, mimalloc allocator).
 LuaJIT is measured without JIT enabled, cause Quirrel, Lua, QuickJS are made for platforms where JIT-compilation is disallowed
 (consoles, phones, other hardware of the type).
 Also, check https://daslang.io/#performance for more benchmarks of this kind.
@@ -74,65 +77,46 @@ Built with LLVM8.0 (clang-cl)
    /* ------------------------------------------------------------------------ */
  
 
+VM acceptance benchmark
+=======================
+
+``bench/run_vm_bench.py`` is the head-to-head harness used for interpreter
+work (run it before and after any VM change): Quirrel release csq vs
+Lua 5.4.6 and Luau (-O2) on paired workloads with identical algorithms.
+Committed baseline (Quirrel 4.35.1, AMD Ryzen Threadripper 3970X,
+Windows 10 x64, 2026-07-18; ms, median of best rep over 5 process runs;
+ratio is relative to Quirrel, above 1.0 means Quirrel is slower), raw data
+in ``vm_bench_results.json``:
+
+.. code::
+
+             bench               quirrel                 lua54                  luau
+               fib                127.00       65.00 ( 1.95x)       56.34 ( 2.25x)
+       binarytrees                 36.00       52.00 ( 0.69x)       16.48 ( 2.18x)
+              life                150.00       85.00 ( 1.76x)       72.37 ( 2.07x)
+            mandel                 83.00       43.00 ( 1.93x)       32.16 ( 2.58x)
+           strings                 98.00       88.00 ( 1.11x)       78.62 ( 1.25x)
+        desc_churn                137.00      222.00 ( 0.62x)       67.77 ( 2.02x)
+       probe_storm                106.00       97.00 ( 1.09x)       65.03 ( 1.63x)
+    nullable_probe                118.00       38.00 ( 3.11x)       31.92 ( 3.70x)
+     closure_storm                140.00      240.00 ( 0.58x)       34.15 ( 4.10x)
+      method_calls                564.00      369.00 ( 1.53x)      226.95 ( 2.49x)
+
+Geomean: Lua 5.4 ~1.25x, Luau interpreter ~2.3x over release Quirrel;
+Quirrel is faster on the allocation-churn rows (binarytrees, desc_churn,
+closure_storm vs Lua 5.4).
+
 Sources
 =======
 
+All benchmark sources live in ``bench/`` at the repository root, one folder per
+language (``bench/quirrel``, ``bench/lua``, ``bench/luau``, ``bench/js``), next
+to the prebuilt interpreter binaries and the two harnesses:
 
-Quirrel & Squirrel: :download:`nbodies.nut <tests/quirrel/nbodies.nut>`
-:download:`dict.nut <tests/quirrel/dict.nut>` 
-:download:`exp.nut <tests/quirrel/exp.nut>` 
-:download:`fib_loop.nut <tests/quirrel/fib_loop.nut>` 
-:download:`fib_recursive.nut <tests/quirrel/fib_recursive.nut>` 
-:download:`nbodies.nut <tests/quirrel/nbodies.nut>` 
-:download:`particles.nut <tests/quirrel/particles.nut>` 
-:download:`primes.nut <tests/quirrel/primes.nut>` 
-:download:`darg.nut <tests/quirrel/darg.nut>`
-:download:`f2i.nut <tests/quirrel/f2i.nut>`
-:download:`f2s.nut <tests/quirrel/f2s.nut>`
-:download:`particles_array.nut <tests/quirrel/particles_array.nut>`
-:download:`profile_try_catch.nut <tests/quirrel/profile_try_catch.nut>`
-:download:`queen.nut <tests/quirrel/queen.nut>`
-:download:`spectral-norm.nut <tests/quirrel/spectral-norm.nut>`
-:download:`table-sort.nut <tests/quirrel/table-sort.nut>`
+- ``bench/benchmarks.py`` - the cross-language suite that produces the charts
+  above; it writes ``results.json`` / ``results.rst`` into this documentation
+  folder.
+- ``bench/run_vm_bench.py`` - the VM acceptance harness (Quirrel vs Lua 5.4 /
+  Luau, ratio table); run it before and after interpreter changes.
 
-Lua: :download:`dict.lua <tests/lua/dict.lua>`
-:download:`exp.lua <tests/lua/exp.lua>`
-:download:`fib_loop.lua <tests/lua/fib_loop.lua>`
-:download:`fib_recursive.lua <tests/lua/fib_recursive.lua>`
-:download:`nbodies.lua <tests/lua/nbodies.lua>`
-:download:`particles.lua <tests/lua/particles.lua>`
-:download:`primes.lua <tests/lua/primes.lua>`
-:download:`darg.lua <tests/lua/darg.lua>`
-:download:`f2i.lua <tests/lua/f2i.lua>`
-:download:`f2s.lua <tests/lua/f2s.lua>`
-:download:`profile_try_catch.lua <tests/lua/profile_try_catch.lua>`
-:download:`queen.lua <tests/lua/queen.lua>`
-:download:`spectral-norm.lua <tests/lua/spectral-norm.lua>`
-:download:`table-sort.lua <tests/lua/table-sort.lua>`
-
-JavaScript:  :download:`dict.js <tests/js/dict.js>`
-:download:`exp.js <tests/js/exp.js>`
-:download:`fib_loop.js <tests/js/fib_loop.js>`
-:download:`fib_recursive.js <tests/js/fib_recursive.js>`
-:download:`nbodies.js <tests/js/nbodies.js>`
-:download:`particles.js <tests/js/particles.js>`
-:download:`primes.js <tests/js/primes.js>`
-:download:`darg.js <tests/js/darg.js>`
-:download:`f2i.js <tests/js/f2i.js>`
-:download:`f2s.js <tests/js/f2s.js>`
-:download:`spectral-norm.js <tests/js/spectral-norm.js>`
-
-Luau:
-:download:`darg.luau <tests/luau/darg.luau>`
-:download:`dict.luau <tests/luau/dict.luau>`
-:download:`exp.luau <tests/luau/exp.luau>`
-:download:`f2i.luau <tests/luau/f2i.luau>`
-:download:`f2s.luau <tests/luau/f2s.luau>`
-:download:`fib_loop.luau <tests/luau/fib_loop.luau>`
-:download:`fib_recursive.luau <tests/luau/fib_recursive.luau>`
-:download:`nbodies.luau <tests/luau/nbodies.luau>`
-:download:`particles.luau <tests/luau/particles.luau>`
-:download:`primes.luau <tests/luau/primes.luau>`
-:download:`queen.luau <tests/luau/queen.luau>`
-:download:`spectral-norm.luau <tests/luau/spectral-norm.luau>`
-:download:`table-sort.luau <tests/luau/table-sort.luau>`
+See ``bench/README.md`` for how to run both.

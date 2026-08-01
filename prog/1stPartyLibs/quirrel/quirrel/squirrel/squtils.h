@@ -36,6 +36,16 @@ void sq_vm_free(SQAllocContext ctx, void *p,SQUnsignedInteger size);
   #endif
 #endif
 
+#ifndef SQ_NOINLINE
+  #if defined(__GNUC__) || defined(__clang__)
+    #define SQ_NOINLINE __attribute__((noinline))
+  #elif defined(_MSC_VER)
+    #define SQ_NOINLINE __declspec(noinline)
+  #else
+    #define SQ_NOINLINE
+  #endif
+#endif
+
 
 //sqvector mini vector class, supports objects by value
 template<typename T, typename SizeT = uint32_t> class sqvector

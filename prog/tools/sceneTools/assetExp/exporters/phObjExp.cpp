@@ -209,8 +209,8 @@ public:
     }
     curDagFname = NULL;
 
-    exportPhysSys(bodies, cwr, !a.props.getBool("expAllHelpers", a.props.getBool("ragdoll", false)),
-      a.props.getBool("ragdoll", false));
+    exportPhysSys(bodies, cwr, !a.props.getBool("expAllHelpers", a.props.getBool("ragdoll", false)), a.props.getBool("ragdoll", false),
+      a.props.getBlockByName("ragdoll"));
     clear_all_ptr_items(bodies);
     return true;
   }
@@ -310,7 +310,8 @@ protected:
     return rec;
   }
 
-  void exportPhysSys(dag::ConstSpan<PhBodyRec *> po, mkbindump::BinDumpSaveCB &cwr, bool min_hlp, bool ragdoll)
+  void exportPhysSys(dag::ConstSpan<PhBodyRec *> po, mkbindump::BinDumpSaveCB &cwr, bool min_hlp, bool ragdoll,
+    const DataBlock *asset_ragdoll_blk = nullptr)
   {
     cwr.writeFourCC(_MAKE4C('po1s'));
     cwr.beginBlock();
@@ -332,7 +333,9 @@ protected:
           logerr("failed to find <%s> for joint in <%s>", dest_nm, po[i]->bodyBlk.getStr("name", ""));
       }
 
-    if (ragdoll) // write align controllers for ragdoll
+    if (ragdoll)
+    {
+      // write align controllers for ragdoll
       for (int i = 0, nid = defRagdollBlk.getNameId("twist_ctrl"); i < defRagdollBlk.blockCount(); i++)
         if (defRagdollBlk.getBlock(i)->getBlockNameId() == nid)
         {
@@ -347,6 +350,48 @@ protected:
               cwr.writeDwString(b.getStr(j));
           cwr.endBlock();
         }
+
+      // wriite no_collision body pairs
+      const DataBlock *ncBlk = asset_ragdoll_blk ? asset_ragdoll_blk->getBlockByName("no_collision") : nullptr;
+      if (!ncBlk)
+        ncBlk = defRagdollBlk.getBlockByName("no_collision");
+      if (ncBlk)
+      {
+        Tab<int> pairIdx(tmpmem);
+        for (int i = 0, pnid = ncBlk->getNameId("pair"); i < ncBlk->blockCount(); i++)
+        {
+          const DataBlock &pb = *ncBlk->getBlock(i);
+          if (pb.getBlockNameId() != pnid)
+            continue;
+          const char *n0 = pb.getStr("body0", "");
+          const char *n1 = pb.getStr("body1", "");
+          int i0 = -1, i1 = -1;
+          for (int j = 0; j < po.size(); j++)
+          {
+            const char *bn = po[j]->bodyBlk.getStr("name", "");
+            if (i0 < 0 && strcmp(bn, n0) == 0)
+              i0 = j;
+            if (i1 < 0 && strcmp(bn, n1) == 0)
+              i1 = j;
+          }
+          if (i0 >= 0 && i1 >= 0 && i0 != i1)
+          {
+            pairIdx.push_back(i0);
+            pairIdx.push_back(i1);
+          }
+          else
+            logerr("failed to resolve no_collision body pair: body1: %s idx: %d  body2: %s idx: %d", n0, i0, n1, i1);
+        }
+        if (pairIdx.size())
+        {
+          cwr.beginBlock();
+          cwr.writeFourCC(_MAKE4C('NCol'));
+          for (int p : pairIdx)
+            cwr.writeInt32e(p);
+          cwr.endBlock();
+        }
+      }
+    }
     cwr.endBlock();
   }
 

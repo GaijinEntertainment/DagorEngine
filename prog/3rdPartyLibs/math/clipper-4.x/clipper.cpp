@@ -412,6 +412,8 @@ double Area(const Polygon &poly)
       break;
     case rtError:
       throw "Coordinate exceeds range bounds.";
+    default:
+      break;
   }
 
   if (UseFullInt64Range) {

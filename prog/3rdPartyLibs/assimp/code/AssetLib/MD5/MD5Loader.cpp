@@ -79,6 +79,27 @@ static const aiImporterDesc desc = {
 };
 
 // ------------------------------------------------------------------------------------------------
+// Validate one vertex's weight references and accumulate, per bone, how many non-negligible
+// weights influence it. Weight and bone indices are read straight from the file, so reject
+// out-of-range values here to keep all later piCount[] and joint lookups in bounds.
+static void CountVertexBoneWeights(const MD5::VertexDesc &vertex, const MD5::WeightList &weights,
+        eastl::vector<unsigned int> &boneWeightCount) {
+    for (unsigned int w = vertex.mFirstWeight; w < vertex.mFirstWeight + vertex.mNumWeights; ++w) {
+        if (w >= weights.size()) {
+            throw DeadlyImportError("MD5MESH: Invalid weight index");
+        }
+        const MD5::WeightDesc &weightDesc = weights[w];
+        if (weightDesc.mBone >= boneWeightCount.size()) {
+            throw DeadlyImportError("MD5MESH: Invalid bone index");
+        }
+        // FIX for some invalid exporters
+        if (!(weightDesc.mWeight < AI_MD5_WEIGHT_EPSILON && weightDesc.mWeight >= -AI_MD5_WEIGHT_EPSILON)) {
+            ++boneWeightCount[weightDesc.mBone];
+        }
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
 // Constructor to be privately used by Importer
 MD5Importer::MD5Importer() :
         mIOHandler(nullptr),
@@ -217,8 +238,13 @@ void MD5Importer::MakeDataUnique(MD5::MeshDesc &meshSrc) {
 
     for (FaceList::const_iterator iter = meshSrc.mFaces.begin(), iterEnd = meshSrc.mFaces.end(); iter != iterEnd; ++iter) {
         const aiFace &face = *iter;
+        // Reject unpopulated faces (numtris > tri-lines leaves mIndices == nullptr).
+        if (face.mNumIndices != 3 || face.mIndices == nullptr) {
+            throw DeadlyImportError("MD5MESH: face is missing its three vertex indices");
+        }
         for (unsigned int i = 0; i < 3; ++i) {
-            if (face.mIndices[0] >= meshSrc.mVertices.size()) {
+            // Check mIndices[i] not [0]: catches out-of-range indices on faces 1 and 2.
+            if (face.mIndices[i] >= meshSrc.mVertices.size()) {
                 throw DeadlyImportError("MD5MESH: Invalid vertex index");
             }
 
@@ -366,19 +392,19 @@ void MD5Importer::LoadMD5MeshFile() {
 #else
 
     // FIX: MD5 files exported from Blender can have empty meshes
+    unsigned int numMaterials = 0;
     for (eastl::vector<MD5::MeshDesc>::const_iterator it = meshParser.mMeshes.begin(), end = meshParser.mMeshes.end(); it != end; ++it) {
         if (!(*it).mFaces.empty() && !(*it).mVertices.empty()) {
-            ++mScene->mNumMaterials;
+            ++numMaterials;
         }
     }
 
     // generate all meshes
-    mScene->mNumMeshes = mScene->mNumMaterials;
-    mScene->mMeshes = new aiMesh *[mScene->mNumMeshes];
-    mScene->mMaterials = new aiMaterial *[mScene->mNumMeshes];
+    mScene->mMeshes = new aiMesh *[numMaterials];
+    mScene->mMaterials = new aiMaterial *[numMaterials];
 
     //  storage for node mesh indices
-    pcNode->mNumMeshes = mScene->mNumMeshes;
+    pcNode->mNumMeshes = numMaterials;
     pcNode->mMeshes = new unsigned int[pcNode->mNumMeshes];
     for (unsigned int m = 0; m < pcNode->mNumMeshes; ++m) {
         pcNode->mMeshes[m] = m;
@@ -391,7 +417,10 @@ void MD5Importer::LoadMD5MeshFile() {
             continue;
         }
 
-        aiMesh *mesh = mScene->mMeshes[n] = new aiMesh();
+        aiMesh *mesh = new aiMesh();
+        mScene->mMeshes[n] = mesh;
+        ++mScene->mNumMeshes;
+
         mesh->mPrimitiveTypes = aiPrimitiveType_TRIANGLE;
 
         // generate unique vertices in our internal verbose format
@@ -414,17 +443,12 @@ void MD5Importer::LoadMD5MeshFile() {
         }
 
         // sort all bone weights - per bone
-        unsigned int *piCount = new unsigned int[meshParser.mJoints.size()];
-        ::memset(piCount, 0, sizeof(unsigned int) * meshParser.mJoints.size());
+        // Use a vector so the buffer is released automatically even if a malformed
+        // file makes the validation below throw.
+        eastl::vector<unsigned int> piCount(meshParser.mJoints.size(), 0);
 
-        for (MD5::VertexList::const_iterator iter = meshSrc.mVertices.begin(); iter != meshSrc.mVertices.end(); ++iter, ++pv) {
-            for (unsigned int jub = (*iter).mFirstWeight, w = jub; w < jub + (*iter).mNumWeights; ++w) {
-                MD5::WeightDesc &weightDesc = meshSrc.mWeights[w];
-                /* FIX for some invalid exporters */
-                if (!(weightDesc.mWeight < AI_MD5_WEIGHT_EPSILON && weightDesc.mWeight >= -AI_MD5_WEIGHT_EPSILON)) {
-                    ++piCount[weightDesc.mBone];
-                }
-            }
+        for (MD5::VertexList::const_iterator iter = meshSrc.mVertices.begin(); iter != meshSrc.mVertices.end(); ++iter) {
+            CountVertexBoneWeights(*iter, meshSrc.mWeights, piCount);
         }
 
         // check how many we will need
@@ -498,8 +522,6 @@ void MD5Importer::LoadMD5MeshFile() {
             }
         }
 
-        delete[] piCount;
-
         // now setup all faces - we can directly copy the list
         // (however, take care that the aiFace destructor doesn't delete the mIndices array)
         mesh->mNumFaces = (unsigned int)meshSrc.mFaces.size();
@@ -513,6 +535,7 @@ void MD5Importer::LoadMD5MeshFile() {
         // generate a material for the mesh
         aiMaterial *mat = new aiMaterial();
         mScene->mMaterials[n] = mat;
+        ++mScene->mNumMaterials;
 
         // insert the typical doom3 textures:
         // nnn_local.tga  - normal map

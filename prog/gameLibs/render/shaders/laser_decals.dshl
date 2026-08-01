@@ -210,7 +210,7 @@ shader laser_point_decal {
 
   (ps) {
     screen_pos_to_texcoord@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
-    depth_gbuf@smp2d = downsampled_far_depth_tex;//depth_gbuf;
+    depth_gbuf@smp2d = depth_gbuf;
   }
 
   hlsl(ps) {

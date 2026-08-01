@@ -21,6 +21,9 @@ using namespace darg;
 ECS_BROADCAST_EVENT_TYPE(EventTiledMapZoomed);
 ECS_REGISTER_EVENT(EventTiledMapZoomed);
 
+ECS_BROADCAST_EVENT_TYPE(EventTiledMapPanned);
+ECS_REGISTER_EVENT(EventTiledMapPanned);
+
 SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvTiledMapInput, bhv_tiled_map_input, cstr);
 
 bool BhvTiledMapInput::isActionInited = false;
@@ -217,6 +220,7 @@ int BhvTiledMapInput::pointingEvent(
         tiledMapContext->setWorldPos(tiledMapContext->getWorldPos() + worldDelta / nTouches);
         if (tiledMapContext->isViewCentered)
           tiledMapContext->setViewCentered(false);
+        g_entity_mgr->broadcastEvent(EventTiledMapPanned());
       }
     }
 
@@ -285,6 +289,7 @@ int BhvTiledMapInput::update(UpdateStage /*stage*/, Element *elem, float dt)
       tiledMapContext->setWorldPos(tiledMapContext->getWorldPos() + delta);
       if (tiledMapContext->isViewCentered)
         tiledMapContext->setViewCentered(false);
+      g_entity_mgr->broadcastEvent(EventTiledMapPanned());
     }
   }
 
@@ -293,7 +298,7 @@ int BhvTiledMapInput::update(UpdateStage /*stage*/, Element *elem, float dt)
 
 SQ_DEF_AUTO_BINDING_MODULE_EX(bind_tiled_map_input_events, "tiledMap.inputEvents", sq::VM_UI_ALL)
 {
-  Sqrat::Table tbl = ecs::sq::EventsBind<EventTiledMapZoomed>::bindall(vm);
+  Sqrat::Table tbl = ecs::sq::EventsBind<EventTiledMapZoomed, EventTiledMapPanned>::bindall(vm);
 
   return tbl;
 }

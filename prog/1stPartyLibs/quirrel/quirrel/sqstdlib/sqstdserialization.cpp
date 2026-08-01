@@ -64,6 +64,20 @@ struct SQStreamSerializer {
     SQStreamSerializer() : vm(nullptr), stream(nullptr), errorString(nullptr), stringCounter(0), depth(0),
         classCounter(0) {}
 
+    struct DepthScope {
+        SQStreamSerializer *serializer;
+        ~DepthScope() { serializer->depth--; }
+    };
+
+    bool enterContainer() {
+        if (depth >= MAX_DEPTH) {
+            errorString = "Maximum deserialization depth exceeded";
+            return false;
+        }
+        depth++;
+        return true;
+    }
+
     int getCountOfParams(SQObjectPtr obj) {
         if (sq_isclosure(obj))
             return _closure(obj)->_function->_nparameters;
@@ -627,6 +641,9 @@ struct SQStreamSerializer {
             }
 
             case TP_ARRAY: {
+                if (!enterContainer())
+                    return false;
+                DepthScope depthScope{this};
                 uint32_t size = 0;
                 if (v == 0) {
                     sq_newarray(vm, 0); // empty array
@@ -667,6 +684,9 @@ struct SQStreamSerializer {
             }
 
             case TP_TABLE: {
+                if (!enterContainer())
+                    return false;
+                DepthScope depthScope{this};
                 uint32_t size = 0;
                 if (v == 0) {
                     sq_newtable(vm); // empty table
@@ -712,6 +732,9 @@ struct SQStreamSerializer {
             }
 
             case TP_INSTANCE: {
+                if (!enterContainer())
+                    return false;
+                DepthScope depthScope{this};
                 fillAvailableClassNamesOnDemand();
                 uint32_t index = 0;
                 if (v == 0x0F) {

@@ -75,10 +75,11 @@ namespace acl
 
 			uint8_t looping_policy = 0;											//  25 |  33
 
-			uint8_t padding0[16] = { 0 };										//  26 |  34
+			uint8_t padding0[15] = { 0 };										//  26 |  34
 
 			// Seeking related data
-			uint8_t rounding_policy = 0;										//  42 |  50
+			uint8_t requested_rounding_policy = 0;								//  41 |  49
+			uint8_t effective_rounding_policy = 0;								//  42 |  50
 			uint8_t uses_single_segment = 0;									//  43 |  51
 
 			float sample_time = 0.0F;											//  44 |  52
@@ -104,7 +105,7 @@ namespace acl
 			const compressed_tracks* get_compressed_tracks() const { return tracks; }
 			compressed_tracks_version16 get_version() const { return tracks->get_version(); }
 			sample_looping_policy get_looping_policy() const { return static_cast<sample_looping_policy>(looping_policy); }
-			sample_rounding_policy get_rounding_policy() const { return static_cast<sample_rounding_policy>(rounding_policy); }
+			sample_rounding_policy get_rounding_policy() const { return static_cast<sample_rounding_policy>(effective_rounding_policy); }
 			bool is_initialized() const { return tracks != nullptr; }
 			void reset()
 			{

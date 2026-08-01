@@ -768,6 +768,10 @@ void format_pretty(ImDrawList *draw_list, const int format)
   {
     drawColorBlock("COMPRESS", SUFFIX);
   }
+  else if (format == TEXFMT_BC5S)
+  {
+    drawColorBlock("COMPRESS", SUFFIX);
+  }
   else if (format == TEXFMT_R8UI)
   {
     drawColorBlock("8", RED);

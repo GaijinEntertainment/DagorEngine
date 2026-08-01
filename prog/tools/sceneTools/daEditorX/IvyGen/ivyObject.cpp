@@ -336,8 +336,8 @@ void IvyObject::fillProps(PropPanel::ContainerPropertyControl &panel, DClassID f
     grp = panel.createGroup(PID_GEOM_GRP, "Geometry");
 
     PropPanel::ContainerPropertyControl *gtRadio = grp->createRadioGroup(PID_GEN_TYPE, "Geometry type:");
-    gtRadio->createRadio(PID_GEN_TYPE + GEOM_TYPE_PRISM, "prism");
-    gtRadio->createRadio(PID_GEN_TYPE + GEOM_TYPE_BILLBOARDS, "billboards");
+    gtRadio->createRadio(PID_GEN_TYPE + eastl::to_underlying(GEOM_TYPE_PRISM), "prism");
+    gtRadio->createRadio(PID_GEN_TYPE + eastl::to_underlying(GEOM_TYPE_BILLBOARDS), "billboards");
     grp->setInt(PID_GEN_TYPE, PID_GEN_TYPE + genGeomType);
 
     grp->createIndent();

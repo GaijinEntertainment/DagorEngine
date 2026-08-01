@@ -214,7 +214,7 @@ public:
         dgs_report_video_driver_init_failed();
 
       // currently unsupported for Metal path
-      if (pblk_video->getBool("msgBoxAndQuitOnInitVideoFail", false))
+      if (pblk_video->getBool("msgBoxAndQuitOnInitVideoFail", false) && !dgs_execute_quiet)
       {
         logerr("Error initializing video (%s):\n%s", d3d::get_driver_name(), d3d::get_last_error());
         ::flush_debug_file(); // extra flush so that error msg appears in the log with higher probability
@@ -238,11 +238,7 @@ public:
           ::flush_debug_file();
           // intentionally using quit functions which do not destroy objects before terminating app
           // otherwise there will be crashes due to wrong deinit order of various entities
-#if _TARGET_PC_WIN || _TARGET_XBOX
           ::terminate_process(1);
-#else
-          ::abort();
-#endif
         }
       }
       else

@@ -11,7 +11,6 @@
 #include <render/lightCube.h>
 #include <shaders/dag_postFxRenderer.h>
 
-class BcCompressor;
 class ComputeShaderElement;
 class LightProbe;
 
@@ -22,6 +21,8 @@ public:
 
 private:
   static constexpr int CAPACITY = INDOOR_PROBES;
+  static constexpr int HQ_MIN_MIP_INDEX = 3;
+
   eastl::bitset<CAPACITY> usedIndices;
   UniqueTexWithShaderVar cubesArray;
   UniqueTex lastMipsBc6HTarget;
@@ -31,7 +32,7 @@ private:
     void operator()(light_probe::Cube *ptr) { ptr ? light_probe::destroy(ptr) : (void)0; }
   };
   eastl::unique_ptr<light_probe::Cube, LightProbeDestructor> rtCube;
-  eastl::unique_ptr<BcCompressor> compressor;
+  eastl::unique_ptr<ComputeShaderElement> bc6hFastCompressor;
   eastl::unique_ptr<ComputeShaderElement> bc6hHighQualityCompressor;
 
   int cubeSize = 0;

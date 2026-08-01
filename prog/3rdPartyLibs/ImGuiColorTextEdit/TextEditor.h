@@ -9,7 +9,7 @@
 #include <EASTL/unordered_set.h>
 #include <EASTL/set.h>
 #include <EASTL/unordered_map.h>
-#include <imgui.h>
+#include <imgui/imgui.h>
 #include "TextEditorFuzzer.h"
 
 #define FIND_POPUP_TEXT_FIELD_LENGTH 400
@@ -46,7 +46,7 @@ public:
 	};
 	enum class LanguageDefinitionId
 	{
-		None, Cpp, Daslang, LanguageDefinitionCount
+		None, Cpp, Daslang, Blk, LanguageDefinitionCount
 	};
 	enum class SetViewAtLineMode
 	{
@@ -364,6 +364,7 @@ private:
 
 		static const LanguageDefinition& Cpp();
 		static const LanguageDefinition& Daslang();
+		static const LanguageDefinition& Blk();
 	};
 
 	bool RequireIndentationAfterNewLine(const eastl::string &line, char charAfter) const;
@@ -389,6 +390,8 @@ private:
 	public:
 		UndoRecord() {}
 		~UndoRecord() {}
+		UndoRecord(const UndoRecord&) = default;
+		UndoRecord& operator=(const UndoRecord&) = default;
 
 		UndoRecord(
 			const eastl::vector<UndoOperation>& aOperations,

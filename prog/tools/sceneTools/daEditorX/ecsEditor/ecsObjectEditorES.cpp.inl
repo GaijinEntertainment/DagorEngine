@@ -10,6 +10,8 @@
 #include <daECS/scene/scene.h>
 #include <de3_interface.h>
 #include <de3_objEntity.h>
+#include <oldEditor/de_interface.h>
+#include <oldEditor/de_workspace.h>
 #include <ecs/rendInst/riExtra.h>
 
 class ECSVisualEntity
@@ -19,7 +21,8 @@ public:
   {
     G_ASSERT(objEntities.empty());
 
-    tryCreateObjEntity(eid, "animchar__res", "animChar");
+    if (!(DAGORED2->getWorkspace().isUsingDngBasedSceneRender() && g_entity_mgr->has(eid, ECS_HASH("animchar_render"))))
+      tryCreateObjEntity(eid, "animchar__res", "animChar");
     if (!tryCreateObjEntity(eid, "effect__name", "fx"))
       if (!tryCreateObjEntity(eid, "ecs_fx__res", "fx"))
         if (!tryCreateObjEntity(eid, "area_fx__res", "fx"))

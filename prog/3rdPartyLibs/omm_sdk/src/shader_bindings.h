@@ -9,7 +9,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 */
 
 #include <omm.h>
-#include <shared/math.h>
+#include "util/math.h"
 
 #include "std_allocator.h"
 #include "std_containers.h"

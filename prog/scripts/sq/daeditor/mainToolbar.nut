@@ -24,7 +24,7 @@ let { hasNewLogerr } = require("%daeditor/state/logsWindow.nut")
 let {DE4_MODE_MOVE, DE4_MODE_ROTATE, DE4_MODE_SCALE, DE4_MODE_MOVE_SURF, DE4_MODE_SELECT,
      DE4_MODE_POINT_ACTION, getEditMode, setEditMode} = daEditor
 
-let invert = @(v) !v
+let invert = @(v): bool !v
 function toolbarButton(image, action, tooltip_text, checked=null, styles = {}) {
   function onHover(on) {
     cursors.setTooltip(on ? tooltip_text : null)
@@ -234,7 +234,7 @@ let markedSceneText = Computed(function() {
 function mainToolbar() {
   let toggleTime = @() editorTimeStop.set(!editorTimeStop.get())
   let toggleHelp = @() showHelp.modify(@(v) !v)
-  function isMainScene(id) {
+  function isMainScene(id): bool {
     let scene = sceneIdMap?.get()[id]
     return scene != null && scene.importDepth == 0 && !scene.hasParent
   }

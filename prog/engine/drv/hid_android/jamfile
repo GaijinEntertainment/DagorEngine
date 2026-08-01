@@ -20,11 +20,11 @@ Sources =
 ;
 
 AndroidSources =
-  NvSoftInput.java src/com/nvidia/Helpers/NvSoftInput.java
-  GamepadHelper.java     src/com/gaijinent/helpers/GamepadHelper.java
+  NvSoftInput.java
+  GamepadHelper.java
 ;
 
-AndroidLibProguard = and.proguard ;
+AndroidProguard = and.proguard ;
 
 AddIncludes = $(Root)/prog/engine/sharedInclude ;
 

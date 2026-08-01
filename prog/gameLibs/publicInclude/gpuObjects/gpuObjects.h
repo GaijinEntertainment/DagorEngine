@@ -18,6 +18,7 @@
 #include <rendInst/renderPass.h>
 #include <rendInst/layerFlags.h>
 #include <rendInst/riShaderConstBuffers.h>
+#include <rendInst/clientRiexPool.h>
 #include <math/integer/dag_IPoint3.h>
 #include <math/dag_hlsl_floatx.h>
 #include <math/dag_frustum.h>
@@ -102,7 +103,7 @@ private:
   void copyMatrices(const eastl::vector<uint32_t> &cells_to_copy, const eastl::vector<uint32_t> &cell_counters, Sbuffer *dst_buffer,
     Sbuffer *src_buffer, uint32_t max_in_cell, uint32_t dst_offset_bytes, uint32_t lod);
   eastl::string assetName;
-  uint32_t riPoolId;
+  rendinst::ClientRiexPool riPoolId;
   uint32_t riPoolOffset;
   SharedTexWithShaderVar mapTexId;
   int numLods;
@@ -113,7 +114,7 @@ private:
 
 public:
   rendinst::LayerFlag layer = rendinst::LayerFlag::Opaque;
-  ObjectManager(const char *name, uint32_t ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
+  ObjectManager(const char *name, rendinst::ClientRiexPool ri_pool_id, int cell_tile, int cells_size_count, float cell_size,
     float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters);
   ObjectManager(const ObjectManager &) = delete;
   ObjectManager(ObjectManager &&);
@@ -128,7 +129,7 @@ public:
   float getLodRange(int lod) { return sqrt(distSqLod[lod]); }
   int getCellsSizeCount() { return cellsSideCount; }
 
-  uint32_t getRiId() const { return riPoolId; }
+  uint32_t getRiId() const { return riPoolId.id(); }
 
   void getParameters(PlacingParameters &p) { p = parameters; }
 
@@ -200,7 +201,7 @@ private:
   };
   eastl::vector<CascadeData> cascades;
   eastl::vector<ObjectManager> objects;
-  eastl::vector<uint16_t> objectIds;
+  eastl::vector<rendinst::ClientRiexPool> objectIds;
   uint32_t maxRowsCountInBuffer = 0;
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingGenerateIndirect;
   eastl::unique_ptr<ComputeShaderElement> gpuInstancingRebuildRelems;
@@ -249,15 +250,16 @@ public:
     G_ASSERT_FAIL("GPU objects don't handle this rendinst layer: %d", eastl::to_underlying(layer_ri));
     return GPUOBJ_LAYER_OPAQUE;
   }
-  void addObject(const char *name, const int id, int cell_tile, int grid_size, float cell_size, float bounding_sphere_radius,
-    dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters)
+  void addObject(const char *name, rendinst::ClientRiexPool id, int cell_tile, int grid_size, float cell_size,
+    float bounding_sphere_radius, dag::ConstSpan<float> dist_sq_lod, const PlacingParameters &parameters)
   {
     if (eastl::find(objectIds.begin(), objectIds.end(), id) != objectIds.end())
       return;
 
     if (objects.size() == MAX_GPU_OBJECTS)
     {
-      logerr("GPUObjects: Trying to add object %s with id %d, but reached maximum number of objects (%d)", name, id, MAX_GPU_OBJECTS);
+      logerr("GPUObjects: Trying to add object %s with id %d, but reached maximum number of objects (%d)", name, id.id(),
+        MAX_GPU_OBJECTS);
       return;
     }
 
@@ -317,7 +319,7 @@ public:
     return make_span_const(cascades[cascade].layers[layerIdx].objectLodOffsets, MAX_LODS);
   }
 
-  void changeParameters(int idx, const PlacingParameters &parameters)
+  void changeParameters(rendinst::ClientRiexPool idx, const PlacingParameters &parameters)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)
@@ -327,7 +329,7 @@ public:
       }
   }
 
-  void changeGrid(int idx, int cell_tile, int grid_size, float cell_size)
+  void changeGrid(rendinst::ClientRiexPool idx, int cell_tile, int grid_size, float cell_size)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)
@@ -338,7 +340,7 @@ public:
       }
   }
 
-  void getCellData(int idx, int &cell_tile, int &cells_size_count, float &cell_size)
+  void getCellData(rendinst::ClientRiexPool idx, int &cell_tile, int &cells_size_count, float &cell_size)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)
@@ -348,7 +350,7 @@ public:
       }
   }
 
-  void getParameters(int idx, PlacingParameters &p)
+  void getParameters(rendinst::ClientRiexPool idx, PlacingParameters &p)
   {
     for (int i = 0; i < objectIds.size(); ++i)
       if (objectIds[i] == idx)

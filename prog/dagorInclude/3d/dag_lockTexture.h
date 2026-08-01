@@ -202,7 +202,7 @@ public:
   Image2DView(uint8_t *pixels, uint32_t w, uint32_t h, uint32_t byte_stride, uint32_t fmt) : BaseType{pixels, w, h, byte_stride, fmt}
   {
     G_ASSERTF(pixels && BaseType::bytesPerElement == sizeof(ElementType),
-      "Image2DView template parameter is inscompatible with underlying format (%d != %d)", BaseType::bytesPerElement,
+      "Image2DView template parameter is incompatible with underlying format (%d != %d)", BaseType::bytesPerElement,
       sizeof(ElementType));
   }
 

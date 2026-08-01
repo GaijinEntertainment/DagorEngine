@@ -118,10 +118,17 @@ struct PositionHasher
 	{
 		const unsigned int* key = reinterpret_cast<const unsigned int*>(vertex_positions + index * vertex_stride_float);
 
+		unsigned int x = key[0], y = key[1], z = key[2];
+
+		// replace negative zero with zero
+		x = (x == 0x80000000) ? 0 : x;
+		y = (y == 0x80000000) ? 0 : y;
+		z = (z == 0x80000000) ? 0 : z;
+
 		// scramble bits to make sure that integer coordinates have entropy in lower bits
-		unsigned int x = key[0] ^ (key[0] >> 17);
-		unsigned int y = key[1] ^ (key[1] >> 17);
-		unsigned int z = key[2] ^ (key[2] >> 17);
+		x ^= x >> 17;
+		y ^= y >> 17;
+		z ^= z >> 17;
 
 		// Optimized Spatial Hashing for Collision Detection of Deformable Objects
 		return (x * 73856093) ^ (y * 19349663) ^ (z * 83492791);
@@ -129,7 +136,10 @@ struct PositionHasher
 
 	bool equal(unsigned int lhs, unsigned int rhs) const
 	{
-		return memcmp(vertex_positions + lhs * vertex_stride_float, vertex_positions + rhs * vertex_stride_float, sizeof(float) * 3) == 0;
+		const float* lv = vertex_positions + lhs * vertex_stride_float;
+		const float* rv = vertex_positions + rhs * vertex_stride_float;
+
+		return lv[0] == rv[0] && lv[1] == rv[1] && lv[2] == rv[2];
 	}
 };
 
@@ -428,6 +438,7 @@ static float rescalePositions(Vector3* result, const float* vertex_positions_dat
 
 struct Quadric
 {
+	// a00*x^2 + a11*y^2 + a22*z^2 + 2*(a10*xy + a20*xz + a21*yz) + b0*x + b1*y + b2*z + c
 	float a00, a11, a22;
 	float a10, a20, a21;
 	float b0, b1, b2, c;
@@ -533,9 +544,9 @@ static void quadricFromPoint(Quadric& Q, float x, float y, float z, float w)
 	Q.a10 = 0.f;
 	Q.a20 = 0.f;
 	Q.a21 = 0.f;
-	Q.b0 = -2.f * x * w;
-	Q.b1 = -2.f * y * w;
-	Q.b2 = -2.f * z * w;
+	Q.b0 = -x * w;
+	Q.b1 = -y * w;
+	Q.b2 = -z * w;
 	Q.c = (x * x + y * y + z * z) * w;
 	Q.w = w;
 }
@@ -649,7 +660,7 @@ static bool hasTriangleFlip(const Vector3& a, const Vector3& b, const Vector3& c
 	Vector3 nbc = {eb.y * ec.z - eb.z * ec.y, eb.z * ec.x - eb.x * ec.z, eb.x * ec.y - eb.y * ec.x};
 	Vector3 nbd = {eb.y * ed.z - eb.z * ed.y, eb.z * ed.x - eb.x * ed.z, eb.x * ed.y - eb.y * ed.x};
 
-	return nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z < 0;
+	return nbc.x * nbd.x + nbc.y * nbd.y + nbc.z * nbd.z <= 0;
 }
 
 static bool hasTriangleFlips(const EdgeAdjacency& adjacency, const Vector3* vertex_positions, const unsigned int* collapse_remap, unsigned int i0, unsigned int i1)
@@ -668,9 +679,8 @@ static bool hasTriangleFlips(const EdgeAdjacency& adjacency, const Vector3* vert
 		unsigned int a = collapse_remap[edges[i].next];
 		unsigned int b = collapse_remap[edges[i].prev];
 
-		// skip triangles that get collapsed
-		// note: this is mathematically redundant as if either of these is true, the dot product in hasTriangleFlip should be 0
-		if (a == i1 || b == i1)
+		// skip triangles that will get collapsed by i0->i1 collapse or already got collapsed previously
+		if (a == i1 || b == i1 || a == b)
 			continue;
 
 		// early-out when at least one triangle flips due to a collapse
@@ -1003,13 +1013,19 @@ static void remapEdgeLoops(unsigned int* loop, size_t vertex_count, const unsign
 {
 	for (size_t i = 0; i < vertex_count; ++i)
 	{
+		// note: this is a no-op for vertices that were remapped
+		// ideally we would clear the loop entries for those for consistency, even though they aren't going to be used
+		// however, the remapping process needs loop information for remapped vertices, so this would require a separate pass
 		if (loop[i] != ~0u)
 		{
 			unsigned int l = loop[i];
 			unsigned int r = collapse_remap[l];
 
 			// i == r is a special case when the seam edge is collapsed in a direction opposite to where loop goes
-			loop[i] = (i == r) ? loop[l] : r;
+			if (i == r)
+				loop[i] = (loop[l] != ~0u) ? collapse_remap[loop[l]] : ~0u;
+			else
+				loop[i] = r;
 		}
 	}
 }
@@ -1265,7 +1281,7 @@ static float interpolate(float y, float x0, float y0, float x1, float y1, float 
 	// three point interpolation from "revenge of interpolation search" paper
 	float num = (y1 - y) * (x1 - x2) * (x1 - x0) * (y2 - y0);
 	float den = (y2 - y) * (x1 - x2) * (y0 - y1) + (y0 - y) * (x1 - x0) * (y1 - y2);
-	return x1 + num / den;
+	return x1 + (den == 0.f ? 0.f : num / den);
 }
 
 } // namespace meshopt

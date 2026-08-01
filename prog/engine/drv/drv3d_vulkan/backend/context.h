@@ -200,7 +200,12 @@ public:
   void accumulateAssumedRaytraceStructureReads(const RaytraceStructureBuildData &build_data);
   void buildAccelerationStructure(const RaytraceStructureBuildData &build_data);
   void queryAccelerationStructureCompationSizes(const RaytraceStructureBuildData &build_data);
+#if VK_EXT_opacity_micromap
+  void accumulateMicromapBuildAccesses(const RaytraceMicromapBuildData &build_data);
+  void queryMicromapCompactionSize(const RaytraceMicromapBuildData &build_data);
 #endif
+#endif
+  void flushCompactionSizeCopies();
 #endif
   bool copyImageCmdTailBarrier(const CmdCopyImage &cmd);
   void copyImageCmdMainAction(const CmdCopyImage &cmd);

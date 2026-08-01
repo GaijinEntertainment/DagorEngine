@@ -30,8 +30,10 @@ private:
   IRollupWindow *iRoll;
   static DataBlock *templateBlk;
 
-  void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, std::vector<std::string> &items);
-  void addComboInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable, std::vector<std::string> &items);
+  void addButtons(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable,
+    const std::vector<std::string> &items);
+  void addComboInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable,
+    const std::vector<std::string> &items);
   void addIntInput(const HWND group_hwnd, int idc, const char *name, int val, bool enable);
   void addRealInput(const HWND group_hwnd, int idc, const char *name, real val, bool enable);
   void addStrInput(const HWND group_hwnd, int idc, const char *name, const char *val, bool enable);
@@ -60,7 +62,7 @@ private:
 
   static void analyzeCfg(DataBlock &blk, CStr &source);
 
-  static bool loadStrFromFile(const std::wstring &fname, CStr &str);
+  static bool loadStrFromFile(const std::filesystem::path &fname, CStr &str);
 
   static BOOL CALLBACK generalRollupProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };

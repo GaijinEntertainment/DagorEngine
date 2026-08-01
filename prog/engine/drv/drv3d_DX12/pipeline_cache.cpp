@@ -57,7 +57,7 @@ enum CacheFileFlags
 };
 
 constexpr uint32_t CACHE_FILE_MAGIC = _MAKE4C('CX12');
-constexpr uint32_t CACHE_FILE_VERSION = 33;
+constexpr uint32_t CACHE_FILE_VERSION = 34;
 constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *));
 // Version history:
 // 1 - initial
@@ -95,6 +95,7 @@ constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *))
 // 31 - Add useResourceDescriptorHeapIndexing and useSamplerDescriptorHeapIndexing in root signature definitions
 // 32 - Bit packing of root signature definitions
 // 33 - Added isMesh bit to graphics root signature definitions to properly distinguish between regular and mesh root signatures
+// 34 - Shader dump dataHash now covers the bytecode, all shader identity hashes and pipeline library names changed
 } // namespace
 
 void PipelineCache::init(const SetupParameters &params)
@@ -222,12 +223,19 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
   fileHeader.rawDriverVersion = params.rawDriverVersion;
   if (library)
   {
-    fileHeader.librarySize = static_cast<uint32_t>(library->GetSerializedSize());
+    uint64_t libSize = library->GetSerializedSize();
+    G_ASSERTF_RETURN(libSize <= eastl::numeric_limits<decltype(fileHeader.librarySize)>::max(), ,
+      "DX12: Shader lib sizes of %llu bytes exceeded the bit limit of the header field", uint64_t{libSize});
+
+    fileHeader.librarySize = static_cast<uint32_t>(libSize);
   }
 
   MemoryWriteBuffer mem;
   for (auto &&cc : computeBlobs)
   {
+    G_ASSERTF_RETURN(cc.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
+      "DX12: cc.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{cc.blob.size()});
+
     mem.append(&cc.hash, sizeof(cc.hash));
     auto s = static_cast<uint32_t>(cc.blob.size());
     mem.append(&s, sizeof(s));
@@ -236,11 +244,17 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
   for (auto &&gc : graphicsCache)
   {
+    G_ASSERTF_RETURN(gc.variantCache.size() <= eastl::numeric_limits<uint32_t>::max(), ,
+      "DX12: gc.variantCache.size() %llu exceeds bit storage limit of the size field", uint64_t{gc.variantCache.size()});
+
     mem.append(&gc.ident, sizeof(gc.ident));
     auto s = static_cast<uint32_t>(gc.variantCache.size());
     mem.append(&s, sizeof(s));
     for (auto &&v : gc.variantCache)
     {
+      G_ASSERTF_RETURN(v.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
+        "DX12: v.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{v.blob.size()});
+
       mem.append(&v.topology, sizeof(v.topology));
       mem.append(&v.framebufferLayoutIndex, sizeof(v.framebufferLayoutIndex));
       mem.append(&v.inputLayoutIndex, sizeof(v.inputLayoutIndex));
@@ -254,6 +268,9 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
   for (auto &&cs : computeSignatures)
   {
+    G_ASSERTF_RETURN(cs.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
+      "DX12: cs.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{cs.blob.size()});
+
     mem.append(&cs.def, sizeof(cs.def));
     auto s = static_cast<uint32_t>(cs.blob.size());
     mem.append(&s, sizeof(s));
@@ -262,6 +279,9 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
   for (auto &&gs : graphicsSignatures)
   {
+    G_ASSERTF_RETURN(gs.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
+      "DX12: gs.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{gs.blob.size()});
+
     mem.append(&gs.def, sizeof(gs.def));
     auto s = static_cast<uint32_t>(gs.blob.size());
     mem.append(&s, sizeof(s));
@@ -270,6 +290,9 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
   for (auto &&gs : graphicsMeshSignatures)
   {
+    G_ASSERTF_RETURN(gs.blob.size() <= eastl::numeric_limits<uint32_t>::max(), ,
+      "DX12: gs.blob.size() %llu exceeds bit storage limit of the size field", uint64_t{gs.blob.size()});
+
     mem.append(&gs.def, sizeof(gs.def));
     auto s = static_cast<uint32_t>(gs.blob.size());
     mem.append(&s, sizeof(s));
@@ -305,6 +328,9 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
     compSize = 0;
   compressedMemory.resize(compSize);
 #endif
+
+  G_ASSERTF_RETURN(mem.buf.size() <= eastl::numeric_limits<decltype(fileHeader.uncompressedContentSize)>::max(), ,
+    "DX12: library memory size of %llu bytes, exceeds bit limit of header field", uint64_t{mem.buf.size()});
 
   fileHeader.compressedContentSize = static_cast<uint32_t>(compressedMemory.size());
   fileHeader.uncompressedContentSize = static_cast<uint32_t>(mem.buf.size());

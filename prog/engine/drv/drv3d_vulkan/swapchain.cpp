@@ -370,18 +370,26 @@ bool Swapchain::acquireSwapImage()
   // we try to block here if latency is too big (we don't want too much images)
   // or if windowing system somehow blocks on GPU regardless amount of images in swapchain
   // or if we can't allocate enough images to properly fit into async execution mode constraints
-  if (!acquired && (rc == VK_TIMEOUT || rc == VK_NOT_READY) && currentMode.extraBusyImages >= Globals::cfg.swapchainMaxExtraImages)
+  if (!acquired && (rc == VK_TIMEOUT || rc == VK_NOT_READY))
   {
-    TIME_PROFILE(vulkan_swapchain_image_blocked_acquire);
-    WinAutoLock lock(acquireMutex);
-    timeout = GENERAL_GPU_TIMEOUT_NS;
-    doAcquire();
-    if ((rc == VK_TIMEOUT || rc == VK_NOT_READY) && acquiredByBackend)
+    bool extraImageAllowed = true;
+    extraImageAllowed &= (currentMode.extraBusyImages < Globals::cfg.swapchainMaxExtraImages);
+    extraImageAllowed |= currentMode.presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR;
+    extraImageAllowed &= currentMode.extraBusyImages <= query.caps.maxImageCount || query.caps.maxImageCount == 0;
+    if (!extraImageAllowed)
+    {
+      TIME_PROFILE(vulkan_swapchain_image_blocked_acquire);
+      WinAutoLock lock(acquireMutex);
+      timeout = GENERAL_GPU_TIMEOUT_NS;
       doAcquire();
+      if ((rc == VK_TIMEOUT || rc == VK_NOT_READY) && acquiredByBackend)
+        doAcquire();
+    }
   }
 
   if (acquired)
   {
+    recordAcquiredIndex(acquiredImageIdx);
     SwapchainImage &acquiredImage = images[acquiredImageIdx];
     G_ASSERT(!acquiredImage.acquired);
     acquiredImage.acquired = true;
@@ -850,7 +858,8 @@ bool Swapchain::setMode(const SwapchainMode &new_mode)
     }
   }
 
-  if (currentMode.presentMode != new_mode.presentMode)
+  bool presentModeChanged = currentMode.presentMode != new_mode.presentMode;
+  if (presentModeChanged)
   {
     debug("vulkan: swapchain mode change request: mode %s -> %s", formatPresentMode(currentMode.presentMode),
       formatPresentMode(new_mode.presentMode));
@@ -882,6 +891,9 @@ bool Swapchain::setMode(const SwapchainMode &new_mode)
   }
 
   currentMode = new_mode;
+  // reset busy images on mode change to avoid higer latency on blocking present modes like FIFO
+  if (presentModeChanged)
+    currentMode.extraBusyImages = 0;
   currentMode.modifySource = nullptr;
 
   if (this == &Frontend::swapchain)
@@ -999,6 +1011,7 @@ void Swapchain::rotateFromOffscreen()
   SwapchainImage &acquiredImage = images[acquiredImageIdx];
   wrappedRotatedTex->image = acquiredImage.img;
   d3d::set_render_target({}, DepthAccess::RW, {{wrappedRotatedTex, 0, 0}});
+  d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
   d3d::set_tex(STAGE_PS, 0, wrappedTex);
   d3d::set_sampler(STAGE_PS, 0, d3d::request_sampler({}));
   d3d::set_program(Globals::shaderProgramDatabase.getRotateProgram(query.caps.currentTransform).get());
@@ -1132,6 +1145,24 @@ bool Swapchain::blitStillImage()
   Globals::ctx.dispatchCmd(blitImage(stillImage, activeImage));
   return true;
 }
+
+#if DAGOR_DBGLEVEL > 0
+void Swapchain::recordAcquiredIndex(uint32_t idx)
+{
+  acquireIdxHistory[acquireIdxHistoryIdx] = idx;
+  ++acquireIdxHistoryIdx;
+  if (acquireIdxHistoryIdx >= ACQUIRE_IDX_HISTORY_SZ)
+    acquireIdxHistoryIdx = 0;
+}
+
+int Swapchain::getPresentedRingSize()
+{
+  uint64_t uniqueIndexes = 0;
+  for (uint32_t i : acquireIdxHistory)
+    uniqueIndexes |= 1ull << i;
+  return dag::popcount(uniqueIndexes);
+}
+#endif
 
 Swapchain *SecondarySwapchainStorage::allocate(void *window)
 {

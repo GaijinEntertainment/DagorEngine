@@ -46,6 +46,14 @@ enum class TexCoordFormat : int {
    MAX_NUM
 };
 
+enum class OmmIndexFormat : uint {
+	UINT_16,
+	UINT_32,
+	UINT_8,
+
+	MAX_NUM
+};
+
 bool IsKnown(OpacityState state)
 {
     return ((uint) state & 1u) == (uint) state;

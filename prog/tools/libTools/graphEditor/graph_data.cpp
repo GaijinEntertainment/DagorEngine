@@ -691,6 +691,12 @@ void clear_graph_data(GraphData &out)
   out.sourcePath.clear();
 }
 
+size_t approx_node_size(const GraphData::Node &node)
+{
+  return sizeof(GraphData::Node) + node.pins.size() * sizeof(GraphData::Pin) +
+         node.propertyValues.size() * sizeof(eastl::pair<eastl::string, eastl::string>);
+}
+
 bool validate_subgraph_schema(const GraphData &gd, eastl::vector<SubgraphSchemaError> &out_errors)
 {
   // Snapshot the starting error count so the return value reflects whether THIS call

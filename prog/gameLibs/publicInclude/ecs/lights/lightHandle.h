@@ -5,10 +5,10 @@
 #pragma once
 
 #include <ADT/uniqueResHandle.h>
-#include <render/lights/clusteredLights.h>
+#include <render/lights/lightsEncoding.h>
 
 struct LightHandleDeleter
 {
   void operator()(int h) const;
 };
-typedef UniqueResHandle<LightHandleDeleter, unsigned, ClusteredLights::INVALID_LIGHT> LightHandle;
+typedef UniqueResHandle<LightHandleDeleter, unsigned, LightsEncoder::INVALID_LIGHT> LightHandle;

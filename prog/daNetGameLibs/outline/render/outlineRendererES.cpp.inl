@@ -191,18 +191,10 @@ static void outline_render_resolution_es_event_handler(const SetResolutionEvent 
 }
 
 #define TRANSPARENCY_NODE_PRIORITY_OUTLINE_APPLY 5
-ECS_ON_EVENT(on_appear, ChangeRenderFeatures)
-static void create_outline_node_es(
-  const ecs::Event &evt, ecs::EntityManager &manager, dafg::NodeHandle &outline_prepare_node, dafg::NodeHandle &outline_apply_node)
+static dafg::NodeHandle make_outline_prepare_node(ecs::EntityManager &manager)
 {
-  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
-  {
-    if (!changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA))
-      return;
-  }
-
   auto nodeNs = dafg::root() / "transparent" / "close";
-  outline_prepare_node = nodeNs.registerNode("outline_prepare_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
+  return nodeNs.registerNode("outline_prepare_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
     registry.read("opaque_depth_with_water").texture().atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
 
     auto outlineDepth = registry.create("outline_depth")
@@ -229,9 +221,14 @@ static void create_outline_node_es(
       });
     };
   });
+}
 
-  outline_apply_node = nodeNs.registerNode("outline_apply_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
-    request_common_transparent_state(registry);
+static dafg::NodeHandle make_outline_apply_node(ecs::EntityManager &manager)
+{
+  auto nodeNs = dafg::root() / "transparent" / "close";
+  return nodeNs.registerNode("outline_apply_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
+    // main view only: the plain helper would opt this node back into CameraInCamera multiplexing
+    request_common_transparent_state_per_view(registry, "view0");
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_OUTLINE_APPLY);
 
     auto outlineDepthHndl =
@@ -240,10 +237,7 @@ static void create_outline_node_es(
 
     read_gbuffer_material_only(registry);
 
-    return [outlineDepthHndl, &manager](const dafg::multiplexing::Index &multiplexing_index) {
-      if (multiplexing_index.subCamera > 0)
-        return;
-
+    return [outlineDepthHndl, &manager]() {
       camera_in_camera::RenderMainViewOnly camcam{{}};
 
       render_outline_ecs_query(manager, [&](OutlineRenderer &outline_renderer, OutlineContexts &outline_ctxs) {
@@ -255,4 +249,13 @@ static void create_outline_node_es(
       });
     };
   });
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(OnCameraMainViewNodeConstruction)
+ECS_REQUIRE(OutlineRenderer outline_renderer)
+static void outline_view_nodes_es(const OnCameraMainViewNodeConstruction &evt, ecs::EntityManager &manager)
+{
+  evt.nodes->push_back(make_outline_prepare_node(manager));
+  evt.nodes->push_back(make_outline_apply_node(manager));
 }

@@ -105,6 +105,66 @@ VkAccelerationStructureGeometryKHR RaytraceGeometryDescriptionToVkAccelerationSt
 
 } // namespace
 
+#if VK_EXT_opacity_micromap
+
+namespace
+{
+uint32_t omm_index_unit_size(Sbuffer *ib, RaytraceGeometryDescription::IndexFormat fmt)
+{
+  switch (fmt)
+  {
+    case RaytraceGeometryDescription::IndexFormat::U8: return 1;
+    case RaytraceGeometryDescription::IndexFormat::U16: return 2;
+    case RaytraceGeometryDescription::IndexFormat::U32: return 4;
+    case RaytraceGeometryDescription::IndexFormat::UseBuffer:
+      return ((GenericBufferInterface *)ib)->getIndexType() == VK_INDEX_TYPE_UINT16 ? 2 : 4;
+  }
+  return 4;
+}
+
+VkIndexType omm_index_type(Sbuffer *ib, RaytraceGeometryDescription::IndexFormat fmt)
+{
+  switch (fmt)
+  {
+    case RaytraceGeometryDescription::IndexFormat::U8: return VK_INDEX_TYPE_UINT8;
+    case RaytraceGeometryDescription::IndexFormat::U16: return VK_INDEX_TYPE_UINT16;
+    case RaytraceGeometryDescription::IndexFormat::U32: return VK_INDEX_TYPE_UINT32;
+    case RaytraceGeometryDescription::IndexFormat::UseBuffer: return ((GenericBufferInterface *)ib)->getIndexType();
+  }
+  return VK_INDEX_TYPE_UINT32;
+}
+} // namespace
+
+void drv3d_vulkan::fillTrianglesOmmDesc(VkAccelerationStructureTrianglesOpacityMicromapEXT &dst,
+  const RaytraceGeometryDescription::OpacityMicroMapLinkage &src)
+{
+  // abstract OMM description is modeled after the API structs, reuse the data in place
+  G_STATIC_ASSERT(sizeof(VkMicromapUsageEXT) == sizeof(RaytraceOpacityMicroMapDescription));
+  G_STATIC_ASSERT((uint32_t)RaytraceOpacityMicroMapFormat::OpacityCompression1_2State == VK_OPACITY_MICROMAP_FORMAT_2_STATE_EXT);
+  G_STATIC_ASSERT((uint32_t)RaytraceOpacityMicroMapFormat::OpacityCompression1_4State == VK_OPACITY_MICROMAP_FORMAT_4_STATE_EXT);
+
+  dst = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_TRIANGLES_OPACITY_MICROMAP_EXT};
+  if (src.indexBuffer)
+  {
+    const uint32_t unitSize = omm_index_unit_size(src.indexBuffer, src.indexFormat);
+    dst.indexType = omm_index_type(src.indexBuffer, src.indexFormat);
+    dst.indexBuffer.deviceAddress =
+      ((GenericBufferInterface *)src.indexBuffer)->getBufferRef().devOffset(unitSize * src.indexBufferOffsetInIndexUnits);
+    dst.indexStride = unitSize * src.indexBufferStrideInIndexUnits;
+  }
+  else
+    dst.indexType = VK_INDEX_TYPE_NONE_KHR;
+  dst.baseTriangle = src.triangleArrayOffset;
+  dst.usageCountsCount = src.ommDesc.size();
+  // points at caller-owned memory: only valid for synchronous consumption, deferred
+  // users must copy the usage data and repoint pUsageCounts at the copy
+  dst.pUsageCounts = reinterpret_cast<const VkMicromapUsageEXT *>(src.ommDesc.data());
+  if (src.triangleArray)
+    dst.micromap = ((RaytraceAccelerationStructure *)src.triangleArray)->getMicromapHandle();
+}
+
+#endif // VK_EXT_opacity_micromap
+
 VkAccelerationStructureGeometryKHR drv3d_vulkan::RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(
   const RaytraceGeometryDescription &desc)
 {
@@ -121,6 +181,18 @@ VkAccelerationStructureGeometryKHR drv3d_vulkan::RaytraceGeometryDescriptionToVk
 
 void RaytraceAccelerationStructure::destroyPrimaryVulkanObject()
 {
+#if VK_EXT_opacity_micromap
+  if (desc.isMicromap)
+  {
+    if (!is_null(getMicromapHandle()))
+    {
+      VulkanDevice &dev = Globals::VK::dev;
+      VULKAN_LOG_CALL(dev.vkDestroyMicromapEXT(dev.get(), getMicromapHandle(), VKALLOC(acceleration_structure)));
+      setHandle(generalize(Handle()));
+    }
+    return;
+  }
+#endif
   if (!is_null(getHandle()))
   {
     VulkanDevice &dev = Globals::VK::dev;
@@ -174,6 +246,25 @@ void RaytraceAccelerationStructure::createVulkanObject()
     const ResourceMemory &mem = getMemory();
     VULKAN_EXIT_ON_FAIL(dev.vkBindBufferMemory(dev.get(), bufHandle, mem.deviceMemory(), mem.offset));
   }
+
+#if VK_EXT_opacity_micromap
+  if (desc.isMicromap)
+  {
+    VkMicromapCreateInfoEXT mci = {VK_STRUCTURE_TYPE_MICROMAP_CREATE_INFO_EXT};
+    mci.createFlags = 0;
+    mci.buffer = bufHandle;
+    mci.offset = 0;
+    mci.size = desc.size;
+    mci.type = VK_MICROMAP_TYPE_OPACITY_MICROMAP_EXT;
+
+    VulkanMicromapHandle ret;
+    VULKAN_EXIT_ON_FAIL(dev.vkCreateMicromapEXT(dev.get(), &mci, VKALLOC(acceleration_structure), ptr(ret)));
+    setHandle(generalize(ret));
+
+    reportToTQL(true);
+    return;
+  }
+#endif
 
   VkAccelerationStructureCreateInfoKHR asci = //
     {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR};
@@ -234,6 +325,8 @@ void RaytraceAccelerationStructure::shutdown()
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
 VkDeviceAddress RaytraceAccelerationStructure::getDeviceAddress()
 {
+  // micromaps are referenced by VkMicromapEXT handle, not by device address
+  G_ASSERT(!desc.isMicromap);
   VkAccelerationStructureDeviceAddressInfoKHR info = //
     {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR};
   info.accelerationStructure = getHandle();
@@ -255,7 +348,7 @@ RaytraceAccelerationStructure *RaytraceAccelerationStructure::create(bool top_le
 {
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
   WinAutoLock lk(Globals::Mem::mutex);
-  return Globals::Mem::res.alloc<RaytraceAccelerationStructure>({top_level, size});
+  return Globals::Mem::res.alloc<RaytraceAccelerationStructure>({top_level, size, false /*micromap*/});
 #else
   G_UNUSED(desc);
   G_UNUSED(count);
@@ -263,5 +356,13 @@ RaytraceAccelerationStructure *RaytraceAccelerationStructure::create(bool top_le
   return nullptr;
 #endif
 }
+
+#if VK_EXT_opacity_micromap
+RaytraceAccelerationStructure *RaytraceAccelerationStructure::createMicromap(VkDeviceSize size)
+{
+  WinAutoLock lk(Globals::Mem::mutex);
+  return Globals::Mem::res.alloc<RaytraceAccelerationStructure>({false /*top_level*/, size, true /*micromap*/});
+}
+#endif
 
 #endif // VULKAN_HAS_RAYTRACING

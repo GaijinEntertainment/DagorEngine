@@ -37,6 +37,7 @@
   file:t = "../../../../prog/gameLibs/soundOcclusionGPU/shaders/sound_occlusion_world_sdf_shadow.dshl"
 
   file:t = "./source/dynamicSpheresMat.dshl"
+  file:t = "../../../../prog/gameLibs/render/shaders/gi_verify_capture.dshl"
 
   file:t = "./source/sponza.dshl"
   //file:t = "./source/layered.dshl"

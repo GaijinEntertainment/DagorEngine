@@ -78,17 +78,6 @@ struct AccumulationConstParams
 };
 
 
-// copy-paste from clouds_shadow.sh
-float clouds_shadow(float3 worldPos, AccumulationConstParams cp)
-{
-  float alt = cp.world_pos_to_clouds_alt.x*worldPos.y + cp.world_pos_to_clouds_alt.y;
-  worldPos.xz = cp.clouds_weather_inv_size__alt_scale.yz*alt + worldPos.xz;
-  float shadow = tex2Dlod(clouds_shadows_2d,
-    float4(worldPos.xz*cp.clouds_weather_inv_size__alt_scale.x + cp.world_pos_to_clouds_alt.zw + clouds_hole_pos.zw, 0, 0)).x;
-  return lerp(shadow,1, max(alt,0));
-}
-
-
 void accumulatePreparedFogStep(AccumulationConstParams const_params,
   float4 media, float dist, float3 worldPos, float step_len, float shadow,
   inout float4 accumulated_scattering, out float transmittance)
@@ -124,7 +113,7 @@ void accumulateFogStep(
     float subTransmittance;
     float stepLen = const_params.stepLen;
 
-    float shadow = clouds_shadow(worldPos, const_params);
+    float shadow = get_clouds_shadow(worldPos);//from USE_CLOUDS_BSM, see clouds_bsm.dshl
     FLATTEN // not having a branch for static shadows is faster when it is enabled (and it is an edge case to have it disabled, but not DF)
     if (distant_fog_use_static_shadows)
       shadow *= getStaticShadow(worldPos);

@@ -4,13 +4,14 @@
 #include <daECS/core/entitySystem.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_resource.h>
+#include <ecs/camera/getActiveCameraSetup.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/motionVectorAccess.h>
 
 #include <math/dag_TMatrix4D.h>
 
 #include <main/water.h>
-#include <render/antiAliasing_legacy.h>
+#include <render/antialiasing.h>
 #include <render/renderEvent.h>
 #include <render/skies.h>
 #include <render/subFrameSample.h>
@@ -26,9 +27,10 @@
 
 #include <EASTL/shared_ptr.h>
 
-
 template <typename T>
 using BlobHandle = dafg::VirtualResourceHandle<T, false, false>;
+
+CONSOLE_FLOAT_VAL_MINMAX("render", jitter_scale, 1.f, 0.f, 100.f);
 
 namespace var
 {
@@ -66,6 +68,49 @@ void set_dissolve_frame_counter(const uint16_t sub_samples,
     frameNo = ::dagor_frame_no();
   }
   ShaderGlobal::set_int(var::dissolve_frame_counter, frameNo % tempCount);
+}
+
+static Point2 calc_screenshot_jitter_ndc(
+  int super_pixels, int sub_pixels, uint32_t super_sample, uint32_t sub_sample, const IPoint2 &display_res)
+{
+  Point2 jitter(0.f, 0.f);
+  if (sub_pixels > 1)
+  {
+    const uint32_t subx = sub_sample / sub_pixels;
+    const uint32_t suby = sub_sample % sub_pixels;
+
+    const float ox = (float(subx - 0.5f * sub_pixels) / sub_pixels) * (2.0f / (float(display_res.x * super_pixels)));
+    const float oy = (float(suby - 0.5f * sub_pixels) / sub_pixels) * (2.0f / (float(display_res.y * super_pixels)));
+
+    if (sub_pixels == 2)
+    {
+      // rotate by atg( 0.5 ), optimal rotation angle
+      constexpr float sinA = 0.4472135954999579;
+      constexpr float cosA = 0.8944271909999159;
+      jitter.x = ox * cosA - oy * sinA;
+      jitter.y = ox * sinA + oy * cosA;
+    }
+    else
+    {
+      jitter.x = ox;
+      jitter.y = oy;
+    }
+  }
+  if (super_pixels > 1)
+  {
+    const uint32_t superx = super_sample / super_pixels;
+    const uint32_t supery = super_sample % super_pixels;
+
+    jitter.x -= float(superx - 0.5f * super_pixels) / super_pixels * (2.0f / display_res.x);
+    jitter.y += float(supery - 0.5f * super_pixels) / super_pixels * (2.0f / display_res.y);
+  }
+  return jitter;
+}
+
+static Point2 calc_antialiasing_jitter_ndc(uint32_t frame_id, const IPoint2 &render_res)
+{
+  const Point2 jitterOffset = render::antialiasing::get_jitter_offset(frame_id) * jitter_scale;
+  return Point2(jitterOffset.x * 2.0f / render_res.x, -jitterOffset.y * 2.0f / render_res.y);
 }
 
 ECS_TAG(render)
@@ -229,8 +274,9 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
     };
 
     const auto displayResolution = registry.getResolution<2>("display");
+    const auto renderResolution = registry.getResolution<2>("main_view");
     return
-      [displayResolution,
+      [displayResolution, renderResolution,
         handles = eastl::make_unique<HandlesToInit>(HandlesToInit{
           registry.createBlob<CameraParams>("current_camera").withHistory().handle(),
           registry.createBlob<ViewVecs>("view_vectors").withHistory().handle(), registry.createBlob<Point4>("world_view_pos").handle(),
@@ -271,67 +317,40 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
 
         Driver3dPerspective jitterPersp = currentFrameCamera.noJitterPersp;
         auto displayRes = displayResolution.get();
-
-        {
-          jitterPersp.ox = jitterPersp.oy = 0;
-          if (subPixels > 1)
-          {
-            const uint32_t subx = subSample / subPixels;
-            const uint32_t suby = subSample % subPixels;
-
-            const float ox = (float(subx - 0.5f * subPixels) / subPixels) * (2.0f / (float(displayRes.x * superPixels)));
-            const float oy = (float(suby - 0.5f * subPixels) / subPixels) * (2.0f / (float(displayRes.y * superPixels)));
-
-            if (subPixels == 2)
-            {
-              // rotate by atg( 0.5 ), optimal rotation angle
-              constexpr float sinA = 0.4472135954999579;
-              constexpr float cosA = 0.8944271909999159;
-              jitterPersp.ox = ox * cosA - oy * sinA;
-              jitterPersp.oy = ox * sinA + oy * cosA;
-            }
-            else
-            {
-              jitterPersp.ox = ox;
-              jitterPersp.oy = oy;
-            }
-          }
-          if (superPixels > 1)
-          {
-            const uint32_t superx = superSample / superPixels;
-            const uint32_t supery = superSample % superPixels;
-
-            jitterPersp.ox -= float(superx - 0.5f * superPixels) / superPixels * (2.0f / displayRes.x);
-            jitterPersp.oy += float(supery - 0.5f * superPixels) / superPixels * (2.0f / displayRes.y);
-          }
-        }
+        auto renderRes = renderResolution.get();
 
         // TODO: we can completely stop camera for being accessible
         // outside of FG and guarantee correct multiplexing behaviour
         // (cameras should differ for different viewports and sub/super samples)
 
-        AntiAliasing *antiAliasing = WRDispatcher::getAntialiasing();
-        Point2 jitterOffset(0, 0);
-        if (antiAliasing)
-          jitterOffset = antiAliasing->update(jitterPersp);
-
-        currentFrameCamera.jitterProjTm = currentFrameCamera.noJitterProjTm;
-        currentFrameCamera.jitterProjTm.m[2][0] += jitterPersp.ox;
-        currentFrameCamera.jitterProjTm.m[2][1] += jitterPersp.oy;
+        auto ndcToPixel = [&](const Point2 &ndc) { return Point2(ndc.x * renderRes.x * 0.5f, -ndc.y * renderRes.y * 0.5f); };
         auto ndcToUv = [](const Point2 &ndc) { return Point2(ndc.x * 0.5f, -ndc.y * 0.5f); };
-        currentFrameCamera.jitterOffsetUv = ndcToUv(jitterOffset);
-        // todo: replce that with 'double' version!
+
+        const Point2 jitterNdc =
+          superPixels == 1 && subPixels == 1
+            ? calc_antialiasing_jitter_ndc(::dagor_get_global_frame_id() + multiplexing_index.subSample, renderRes)
+            : calc_screenshot_jitter_ndc(superPixels, subPixels, superSample, subSample, displayRes);
+        jitterPersp.ox = jitterNdc.x;
+        jitterPersp.oy = jitterNdc.y;
+        const Point2 jitterOffset = ndcToPixel(jitterNdc);
+
+        TMatrix4D jitterProjTm = TMatrix4D(currentFrameCamera.noJitterProjTm);
+        dmatrix_perspective_add_jitter(jitterProjTm, jitterPersp.ox, jitterPersp.oy);
+        currentFrameCamera.jitterProjTm = TMatrix4(jitterProjTm);
+        currentFrameCamera.jitterOffsetUv = ndcToUv(jitterNdc);
+        currentFrameCamera.jitterOffset = jitterOffset;
         d3d::settm(TM_PROJ, &currentFrameCamera.jitterProjTm);
         d3d::settm(TM_VIEW, currentFrameCamera.viewTm);
         currentFrameCamera.jitterPersp = jitterPersp;
-        currentFrameCamera.jitterGlobtm = TMatrix4(currentFrameCamera.viewTm) * currentFrameCamera.jitterProjTm;
+        const TMatrix4D viewTm = calc_camera_view(currentFrameCamera.viewItm, currentFrameCamera.cameraWorldPos);
+        currentFrameCamera.jitterGlobtm = TMatrix4(viewTm * jitterProjTm);
         currentFrameCamera.jitterFrustum = currentFrameCamera.jitterGlobtm;
         ShaderGlobal::set_float4(var::uv_temporal_jitter, jitterPersp.ox * 0.5, jitterPersp.oy * -0.5,
           prevFrameCamera.jitterPersp.ox * 0.5, prevFrameCamera.jitterPersp.oy * -0.5);
 
-        TMatrix4D viewRotTm = currentFrameCamera.viewTm;
+        TMatrix4D viewRotTm = viewTm;
         viewRotTm.setrow(3, 0.0f, 0.0f, 0.0f, 1.0f);
-        currentFrameCamera.viewRotJitterProjTm = TMatrix4(viewRotTm * currentFrameCamera.jitterProjTm);
+        currentFrameCamera.viewRotJitterProjTm = TMatrix4(viewRotTm * jitterProjTm);
 
         const DPoint3 move = currentFrameCamera.cameraWorldPos - prevFrameCamera.cameraWorldPos;
         const ReprojectionTransforms reprojectionTms = calc_reprojection_transforms(prevFrameCamera, currentFrameCamera);

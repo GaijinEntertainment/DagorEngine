@@ -89,7 +89,7 @@ struct unw_addr_space
     struct unw_debug_frame_list *debug_frames;
    };
 
-struct cursor
+struct MAY_ALIAS cursor
   {
     struct dwarf_cursor dwarf;          /* must be first */
 

@@ -103,10 +103,15 @@ shader impostor_shadow_atlas
     impostor_options@f4 = (impostor_options.x, impostor_options.y, 1/impostor_options.x, 1/impostor_options.y);
     impostor_shadow_texture@smp2d = impostor_shadow_texture;
     impostor_bounding_sphere@f4 = impostor_bounding_sphere;
-    impostor_atlas_mask@smp2d = impostor_atlas_mask;
+    impostor_atlas_mask@tex2d = impostor_atlas_mask;
+  }
+  if (!maybe(global_frame_has_linear_clamp_sampler))
+  {
+    INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
   }
 
   hlsl(ps) {
+    #define impostor_atlas_mask_samplerstate global_linear_clamp_sampler
     float shadow_ps(VsOutput input) : SV_Target
     {
       if (need_clip_impostor(input.tc_clipping.zw))

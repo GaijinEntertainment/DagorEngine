@@ -10,6 +10,7 @@
 #include <generic/dag_carray.h>
 
 struct TreeBitmapNode;
+struct PhysMapCompactDecals;
 
 struct PhysMap
 {
@@ -55,9 +56,9 @@ struct PhysMap
   float gridScale = 1.f;
   float invGridScale = 1.f;
   int gridSz = 0;
-  // TODO: simplify to one array, instead of 2 arrays. It requires to rebuild meshes in
-  // the processing step, though.
-  Tab<Tab<DecalMesh>> gridDecals;
+  // owned; null until make_grid_decals, or when the encoder rejected the
+  // source shape (decals then stay and render un-gridded)
+  PhysMapCompactDecals *compactDecals = nullptr;
 
   PhysMap() : worldOffset(0.f, 0.f), scale(1.f), invScale(1.f), size(0), parent(NULL) {}
   ~PhysMap() { clear(); }

@@ -19,7 +19,6 @@
 #include <drv/3d/dag_platform_pc.h>
 #include <3d/dag_render.h>
 #include <drv/3d/dag_info.h>
-#include <render/dag_cur_view.h>
 #include <workCycle/dag_workCycle.h>
 #include <workCycle/dag_gameScene.h>
 #include <libTools/renderViewports/renderViewport.h>
@@ -52,7 +51,9 @@ void update_visibility_finder(VisibilityFinder &vf) // legacy
   Frustum f;
   f.construct(pv);
   d3d::getpersp(p);
-  vf.set(v_ldu(&::grs_cur_view.pos.x), f, 0, 0, 1, p.hk, current_occlusion);
+  mat44f cameraMatrix4;
+  v_mat44_orthonormal_inverse43(cameraMatrix4, viewMatrix4);
+  vf.set(cameraMatrix4.col3, f, 0, 0, 1, p.hk, current_occlusion);
 }
 
 

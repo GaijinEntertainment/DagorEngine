@@ -6,6 +6,7 @@
 #include <libTools/util/strUtil.h>
 #include <libTools/util/fileUtils.h>
 #include <libTools/util/signSha256.h>
+#include <libTools/util/setupNamedMounts.h>
 #include <assets/assetHlp.h>
 #include <assets/assetMgr.h>
 #include <assets/asset.h>
@@ -74,8 +75,9 @@ static int tex_atype = -1;
 bool init(const char *start_dir, const char *cache_dir)
 {
   DataBlock appblk;
+  set_canonical_app_dir_mount(".");
   appblk.addBlock("assets")->addBlock("types")->setStr("type", "tex");
-  appblk.setStr("appDir", ".");
+  appblk.setStr("appDir", dd_get_named_mount_path("appDir", 6));
   if (cache_dir)
     appblk.addBlock("assets")->addBlock("export")->setStr("cache", cache_dir);
 

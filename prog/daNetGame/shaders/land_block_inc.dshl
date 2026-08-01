@@ -1,5 +1,6 @@
 include "shader_global.dshl"
 include "land_micro_detail.dshl"
+include "land_block_common.dshl"
 include "clipmap.dshl"
 include "shore.dshl"
 include "displacement_inc.dshl"
@@ -16,6 +17,10 @@ float4 specular_detect_land_color = (1, 0, 0, 0);
 float4 landCellShortDecodeXZ=(1,1,0,0);
 float4 landCellShortDecodeY =(1,0,0,0);
 float wetness_above = 1.05;
+
+int heightmap_show_gradient_land = 0;
+float4 heightmap_gradient_land_params = (0,1,0,0); // min_height, 1/(max_height-min_height), 0, 0
+texture heightmap_gradient_land_tex;
 
 int lmesh_rendering_mode = 0;
 interval lmesh_rendering_mode : rendering_landmesh<1, rendering_clipmap<3, grass_color<4, grass_mask<6, rendering_heightmap<7, rendering_depth<8, rendering_shadow<9, rendering_reflection;//<10, rendering_feedback;
@@ -56,7 +61,7 @@ float clipmapshadow_is_ao_str = 0;
 
 block(scene) land_mesh_prepare_clipmap
 {
-  supports global_frame;
+  supports global_frame, none;
   DECODE_WORLD_POS()
   if (in_editor_assume == no)
   {
@@ -72,7 +77,7 @@ block(scene) land_mesh_prepare_clipmap
 }
 block(scene) land_mesh_grass_mask
 {
-  supports global_frame;
+  supports global_frame, none;
   DECODE_WORLD_POS()
   if (in_editor_assume == no)
   {
@@ -194,15 +199,6 @@ block(scene) land_mesh_render_depth
   if (in_editor_assume == no)
   {
     (vs) { globtm@f44 = globtm; }
-  }
-}
-
-
-hlsl {
-  half3 pack_detail_ao_reflectance_emission(half detail, half ao, half reflectance, half emission)
-  {
-    half ao_emission = emission < 0.01 ? ao * 0.5 : emission * 0.5 + 0.5;
-    return half3(ao_emission, reflectance, detail);
   }
 }
 

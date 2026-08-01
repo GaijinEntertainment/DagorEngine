@@ -338,12 +338,6 @@ struct DeviceDriverCapabilitiesBase
    */
   bool hasOcclusionQuery : 1;
   /**
-   * \capbrief supports values other than 0 for \p consts_offset of \ref d3d::set_const_buffer
-   * \platformtable{hasConstBufferOffset,c,a,c,a,c,c,c,c,c,c,r}
-   * \someNYI
-   */
-  bool hasConstBufferOffset : 1;
-  /**
    * \capbrief supports depth bounds testing. See @ref d3d::set_depth_bounds for details of depth bounds testing.
    * \platformtable{hasDepthBoundsTest,c,a,c,a,c,c,c,r,c,r,r}
    */
@@ -710,6 +704,12 @@ struct DeviceDriverCapabilitiesBase
    */
   bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays : 1;
   /**
+   * \capbrief Supports the 2-state format of the Opacity Micro Maps (OMM) acceleration structure type.
+   * \someNYI
+   * \platformtable{hasRayTraceForce2StateOpacityMicroMap,c,a,c,a,c,c,c,c,c,r,r}
+   */
+  bool hasRayTraceForce2StateOpacityMicroMap : 1;
+  /**
    * \capbrief hasAtomicInt64OnGroupShared Indicates if the device can use 64 bit integer atomic ops on group shared memory.
    * \platformtable{hasAtomicInt64OnGroupShared,c,a,c,a,c,c,c,r,c,c,c}
    */
@@ -756,6 +756,13 @@ struct DeviceDriverCapabilitiesBase
    * \platformtable{hasEnhancedResourceBarriers,c,c,c,c,c,c,c,c,c,c,r}
    */
   bool hasEnhancedResourceBarriers : 1;
+  /**
+   * \capbrief supports depth format conversion via a resource copy / blit transfer.
+   * \details When set, a depth format texture can be converted to a color format (e.g. R32F) through a copy/blit
+   * transfer. Drivers without this must instead perform an explicit shader-based depth copy
+   * \platformtable{hasDepthConversionByTransfer,c,a,c,a,c,c,c,c,c,c,r}
+   */
+  bool hasDepthConversionByTransfer : 1;
   /* !!!!! TO ADD NEW VALUES, FOLOW THE STEPS DESCRIBED AT THE REMARK SECTION, KEEP THIS AT THE END OF THIS STRUCT !!!!! */
 };
 /**
@@ -780,14 +787,14 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = true;
-  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  static constexpr bool hasConstBufferOffset = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthBoundsTest}
   static constexpr bool hasDepthBoundsTest = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasConditionalRender}
   static constexpr bool hasConditionalRender = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasReadMultisampledDepth}
@@ -906,6 +913,8 @@ struct DeviceDriverCapabilitiesXboxOne : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceOpacityMicroMapTriangleArrays}
   static constexpr bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceForce2StateOpacityMicroMap}
+  static constexpr bool hasRayTraceForce2StateOpacityMicroMap = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAtomicInt64OnGroupShared}
   static constexpr bool hasAtomicInt64OnGroupShared = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
@@ -994,15 +1003,14 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasVolMipMap = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  //! \NYI
-  static constexpr bool hasConstBufferOffset = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthBoundsTest}
   static constexpr bool hasDepthBoundsTest = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasConditionalRender}
   static constexpr bool hasConditionalRender = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasReadMultisampledDepth}
@@ -1121,6 +1129,8 @@ struct DeviceDriverCapabilitiesPS4 : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceOpacityMicroMapTriangleArrays}
   static constexpr bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceForce2StateOpacityMicroMap}
+  static constexpr bool hasRayTraceForce2StateOpacityMicroMap = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAtomicInt64OnGroupShared}
   static constexpr bool hasAtomicInt64OnGroupShared = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
@@ -1183,15 +1193,14 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  //! \NYI
-  static constexpr bool hasConstBufferOffset = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthBoundsTest}
   static constexpr bool hasDepthBoundsTest = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConditionalRender}
   static constexpr bool hasConditionalRender = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasReadMultisampledDepth}
@@ -1286,6 +1295,8 @@ struct DeviceDriverCapabilitiesIOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceOpacityMicroMapTriangleArrays}
   static constexpr bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceForce2StateOpacityMicroMap}
+  static constexpr bool hasRayTraceForce2StateOpacityMicroMap = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAtomicInt64OnGroupShared}
   static constexpr bool hasAtomicInt64OnGroupShared = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
@@ -1323,15 +1334,14 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  //! \NYI
-  static constexpr bool hasConstBufferOffset = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthBoundsTest}
   static constexpr bool hasDepthBoundsTest = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConditionalRender}
   static constexpr bool hasConditionalRender = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasReadMultisampledDepth}
@@ -1434,6 +1444,8 @@ struct DeviceDriverCapabilitiesTVOS : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceOpacityMicroMapTriangleArrays}
   static constexpr bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceForce2StateOpacityMicroMap}
+  static constexpr bool hasRayTraceForce2StateOpacityMicroMap = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAtomicInt64OnGroupShared}
   static constexpr bool hasAtomicInt64OnGroupShared = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
@@ -1471,13 +1483,12 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  //! \NYI
-  static constexpr bool hasConstBufferOffset = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasDepthBoundsTest}
   static constexpr bool hasDepthBoundsTest = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasReadMultisampledDepth}
@@ -1591,6 +1602,8 @@ struct DeviceDriverCapabilitiesNintendoSwitch : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceOpacityMicroMapTriangleArrays}
   static constexpr bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceForce2StateOpacityMicroMap}
+  static constexpr bool hasRayTraceForce2StateOpacityMicroMap = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAtomicInt64OnGroupShared}
   static constexpr bool hasAtomicInt64OnGroupShared = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
@@ -1626,9 +1639,6 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  //! \NYI
-  static constexpr bool hasConstBufferOffset = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasReadMultisampledDepth}
@@ -1652,6 +1662,8 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasBufferOverlapRegionsCopy = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources}
   static constexpr bool hasShader64BitIntegerResources = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
@@ -1688,6 +1700,8 @@ struct DeviceDriverCapabilitiesAndroid : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceOpacityMicroMapTriangleArrays}
   static constexpr bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceForce2StateOpacityMicroMap}
+  static constexpr bool hasRayTraceForce2StateOpacityMicroMap = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAtomicInt64OnGroupShared}
   static constexpr bool hasAtomicInt64OnGroupShared = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
@@ -1725,9 +1739,6 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasAsyncCompute = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasOcclusionQuery}
   static constexpr bool hasOcclusionQuery = true;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  //! \NYI
-  static constexpr bool hasConstBufferOffset = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = true;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthBoundsTest}
@@ -1773,6 +1784,8 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasConditionalRender = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasShader64BitIntegerResources}
   static constexpr bool hasShader64BitIntegerResources = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNativeRenderPassSubPasses}
@@ -1826,6 +1839,8 @@ struct DeviceDriverCapabilitiesMacOSX : DeviceDriverCapabilitiesBase
   static constexpr bool hasRayTraceOpacityMicroMapTriangleArrays = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasNvidiaRayTraceOpacityMicroMapTriangleArrays}
   static constexpr bool hasNvidiaRayTraceOpacityMicroMapTriangleArrays = false;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasRayTraceForce2StateOpacityMicroMap}
+  static constexpr bool hasRayTraceForce2StateOpacityMicroMap = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasAtomicInt64OnGroupShared}
   static constexpr bool hasAtomicInt64OnGroupShared = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasProperUAVSupport}
@@ -1902,13 +1917,12 @@ struct DeviceDriverCapabilitiesLinux : DeviceDriverCapabilitiesBase
   static constexpr bool hasBufferOverlapCopy = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasBufferOverlapRegionsCopy}
   static constexpr bool hasBufferOverlapRegionsCopy = false;
-  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasConstBufferOffset}
-  //! \NYI
-  static constexpr bool hasConstBufferOffset = false;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasAsyncCopy}
   static constexpr bool hasAsyncCopy = true;
   //! \briefconstcap{true, DeviceDriverCapabilitiesBase::hasResourceCopyConversion}
   static constexpr bool hasResourceCopyConversion = true;
+  //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasDepthConversionByTransfer}
+  static constexpr bool hasDepthConversionByTransfer = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasStereoExpansion}
   static constexpr bool hasStereoExpansion = false;
   //! \briefconstcap{false, DeviceDriverCapabilitiesBase::hasLazyMemory}
@@ -2187,6 +2201,18 @@ struct DeviceDriverIssuesBase
    * - \runtimeissue{DeviceDriverIssuesAndroid, \android}
    */
   bool hasBrokenUAVOnlyPasses : 1;
+  /**
+   * Draw id in the amplification stage of an indirect mesh shader dispatch causes a GPU hang, so avoid the dispatch.
+   * \note
+   * Known on the following devices:
+   * - \scarlett
+   * - \amd, observed on RDNA4 and disabled for the whole vendor
+   * \note
+   * - \constissue{DeviceDriverIssuesNoIssues::hasBrokenAmplificationShaderDrawID}
+   * - \constissue{DeviceDriverIssuesScarlett::hasBrokenAmplificationShaderDrawID}
+   * - \runtimeissue{DeviceDriverIssuesWindows, \win32}
+   */
+  bool hasBrokenAmplificationShaderDrawID : 1;
 };
 
 /**
@@ -2430,12 +2456,29 @@ struct DeviceDriverIssuesNoIssues : DeviceDriverIssuesWindows
    * \baseissue{DeviceDriverIssuesBase::hasBrokenUAVOnlyPasses}
    **/
   static constexpr bool hasBrokenUAVOnlyPasses = false;
+  /**
+   * \brief Is constant false on \xbone, \ps4, \ps5, \ios, \tvos, \nswitch, \mac and \linux
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenAmplificationShaderDrawID}
+   **/
+  static constexpr bool hasBrokenAmplificationShaderDrawID = false;
+};
+
+/**
+ * \brief Issues structure specific for \scarlett.
+ */
+struct DeviceDriverIssuesScarlett : DeviceDriverIssuesNoIssues
+{
+  /**
+   * \brief Is constant true on \scarlett
+   * \baseissue{DeviceDriverIssuesBase::hasBrokenAmplificationShaderDrawID}
+   **/
+  static constexpr bool hasBrokenAmplificationShaderDrawID = true;
 };
 
 #if _TARGET_XBOXONE
 using DeviceDriverIssues = DeviceDriverIssuesNoIssues;
 #elif _TARGET_SCARLETT
-using DeviceDriverIssues = DeviceDriverIssuesNoIssues;
+using DeviceDriverIssues = DeviceDriverIssuesScarlett;
 #elif _TARGET_C1
 
 #elif _TARGET_C2

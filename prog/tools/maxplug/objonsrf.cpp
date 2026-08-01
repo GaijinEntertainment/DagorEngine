@@ -12,39 +12,7 @@
 #include "enumnode.h"
 #include "resource.h"
 #include "debug.h"
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
 #include <INamedSelectionSetManager.h>
-#endif
-
-/*struct NodeInfo{
-  Matrix3 tm;
-  INode
-};
-class GenerateObjectOnSurfRestore : public RestoreObj {
-public:
-  Tab<NewNodeInfo> nodes;
-  bool
-
-  GenerateObjectOnSurfRestore() {
-  }
-  void Restore(int isUndo) {
-    setList->AppendSet (set, 0, name);
-    if (ep->ip) {
-      ep->ip->NamedSelSetListChanged();
-      ep->UpdateNamedSelDropDown ();
-    }
-  }
-  void Redo() {
-    setList->RemoveSet (name);
-    if (ep->ip) {
-      ep->ip->NamedSelSetListChanged();
-      ep->UpdateNamedSelDropDown ();
-    }
-  }
-
-  TSTR Description() {return TSTR(_T("Generate objects"));}
-};*/
-
 
 static void calc_mesh_info(Mesh &m, Point3 *vert, Tab<float> &faceS, bool selectedfaces)
 {
@@ -52,7 +20,6 @@ static void calc_mesh_info(Mesh &m, Point3 *vert, Tab<float> &faceS, bool select
   faceS.SetCount(m.numFaces);
   for (int i = 0; i < m.numFaces; ++i)
   {
-    // Point3 n=CrossProd((vert[m.faces[i].v[2]]-vert[m.faces[i].v[0]]),(vert[m.faces[i].v[1]]-vert[m.faces[i].v[0]]));
     float S;
     if (selectedfaces && !mesh_face_sel(m)[i])
       S = 0;
@@ -72,14 +39,9 @@ static void calc_mesh_info(Mesh &m, Point3 *vert, Tab<float> &faceS, bool select
     faceS[i] = sumS;
   }
 }
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
 static int find_selset_by_name(Interface *, TCHAR *selsname)
 {
   INamedSelectionSetManager *ip = INamedSelectionSetManager::GetInstance();
-#else
-static int find_selset_by_name(Interface *ip, TCHAR *selsname)
-{
-#endif
   int selset;
   for (selset = 0; selset < ip->GetNumNamedSelSets(); ++selset)
   {
@@ -159,16 +121,10 @@ static Point3 get_normal(DWORD s, RVertex &rv)
 }
 
 
-// void put_meshes_on_mesh(Interface *ip,TCHAR *selsname,Tab<INode *> &snode,int objnum,int seed,bool set_to_norm,bool use_smgr,bool
-// rotatez,float slope,bool selfaces){
 void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int objnum, int seed, bool set_to_norm, bool use_smgr,
   bool rotatez, float slope, bool selfaces, float xydiap[2], float zdiap[2], bool xys, char zs)
 {
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
   INamedSelectionSetManager *IPNSS = INamedSelectionSetManager::GetInstance();
-#else
-#define IPNSS ip
-#endif
   Tab<int> deleteIt;
   Tab<TriObject *> triObjects;
   Tab<int> face_count;
@@ -177,7 +133,6 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
   face_count.SetCount(snode.Count());
   triObjects.SetCount(snode.Count());
   deleteIt.SetCount(snode.Count());
-  // debug("11");
   {
     for (int i = 0; i < snode.Count(); ++i)
     {
@@ -186,7 +141,6 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
         mesh_face_sel(triObjects[i]->mesh).SetAll();
     }
   }
-  // debug("21");
   int sels = find_selset_by_name(ip, selsname);
   if (sels < 0)
   {
@@ -202,7 +156,6 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
     }
     return;
   }
-  // debug("31");
   if (!IPNSS->GetNamedSelSetItemCount(sels))
   {
     {
@@ -214,7 +167,6 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
     }
     return;
   }
-  // debug("41");
   Mesh surf;
   {
     for (int fc = 0, i = 0; i < triObjects.Count(); ++i)
@@ -241,7 +193,6 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
         face_count[i] = fc;
       }
   }
-  // debug("51");
   if (!surf.numVerts || !surf.numFaces)
   {
     {
@@ -253,11 +204,9 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
     }
     return;
   }
-  // debug("61");
 
   Tab<float> faceS;
   calc_mesh_info(surf, &surf.verts[0], faceS, selfaces);
-  // debug("71");
 
   Random r;
   if (!seed)
@@ -351,13 +300,12 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
       positm.SetRow(1, Normalize(a2 ^ p));
       positm.SetRow(2, a2);
       positm.SetRow(3, Point3(0, 0, 0));
-      // ntm=ntm*positm;
       ntm = positm;
     }
     if (slopea != 0)
       ntm = ntm * RotAngleAxisMatrix(Point3(cosf(sloperota), sinf(sloperota), 0.0f), slopea);
     if (rotatez)
-      ntm.PreRotateZ(rota); //*RotateZMatrix(rota);
+      ntm.PreRotateZ(rota);
     ntm.SetTrans(p);
     if (!xys && !zs)
     {
@@ -380,7 +328,6 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
   TSTR holdopname;
   holdopname.printf(_T("Generating %d objects"), objnum);
   theHold.Accept(holdopname);
-  // debug("81");
   {
     for (int i = 0; i < snode.Count(); ++i)
     {
@@ -388,7 +335,5 @@ void put_meshes_on_mesh(Interface *ip, TCHAR *selsname, Tab<INode *> &snode, int
         triObjects[i]->DeleteMe();
     }
   }
-  // debug("91");
   ip->RedrawViews(ip->GetTime());
-  // debug("01");
 }

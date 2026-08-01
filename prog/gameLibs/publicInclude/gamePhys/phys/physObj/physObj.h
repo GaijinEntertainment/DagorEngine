@@ -8,8 +8,9 @@
 #include <gamePhys/phys/commonPhysBase.h>
 #include <gamePhys/collision/collisionObject.h>
 #include <gamePhys/collision/collisionInfo.h>
+#include <gamePhys/collision/physLayers.h>
 #include <debug/dag_log.h>
-#include <generic/dag_carray.h>
+#include <generic/dag_staticTab.h>
 
 #ifndef PHYSOBJ_CLASS_FINAL
 #define PHYSOBJ_CLASS_FINAL final
@@ -45,11 +46,10 @@ struct PhysObjState
   Point3 gravDirection = Point3(0, -1, 0);
   bool logCCD = false;
   bool hadContact = false;
-  uint8_t numCachedContacts = 0;
   float sleepTimer = 0.f;
   float ignoreGameObjsUntilTime = -1.0f; // -1 - not initialized, 0 - ignore forever
 
-  carray<gamephys::CachedContact, PHYS_OBJ_MAX_CACHED_CONTACTS> cachedContacts; // Note: dimension - `numCachedContacts`
+  StaticTab<gamephys::CachedContact, PHYS_OBJ_MAX_CACHED_CONTACTS> cachedContacts;
 
   void reset();
 
@@ -132,6 +132,7 @@ class PhysObj PHYSOBJ_CLASS_FINAL : public PhysicsBase<PhysObjState, PhysObjCont
 public:
   bool skipUpdateOnSleep = true;
   bool shouldTraceGround = false;
+  bool shouldBounceOnGroundTrace = false;
   bool addToWorld = false;
   bool ignoreCollision = false;
   float mass = 1.f;
@@ -150,6 +151,7 @@ public:
   float energyConservation = 1.0f;
   float ccdClipVelocityMult = 1.0f;
   float ccdCollisionMarginMult = 0.1f;
+  int ccdCastMask = dacoll::EPL_ALL & ~(dacoll::EPL_CHARACTER | dacoll::EPL_DEBRIS);
   float erp = 1.f;
   float baumgarteBias = 0.f;
   float warmstartingFactor = 0.f;

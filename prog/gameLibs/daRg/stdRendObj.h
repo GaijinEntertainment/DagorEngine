@@ -75,8 +75,6 @@ class RobjParamsTextArea : public RobjParamsColorOnly
 {
 public:
   TextOverflow overflowY = TOVERFLOW_CLIP;
-  bool ellipsis = true;
-  bool ellipsisSepLine = false;
 
   int lowLineCount = 0;
   ElemAlign lowLineCountAlign = PLACE_DEFAULT;

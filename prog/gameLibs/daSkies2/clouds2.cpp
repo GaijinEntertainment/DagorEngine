@@ -3,6 +3,9 @@
 #include "clouds2.h"
 #include "cloudsShaderVars.h"
 
+#include <math/dag_mathBase.h>
+#include "shaders/clouds2/clouds_droplet_phase.hlsli"
+
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_lock.h>
@@ -112,10 +115,30 @@ void Clouds2::setCloudRenderingVars()
   ShaderGlobal::set_float(clouds_forward_eccentricity_weightVarId, renderingParams.forward_eccentricity_weight);
   float erosionNoiseSize = renderingParams.erosion_noise_size * 32.f;
   ShaderGlobal::set_float(clouds_erosion_noise_tile_sizeVarId, erosionNoiseSize);
+  ShaderGlobal::set_float(clouds_erosion_strengthVarId, renderingParams.erosion_strength);
+  ShaderGlobal::set_float(clouds_erosion_height_biasVarId, renderingParams.erosion_height_bias);
+  ShaderGlobal::set_float(clouds_erosion_edge_mulVarId, renderingParams.erosion_edge_mul);
+  ShaderGlobal::set_float(clouds_erosion_edge_addVarId, renderingParams.erosion_edge_add);
   ShaderGlobal::set_float(clouds_ambient_desaturationVarId, renderingParams.ambient_desaturation);
   ShaderGlobal::set_float(clouds_ms_contributionVarId, renderingParams.ms_contribution);
   ShaderGlobal::set_float(clouds_ms_attenuationVarId, renderingParams.ms_attenuation);
   ShaderGlobal::set_float(clouds_ms_eccentricity_attenuationVarId, renderingParams.ms_ecc_attenuation);
+  ShaderGlobal::set_float(clouds_droplet_diameter_umVarId, renderingParams.droplet_diameter_um);
+  {
+    // fold the droplet HG-fit constants once (see clouds_droplet_phase.hlsli); the
+    // in-shader spike needs only ((1-w)(1-g^2)/4, (1-g)^2, 2g)
+    float dUm = clamp(renderingParams.droplet_diameter_um, 5.f, 50.f);
+    float g = clouds_droplet_hg_g(dUm), w = clouds_droplet_hg_weight(dUm);
+    ShaderGlobal::set_float4(clouds_droplet_phase_paramsVarId, (1.f - w) * (1.f - g * g) * 0.25f, (1.f - g) * (1.f - g), 2.f * g, 0.f);
+  }
+  ShaderGlobal::set_float(clouds_edge_albedoVarId, renderingParams.edge_albedo);
+  ShaderGlobal::set_float(clouds_edge_albedo_sharpnessVarId, renderingParams.edge_albedo_sharpness);
+  // negative exposure would make the TAA tonemap rcp(luma*e+1) singular; 0 = off
+  ShaderGlobal::set_float(clouds_taa_exposureVarId, max(0.f, renderingParams.taa_exposure_scale));
+  ShaderGlobal::set_float(clouds_bsm_ms_attn_sqVarId, renderingParams.ms_attenuation * renderingParams.ms_attenuation);
+  // consumer-side decode only: the bake keeps its units, so no map invalidation
+  ShaderGlobal::set_float(clouds_bsm_scattering_physicalityVarId, renderingParams.bsm_scattering_physicality);
+  cloudShadows.setBSMLog2AmortizeFrames(renderingParams.bsm_log2_amortize_frames);
 }
 
 void Clouds2::setWeatherGenVars()
@@ -183,14 +206,32 @@ void Clouds2::setCloudsForm(const DaSkies::CloudsForm &form_params)
 
 void Clouds2::setCloudsRendering(const DaSkies::CloudsRendering &rendering_params)
 {
-  if (renderingParams == rendering_params)
+  // the aerosol params feed only the atmosphere medium (derived and edge-detected in
+  // DaSkies::prepare): neutralize them here so tuning haze does not rebuild cloud
+  // light or re-render a converged panorama
+  DaSkies::CloudsRendering visibleNew = rendering_params;
+  visibleNew.copyAerosolFrom(renderingParams);
+  if (renderingParams == visibleNew)
+  {
+    renderingParams = rendering_params; // still record the aerosol values
     return;
+  }
+  if (renderingParams.ms_attenuation != visibleNew.ms_attenuation)
+    cloudShadows.invalidateBSM(); // the map stores optical depths scaled by ms_attenuation^2
+  if (renderingParams.droplet_diameter_um != visibleNew.droplet_diameter_um)
+    cloudsForm.invalidate(); // the phase LUT is baked from the droplet size
+  if (renderingParams.erosion_strength != visibleNew.erosion_strength ||
+      renderingParams.erosion_height_bias != visibleNew.erosion_height_bias ||
+      renderingParams.erosion_edge_mul != visibleNew.erosion_edge_mul ||
+      renderingParams.erosion_edge_add != visibleNew.erosion_edge_add)
+    cloudShadows.invalidate(); // the erosion curve is live everywhere except the shadow volume, which marches with it
+  DaSkies::CloudsRendering visibleOld = renderingParams;
+  visibleOld.erosionWindSpeed = visibleNew.erosionWindSpeed; // only moves the erosion offset over time
+  renderingParamsDirty |= visibleOld != visibleNew;
   renderingParams = rendering_params;
   // fixme: only ambient desturation should cause this
   invalidateLight();
   setCloudRenderingVars();
-
-  // fixme: invalidate panorama, if we change everything besides erosion speed
 }
 
 void Clouds2::invalidateAll()
@@ -232,18 +273,20 @@ void Clouds2::update(float dt, const Point2 &wind_dir)
   updateErosionNoiseWind(dt, wind_dir);
 
   ShaderGlobal::set_float4(clouds_erosion_noise_wind_ofsVarId, clouds_erosion_noise_wind_ofs.x, 0, clouds_erosion_noise_wind_ofs.y, 0);
+  const float windLen = length(wind_dir);
+  const Point2 windDirNorm = windLen > 1e-5f ? wind_dir / windLen : Point2(0, 0);
+  ShaderGlobal::set_float4(clouds_erosion_wind_dirVarId, windDirNorm.x, 0, windDirNorm.y, 0);
 }
 
 void Clouds2::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *depth, BaseTexture *prev_depth, const TMatrix &view_tm,
-  const TMatrix4 &proj_tm, const CloudsRenderFlags flags, const DynRes *dynamic_resolution)
+  const TMatrix4 &proj_tm, const CloudsRenderFlags flags)
 {
   if (!renderingEnabled)
   {
     return;
   }
   noises.setVars();
-  clouds.renderCloudsPrepare(data, depth, prev_depth, erosionWindChange, weatherParams.worldSize, view_tm, proj_tm, nullptr, flags,
-    dynamic_resolution);
+  clouds.renderCloudsPrepare(data, depth, prev_depth, erosionWindChange, weatherParams.worldSize, view_tm, proj_tm, nullptr, flags);
 }
 
 void Clouds2::renderCloudsApply(CloudsRendererData &data, BaseTexture *downsampled_depth, BaseTexture *target_depth,
@@ -256,9 +299,15 @@ void Clouds2::renderCloudsApply(CloudsRendererData &data, BaseTexture *downsampl
   clouds.renderCloudsApply(data, downsampled_depth, target_depth, target_depth_transform, view_tm, proj_tm, flags);
 }
 
-CloudsChangeFlags Clouds2::prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir, bool scattering_ready)
+CloudsChangeFlags Clouds2::prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir, bool scattering_ready,
+  const Point2 &camera_xz)
 {
   uint32_t changes = CLOUDS_NO_CHANGE;
+  if (renderingParamsDirty)
+  {
+    renderingParamsDirty = false;
+    changes = CLOUDS_INVALIDATED;
+  }
   if (noises.render())
   {
     invalidateWeather();
@@ -268,10 +317,15 @@ CloudsChangeFlags Clouds2::prepareLighting(const Point3 &main_light_dir, const P
   changes |= uint32_t(weather.render());
   changes |= uint32_t(cloudsForm.render());
   changes |= uint32_t(field.render());
+  if (changes & CLOUDS_INVALIDATED)
+  {
+    cloudShadows.invalidate();
+    light.invalidate();
+  }
 
   if (noises.isReady() && scattering_ready)
   {
-    const uint32_t cloudsShadowsUpdateFlags = cloudShadows.render(main_light_dir);
+    const uint32_t cloudsShadowsUpdateFlags = cloudShadows.render(main_light_dir, camera_xz);
     changes |= uint32_t(cloudsShadowsUpdateFlags);
     changes |= uint32_t(light.render(main_light_dir, second_light_dir)); // not afr ready
 
@@ -294,13 +348,7 @@ void Clouds2::renderCloudVolume(VolTexture *cloud_volume, TEXTUREID prev_cloud_v
   field.renderCloudVolume(cloud_volume, prev_cloud_volume, max_dist, view_tm, proj_tm, prev_glob_tm);
 }
 
-void Clouds2::setUseShadows2D(bool on)
-{
-  if (on)
-    cloudShadows.initShadows2D();
-  else
-    cloudShadows.closeShadows2D();
-}
+void Clouds2::resetCloudsShadows() { cloudShadows.invalidateBSM(); }
 
 void Clouds2::initHole()
 {
@@ -450,3 +498,10 @@ void Clouds2::getTextureResourceDependencies(Tab<TEXTUREID> &dependencies) const
 }
 
 bool Clouds2::isLightRendered() const { return light.isRendered(); }
+
+bool Clouds2::isLightingConverged() const
+{
+  if (!isReady() || !light.isRendered() || !cloudShadows.isConverged() || renderingParamsDirty)
+    return false;
+  return !useHole || holeFound == HoleFindStatus::DONE;
+}

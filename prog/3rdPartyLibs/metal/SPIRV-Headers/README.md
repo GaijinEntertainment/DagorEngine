@@ -224,3 +224,8 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
 ```
+
+## Vendoring note
+
+Upstream: SPIRV-Headers, https://github.com/KhronosGroup/SPIRV-Headers
+Vendored version: unified1 headers, SPIR-V 1.6 revision 1.

@@ -63,7 +63,7 @@ BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBuffer
   auto errorCode = newHeap.create(device, desc, allocation, initial_state, allocatedProperties.isCPUVisible(manager->getFeatureSet()));
   if (DX12_CHECK_FAIL(errorCode))
   {
-    return dag::Unexpected<MemoryAllocationError>{{.errorCode = errorCode}};
+    return unexpected_memory_allocation_error(errorCode);
   }
 
   newHeap.init(allocation_size);
@@ -178,18 +178,19 @@ size_t BufferHeap::BufferHeapState::freeBuffer(BufferHeap *manager, const Buffer
   return memoryFreedSize;
 }
 
-size_t BufferHeap::BufferHeapState::clear(ResourceMemoryHeapProvider *provider)
+void BufferHeap::BufferHeapState::clear(ResourceMemoryHeapProvider *provider)
 {
   // placed here to avoid massive Heap::free processing
   suballocator.clear();
 
-  size_t totalMemoryFreed = 0;
+  size_t usedMemoryFreed = 0;
   for (auto &heap : bufferHeaps)
   {
     if (heap)
     {
-      // we don't count aliases now
-      totalMemoryFreed += heap.getHeapID().isAlias == 0 ? heap.getBufferMemorySize() : 0;
+      // alias heap memory belongs to the user resource heap and holds no tracked chunks
+      if (heap.getHeapID().isAlias == 0)
+        usedMemoryFreed += heap.getUsedMemorySize();
       heap.reset(provider, true);
     }
   }
@@ -197,7 +198,8 @@ size_t BufferHeap::BufferHeapState::clear(ResourceMemoryHeapProvider *provider)
   bufferHeaps.clear();
   freeBufferSlots.clear();
 
-  return totalMemoryFreed;
+  // heaps die here with their chunks still allocated, release them in one go
+  notifyBufferMemoryRelease(usedMemoryFreed);
 }
 
 } // namespace drv3d_dx12::resource_manager

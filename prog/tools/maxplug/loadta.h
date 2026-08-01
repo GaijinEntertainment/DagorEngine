@@ -1,15 +1,18 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <string>
+#include <vector>
+
 struct TexAnimFile
 {
-  Tab<char *> tex;
-  Tab<int> frm;
+  std::vector<std::wstring> tex;
+  std::vector<int> frm;
 
-  ~TexAnimFile();
-  void clear();
+  bool load(const wchar_t *fn);
+  static std::wstring getlasterr();
+
+private:
   void add_frame(char *);
   bool parse(char *);
-  bool load(const char *fn);
-  static char *getlasterr();
 };

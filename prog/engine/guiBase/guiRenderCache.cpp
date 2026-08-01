@@ -497,6 +497,8 @@ void BufferedRenderer::renderChunk(int chunk_id, int targetW, int targetH)
 
     if (DAGOR_UNLIKELY(command == DrawElem::EXEC_CMD))
     {
+      if (oldShaderId >= 0)
+        shaders[oldShaderId]->cleanup();
       oldShaderId = -1;
       oldViewport = -1;
       oldGuiState = -1;

@@ -1,0 +1,160 @@
+macro INIT_CLOUDS_BSM_CONSTS(code)
+  (code) {
+    clouds_bsm_world@f4 = clouds_bsm_world;
+    clouds_bsm_consts@f4 = clouds_bsm_consts;
+    clouds_bsm_stat@f4 = clouds_bsm_stat;
+    clouds_bsm_texel@f4 = clouds_bsm_texel;
+  }
+endmacro
+
+//dir args are legacy and ignored: the slant comes from the CPU-published frozen dir
+macro INIT_CLOUDS_BSM_DIR(code, dir_x, dir_y, dir_z)
+  INIT_CLOUDS_BSM_CONSTS(code)
+  (code) {
+    clouds_bsm@smp2d = clouds_bsm;
+  }
+endmacro
+
+macro INIT_CLOUDS_BSM(code)
+  INIT_CLOUDS_BSM_DIR(code, light_shadow_dir.x, light_shadow_dir.y, light_shadow_dir.z)
+endmacro
+
+//texture-only binding: pairs with USE_CLOUDS_BSM_SMP, which samples through a
+//sampler the caller already binds - receiver shaders at the SM5 sampler limit
+//(RT lighting) must not pay a paired BSM sampler
+macro INIT_CLOUDS_BSM_TEX(code)
+  INIT_CLOUDS_BSM_CONSTS(code)
+  (code) {
+    clouds_bsm@tex2d = clouds_bsm;
+  }
+endmacro
+
+macro USE_CLOUDS_BSM(code)
+  hlsl(code) {
+    #include <atmosphere/statistical_clouds_shadow.hlsli>
+    #define CLOUDS_BSM_DEPTH_RANGE 32000.
+    //USE_CLOUDS_BSM_SMP pre-defines this to route the fetch through its own sampler
+    #ifndef CLOUDS_BSM_SAMPLE
+      #define CLOUDS_BSM_SAMPLE(tc) tex2Dlod(clouds_bsm, float4(tc, 0, 0))
+    #endif
+    float clouds_bsm_curve_od(float3 data, float d)
+    {
+      return min(data.z, data.y*max(0., d - data.x));
+    }
+    half clouds_bsm_reconstruct(float3 data, float d)
+    {
+      return half(exp(-clouds_bsm_curve_od(data, d)));
+    }
+    //coverage-mean transmittance of the cloud shell toward the sun: the out-of-window
+    //fallback. Spherical-shell path handles grazing sun and below-horizon (earth
+    //curvature keeps it finite); the max() also guards never-published zero consts
+    //(then mu=1, len=0: unshadowed). The sun elevation is the publish-clamped one
+    //(>=0.02) - by then any coverage that matters has saturated the slab anyway
+    half clouds_bsm_stat_transmittance(float3 world_pos)
+    {
+      float r = clouds_bsm_stat.w + world_pos.y*0.001;
+      float mu = rcp(max(clouds_bsm_consts.w, 1.));
+      float len = getCloudsLength(r, mu, clouds_bsm_stat.x, clouds_bsm_stat.y);
+      return half(exp(clouds_bsm_stat.z*len));
+    }
+    //sun-axis depth of world_pos (from the layer-top plane, in the stored curve's
+    //depth units) and the uv of its sun-ray crossing on the layer-bottom anchor plane
+    float2 clouds_bsm_uv(float3 world_pos, out float d)
+    {
+      float dy = clouds_bsm_consts.x - world_pos.y;//meters below the layer-bottom plane
+      d = max(dy*clouds_bsm_consts.w + clouds_bsm_world.w, 0.)*(1./CLOUDS_BSM_DEPTH_RANGE);
+      float2 crossXZ = world_pos.xz + clouds_bsm_consts.yz*dy;//sun-ray crossing on the bottom plane
+      return (crossXZ - clouds_bsm_world.xy)*clouds_bsm_world.z + 0.5;
+    }
+    //fade weight over the outer 8% of the window (0 = map fully valid, 1 = outside);
+    //the _fade variants expose it for callers with their own regime logic (godrays),
+    //the plain helpers below blend to the statistical mean
+    #define CLOUDS_BSM_FADE(edge) half(saturate((edge)*12.5 - 5.25))
+    //last-octave optical depth of the lookup (0 outside the window). Callers that
+    //decode to physical transmittance must rescale THIS, before the exp: a pow on
+    //the half transmittance cannot carry a 1/ms_attn_sq exponent (2500 at the 0.02
+    //slider edge) - near-1 values quantize away
+    float clouds_bsm_optical_depth_fade(float3 world_pos, out half fade)
+    {
+      float d;
+      float2 uv = clouds_bsm_uv(world_pos, d);
+      float edge = max(abs(uv.x - 0.5), abs(uv.y - 0.5));
+      fade = CLOUDS_BSM_FADE(edge);
+      BRANCH
+      if (edge >= 0.5)
+        return 0.;//outside the window: the caller's fallback fully applies
+      return clouds_bsm_curve_od(CLOUDS_BSM_SAMPLE(uv).xyz, d);
+    }
+    //transmittance of cloud matter between the sun and world_pos
+    half clouds_bsm_transmittance_fade(float3 world_pos, out half fade)
+    {
+      return half(exp(-clouds_bsm_optical_depth_fade(world_pos, fade)));
+    }
+    half clouds_bsm_transmittance(float3 world_pos)
+    {
+      half fade;
+      half t = clouds_bsm_transmittance_fade(world_pos, fade);
+      BRANCH
+      if (fade <= 0.h)
+        return t;
+      return lerp(t, clouds_bsm_stat_transmittance(world_pos), fade);
+    }
+    //receiver variant: averages the transmittance of a 2x2 footprint - the Beer curve
+    //is analytically hard, plain bilinear on its parameters still reads as blocks
+    half clouds_bsm_transmittance_soft_fade(float3 world_pos, out half fade)
+    {
+      float d;
+      float2 uv = clouds_bsm_uv(world_pos, d);
+      float edge = max(abs(uv.x - 0.5), abs(uv.y - 0.5));
+      fade = CLOUDS_BSM_FADE(edge);
+      BRANCH
+      if (edge >= 0.5)
+        return 1.h;
+      float2 texel = clouds_bsm_texel.xy;
+      const float2 taps[4] = {float2(-0.75,-0.75), float2(0.75,-0.75), float2(-0.75,0.75), float2(0.75,0.75)};
+      half sum = 0;
+      UNROLL
+      for (int i = 0; i < 4; ++i)
+        sum += clouds_bsm_reconstruct(CLOUDS_BSM_SAMPLE(uv + taps[i]*texel).xyz, d);
+      return sum*0.25h;
+    }
+    half clouds_bsm_transmittance_soft(float3 world_pos)
+    {
+      half fade;
+      half t = clouds_bsm_transmittance_soft_fade(world_pos, fade);
+      BRANCH
+      if (fade <= 0.h)
+        return t;
+      return lerp(t, clouds_bsm_stat_transmittance(world_pos), fade);
+    }
+    //the multiple scattering brightening receivers apply on top of the last-octave
+    //transmittance (hardcoded ms attenuation and contribution instead of 2 pow)
+    half clouds_bsm_shadow_curve(half t)
+    {
+      t *= t;
+      half t3 = t*t*t;
+      return t*(0.4h + t3*0.6h);
+    }
+    //ready-to-use shadow term: fetch + ms curve, no gate - an unbound (null) map
+    //reads zero, which decodes to unshadowed. The single-fetch variant is for
+    //volumetric samples (fog raymarchers, node-based fog graphs); surface receivers
+    //take _soft - one fetch reads as blocks on them
+    half get_clouds_shadow(float3 world_pos)
+    {
+      return clouds_bsm_shadow_curve(clouds_bsm_transmittance(world_pos));
+    }
+    half get_clouds_shadow_soft(float3 world_pos)
+    {
+      return clouds_bsm_shadow_curve(clouds_bsm_transmittance_soft(world_pos));
+    }
+  }
+endmacro
+
+//sample through a sampler the caller already binds (any linear clamp-compatible
+//one reads fine): pairs with INIT_CLOUDS_BSM_TEX, adds no sampler of its own
+macro USE_CLOUDS_BSM_SMP(code, smpl)
+  hlsl(code) {
+    #define CLOUDS_BSM_SAMPLE(tc) clouds_bsm.SampleLevel(smpl, tc, 0)
+  }
+  USE_CLOUDS_BSM(code)
+endmacro

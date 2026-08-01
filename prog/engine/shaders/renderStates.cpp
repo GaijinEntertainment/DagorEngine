@@ -11,7 +11,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_renderStateId.h>
-#include "concurrentElementPool.h"
+#include <generic/dag_concurrentElementPool.h>
 
 namespace shaders
 {
@@ -26,7 +26,7 @@ namespace render_states
 {
 
 static ska::flat_hash_map</*hash*/ uint64_t, RenderStateId, ska::power_of_two_std_hash<uint64_t>> renderStatesHash;
-static ConcurrentElementPool<RenderStateId, eastl::pair<RenderState, DriverRenderStateId>, 5> renderStates;
+static dag::ConcurrentElementPool<RenderStateId, eastl::pair<RenderState, DriverRenderStateId>, 5> renderStates;
 static eastl::vector_map<uint64_t, uint32_t> renderStateOverrides; // Key: (OverrideStateId<<32)|RenderStateId -> index in
                                                                    // overriddenRenderStates
 static ska::flat_hash_map</*hash*/ uint64_t, DriverRenderStateId, ska::power_of_two_std_hash<uint64_t>> overriddenRenderStatesHash;
@@ -158,6 +158,10 @@ RenderStateId create(const RenderState &state)
   auto it = renderStatesHash.find(hash);
   if (DAGOR_LIKELY(it != renderStatesHash.end()))
     return it->second;
+  // contradictory: blendParams and dualSourceBlend are a union, and dual source
+  // blending is only valid with a single render target
+  if (DAGOR_UNLIKELY(state.independentBlendEnabled && state.dualSourceBlendEnabled))
+    logerr("render state with both independentBlendEnabled and dualSourceBlendEnabled requested");
 #if DAGOR_DBGLEVEL > 0
   // must be unique
   G_ASSERT(renderStates.findIf([&](auto &rs) { return rs.first == state; }) == RenderStateId::Invalid);

@@ -432,6 +432,10 @@ static CURLcode smb_send_message(struct Curl_easy *data, unsigned char cmd,
   CURLcode result = Curl_get_upload_buffer(data);
   if(result)
     return result;
+  if((data->set.upload_buffer_size - sizeof(struct smb_header)) < msg_len) {
+    DEBUGASSERT(0);
+    return CURLE_SEND_ERROR;
+  }
   smb_format_message(data, (struct smb_header *)data->state.ulbuf,
                      cmd, msg_len);
   memcpy(data->state.ulbuf + sizeof(struct smb_header),
@@ -745,16 +749,20 @@ static CURLcode smb_connection_state(struct Curl_easy *data, bool *done)
  */
 static void get_posix_time(time_t *out, curl_off_t timestamp)
 {
-  timestamp -= 116444736000000000;
-  timestamp /= 10000000;
+  if(timestamp >= CURL_OFF_T_C(116444736000000000)) {
+    timestamp -= CURL_OFF_T_C(116444736000000000);
+    timestamp /= 10000000;
 #if SIZEOF_TIME_T < SIZEOF_CURL_OFF_T
-  if(timestamp > TIME_T_MAX)
-    *out = TIME_T_MAX;
-  else if(timestamp < TIME_T_MIN)
-    *out = TIME_T_MIN;
-  else
+    if(timestamp > TIME_T_MAX)
+      *out = TIME_T_MAX;
+    else if(timestamp < TIME_T_MIN)
+      *out = TIME_T_MIN;
+    else
 #endif
-    *out = (time_t) timestamp;
+      *out = (time_t) timestamp;
+  }
+  else
+    *out = 0;
 }
 
 static CURLcode smb_request_state(struct Curl_easy *data, bool *done)
@@ -764,8 +772,8 @@ static CURLcode smb_request_state(struct Curl_easy *data, bool *done)
   struct smb_header *h;
   struct smb_conn *smbc = &conn->proto.smbc;
   enum smb_req_state next_state = SMB_DONE;
-  unsigned short len;
-  unsigned short off;
+  size_t len;
+  size_t off;
   CURLcode result;
   void *msg = NULL;
   const struct smb_nt_create_response *smb_m;

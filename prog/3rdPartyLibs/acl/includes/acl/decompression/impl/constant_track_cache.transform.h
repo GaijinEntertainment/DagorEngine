@@ -250,12 +250,12 @@ namespace acl
 					const float y = constant_track_data[group_size * 1];
 					const float z = constant_track_data[group_size * 2];
 					const rtm::vector4f sample_v = rtm::vector_set(x, y, z, 0.0F);
-					sample = rtm::quat_from_positive_w(sample_v);
+					sample = quat_from_positive_w_stable(sample_v);
 
 					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 					// isn't very accurate on small inputs, we need to normalize
 					if (decompression_settings_type::get_rotation_normalization_policy() == rotation_normalization_policy_t::always)
-						sample = rtm::quat_normalize(sample);
+						sample = quat_normalize_stable(sample);
 				}
 
 				ACL_ASSERT(rtm::quat_is_finite(sample), "Sample is not valid!");

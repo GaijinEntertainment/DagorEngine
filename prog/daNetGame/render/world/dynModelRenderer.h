@@ -229,6 +229,10 @@ inline void DynModelRenderingState::clear()
   bindlessStatesToUpdateTexLevels.clear();
 }
 
+// releases capacity retained by named states (sized to peak visible animchars);
+// call on level unload, buffers regrow on next frame that needs them
+void shrink_states();
+
 uint32_t prepare_bones_to(
   vec4f *__restrict bones, const ShaderSkinnedMesh &skin, const DynamicRenderableSceneInstance &scene, bool previous_matrices);
 

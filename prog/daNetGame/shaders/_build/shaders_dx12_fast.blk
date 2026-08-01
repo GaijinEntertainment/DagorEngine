@@ -22,5 +22,7 @@ include "shaders_pc11.blk"
     static_shadows_cascades:i=2
     current_ambient:i=1
     gi_quality:i=1
+    parallax_shadow_enabled:i=0
+    parallax_ao_enabled:i=0
   }
 }

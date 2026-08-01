@@ -1,3 +1,5 @@
+module tree_burning_events shared
+
 require ecs
 require RendInst
 

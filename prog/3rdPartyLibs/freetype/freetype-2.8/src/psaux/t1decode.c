@@ -1423,6 +1423,15 @@
             goto Syntax_Error;
           }
 
+          /* Ensure that popping an unknown 'othersubr' result does not */
+          /* push the stack pointer past the end of the stack array.    */
+          if ( top - decoder->stack >= T1_MAX_CHARSTRINGS_OPERANDS )
+          {
+            FT_ERROR(( "t1_decoder_parse_charstrings:"
+                       " stack overflow in pop\n" ));
+            goto Syntax_Error;
+          }
+
           unknown_othersubr_result_cnt--;
           top++;   /* `push' the operand to callothersubr onto the stack */
           break;

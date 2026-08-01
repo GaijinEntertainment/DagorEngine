@@ -4,6 +4,8 @@
 #include <fx/dag_baseFxClasses.h>
 #include <EASTL/shared_ptr.h>
 #include <3d/dag_texMgr.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_consts_base.h>
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix4.h>
 #include "dafxSystemDesc.h"
@@ -250,7 +252,10 @@ struct DafxModFx : BaseParticleEffect
       case HUID_ACES_RESET: reset(); break;
       case HUID_COLOR_MULT: setColorMult((Color3 *)value); break;
       case HUID_COLOR4_MULT: setColor4Mult((Color4 *)value); break;
-      case _MAKE4C('PFXG'): dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0); break;
+      case _MAKE4C('PFXG'):
+        if (const BaseFxWarmupParams *warmupParams = (const BaseFxWarmupParams *)value)
+          dafx::warmup_instance(g_dafx_ctx, iid, warmupParams->time, warmupParams->perInstanceMode, warmupParams->stepDt);
+        break;
       case _MAKE4C('PFXI'): ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid); break;
       case _MAKE4C('GZTM'): setGravityTm(*(Matrix3 *)value); break;
       case _MAKE4C('SPLN'): setSplineControlPoints(*(TMatrix4 *)value); break;
@@ -315,150 +320,16 @@ struct DafxModFx : BaseParticleEffect
 
   virtual void drawEmitter(const Point3 &pos)
   {
-    E3DCOLOR blue = E3DCOLOR_MAKE(0, 0, 255, 255);
-    switch (emitterDebug->type)
-    {
-      case dafx_ex::NONE: break;
-      case dafx_ex::SPHERE:
-      {
-        draw_debug_sph(pos + emitterDebug->sphere.offset, emitterDebug->sphere.radius, blue);
-      }
-      break;
-      case dafx_ex::BOX:
-      {
-        BBox3 debugBox;
-        debugBox.lim[0] = pos + emitterDebug->box.offset - (emitterDebug->box.dims);
-        debugBox.lim[1] = pos + emitterDebug->box.offset + (emitterDebug->box.dims);
-        draw_debug_box(debugBox, blue);
-      }
-      break;
-      case dafx_ex::CYLINDER:
-      {
-        Point3 position = pos + emitterDebug->cylinder.offset + emitterDebug->cylinder.vec * emitterDebug->cylinder.height * 0.5f;
-        Point3 norm;
-        if (abs(emitterDebug->cylinder.vec.x) > 0.1)
-          norm = emitterDebug->cylinder.vec % Point3(0, 0, 1);
-        else
-          norm = emitterDebug->cylinder.vec % Point3(1, 0, 0);
+    begin_draw_cached_debug_lines();
 
-        Point3 cross = norm % emitterDebug->cylinder.vec;
+    TMatrix emitterTm;
+    d3d::gettm(TM_WORLD, emitterTm);
+    emitterTm.col[3] += pos;
+    set_cached_debug_lines_wtm(emitterTm);
 
-        Point3 p1 = position + emitterDebug->cylinder.vec * (emitterDebug->cylinder.height) * 0.5;
-        Point3 p2 = position - emitterDebug->cylinder.vec * (emitterDebug->cylinder.height) * 0.5;
-        draw_debug_circle(p1, cross, norm, emitterDebug->cylinder.radius, blue);
-        draw_debug_circle(p2, cross, norm, emitterDebug->cylinder.radius, blue);
+    dafx_ex::draw_emitter_debug_cached(*emitterDebug, E3DCOLOR_MAKE(0, 0, 255, 255));
 
-        const float angleStep = 2 * PI / 4;
-        for (int i = 0; i < 4; ++i)
-        {
-          Quat quaternion = Quat(emitterDebug->cylinder.vec, i * angleStep);
-          Point3 newDir = quaternion * norm;
-          draw_debug_line(p1 + newDir * emitterDebug->cylinder.radius, p2 + newDir * emitterDebug->cylinder.radius, blue);
-        }
-      }
-      break;
-      case dafx_ex::CONE:
-      {
-        Point3 position = pos + emitterDebug->cone.offset + emitterDebug->cone.vec * emitterDebug->cone.h1 * 0.5f;
-        Point3 norm;
-        if (abs(emitterDebug->cone.vec.x) > 0.1)
-          norm = normalize(emitterDebug->cone.vec % Point3(0, 0, 1));
-        else
-          norm = normalize(emitterDebug->cone.vec % Point3(1, 0, 0));
-
-        Point3 cross = normalize(norm % emitterDebug->cone.vec);
-
-        float ro = safediv(emitterDebug->cone.rad, emitterDebug->cone.h2);
-        float r3 = emitterDebug->cone.h1 * ro;
-        float r2 = r3 + emitterDebug->cone.rad;
-
-        Point3 p1 = position + emitterDebug->cone.vec * (emitterDebug->cone.h1) * 0.5;
-        Point3 p2 = position - emitterDebug->cone.vec * (emitterDebug->cone.h1) * 0.5;
-        draw_debug_circle(p1, cross, norm, r2, blue);
-        draw_debug_circle(p2, cross, norm, emitterDebug->cone.rad, blue);
-
-        const float angleStep = 2 * PI / 4;
-        for (int i = 0; i < 4; ++i)
-        {
-          Quat quaternion = Quat(emitterDebug->cone.vec, i * angleStep);
-          Point3 newDir = quaternion * norm;
-          draw_debug_line(p1 + newDir * r2, p2 + newDir * emitterDebug->cone.rad, blue);
-        }
-      }
-      break;
-      case dafx_ex::SPHERESECTOR:
-      {
-        Point3 vec = normalize(emitterDebug->sphereSector.vec);
-
-        float yAngle = (emitterDebug->sphereSector.sector - 0.5) * PI;
-        float s1, c1;
-        sincos(yAngle, s1, c1);
-
-        Point3 tv = Point3(c1, s1, c1);
-
-        Point3 bottom = pos - vec * emitterDebug->sphereSector.radius;
-        Point3 top = pos + vec * emitterDebug->sphereSector.radius;
-
-        Point3 norm;
-        if (abs(vec.x) > 0.1)
-          norm = normalize(vec % Point3(0, 0, 1));
-        else
-          norm = normalize(vec % Point3(1, 0, 0));
-
-        float lenthFirstCircle = (tv.y + 1.0) * emitterDebug->sphereSector.radius;
-        Point3 firstCirclePos = bottom + vec * lenthFirstCircle;
-
-        Point3 cross = normalize(norm % vec);
-
-        float y = length(firstCirclePos - bottom) / (emitterDebug->sphereSector.radius * 2.0);
-
-        float h = 2.0f * emitterDebug->sphereSector.radius * y;
-        float radius = sqrtf(2.0f * emitterDebug->sphereSector.radius * h - sqr(h));
-        draw_debug_circle(firstCirclePos, cross, norm, radius, blue);
-
-        Point3 p1 = firstCirclePos + cross * radius;
-        Point3 p2 = firstCirclePos - cross * radius;
-        Point3 p3 = firstCirclePos + norm * radius;
-        Point3 p4 = firstCirclePos - norm * radius;
-
-        draw_debug_line(pos, p1, blue);
-        draw_debug_line(pos, p2, blue);
-        draw_debug_line(pos, p3, blue);
-        draw_debug_line(pos, p4, blue);
-
-        const int totalSegments = 48;
-        const int steps = totalSegments * (1.0f - y) + 1;
-        const float angleStep = 2 * PI / 4;
-        Point3 posLine2 = Point3(0, 0, 0);
-        float radiusLine2 = 0.0f;
-        for (int i = 0; i < steps - 1; ++i)
-        {
-          float h1 = 2.0f * emitterDebug->sphereSector.radius * (i / (float)totalSegments);
-          float h2 = 2.0f * emitterDebug->sphereSector.radius * ((i + 1) / (float)totalSegments);
-          float radiusLine1 = sqrtf(2.0f * emitterDebug->sphereSector.radius * h1 - sqr(h1));
-          radiusLine2 = sqrtf(2.0f * emitterDebug->sphereSector.radius * h2 - sqr(h2));
-          Point3 posLine1 = top - vec * (i / (float)totalSegments) * 2.0;
-          posLine2 = top - vec * ((i + 1) / (float)totalSegments) * 2.0;
-          for (int j = 0; j < 4; ++j)
-          {
-            Quat quaternion = Quat(vec, j * angleStep);
-            Point3 newDir = quaternion * norm;
-            draw_debug_line(posLine1 + newDir * radiusLine1, posLine2 + newDir * radiusLine2, blue);
-          }
-        }
-
-        for (int j = 0; j < 4; ++j)
-        {
-          Quat quaternion = Quat(vec, j * angleStep);
-          Point3 newDir = quaternion * norm;
-          draw_debug_line(posLine2 + newDir * radiusLine2, firstCirclePos + newDir * radius, blue);
-        }
-
-        if (emitterDebug->sphereSector.sector < 0.5)
-          draw_debug_circle(pos, cross, norm, emitterDebug->sphereSector.radius, blue);
-      }
-      break;
-    }
+    end_draw_cached_debug_lines();
   }
 
   void render(unsigned, const TMatrix &) override {}

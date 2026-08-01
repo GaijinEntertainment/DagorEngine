@@ -38,6 +38,8 @@ void Screen::rebuildXmb()
 
 void Screen::rebuildStacks()
 {
+  etree.guiScene->getPerfStats().stacksRebuilds++;
+
   renderList.clear();
   inputStack.clear();
   cursorStack.clear();

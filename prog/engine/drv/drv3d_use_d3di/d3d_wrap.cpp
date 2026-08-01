@@ -131,10 +131,7 @@ void delete_pixel_shader(FSHADER ps) { return d3di.delete_pixel_shader(ps); }
 int set_vs_constbuffer_register_count(int required_count) { return d3di.set_vs_constbuffer_register_count(required_count); }
 int set_cs_constbuffer_register_count(int required_count) { return d3di.set_cs_constbuffer_register_count(required_count); }
 
-bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
-{
-  return d3di.set_const_buffer(stage, slot, buffer, consts_offset, consts_size);
-}
+bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer) { return d3di.set_const_buffer(stage, slot, buffer); }
 
 d3d::SamplerHandle request_sampler(const d3d::SamplerInfo &sampler_info) { return d3di.request_sampler(sampler_info); }
 

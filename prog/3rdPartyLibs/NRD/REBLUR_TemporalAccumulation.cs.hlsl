@@ -432,11 +432,11 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             }
 
             // Mix
-            float2 w = abs( deltaUv ) + 1.0 / 256.0;
-            w /= w.x + w.y; // TODO: perspective correction?
+            float2 ww = abs( deltaUv ) + 1.0 / 256.0;
+            ww /= ww.x + ww.y; // TODO: perspective correction?
 
-            float3 x = x10 * w.x + x01 * w.y;
-            float3 n = normalize( n10 * w.x + n01 * w.y );
+            float3 x = x10 * ww.x + x01 * ww.y;
+            float3 n = normalize( n10 * ww.x + n01 * ww.y );
 
             // High parallax - flattens surface on high motion ( test 132, 172, 173, 174, 190, 201, 202, 203, e9 )
             // IMPORTANT: a must for 8-bit and 10-bit normals ( tests b7, b10, b33, 202 )
@@ -447,17 +447,16 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             deltaUvLenFixed *= 1.0 + edgeFix * ( 1.0 + gFramerateScale * dither );
 
             float2 motionUvHigh = pixelUv + deltaUvLenFixed * deltaUv * gRectSizeInv;
-            motionUvHigh = ( floor( motionUvHigh * gRectSize ) + 0.5 ) * gRectSizeInv; // Snap to the pixel center!
 
             if( deltaUvLenFixed > 1.0 && IsInScreenNearest( motionUvHigh ) )
             {
                 float2 uvScaled = WithRectOffset( ClampUvToViewport( motionUvHigh ) );
 
-                float zHigh = UnpackViewZ( gIn_ViewZ.SampleLevel( gNearestClamp, uvScaled, 0 ) );
+                float zHigh = UnpackViewZ( gIn_ViewZ.SampleLevel( gLinearClamp, uvScaled, 0 ) );
                 float3 xHigh = Geometry::ReconstructViewPosition( motionUvHigh, gFrustum, zHigh, gOrthoMode );
                 xHigh = Geometry::RotateVector( gViewToWorld, xHigh );
 
-                float3 nHigh = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness.SampleLevel( gNearestClamp, uvScaled, 0 ) ).xyz;
+                float3 nHigh = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness.SampleLevel( STOCHASTIC_BILINEAR_FILTER, StochasticBilinear( uvScaled, gRectSize ), 0 ) ).xyz;
 
                 // Replace if same surface
                 float2 geometryWeightParams = GetGeometryWeightParams( NRD_CURVATURE_HIGH_PARALLAX_DISOCCLUSION_THRESHOLD, frustumSize, X, N );
@@ -473,7 +472,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             // Estimate curvature for the edge { x; X }
             float3 edge = x - X;
             float edgeLenSq = Math::LengthSquared( edge );
-            curvature = dot( n - N, edge ) / edgeLenSq;
+            curvature = dot( n - N, edge ) * Math::PositiveRcp( edgeLenSq );
 
             // Correction - very negative inconsistent with previous frame curvature blows up reprojection ( tests 164, 171 - 176 )
             if( curvature < 0 )

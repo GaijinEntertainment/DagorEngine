@@ -95,7 +95,7 @@ void fillSlot(dafg::NameSpaceNameId ns, const char *slot, dafg::NameSpaceNameId 
   auto &slots = registry.resourceSlots;
   dafg::ResNameId prevResNameId = dafg::ResNameId::Invalid;
   if (slots.isMapped(slotNameId) && slots[slotNameId].has_value())
-    prevResNameId = slots[slotNameId].value().contents;
+    prevResNameId = slots[slotNameId].value().prevContents;
   slots.set(slotNameId, dafg::SlotData{resNameId, prevResNameId});
 
   // TODO: it is a bit ugly that we need to call this here and in C++ API's fillSlot, maybe rework it somehow?

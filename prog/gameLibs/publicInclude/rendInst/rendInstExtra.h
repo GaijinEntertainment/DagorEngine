@@ -225,6 +225,15 @@ bool gatherRIGenExtraBboxes(const RiGenVisibility *main_visibility, mat44f_cref 
   eastl::function<void(mat44f_cref, const BBox3 &, const char *)> callback);
 
 uint32_t getRiGenExtraResCount();
+bool isRiGenExtraResIdValid(int id);
+
+template <class CB>
+inline void iterateRiGenExtraResId(const CB &callback)
+{
+  int size = getRiGenExtraResCount();
+  for (int id = 0; id < size; ++id)
+    callback(id);
+}
 
 enum class HasRIClipmap
 {

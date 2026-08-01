@@ -20,5 +20,5 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define OMM_DECLARE_SUBRESOURCES \
     OMM_SUBRESOURCE(RWByteAddressBuffer, TempOmmIndexBuffer, u_heap0) \
     OMM_SUBRESOURCE(RWByteAddressBuffer, HashTableBuffer, u_heap0) \
-    OMM_SUBRESOURCE(ByteAddressBuffer, SpecialIndicesStateBuffer, t_heap1) \
+    OMM_SUBRESOURCE(ByteAddressBuffer, SpecialIndicesStateBuffer, t_heap1)
 

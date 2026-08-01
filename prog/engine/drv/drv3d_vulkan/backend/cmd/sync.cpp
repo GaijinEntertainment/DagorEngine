@@ -27,17 +27,20 @@ bool d3d_resource_barrier_to_layout(bool is_depth, VkImageLayout &layout, Filter
 {
   switch (barrier.v)
   {
-    case RB_STAGE_ALL_SHADERS | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
+    case RB_STAGE_ALL_SHADERS | RB_RO_SRV:                                // fallthru
     case RB_STAGE_PIXEL | RB_STAGE_VERTEX | RB_STAGE_COMPUTE | RB_RO_SRV: // fallthru
     case RB_STAGE_PIXEL | RB_SOURCE_STAGE_PIXEL | RB_RO_SRV:              // fallthru
-    case RB_STAGE_PIXEL | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
-    case RB_STAGE_VERTEX | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
-    case RB_STAGE_COMPUTE | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
-    case RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
+    case RB_STAGE_PIXEL | RB_RO_SRV:                                      // fallthru
+    case RB_STAGE_VERTEX | RB_RO_SRV:                                     // fallthru
+    case RB_STAGE_COMPUTE | RB_RO_SRV:                                    // fallthru
+    case RB_STAGE_VERTEX | RB_STAGE_PIXEL | RB_RO_SRV:                    // fallthru
+    case RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_SRV:
+      layout = is_depth && Globals::cfg.bits.sampledDepthReadOnlyLayout ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                                                                        : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      break;
     case RB_RW_UAV | RB_STAGE_PIXEL:                    // fallthru
     case RB_RW_UAV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE: // fallthru
     case RB_RW_UAV | RB_STAGE_COMPUTE: layout = VK_IMAGE_LAYOUT_GENERAL; break;
-    case RB_STAGE_VERTEX | RB_STAGE_PIXEL | RB_RO_SRV: layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL; break;
     case RB_RW_RENDER_TARGET:
       layout = is_depth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
       break;

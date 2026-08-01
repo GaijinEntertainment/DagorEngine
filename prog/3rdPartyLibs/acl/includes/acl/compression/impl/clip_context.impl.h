@@ -37,6 +37,7 @@
 #include "acl/compression/track_array.h"
 #include "acl/compression/impl/segment_context.h"
 #include "acl/compression/impl/transform_clip_adapters.h"
+#include "acl/math/quatf.h"
 
 #include <rtm/quatf.h>
 #include <rtm/vector4f.h>
@@ -148,7 +149,7 @@ namespace acl
 					// otherwise we normalize for safety
 					rtm::quatf rotation;
 					if (settings.rotation_format != rotation_format8::quatf_full || !rtm::quat_is_normalized(transform.rotation))
-						rotation = rtm::quat_normalize(transform.rotation);
+						rotation = quat_normalize_stable(transform.rotation);
 					else
 						rotation = transform.rotation;
 

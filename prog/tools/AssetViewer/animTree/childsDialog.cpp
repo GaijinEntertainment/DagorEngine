@@ -45,11 +45,11 @@ enum
 
 ChildsDialog::ChildsDialog(dag::Vector<AnimCtrlData> &controllers, dag::Vector<BlendNodeData> &nodes,
   dag::Vector<AnimStatesData> &states, dag::Vector<String> &paths) :
+  DialogWindow(nullptr, hdpi::_pxScaled(DEFAULT_MINIMUM_WIDTH), hdpi::_pxScaled(DEFAULT_MINIMUM_HEIGHT), "Childs tree"),
   controllers{controllers},
   nodes{nodes},
   states{states},
-  paths{paths},
-  DialogWindow(nullptr, hdpi::_pxScaled(DEFAULT_MINIMUM_WIDTH), hdpi::_pxScaled(DEFAULT_MINIMUM_HEIGHT), "Childs tree")
+  paths{paths}
 {
   setManualModalSizingEnabled();
   DialogWindow::showButtonPanel(false);
@@ -193,7 +193,7 @@ void ChildsDialog::fillStateChilds(PropPanel::ContainerPropertyControl *tree, An
   CachedInclude &include = includes.emplace_back(CachedInclude{stateDescData->fileName,
     get_props_from_include_state_data(paths, controllers, *asset, ctrlsTree, *stateDescData, fullPath, /*only_includes*/ true)});
   DataBlock *stateDesc = include.props.addBlock("stateDesc");
-  DataBlock *settings = find_block_by_name(stateDesc, ctrlsTree->getCaption(data.handle));
+  DataBlock *settings = find_block_by_name(stateDesc, statesTree->getCaption(data.handle));
   PropPanel::TLeafHandle stateLeaf = tree->createTreeLeaf(nullptr, statesTree->getCaption(data.handle), STATE_LEAF_ICON);
   tree->setExpanded(stateLeaf, /*open*/ true);
   for (int i = 0; i < data.childs.size(); ++i)
@@ -473,6 +473,8 @@ String ChildsDialog::getChildNameFromSettings(const DataBlock &settings, CtrlTyp
           enumRootProps = props.getBlockByNameEx("initAnimState")->getBlockByNameEx("enum");
         }
         const DataBlock *enumProps = enumRootProps->getBlockByName(settings.getBlockByName("nodes")->getStr("enum_gen"));
+        if (!enumProps || idx >= enumProps->blockCount())
+          return String("");
         return param_switch_get_enum_gen_child_name_by_idx(*enumProps, settings.getStr("name", ""), idx);
       }
       else
@@ -548,9 +550,9 @@ void ChildsDialog::editInParentSelectedNode()
     {
       focus_selected_node(pluginEventHandler, pluginPanel, stateData->handle, PID_ANIM_STATES_GROUP, PID_ANIM_STATES_SETTINGS_GROUP,
         PID_ANIM_STATES_TREE);
-      for (int i = 0; i < ctrlsTree->getChildCount(parent); ++i)
+      for (int i = 0; i < tree->getChildCount(parent); ++i)
       {
-        if (ctrlsTree->getChildLeaf(parent, i) == selectedLeaf)
+        if (tree->getChildLeaf(parent, i) == selectedLeaf)
         {
           pluginPanel->setInt(PID_STATES_NODES_LIST, i);
           break;
@@ -567,9 +569,9 @@ void ChildsDialog::editInParentSelectedNode()
   {
     focus_selected_node(pluginEventHandler, pluginPanel, ctrlData->handle, PID_ANIM_BLEND_CTRLS_GROUP,
       PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP, PID_ANIM_BLEND_CTRLS_TREE);
-    for (int i = 0; i < ctrlsTree->getChildCount(parent); ++i)
+    for (int i = 0; i < tree->getChildCount(parent); ++i)
     {
-      if (ctrlsTree->getChildLeaf(parent, i) == selectedLeaf)
+      if (tree->getChildLeaf(parent, i) == selectedLeaf)
       {
         pluginPanel->setInt(PID_CTRLS_NODES_LIST, i);
         break;

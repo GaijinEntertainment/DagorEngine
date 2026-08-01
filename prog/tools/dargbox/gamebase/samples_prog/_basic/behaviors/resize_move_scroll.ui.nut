@@ -44,8 +44,6 @@ function textAreaContainer() {
       rendObj = ROBJ_TEXTAREA
       textOverflowY = TOVERFLOW_LINE
       halign = ALIGN_LEFT
-      ellipsis = true
-      ellipsisSepLine = false
       text = textFish
       behavior = [Behaviors.TextArea, Behaviors.WheelScroll]
       size = flex()

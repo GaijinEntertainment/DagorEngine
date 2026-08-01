@@ -819,6 +819,12 @@ namespace debugger {
         context.stackWalk(&lineInfo, true, true);
     }
 
+    char * debuggerGetStackWalk ( Context & context, const LineInfo & lineInfo,
+            bool args, bool vars, bool outOfScope, bool topOnly, Context * toContext, LineInfoArg * at ) {
+        // allocate in the calling context's heap - the walked context may be a different one
+        return toContext->allocateString(context.getStackWalk(&lineInfo, args, vars, outOfScope, topOnly), at);
+    }
+
     void makeDataWalker ( const void * pClass, const StructInfo * info,
             const TBlock<void, DataWalker *> & blk, Context * context, LineInfoArg * at ) {
         auto adapter = new DataWalkerAdapter((char *)pClass,info,context);
@@ -1364,6 +1370,13 @@ namespace debugger {
             addExtern<DAS_BIND_FUN(debuggerStackWalk)>(*this, lib, "stackwalk",
                 SideEffects::modifyExternal, "debuggerStackWalk")
                     ->args({"context","line"});
+            auto fngsw = addExtern<DAS_BIND_FUN(debuggerGetStackWalk)>(*this, lib, "get_stackwalk",
+                SideEffects::accessExternal, "debuggerGetStackWalk")
+                    ->args({"context","line","args","vars","out_of_scope","top_only","context","at"});
+            fngsw->arguments[2]->init = new ExprConstBool(true);
+            fngsw->arguments[3]->init = new ExprConstBool(true);
+            fngsw->arguments[4]->init = new ExprConstBool(false);
+            fngsw->arguments[5]->init = new ExprConstBool(false);
             addExtern<DAS_BIND_FUN(dapiReportContextState)>(*this, lib, "report_context_state",
                 SideEffects::modifyExternal, "dapiReportContextState")
                     ->args({"context","category","name","info","data"});

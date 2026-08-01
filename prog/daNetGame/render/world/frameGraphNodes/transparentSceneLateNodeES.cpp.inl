@@ -25,6 +25,8 @@ dafg::NodeHandle makeTransparentSceneLateNode(MainNodeRenderPass mode)
   bool debugTriangle = mode == MainNodeRenderPass::TriangleSizeDebugPass;
   auto ns = debugTriangle ? dafg::root() / "tringle_size_debug" / "transparent" : dafg::root();
   return ns.registerNode("transparent_scene_late_node", DAFG_PP_NODE_SRC, [debugTriangle](dafg::Registry registry) {
+    read_all_camera_view_tokens(registry.currNameSpace(), "after_heat_haze_render_particles_nodes");
+
     if (debugTriangle)
       registry.requestRenderPass().color({"triangle_size_tex"}).depthReadTestOnly("depth_for_transparency");
     else

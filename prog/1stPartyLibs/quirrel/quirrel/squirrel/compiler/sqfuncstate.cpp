@@ -335,7 +335,7 @@ void SQFuncState::DiscardTarget()
     if(size > 0 && _optimization){
         SQInstruction &pi = _instructions[size-1];//previous instruction
         switch(pi.op) {
-        case _OP_SETI:case _OP_SETK:case _OP_SET:case _OP_NEWSLOTK:case _OP_NEWSLOT:case _OP_SETOUTER:case _OP_CALL:case _OP_NULLCALL:
+        case _OP_SETI:case _OP_SETK:case _OP_SET:case _OP_NEWSLOTK:case _OP_NEWSLOT:case _OP_SETOUTER:case _OP_CALL:case _OP_FASTCALL:case _OP_NULLCALL:
             if(pi._arg0 == discardedtarget) {
                 pi._arg0 = 0xFF;
             }
@@ -410,6 +410,8 @@ void SQFuncState::AddInstruction(SQInstruction &i)
             }
             break;
         case _OP_RETURN:
+            // Deliberately not converting _OP_FASTCALL: a native "tailcall" goes
+            // through the generic path anyway, so staying FASTCALL is faster.
             if( _parent && i._arg0 != MAX_FUNC_STACKSIZE && pi.op == _OP_CALL && _returnexp < size-1) {
                 pi.op = _OP_TAILCALL;
             } else if(pi.op == _OP_CLOSE){
@@ -463,6 +465,19 @@ void SQFuncState::AddInstruction(SQInstruction &i)
                 return;
             }
                               }
+            break;
+        case _OP_ADD:
+            // result = STK(arg2) + STK(arg1); a just-loaded int in the right
+            // operand folds into ADDI's stk + imm exactly, for every type
+            // including string concat; the left operand and SUB do not
+            if( pi.op == _OP_LOADINT && !IsLocal(pi._arg0) &&
+                pi._arg0 == i._arg1 && i._arg1 != i._arg2) {
+                pi._arg2 = i._arg2;
+                pi._arg3 = 0;
+                pi.op = _OP_ADDI;
+                pi._arg0 = i._arg0;
+                return;
+            }
             break;
         case _OP_MOVE:
             switch(pi.op) {

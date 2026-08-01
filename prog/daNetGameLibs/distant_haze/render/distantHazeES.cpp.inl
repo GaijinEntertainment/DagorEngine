@@ -15,6 +15,7 @@
 
 #define INSIDE_RENDERER 1
 #include "render/world/private_worldRenderer.h"
+#include <render/world/frameGraphHelpers.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 
@@ -155,7 +156,7 @@ dafg::NodeHandle createDistantHazeNode(DistantHazeManager &distant_haze__manager
     type == DistantHazeNodeType::Normal ? "heat_haze_render_distant_haze_node" : "heat_haze_render_distant_haze_node_color";
 
   return dafg::register_node(nodeName, DAFG_PP_NODE_SRC, [&distant_haze__manager, depthlod](dafg::Registry registry) {
-    registry.orderMeAfter("heat_haze_render_particles_node");
+    read_all_camera_view_tokens(registry.currNameSpace(), "after_heat_haze_render_particles_nodes");
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
     auto hazeRenderedHndl = registry.modifyBlob<bool>("haze_rendered").handle();

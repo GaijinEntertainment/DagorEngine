@@ -130,6 +130,16 @@ eastl::array<uint32_t, 2> VoxelSurfaceData::allocateAtlas()
   return {rgbaNum, normNum};
 }
 
+uint32_t VoxelSurfaceData::getAtlasMemoryUsed() const
+{
+  uint32_t used = 0;
+  if (rgbaLoc.valid())
+    used += numRgbaBlocks * 2 * 4 * 4;
+  if (normLoc.valid())
+    used += numNormBlocks * 4 * 4;
+  return used;
+}
+
 eastl::array<uint32_t, 2> VoxelSurfaceData::releaseAtlas()
 {
   loadedToTex = false;

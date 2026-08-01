@@ -2,10 +2,13 @@
 #pragma once
 
 #include <algorithm>
+#include <string_view>
 
 struct CaseInsensitiveHash
 {
-  size_t operator()(const std::string &keyval) const
+  using is_transparent = void;
+
+  size_t operator()(std::string_view keyval) const
   {
     size_t hash = 525201411107845655ULL;
     std::for_each(keyval.begin(), keyval.end(), [&hash](char c) {
@@ -19,7 +22,9 @@ struct CaseInsensitiveHash
 
 struct CaseInsensitiveEqual
 {
-  bool operator()(const std::string &left, const std::string &right) const
+  using is_transparent = void;
+
+  bool operator()(std::string_view left, std::string_view right) const
   {
     return left.size() == right.size() &&
            std::equal(left.begin(), left.end(), right.begin(), [](char a, char b) { return tolower(a) == tolower(b); });

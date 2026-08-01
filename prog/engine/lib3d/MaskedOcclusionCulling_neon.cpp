@@ -28,7 +28,8 @@
 #define CONVERT_MASKED_TO_DEPTH(a) (a)
 
 #include <3d/dag_maskedOcclusionCulling.h>
-#include <daBVH/dag_swBLAS_ray.h>
+#include <daBVH/dag_swBLAS_leaf.h>
+#include <daBVH/dag_swBLAS_soa4.h>
 #if DAGOR_DBGLEVEL > 0
 #define OCCLUSION_ASSERT assert
 #else
@@ -447,12 +448,22 @@ MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderTriangles(co
   return MOC_STATIC_UPCAST(this)->RenderTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
 }
 
-MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBLAS(const unsigned char *blasData, int vertOffset, int treeStart,
-  int treeEnd, const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount,
-  CacheMode cacheMode, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit)
+MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBlasStackless(const unsigned char *blasData, int vertOffset,
+  int treeStart, int treeEnd, const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacity,
+  uint32_t &cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask, uint32_t triSkip,
+  uint32_t triLimit)
 {
-  return MOC_STATIC_UPCAST(this)->RenderBLAS(blasData, vertOffset, treeStart, treeEnd, rawToClipMatrix, cacheIndices,
+  return MOC_STATIC_UPCAST(this)->RenderBlasStackless(blasData, vertOffset, treeStart, treeEnd, rawToClipMatrix, cacheIndices,
     cacheIndicesCapacity, cacheTriCount, cacheMode, bfWinding, clipPlaneMask, triSkip, triLimit);
+}
+
+MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBlasSOA4(const unsigned char *blasData, int vertOffset,
+  const soa4::RootRef &root, const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacity,
+  uint32_t &cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask, uint32_t triSkip,
+  uint32_t triLimit)
+{
+  return MOC_STATIC_UPCAST(this)->RenderBlasSOA4(blasData, vertOffset, root, rawToClipMatrix, cacheIndices, cacheIndicesCapacity,
+    cacheTriCount, cacheMode, bfWinding, clipPlaneMask, triSkip, triLimit);
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::TestRect(float xmin, float ymin, float xmax, float ymax,

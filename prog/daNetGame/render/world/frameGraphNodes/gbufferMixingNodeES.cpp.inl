@@ -68,6 +68,7 @@ static void create_gbuffer_mixing_nodes_es(const OnCameraNodeConstruction &evt)
     registry.rename("gbuf_0", "gbuf_0_done").texture();
     registry.rename("gbuf_2", "gbuf_2_done").texture().optional();
     registry.rename("gbuf_depth", "gbuf_depth_done").texture();
-    d3d::set_rwtex(STAGE_PS, var::packed_gbuf_1_uav_no, nullptr, 0, 0);
+    // unbind must run per frame in the execution callback, not once at node declaration
+    return [] { d3d::set_rwtex(STAGE_PS, var::packed_gbuf_1_uav_no, nullptr, 0, 0); };
   }));
 }

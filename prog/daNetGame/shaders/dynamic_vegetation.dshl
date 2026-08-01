@@ -89,8 +89,8 @@ shader dynamic_tree_colored
       ##endif
 
       #ifdef MOTION_VECTORS_ENABLED
-        float4 out_pos                          : TEXCOORD4;
-        float4 out_pos_prev                     : TEXCOORD5;
+        float3 out_pos                          : TEXCOORD4;
+        float3 out_pos_prev                     : TEXCOORD5;
       #endif
     };
   }
@@ -202,8 +202,8 @@ shader dynamic_tree_colored
       output.pointToEye.w = leaves_fade;
 ##endif
     #ifdef MOTION_VECTORS_ENABLED
-      output.out_pos_prev = get_prevframe_output_pos(input, input.pos);
-      output.out_pos = output.pos;
+      output.out_pos_prev = get_prevframe_output_pos(input, input.pos).xyw;
+      output.out_pos = output.pos.xyw;
     #endif
       return output;
     }

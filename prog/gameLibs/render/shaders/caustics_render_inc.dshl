@@ -35,7 +35,8 @@ macro CAUSTICS_RENDER_CORE(code)
 
   if (water_heightmap_lowres != NULL)
   {
-    (code) {water_heightmap_lowres@smp2d = water_heightmap_lowres;}
+    (code) {water_heightmap_lowres@tex2d = water_heightmap_lowres;}
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   }
 
   if (static_shadows_cascades != off)
@@ -59,6 +60,7 @@ macro CAUSTICS_RENDER_CORE(code)
 
   hlsl(code) {
     #define USE_CAUSTICS_RENDER 1
+    #define water_heightmap_lowres_samplerstate global_linear_wrap_sampler
   }
 
   USE_WATER_HEIGHTMAP(code)

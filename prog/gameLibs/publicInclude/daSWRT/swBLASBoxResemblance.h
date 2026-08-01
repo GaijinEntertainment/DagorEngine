@@ -60,8 +60,8 @@ float computeBlasBoxResemblanceVoxel(const uint8_t *blas_data, int tree_start, i
 // Monte-Carlo CPU ray-trace estimators.
 //
 // IMPORTANT format constraint: these functions go through BLASTraverse<>::rayBLAS, which
-// reads packed-21-bit vertices (8 bytes each) at the start of the BLAS buffer with the
-// BVH tree after them. That layout is produced by build_bvh::writeQuadBVH2 with the
+// reads the BVH tree at the start of the BLAS buffer with packed-21-bit vertices (8 bytes
+// each) after it. That layout is produced by build_bvh::writeDoubleQuadBVH2 with the
 // testMocBLAS-style packing -- it is NOT the layout that RenderSWRT::buildBLAS emits
 // (FP16-encoded tree + FP32 verts). So these MC functions only work with the offline
 // packed-21bit BLAS used by build-time tools (e.g. testMocBLAS), not with a runtime

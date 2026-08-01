@@ -6,7 +6,6 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_ringCPUQueryLock.h>
 #include <shaders/dag_shaders.h>
@@ -152,10 +151,7 @@ bool ExposureCompute::updateReadback()
   bool fresh = false;
   int stride;
   uint32_t latestReadbackFrameRead;
-  // WORKAROUND: some AMD cards in dx11 have issue with locking - the event has already happend, but GPU is still working with the
-  // readback buffer
-  static const bool getTopMost = !(d3d::get_driver_code().is(d3d::dx11) && d3d::get_driver_desc().info.vendor == GpuVendor::AMD);
-  if (float *data = (float *)exposureReadback->lock(stride, latestReadbackFrameRead, getTopMost))
+  if (float *data = (float *)exposureReadback->lock(stride, latestReadbackFrameRead, true))
   {
     memcpy(lastExposureBuffer.data(), data, sizeof(lastExposureBuffer));
 

@@ -31,6 +31,7 @@ inline const char *shadervar_type_to_stcode_type(ShaderVarType shvt)
     case SHVT_INT4: return "int4";
     case SHVT_COLOR4: return "float4";
     case SHVT_FLOAT4X4: return "float4x4";
+    case SHVT_FLOAT4x3: return "float4x3";
     case SHVT_BUFFER:
     case SHVT_TEXTURE:
     case SHVT_SAMPLER:

@@ -4,7 +4,7 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <ioSys/dag_genIo.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/vector.h>
+#include <dag/dag_vector.h>
 #include <generic/dag_initOnDemand.h>
 #include <debug/dag_debug.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
@@ -20,7 +20,7 @@ public:
     eastl::unique_ptr<dag::Span<uint8_t>> data;
   };
 
-  eastl::vector<Data> resList;
+  dag::Vector<Data> resList;
 
   int findRes(int res_id) const
   {
@@ -155,6 +155,7 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(resList, resId, refCount)
 };
+DAG_DECLARE_RELOCATABLE(LocShaderGameResFactory::Data);
 
 
 static InitOnDemand<LocShaderGameResFactory> lshader_factory;

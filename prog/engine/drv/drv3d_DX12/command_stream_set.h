@@ -37,8 +37,8 @@ struct CommandStreamSet
     }
     if (listsInUse < lists.size())
     {
-      result = lists[listsInUse++];
-      result->Reset(pool.Get(), nullptr);
+      if (DX12_DEBUG_OK(lists[listsInUse]->Reset(pool.Get(), nullptr)))
+        result = lists[listsInUse++];
     }
     else
     {

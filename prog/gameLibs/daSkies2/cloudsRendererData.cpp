@@ -47,14 +47,33 @@ void CloudsRendererData::clearTemporalData(uint32_t gen)
   clear_black(*prevWeight);
 }
 
+void CloudsRendererData::ensureCheckerColor(bool wanted)
+{
+  if (!wanted)
+  {
+    cloudsCheckerColor.close();
+    return;
+  }
+  if (cloudsCheckerColor)
+    return;
+  uint32_t fmt = TEXFMT_A16B16G16R16F;
+  if (d3d::get_driver_desc().issues.hasBrokenComputeFormattedOutput)
+    fmt = TEXFMT_A32B32G32R32F;
+  String tn(64, "%s_clouds_checker", texPrefix.c_str());
+  cloudsCheckerColor =
+    dag::create_tex(NULL, (cloudTexRes.x + 1) / 2, (cloudTexRes.y + 1) / 2, TEXCF_UNORDERED | fmt, 1, tn.c_str(), RESTAG_DASKIES2);
+}
+
 void CloudsRendererData::close()
 {
   clouds_close_layer_is_outside.close();
   clouds_sub_view_close_layer_is_outside.close();
+  closeLayerWasActive = false;
   clouds_color_close.close();
   clouds_tile_distance.close();
   clouds_tile_distance_tmp.close();
   cloudsTextureDepth.close();
+  cloudsCheckerColor.close();
   cloudsBlurTextureColor = nullptr;
   cloudsTextureColor = nullptr;
   prevCloudsColor = nullptr;
@@ -91,6 +110,7 @@ void CloudsRendererData::setVars(const bool is_main_view)
   ShaderGlobal::set_int4(clouds_tiled_resVarId, dw, dh, 0, 0);
   ShaderGlobal::set_int4(clouds2_resolutionVarId, cloudTexRes.x, cloudTexRes.y, lowresCloseClouds ? cloudTexRes.x / 2 : cloudTexRes.x,
     lowresCloseClouds ? cloudTexRes.y / 2 : cloudTexRes.y);
+  ShaderGlobal::set_int4(clouds2_far_res_last_texel_indexVarId, cloudTexRes.x - 1, cloudTexRes.y - 1, 0, 0);
   ShaderGlobal::set_texture(clouds_colorVarId, cloudsBlurTextureColor ? cloudsBlurTextureColor->getTexId() : BAD_TEXTUREID);
   ShaderGlobal::set_texture(clouds_color_closeVarId, clouds_color_close);
   ShaderGlobal::set_texture(clouds_tile_distanceVarId, clouds_tile_distance);
@@ -103,6 +123,7 @@ void CloudsRendererData::setVars(const bool is_main_view)
 void CloudsRendererData::init(const IPoint2 &resolution, const char *prefix, bool can_be_in_clouds, CloudsResolution clouds_resolution,
   bool use_blurred_clouds)
 {
+  texPrefix = prefix;
   const bool changedSize = (cloudTexRes.x != resolution.x || cloudTexRes.y != resolution.y);
 
   // note: we also need depth (see CloudsRenderer::render) to decide if can be in clouds, but it's pass dependent
@@ -143,6 +164,7 @@ void CloudsRendererData::init(const IPoint2 &resolution, const char *prefix, boo
     cloudsBlurTextureColor = nullptr;
     cloudsTextureWeight = nullptr;
     cloudsTextureDepth.close();
+    cloudsCheckerColor.close();
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
@@ -162,7 +184,10 @@ void CloudsRendererData::init(const IPoint2 &resolution, const char *prefix, boo
 
     tn.printf(64, "%s_clouds_depth", prefix);
     cloudsTextureDepth.close();
-    cloudsTextureDepth = dag::create_tex(NULL, cloudTexRes.x, cloudTexRes.y, rtflg | TEXFMT_L16, 1, tn.c_str(), RESTAG_DASKIES2);
+    // clear on create: the checker trace scatter-writes one texel per 2x2 quad, so
+    // the other three would stay undefined for the first quincunx cycle otherwise
+    cloudsTextureDepth =
+      dag::create_tex(NULL, cloudTexRes.x, cloudTexRes.y, rtflg | TEXFMT_L16 | TEXCF_CLEAR_ON_CREATE, 1, tn.c_str(), RESTAG_DASKIES2);
     initTiledDist(prefix);
   }
   if (changedCanBeInClouds)
@@ -175,11 +200,6 @@ void CloudsRendererData::init(const IPoint2 &resolution, const char *prefix, boo
       tn.printf(64, "%s_clouds_close", prefix);
       clouds_color_close = dag::create_tex(NULL, lowresCloseClouds ? cloudTexRes.x / 2 : cloudTexRes.x,
         lowresCloseClouds ? cloudTexRes.y / 2 : cloudTexRes.y, rtflg | fmt | TEXCF_CLEAR_ON_CREATE, 1, tn.c_str(), RESTAG_DASKIES2);
-      {
-        d3d::SamplerInfo smpInfo;
-        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-        ShaderGlobal::set_sampler(clouds_color_close_samplerstateVarId, d3d::request_sampler(smpInfo));
-      }
     }
   }
 

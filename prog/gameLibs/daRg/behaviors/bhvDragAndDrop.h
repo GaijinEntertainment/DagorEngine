@@ -32,7 +32,7 @@ private:
   Element *findElemByHandler(ElementTree *etree, const Sqrat::Object &handler);
   void activateTarget(ElementTree *etree, Element *elem, DragAndDropState *dd_state, Element *new_target_elem,
     const Sqrat::Object &new_target_handler, int state_flags);
-  void callDragModeHandler(IGuiScene *scene, Element *elem, bool mode_on);
+  void callDragModeHandler(IGuiScene *scene, Element *elem, bool mode_on, bool allow_on_shutdown = false);
   int applyPointerMove(const Point2 &pointer_pos, darg::DragAndDropState *ddState, darg::Element *elem, darg::ElementTree *etree,
     int activeStateFlag);
   int startVisualDrag(ElementTree *etree, darg::Element *elem);

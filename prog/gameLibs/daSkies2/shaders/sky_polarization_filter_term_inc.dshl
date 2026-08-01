@@ -32,3 +32,33 @@ macro USE_SKY_POLARIZATION_FILTER_TERM(stage)
 #endif
   }
 endmacro
+
+//camera polarizer emulation: darkens Rayleigh-scattered sky in the 90 deg band from the sun,
+//leaving Mie (sun aureole, haze) and clouds untouched. Applied where the sky is produced
+//(render_skies2.dshl), never at apply/composite time, so it multiplies each pixel once.
+//Camera imagery only: envi probe renders (panoramic scattering data) are lighting and skip it.
+//Not interval-gated: strength 0 (default) is an identity, cost is a few ALU on sky pixels.
+float sky_polarization_filter_strength = 0;
+float sky_polarization_filter_horizon_mul = 3;
+float sky_polarization_filter_horizon_add = 0.04;
+
+macro INIT_SKY_POLARIZATION_ANGULAR(stage)
+  (stage) {
+    sky_polarization_angular@f3 = (sky_polarization_filter_strength, sky_polarization_filter_horizon_mul, sky_polarization_filter_horizon_add, 0);
+  }
+endmacro
+
+macro USE_SKY_POLARIZATION_ANGULAR(stage)
+  hlsl(stage) {
+    //nu = dot(view, to_sun), view_up = world-up component of view. Returns multiplier for the
+    //Rayleigh part of sky inscatter. Real skies polarize up to ~0.75-0.85 at 90 deg; strength
+    //maps 1:1 to the removed fraction there. Horizon ramp fades the effect where multiple
+    //scattering depolarizes the real sky (and keeps the horizon bright for depth).
+    float apply_sky_polarization_angular(float nu, float view_up)
+    {
+      float dop = (1 - nu*nu) / (1 + nu*nu);//Rayleigh degree of linear polarization
+      float band = sky_polarization_angular.x * saturate(view_up*sky_polarization_angular.y + sky_polarization_angular.z);
+      return 1 - band*dop;
+    }
+  }
+endmacro

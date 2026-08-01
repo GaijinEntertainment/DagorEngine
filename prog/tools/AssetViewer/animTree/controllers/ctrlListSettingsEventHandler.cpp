@@ -31,7 +31,7 @@ bool CtrlListSettingsEventHandler::onListBoxContextMenu(int pcb_id, PropPanel::I
     if (!selLeaf)
       return false;
     AnimCtrlData *ctrlData = find_data_by_handle(controllers, selLeaf);
-    if (!ctrlData || ctrlData->childs.empty())
+    if (ctrlData == controllers.end() || ctrlData->childs.empty())
       return false;
 
     PropPanel::IMenu &menu = list_box_interface.createContextMenu();

@@ -140,6 +140,7 @@ string      <MAIN> ==> string;
 'channel' <MAIN> => channel;
 'int4' <MAIN> => int4;
 'float4x4' <MAIN> => float4x4;
+'float4x3' <MAIN> => float4x3;
 'color8' <MAIN> => color8;
 'cull_mode' <MAIN> => cull_mode;
 'alpha_to_coverage' <MAIN> => alpha_to_coverage;
@@ -212,6 +213,8 @@ string      <MAIN> ==> string;
 'const_buffer' <MAIN> => const_buffer;
 'tlas' <MAIN> => tlas;
 'render_stage' <MAIN> => render_stage;
+'max_recursion' <MAIN> => max_recursion;
+'allow_opacity_micromaps' <MAIN> => allow_opacity_micromaps;
 'render_trans' <MAIN> => render_trans;
 'true' <MAIN> => _true;
 'ubyte4' <MAIN> => ubyte4;
@@ -279,6 +282,7 @@ keyword ->
   'channel' |
   'int4' |
   'float4x4' |
+  'float4x3' |
   'color8' |
   'cull_mode' |
   'alpha_to_coverage' |
@@ -358,6 +362,8 @@ keyword ->
   'const_buffer' |
   'tlas' |
   'render_stage' |
+  'max_recursion' |
+  'allow_opacity_micromaps' |
   'render_trans' |
   'true' |
   'ubyte4' |

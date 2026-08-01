@@ -17,6 +17,7 @@ float angle_to_roughness_scale = 0.1;
 
 hlsl {
   #define USE_NOFOG_REFLECTION_ON_DISTANCE 1
+  #define NO_REFRACTION_OPACITY_SCALE 1.0h
 }
 
 macro INIT_WATER_3D_DEFERRED_COLOR_DNG()

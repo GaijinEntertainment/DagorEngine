@@ -45,17 +45,12 @@ buffer grass_instances_count_readback;
 int grass_update_readback_count;
 float4 grass_smoothness_fade_params = float4(1.0, 30.0, 0.0, 0.0); // X - fade start, Y - fade end distance, ZW - unused
 
-int grass_use_hzb_occlusion = 0;
-interval grass_use_hzb_occlusion: no<1, yes;
-
 int has_motion_vectors = 0;
 interval has_motion_vectors: no < 1, yes;
 
 float4x4 jitteredCamPosToUnjitteredHistoryClip;
 float4 prev_world_view_pos;
 float4 prev_world_to_grass_position;
-
-float4 camera_base_offset = (0, 0, 0, 0);
 
 shader grass_create_indirect {
   INIT_GRASS_GENERATE(cs)
@@ -495,8 +490,8 @@ shader grass_render_billboards
       float4 color_mask_g_to__porosity:TEXCOORD8;
       ##endif
       #ifdef MOTION_VECTORS_ENABLED
-        float4 out_pos : TEXCOORD9;
-        float4 out_pos_prev : TEXCOORD10;
+        float3 out_pos : TEXCOORD9;
+        float3 out_pos_prev : TEXCOORD10;
       #endif
     };
   }
@@ -615,8 +610,8 @@ shader grass_render_billboards
 
       output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
       #ifdef MOTION_VECTORS_ENABLED
-        output.out_pos = output.pos;
-        output.out_pos_prev = mul(float4(corner.worldPosPrev - world_view_pos, 1), jitteredCamPosToUnjitteredHistoryClip);
+        output.out_pos = output.pos.xyw;
+        output.out_pos_prev = mul(float4(corner.worldPosPrev - world_view_pos, 1), jitteredCamPosToUnjitteredHistoryClip).xyw;
       #endif
       ##if grass_pass == visibility_pass
       output.idx = inst;
@@ -768,6 +763,9 @@ shader grass_render_billboards
 ##endif
     void grass_ps(VsOutput input HW_USE_SCREEN_POS)
     ##else
+##if DEBUG && grass_pass == prepass_on
+    [earlydepthstencil]
+##endif
     GBUFFER_OUTPUT grass_ps(VsOutput input HW_USE_SCREEN_POS)
     //float4 grass_ps(VsOutput input, float4 screenpos:VPOS):SV_Target
     ##endif
@@ -865,7 +863,7 @@ shader grass_render_billboards
       init_shadow(gbuffer, ao);
       init_ao(gbuffer, ao);
       #ifdef MOTION_VECTORS_ENABLED
-        float3 motion = encode_motion_vector(input.out_pos.xyw, input.out_pos_prev.xyw);
+        float3 motion = encode_motion_vector(input.out_pos, input.out_pos_prev);
         init_motion_vector(gbuffer, motion);
       #endif
 

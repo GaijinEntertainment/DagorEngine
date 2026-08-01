@@ -23,6 +23,16 @@ require daslib/safe_addr
 
 var private @ignore_heap_usage context : EditorContext? // ignore heap usage because it is used c++ heap
 
+struct AnimCharViewVarSettings
+  enumCls : string
+  isBool : bool
+  trackbar : bool
+  minVal : float
+  maxVal : float
+  step : float
+
+var private param_view_settings : table<string; AnimCharViewVarSettings>
+
 [event(broadcast)]
 struct AnimGraphViewerSetAnimState
   state_idx : int
@@ -39,6 +49,40 @@ enum NodeDrawMode
   FULL
   MINIFIED
 
+enum UndoRedoActionKind
+  HUB_ADD
+  HUB_REMOVE
+  LINEAR_POLY_ADD
+  LINEAR_POLY_REMOVE
+  LINEAR_POLY_SET_P0
+  PARAM_SWITCH_ADD
+  PARAM_SWITCH_REMOVE
+  PARAM_SWITCH_SET_START
+  PARAM_SWITCH_SET_END
+
+struct UndoRedoAction
+  kind : UndoRedoActionKind
+  name : string
+  needsStateReset : bool // applying this action may register new graph params, so all anim states using the graph must be reinited
+  alreadyApplied : bool // value edits are applied live by the widget; on commit they are only recorded for undo, not executed again
+  ctrlName : string
+  childName : string
+  childIdx : int
+  oldValue : float
+  newValue : float
+  weight : float // HUB_ADD, HUB_REMOVE
+  p0 : float // LINEAR_POLY_ADD, LINEAR_POLY_REMOVE
+  start : float // PARAM_SWITCH_ADD, PARAM_SWITCH_REMOVE
+  end : float
+  baseVal : float
+
+struct UndoRedoStacks
+  undo : array<UndoRedoAction>
+  redo : array<UndoRedoAction>
+
+// keyed by anim graph resId so each graph keeps its own history while the selected entity changes
+var private graph_edit_history : table<int; UndoRedoStacks>
+
 struct AnimgraphContext
   nodeNames : array<string>
   nodeIds : array<int>
@@ -46,6 +90,7 @@ struct AnimgraphContext
   links : array<tuple<outIdx : int; inIdx : int>>
   animchar : AnimcharBaseComponent?
   drawMode : NodeDrawMode
+  pendingActions : array<UndoRedoAction>
 
 typedef
   BlendNodeRenderer = function<(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : AnimGraphStateHolder; var context : AnimgraphContext) : void>
@@ -198,6 +243,33 @@ def get_param_value_str(var state : AnimGraphStateHolder; var graph : AnimationG
       paramValue = fmt(":.2f", value)
 
   return paramValue
+
+
+def set_anim_char_view_vars(vars_blk : DataBlock)
+  param_view_settings |> clear()
+  vars_blk |> datablock_for_each_block() <| $(paramBlk)
+    var settings : AnimCharViewVarSettings
+    settings.enumCls = "{paramBlk |> datablock_getStr("enum", "")}"
+    settings.isBool = paramBlk |> datablock_getBool("bool", false)
+    settings.trackbar = paramBlk |> datablock_getBool("trackbar", false)
+    settings.minVal = paramBlk |> datablock_getReal("min", 0.0)
+    settings.maxVal = paramBlk |> datablock_getReal("max", settings.trackbar ? 1.0 : 0.0)
+    settings.step = paramBlk |> datablock_getReal("step", 0.01)
+    param_view_settings |> insert("{paramBlk |> datablock_getBlockName()}", settings)
+
+
+def get_enum_items(var graph : AnimationGraph; enum_cls : string; var names : array<string>; var values : array<int>)
+  let enumListBlk = graph |> anim_graph_getEnumList(enum_cls)
+  if enumListBlk == null
+    return
+  var items : array<tuple<name : string; value : int>>
+  *enumListBlk |> datablock_for_each_block() <| $(itemBlk)
+    items |> emplace <| (name = "{itemBlk |> datablock_getBlockName()}", value = itemBlk |> datablock_getInt("_enumValue", -1))
+  items |> sort() <| $(left; right)
+    return left.name < right.name
+  for item in items
+    names |> push(item.name)
+    values |> push(item.value)
 
 
 def get_enum_name_of_parameter_value(var graph : AnimationGraph; var state : AnimGraphStateHolder; id : int)
@@ -450,6 +522,147 @@ def render_AnimBlendCtrl_RandomSwitcher(var nod : IAnimBlendNode?; var graph : A
           link_child(graph, nod, outId, childNode, context)
 
 
+def private undoable_drag_float(widget_id : string; value : float; speed : float) : tuple<changed : bool; committed : bool; newValue : float; oldValue : float>
+  static_let <|
+    var edit_start_value = 0.0
+  var v = value
+  let minVal = -1e8
+  let maxVal = 1e8
+  let changed = imgui::DragScalar(widget_id, ImGuiDataType.Float, safe_addr(v), speed, safe_addr(minVal), safe_addr(maxVal), "%.3f", ImGuiSliderFlags.None)
+  if imgui::IsItemActivated()
+    edit_start_value = value
+  let committed = imgui::IsItemDeactivatedAfterEdit()
+  return (changed=changed, committed=committed, newValue=v, oldValue=edit_start_value)
+
+
+def private node_select_combo(context : AnimgraphContext; id_suffix : string; var selected_index : int&)
+  static_let_finalize <|
+    var nodeSelectFilter = new ImGuiTextFilter
+
+  if length(context.nodeNames) == 0
+    return
+
+  // Hacky way to not crash when selected anim tree changes
+  if selected_index >= length(context.nodeNames)
+    selected_index = 0
+
+  let maxComboSize = 200.0
+  imgui::SetNextWindowSizeConstraints(ImVec2(0.0, 0.0), ImVec2(FLT_MAX, FLT_MAX))
+  if imgui::BeginCombo("Node##nodesel_{id_suffix}", context.nodeNames[selected_index])
+    *nodeSelectFilter |> Draw("##nodeselfilter_{id_suffix}")
+
+    var filteredNodeIndexes : array<int>
+    filteredNodeIndexes |> reserve(length(context.nodeNames))
+    for i in range(length(context.nodeNames))
+      if *nodeSelectFilter |> PassFilter(context.nodeNames[i])
+        filteredNodeIndexes |> push(i)
+
+    imgui::SetNextWindowSizeConstraints(ImVec2(0.0, 0.0), ImVec2(FLT_MAX, maxComboSize))
+    if imgui::BeginChild("##nodeseloptions_{id_suffix}", ImVec2(-FLT_MIN, 0.0), ImGuiChildFlags.AutoResizeY | ImGuiChildFlags.AlwaysAutoResize)
+      using() <| $(var clipper : ImGuiListClipper)
+        Begin(clipper, length(filteredNodeIndexes), imgui::GetTextLineHeightWithSpacing())
+        while Step(clipper)
+          for i in range(clipper.DisplayStart, clipper.DisplayEnd)
+            let isSelected = selected_index == filteredNodeIndexes[i]
+            if imgui::Selectable(context.nodeNames[filteredNodeIndexes[i]], isSelected)
+              selected_index = filteredNodeIndexes[i]
+              imgui::CloseCurrentPopup()
+
+      imgui::EndChild()
+    imgui::EndCombo()
+
+
+def private hub_find_child_idx_from_end(var hub : AnimBlendCtrl_Hub; child : IAnimBlendNode?) : int
+  var i = length(hub.nodes) - 1
+  while i >= 0
+    if hub.nodes[i] |> get() == child
+      return i
+    i -= 1
+  return -1
+
+
+// Finds the child by identity (node + p0), sorting by p0 moves items around so a stored index is only a fast path guess
+def private linear_poly_find_child_idx(var ctrl : AnimBlendCtrl_LinearPoly; child : IAnimBlendNode?; p0 : float; guess_idx : int) : int
+  if guess_idx >= 0 && guess_idx < length(ctrl.poly) && ctrl.poly[guess_idx].node |> get() == child && ctrl.poly[guess_idx].p0 == p0
+    return guess_idx
+  for i in range(length(ctrl.poly))
+    if ctrl.poly[i].node |> get() == child && ctrl.poly[i].p0 == p0
+      return i
+  return -1
+
+
+def private param_switcher_find_child_idx_from_end(var ctrl : AnimBlendCtrl_ParametricSwitcher; child : IAnimBlendNode?) : int
+  var i = length(ctrl.list) - 1
+  while i >= 0
+    if ctrl.list[i].node |> get() == child
+      return i
+    i -= 1
+  return -1
+
+
+def private apply_graph_action(var act : UndoRedoAction; is_redo : bool; var graph : AnimationGraph)
+  unsafe
+    // actions address nodes by name, resolve them against the currently viewed graph and skip actions which no longer resolve
+    var ctrl = graph |> anim_graph_getBlendNodePtr(graph |> anim_graph_getBlendNodeId(act.ctrlName))
+    var child = act.childName != "" ? graph |> anim_graph_getBlendNodePtr(graph |> anim_graph_getBlendNodeId(act.childName)) : null
+    if ctrl == null || (act.childName != "" && child == null)
+      visual_log("animgraph undo/redo: can't resolve '{act.ctrlName}'/'{act.childName}', skipping '{act.name}'")
+      return
+
+    if act.kind == UndoRedoActionKind.HUB_ADD || act.kind == UndoRedoActionKind.HUB_REMOVE
+      assume hub = *reinterpret<AnimBlendCtrl_Hub?> ctrl
+      if (act.kind == UndoRedoActionKind.HUB_ADD) == is_redo
+        hub |> anim_blend_node_addBlendNode(child, true, act.weight)
+      else
+        var idx = act.childIdx
+        if idx < 0 || idx >= length(hub.nodes) || hub.nodes[idx] |> get() != child
+          idx = hub_find_child_idx_from_end(hub, child)
+        if idx >= 0
+          hub.nodes |> erase(idx)
+          hub.defNodeWt |> erase(idx)
+
+    elif act.kind == UndoRedoActionKind.LINEAR_POLY_ADD || act.kind == UndoRedoActionKind.LINEAR_POLY_REMOVE
+      assume lp = *reinterpret<AnimBlendCtrl_LinearPoly?> ctrl
+      if (act.kind == UndoRedoActionKind.LINEAR_POLY_ADD) == is_redo
+        lp |> anim_blend_node_addBlendNode(child, act.p0, graph, act.ctrlName)
+        lp |> anim_blend_node_sortBlendNodes()
+      else
+        let idx = linear_poly_find_child_idx(lp, child, act.p0, act.childIdx)
+        if idx >= 0
+          lp.poly |> erase(idx)
+
+    elif act.kind == UndoRedoActionKind.LINEAR_POLY_SET_P0
+      assume lp = *reinterpret<AnimBlendCtrl_LinearPoly?> ctrl
+      let curValue = is_redo ? act.oldValue : act.newValue
+      let idx = linear_poly_find_child_idx(lp, child, curValue, act.childIdx)
+      if idx >= 0
+        lp.poly[idx].p0 = is_redo ? act.newValue : act.oldValue
+        lp |> anim_blend_node_sortBlendNodes()
+
+    elif act.kind == UndoRedoActionKind.PARAM_SWITCH_ADD || act.kind == UndoRedoActionKind.PARAM_SWITCH_REMOVE
+      assume ps = *reinterpret<AnimBlendCtrl_ParametricSwitcher?> ctrl
+      if (act.kind == UndoRedoActionKind.PARAM_SWITCH_ADD) == is_redo
+        ps |> anim_blend_node_addBlendNode(child, act.start, act.end, act.baseVal, graph, act.ctrlName)
+      else
+        var idx = act.childIdx
+        if idx < 0 || idx >= length(ps.list) || ps.list[idx].node |> get() != child
+          idx = param_switcher_find_child_idx_from_end(ps, child)
+        if idx >= 0
+          ps.list |> erase(idx)
+
+    elif act.kind == UndoRedoActionKind.PARAM_SWITCH_SET_START
+      assume ps = *reinterpret<AnimBlendCtrl_ParametricSwitcher?> ctrl
+      if act.childIdx >= 0 && act.childIdx < length(ps.list)
+        let curEnd = ps.list[act.childIdx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_getEnd()
+        ps.list[act.childIdx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_setRange(is_redo ? act.newValue : act.oldValue, curEnd)
+
+    elif act.kind == UndoRedoActionKind.PARAM_SWITCH_SET_END
+      assume ps = *reinterpret<AnimBlendCtrl_ParametricSwitcher?> ctrl
+      if act.childIdx >= 0 && act.childIdx < length(ps.list)
+        let curStart = ps.list[act.childIdx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_getStart()
+        ps.list[act.childIdx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_setRange(curStart, is_redo ? act.newValue : act.oldValue)
+
+
 [unused_argument(nod, graph, state, context)]
 def render_AnimBlendCtrl_Hub(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : AnimGraphStateHolder; var context : AnimgraphContext)
   unsafe
@@ -480,7 +693,7 @@ def render_AnimBlendCtrl_Hub(var nod : IAnimBlendNode?; var graph : AnimationGra
     HelpMarkerInNode("When hub has const:b=false (default) a parameter is registered which contains the weight for each child node.
 This allows to overwrite each node weight in a hub externally.
 For example, this is used to disable some IK nodes when soldiers are far away(optimisation).
-Currently in this node we can't add or remove nodes throuh anim graph viewer.
+Adding and removing nodes through anim graph viewer is only supported for const hubs.
 ")
 
 
@@ -501,8 +714,15 @@ Currently in this node we can't add or remove nodes throuh anim graph viewer.
             link_child(graph, nod, outId, childNode, context)
 
     if removeNodeId != -1
-      node.nodes |> erase(removeNodeId)
-      node.defNodeWt |> erase(removeNodeId)
+      var childPtr = node.nodes[removeNodeId] |> get()
+      var act : UndoRedoAction
+      act.kind = UndoRedoActionKind.HUB_REMOVE
+      act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+      act.childName = "{graph |> anim_graph_getBlendNodeName(childPtr)}"
+      act.childIdx = removeNodeId
+      act.weight = node.defNodeWt[removeNodeId]
+      act.name = "hub: remove '{get_node_name(graph, childPtr)}'"
+      context.pendingActions |> push(act)
 
     if constWeights
       let addNewButtonClicked = imgui::Button("Add Node##hubaddnodepoupup_{nodeId}")
@@ -517,43 +737,22 @@ Currently in this node we can't add or remove nodes throuh anim graph viewer.
         static_let <|
           var newNodeSelectedIndex = 0
           var newNodeWeight = 1.0
-          var newNodeNameFilterBuffer = ImGuiInputTextBuffer("", 128)
-        static_let_finalize <|
-          var newNodeNameFilter = new ImGuiTextFilter
 
-        // Hacky way to not crash when selected anim tree changes
-        if newNodeSelectedIndex >= length(context.nodeNames)
-          newNodeSelectedIndex = 0
-
-        let maxComboSize = 200.0
-        imgui::SetNextWindowSizeConstraints(ImVec2(0.0, 0.0), ImVec2(FLT_MAX, FLT_MAX))
-        if imgui::BeginCombo("Node##hubadd{nodeId}", context.nodeNames[newNodeSelectedIndex])
-          *newNodeNameFilter |> Draw("##newNodeNameFilterHub{nodeId}")
-
-          var filteredNodeIndexes : array<int>
-          filteredNodeIndexes.reserve(length(context.nodeNames))
-          for i in range(length(context.nodeNames))
-            if *newNodeNameFilter |> PassFilter(context.nodeNames[i])
-              filteredNodeIndexes.push(i)
-
-          imgui::SetNextWindowSizeConstraints(ImVec2(0.0, 0.0), ImVec2(FLT_MAX, maxComboSize))
-          if imgui::BeginChild("##ComboOptionsHub{nodeId}", ImVec2(-FLT_MIN, 0.0), ImGuiChildFlags.AutoResizeY | ImGuiChildFlags.AlwaysAutoResize)
-            using() <| $(var clipper : ImGuiListClipper)
-              Begin(clipper, length(filteredNodeIndexes), imgui::GetTextLineHeightWithSpacing())
-              while Step(clipper)
-                for i in range(clipper.DisplayStart, clipper.DisplayEnd)
-                  let isSelected = newNodeSelectedIndex == filteredNodeIndexes[i]
-                  if imgui::Selectable(context.nodeNames[filteredNodeIndexes[i]], isSelected)
-                    newNodeSelectedIndex = filteredNodeIndexes[i]
-                    imgui::CloseCurrentPopup()
-
-            imgui::EndChild()
-          imgui::EndCombo()
+        node_select_combo(context, "hubadd{nodeId}", newNodeSelectedIndex)
 
         imgui::InputFloat("Weight##hubaddnodeweight{nodeId}", safe_addr(newNodeWeight))
 
         if imgui::Button("Add##hubaddnode{nodeId}")
-          node |> anim_blend_node_addBlendNode(graph |> anim_graph_getBlendNodePtr(context.nodeIds[newNodeSelectedIndex]), true, newNodeWeight)
+          var childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[newNodeSelectedIndex])
+          if childPtr != null
+            var act : UndoRedoAction
+            act.kind = UndoRedoActionKind.HUB_ADD
+            act.name = "hub: add '{context.nodeNames[newNodeSelectedIndex]}'"
+            act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+            act.childName = "{graph |> anim_graph_getBlendNodeName(childPtr)}"
+            act.childIdx = -1
+            act.weight = newNodeWeight
+            context.pendingActions |> push(act)
 
         imgui::EndPopup()
 
@@ -624,14 +823,89 @@ def render_AnimBlendCtrl_LinearPoly(var nod : IAnimBlendNode?; var graph : Anima
       let paramId = node |> anim_blend_node_getParamId()
       draw_param_info(graph, state, paramId, "Param")
 
-    node |> AnimBlendCtrl_LinearPoly_getChildren <| $(children)
-      for idx, child in iter_range(children), children
-        let outId = get_output_node_idx(nodeId, idx)
-        var childNode = child.node |> get()
-        if context.drawMode == NodeDrawMode.MINIFIED && nodeId != -1 && context.weights[nodeId] == 0.0
-          continue
-        out_pin(outId, "{idx + 1}) p0:{child.p0} wtPid:{child.wtPid}\n'{get_node_name(graph, childNode)}'") <|
+    var removeIdx = -1
+    var sortNeeded = false
+    for idx in range(length(node.poly))
+      let outId = get_output_node_idx(nodeId, idx)
+      var childNode = node.poly[idx].node |> get()
+      if context.drawMode == NodeDrawMode.MINIFIED && nodeId != -1 && context.weights[nodeId] == 0.0
+        continue
+      if context.drawMode == NodeDrawMode.MINIFIED
+        out_pin(outId, "{idx + 1}) p0:{node.poly[idx].p0} wtPid:{node.poly[idx].wtPid}\n'{get_node_name(graph, childNode)}'") <|
           link_child(graph, nod, outId, childNode, context)
+      else
+        out_pin(outId, "{idx + 1}) wtPid:{node.poly[idx].wtPid} '{get_node_name(graph, childNode)}'") <|
+          link_child(graph, nod, outId, childNode, context)
+          imgui::Text("p0:")
+          imgui::SameLine()
+          SetNextItemWidth(80.0)
+          let r = undoable_drag_float("##lp_p0_{nodeId}_{idx}", node.poly[idx].p0, 0.01)
+          if r.changed
+            node.poly[idx].p0 = r.newValue
+          if r.committed
+            var act : UndoRedoAction
+            act.kind = UndoRedoActionKind.LINEAR_POLY_SET_P0
+            act.name = "linearPoly: p0 {r.oldValue} -> {r.newValue}"
+            act.alreadyApplied = true
+            act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+            act.childName = "{graph |> anim_graph_getBlendNodeName(childNode)}"
+            act.childIdx = idx
+            act.oldValue = r.oldValue
+            act.newValue = r.newValue
+            context.pendingActions |> push(act)
+            sortNeeded = true
+          imgui::SameLine()
+          if imgui::Button("X##lp_remove_{nodeId}_{idx}")
+            removeIdx = idx
+
+    if removeIdx != -1
+      var childPtr = node.poly[removeIdx].node |> get()
+      var act : UndoRedoAction
+      act.kind = UndoRedoActionKind.LINEAR_POLY_REMOVE
+      act.needsStateReset = true // undo re-adds the node which may register a new weight param
+      act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+      act.childName = "{graph |> anim_graph_getBlendNodeName(childPtr)}"
+      act.childIdx = removeIdx
+      act.p0 = node.poly[removeIdx].p0
+      act.name = "linearPoly: remove '{get_node_name(graph, childPtr)}'"
+      context.pendingActions |> push(act)
+
+    // sorting during an active drag would move items under the cursor, so only sort once the edit is committed
+    if sortNeeded
+      node |> anim_blend_node_sortBlendNodes()
+
+    if context.drawMode != NodeDrawMode.MINIFIED
+      let addNewButtonClicked = imgui::Button("Add Node##lpaddnode_{nodeId}")
+
+      imgui_node_editor::Suspend()
+
+      if addNewButtonClicked
+        imgui::OpenPopup("lp_add_node_{nodeId}")
+
+      if imgui::BeginPopup("lp_add_node_{nodeId}")
+        static_let <|
+          var lpNewNodeSelectedIndex = 0
+          var lpNewNodeP0 = 0.0
+
+        node_select_combo(context, "lpadd{nodeId}", lpNewNodeSelectedIndex)
+        imgui::InputFloat("p0##lpaddnodep0_{nodeId}", safe_addr(lpNewNodeP0))
+
+        if imgui::Button("Add##lpaddnodebtn_{nodeId}")
+          var childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[lpNewNodeSelectedIndex])
+          if childPtr != null
+            var act : UndoRedoAction
+            act.kind = UndoRedoActionKind.LINEAR_POLY_ADD
+            act.name = "linearPoly: add '{context.nodeNames[lpNewNodeSelectedIndex]}'"
+            act.needsStateReset = true // addBlendNode registers a new weight param
+            act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+            act.childName = "{graph |> anim_graph_getBlendNodeName(childPtr)}"
+            act.childIdx = -1
+            act.p0 = lpNewNodeP0
+            context.pendingActions |> push(act)
+
+        imgui::EndPopup()
+
+      imgui_node_editor::Resume()
 
 
 [unused_argument(nod, graph, state, context)]
@@ -706,11 +980,108 @@ def render_AnimBlendCtrl_ParametricSwitcher(var nod : IAnimBlendNode?; var graph
                 let name = animV20_get_enum_name_by_id(possibleParamId)
                 if name != ""
                   paramName = "'{name}' "
-              TextUnformatted("{j}) {paramName}base: {child.baseVal} [{start};{end}]")
+              TextUnformatted("{j}) {paramName} param range: [{start}; {end}]")
             EndTooltip()
             imgui_node_editor::Resume()
 
     imgui::PopStyleVar()
+
+    if context.drawMode != NodeDrawMode.MINIFIED
+      let editItemsClicked = imgui::Button("Edit Items##psedititems_{nodeId}")
+
+      imgui_node_editor::Suspend()
+
+      if editItemsClicked
+        imgui::OpenPopup("ps_edit_items_{nodeId}")
+
+      if imgui::BeginPopup("ps_edit_items_{nodeId}")
+        var removeIdx = -1
+        for idx in range(length(node.list))
+          var childNode = node.list[idx].node |> get()
+          imgui::Text("{idx + 1}) '{get_node_name(graph, childNode)}'")
+          imgui::SameLine()
+
+          let curStart = node.list[idx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_getStart()
+          let curEnd = node.list[idx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_getEnd()
+
+          SetNextItemWidth(70.0)
+          let rs = undoable_drag_float("start##ps_start_{nodeId}_{idx}", curStart, 0.01)
+          if rs.changed
+            node.list[idx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_setRange(rs.newValue, curEnd)
+          if rs.committed
+            var act : UndoRedoAction
+            act.kind = UndoRedoActionKind.PARAM_SWITCH_SET_START
+            act.name = "paramSwitch: start {rs.oldValue} -> {rs.newValue}"
+            act.alreadyApplied = true
+            act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+            act.childIdx = idx
+            act.oldValue = rs.oldValue
+            act.newValue = rs.newValue
+            context.pendingActions |> push(act)
+
+          imgui::SameLine()
+          SetNextItemWidth(70.0)
+          let re = undoable_drag_float("end##ps_end_{nodeId}_{idx}", curEnd, 0.01)
+          if re.changed
+            node.list[idx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_setRange(node.list[idx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_getStart(), re.newValue)
+          if re.committed
+            var act : UndoRedoAction
+            act.kind = UndoRedoActionKind.PARAM_SWITCH_SET_END
+            act.name = "paramSwitch: end {re.oldValue} -> {re.newValue}"
+            act.alreadyApplied = true
+            act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+            act.childIdx = idx
+            act.oldValue = re.oldValue
+            act.newValue = re.newValue
+            context.pendingActions |> push(act)
+
+          imgui::SameLine()
+          if imgui::Button("X##ps_remove_{nodeId}_{idx}")
+            removeIdx = idx
+
+        if removeIdx != -1
+          var childPtr = node.list[removeIdx].node |> get()
+          var act : UndoRedoAction
+          act.kind = UndoRedoActionKind.PARAM_SWITCH_REMOVE
+          act.needsStateReset = true // undo re-adds the item which may register a rewind bitmap param
+          act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+          act.childName = "{graph |> anim_graph_getBlendNodeName(childPtr)}"
+          act.childIdx = removeIdx
+          act.start = node.list[removeIdx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_getStart()
+          act.end = node.list[removeIdx] |> AnimBlendCtrl_ParametricSwitcherItemAnim_getEnd()
+          act.baseVal = node.list[removeIdx].baseVal
+          act.name = "paramSwitch: remove '{get_node_name(graph, childPtr)}'"
+          context.pendingActions |> push(act)
+
+        imgui::Separator()
+        imgui::Text("Add Item:")
+        static_let <|
+          var psNewNodeSelectedIndex = 0
+          var psNewStart = 0.0
+          var psNewEnd = 1.0
+
+        node_select_combo(context, "psadd{nodeId}", psNewNodeSelectedIndex)
+        imgui::InputFloat("start##psaddstart_{nodeId}", safe_addr(psNewStart))
+        imgui::InputFloat("end##psaddend_{nodeId}", safe_addr(psNewEnd))
+
+        if imgui::Button("Add##psaddbtn_{nodeId}")
+          var childPtr = graph |> anim_graph_getBlendNodePtr(context.nodeIds[psNewNodeSelectedIndex])
+          if childPtr != null
+            var act : UndoRedoAction
+            act.kind = UndoRedoActionKind.PARAM_SWITCH_ADD
+            act.name = "paramSwitch: add '{context.nodeNames[psNewNodeSelectedIndex]}'"
+            act.needsStateReset = true // addBlendNode may register a rewind bitmap param
+            act.ctrlName = "{graph |> anim_graph_getBlendNodeName(nod)}"
+            act.childName = "{graph |> anim_graph_getBlendNodeName(childPtr)}"
+            act.childIdx = -1
+            act.start = psNewStart
+            act.end = psNewEnd
+            act.baseVal = 0.0
+            context.pendingActions |> push(act)
+
+        imgui::EndPopup()
+
+      imgui_node_editor::Resume()
 
 
 // [unused_argument(nod, graph, state, context)]
@@ -1056,6 +1427,7 @@ def class_name_to_anim_tree_class_name(class_name : string)
 def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bool&)
   assume graph = *animchar.animGraph;
   assume state = *animchar.animState;
+  assume history = graph_edit_history[graph.resId]
 
   var renderers : array<tuple<uint; BlendNodeRenderer>>
   push(renderers, tuple(AnimBlendNodeNullCID, @@render_AnimBlendNodeNull))
@@ -1115,6 +1487,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
     var statesFilter = new ImGuiTextFilter
     var slotsFilter = new ImGuiTextFilter
     var enumsFilter = new ImGuiTextFilter
+    var enumParamComboFilter = new ImGuiTextFilter
 
   if !bookmarksLoaded
     bookmarksLoaded = true
@@ -1183,6 +1556,8 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
   ctx.drawMode = nodeDrawMode
 
   var newNodesToCreate : array<tuple<string; int>>
+  var doUndo = false
+  var doRedo = false
 
   graph |> anim_graph_getAnimNodeNames <| $(nodes)
     ctx.nodeNames |> reserve(length(nodes))
@@ -1299,15 +1674,86 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
         if paramType == PT_Reserved
           return
 
+        var hasViewSettings = false
+        var viewSettings : AnimCharViewVarSettings
+        if paramType == PT_ScalarParam || paramType == PT_ScalarParamInt
+          param_view_settings |> get(name) <| $(var s)
+            hasViewSettings = true
+            viewSettings = s
+
+        if viewSettings.enumCls != ""
+          var enumNames : array<string>
+          var enumValues : array<int>
+          get_enum_items(graph, viewSettings.enumCls, enumNames, enumValues)
+          if length(enumNames) > 0
+            let intValue = paramType == PT_ScalarParamInt ? anim_state_holder_getParamInt(state, id) : roundi(anim_state_holder_getParam(state, id))
+            let selIdx = enumValues |> find_index(intValue)
+            let valueName = animV20_get_enum_name_by_id(intValue)
+            let previewText = selIdx >= 0 ? enumNames[selIdx] : valueName != "" ? valueName : "non enum value: {intValue}"
+            imgui::BeginGroup()
+            imgui::Text(nameText)
+            SetNextItemWidth(-FLT_MIN)
+            imgui::SetNextWindowSizeConstraints(ImVec2(0.0, 0.0), ImVec2(FLT_MAX, FLT_MAX))
+            if imgui::BeginCombo("##{prefix}enum_{name}", previewText)
+              if imgui::IsWindowAppearing()
+                *enumParamComboFilter |> Clear()
+              *enumParamComboFilter |> Draw("##{prefix}enum_filter_{name}")
+
+              var filteredIndexes : array<int>
+              filteredIndexes |> reserve(length(enumNames))
+              for i in range(length(enumNames))
+                if *enumParamComboFilter |> PassFilter(enumNames[i])
+                  filteredIndexes |> push(i)
+
+              let maxComboSize = 200.0
+              imgui::SetNextWindowSizeConstraints(ImVec2(0.0, 0.0), ImVec2(FLT_MAX, maxComboSize))
+              if imgui::BeginChild("##{prefix}enum_options_{name}", ImVec2(-FLT_MIN, 0.0), ImGuiChildFlags.AutoResizeY | ImGuiChildFlags.AlwaysAutoResize)
+                using() <| $(var clipper : ImGuiListClipper)
+                  Begin(clipper, length(filteredIndexes), imgui::GetTextLineHeightWithSpacing())
+                  while Step(clipper)
+                    for i in range(clipper.DisplayStart, clipper.DisplayEnd)
+                      let idx = filteredIndexes[i]
+                      if imgui::Selectable(enumNames[idx], idx == selIdx)
+                        if paramType == PT_ScalarParamInt
+                          state |> anim_state_holder_setParamInt(id, enumValues[idx])
+                        else
+                          state |> anim_state_holder_setParam(id, float(enumValues[idx]))
+                        imgui::CloseCurrentPopup()
+                imgui::EndChild()
+              imgui::EndCombo()
+            imgui::EndGroup()
+            invoke(popup)
+            Spacing()
+            return
+
+        if viewSettings.isBool
+          imgui::BeginGroup()
+          var boolValue = paramType == PT_ScalarParamInt ? anim_state_holder_getParamInt(state, id) >= 1 : anim_state_holder_getParam(state, id) > 0.5
+          if imgui::Checkbox("{nameText}##{prefix}bool_{name}", safe_addr(boolValue))
+            if paramType == PT_ScalarParamInt
+              state |> anim_state_holder_setParamInt(id, boolValue ? 1 : 0)
+            else
+              state |> anim_state_holder_setParam(id, boolValue ? 1.0 : 0.0)
+          imgui::EndGroup()
+          invoke(popup)
+          Spacing()
+          return
+
         if paramType == PT_ScalarParam
           imgui::BeginGroup()
           imgui::Text(nameText)
           var value = state |> anim_state_holder_getParam(id)
-          let min = -1e8
-          let max = 1e8
           SetNextItemWidth(-FLT_MIN)
-          if imgui::DragScalar("##{name}", ImGuiDataType.Float, safe_addr(value), 0.01, safe_addr(min), safe_addr(max), "%.2f", ImGuiSliderFlags.None)
-            state |> anim_state_holder_setParam(id, value)
+          if hasViewSettings && viewSettings.trackbar
+            if imgui::SliderFloat("##{name}", safe_addr(value), viewSettings.minVal, viewSettings.maxVal)
+              state |> anim_state_holder_setParam(id, value)
+          else
+            let hasRange = hasViewSettings && viewSettings.minVal != viewSettings.maxVal
+            let min = hasRange ? viewSettings.minVal : -1e8
+            let max = hasRange ? viewSettings.maxVal : 1e8
+            let speed = hasViewSettings ? viewSettings.step : 0.01
+            if imgui::DragScalar("##{name}", ImGuiDataType.Float, safe_addr(value), speed, safe_addr(min), safe_addr(max), "%.2f", ImGuiSliderFlags.None)
+              state |> anim_state_holder_setParam(id, value)
           imgui::EndGroup()
           invoke(popup)
           Spacing()
@@ -1315,12 +1761,16 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
         elif paramType == PT_ScalarParamInt
           imgui::BeginGroup()
           imgui::Text(nameText)
-          let value = state |> anim_state_holder_getParamInt(id)
-          let step = 1
-          let fastStep = 5
+          var value = state |> anim_state_holder_getParamInt(id)
           SetNextItemWidth(-FLT_MIN)
-          if imgui::InputScalar("##{name}", ImGuiDataType.S32, safe_addr(value), safe_addr(step), safe_addr(fastStep), "%d", ImGuiInputTextFlags.None)
-            state |> anim_state_holder_setParamInt(id, value)
+          if hasViewSettings && viewSettings.trackbar
+            if imgui::SliderInt("##{name}", safe_addr(value), int(viewSettings.minVal), int(viewSettings.maxVal))
+              state |> anim_state_holder_setParamInt(id, value)
+          else
+            let step = 1
+            let fastStep = 5
+            if imgui::InputScalar("##{name}", ImGuiDataType.S32, safe_addr(value), safe_addr(step), safe_addr(fastStep), "%d", ImGuiInputTextFlags.None)
+              state |> anim_state_holder_setParamInt(id, value)
           imgui::EndGroup()
           invoke(popup)
           Spacing()
@@ -1464,7 +1914,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
           if imgui::BeginPopupContextItem("PostBlendControllersContext##PostBlendControllersContext_{i}")
             if imgui::Selectable("Focus")
               imgui_node_editor::SelectNode(get_node_idx(nodeId))
-              NavigateToSelection(false, -1f)
+              NavigateToSelection(true, -1f)
             if imgui::Selectable("Copy name ({name})")
               imgui::SetClipboardText(name)
             imgui::EndPopup()
@@ -1484,7 +1934,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
           if imgui::BeginPopupContextItem("BlendNodeLeafsContext##BlendNodeLeafsContext_{i}")
             if imgui::Selectable("Focus")
               imgui_node_editor::SelectNode(get_node_idx(nodeId))
-              NavigateToSelection(false, -1f)
+              NavigateToSelection(true, -1f)
             if imgui::Selectable("Copy name ({name})")
               imgui::SetClipboardText(name)
             imgui::EndPopup()
@@ -1514,6 +1964,27 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
           *animGraphNodesFilter |> Clear()
           autoAlign = true
           focusContent = true
+
+        imgui::SameLine()
+        let undoCount = length(history.undo)
+        let redoCount = length(history.redo)
+        if imgui::Button("Undo##animgraph_undo")
+          doUndo = true
+        if imgui::IsItemHovered() && undoCount > 0
+          BeginTooltip()
+          let undoName = history.undo[undoCount - 1].name
+          imgui::Text("Undo: {undoName}")
+          EndTooltip()
+        imgui::SameLine()
+        if imgui::Button("Redo##animgraph_redo")
+          doRedo = true
+        if imgui::IsItemHovered() && redoCount > 0
+          BeginTooltip()
+          let redoName = history.redo[redoCount - 1].name
+          imgui::Text("Redo: {redoName}")
+          EndTooltip()
+        imgui::SameLine()
+        imgui::TextDisabled("({undoCount}:{redoCount})")
 
         var style & = unsafe(imgui_node_editor::GetStyle())
         style.NodeRounding = 0f
@@ -1776,13 +2247,19 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
                 offset.y = PADDING
                 maxWidth = 0f
 
+            if GetSelectedObjectCount() > 0
+              NavigateToSelection(false, 0.0f)
+
           if focusRoot
             imgui_node_editor::ClearSelection()
             imgui_node_editor::SelectNode(get_node_idx(rootNodeId), true)
-            NavigateToSelection(false, 0.2f)
+            NavigateToSelection(true, 0.2f)
 
           if focusContent
-            NavigateToContent(0.2f)
+            if GetSelectedObjectCount() > 0
+              NavigateToSelection(false, 0.0f)
+            else
+              NavigateToContent(0.2f)
 
           imgui_node_editor::Suspend()
 
@@ -1966,13 +2443,18 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
         //       imgui::TextUnformatted("State: {stateName}")
         //     imgui::Text(stateName)
 
-  // We should not create nodes while drawing a graph cause it adds a lot of questions about the system
-  // which I don't have answers to. Also animchar_getAnimBlendNodeWeights creates a copy of animstate
-  // for the duration of the drawing and we can't easily update that one on the fly so it crashes on
+  // We should not create nodes or apply graph edits while drawing a graph cause it adds a lot of questions
+  // about the system which I don't have answers to. Also animchar_getAnimBlendNodeWeights creates a copy of
+  // animstate for the duration of the drawing and we can't easily update that one on the fly so it crashes on
   // desctruction because the graph is updated for new state.
-  // That's why we are doing all of this node creation as late as possible, hopefully correctly
+  // That's why we are doing all of this node creation and edits as late as possible, hopefully correctly
   // updating all animchars.
-  if length(newNodesToCreate) > 0
+  let hasPendingActions = length(ctx.pendingActions) > 0
+  // Ignore undo\redo clicks if no actions are present.
+  doUndo &&= length(history.undo) > 0
+  doRedo &&= length(history.redo) > 0
+
+  if length(newNodesToCreate) > 0 || hasPendingActions || doUndo || doRedo
     let gameresFactory = find_gameres_factory(CharacterGameResClassId)
 
     let for_each_char_with_graph_res_id = $ <| (resId : int; cb : block<(var animchar : AnimcharBaseComponent) : void>)
@@ -1989,10 +2471,21 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
         if other_animchar.animGraph != null && other_animchar.animState != null && other_animchar.animGraph.resId == resId
           invoke(cb, other_animchar)
 
+    var needStateReset = length(newNodesToCreate) > 0
+    for act in ctx.pendingActions
+      needStateReset ||= act.needsStateReset
+    if doUndo
+      let undoLast = length(history.undo) - 1
+      needStateReset ||= history.undo[undoLast].needsStateReset
+    if doRedo
+      let redoLast = length(history.redo) - 1
+      needStateReset ||= history.redo[redoLast].needsStateReset
+
     // Clear out anim state of all chars which use this graph. AnimState might have allocated memory
     // so we need to clear it.
-    for_each_char_with_graph_res_id(graph.resId) <| $(var other_animchar : AnimcharBaseComponent)
-      anim_state_holder_term(*other_animchar.animState)
+    if needStateReset
+      for_each_char_with_graph_res_id(graph.resId) <| $(var other_animchar : AnimcharBaseComponent)
+        anim_state_holder_term(*other_animchar.animState)
 
     for node in newNodesToCreate
       let nodeName = node._0
@@ -2004,15 +2497,38 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
         nodeBlk |> set("name", nodeName)
         AnimResManagerV20_add_bn(graph, nodeBlk, "")
 
+    if hasPendingActions
+      for i in range(length(ctx.pendingActions))
+        if !ctx.pendingActions[i].alreadyApplied
+          apply_graph_action(ctx.pendingActions[i], true, graph)
+      history.redo |> clear()
+      for i in range(length(ctx.pendingActions))
+        history.undo |> push(ctx.pendingActions[i])
+
+    if doUndo
+      let last = length(history.undo) - 1
+      apply_graph_action(history.undo[last], false, graph)
+      let poppedAction = history.undo[last]
+      history.redo |> push(poppedAction)
+      history.undo |> erase(last)
+
+    if doRedo
+      let last = length(history.redo) - 1
+      apply_graph_action(history.redo[last], true, graph)
+      let poppedAction = history.redo[last]
+      history.undo |> push(poppedAction)
+      history.redo |> erase(last)
+
     // After new nodes are added to the graph init anim states of all affected chars.
-    for_each_char_with_graph_res_id(graph.resId) <| $(var other_animchar : AnimcharBaseComponent)
-      // This resizes old animStates to be correct for new graph nodeParams size
-      anim_state_holder_init(*other_animchar.animState)
-      // TODO? we are doing extra work here because somewhere down the call line it allso calls
-      // anim state reset which calls term and init. But i'm not sure if it is worth adding extra
-      // code passes which don't do that just for the developer editor for a non performance heavy
-      // thing. This inits the new state for all nodes correctly.
-      other_animchar |> animchar_reset()
+    if needStateReset
+      for_each_char_with_graph_res_id(graph.resId) <| $(var other_animchar : AnimcharBaseComponent)
+        // This resizes old animStates to be correct for new graph nodeParams size
+        anim_state_holder_init(*other_animchar.animState)
+        // TODO? we are doing extra work here because somewhere down the call line it allso calls
+        // anim state reset which calls term and init. But i'm not sure if it is worth adding extra
+        // code passes which don't do that just for the developer editor for a non performance heavy
+        // thing. This inits the new state for all nodes correctly.
+        other_animchar |> animchar_reset()
 
 
 def draw_skeleton_node_in_tree_recursive(var graph : AnimationGraph;

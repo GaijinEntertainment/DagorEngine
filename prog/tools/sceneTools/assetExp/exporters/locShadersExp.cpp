@@ -42,6 +42,7 @@ enum class NBSType
   UNKNOWN,
   ENVI_COVER,
   FOG,
+  CLOUDS,
 };
 
 static eastl::string_map<NBSType> types;
@@ -222,6 +223,8 @@ static eastl::optional<Tab<String>> gather_all_shader_resources(const char *targ
     concretePluginType = "envi_cover_";
   else if (type == NBSType::FOG)
     concretePluginType = "fog_";
+  else if (type == NBSType::CLOUDS)
+    concretePluginType = "clouds_";
   String cmd(0,
     "%s -dependencyDumpOnly -dshlShaderName:%s -singleInputJson:%s -singleOutputBin:%s -target:%s -p:%sshader_editor -silent "
     "-supressLogs",
@@ -617,15 +620,22 @@ private:
       templateNames.push_back(String("enviCoverShaderTemplate.dshl"));
     }
 
+    if (type == NBSType::CLOUDS || type == NBSType::UNKNOWN)
+    {
+      templateNames.push_back(String("shaderNodes/shaderNodesClouds.js"));
+      templateNames.push_back(String("cloudsShaderTemplate.dshl"));
+    }
+
     String editorPath = find_shader_editors_path();
     for (int i = 0; i < templateNames.size(); ++i)
       templateNames[i] = editorPath + "/" + templateNames[i];
 
-    eastl::fixed_vector<NBSType, 2> eligibleTypes;
+    eastl::fixed_vector<NBSType, 3> eligibleTypes;
     if (type == NBSType::UNKNOWN)
     {
       eligibleTypes.push_back(NBSType::FOG);
       eligibleTypes.push_back(NBSType::ENVI_COVER);
+      eligibleTypes.push_back(NBSType::CLOUDS);
     }
     else
     {
@@ -661,19 +671,20 @@ private:
 
     bool isFog = content.find("[[plugin:fog_shader_editor]]") != nullptr;
     bool isEnviCover = content.find("[[plugin:envi_cover_shader_editor]]") != nullptr;
+    bool isClouds = content.find("[[plugin:clouds_shader_editor]]") != nullptr;
 
-    if (isFog && isEnviCover)
+    if (int(isFog) + int(isEnviCover) + int(isClouds) > 1)
     {
       log.addMessage(log.ERROR, "%s: multiple plugins in <%s>", a.getName(), input_json);
       return NBSType::UNKNOWN;
     }
-    else if (!isFog && !isEnviCover)
+    else if (!isFog && !isEnviCover && !isClouds)
     {
       log.addMessage(log.ERROR, "%s: no plugins in <%s>", a.getName(), input_json);
       return NBSType::UNKNOWN;
     }
 
-    return isFog ? NBSType::FOG : NBSType::ENVI_COVER;
+    return isFog ? NBSType::FOG : (isEnviCover ? NBSType::ENVI_COVER : NBSType::CLOUDS);
   }
 };
 
@@ -698,6 +709,7 @@ public:
 
     types["envi_cover"] = NBSType::ENVI_COVER;
     types["volfog"] = NBSType::FOG;
+    types["clouds"] = NBSType::CLOUDS;
 
     const DataBlock *lshaderBlk = appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("lshader");
 

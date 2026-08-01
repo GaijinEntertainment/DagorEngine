@@ -100,6 +100,9 @@ bool d3d::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t th
 bool d3d::dispatch_indirect(Sbuffer* buffer, uint32_t offset, GpuPipeline gpu_pipeline)
 {
   G_UNUSED(gpu_pipeline);
+  D3D_CONTRACT_ASSERTF(buffer != nullptr, "dispatch_indirect with nullptr buffer is invalid");
+  D3D_CONTRACT_ASSERTF(buffer->getFlags() & SBCF_BIND_UNORDERED, "dispatch_indirect buffer without SBCF_BIND_UNORDERED flag");
+  D3D_CONTRACT_ASSERTF(buffer->getFlags() & SBCF_MISC_DRAWINDIRECT, "dispatch_indirect buffer is not usable as indirect buffer");
   render.dispatch_indirect(buffer, offset);
 
   return true;

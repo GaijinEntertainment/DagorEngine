@@ -443,10 +443,11 @@ void ContainerPropertyControl::createColorBox(int id, const char caption[], E3DC
   addControl(newControl, new_line);
 }
 
-void ContainerPropertyControl::createSimpleColor(int id, const char caption[], E3DCOLOR value, bool enabled, bool new_line)
+void ContainerPropertyControl::createSimpleColor(int id, const char caption[], E3DCOLOR value, bool enabled, bool new_line,
+  hdpi::Px width)
 {
-  SimpleColorPropertyControl *newControl = new SimpleColorPropertyControl(mEventHandler, this, id, getNextControlX(new_line),
-    getNextControlY(new_line), getClientWidth(), caption);
+  SimpleColorPropertyControl *newControl =
+    new SimpleColorPropertyControl(mEventHandler, this, id, getNextControlX(new_line), getNextControlY(new_line), width, caption);
 
   newControl->setColorValue(value);
   newControl->setEnabled(enabled);
@@ -1398,7 +1399,11 @@ void ContainerPropertyControl::updateImgui()
           for (int column = 0; column < controlsInSameLine; ++column)
           {
             PropertyControlBase *control = mControlArray[i + column];
-            ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed, control->getWidth());
+            const unsigned columnWidth = control->getWidth();
+            if (stretchZeroWidthColumns && columnWidth == 0)
+              ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch, 1.0f);
+            else
+              ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed, (float)columnWidth);
           }
         }
 

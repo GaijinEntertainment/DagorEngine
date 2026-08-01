@@ -29,6 +29,10 @@ public:
   // path is just a few comparisons + panelWindow->updateImgui().
   void updateImgui();
 
+  // Force a control rebuild on the next updateImgui. Called after an undo/redo changes a property
+  // value out-of-band (UndoNodeProps) so the controls reflect the restored values.
+  void invalidateControls() { forceRebuild = true; }
+
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
   void onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
@@ -54,6 +58,7 @@ private:
   Mode currentMode = Mode::None;
   int lastRenderedNodeId = -1;
   eastl::string lastRenderedSourcePath;
+  bool forceRebuild = false; // one-shot rebuild request from invalidateControls() (undo/redo refresh)
 
   // Per-pid -> property name (for node mode). Wiped on every rebuild. PIDs are allocated
   // sequentially starting at PID_NODE_PROP_BASE.

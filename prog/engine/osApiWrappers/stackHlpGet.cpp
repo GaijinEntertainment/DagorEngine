@@ -398,23 +398,28 @@ bool stackhlp_get_symbol(void *addr, uint32_t &line, char *filename, size_t max_
 
 static inline void stackhlp_get_call_stack_internal(LimitedBufferWriter &lbw, const void *addr, bool write_addr)
 {
-  const char *symbol = "";
+  if (write_addr)
+    lbw.aprintf("%p ", addr);
 
   Dl_info info;
-  if (dladdr(addr, &info) && info.dli_sname)
-    symbol = info.dli_sname;
+  if (!dladdr(addr, &info) || !info.dli_fbase)
+  {
+    lbw.aprintf("?");
+    return;
+  }
+
+  // module!rva is the input for offline symbolization against .debuginfo
+  const char *mod = info.dli_fname ? strrchr(info.dli_fname, '/') : nullptr;
+  lbw.aprintf("%s!%p", mod ? mod + 1 : (info.dli_fname ? info.dli_fname : "?"), (uintptr_t)addr - (uintptr_t)info.dli_fbase);
+
+  if (!info.dli_sname)
+    return;
 
   int status = -1;
-  char *demangledName = __cxxabiv1::__cxa_demangle(symbol, nullptr, nullptr, &status);
-
-  if (demangledName != nullptr)
-    symbol = demangledName;
-
-  if (write_addr)
-    lbw.aprintf("%p - %s + 0x%p", addr, symbol, (uintptr_t)addr - (uintptr_t)info.dli_fbase);
-  else
-    lbw.aprintf("%s + 0x%p", symbol, (uintptr_t)addr - (uintptr_t)info.dli_fbase);
-
+  char *demangledName = __cxxabiv1::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
+  lbw.aprintf(" %s", demangledName ? demangledName : info.dli_sname);
+  if (info.dli_saddr)
+    lbw.aprintf(" +%p", (uintptr_t)addr - (uintptr_t)info.dli_saddr);
   if (demangledName != nullptr)
     std::free(demangledName);
 }

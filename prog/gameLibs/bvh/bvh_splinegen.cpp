@@ -56,7 +56,7 @@ void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<east
   uint32_t instance_vertex_count, uint32_t &bvh_id)
 {
   Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
-  if (!context_id->has(Features::Splinegen))
+  if (!context_id->hasAny(Features::Splinegen))
     return;
 
   if (bvh_id == 0)
@@ -80,7 +80,7 @@ void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<east
 void update_instances(ContextId context_id, const Point3 &view_pos)
 {
   Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
-  if (!context_id->has(Features::Splinegen))
+  if (!context_id->hasAny(Features::Splinegen))
     return;
 
   context_id->splineGenInstances.clear();
@@ -101,8 +101,10 @@ void update_instances(ContextId context_id, const Point3 &view_pos)
 
 void teardown(ContextId context_id)
 {
-  if (!context_id->has(Features::Splinegen))
+  if (!context_id->hasAny(Features::Splinegen))
     return;
+
+  context_id->splineGenInstances.clear();
 
   for (auto [objectId, info, alloc] : splinegenBVHInstances)
   {

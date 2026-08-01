@@ -98,6 +98,8 @@ public:
 
     PID_PHYSOBJ_BODY_GLOBAL_GRP,
 
+    PID_PHYSOBJ_BODY_COLLAPSE_ALL,
+    PID_PHYSOBJ_BODY_EXPAND_ALL,
     PID_PHYSOBJ_BODY_GRP,
     PID_PHYSOBJ_BODY_TM_0 = PID_PHYSOBJ_BODY_GRP + MAX_PHYSOBJ_BODY,
     PID_PHYSOBJ_BODY_TM_1 = PID_PHYSOBJ_BODY_TM_0 + MAX_PHYSOBJ_BODY,
@@ -105,8 +107,9 @@ public:
     PID_PHYSOBJ_BODY_TM_3 = PID_PHYSOBJ_BODY_TM_2 + MAX_PHYSOBJ_BODY,
     PID_PHYSOBJ_BODY_MASS = PID_PHYSOBJ_BODY_TM_3 + MAX_PHYSOBJ_BODY,
     PID_PHYSOBJ_BODY_MOMENT = PID_PHYSOBJ_BODY_MASS + MAX_PHYSOBJ_BODY,
+    PID_PHYSOBJ_BODY_STATIC = PID_PHYSOBJ_BODY_MOMENT + MAX_PHYSOBJ_BODY,
 
-    PID_PHYSOBJ_MATERIAL_GRP = PID_PHYSOBJ_BODY_MOMENT + MAX_PHYSOBJ_BODY,
+    PID_PHYSOBJ_MATERIAL_GRP = PID_PHYSOBJ_BODY_STATIC + MAX_PHYSOBJ_BODY,
     PID_PHYSOBJ_MATERIAL = PID_PHYSOBJ_MATERIAL_GRP + MAX_PHYSOBJ_MAT,
 
     PID_PHYSOBJ_BODY_COL_GRP = PID_PHYSOBJ_MATERIAL + MAX_PHYSOBJ_BODY,
@@ -137,6 +140,8 @@ public:
     PID_PHYSOBJ_LOD_AUTO_CHOOSE,
     PID_PHYSOBJ_LOD_FIRST,                                                    // inclusive
     PID_PHYSOBJ_LOD_LAST = PID_PHYSOBJ_LOD_FIRST + PHYSOBJ_MAX_LOD_COUNT - 1, // inclusive
+
+    PID_PHYSOBJ_NOCOLL_GRP,
   };
 
   PhysObjViewPlugin() :
@@ -184,7 +189,7 @@ public:
     dynPhysObjData = (DynamicPhysObjectData *)get_game_resource_ex(name, PhysObjGameResClassId);
 
     slowSimulate = false;
-    ::dagor_game_time_scale = 1.0;
+    setPaused(false);
 
     // We need to store the LOD count because in simulation mode entity is null.
     ILodController *lodController = entity->queryInterface<ILodController>();
@@ -199,9 +204,9 @@ public:
     physsimulator::end();
 
     nowSimulated = false;
-    simulationPaused = false;
+    slowSimulate = false;
+    setPaused(false);
     simulationStat.reset();
-    ::dagor_game_time_scale = 1.0;
 
     dasset = NULL;
     destroy_it(entity);
@@ -441,6 +446,9 @@ public:
     panel.createEditFloat(PID_PHYSOBJ_INSTANCE_INTERVAL, "instance interval size", physObjInstanceInterval);
     panel.createSeparator();
 
+    panel.createButton(PID_PHYSOBJ_BODY_COLLAPSE_ALL, "collapse all bodies");
+    panel.createButton(PID_PHYSOBJ_BODY_EXPAND_ALL, "expand all bodies", true, false);
+
     OAHashNameMap<true> matNames;
 
     int cnt = dynPhysObjData->physRes->getBodies().size();
@@ -471,6 +479,22 @@ public:
       colCapCnt += cap;
 
       fillPanel(panel, body, expand, i, sph, box, cap);
+    }
+
+    panel.createSeparator();
+
+    dag::ConstSpan<PhysicsResource::CollisionPair> pairs = dynPhysObjData->physRes->getNoCollisionPairs();
+    const dag::ConstSpan<PhysicsResource::Body> &bodies = dynPhysObjData->physRes->getBodies();
+    PropPanel::ContainerPropertyControl *grp = panel.createGroup(PID_PHYSOBJ_NOCOLL_GRP, "Non colliding body pairs");
+    if (pairs.empty())
+    {
+      grp->createStatic(-1, "No pairs");
+    }
+    String cap;
+    for (int i = 0; i < pairs.size(); ++i)
+    {
+      cap.printf(256, "%s - %s", bodies[pairs[i].body0].name.str(), bodies[pairs[i].body1].name.str());
+      grp->createStatic(-1, cap);
     }
 
     PropPanel::ContainerPropertyControl &gStatGrp = *panel.createGroup(PID_PHYSOBJ_BODY_GLOBAL_GRP, "Statistic");
@@ -531,6 +555,7 @@ public:
 
 
     PropPanel::ContainerPropertyControl *grp = panel.createGroup(PID_PHYSOBJ_BODY_GRP + i, caption.str());
+    grp->setBoolValue(!simple); // multi body phys objects have groups collapsed, simple expanded
     {
 
       static String buffer;
@@ -541,6 +566,11 @@ public:
       grp->createStatic(PID_PHYSOBJ_BODY_MOMENT + i, "inertia tensor:");
       buffer.printf(128, "  %.2f, %.2f, %.2f", body.momj.x, body.momj.y, body.momj.z);
       grp->createStatic(PID_PHYSOBJ_BODY_MOMENT + i, buffer);
+
+      buffer.printf(128, "material name: %s", body.materialName);
+      grp->createStatic(-1, buffer);
+
+      grp->createCheckBox(PID_PHYSOBJ_BODY_STATIC + i, "lock body", i < bodyStatic.size() ? bodyStatic[i] : false);
 
       if (simple || !(cap_cnt || sph_cnt || box_cnt))
         return;
@@ -571,6 +601,29 @@ public:
 
 
   void postFillPropPanel() override {}
+
+  void setBodyStatic(int body_idx, bool is_static)
+  {
+    if (body_idx < 0 || !dynPhysObjData || !dynPhysObjData->physRes)
+      return;
+    if (body_idx >= bodyStatic.size())
+      bodyStatic.resize(body_idx + 1, false);
+
+    bodyStatic[body_idx] = is_static;
+
+    const PhysicsResource::Body &rb = dynPhysObjData->physRes->getBodies()[body_idx];
+    physsimulator::setBodyStatic(body_idx, is_static, rb.mass, rb.momj);
+  }
+
+  void applyBodyStatics()
+  {
+    if (!dynPhysObjData || !dynPhysObjData->physRes)
+      return;
+    dag::ConstSpan<PhysicsResource::Body> bodies = dynPhysObjData->physRes->getBodies();
+    for (int i = 0; i < bodyStatic.size() && i < bodies.size(); ++i)
+      if (bodyStatic[i])
+        physsimulator::setBodyStatic(i, true, bodies[i].mass, bodies[i].momj);
+  }
 
 
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
@@ -617,6 +670,8 @@ public:
       physObjInstanceInterval = panel->getFloat(pcb_id);
     else if (pcb_id == PID_PHYSOBJ_SCENE_TYPE_GRP)
       sceneType = panel->getInt(pcb_id);
+    else if (pcb_id >= PID_PHYSOBJ_BODY_STATIC && pcb_id < PID_PHYSOBJ_BODY_STATIC + MAX_PHYSOBJ_BODY)
+      setBodyStatic(pcb_id - PID_PHYSOBJ_BODY_STATIC, panel->getBool(pcb_id));
   }
 
 
@@ -634,6 +689,7 @@ public:
         if (!physsimulator::begin(dynPhysObjData, physType, physObjInstanceCount, sceneType, physObjInstanceInterval,
               physsimulator::def_base_plane_ht, physsimulator::def_base_plane_ht, forcedRenderLod))
           return;
+        applyBodyStatics();
         panel->setCaption(pcb_id, "stop simulation");
       }
 
@@ -649,18 +705,20 @@ public:
       restartSimulation(*panel);
     else if (pcb_id == PID_PHYSOBJ_SIM_PAUSE)
     {
-      simulationPaused = !simulationPaused;
-      if (simulationPaused)
-        panel->setCaption(pcb_id, "resume");
-      else
-        panel->setCaption(pcb_id, "pause");
+      setPaused(!simulationPaused);
+      panel->setCaption(pcb_id, simulationPaused ? "resume" : "pause");
     }
     else if (pcb_id == PID_PHYSOBJ_SIM_SLOWMO)
     {
-      slowSimulate = !slowSimulate;
-      ::dagor_game_time_scale = slowSimulate ? 0.1 : 1.0;
+      setSlowMo(!slowSimulate);
       panel->setCaption(pcb_id, slowSimulate ? "normal" : "slow-mo");
     }
+    else if (pcb_id == PID_PHYSOBJ_BODY_COLLAPSE_ALL)
+      for (int i = 0; i < MAX_PHYSOBJ_BODY; ++i)
+        panel->setBool(PID_PHYSOBJ_BODY_GRP + i, /*minimised*/ true);
+    else if (pcb_id == PID_PHYSOBJ_BODY_EXPAND_ALL)
+      for (int i = 0; i < MAX_PHYSOBJ_BODY; ++i)
+        panel->setBool(PID_PHYSOBJ_BODY_GRP + i, /*minimised*/ false);
   }
 
   void drawText(IGenViewportWnd *wnd, hdpi::Px x, hdpi::Px y, const String &text)
@@ -754,15 +812,27 @@ public:
   }
 
 protected:
+  void applyTimeScale() const { ::dagor_game_time_scale = simulationPaused ? 0.f : (slowSimulate ? 0.1f : 1.f); }
+
+  void setPaused(bool paused)
+  {
+    simulationPaused = paused;
+    applyTimeScale();
+  }
+
+  void setSlowMo(bool slowmo)
+  {
+    slowSimulate = slowmo;
+    applyTimeScale();
+  }
+
   void prepareSimulate(bool simulate)
   {
     simulationStat.reset();
+    setPaused(false);
 
     if (simulate)
-    {
       destroy_it(entity);
-      simulationPaused = false;
-    }
     else
     {
       entity = dasset ? DAEDITOR3.createEntity(*dasset) : NULL;
@@ -782,7 +852,7 @@ protected:
     if (!nowSimulated)
       return;
 
-    simulationPaused = false;
+    setPaused(false);
     panel.setCaption(PID_PHYSOBJ_SIM_PAUSE, "pause");
 
     simulationStat.reset();
@@ -801,8 +871,11 @@ protected:
   {
     if (nowSimulated)
       physsimulator::end();
-    return nowSimulated = physsimulator::begin(dynPhysObjData, physType, physObjInstanceCount, sceneType, physObjInstanceInterval,
-             physsimulator::def_base_plane_ht, physsimulator::def_base_plane_ht, forcedRenderLod);
+    nowSimulated = physsimulator::begin(dynPhysObjData, physType, physObjInstanceCount, sceneType, physObjInstanceInterval,
+      physsimulator::def_base_plane_ht, physsimulator::def_base_plane_ht, forcedRenderLod);
+    if (nowSimulated)
+      applyBodyStatics();
+    return nowSimulated;
   }
 
 protected:
@@ -821,6 +894,7 @@ protected:
   float physObjInstanceInterval = 0;
   int forcedRenderLod = -1;
   int lodCount = 0;
+  Tab<bool> bodyStatic;
 };
 
 
@@ -853,7 +927,7 @@ public:
 
     nowSimulated = false;
     slowSimulate = false;
-    ::dagor_game_time_scale = 1.0;
+    setPaused(false);
     car = NULL;
     restartSim();
 
@@ -882,10 +956,10 @@ public:
     physsimulator::end();
 
     nowSimulated = false;
-    simulationPaused = false;
+    slowSimulate = false;
+    setPaused(false);
     simulationStat.reset();
     curTime = 0.f;
-    ::dagor_game_time_scale = 1.0;
 
     dasset = NULL;
     destroy_it(entity);

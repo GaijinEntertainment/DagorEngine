@@ -24,6 +24,60 @@ static ecs::EntitySystemDesc create_transparent_spline_triangle_debug_es_es_desc
   ecs::EventSetBuilder<CreateTriangleDebugNodes>::build(),
   0
 ,"dev,render");
+static constexpr ecs::ComponentDesc spline_gen_view_nodes_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("spline_gen_repository"), ecs::ComponentTypeInfo<SplineGenGeometryRepository>()}
+};
+static void spline_gen_view_nodes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<OnCameraPerViewNodeConstruction>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    spline_gen_view_nodes_es(static_cast<const OnCameraPerViewNodeConstruction&>(evt)
+        , ECS_RO_COMP(spline_gen_view_nodes_es_comps, "spline_gen_repository", SplineGenGeometryRepository)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc spline_gen_view_nodes_es_es_desc
+(
+  "spline_gen_view_nodes_es",
+  "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryRepositoryES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, spline_gen_view_nodes_es_all_events),
+  empty_span(),
+  make_span(spline_gen_view_nodes_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<OnCameraPerViewNodeConstruction>::build(),
+  0
+,"render");
+static constexpr ecs::ComponentDesc spline_gen_request_render_node_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("dafg_camera_registrator__name"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static ecs::CompileTimeQueryDesc spline_gen_request_render_node_ecs_query_desc
+(
+  "spline_gen_request_render_node_ecs_query",
+  empty_span(),
+  make_span(spline_gen_request_render_node_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void spline_gen_request_render_node_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, spline_gen_request_render_node_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP(spline_gen_request_render_node_ecs_query_comps, "dafg_camera_registrator__name", ecs::string)
+            );
+
+        }
+    }
+  );
+}
 static constexpr ecs::ComponentDesc load_spline_gen_template_params_ecs_query_comps[] =
 {
 //start of 10 ro components at [0]

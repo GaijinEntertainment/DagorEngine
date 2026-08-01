@@ -22,6 +22,7 @@
 
 #include <perfMon/dag_statDrv.h>
 #include <heightmap/simpleHeightmapRenderer.h>
+#include "lodGridVertexDataPool.h"
 
 // for NV 551 workaround
 CONSOLE_BOOL_VAL("hmap", nvidia_551_workaround, true);
@@ -40,8 +41,7 @@ CONSOLE_INT_VAL("hmap", metrics_dim, 3, 3, 5);
   VAR(tex_hmap_low)              \
   VAR(world_to_hmap_low)         \
   VAR(heightmap_scale)           \
-  VAR(tex_hmap_inv_sizes)        \
-  VAR(heightmap_texels)
+  VAR(tex_hmap_inv_sizes)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
@@ -62,7 +62,7 @@ static uint32_t select_hmap_tex_fmt()
 
 static int get_mip_levels(const IPoint2 &hmapWidth) { return min(get_log2i(hmapWidth.x), get_log2i(hmapWidth.y)) + 1; }
 
-void HeightmapHandler::setVars()
+void HeightmapHandler::setVars() const
 {
   if (!renderData)
     return;
@@ -105,6 +105,11 @@ void HeightmapHandler::initRender(bool clamp, float water_level, float shore_err
   lastRegionUpdated_NVworkaround = -1;
   setVars();
 
+  initMetrics(water_level, shore_error_meters);
+}
+
+void HeightmapHandler::initMetrics(float water_level, float shore_error_meters)
+{
   del_it(metrics);
   del_it(metricsRenderer);
   shoreErrorMeters = shore_error_meters;
@@ -320,15 +325,17 @@ void HeightmapHandler::close()
 void HeightmapHandler::afterDeviceReset()
 {
   renderer.close();
-  renderer.init("heightmap", "", "hmap_tess_factor", false, hmapDimBits);
+  renderer.init("heightmap", false, hmapDimBits);
 }
 
 bool HeightmapHandler::init(int dim_bits)
 {
   hmapDimBits =
     dim_bits <= 1 ? ::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("heightmapDimBits", default_patch_bits) : dim_bits;
+  // out-of-range dim bits are clamped, not an init failure (as HeightmapRenderer did)
+  hmapDimBits = clamp<int>(hmapDimBits, VDATA_OFS, VDATA_OFS + MAX_VDATA - 1);
 
-  if (!renderer.init("heightmap", "", "hmap_tess_factor", false, hmapDimBits))
+  if (!renderer.init("heightmap", false, hmapDimBits))
     return false;
 
   return true;
@@ -373,35 +380,39 @@ void HeightmapHandler::makeBookKeeping()
     heightChangesIndex.clear();
     fillHmapTexturesNeeded = false;
   }
-  if (pushHmapModificationOnPrepare)
-    prepareHmapModificaton();
+  prepareHmapModificaton();
+#if DAGOR_DBGLEVEL > 0
+  // dev-only: react to runtime changes of the tessellation console vars (metrics_dim / metrics_maxCalcLevel).
+  // metrics/metricsRenderer are created by initRender; skip until then. This is once-per-frame bookkeeping.
+  if (metricsRenderer)
+  {
+    const int dimBits = metrics_dim;
+    if (metricsRenderer->getDimBits() != dimBits)
+    {
+      del_it(metricsRenderer);
+      metricsRenderer = new SimpleHeightmapRenderer();
+      metricsRenderer->init("heightmap", true, dimBits);
+    }
+    metrics->calc_lod_errors(*this, metrics_minCalcLevel, metrics_maxCalcLevel, 1 << dimBits, metrics->water_level, shoreErrorMeters);
+  }
+#endif
 }
 
-bool HeightmapHandler::prepare(const Point3 &world_pos)
+// Pure distance check, no side effects: true when world_pos is close enough to render the
+// tessellated heightmap. Split out so predicate-only callers (e.g. CSM invalidation) can ask
+// without binding shader state.
+bool HeightmapHandler::shouldRenderTessellatedHmap(const Point3 &world_pos, float hmap_distance_mul) const
 {
-  makeBookKeeping();
-#if DAGOR_DBGLEVEL > 0
-  // dev-only: react to runtime changes of the tessellation console vars. metrics/metricsRenderer are
-  // created by initRender before any handler reaches prepare() - assert that invariant rather than
-  // lazily creating them.
-  G_ASSERT_RETURN(metricsRenderer, false);
-  const int dimBits = metrics_dim;
-  if (metricsRenderer->getDimBits() != dimBits)
-  {
-    del_it(metricsRenderer);
-    metricsRenderer = new SimpleHeightmapRenderer();
-    metricsRenderer->init("heightmap", true, dimBits);
-  }
-  metrics->calc_lod_errors(*this, metrics_minCalcLevel, metrics_maxCalcLevel, 1 << dimBits, metrics->water_level, shoreErrorMeters);
-#endif
+  const float distanceToSwitch = hmap_distance_mul * max(worldSize.x, worldSize.y);
+  return lengthSq(getClippedOrigin(world_pos) - world_pos) <= distanceToSwitch * distanceToSwitch;
+}
 
-  preparedOriginPos = world_pos;
+// Binds the heightmap shader vars and returns shouldRenderTessellatedHmap(); call before
+// rendering terrain. The once-per-frame bookkeeping (makeBookKeeping) must be called separately.
+bool HeightmapHandler::prepare(const Point3 &world_pos, float hmap_distance_mul) const
+{
   setVars();
-  float distanceToSwitch = hmapDistanceMul * max(worldSize.x, worldSize.y);
-  if (lengthSq(getClippedOrigin(world_pos) - world_pos) > distanceToSwitch * distanceToSwitch)
-    return false;
-
-  return true;
+  return shouldRenderTessellatedHmap(world_pos, hmap_distance_mul);
 }
 
 void HeightmapHandler::prepareHmapModificaton()
@@ -442,7 +453,7 @@ void frustumCulling(const MetricsErrors &errors, LodGridCullData &cull_data, con
 
 // float hm_scale = 1.0f;
 
-void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const HeightmapFrustumCullingInfo &fi)
+void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const HeightmapFrustumCullingInfo &fi) const
 {
   // if (fi.proj == TMatrix4::IDENT)
   // debug_dump_stack();
@@ -453,7 +464,7 @@ void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Heightma
   ::frustumCulling(*metrics, cull_data, fi.world_pos, fi.frustum, fi.occlusion, *this, fi.world_bbox_xzs, fi.metrics);
 }
 
-void HeightmapHandler::renderCulled(const LodGridCullData &cullData)
+void HeightmapHandler::renderCulled(const LodGridCullData &cullData) const
 {
   if (!cullData.hasPatches())
     return;
@@ -464,13 +475,13 @@ void HeightmapHandler::renderCulled(const LodGridCullData &cullData)
   metricsRenderer->render(cullData, metricsRenderer->getShElem(), metricsRenderer->getDimBits());
 }
 
-void HeightmapHandler::renderOnePatch()
+void HeightmapHandler::renderOnePatch(const Frustum &frustum)
 {
-  mat44f globtm;
-  d3d::getglobtm(globtm);
-  if (!Frustum(globtm).testBoxB(vecbox.bmin, vecbox.bmax))
+  if (!frustum.testBoxB(vecbox.bmin, vecbox.bmax))
     return;
-  renderer.renderOnePatch(Point2::xz(worldBox[0]), Point2::xz(worldBox[1]));
+  const Point2 leftTop = Point2::xz(worldBox[0]), rightBottom = Point2::xz(worldBox[1]);
+  G_ASSERT(fabsf((rightBottom.y - leftTop.y) - (rightBottom.x - leftTop.x)) < 0.00001f); // the single cell covers a square only
+  renderer.renderOnePatch(leftTop, rightBottom.x - leftTop.x);
 }
 
 void HeightmapHandler::setSampler(d3d::SamplerHandle &&s)

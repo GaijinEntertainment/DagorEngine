@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <float.h> // FLT_MAX (NaN canonicalization in the kd-leaf sort)
 #include <vecmath/dag_vecMath.h>
 #include <scene/dag_tiledScene.h>
 #include <startup/dag_globalSettings.h>
@@ -12,6 +13,19 @@
 #include <math/dag_vecMathCompatibility.h>
 
 static inline void encodeCommandPoolFlags(mat44f &m, uint32_t pf) { ((uint32_t *)(char *)&m.col2)[3] = pf; }
+
+#if DAGOR_DBGLEVEL > 0
+// v_bbox3_rotate_init rounds the tight AABB outward by up to ~1 ulp of the world coordinate,
+// so a recomputed leaf box can exceed the pre-removal box by that much. Allow a small relative
+// slack in this sanity check so the rounding does not trip it.
+static bool kd_leaf_box_within(bbox3f outer, bbox3f inner)
+{
+  vec4f slack = v_mul(v_add(v_abs(outer.bmin), v_abs(outer.bmax)), v_splats(1e-6f));
+  outer.bmin = v_sub(outer.bmin, slack);
+  outer.bmax = v_add(outer.bmax, slack);
+  return v_bbox3_test_box_inside(outer, inner);
+}
+#endif
 
 // default is min_kdtree_nodes_count = 16, kdtree_rebuild_threshold = 1.
 void scene::TiledScene::setKdtreeRebuildParams(unsigned min_kdtree_nodes_count_, float kdtree_rebuild_threshold_)
@@ -580,8 +594,7 @@ __forceinline void scene::TiledScene::removeNode(TileData &tdata, node_index nod
   {
     vec4f border = v_or(v_cmp_ge(tBox.bmin, oldWabb.bmin), v_cmp_ge(oldWabb.bmax, tBox.bmax)); // cmp_eq should be enough, however it
                                                                                                // doesn't matter and safer
-    const int32_t isOnTileBorder = v_signmask(border) & 7;
-    if (!isOnTileBorder)
+    if (!v_check_xyz_any_true(border))
       flags &= ~tdata.MFLG_RECALC_BBOX;
   }
 
@@ -628,8 +641,7 @@ __forceinline void scene::TiledScene::removeNode(TileData &tdata, node_index nod
                                                                                                                         // doesn't
                                                                                                                         // matter and
                                                                                                                         // safer
-            const int32_t isOnKdNodeBorder = v_signmask(border) & 7;
-            if (!isOnKdNodeBorder)
+            if (!v_check_xyz_any_true(border))
             {
               // fastest case, simply erase node from kdtree
               // assume flags in not changed
@@ -647,7 +659,7 @@ __forceinline void scene::TiledScene::removeNode(TileData &tdata, node_index nod
                   flags |= get_node_pool_flags(m);
                   fastGrowNodeBox(nKdbox, m);
                 }
-              G_ASSERT(v_bbox3_test_box_inside(kdNode.getBox(), nKdbox));
+              G_ASSERT(kd_leaf_box_within(kdNode.getBox(), nKdbox));
               flags_count = (flags_count & 0xFFFF) | (flags & 0xFFFF0000);
               kdNode.bmin_start = v_perm_xyzd(nKdbox.bmin, kdNode.bmin_start);
               kdNode.bmax_count = nKdbox.bmax;
@@ -740,7 +752,7 @@ void scene::TiledScene::updateTile(int t_idx, uint32_t index, const mat44f *old_
   G_ASSERT(t_idx != INVALID_INDEX);
   TileData &tdata = getTileByIndex(t_idx);
   const bbox3f &tbox = tileBox[t_idx];
-  uint32_t isOnTileBorder = 0;
+  vec4f onTileBorder = v_zero();
   // if we will allow changing flags, should also change that
   bbox3f oldWabb, wabb, oldTbox;
   if (old_node && tdata.nodes.size() > 1)
@@ -749,7 +761,7 @@ void scene::TiledScene::updateTile(int t_idx, uint32_t index, const mat44f *old_
     oldTbox = tbox;
     vec4f border = v_or(v_cmp_ge(tbox.bmin, oldWabb.bmin), v_cmp_ge(oldWabb.bmax, tbox.bmax)); // cmp_eq should be enough, however it
                                                                                                // doesn't matter and safer
-    isOnTileBorder = v_signmask(border) & 7;
+    onTileBorder = border;
   }
   updateTileExtents(tdata, node, wabb);
 
@@ -757,10 +769,10 @@ void scene::TiledScene::updateTile(int t_idx, uint32_t index, const mat44f *old_
   {
     uint32_t flags = 0;
     // check if we are on tile border AND not moving out (otherwise doesn't make sense to recalc box, it is already correct)
-    if (isOnTileBorder) // || newRad < oldRad (too expensive, we'd better compare newRad with smallest radius)!
+    if (v_check_xyz_any_true(onTileBorder)) // || newRad < oldRad (too expensive, we'd better compare newRad with smallest radius)!
     {
       vec4f border = v_and(v_cmp_gt(wabb.bmin, oldTbox.bmin), v_cmp_gt(oldTbox.bmax, wabb.bmax));
-      if (v_signmask(border) & isOnTileBorder)
+      if (v_check_xyz_any_true(v_and(border, onTileBorder)))
         flags |= tdata.MFLG_RECALC_BBOX;
     }
 
@@ -789,17 +801,16 @@ void scene::TiledScene::updateTile(int t_idx, uint32_t index, const mat44f *old_
           if (i < ei)
           {
             auto &kdNode = kdNodes[i];
+            const float oldDist = v_extract_w(old_node->col0), newDist = v_extract_w(node.col0);
             bbox3f kdNodeBox = kdNode.getBox();
             vec4f oldborder = v_or(v_andnot(v_cmp_eq(oldWabb.bmin, wabb.bmin), v_cmp_ge(kdNodeBox.bmin, oldWabb.bmin)),
               v_andnot(v_cmp_eq(oldWabb.bmax, wabb.bmax), v_cmp_ge(oldWabb.bmax, kdNodeBox.bmax)));
             vec4f crossedBorder = v_or(v_cmp_gt(kdNodeBox.bmin, wabb.bmin), v_cmp_gt(wabb.bmax, kdNodeBox.bmax));
             oldborder = v_or(oldborder, crossedBorder);
-            uint32_t oldBorderMask = v_signmask(oldborder) & 7;
-            if (oldBorderMask) // (was on border && moved from that border) || crossed the border.
+            if (v_check_xyz_any_true(oldborder)) // (was on border && moved from that border) || crossed the border.
             {
-              uint32_t newBorderMask = v_signmask(crossedBorder);
-              if (~newBorderMask & oldBorderMask) // is inside && (was on border && moved from that border), 'crossed the border'
-                                                  // canceled by 'is inside'.
+              if (v_check_xyz_any_true(v_andnot(crossedBorder, oldborder))) // is inside && (was on border && moved from that
+                                                                            // border), 'crossed the border' canceled by 'is inside'.
               {
                 // we moved inside leaf
                 bbox3f nKdbox;
@@ -838,7 +849,6 @@ void scene::TiledScene::updateTile(int t_idx, uint32_t index, const mat44f *old_
             {
               flags &= ~(tdata.MFLG_IVALIDATE_KDTREE | tdata.MFLG_RECALC_BBOX);
               // if we hadn't scale radius AND moving inside we can just say nothing changed
-              const float oldDist = v_extract_w(old_node->col0), newDist = v_extract_w(node.col0);
               if (oldDist == newDist) // completely unchanged leaf
                 flags &= ~tdata.MFLG_REBUILD_KDTREE;
               else // we have to change kdtree leaf
@@ -859,6 +869,17 @@ void scene::TiledScene::updateTile(int t_idx, uint32_t index, const mat44f *old_
                   flags &= ~tdata.MFLG_REBUILD_KDTREE;
                 }
               }
+            }
+            // The kdtree stays in use after this in-place update, so restore the leaf's
+            // disappear-distance DESC node order (the cull's early break relies on it).
+            if (oldDist != newDist)
+            {
+              node_index *arr = tdata.nodes.data();
+              int loc = tileLocation;
+              for (; loc > (int)start && v_extract_w(getNodeInternal(arr[loc - 1]).col0) < newDist; --loc)
+                eastl::swap(arr[loc], arr[loc - 1]);
+              for (; loc + 1 < (int)(start + count) && v_extract_w(getNodeInternal(arr[loc + 1]).col0) > newDist; ++loc)
+                eastl::swap(arr[loc], arr[loc + 1]);
             }
           }
         }
@@ -1220,13 +1241,37 @@ bool scene::TiledScene::buildKdTree(TileData &tdata)
 
   // fill distance
   uint32_t cStart = 0;
+  struct NodeSortKey
+  {
+    float key;
+    node_index node;
+  };
+  dag::Vector<NodeSortKey, framemem_allocator> sortKeys; // hoisted: one allocation serves every leaf
   for (int i = tdata.kdTreeLeftNode; i < tdata.kdTreeLeftNode + newKdTreeNodeCount && i < kdNodes.size(); ++i)
   {
     auto &kdNode = kdNodes[i];
 
-    // sort nodes for cache locality, when then will be checking visibility.
-    stlsort::sort(tdata.nodes.begin() + kdNode.getStart(), tdata.nodes.begin() + kdNode.getStart() + kdNode.getCount(),
-      [&](node_index a, node_index b) -> auto { return getNodeIndexInternal(a) < getNodeIndexInternal(b); });
+    // Sort leaf nodes by disappear distance, DESCENDING: all of a leaf's nodes share one conservative
+    // lower bound on camera distance (the leaf box nearest point), so the cull scan can stop at the
+    // first node below it. Ties keep index order for cache locality. Keys are fetched once per node
+    // (not one 64-byte gather per comparison), with NaN canonicalized to +FLT_MAX: the comparator stays
+    // a strict weak order and NaN sorts first, keeping its pre-existing survive-the-distance-cull
+    // behavior (the early break can only skip nodes placed after it).
+    sortKeys.resize(kdNode.getCount());
+    for (uint32_t k = 0; k < (uint32_t)sortKeys.size(); ++k)
+    {
+      const node_index n = tdata.nodes.data()[kdNode.getStart() + k];
+      const vec4f c0 = getNodeInternal(n).col0;
+      // integer-domain NaN test: fast-math (-ffinite-math-only) folds a float w != w to false
+      const uint32_t wb = (uint32_t)v_extract_wi(v_cast_vec4i(c0));
+      sortKeys[k].key = (wb & 0x7FFFFFFFu) > 0x7F800000u ? FLT_MAX : v_extract_w(c0);
+      sortKeys[k].node = n;
+    }
+    stlsort::sort(sortKeys.begin(), sortKeys.end(), [&](const NodeSortKey &a, const NodeSortKey &b) {
+      return a.key != b.key ? a.key > b.key : getNodeIndexInternal(a.node) < getNodeIndexInternal(b.node);
+    });
+    for (uint32_t k = 0; k < (uint32_t)sortKeys.size(); ++k)
+      tdata.nodes.data()[kdNode.getStart() + k] = sortKeys[k].node;
     // fixme: if !KD_LEAVES_ONLY, this is very unoptimal, we'd better calc recursive
     vec4f bmax_count = boxes[indices[kdNode.getStart()]].bmax;
     uint16_t flags = 0;

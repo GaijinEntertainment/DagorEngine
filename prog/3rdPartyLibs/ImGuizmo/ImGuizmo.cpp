@@ -799,6 +799,8 @@ namespace IMGUIZMO_NAMESPACE
    {
       vec_t trans;
       trans.TransformPoint(worldPos, mat);
+      if (fabsf(trans.w) < FLT_EPSILON)
+         return ImVec2(-FLT_MAX, -FLT_MAX);
       trans *= 0.5f / trans.w;
       trans += makeVect(0.5f, 0.5f);
       trans.y = 1.f - trans.y;
@@ -1083,7 +1085,6 @@ namespace IMGUIZMO_NAMESPACE
       // compute scale from the size of camera right vector projected on screen at the matrix position
       vec_t pointRight = viewInverse.v.right;
       pointRight.TransformPoint(gContext.mViewProjection);
-      gContext.mScreenFactor = gContext.mGizmoSizeClipSpace / (pointRight.x / pointRight.w - gContext.mMVP.v.position.x / gContext.mMVP.v.position.w);
 
       vec_t rightViewInverse = viewInverse.v.right;
       rightViewInverse.TransformVector(gContext.mModelInverse);
@@ -1258,19 +1259,19 @@ namespace IMGUIZMO_NAMESPACE
       ImU32 colors[7];
       ComputeColors(colors, type, ROTATE);
 
-      vec_t cameraToModelNormalized;
+      vec_t viewDirNormalized;
       if (gContext.mIsOrthographic)
       {
          matrix_t viewInverse;
          viewInverse.Inverse(*(matrix_t*)&gContext.mViewMat);
-         cameraToModelNormalized = -viewInverse.v.dir;
+         viewDirNormalized = -viewInverse.v.dir;
       }
       else
       {
-         cameraToModelNormalized = Normalized(gContext.mModel.v.position - gContext.mCameraEye);
+         viewDirNormalized = Normalized(gContext.mCameraDir);
       }
 
-      cameraToModelNormalized.TransformVector(gContext.mModelInverse);
+      viewDirNormalized.TransformVector(gContext.mModelInverse);
 
       gContext.mRadiusSquareCenter = screenRotateSize * gContext.mHeight;
 
@@ -1286,7 +1287,7 @@ namespace IMGUIZMO_NAMESPACE
 
          ImVec2* circlePos = (ImVec2*)alloca(sizeof(ImVec2) * (circleMul * halfCircleSegmentCount + 1));
 
-         float angleStart = atan2f(cameraToModelNormalized[(4 - axis) % 3], cameraToModelNormalized[(3 - axis) % 3]) + ZPI * 0.5f;
+         float angleStart = atan2f(viewDirNormalized[(4 - axis) % 3], viewDirNormalized[(3 - axis) % 3]) + (gContext.mIsOrthographic ? ZPI : -ZPI) * 0.5f;
 
          for (int i = 0; i < circleMul * halfCircleSegmentCount + 1; i++)
          {
@@ -1721,12 +1722,43 @@ namespace IMGUIZMO_NAMESPACE
          matrix_t boundsMVP = gContext.mModelSource * gContext.mViewProjection;
          for (int i = 0; i < 4; i++)
          {
-            ImVec2 worldBound1 = worldToPos(aabb[i], boundsMVP);
-            ImVec2 worldBound2 = worldToPos(aabb[(i + 1) % 4], boundsMVP);
-            if (!IsInContextRect(worldBound1) || !IsInContextRect(worldBound2))
+            // Clip the segment against the near plane (w >= eps) so the dashed
+            // line still draws when an endpoint is behind the camera or outside
+            // the viewport. ImDrawList clips to the 2D clip rect on its own.
+            vec_t p0; p0.TransformPoint(aabb[i], boundsMVP);
+            vec_t p1; p1.TransformPoint(aabb[(i + 1) % 4], boundsMVP);
+            const float wEps = 1e-3f;
+            bool in0 = p0.w >= wEps;
+            bool in1 = p1.w >= wEps;
+            if (!in0 && !in1)
             {
                continue;
             }
+            if (!in0)
+            {
+               float t = (p1.w - wEps) / (p1.w - p0.w);
+               p0.x = p1.x + (p0.x - p1.x) * t;
+               p0.y = p1.y + (p0.y - p1.y) * t;
+               p0.z = p1.z + (p0.z - p1.z) * t;
+               p0.w = wEps;
+            }
+            else if (!in1)
+            {
+               float t = (p0.w - wEps) / (p0.w - p1.w);
+               p1.x = p0.x + (p1.x - p0.x) * t;
+               p1.y = p0.y + (p1.y - p0.y) * t;
+               p1.z = p0.z + (p1.z - p0.z) * t;
+               p1.w = wEps;
+            }
+            auto clipToScreen = [](const vec_t& c) -> ImVec2
+            {
+               float nx = c.x * (0.5f / c.w) + 0.5f;
+               float ny = c.y * (0.5f / c.w) + 0.5f;
+               ny = 1.f - ny;
+               return ImVec2(gContext.mX + nx * gContext.mWidth, gContext.mY + ny * gContext.mHeight);
+            };
+            ImVec2 worldBound1 = clipToScreen(p0);
+            ImVec2 worldBound2 = clipToScreen(p1);
             float boundDistance = sqrtf(ImLengthSqr(worldBound1 - worldBound2));
             int stepCount = (int)(boundDistance / 10.f);
             stepCount = min(stepCount, 1000);
@@ -1741,11 +1773,19 @@ namespace IMGUIZMO_NAMESPACE
                drawList->AddLine(worldBoundSS1, worldBoundSS2, IM_COL32(0xAA, 0xAA, 0xAA, 0) + anchorAlpha, 2.f);
             }
             vec_t midPoint = (aabb[i] + aabb[(i + 1) % 4]) * 0.5f;
-            ImVec2 midBound = worldToPos(midPoint, boundsMVP);
+            // Per-anchor visibility: big anchor depends only on corner i;
+            // small anchor depends only on the midpoint of edge (i, i+1).
+            vec_t pCorner; pCorner.TransformPoint(aabb[i], boundsMVP);
+            vec_t pMid;    pMid.TransformPoint(midPoint, boundsMVP);
+            ImVec2 worldBoundOrig = worldToPos(aabb[i], boundsMVP);
+            ImVec2 midBound       = worldToPos(midPoint, boundsMVP);
+            bool bigAnchorVisible   = pCorner.w >= wEps && IsInContextRect(worldBoundOrig);
+            bool smallAnchorVisible = pMid.w    >= wEps && IsInContextRect(midBound);
+
             static const float AnchorBigRadius = 8.f;
             static const float AnchorSmallRadius = 6.f;
-            bool overBigAnchor = ImLengthSqr(worldBound1 - io.MousePos) <= (AnchorBigRadius * AnchorBigRadius);
-            bool overSmallAnchor = ImLengthSqr(midBound - io.MousePos) <= (AnchorBigRadius * AnchorBigRadius);
+            bool overBigAnchor   = bigAnchorVisible   && ImLengthSqr(worldBoundOrig - io.MousePos) <= (AnchorBigRadius * AnchorBigRadius);
+            bool overSmallAnchor = smallAnchorVisible && ImLengthSqr(midBound       - io.MousePos) <= (AnchorBigRadius * AnchorBigRadius);
 
             int type = MT_NONE;
             vec_t gizmoHitProportion;
@@ -1774,11 +1814,17 @@ namespace IMGUIZMO_NAMESPACE
             unsigned int bigAnchorColor = overBigAnchor ? selectionColor : (IM_COL32(0xAA, 0xAA, 0xAA, 0) + anchorAlpha);
             unsigned int smallAnchorColor = overSmallAnchor ? selectionColor : (IM_COL32(0xAA, 0xAA, 0xAA, 0) + anchorAlpha);
 
-            drawList->AddCircleFilled(worldBound1, AnchorBigRadius, IM_COL32_BLACK);
-            drawList->AddCircleFilled(worldBound1, AnchorBigRadius - 1.2f, bigAnchorColor);
+            if (bigAnchorVisible)
+            {
+               drawList->AddCircleFilled(worldBoundOrig, AnchorBigRadius, IM_COL32_BLACK);
+               drawList->AddCircleFilled(worldBoundOrig, AnchorBigRadius - 1.2f, bigAnchorColor);
+            }
 
-            drawList->AddCircleFilled(midBound, AnchorSmallRadius, IM_COL32_BLACK);
-            drawList->AddCircleFilled(midBound, AnchorSmallRadius - 1.2f, smallAnchorColor);
+            if (smallAnchorVisible)
+            {
+               drawList->AddCircleFilled(midBound, AnchorSmallRadius, IM_COL32_BLACK);
+               drawList->AddCircleFilled(midBound, AnchorSmallRadius - 1.2f, smallAnchorColor);
+            }
             int oppositeIndex = (i + 2) % 4;
             // big anchor on corners
             if (!gContext.mbUsingBounds && gContext.mbEnable && overBigAnchor && CanActivate())
@@ -1833,6 +1879,7 @@ namespace IMGUIZMO_NAMESPACE
             vec_t referenceVector = (gContext.mBoundsAnchor - gContext.mBoundsPivot).Abs();
 
             // for 1 or 2 axes, compute a ratio that's used for scale and snap it based on resulting length
+            float ratioAxes[2] = { 1.f, 1.f };
             for (int i = 0; i < 2; i++)
             {
                int axisIndex1 = gContext.mBoundsAxis[i];
@@ -1860,7 +1907,27 @@ namespace IMGUIZMO_NAMESPACE
                      ratioAxis = length / boundSize;
                   }
                }
-               scale.component[axisIndex1] *= ratioAxis;
+               ratioAxes[i] = ratioAxis;
+            }
+
+            // DAGOR PATCH - proportional (aspect-locked) resize when Shift is held on a corner anchor.
+            // Both axes are active only on corner drags (mBoundsAxis[1] != -1); apply the dominant ratio
+            // (the one deviating most from 1) to both axes so the original aspect ratio is preserved.
+            if (io.KeyShift && gContext.mBoundsAxis[0] != -1 && gContext.mBoundsAxis[1] != -1)
+            {
+               float lockedRatio = fabsf(ratioAxes[0] - 1.f) >= fabsf(ratioAxes[1] - 1.f) ? ratioAxes[0] : ratioAxes[1];
+               ratioAxes[0] = lockedRatio;
+               ratioAxes[1] = lockedRatio;
+            }
+
+            for (int i = 0; i < 2; i++)
+            {
+               int axisIndex1 = gContext.mBoundsAxis[i];
+               if (axisIndex1 == -1)
+               {
+                  continue;
+               }
+               scale.component[axisIndex1] *= ratioAxes[i];
             }
 
             // transform matrix
@@ -2692,9 +2759,25 @@ namespace IMGUIZMO_NAMESPACE
             bool inFrustum = true;
             for (int iFrustum = 0; iFrustum < 6; iFrustum++)
             {
-               float dist = DistanceToPlane(centerPosition, frustum[iFrustum]);
-               if (dist < 0.f)
+               const vec_t& plane = frustum[iFrustum];
+
+               bool allOutside = true;
+
+               for (unsigned int iCoord = 0; iCoord < 4; iCoord++)
                {
+                  vec_t worldPos;
+                  worldPos.TransformPoint(faceCoords[iCoord] * 0.5f * invert, *(matrix_t*)matrix);
+
+                  if (DistanceToPlane(worldPos, plane) >= 0.f)
+                  {
+                     allOutside = false;
+                     break;
+                  }
+               }
+
+               if (allOutside)
+               {
+                  // face is fully outside this plane - discard
                   inFrustum = false;
                   break;
                }

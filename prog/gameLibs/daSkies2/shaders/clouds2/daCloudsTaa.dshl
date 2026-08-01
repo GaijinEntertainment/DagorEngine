@@ -4,7 +4,6 @@ include "distanceToClouds2.dshl"
 include "clouds_tiled_dist.dshl"
 include "clouds_close_layer_outside.dshl"
 include "camera_in_camera.dshl"
-include "dynamic_resolution.dshl"
 
 float4 globtm_no_ofs_psf_0;
 float4 globtm_no_ofs_psf_1;
@@ -31,7 +30,21 @@ float4 clouds2_dispatch_groups;
 texture clouds_color;
 texture clouds_depth;
 texture clouds_depth_gbuf;
+sampler clouds_depth_gbuf_samplerstate
+{
+  mipmap_mode = point;
+  filter = point;
+  address_u = border;
+  address_v = border;
+  address_w = border;
+  border_color = (0, 0, 0, 0);
+};
 texture clouds_prev_depth_gbuf;
+// really sampled mip size of the depth pair, (w, h, 1/w, 1/h): under dynamic
+// resolution it follows the current scale, not the clouds res, and prev differs
+// from current on a step frame. 0 = not fed, derive from the clouds res
+float4 clouds_depth_gbuf_dims;
+float4 clouds_prev_depth_gbuf_dims;
 texture clouds_prev_taa_weight;
 //when we know invalidate History event had appeared (i.e. offscreen pixel or history was significantly clamped),
 //we should increase newFrame weight in next frame (if history sampled is not really historically averaged)
@@ -56,10 +69,21 @@ texture clouds_prev_taa_weight;
 //as you can see, it fully converges in expected 8 frames, but additionally it produces fully correct result each second frame already!
 //although it is very noise input
 
+float min_ground_offset;
 float clouds_restart_taa;
 float clouds_taa_min_new_frame_weight = 0.0;
 
 int clouds_invalidate_taa_frames = 0;
+int clouds2_current_frame = 0;
+int clouds_checkerboard = 0;
+interval clouds_checkerboard: off < 1, on;
+int4 traced_clouds_res;//trace target resolution: packed quarter res when checkerboarding
+//below this cloud front distance reprojection trust fades in: near clouds have no
+//single valid parallax, so accumulation speeds up toward the camera instead
+float clouds_checker_reproj_min_m = 4000;
+float clouds_checker_dt_scale = 1;//weight scale from real frame time (dt^-1/3), set per view from CPU
+float clouds_checker_clamp_collapse = 0;//parallax-rate driven, CPU: 1 = classic clamp box, 0 = unclamped
+float clouds_checker_taa_w = 0.1;//fresh-texel accumulation weight at 60Hz, dt-scaled on the CPU
 
 macro CLOUDS_TAA(code)
   (code) {
@@ -76,8 +100,9 @@ macro CLOUDS_TAA(code)
   (code) {
     clouds_color@smp2d = clouds_color;
     clouds_depth@smp2d = clouds_depth;
-    clouds_prev_depth_gbuf@smp2d = clouds_prev_depth_gbuf;
-    clouds_depth_gbuf@smp2d = clouds_depth_gbuf;
+    clouds_prev_depth_gbuf@tex2d = clouds_prev_depth_gbuf;
+    clouds_depth_gbuf@tex2d = clouds_depth_gbuf;
+    clouds_depth_gbuf_samplerstate@sampler = clouds_depth_gbuf_samplerstate;
 
     clouds_color_prev@smp2d = clouds_color_prev;
     clouds_alpha_prev@tex2d = clouds_alpha_prev;
@@ -89,21 +114,29 @@ macro CLOUDS_TAA(code)
     //prev_view_vecLB@f3 = prev_view_vecLB;
     //prev_view_vecRB@f3 = prev_view_vecRB;
     clouds_color_dimensions@f4= (clouds2_resolution.x, clouds2_resolution.y, 1./clouds2_resolution.x, 1./clouds2_resolution.y);
+    clouds_depth_gbuf_dims@f4 = clouds_depth_gbuf_dims;
+    clouds_prev_depth_gbuf_dims@f4 = clouds_prev_depth_gbuf_dims;
     //cloud_layers_altitudes_tex@tex = cloud_layers_altitudes_tex hlsl {Texture2D<float4> cloud_layers_altitudes_tex@tex;}
     clouds_restart_taa@f1 = (clouds_restart_taa);
     clouds_tiles_threshold@f1 = (clouds_tiled_res.x*clouds_tiled_res.y*0.9,0,0,0);//90% of non empty tiles is enough to skip doing optimization
     clouds_taa_min_new_frame_weight@f1 = (clouds_taa_min_new_frame_weight);
+    clouds_taa_exposure@f1 = (clouds_taa_exposure);
 
     clouds_invalidate_taa_frames@i1 = clouds_invalidate_taa_frames;
   }
   USE_CLOUDS_DISTANCE(code)
   USE_CLOUDS_DISTANCE_STUB(code)
+  DISTANCE_TO_CLOUDS2(code)
   CLOSE_LAYER_EARLY_EXIT(code)
   CLOSE_LAYER_EARLY_EXIT_STUB(code)
   VIEW_VEC_OPTIMIZED(code)
   INIT_ZNZFAR_STAGE(code)
-  INIT_DYNAMIC_RESOLUTION(code)
+  INIT_GLOBAL_POINT_WRAP_SAMPLER(code)
+  INIT_HDR(code)
+  USE_HDR(code)
   hlsl(code){
+    // wrap (not border) address kept to match the pre-sampler-refactor behavior
+    #define clouds_prev_depth_gbuf_samplerstate global_point_wrap_sampler
     ##if (clouds_prev_depth_gbuf == NULL)
       #define DONT_CHECK_DEPTH_DISCONTINUITY 1
       #define TAA_NEW_FRAME_WEIGHT 0.03
@@ -126,6 +159,24 @@ macro CLOUDS_TAA(code)
     ##endif
   }
 
+  (code) {
+    clouds_checker_frame@f4 = (clouds_checkerboard, clouds2_current_frame, 0, 0);
+    traced_clouds_res@f2 = (traced_clouds_res.x, traced_clouds_res.y, 0, 0);
+  }
+  //the shared knob is calibrated as the full-rate per-frame weight; quarter mode
+  //blends per retrace and its coarse 4-frame-held stamps tolerate a quarter of it
+  if (clouds_checkerboard == on)
+  {
+    (code) {
+      clouds_checker_reproj@f3 = (1 / max(clouds_checker_reproj_min_m, 1), min(max(clouds_checker_taa_w*clouds_checker_dt_scale, 0.0001), 1)*0.25, clouds_checker_clamp_collapse, 0);
+    }
+  }
+  else
+  {
+    (code) {
+      clouds_checker_reproj@f3 = (1 / max(clouds_checker_reproj_min_m, 1), min(max(clouds_checker_taa_w*clouds_checker_dt_scale, 0.0001), 1), clouds_checker_clamp_collapse, 0);
+    }
+  }
   hlsl(code){
     #define TAA_SHARPENING_FACTOR 0.5
     #define TAA_RESTART_TEMPORAL_X clouds_restart_taa
@@ -134,6 +185,14 @@ macro CLOUDS_TAA(code)
     #endif
     #define TAA_MOTION_DIFFERENCE_MAX_WEIGHT 0.5
     #define TAA_LUMINANCE_MAX 100
+    //checkerboard reconstruction: reproject-or-replace from the packed quarter-res
+    //trace. Interval-compiled: each variant prunes the other reconstruction entirely
+    ##if clouds_checkerboard == off
+      #define TAA_CHECKER_MODE 0
+    ##else
+      #define TAA_CHECKER_MODE 1
+    ##endif
+    #define TAA_CHECKER_FRAME uint(clouds_checker_frame.y)
     #include "daCloudsTonemap.hlsl"
     #include "temporalClouds.hlsl"
 
@@ -142,7 +201,8 @@ macro CLOUDS_TAA(code)
       BRANCH
       if (HAS_EMPTY_TILES==1 && tile_is_empty(screenpos.xy))//ofc it may be that tile wasn't empty last time, but overall it's unlikely
       {
-        curTaaWeight = 1;
+        // State 0 lets newly non-empty checker tiles anneal instead of trusting black history.
+        curTaaWeight = TAA_CHECKER_MODE ? 0 : 1;
         return 0;
       }
       half4 ret;
@@ -153,7 +213,7 @@ macro CLOUDS_TAA(code)
           clouds_depth_gbuf, clouds_depth_gbuf_samplerstate,
           clouds_prev_depth_gbuf, clouds_prev_depth_gbuf_samplerstate,
           clouds_prev_taa_weight, clouds_prev_taa_weight_samplerstate,
-          tc * current_dynamic_resolution_scale, clouds_color_dimensions.xy, clouds_color_dimensions.zw, TONEMAPPED_SCENE_EXPOSURE);
+          tc, clouds_color_dimensions.xy, clouds_color_dimensions.zw, TONEMAPPED_SCENE_EXPOSURE*get_exposure_mul());
       return ret;
     }
   }
@@ -254,6 +314,7 @@ shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
   }
   CLOUDS_TAA(cs)
   (cs) {
+    res@i2 = clouds2_resolution.xy;
     invres@f4 = (1./clouds2_resolution.x, 1./clouds2_resolution.y, 0.5/clouds2_resolution.x, 0.5/clouds2_resolution.y);
     target0@uav : register(0) hlsl {
       RWTexture2D<float4> target0@uav;
@@ -265,6 +326,11 @@ shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
   //(cs) { clouds2_dispatch_groups@f2 = (clouds2_dispatch_groups); }
 
   hlsl(cs) {
+  ##if (hardware.scarlett || hardware.ps5)
+    // ~14 resident wave32 per SIMD instead of 7 wave64 at the same VGPR budget;
+    // measured slightly faster (pix)
+    #pragma wave32
+  ##endif
     #include <cloud_settings.hlsli>
     #include <L2_cache_friendly_dispatch.hlsl>
 
@@ -282,6 +348,8 @@ shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
     [numthreads(CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, 1)]
     void cs_main(uint2 dtid : SV_DispatchThreadID)
     {
+      if (any((int2)dtid >= res))
+        return;
       float taaWeight;
       texture2DAt(target0, dtid) = clouds_taa(taaWeight, dtid.xy, dtid*invres.xy + invres.zw);
       texture2DAt(target1, dtid) = taaWeight;

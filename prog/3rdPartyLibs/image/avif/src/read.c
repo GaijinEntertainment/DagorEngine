@@ -3945,8 +3945,8 @@ static avifResult avifImageLimitedToFullAlpha(avifImage * image)
 
     if (image->depth > 8) {
         for (uint32_t j = 0; j < image->height; ++j) {
-            const uint8_t * srcRow = &alphaPlane[j * alphaRowBytes];
-            uint8_t * dstRow = &image->alphaPlane[j * image->alphaRowBytes];
+            const uint8_t * srcRow = &alphaPlane[(size_t)j * alphaRowBytes];
+            uint8_t * dstRow = &image->alphaPlane[(size_t)j * image->alphaRowBytes];
             for (uint32_t i = 0; i < image->width; ++i) {
                 int srcAlpha = *((const uint16_t *)&srcRow[i * 2]);
                 int dstAlpha = avifLimitedToFullY(image->depth, srcAlpha);
@@ -3955,8 +3955,8 @@ static avifResult avifImageLimitedToFullAlpha(avifImage * image)
         }
     } else {
         for (uint32_t j = 0; j < image->height; ++j) {
-            const uint8_t * srcRow = &alphaPlane[j * alphaRowBytes];
-            uint8_t * dstRow = &image->alphaPlane[j * image->alphaRowBytes];
+            const uint8_t * srcRow = &alphaPlane[(size_t)j * alphaRowBytes];
+            uint8_t * dstRow = &image->alphaPlane[(size_t)j * image->alphaRowBytes];
             for (uint32_t i = 0; i < image->width; ++i) {
                 int srcAlpha = srcRow[i];
                 int dstAlpha = avifLimitedToFullY(image->depth, srcAlpha);

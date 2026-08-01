@@ -7,6 +7,9 @@ class BaseTexture;
 
 class DagorEdViewportWindow : public ViewportWindow
 {
+public:
+  DagorEdViewportWindow();
+
 private:
   int onMenuItemClick(unsigned id) override;
   bool onDropFiles(const dag::Vector<String> &files) override;

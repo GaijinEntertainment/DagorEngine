@@ -52,7 +52,11 @@ __forceinline bool specialized_mem_nequal(const void *__restrict a_, const void 
   {
     case 1: return *a != *b; // bool
     case 4: return *(const uint32_t *__restrict)a != *(const uint32_t *__restrict)b;
+    case 8: return *(const uint64_t *__restrict)a != *(const uint64_t *__restrict)b;
     case 12: return memcmp((const uint32_t *)a, (const uint32_t *)b, 12) != 0;
+    case 16:
+      return ((*(const uint64_t *__restrict)a ^ *(const uint64_t *__restrict)b) |
+               (*(const uint64_t *__restrict)(a + 8) ^ *(const uint64_t *__restrict)(b + 8))) != 0;
     default: return memcmp(a, b, sz) != 0;
   }
 }

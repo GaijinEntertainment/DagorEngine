@@ -237,6 +237,7 @@ namespace acl
 
 			rotation_format8 get_rotation_format() const { return m_format.rotation; }
 
+			// Returns a normalized rotation quaternion
 			rtm::quatf RTM_SIMD_CALL get_sample(uint32_t sample_index) const
 			{
 				const rtm::vector4f rotation = get_raw_sample<rtm::vector4f>(sample_index);
@@ -249,7 +250,7 @@ namespace acl
 				case rotation_format8::quatf_drop_w_variable:
 					// quat_from_positive_w might not yield an accurate quaternion because the square-root instruction
 					// isn't very accurate on small inputs, we need to normalize
-					return rtm::quat_normalize(rtm::quat_from_positive_w(rotation));
+					return quat_normalize_stable(quat_from_positive_w_stable(rotation));
 				default:
 					ACL_ASSERT(false, "Invalid or unsupported rotation format: " ACL_ASSERT_STRING_FORMAT_SPECIFIER, get_rotation_format_name(m_format.rotation));
 					return rtm::vector_to_quat(rotation);

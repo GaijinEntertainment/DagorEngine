@@ -10,6 +10,7 @@
 #include <debug/dag_log.h>
 #include <drv/3d/dag_heap.h>
 #include <EASTL/numeric.h>
+#include <EASTL/optional.h>
 #include <EASTL/variant.h>
 #include <EASTL/vector.h>
 #include <free_list_utils.h>
@@ -475,6 +476,7 @@ private:
   uint64_t poolBudgetLevels[total_memory_pool_count][static_cast<uint32_t>(BudgetPressureLevels::LOW)]{};
   BudgetPressureLevels poolBudgetLevelstatus[total_memory_pool_count]{};
   bool deviceLocalPanicTrimScheduled = false;
+  bool hostCommitPanicTrimScheduled = false;
   uint64_t processVirtualAddressUse = 0;
   uint64_t processVirtualTotal = 0;
   struct BehaviorStatus
@@ -546,6 +548,22 @@ protected:
     else
     {
       poolStates[host_local_memory_pool].CurrentUsage += size;
+      behaviorStatus.disableHostMemoryStatusQuery = false;
+    }
+
+    updateBudgetLevelStatus();
+  }
+
+  void recordCommittedResourceFreed(uint32_t size, bool is_gpu)
+  {
+    if (is_gpu)
+    {
+      poolStates[device_local_memory_pool].CurrentUsage -= size;
+      behaviorStatus.disableDeviceMemoryStatusQuery = false;
+    }
+    else
+    {
+      poolStates[host_local_memory_pool].CurrentUsage -= size;
       behaviorStatus.disableHostMemoryStatusQuery = false;
     }
 
@@ -940,7 +958,10 @@ protected:
 
     bool isValidRange(FreeRangeSetType::iterator selected) { return end(freeRanges) != selected; }
 
-    ValueRange<uint64_t> allocateFromRange(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, FreeRangeSetType::iterator selected)
+    /// Empty when the selected free range can not hold the request after alignment. Callers that
+    /// picked the range themselves have to decide whether that is a normal miss or a planning bug.
+    eastl::optional<ValueRange<uint64_t>> allocateFromRange(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info,
+      FreeRangeSetType::iterator selected)
     {
       G_ASSERT(isValidRange(selected));
 
@@ -1195,11 +1216,15 @@ protected:
       freeRange(range);
     }
 
-    ResourceMemory allocate(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HeapID heap_id, FreeRangeSetType::iterator selected)
+    eastl::optional<ResourceMemory> allocate(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HeapID heap_id,
+      FreeRangeSetType::iterator selected)
     {
       auto range = allocateFromRange(alloc_info, selected);
-      G_ASSERT(!range.empty());
-      return {heap.get() + range.front(), range.size(), heap_id};
+      if (!range)
+      {
+        return {};
+      }
+      return ResourceMemory{heap.get() + range->front(), range->size(), heap_id};
     }
   };
 
@@ -1330,7 +1355,10 @@ public:
 
   ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
     const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
-  ResourceMemory allocateMemoryInPlace(HeapID heap_id, uint32_t free_range_index, const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo);
+  /// Allocates from a free range that the caller has already selected, so a failure to fit means
+  /// the caller and the heap disagree; it is reported as E_INVALIDARG, not as an allocation failure.
+  ResourceMemoryAllocationResult allocateMemoryInPlace(HeapID heap_id, uint32_t free_range_index,
+    const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo);
   void free(ResourceMemory allocation);
   void freeNoLock(ResourceMemory allocation, bool is_heap_deletion_allowed);
 
@@ -1413,7 +1441,7 @@ protected:
     bool isPartOf(ResourceMemory mem) const { return mem.getHeap() == heap.Get(); }
 
     // only valid if isPartOf(mem) is true
-    uint32_t calculateOffset(ResourceMemory mem) const { return mem.getRange().front(); }
+    uint64_t calculateOffset(ResourceMemory mem) const { return mem.getRange().front(); }
 
     ID3D12Heap *heapPointer() const { return heap.Get(); }
 
@@ -1421,11 +1449,15 @@ protected:
 
     void free(ResourceMemory mem) { freeRange(mem.getRange()); }
 
-    ResourceMemory allocate(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HeapID heap_id, FreeRangeSetType::iterator selected)
+    eastl::optional<ResourceMemory> allocate(const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HeapID heap_id,
+      FreeRangeSetType::iterator selected)
     {
       auto range = allocateFromRange(alloc_info, selected);
-      G_ASSERT(!range.empty());
-      return {heap.Get(), range, heap_id};
+      if (!range)
+      {
+        return {};
+      }
+      return ResourceMemory{heap.Get(), *range, heap_id};
     }
   };
 
@@ -1566,7 +1598,10 @@ public:
 
   ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
     const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
-  ResourceMemory allocateMemoryInPlace(HeapID heap_id, uint32_t free_range_index, const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo);
+  /// Allocates from a free range that the caller has already selected, so a failure to fit means
+  /// the caller and the heap disagree; it is reported as E_INVALIDARG, not as an allocation failure.
+  ResourceMemoryAllocationResult allocateMemoryInPlace(HeapID heap_id, uint32_t free_range_index,
+    const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo);
   void free(ResourceMemory allocation);
   void freeNoLock(ResourceMemory allocation, bool is_heap_deletion_allowed);
 

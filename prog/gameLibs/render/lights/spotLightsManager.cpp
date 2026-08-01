@@ -2,15 +2,14 @@
 
 #include <render/lights/spotLightsManager.h>
 #include <math/dag_frustum.h>
-#include <scene/dag_occlusion.h>
 #include <generic/dag_sort.h>
 #include <generic/dag_tab.h>
 #include <debug/dag_debug3d.h>
 #include <math/dag_viewMatrix.h>
-#include "smallLights.h"
+#include <render/lights/shadowSystem.h>
 
 
-SpotLightsManager::SpotLightsManager() : maxLightIndex(-1)
+SpotLightsManager::SpotLightsManager() : LightsManager<SpotLight>("spot"), maxLightIndex(-1)
 {
   G_STATIC_ASSERT(1ULL << (sizeof(*freeLightIds.data()) * 8) >= MAX_LIGHTS);
 
@@ -38,66 +37,6 @@ void SpotLightsManager::close()
     photometryTextures = nullptr;
   }
 }
-
-typedef uint16_t shadow_index_t;
-
-template <bool use_small>
-void SpotLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
-  eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-  const StaticTab<shadow_index_t, SpotLightsManager::MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos,
-  SpotLightMaskType require_any_mask, float cutoff_dist_sq) const
-{
-  v_bbox3_init_empty(inside_box);
-  v_bbox3_init_empty(outside_box);
-  const vec4f *boundings = (vec4f *)boundingSpheres.data();
-  vec3f cutoff_dist_sq_v = cutoff_dist_sq > 0 ? v_splats(cutoff_dist_sq) : V_C_INF;
-  for (int i = 0; i <= maxLightIndex; ++i, boundings++)
-  {
-    if (require_any_mask && !(require_any_mask & masks[i]))
-      continue;
-    const RawLight &l = rawLights[i];
-    if (l.pos_radius.w <= 0)
-      continue;
-    vec4f lightPosRad = *boundings;
-    vec3f rad = v_splat_w(lightPosRad);
-    if (!frustum.testSphereB(lightPosRad, rad)) // completely not visible
-      continue;
-    // if (occlusion && occlusion->isOccludedSphere(lightPosRad, rad))
-    //   continue;
-    if (occlusion && occlusion->isOccludedBox(boundingBoxes[i]))
-      continue;
-    if (visibleIdBitset)
-      visibleIdBitset->set(i, true);
-
-    vec4f res = v_add_x(v_sub_x(v_dot3_x(lightPosRad, znear_plane), rad), v_splat_w(znear_plane));
-    vec4f length_sq = v_length3_sq(v_sub(cameraPos, lightPosRad));
-    if (v_test_vec_x_gt(length_sq, cutoff_dist_sq_v))
-      continue;
-    vec4f camInSphereVec = v_sub_x(length_sq, v_mul(rad, rad));
-
-#if _TARGET_SIMD_SSE
-    bool intersectsNear = _mm_movemask_ps(res) & 1;
-    bool camInSphere = _mm_movemask_ps(camInSphereVec) & 1;
-#else
-    bool intersectsNear = v_test_vec_x_lt_0(res);
-    bool camInSphere = v_test_vec_x_lt_0(camInSphereVec);
-#endif
-    const bool small = shadows[i] == shadow_index_t(~0) && is_viewed_small(lightPosRad, length_sq, markSmallLightsAsFarLimit);
-    if ((intersectsNear || small) && !camInSphere)
-    {
-      inside_box.bmin = v_min(inside_box.bmin, v_sub(lightPosRad, rad));
-      inside_box.bmax = v_max(inside_box.bmax, v_add(lightPosRad, rad));
-      lights_inside_plane.push_back(i);
-    }
-    else
-    {
-      outside_box.bmin = v_min(outside_box.bmin, v_sub(lightPosRad, rad));
-      outside_box.bmax = v_max(outside_box.bmax, v_add(lightPosRad, rad));
-      lights_outside_plane.push_back(i);
-    }
-  }
-}
-
 
 int SpotLightsManager::addLight(const RawLight &light)
 {
@@ -267,12 +206,28 @@ void SpotLightsManager::getLightPersp(unsigned int id, mat44f &proj)
 
   v_mat44_make_persp_reverse(proj, wk, wk, zn, zf);
 }
-template void SpotLightsManager::prepare<true>(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane,
-  Tab<uint16_t> &lights_outside_plane, eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box,
-  bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow,
-  float markSmallLightsAsFarLimit, vec3f cameraPos, SpotLightMaskType require_any_mask, float cutoff_dist_sq) const;
 
-template void SpotLightsManager::prepare<false>(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane,
-  Tab<uint16_t> &lights_outside_plane, eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box,
-  bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow,
-  float markSmallLightsAsFarLimit, vec3f cameraPos, SpotLightMaskType require_any_mask, float cutoff_dist_sq) const;
+static inline float area_spotlight_zn(float default_zn, float illuminating_plane_offset)
+{
+  return max(default_zn, illuminating_plane_offset);
+}
+
+void SpotLightsManager::updateShadowVolume(uint32_t light_id)
+{
+  const auto shadowId = getShadowId(light_id);
+  if (shadowId == INVALID_SHADOW_VOLUME_ID)
+  {
+    return;
+  }
+
+  const auto &l = getLight(light_id);
+  mat44f viewITM;
+  getLightView(light_id, viewITM);
+
+  bbox3f box;
+  v_bbox3_init_empty(box);
+  float2 lightZnZfar = get_light_shadow_zn_zf(l.pos_radius.w);
+  lightZnZfar.x = area_spotlight_zn(lightZnZfar.x, l.shadowNearFarClippingPlanes.x + l.texId_scale_illuminatingPlane.z);
+  lightZnZfar.y = l.shadowNearFarClippingPlanes.y > 0.f ? l.shadowNearFarClippingPlanes.y : lightZnZfar.y;
+  shadowSystem->setShadowVolume(shadowId, viewITM, lightZnZfar.x, lightZnZfar.y, 1. / l.getShadowTanHalfAngle(), box);
+}

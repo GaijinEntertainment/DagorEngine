@@ -12,6 +12,7 @@
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 #include <daNet/getTime.h>
+#include <util/dag_compilerDefs.h>
 #include <util/dag_convar.h>
 #include <rapidJsonUtils/rapidJsonUtils.h>
 #if _TARGET_PC_LINUX
@@ -136,7 +137,7 @@ static bool try_change_tickrate(float meanFrameTime)
 
   float enableLowThreshold = config->getReal("enableLowThreshold", 1.0);
   float enableNormalThreshold = config->getReal("enableNormalThreshold", 0.25);
-#if defined(__SANITIZE_ADDRESS__)
+#if DAGOR_ADDRESS_SANITIZER
   enableLowThreshold = config->getReal("enableLowThresholdAsan", enableLowThreshold * 4.0);
   enableNormalThreshold = config->getReal("enableNormalThresholdAsan", enableNormalThreshold * 2.0);
 #endif

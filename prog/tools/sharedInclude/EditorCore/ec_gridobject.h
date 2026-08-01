@@ -10,6 +10,8 @@
 class DataBlock;
 class BBox3;
 class Point3;
+class TMatrix;
+class TMatrix4;
 class ShaderElement;
 class ShaderMaterial;
 
@@ -84,7 +86,8 @@ public:
   ///                 lines directions
   /// @param[in] zoom - viewport zoom
   /// @param[in] index - viewport index
-  void render(Point3 *pt, Point3 *dirs, real zoom, int index, bool test_z = true, bool write_z = true);
+  void render(Point3 *pt, Point3 *dirs, real zoom, int index, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool test_z = true,
+    bool write_z = true);
 
   /// Round value to the nearest (snapped) value.
   /// @param[in] f - the value to snap
@@ -190,7 +193,7 @@ protected:
   real infiniteGridMinorLineWidth;
   int infiniteGridMajorSubdivisions;
 
-  void renderInfiniteGrid();
+  void renderInfiniteGrid(const TMatrix &view_tm, const TMatrix4 &proj_tm);
 };
 
 

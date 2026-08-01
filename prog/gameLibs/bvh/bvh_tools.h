@@ -65,6 +65,9 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
                                   elem.mat->getIntVariable(use_cross_dissolveVarId, use_cross_dissolve) && use_cross_dissolve)
     return eastl::nullopt;
 
+  if (strcmp(elem.mat->getShaderClassName(), "rendinst_heightmap_patch") == 0)
+    return eastl::nullopt;
+
   bool hasIndices;
   if (!elem.vertexData->isRenderable(hasIndices))
     return eastl::nullopt;
@@ -103,19 +106,19 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
     {
       vertex_processor = &ProcessorInstances::getImpostorVertexProcessor();
     }
-    else if (isLeaves && context_id->has(Features::RIFull))
+    else if (isLeaves && context_id->hasAny(Features::RIFull))
     {
       vertex_processor = &ProcessorInstances::getLeavesVertexProcessor();
     }
-    else if (isTree && context_id->has(Features::RIFull))
+    else if (isTree && context_id->hasAny(Features::RIFull))
     {
       vertex_processor = &ProcessorInstances::getTreeVertexProcessor();
     }
-    else if (is_ri && context_id->has(Features::RIBaked))
+    else if (is_ri && context_id->hasAny(Features::RIBaked))
     {
       vertex_processor = &ProcessorInstances::getBakeTextureToVerticesProcessor();
     }
-    else if (!is_ri && context_id->has(Features::DynrendRigidBaked))
+    else if (!is_ri && context_id->hasAny(Features::DynrendRigidBaked))
     {
       vertex_processor = &ProcessorInstances::getBakeTextureToVerticesProcessor();
     }
@@ -215,12 +218,12 @@ inline bool instance_needs_animation_broad_phase(const vec4f &world_bounds, cons
   static const auto vMaxLightDistForBvhShadow = v_splats(max_light_dist_for_bvh_shadow);
 
   bbox3f worldBoundsBox;
-  worldBoundsBox.bmin = v_sub(world_bounds, v_splat_w(world_bounds));
-  worldBoundsBox.bmax = v_add(world_bounds, v_splat_w(world_bounds));
   vec3f light_direction_scaled = v_mul(light_direction, vMaxLightDistForBvhShadow);
-  vec3f far_point = v_madd(v_add(worldBoundsBox.bmax, worldBoundsBox.bmin), V_C_HALF, light_direction_scaled);
-  worldBoundsBox.bmin = v_min(worldBoundsBox.bmin, far_point);
-  worldBoundsBox.bmax = v_max(worldBoundsBox.bmax, far_point);
+  vec3f far_point = v_add(world_bounds, light_direction_scaled);
+  worldBoundsBox.bmin = v_min(world_bounds, far_point);
+  worldBoundsBox.bmax = v_max(world_bounds, far_point);
+  worldBoundsBox.bmin = v_sub(worldBoundsBox.bmin, v_splat_w(world_bounds));
+  worldBoundsBox.bmax = v_add(worldBoundsBox.bmax, v_splat_w(world_bounds));
   auto isVisible = !!frustum.testBoxB(worldBoundsBox.bmin, worldBoundsBox.bmax);
   return isVisible;
 }

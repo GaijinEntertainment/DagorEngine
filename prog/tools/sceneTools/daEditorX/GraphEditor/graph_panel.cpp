@@ -77,6 +77,10 @@ constexpr float CULL_VIEW_MOVE_EPS = 0.01f;
 // kept -- pins stay bound so links still land)
 constexpr float LOD_SCALE = 0.1f;
 
+// A node's live editor position must differ from its committed graphData position by more than this
+// (canvas units) for a finished drag to be recorded as a move -- guards against sub-pixel noise.
+constexpr float NODE_MOVE_EPSILON = 0.1f;
+
 constexpr float GRAPH_EDITOR_ZOOM_LEVELS[] = {
   0.01f,
   0.025f,
@@ -381,6 +385,13 @@ void GraphPanel::onGraphDataChanged()
   selectedNodeId = -1;
   previewNodeId = -1;
 
+  // Reset selection-undo tracking: the new graph starts with an empty selection, and the swap itself
+  // must not record a "Select nodes" entry (the next settled frame resyncs the baseline).
+  lastSelection = GraphSelection();
+  pendingSelection = GraphSelection();
+  hasPendingSelection = false;
+  suppressSelectionRecord = true;
+
   // Every loaded node needs its position pushed to ne::SetNodePosition once on first render.
   pendingPositionIds.clear();
   for (const GraphData::Node &n : graphData.nodes)
@@ -399,6 +410,24 @@ void GraphPanel::addNode(GraphData::Node node)
 {
   pendingPositionIds.insert(node.id);
   plugin.mutateGraphData([&](GraphData &gd) { gd.nodes.emplace_back(eastl::move(node)); });
+  cullDirty = true;
+}
+
+void GraphPanel::markPositionsPending(const eastl::vector<int> &node_ids)
+{
+  for (int id : node_ids)
+  {
+    pendingPositionIds.insert(id);
+  }
+  cullDirty = true;
+}
+
+void GraphPanel::markBlockSizesPending(const eastl::vector<int> &node_ids)
+{
+  for (int id : node_ids)
+  {
+    pendingBlockSizeIds.insert(id);
+  }
   cullDirty = true;
 }
 
@@ -551,21 +580,7 @@ void GraphPanel::actObjects([[maybe_unused]] float dt)
 
     if (plugin.promptPinComment(comment))
     {
-      bool changed = false;
-      plugin.mutateGraphData([&](GraphData &gd) {
-        for (GraphData::Node &n : gd.nodes)
-        {
-          if (n.id == nodeId && pinIndex >= 0 && pinIndex < static_cast<int>(n.pins.size()))
-          {
-            if (n.pins[pinIndex].comment != comment)
-            {
-              n.pins[pinIndex].comment = comment;
-              changed = true;
-            }
-            break;
-          }
-        }
-      });
+      plugin.setPinCommentUndoable(nodeId, pinIndex, comment);
     }
   }
 
@@ -609,17 +624,22 @@ void GraphPanel::actObjects([[maybe_unused]] float dt)
     deleteImplicit = (choice == BlockDeleteChoice::DELETE_WITH_CHILDREN);
   }
 
+  eastl::vector<int> idsToDelete;
+  idsToDelete.reserve(pending.size() + (deleteImplicit ? implicitChildren.size() : 0));
   for (const PendingNodeDelete &p : pending)
   {
-    removeNodeById(p.nodeId);
+    idsToDelete.push_back(p.nodeId);
   }
   if (deleteImplicit)
   {
     for (int childId : implicitChildren)
     {
-      removeNodeById(childId);
+      idsToDelete.push_back(childId);
     }
   }
+  // One undo step for the whole Delete action; the multi-selection / block-plus-children set
+  // resolves atomically.
+  plugin.deleteNodesUndoable(idsToDelete);
 }
 
 void GraphPanel::drawCommentNode(const GraphData::Node &n)
@@ -679,6 +699,20 @@ void GraphPanel::drawBlockNode(const GraphData::Node &n)
   const float effectiveFontSize = fontSize > 0.0f ? fontSize : BLOCK_FONT_SIZE_DEFAULT;
   const float widthClamp = eastl::max(MIN_BLOCK_SIZE, n.blockWidth);
   const float heightClamp = eastl::max(MIN_BLOCK_SIZE, n.blockHeight);
+  const float headerH = effectiveFontSize + COMMENT_PADDING * 2.0f;
+  // eastl::max is purely defensive: today MIN_BLOCK_SIZE=200 vs max headerH ~140 keeps groupH >= 60,
+  // but a future MIN_BLOCK_SIZE / max-font-size combo could invert it.
+  const float groupH = eastl::max(1.0f, heightClamp - headerH);
+
+  // A resize undo/redo queued a new size for this block. ne stores the group bounds and ne::Group
+  // reuses them for an existing group (ignoring the supplied size), so writing graphData alone would
+  // not resize it -- push the size explicitly, before BeginNode so ne::Group reads the new bounds.
+  // Mirrors SetNodePosition for move undo.
+  if (auto it = pendingBlockSizeIds.find(n.id); it != pendingBlockSizeIds.end())
+  {
+    ne::SetGroupSize(ne::NodeId(makeNodeId(n.id)), ImVec2(widthClamp, groupH));
+    pendingBlockSizeIds.erase(it);
+  }
 
   ne::BeginNode(ne::NodeId(makeNodeId(n.id)));
   const ImVec2 nodeOriginScreen = ImGui::GetCursorScreenPos();
@@ -691,7 +725,6 @@ void GraphPanel::drawBlockNode(const GraphData::Node &n)
   // region span the full visible band, so a click anywhere on the gray header selects
   // (or starts dragging) the block.
   ImDrawList *dl = ImGui::GetWindowDrawList();
-  const float headerH = effectiveFontSize + COMMENT_PADDING * 2.0f;
   constexpr float HEADER_INSET = 1.0f; // keeps the gray fill clear of the 2px outline corners.
 
   // Tint behind the gray header keeps the 1px HEADER_INSET strip showing the body's
@@ -716,9 +749,6 @@ void GraphPanel::drawBlockNode(const GraphData::Node &n)
   // (see the long comment above ne::BeginNode for why this matters for the Header region).
   ImGui::Dummy(ImVec2(widthClamp, headerH));
 
-  // eastl::max is purely defensive: today MIN_BLOCK_SIZE=200 vs max headerH ~140 keeps
-  // groupH >= 60, but a future MIN_BLOCK_SIZE / max-font-size combo could invert it.
-  const float groupH = eastl::max(1.0f, heightClamp - headerH);
   ne::Group(ImVec2(widthClamp, groupH));
 
   // 1x1 sentinel Dummy. Width is INTENTIONALLY 1px (not widthClamp): a wider Dummy would
@@ -764,6 +794,14 @@ void GraphPanel::syncBlockSizes()
     {
       continue;
     }
+    // A resize undo/redo queued a SetGroupSize for this block but drawBlockNode has not applied it yet
+    // (e.g. the block is culled): ne still reports the stale size, so skip -- reading it back here would
+    // clobber the just-restored graphData size, silently reverting the undo. drawBlockNode drains the
+    // push when the block renders, and the next pass syncs cleanly.
+    if (pendingBlockSizeIds.find(n.id) != pendingBlockSizeIds.end())
+    {
+      continue;
+    }
     const ImVec2 sz = ne::GetNodeSize(ne::NodeId(makeNodeId(n.id)));
     if (sz.x <= 0.0f || sz.y <= 0.0f)
     {
@@ -777,6 +815,27 @@ void GraphPanel::syncBlockSizes()
     if (fabsf(newWidth - n.blockWidth) < 0.5f && fabsf(newHeight - n.blockHeight) < 0.5f)
     {
       continue;
+    }
+    // First size change of an active resize drag: remember the pre-change size for the resize undo.
+    // Gate on a held mouse button: a size delta with the mouse up is ne re-flooring a size we just set
+    // out of frame (load / resize undo / spawn), not a user resize. Recording that would leave a stale
+    // blockResizeOld entry -- nothing clears it until the next release, where it would be folded into an
+    // unrelated block's resize undo and silently resize this block on that undo.
+    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    {
+      bool capturedOld = false;
+      for (const BlockSize &b : blockResizeOld)
+      {
+        if (b.nodeId == n.id)
+        {
+          capturedOld = true;
+          break;
+        }
+      }
+      if (!capturedOld)
+      {
+        blockResizeOld.push_back(BlockSize{n.id, n.blockWidth, n.blockHeight});
+      }
     }
     const int nodeId = n.id;
     plugin.mutateGraphData([&](GraphData &gd) {
@@ -904,9 +963,27 @@ void GraphPanel::removeSelectedKeepingConnections()
     }
   }
 
+  eastl::vector<GraphData::Node> removedNodes;
+  eastl::vector<GraphData::Edge> removedEdges;
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    if (selected.find(n.id) != selected.end())
+    {
+      removedNodes.push_back(n);
+    }
+  }
+  for (const GraphData::Edge &e : graphData.edges)
+  {
+    if (selected.find(e.elemA) != selected.end() || selected.find(e.elemB) != selected.end())
+    {
+      removedEdges.push_back(e);
+    }
+  }
+
   // One pass: drop every edge touching the selection, drop the selected nodes, then add the bridge
   // edges. Validation runs against the spliced graph (matching the JS, which reconnects after the
   // deletions), so a consumer's input pin reads as free once the removed node's edges are gone.
+  eastl::vector<GraphData::Edge> bridgeEdges; // reconnect edges this op adds, with final ids -- for undo
   plugin.mutateGraphData([&](GraphData &gd) {
     gd.edges.erase(eastl::remove_if(gd.edges.begin(), gd.edges.end(),
                      [&selected](const GraphData::Edge &e) {
@@ -937,13 +1014,52 @@ void GraphPanel::removeSelectedKeepingConnections()
         edge.pinA = srcPin;
         edge.elemB = c.first;
         edge.pinB = c.second;
+        bridgeEdges.push_back(edge); // record before the move so undo can erase it by id
         gd.edges.push_back(eastl::move(edge));
       }
     }
   });
   plugin.markGraphDirtyAndRegen();
 
+  plugin.recordRemoveKeepingConnections(eastl::move(removedNodes), eastl::move(removedEdges), eastl::move(bridgeEdges));
+
   ne::ClearSelection();
+}
+
+void GraphPanel::readSelection(GraphSelection &out) const
+{
+  out.nodes.clear();
+  out.links.clear();
+  const int objCount = ne::GetSelectedObjectCount();
+  if (objCount == 0)
+  {
+    return;
+  }
+  eastl::vector<ne::NodeId> selNodes;
+  selNodes.resize(objCount);
+  const int nodeCount = ne::GetSelectedNodes(selNodes.data(), objCount);
+  out.nodes.reserve(nodeCount);
+  for (int i = 0; i < nodeCount; ++i)
+  {
+    out.nodes.push_back(static_cast<int>(selNodes[i].Get()) - 1);
+  }
+  eastl::sort(out.nodes.begin(), out.nodes.end());
+
+  eastl::vector<ne::LinkId> selLinks;
+  selLinks.resize(objCount);
+  const int linkCount = ne::GetSelectedLinks(selLinks.data(), objCount);
+  out.links.reserve(linkCount);
+  for (int i = 0; i < linkCount; ++i)
+  {
+    out.links.push_back(static_cast<int>(selLinks[i].Get()) - 1);
+  }
+  eastl::sort(out.links.begin(), out.links.end());
+}
+
+void GraphPanel::setPendingSelection(const GraphSelection &selection)
+{
+  pendingSelection = selection;
+  hasPendingSelection = true;
 }
 
 void GraphPanel::removeEdgesUnderCursor()
@@ -962,18 +1078,16 @@ void GraphPanel::removeEdgesUnderCursor()
     return;
   }
 
-  bool removedAny = false;
-  plugin.mutateGraphData([&](GraphData &gd) {
-    const auto newEnd = eastl::remove_if(gd.edges.begin(), gd.edges.end(), [nodeId, pinIndex](const GraphData::Edge &e) {
-      return (e.elemA == nodeId && e.pinA == pinIndex) || (e.elemB == nodeId && e.pinB == pinIndex);
-    });
-    removedAny = newEnd != gd.edges.end();
-    gd.edges.erase(newEnd, gd.edges.end());
-  });
-  if (removedAny)
+  eastl::vector<int> edgeIds;
+  for (const GraphData::Edge &e : graphData.edges)
   {
-    plugin.markGraphDirtyAndRegen();
+    if ((e.elemA == nodeId && e.pinA == pinIndex) || (e.elemB == nodeId && e.pinB == pinIndex))
+    {
+      edgeIds.push_back(e.id);
+    }
   }
+  // Snapshots, erases, and records one "Delete edges" entry (no-op if the pin had no edges).
+  plugin.deleteEdgesUndoable(edgeIds);
 }
 
 void GraphPanel::jumpToOppositePin()
@@ -1063,7 +1177,10 @@ void GraphPanel::updateImgui()
   if (shortcut_fired(CANVAS_PASTE))
   {
     const ImVec2 mouseCanvas = ne::ScreenToCanvas(ImGui::GetMousePos());
-    canvasClipboard.paste(*this, mouseCanvas);
+    eastl::vector<GraphData::Node> pastedNodes;
+    eastl::vector<GraphData::Edge> pastedEdges;
+    canvasClipboard.paste(*this, mouseCanvas, pastedNodes, pastedEdges);
+    plugin.recordPaste(eastl::move(pastedNodes), eastl::move(pastedEdges));
   }
   if (shortcut_fired(CANVAS_DELETE_SELECTED))
   {
@@ -1091,6 +1208,14 @@ void GraphPanel::updateImgui()
       const int pickedEdgeId = edgeReconnect.begin(graphData, node, pin);
       if (pickedEdgeId >= 0)
       {
+        // Snapshot the picked edge before dropping it so the reconnect resolves as one undo step
+        // (see recordReconnectEdge). begin() guarantees the edge exists when it returns an id.
+        const auto it = eastl::find_if(graphData.edges.begin(), graphData.edges.end(),
+          [pickedEdgeId](const GraphData::Edge &e) { return e.id == pickedEdgeId; });
+        if (it != graphData.edges.end())
+        {
+          reconnectRemovedEdge = *it;
+        }
         removeEdgeById(pickedEdgeId);
       }
     }
@@ -1442,7 +1567,7 @@ void GraphPanel::updateImgui()
             edge.pinA = srcPin;
             edge.elemB = dstNode;
             edge.pinB = dstPin;
-            addEdge(eastl::move(edge));
+            plugin.addEdgeUndoable(eastl::move(edge));
           }
         }
         else
@@ -1462,14 +1587,22 @@ void GraphPanel::updateImgui()
   if (ne::BeginDelete())
   {
     ne::LinkId deletedLinkId;
+    eastl::vector<int> deletedEdgeIds;
     while (ne::QueryDeletedLink(&deletedLinkId))
     {
       if (ne::AcceptDeletedItem())
       {
-        removeEdgeById(extractEdgeIdFromLinkId(deletedLinkId.Get()));
+        deletedEdgeIds.push_back(extractEdgeIdFromLinkId(deletedLinkId.Get()));
       }
     }
+    // One undo step for the links removed in this Delete; the actual erase happens here. Node deletes
+    // are recorded separately (deferred to actObjects); undoing replays nodes-first, then these edges.
+    if (!deletedEdgeIds.empty())
+    {
+      plugin.deleteEdgesUndoable(deletedEdgeIds);
+    }
     ne::NodeId deletedNodeId;
+    eastl::vector<eastl::pair<int, ImVec2>> livePositions; // (node id, live canvas pos) captured in-frame
     while (ne::QueryDeletedNode(&deletedNodeId))
     {
       const int node_id = extractNodeIdFromNeNodeId(deletedNodeId.Get());
@@ -1488,13 +1621,43 @@ void GraphPanel::updateImgui()
       ne::RejectDeletedItem();
       PendingNodeDelete pending;
       pending.nodeId = node_id;
+      livePositions.push_back(eastl::pair<int, ImVec2>(node_id, ne::GetNodePosition(deletedNodeId)));
       if (nodeIt->descName == "block")
       {
         // childIds must be captured now -- ne::GetNodePosition / GetNodeSize is only valid
         // while we're inside the SetCurrentEditor scope of the ne::Begin/End that wraps us.
         collectNodesInsideBlock(node_id, pending.childIds);
+        for (int childId : pending.childIds)
+        {
+          livePositions.push_back(eastl::pair<int, ImVec2>(childId, ne::GetNodePosition(ne::NodeId(makeNodeId(childId)))));
+        }
       }
       pendingNodeDeletes.push_back(eastl::move(pending));
+    }
+
+    // Fold the just-captured live canvas positions into graphData. ne::GetNodePosition is only
+    // valid here (inside the current-editor scope); the delete itself runs in actObjects, out of
+    // frame. Live drags are not otherwise written back to Node.x/y, so without this a moved node
+    // would be snapshotted -- and thus restored on undo -- at its stale load/spawn position.
+    if (!livePositions.empty())
+    {
+      plugin.mutateGraphData([&livePositions](GraphData &gd) {
+        eastl::hash_map<int, ImVec2> posById;
+        posById.reserve(livePositions.size());
+        for (const eastl::pair<int, ImVec2> &idPos : livePositions)
+        {
+          posById[idPos.first] = idPos.second;
+        }
+        for (GraphData::Node &n : gd.nodes)
+        {
+          auto it = posById.find(n.id);
+          if (it != posById.end())
+          {
+            n.x = it->second.x;
+            n.y = it->second.y;
+          }
+        }
+      });
     }
   }
   ne::EndDelete();
@@ -1545,6 +1708,63 @@ void GraphPanel::updateImgui()
   // our persisted fields so save/reload round-trips it.
   syncBlockSizes();
 
+  // On release, fold a finished drag into one undo entry: nodes whose position changed (ne owns the
+  // live position and never writes it back) and blocks whose size changed (captured by syncBlockSizes).
+  // A corner resize changes both for the same block, so one entry lets a single Ctrl+Z restore position
+  // and size together. Runs on a real drag, or whenever a resize was captured -- a border drag can
+  // resize below ImGui's drag threshold without setting the move flag. Must run while ne is current.
+  if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+  {
+    nodeDragInProgress = true;
+  }
+  if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && (nodeDragInProgress || !blockResizeOld.empty()))
+  {
+    nodeDragInProgress = false;
+
+    eastl::vector<NodePos> oldPositions;
+    eastl::vector<NodePos> newPositions;
+    for (const GraphData::Node &n : graphData.nodes)
+    {
+      // A node still awaiting its first SetNodePosition has no meaningful live position yet.
+      if (pendingPositionIds.find(n.id) != pendingPositionIds.end())
+      {
+        continue;
+      }
+      const ImVec2 live = ne::GetNodePosition(ne::NodeId(makeNodeId(n.id)));
+      if (ImFabs(live.x - n.x) > NODE_MOVE_EPSILON || ImFabs(live.y - n.y) > NODE_MOVE_EPSILON)
+      {
+        oldPositions.push_back(NodePos{n.id, n.x, n.y});
+        newPositions.push_back(NodePos{n.id, live.x, live.y});
+      }
+    }
+
+    // blockResizeOld holds each block's pre-drag size (captured by syncBlockSizes); pair it with the
+    // now-committed graphData size, skipping any that netted back to the original.
+    eastl::vector<BlockSize> oldSizes;
+    eastl::vector<BlockSize> newSizes;
+    for (const BlockSize &before : blockResizeOld)
+    {
+      for (const GraphData::Node &n : graphData.nodes)
+      {
+        if (n.id == before.nodeId)
+        {
+          if (n.blockWidth != before.width || n.blockHeight != before.height)
+          {
+            oldSizes.push_back(before);
+            newSizes.push_back(BlockSize{n.id, n.blockWidth, n.blockHeight});
+          }
+          break;
+        }
+      }
+    }
+    blockResizeOld.clear();
+
+    if (!newPositions.empty() || !newSizes.empty())
+    {
+      plugin.commitNodeTransforms(eastl::move(oldPositions), eastl::move(newPositions), eastl::move(oldSizes), eastl::move(newSizes));
+    }
+  }
+
   // Drop target for drag-drop from BaseNodesPanel. Must be issued while the editor is still
   // current so ne::ScreenToCanvas works on the stored mouse pos. Drops onto an empty graph
   // are explicitly disallowed (a "new graph" UI for spawning the first node is a future
@@ -1569,6 +1789,24 @@ void GraphPanel::updateImgui()
     }
   }
 
+  // Apply a selection that an undo/redo queued (UndoSelectNodes). Done here, after the render pass, so
+  // any nodes a sibling entry just re-added already exist in ne and can be selected. Marked suppressed
+  // so the detector below resyncs rather than recording it as a fresh change.
+  if (hasPendingSelection)
+  {
+    ne::ClearSelection();
+    for (int id : pendingSelection.nodes)
+    {
+      ne::SelectNode(ne::NodeId(makeNodeId(id)), /*append=*/true);
+    }
+    for (int id : pendingSelection.links)
+    {
+      ne::SelectLink(ne::LinkId(makeLinkId(id)), /*append=*/true);
+    }
+    hasPendingSelection = false;
+    suppressSelectionRecord = true;
+  }
+
   // Selection extraction. Done unconditionally (not just when texGenService is present) so
   // PropertiesPanel and other observers can read getSelectedNodeId() each frame. ne returns
   // a count via the second arg even though we only request one slot; we treat "exactly one"
@@ -1579,6 +1817,23 @@ void GraphPanel::updateImgui()
   // Total selection size (nodes + links) for the status bar's "Selected:" counter; must be
   // read here, while the editor is still current. Handed to draw_graph_status_bar below.
   const int selectedObjectCount = ne::GetSelectedObjectCount();
+
+  // Selection-undo: a deliberate selection change (click, box-select, the select / show commands)
+  // becomes its own "Select nodes" entry. A change folded into an edit (delete / paste / splice) or
+  // applied by an undo sets suppressSelectionRecord instead -- it rides that entry. Recording is
+  // coalesced to mouse-up so a rubber-band drag is one entry, not one per frame.
+  GraphSelection curSelection;
+  readSelection(curSelection);
+  if (suppressSelectionRecord)
+  {
+    lastSelection = eastl::move(curSelection);
+    suppressSelectionRecord = false;
+  }
+  else if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && curSelection != lastSelection)
+  {
+    plugin.recordSelectionChange(lastSelection, curSelection);
+    lastSelection = eastl::move(curSelection);
+  }
 
   if (const ne::NodeId dblClickedId = ne::GetDoubleClickedNode())
   {
@@ -1626,12 +1881,16 @@ void GraphPanel::updateImgui()
 
   if (edgeReconnect.isActive())
   {
+    bool resolved = false;
+    GraphData::Edge newEdge;
+    const GraphData::Edge *addedEdge = nullptr;
     if (ImGui::IsKeyPressed(ImGuiKey_Escape))
     {
-      edgeReconnect.cancel();
+      resolved = true; // cancelled: the picked edge stays removed, recorded as a plain deletion below
     }
     else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
     {
+      resolved = true;
       GraphData::Edge bridged;
       if (const ne::PinId hoveredPin = ne::GetHoveredPin())
       {
@@ -1641,9 +1900,15 @@ void GraphPanel::updateImgui()
         if (edgeReconnect.tryComplete(graphData, targetNode, targetPin, bridged))
         {
           bridged.id = allocateEdgeId();
+          newEdge = bridged;
           addEdge(eastl::move(bridged));
+          addedEdge = &newEdge;
         }
       }
+    }
+    if (resolved)
+    {
+      plugin.recordReconnectEdge(reconnectRemovedEdge, addedEdge);
       edgeReconnect.cancel();
     }
   }

@@ -24,8 +24,10 @@ inline void blake3_finalize_32(const blake3_hasher *h, unsigned char *hash) { bl
 
 #if HASH_SIZE == 20
 
-#define HASH_TEMP_STRING "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
-#define HASH_LIST_STRING "%02x/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+#define HASH_TEMP_STRING  "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+#define HASH_LIST_STRING  "%02x/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+#define HASH_TEMP_WSTRING L"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+#define HASH_LIST_WSTRING L"%02x/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
 #define HASH_LIST(a)                                                                                                           \
   (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5], (a)[6], (a)[7], (a)[8], (a)[9], (a)[10], (a)[11], (a)[12], (a)[13], (a)[14], \
     (a)[15], (a)[16], (a)[17], (a)[18], (a)[19]
@@ -36,6 +38,11 @@ inline void blake3_finalize_32(const blake3_hasher *h, unsigned char *hash) { bl
   "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
 #define HASH_LIST_STRING \
   "%02x/%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+#define HASH_TEMP_WSTRING \
+  L"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
+#define HASH_LIST_WSTRING \
+  L"%02x/"                \
+  L"%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x"
 
 #define HASH_LIST(a)                                                                                                              \
   (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5], (a)[6], (a)[7], (a)[8], (a)[9], (a)[10], (a)[11], (a)[12], (a)[13], (a)[14],    \
@@ -43,3 +50,8 @@ inline void blake3_finalize_32(const blake3_hasher *h, unsigned char *hash) { bl
     (a)[29], (a)[30], (a)[31]
 
 #endif
+
+#define HASH_TEMP_STRING_LEN     (2 * HASH_SIZE)
+#define HASH_LIST_STRING_LEN     (2 * HASH_SIZE)
+#define HASH_TEMP_STRING_BUFSIZE (HASH_TEMP_STRING_LEN + 1)
+#define HASH_LIST_STRING_BUFSIZE (HASH_LIST_STRING_LEN + 1)

@@ -26,6 +26,9 @@ extern "C"
 
 
 #if _TARGET_IOS | _TARGET_TVOS
+  //! console handle may point to the crypted log file; when set, plain writes
+  //! from out_debug_str to that handle are suppressed to keep the stream decryptable
+  KRNLIMP void set_debug_console_crypted(bool val);
   KRNLIMP void set_debug_console_ios_file_output(bool val);
   KRNLIMP bool is_debug_console_ios_file_output();
   KRNLIMP void set_copy_debug_to_ios_console(bool val);

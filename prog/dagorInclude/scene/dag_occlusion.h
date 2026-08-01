@@ -14,7 +14,6 @@ class BaseTexture;
 typedef BaseTexture Texture;
 class MaskedOcclusionCulling;
 class OcclusionImpl;
-struct DynRes;
 
 enum CockpitReprojectionMode
 {
@@ -117,10 +116,8 @@ public:
   }
 
   bool hasGPUFrame() const;
-  void prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth = nullptr,
-    const DynRes *dynamic_resolution = nullptr);
-  void prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
-    const DynRes *dynamic_resolution = nullptr);
+  void prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth = nullptr);
+  void prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index);
 
   VECTORCALL bool isVisibleSphere(vec3f sph_center, vec4f radius, vec4f threshold = v_zero()) const
   {
@@ -158,6 +155,25 @@ public:
   {
     return isVisibleBox(box.bmin, box.bmax, threshold);
   }
+  // As isVisibleBox, for a box the caller has ALREADY frustum-classified as at least partially visible:
+  // skips the frustum test and the clip-Z row (~30% cheaper), bit-identical result under that contract.
+  // For a fully-outside box the bool can go either way (a clamped edge rect may even walk to occluded),
+  // but exact isVisibleBox also returns false there (CULL_FRUSTUM) - relative to it this can only err
+  // toward visible, so a false result never culls visible content. Safe as a pure culling gate ONLY;
+  // wrong wherever the frustum classification itself matters.
+  VECTORCALL bool isVisibleBoxInFrustum(vec3f bmin, vec3f bmax, vec4f threshold = v_zero()) const
+  {
+    int visibility = occlusionTest.testVisibilityInFrustum(bmin, bmax, threshold, curViewProj, DEFAULT_MAX_TEST_MIP);
+#if CAN_DEBUG_OCCLUSION
+    if (countOccludees)
+      interlocked_increment(objects[visibility]);
+#endif
+    return visibility == VISIBLE;
+  }
+  VECTORCALL bool isVisibleBoxInFrustum(bbox3f_cref box, vec4f threshold = v_zero()) const
+  {
+    return isVisibleBoxInFrustum(box.bmin, box.bmax, threshold);
+  }
 
 
   VECTORCALL bool isOccludedSphere(vec3f sph_center, vec4f radius) const
@@ -176,7 +192,23 @@ public:
 
   VECTORCALL bool isOccludedBox(vec3f bmin, vec3f bmax) const
   {
-    const int visibility = occlusionTest.testVisibility(bmin, bmax, v_zero(), curViewProj, DEFAULT_MAX_TEST_MIP);
+    return occludedBoxResult(occlusionTest.testVisibility(bmin, bmax, v_zero(), curViewProj, DEFAULT_MAX_TEST_MIP), bmin, bmax);
+  }
+  // As isOccludedBox, for a box the caller has ALREADY frustum-classified as at least partially visible:
+  // bit-identical result under that contract (see isVisibleBoxInFrustum). A contract-violating (fully
+  // outside) box may be reported occluded where the exact test reports CULL_FRUSTUM - such a box has no
+  // visible content, so culling on true still culls nothing visible; gate use only.
+  VECTORCALL bool isOccludedBoxInFrustum(vec3f bmin, vec3f bmax) const
+  {
+    return occludedBoxResult(occlusionTest.testVisibilityInFrustum(bmin, bmax, v_zero(), curViewProj, DEFAULT_MAX_TEST_MIP), bmin,
+      bmax);
+  }
+
+private:
+  VECTORCALL bool occludedBoxResult(int visibility, vec3f bmin, vec3f bmax) const
+  {
+    G_UNUSED(bmin);
+    G_UNUSED(bmax);
 #if CAN_DEBUG_OCCLUSION
     if (visibility != CULL_OCCLUSION)
     {
@@ -209,6 +241,8 @@ public:
     return visibility == CULL_OCCLUSION;
 #endif
   }
+
+public:
   VECTORCALL bool isOccludedBox(vec3f bmin, vec3f bmax, mat44f_cref worldViewProjTm) const
   {
     const int visibility = occlusionTest.testVisibility(bmin, bmax, v_zero(), worldViewProjTm, DEFAULT_MAX_TEST_MIP);

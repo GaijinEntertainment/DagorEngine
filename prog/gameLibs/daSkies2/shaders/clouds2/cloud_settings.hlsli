@@ -11,6 +11,7 @@
 #define CLOUD_SHADOWS_WARP_SIZE_Y 4
 
 #define CLOUD_CURL_RES 128
+#define CLOUD_CURL_3D_RES 32
 
 //volume shadows optimization
 #define CLOUD_SHADOWS_VOLUME_RES_XZ 256

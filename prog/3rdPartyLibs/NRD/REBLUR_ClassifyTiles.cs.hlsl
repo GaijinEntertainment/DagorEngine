@@ -19,7 +19,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 groupshared int s_Sum;
 
 [numthreads( 8, 4, 1 )]
-NRD_EXPORT void NRD_CS_MAIN( uint2 threadPos : SV_GroupThreadId, uint2 tilePos : SV_GroupId, uint threadIndex : SV_GroupIndex )
+NRD_EXPORT void NRD_CS_MAIN( uint2 threadPos : SV_GroupThreadID, uint2 tilePos : SV_GroupID, uint threadIndex : SV_GroupIndex )
 {
     if( threadIndex == 0 )
         s_Sum = 0;

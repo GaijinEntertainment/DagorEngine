@@ -89,7 +89,7 @@ private:
     const NameResolutionChanged &name_resolution_changed);
 
   const InternalRegistry &registry;
-  IdNameResolver<NameSpaceNameId, ResNameId, NodeNameId, AutoResTypeNameId> resolver;
+  IdNameResolver<NameSpaceNameId, ResNameId, NodeNameId, AutoResTypeNameId, RefinedBlockNameId> resolver;
 
 
   using ResolvedToUnresolved = dag::FixedVectorMap<ResNameId, dag::RelocatableFixedVector<ResNameId, 4>, 16>;

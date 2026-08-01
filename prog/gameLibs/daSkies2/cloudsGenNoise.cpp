@@ -31,6 +31,7 @@ void GenNoise::close()
   resCloud2.close();
 
   cloudsCurl2d.close();
+  cloudsCurl3d.close();
   closeCompressor();
 }
 
@@ -100,16 +101,40 @@ void GenNoise::init()
 
   if (!curlRendered)
   {
-    if (VoltexRenderer::is_compute_supported())
-      genCurl2d.reset(new_compute_shader("gen_curl_clouds_2d", true));
+    const bool computeSupported = VoltexRenderer::is_compute_supported();
+    const bool copyConversion = d3d::get_driver_desc().caps.hasResourceCopyConversion;
+    genCurl2d.reset();
+    genCurl2dCompressed.reset();
+    if (computeSupported)
+    {
+      if (copyConversion && d3d::check_texformat(TEXFMT_BC5S))
+        genCurl2dCompressed.reset(new_compute_shader("gen_curl_clouds_2d_compressed", true));
+      if (!genCurl2dCompressed)
+        genCurl2d.reset(new_compute_shader("gen_curl_clouds_2d", true));
+    }
     else
       genCurl2dPs.init("gen_curl_clouds_2d_ps");
     cloudsCurl2d.close();
-    cloudsCurl2d = dag::create_tex(0, CLOUD_CURL_RES, CLOUD_CURL_RES, TEXFMT_R8G8S | (genCurl2d ? TEXCF_UNORDERED : TEXCF_RTARGET), 1,
-      "clouds_curl_2d", RESTAG_DASKIES2);
+    const uint32_t curlFmt =
+      genCurl2dCompressed ? TEXFMT_BC5S | TEXCF_UPDATE_DESTINATION : TEXFMT_R8G8S | (genCurl2d ? TEXCF_UNORDERED : TEXCF_RTARGET);
+    cloudsCurl2d = dag::create_tex(0, CLOUD_CURL_RES, CLOUD_CURL_RES, curlFmt, 1, "clouds_curl_2d", RESTAG_DASKIES2);
     if (!cloudsCurl2d)
       return;
-    ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_curl_2d_samplerstate"), d3d::request_sampler({}));
+    genCurl3dCompressed.reset();
+    if (computeSupported && copyConversion && d3d::check_voltexformat(TEXFMT_BC5S))
+      genCurl3dCompressed.reset(new_compute_shader("gen_curl_clouds_3d_compressed", true));
+    if (!genCurl3dCompressed)
+      genCurl3d.init("gen_curl_clouds_3d", "gen_curl_clouds_3d_ps");
+    cloudsCurl3d.close();
+    const int clouds_erosion_flowVarId = get_shader_variable_id("clouds_erosion_flow", true);
+    if (!ShaderGlobal::is_var_assumed(clouds_erosion_flowVarId) || ShaderGlobal::get_interval_assumed_value(clouds_erosion_flowVarId))
+    {
+      if (genCurl3dCompressed)
+        cloudsCurl3d = dag::create_voltex(CLOUD_CURL_3D_RES, CLOUD_CURL_3D_RES, CLOUD_CURL_3D_RES,
+          TEXFMT_BC5S | TEXCF_UPDATE_DESTINATION, 1, "clouds_curl_3d", RESTAG_DASKIES2);
+      else
+        genCurl3d.initVoltex(cloudsCurl3d, CLOUD_CURL_3D_RES, CLOUD_CURL_3D_RES, CLOUD_CURL_3D_RES, TEXFMT_R8G8S, 1, "clouds_curl_3d");
+    }
   }
 }
 
@@ -205,7 +230,26 @@ bool GenNoise::renderCurl()
 
   {
     TIME_D3D_PROFILE(cloud_curl2d);
-    if (genCurl2d)
+    if (genCurl2dCompressed)
+    {
+      const int blocksRes = CLOUD_CURL_RES / 4;
+      UniqueTex curlBlocks =
+        dag::create_tex(0, blocksRes, blocksRes, TEXFMT_A32B32G32R32UI | TEXCF_UNORDERED, 1, "clouds_curl_2d_blocks");
+      if (!curlBlocks)
+      {
+        LOGERR_ONCE("clouds_curl_2d_blocks texture was not created");
+        return false;
+      }
+      {
+        // threads cover texels: each thread evaluates one curl texel into groupshared,
+        // then the first threads of the group each pack one 4x4-texel BC5S block
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), curlBlocks.getTex2D());
+        genCurl2dCompressed->dispatchThreads(CLOUD_CURL_RES, CLOUD_CURL_RES, 1);
+      }
+      d3d::resource_barrier({curlBlocks.getTex2D(), RB_RO_COPY_SOURCE, 0, 0});
+      cloudsCurl2d->updateSubRegion(curlBlocks.getTex2D(), 0, 0, 0, 0, blocksRes, blocksRes, 1, 0, 0, 0, 0);
+    }
+    else if (genCurl2d)
     {
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), cloudsCurl2d.getTex2D());
       genCurl2d->dispatchThreads(CLOUD_CURL_RES, CLOUD_CURL_RES, 1);
@@ -218,6 +262,30 @@ bool GenNoise::renderCurl()
       d3d::draw(PRIM_TRILIST, 0, 1);
     }
     d3d::resource_barrier({cloudsCurl2d.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+  }
+  if (cloudsCurl3d)
+  {
+    TIME_D3D_PROFILE(cloud_curl3d);
+    if (genCurl3dCompressed)
+    {
+      const int blocksRes = CLOUD_CURL_3D_RES / 4;
+      UniqueTex curlBlocks = dag::create_voltex(blocksRes, blocksRes, CLOUD_CURL_3D_RES, TEXFMT_A32B32G32R32UI | TEXCF_UNORDERED, 1,
+        "clouds_curl_3d_blocks");
+      if (!curlBlocks)
+      {
+        LOGERR_ONCE("clouds_curl_3d_blocks texture was not created");
+        return false;
+      }
+      {
+        STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), curlBlocks.getVolTex());
+        genCurl3dCompressed->dispatchThreads(CLOUD_CURL_3D_RES, CLOUD_CURL_3D_RES, CLOUD_CURL_3D_RES);
+      }
+      d3d::resource_barrier({curlBlocks.getVolTex(), RB_RO_COPY_SOURCE, 0, 0});
+      cloudsCurl3d->updateSubRegion(curlBlocks.getVolTex(), 0, 0, 0, 0, blocksRes, blocksRes, CLOUD_CURL_3D_RES, 0, 0, 0, 0);
+    }
+    else
+      genCurl3d.render(cloudsCurl3d);
+    d3d::resource_barrier({cloudsCurl3d.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   }
   curlRendered = true;
   return true;
@@ -343,4 +411,5 @@ void GenNoise::setVars()
   }
 
   cloudsCurl2d.setVar();
+  cloudsCurl3d.setVar();
 }

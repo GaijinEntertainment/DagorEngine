@@ -66,6 +66,10 @@ actions quietly generate_es
 }
 
 # concatenates (prefix : suffix) and simplifies path
+# newer jam.exe provides this rule as a C builtin (see $(JAM_BUILTINS));
+# keep the interpreted fallback for older jam.exe
+if ! SimplifyComposedPath in $(JAM_BUILTINS) {
+# concatenates (prefix : suffix) and simplifies path
 rule SimplifyComposedPath
 {
   local prefix = $(1) ;
@@ -78,6 +82,7 @@ rule SimplifyComposedPath
   }
   return $(prefix)/$(suffix) ;
 }
+}
 
 # concatenates (prefix : suffix) if suffix starts with ".." and simplifies path
 # This function is designed to create absolute path.
@@ -86,12 +91,16 @@ rule SimplifyComposedPath
 # a) system libs like "ws2_32.lib", "advapi32.lib", ...
 # b) absolute paths to external libs like: "/home/bs/devtools/oodle.2.7/lib/liboo2corelinux64.a"
 # The function is useful for MSVC because it allows to get shorter paths than <CWD>/<RELATIVE_PATH>
+# newer jam.exe provides this rule as a C builtin (see $(JAM_BUILTINS));
+# keep the interpreted fallback for older jam.exe
+if ! MakePathAbsolute in $(JAM_BUILTINS) {
 rule MakePathAbsolute prefix : suffix
 {
   switch $(suffix) {
     case ..* : return [ SimplifyComposedPath $(prefix) : $(suffix) ] ;
   }
   return $(suffix) ;
+}
 }
 
 # concatenates (prefix : suffixList) if suffix starts with ".." and simplifies path
@@ -102,6 +111,9 @@ rule MakePathAbsolute prefix : suffix
 # a) system libs like "ws2_32.lib", "advapi32.lib", ...
 # b) absolute paths to external libs like: "/home/bs/devtools/oodle.2.7/lib/liboo2corelinux64.a"
 # The function is useful for MSVC because it allows to get shorter paths than <CWD>/<RELATIVE_PATH>
+# newer jam.exe provides this rule as a C builtin (see $(JAM_BUILTINS));
+# keep the interpreted fallback for older jam.exe
+if ! MakePathListAbsolute in $(JAM_BUILTINS) {
 rule MakePathListAbsolute prefix : suffixList
 {
   local result = ;
@@ -111,6 +123,7 @@ rule MakePathListAbsolute prefix : suffixList
     result += [ MakePathAbsolute $(prefix) : $(suffix) ] ;
   }
   return $(result) ;
+}
 }
 
 # converts source file to C string constant using python script

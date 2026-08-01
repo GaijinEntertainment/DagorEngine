@@ -293,6 +293,13 @@ public:
   /// Save this DataBlock (and its sub-tree) to arbitrary stream (binary form)
   KRNLIMP bool saveToStream(IGenSave &cwr) const;
 
+  /// Save this DataBlock (and its sub-tree) to arbitrary stream (binary form) with data deduplication:
+  /// blocks with identical param runs share params storage (both in the dump and when reloaded),
+  /// so the DataBlock reloaded from such dump occupies less memory.
+  /// NOTE: writes format label \6 which older engine builds do not recognize;
+  /// do not use for data that such readers must be able to load
+  KRNLIMP bool saveToStreamDedup(IGenSave &cwr) const;
+
   /// Print this DataBlock (and its sub-tree) to the arbitrary text stream with limitations; returns true when whole BLK is written
   inline bool printToTextStreamLimited(IGenSave &cwr, int max_out_line_num = -1, int max_level_depth = -1, int init_indent = 0,
     int write_buf_sz = 4 << 10) const;
@@ -565,9 +572,10 @@ public:
   KRNLIMP bool loadBinDumpWithSharedNamemap(IGenLoad &crd, const DBNameMap *shared_nm, const ZSTD_DDict_s *dict = nullptr);
 
   /// Save DataBlock tree to binary stream (optionally using namemap stored separately)
-  KRNLIMP bool saveDumpToBinStream(IGenSave &cwr, const DBNameMap *ro) const;
-  /// Load DataBlock tree from binary stream using namemap stored separately
-  KRNLIMP bool loadFromBinDump(IGenLoad &cr, const DBNameMap *ro);
+  KRNLIMP bool saveDumpToBinStream(IGenSave &cwr, const DBNameMap *ro, bool dedup = false) const;
+  /// Load DataBlock tree from binary stream using namemap stored separately;
+  /// dedup_ofs corresponds to the dedup flag the dump was saved with (explicit param data offsets)
+  KRNLIMP bool loadFromBinDump(IGenLoad &cr, const DBNameMap *ro, bool dedup_ofs = false);
 
 protected:
   static constexpr int INPLACE_PARAM_SIZE = 4;
@@ -605,7 +613,7 @@ protected:
   DataBlock(DataBlockShared *s, const char *nm);
   DataBlock(DataBlockShared *s, int nid, uint16_t pcnt, uint16_t bcnt, uint32_t fBlock, uint32_t ofs_);
 
-  void saveToBinStreamWithoutNames(const DataBlockShared &names, IGenSave &cwr) const;
+  void saveToBinStreamWithoutNames(const DataBlockShared &names, IGenSave &cwr, bool dedup) const;
   template <bool print_with_limits>
   bool writeText(BufferedWriter &cwr, int lev, int *max_ln, int max_lev) const;
 

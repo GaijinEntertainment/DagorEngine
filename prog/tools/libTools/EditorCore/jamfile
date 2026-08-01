@@ -1,6 +1,8 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/libTools/EditorCore ;
 
+UseQuirrel = yes ;
+
 TargetType  = lib ;
 Target      = tools/libTools/EditorCore.lib ;
 
@@ -8,6 +10,8 @@ AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/1stPartyLibs/quirrel/quirrel/squirrel
 ;
 
 Sources =
@@ -30,6 +34,7 @@ Sources =
   ec_imguiInitialization.cpp
   ec_imguiInputHandler.cpp
   ec_input.cpp
+  ec_testSystem.cpp
   ec_mainMenu.cpp
   ec_mainWindow_common.cpp
   ec_modelessWindowControllerList.cpp
@@ -79,6 +84,7 @@ else if $(Platform) = linux {
 UseProgLibs =
   tools/libTools/coolConsole
   gameLibs/render/fx
+  gameLibs/quirrel/bindQuirrelEx
 ;
 
 CPPopt = ;

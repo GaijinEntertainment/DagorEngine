@@ -311,7 +311,7 @@ void X11::destroyMainWindow()
   win32_set_main_wnd(nullptr);
 }
 
-bool X11::initWindow(const char *title, int winWidth, int winHeight)
+bool X11::initWindow(const char *title, int winWidth, int winHeight, const linux_GUI::WindowCreationOptions &options)
 {
   XVisualInfo vInfoTemplate = {};
   vInfoTemplate.screen = rootScreenIndex;
@@ -341,11 +341,11 @@ bool X11::initWindow(const char *title, int winWidth, int winHeight)
   swa.override_redirect = False;
   swa.border_pixel = 0;
   swa.event_mask = KeyPressMask | KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask | PointerMotionMask |
-                   ButtonMotionMask | KeymapStateMask | LeaveWindowMask | FocusChangeMask;
+                   ButtonMotionMask | KeymapStateMask | LeaveWindowMask | FocusChangeMask | PropertyChangeMask;
   unsigned long valuemask = CWBorderPixel | CWColormap | CWEventMask | CWOverrideRedirect;
   // place window on primary output monitor
-  int x = primaryOutputX;
-  int y = primaryOutputY;
+  int x = options.position.has_value() ? options.position->x : primaryOutputX;
+  int y = options.position.has_value() ? options.position->y : primaryOutputY;
 
   debug("x11: win size %dx%d", winWidth, winHeight);
 
@@ -402,6 +402,8 @@ bool X11::initWindow(const char *title, int winWidth, int winHeight)
 
   wmPing = XInternAtom(rootDisplay, "_NET_WM_PING", False);
   wmDelete = XInternAtom(rootDisplay, "WM_DELETE_WINDOW", False);
+  wmNetState = XInternAtom(rootDisplay, "_NET_WM_STATE", False);
+  wmNetFrameExtents = XInternAtom(rootDisplay, "_NET_FRAME_EXTENTS", False);
   Atom protocols[] = {wmPing, wmDelete};
   XSetWMProtocols(rootDisplay, mainWindow, protocols, 2);
 
@@ -415,8 +417,11 @@ bool X11::initWindow(const char *title, int winWidth, int winHeight)
 
   if (windowed)
   {
-    static const char *states[] = {"_NET_WM_STATE_FOCUSED", "_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ"};
-    setWMAtomProps("_NET_WM_STATE", states);
+    if (!resizable || options.maximized)
+    {
+      static const char *states[] = {"_NET_WM_STATE_FOCUSED", "_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ"};
+      setWMAtomProps("_NET_WM_STATE", states);
+    }
   }
   else
   {
@@ -432,6 +437,8 @@ bool X11::initWindow(const char *title, int winWidth, int winHeight)
   XIfEvent(rootDisplay, &event, isMapNotify, (XPointer)&mainWindow);
   XFlush(rootDisplay);
   cacheWindowAttribs();
+  cacheWindowFrameExtents();
+  cacheWindowMaximizedState();
   XFree(vi);
   return true;
 }
@@ -441,6 +448,29 @@ void X11::getWindowPosition(void *w, int &cx, int &cy)
   const XWindowAttributes &attributes = getWindowAttrib((intptr_t)w, true);
   cx = attributes.x;
   cy = attributes.y;
+}
+
+void X11::getWindowFramePosition(void *w, int &x, int &y)
+{
+  if (!w)
+  {
+    x = y = 0;
+    return;
+  }
+  G_ASSERT((intptr_t)w == mainWindow);
+
+  const XWindowAttributes &attributes = getWindowAttrib((intptr_t)w, true);
+  x = attributes.x - lastFrameExtents.left;
+  y = attributes.y - lastFrameExtents.top;
+}
+
+bool X11::isWindowMaximized(void *w)
+{
+  if (!w)
+    return false;
+  G_ASSERT((intptr_t)w == mainWindow);
+
+  return lastMaximized;
 }
 
 void X11::setTitle(const char *title, const char *tooltip)
@@ -513,6 +543,90 @@ int X11::getScreenRefreshRate()
 void X11::setFullscreenMode(bool)
 {
   // TODO: implement if needed
+}
+
+void X11::cacheWindowMaximizedState()
+{
+  if (wmNetState == None)
+  {
+    lastMaximized = false;
+    return;
+  }
+
+  Atom actualType;
+  int actualFormat;
+  unsigned long itemCount;
+  unsigned long remainingBytes;
+  unsigned char *properties = nullptr;
+
+  const int status = XGetWindowProperty(rootDisplay, mainWindow, wmNetState,
+    0,     // start reading at the beginning
+    ~0L,   // retrieve all data
+    False, // do not delete the property
+    AnyPropertyType, &actualType, &actualFormat, &itemCount, &remainingBytes, &properties);
+
+  if (status == Success && properties && actualFormat == 32)
+  {
+    const Atom atomMaximizedHorz = XInternAtom(rootDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+    const Atom atomMaximizedVert = XInternAtom(rootDisplay, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    bool maximizedHorz = false;
+    bool maximizedVert = false;
+
+    long *longItems = (long *)properties; // actualFormat is 32, but the item size is 64 on a 64-bit Linux system.
+    for (int i = 0; i < itemCount; ++i)
+    {
+      if (longItems[i] == atomMaximizedHorz)
+        maximizedHorz = true;
+      else if (longItems[i] == atomMaximizedVert)
+        maximizedVert = true;
+    }
+
+    lastMaximized = maximizedHorz && maximizedVert;
+  }
+  else
+  {
+    lastMaximized = false;
+  }
+
+  if (properties)
+    XFree(properties);
+}
+
+void X11::cacheWindowFrameExtents()
+{
+  if (wmNetFrameExtents == None)
+  {
+    lastFrameExtents = {};
+    return;
+  }
+
+  Atom actualType;
+  int actualFormat;
+  unsigned long itemCount;
+  unsigned long remainingBytes;
+  unsigned char *properties = nullptr;
+
+  const int status = XGetWindowProperty(rootDisplay, mainWindow, wmNetFrameExtents,
+    0,     // start reading at the beginning
+    ~0L,   // retrieve all data
+    False, // do not delete the property
+    XA_CARDINAL, &actualType, &actualFormat, &itemCount, &remainingBytes, &properties);
+
+  if (status == Success && properties && actualFormat == 32 && itemCount == 4)
+  {
+    long *longItems = (long *)properties; // actualFormat is 32, but the item size is 64 on a 64-bit Linux system.
+    lastFrameExtents.left = longItems[0];
+    lastFrameExtents.right = longItems[1];
+    lastFrameExtents.top = longItems[2];
+    lastFrameExtents.bottom = longItems[3];
+  }
+  else
+  {
+    lastFrameExtents = {};
+  }
+
+  if (properties)
+    XFree(properties);
 }
 
 const XWindowAttributes &X11::getWindowAttrib(Window w, bool translated)
@@ -799,6 +913,15 @@ void X11::processMessages()
         break;
       }
       case SelectionNotify: selectionReady = true; break;
+      case PropertyNotify:
+        if (xev.xproperty.window == mainWindow)
+        {
+          if (wmNetFrameExtents != None && xev.xproperty.atom == wmNetFrameExtents)
+            cacheWindowFrameExtents();
+          else if (wmNetState != None && xev.xproperty.atom == wmNetState)
+            cacheWindowMaximizedState();
+        }
+        break;
     }
   }
 
@@ -914,6 +1037,8 @@ void *X11::getNativeWindow(void *w) { return w; }
 
 bool X11::getClipboardUTF8Text(char *dest, int buf_size)
 {
+  if (!dest || buf_size < 1)
+    return false;
   Atom XA_CLIPBOARD = XInternAtom(rootDisplay, "CLIPBOARD", 0);
   if (XA_CLIPBOARD == None)
     return false;
@@ -961,8 +1086,9 @@ bool X11::getClipboardUTF8Text(char *dest, int buf_size)
       unsigned long ncopy = buf_size - 1;
       if (nbytes < ncopy)
         ncopy = nbytes;
-      memcpy(dest, src, ncopy);
-      dest[ncopy] = 0;
+      int n = utf8_truncate_len((const char *)src, (int)ncopy);
+      memcpy(dest, src, n);
+      dest[n] = 0;
       result = true;
     }
     XFree(src);

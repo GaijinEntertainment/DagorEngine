@@ -7,6 +7,7 @@
 #include <osApiWrappers/dag_critSec.h>
 
 #include "driver.h"
+#include "buffer_ref.h"
 
 namespace drv3d_vulkan
 {
@@ -78,15 +79,48 @@ public:
   void afterDeviceReset();
 };
 
+// backend thread use only
 class RaytraceBLASCompactionSizeQueryPool
 {
-  VulkanQueryPoolHandle pool;
+public:
+  // queries per pool, batched size queries are chunked by this amount
+  static constexpr uint32_t POOL_SIZE = 64;
+
+  struct PendingCopy
+  {
+    BufferRef dst;
+    uint32_t dstByteOffset;
+    VulkanQueryPoolHandle pool;
+    uint32_t firstSlot;
+    uint32_t count;
+  };
+
+private:
+  dag::Vector<VulkanQueryPoolHandle> pools;
+  dag::Vector<PendingCopy> pendingCopies;
+  uint32_t queriesInUse = 0;
+
+  VulkanQueryPoolHandle micromapPool;
+
+  // lazily creates pools up to pool_index, each with POOL_SIZE queries
+  VulkanQueryPoolHandle getPool(uint32_t pool_index = 0);
 
 public:
   RaytraceBLASCompactionSizeQueryPool() = default;
   RaytraceBLASCompactionSizeQueryPool(const RaytraceBLASCompactionSizeQueryPool &) = delete;
 
-  VulkanQueryPoolHandle getPool();
+  // reserves up to max_count consecutive queries inside a single pool for a batched
+  // property write and queues the result copy into dst, to be recorded at start of
+  // the next work item, see BEContext::flushCompactionSizeCopies
+  const PendingCopy &allocateRange(uint32_t max_count, const BufferRef &dst, uint32_t dst_byte_offset);
+  const dag::ConstSpan<PendingCopy> getPendingCopies() { return pendingCopies; }
+  void onPendingCopiesFlushed()
+  {
+    pendingCopies.clear();
+    queriesInUse = 0;
+  }
+
+  VulkanQueryPoolHandle getMicromapPool();
   void shutdownPools();
 };
 

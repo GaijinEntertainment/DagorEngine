@@ -18,15 +18,21 @@ namespace darg
 {
 
 
-// Resolve the SimFunction from the (possibly still-loading) DasScript. Returns 0 on success
-// (inst->dasCtx/dasFunc set), or a thrown SQ error. Synchronous fallback: if the script is still
-// compiling on the worker we drain it here (main thread) - async stays a pure latency win, a _call
-// before the compile finished just pays the remaining compile time once. Permanent errors
-// (not found / not unique / failed to load) throw loudly, as the synchronous loader did.
+// Point inst->dasCtx/dasFunc at a live resolution of the DasScript (return 0), or throw.
+// Runs every _call: resolves lazily (script may still be LOADING) and re-validates the cache,
+// since an owned-env reload frees the Context while our dasScriptObj keeps the handle alive -
+// a stale cache would call into freed memory. If still compiling, drains the worker here.
 static SQInteger resolve_das_function(HSQUIRRELVM vm, GuiScene *scene, DasFunction *inst)
 {
   if (inst->dasFunc)
-    return 0;
+  {
+    // Trust the cache only while it still points at the script's current, ready Context.
+    DasScript *script = inst->dasScriptObj.Cast<DasScript *>();
+    if (script && script->isReady() && script->ctx.get() == inst->dasCtx)
+      return 0;
+    inst->dasFunc = nullptr;
+    inst->dasCtx = nullptr;
+  }
   if (inst->resolveFailed)
     return sqstd_throwerrorf(vm, "DasFunction '%s': script failed to load", inst->funcName.c_str());
 
@@ -117,9 +123,7 @@ SQInteger DasFunction::script_call(HSQUIRRELVM vm)
 
   GuiScene *scene = GuiScene::get_from_sqvm(vm);
 
-  // Lazy resolution: the script may have been LOADING at ctor time. Resolve now (with a
-  // synchronous fallback if it is still compiling). Permanent errors throw.
-  if (!inst->dasFunc)
+  // Resolve lazily and re-validate the cached Context every call (see resolve_das_function).
   {
     SQInteger r = resolve_das_function(vm, scene, inst);
     if (SQ_FAILED(r))
@@ -133,6 +137,9 @@ SQInteger DasFunction::script_call(HSQUIRRELVM vm)
   das::SimFunction *dasFunc = inst->dasFunc;
   das::Context *ctx = inst->dasCtx;
   das::FuncInfo *info = dasFunc->debugInfo;
+
+  if (dasFunc->cmres)
+    return sqstd_throwerrorf(vm, "DasFunction '%s': unsupported return type (struct returned by value)", inst->funcName.c_str());
 
   int numArgs = sq_gettop(vm) - 2;
   int dasArgCount = info ? info->count : 0;
@@ -164,6 +171,9 @@ SQInteger DasFunction::script_call(HSQUIRRELVM vm)
     }
     else
     {
+      if (argType->isRef() || argType->dimSize != 0)
+        return sqstd_throwerrorf(vm, "Argument %d: unsupported type for cross-call (ref or array)", i + 1);
+
       switch (argType->type)
       {
         case das::Type::tInt:
@@ -195,6 +205,7 @@ SQInteger DasFunction::script_call(HSQUIRRELVM vm)
     }
   }
 
+  darg_das_check_eval_thread(ctx);
   ctx->tryRestartAndLock();
   bind_dascript::RAIIStackwalkOnLogerr stackwalkOnLogerr(ctx);
 

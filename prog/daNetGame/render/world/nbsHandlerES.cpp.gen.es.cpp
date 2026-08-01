@@ -146,6 +146,60 @@ static ecs::EntitySystemDesc nbs_envi_cover_init_es_es_desc
   ecs::EventSetBuilder<OnLevelLoaded>::build(),
   0
 );
+static constexpr ecs::ComponentDesc add_clouds_optional_graph_es_event_handler_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("clouds_optional_graph"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static void add_clouds_optional_graph_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    add_clouds_optional_graph_es_event_handler(evt
+        , ECS_RO_COMP(add_clouds_optional_graph_es_event_handler_comps, "clouds_optional_graph", ecs::string)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc add_clouds_optional_graph_es_event_handler_es_desc
+(
+  "add_clouds_optional_graph_es",
+  "prog/daNetGame/render/world/nbsHandlerES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, add_clouds_optional_graph_es_event_handler_all_events),
+  empty_span(),
+  make_span(add_clouds_optional_graph_es_event_handler_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear,
+                       ecs::EventEntityDestroyed,
+                       ecs::EventComponentsDisappear>::build(),
+  0
+);
+static constexpr ecs::ComponentDesc nbs_clouds_init_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("clouds_nbs__rootGraph"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static void nbs_clouds_init_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<OnLevelLoaded>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    nbs_clouds_init_es(static_cast<const OnLevelLoaded&>(evt)
+        , ECS_RO_COMP(nbs_clouds_init_es_comps, "clouds_nbs__rootGraph", ecs::string)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc nbs_clouds_init_es_es_desc
+(
+  "nbs_clouds_init_es",
+  "prog/daNetGame/render/world/nbsHandlerES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, nbs_clouds_init_es_all_events),
+  empty_span(),
+  make_span(nbs_clouds_init_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<OnLevelLoaded>::build(),
+  0
+);
 static constexpr ecs::ComponentDesc volfog_optional_graphs_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
@@ -196,6 +250,34 @@ inline void envi_cover_optional_graphs_ecs_query(ecs::EntityManager &manager, Ca
         {
           function(
               ECS_RO_COMP(envi_cover_optional_graphs_ecs_query_comps, "envi_cover_optional_graph", ecs::string)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc clouds_optional_graphs_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("clouds_optional_graph"), ecs::ComponentTypeInfo<ecs::string>()}
+};
+static ecs::CompileTimeQueryDesc clouds_optional_graphs_ecs_query_desc
+(
+  "clouds_optional_graphs_ecs_query",
+  empty_span(),
+  make_span(clouds_optional_graphs_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void clouds_optional_graphs_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, clouds_optional_graphs_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(clouds_optional_graphs_ecs_query_comps, "clouds_optional_graph", ecs::string)
             );
 
         }while (++comp != compE);

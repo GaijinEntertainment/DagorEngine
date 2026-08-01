@@ -20,23 +20,22 @@ inline void set_tree_anim_max_distance(float distance) { ri_tree_anim_max_distan
 
 inline bool is_tree(ContextId context_id, ShaderMesh::RElem &elem)
 {
-  return context_id->has(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0;
+  return context_id->hasAny(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0;
 }
 
 inline bool is_leaves(ContextId context_id, ShaderMesh::RElem &elem)
 {
-  return context_id->has(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_facing_leaves", 22) == 0;
+  return context_id->hasAny(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_facing_leaves", 22) == 0;
 }
 
 inline bool is_flag(ContextId context_id, ShaderMesh::RElem &elem)
 {
-  return context_id->has(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0;
+  return context_id->hasAny(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0;
 }
 
-using map_tree_fn = ReferencedTransformData *(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &, int &);
+using map_tree_fn = ReferencedTransformData *(ContextId, uint64_t, uint64_t, int, void *, bool &, int &);
 
-inline ReferencedTransformData *map_tree_stationary(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &,
-  int &anim_index)
+inline ReferencedTransformData *map_tree_stationary(ContextId, uint64_t, uint64_t, int, void *, bool &, int &anim_index)
 {
   anim_index = -1;
   return nullptr;
@@ -44,19 +43,17 @@ inline ReferencedTransformData *map_tree_stationary(ContextId, uint64_t, vec4f, 
 
 struct MapTreePointers
 {
-  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> uniqueTreeBuffers;
-  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> newUniqueTreeBuffers;
+  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance>> uniqueTreeBuffers;
+  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance>> newUniqueTreeBuffers;
   ContextId contextId = nullptr;
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueTreeBLASes = nullptr;
 };
 
-template <typename tree_hash, bool do_animation_index>
-inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, rendinst::riex_handle_t handle, int lod_ix,
-  bool &recycled, int &anim_index, MapTreePointers &pointers)
+template <bool do_animation_index>
+inline ReferencedTransformData *map_tree_base(uint64_t object_id, uint64_t id, int lod_ix, bool &recycled, int &anim_index,
+  MapTreePointers &pointers)
 {
   recycled = false;
-
-  uint64_t id = tree_hash::hash(object_id, pos, handle);
 
   // No need to have a lock here to access the containers. While this function is called from multiple threads,
   // the uniqueTreeBuffers is only read from all threads. All new items are added to the newUniqueTreeBuffers,
@@ -65,7 +62,7 @@ inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, ren
   G_ASSERT(lod_ix < Context::maxUniqueLods);
   auto &uniqueContainer = pointers.uniqueTreeBuffers[lod_ix];
 
-  ReferencedTransformDataWithAge *tree = nullptr;
+  ReferencedTransformDatasForInstance *tree = nullptr;
   if (auto instanceIter = uniqueContainer.find(id); instanceIter != uniqueContainer.end())
   {
     tree = &instanceIter->second;
@@ -95,13 +92,7 @@ inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, ren
 
   auto &data = tree->elems[object_id];
 
-  // Hash collision. It is possible that the same position is used for different trees of the same type.
-  if (data.used)
-    return nullptr;
-
-  data.used = true;
-
-  tree->age = -1;
+  data.age = -1;
 
   if (!data.buffer && ri_enable_caching)
   {
@@ -119,16 +110,48 @@ inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, ren
   return &data;
 }
 
-template <map_tree_fn mapper>
+template <map_tree_fn mapper, bool ri_ex>
 inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t object_id, int lod_ix, bool is_pos_inst,
-  mat44f_cref tm, vec4f_const originalPos, const E3DCOLOR *colors, rendinst::riex_handle_t handle,
-  eastl::optional<TMatrix4> &inv_world_tm, TreeInfo &treeInfo, MeshMetaAllocator::AllocId &metaAllocId, void *user_data,
-  bool stationary, bool is_burning, uint32_t palette_id)
+  mat44f_cref tm, vec4f_const originalPos, const E3DCOLOR *colors, uint64_t id, eastl::optional<TMatrix4> &inv_world_tm,
+  TreeInfo &treeInfo, MeshMetaAllocator::AllocId &metaAllocId, void *user_data, bool stationary, bool is_burning, uint32_t palette_id)
 {
+  static int is_pivotedVarId = VariableMap::getVariableId("is_pivoted");
+  static int small_plantVarId = VariableMap::getVariableId("small_plant");
+  static int wind_channel_strengthVarId = VariableMap::getVariableId("wind_channel_strength");
+  static int wind_noise_speed_baseVarId = VariableMap::getVariableId("wind_noise_speed_base");
+  static int wind_noise_speed_level_mulVarId = VariableMap::getVariableId("wind_noise_speed_level_mul");
+  static int wind_angle_rot_baseVarId = VariableMap::getVariableId("wind_angle_rot_base");
+  static int wind_angle_rot_level_mulVarId = VariableMap::getVariableId("wind_angle_rot_level_mul");
+  static int wind_per_level_angle_rot_maxVarId = VariableMap::getVariableId("wind_per_level_angle_rot_max");
+  static int wind_parent_contribVarId = VariableMap::getVariableId("wind_parent_contrib");
+  static int wind_motion_damp_baseVarId = VariableMap::getVariableId("wind_motion_damp_base");
+  static int wind_motion_damp_level_mulVarId = VariableMap::getVariableId("wind_motion_damp_level_mul");
+  static int AnimWindScaleVarId = VariableMap::getVariableId("AnimWindScale");
+  static int atestVarId = VariableMap::getVariableId("atest");
+  static int ground_snap_height_softVarId = VariableMap::getVariableId("ground_snap_height_soft");
+  static int ground_snap_height_fullVarId = VariableMap::getVariableId("ground_snap_height_full");
+  static int ground_snap_normal_offsetVarId = VariableMap::getVariableId("ground_snap_normal_offset");
+  static int ground_snap_limitVarId = VariableMap::getVariableId("ground_snap_limit");
+  static int ground_bend_heightVarId = VariableMap::getVariableId("ground_bend_height");
+  static int ground_bend_normal_offsetVarId = VariableMap::getVariableId("ground_bend_normal_offset");
+  static int ground_bend_tangent_offsetVarId = VariableMap::getVariableId("ground_bend_tangent_offset");
+
+  // Filter elements out before mapping refreshes the age, so the memory can be freed up
+  int atest = 0;
+  elem.mat->getIntVariable(atestVarId, atest);
+  const bool isTrunk = atest == 0; // rendinst_tree_perlin_layered doesn't have this shadervar
+
+  if (is_burning && !isTrunk)
+    return false; // Just drop all burning tree leaves from BVH, eventually they'll disappear entirely anyway
+
+  int smallPlant = 0;
+  if (elem.mat->getIntVariable(small_plantVarId, smallPlant) && smallPlant > 0)
+    return false;
+
   if (!inv_world_tm.has_value())
     inv_world_tm = make_packed_precise_itm(tm);
 
-  auto data = mapper(context_id, object_id, tm.col3, handle, lod_ix, user_data, treeInfo.recycled, treeInfo.animIndex);
+  auto data = mapper(context_id, object_id, id, lod_ix, user_data, treeInfo.recycled, treeInfo.animIndex);
 
   treeInfo.stationary = stationary;
 
@@ -155,38 +178,6 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   treeInfo.invWorldTm = inv_world_tm.value();
   treeInfo.transformedBuffer = &data->buffer;
   treeInfo.transformedBlas = &data->blas;
-
-  static int is_pivotedVarId = VariableMap::getVariableId("is_pivoted");
-  static int small_plantVarId = VariableMap::getVariableId("small_plant");
-  static int wind_channel_strengthVarId = VariableMap::getVariableId("wind_channel_strength");
-  static int wind_noise_speed_baseVarId = VariableMap::getVariableId("wind_noise_speed_base");
-  static int wind_noise_speed_level_mulVarId = VariableMap::getVariableId("wind_noise_speed_level_mul");
-  static int wind_angle_rot_baseVarId = VariableMap::getVariableId("wind_angle_rot_base");
-  static int wind_angle_rot_level_mulVarId = VariableMap::getVariableId("wind_angle_rot_level_mul");
-  static int wind_per_level_angle_rot_maxVarId = VariableMap::getVariableId("wind_per_level_angle_rot_max");
-  static int wind_parent_contribVarId = VariableMap::getVariableId("wind_parent_contrib");
-  static int wind_motion_damp_baseVarId = VariableMap::getVariableId("wind_motion_damp_base");
-  static int wind_motion_damp_level_mulVarId = VariableMap::getVariableId("wind_motion_damp_level_mul");
-  static int AnimWindScaleVarId = VariableMap::getVariableId("AnimWindScale");
-  static int atestVarId = VariableMap::getVariableId("atest");
-  static int ground_snap_height_softVarId = VariableMap::getVariableId("ground_snap_height_soft");
-  static int ground_snap_height_fullVarId = VariableMap::getVariableId("ground_snap_height_full");
-  static int ground_snap_normal_offsetVarId = VariableMap::getVariableId("ground_snap_normal_offset");
-  static int ground_snap_limitVarId = VariableMap::getVariableId("ground_snap_limit");
-  static int ground_bend_heightVarId = VariableMap::getVariableId("ground_bend_height");
-  static int ground_bend_normal_offsetVarId = VariableMap::getVariableId("ground_bend_normal_offset");
-  static int ground_bend_tangent_offsetVarId = VariableMap::getVariableId("ground_bend_tangent_offset");
-
-  int atest = 0;
-  elem.mat->getIntVariable(atestVarId, atest);
-  bool isTrunk = atest == 0; // rendinst_tree_perlin_layered doesn't have this shadervar
-
-  if (is_burning && !isTrunk)
-    return false; // Just drop all burning tree leaves from BVH, eventually they'll disappear entirely anyway
-
-  int smallPlant = 0;
-  if (elem.mat->getIntVariable(small_plantVarId, smallPlant) && smallPlant > 0)
-    return false;
 
   int isPivoted;
   if (!elem.mat->getIntVariable(is_pivotedVarId, isPivoted))
@@ -236,12 +227,14 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   treeInfo.data.isPosInstance = is_pos_inst;
 
   const E3DCOLOR WHITE = E3DCOLOR(0x40404040U);
+
   if (isTrunk)
     treeInfo.data.color = is_burning ? E3DCOLOR(0x10101010U) : WHITE;
   else
     treeInfo.data.color = colors ? random_color_from_pos(originalPos, palette_id, colors[0], colors[1]) : WHITE;
-  if (treeInfo.data.isPivoted && !treeInfo.data.isPosInstance)
-    treeInfo.data.perInstanceRenderAdditionalData = rendinst::getRiExtraPerInstanceRenderEncodedAdditionalData(handle);
+
+  if (ri_ex && treeInfo.data.isPivoted && !treeInfo.data.isPosInstance)
+    treeInfo.data.perInstanceRenderAdditionalData = rendinst::getRiExtraPerInstanceRenderEncodedAdditionalData(id);
   else
     treeInfo.data.perInstanceRenderAdditionalData = 0;
 
@@ -250,7 +243,7 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
 
 struct TidyUpTreePointers
 {
-  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> uniqueTreeBuffers;
+  dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDatasForInstance>> uniqueTreeBuffers;
   ContextId contextId = nullptr;
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueTreeBLASes = nullptr;
 };
@@ -272,12 +265,36 @@ inline int tidy_up_trees_base(ContextId context_id, TidyUpTreePointers &pointers
   for (auto [index, lod] : enumerate(pointers.uniqueTreeBuffers))
     for (auto iter = lod.begin(); iter != lod.end();)
     {
-      // Reset the used flags, so in the next frame, all start fresh
-      for (auto &elem : iter->second.elems)
-        elem.second.used = false;
+      auto &elems = iter->second.elems;
+      for (auto elemIter = elems.begin(); elemIter != elems.end();)
+      {
+        if (++elemIter->second.age < 1)
+        {
+          ++elemIter;
+          continue;
+        }
 
-      iter->second.age++;
-      if (iter->second.age < 1)
+        auto meshId = elemIter->first;
+        auto &elem = elemIter->second;
+
+        if (ri_enable_caching)
+        {
+          auto &storage = (*pointers.freeUniqueTreeBLASes)[meshId].blases.push_back();
+          storage.swap(elem.blas);
+        }
+
+        context_id->freeMetaRegion(elem.metaAllocId);
+
+        if (elem.buffer)
+        {
+          WinAutoLock lock(context_id->processBufferAllocatorLock);
+          context_id->processBufferAllocator[elem.buffer.allocator].first.free(elem.buffer.allocId);
+        }
+
+        elemIter = elems.erase(elemIter);
+      }
+
+      if (!elems.empty())
       {
         ++iter;
         continue;
@@ -287,23 +304,6 @@ inline int tidy_up_trees_base(ContextId context_id, TidyUpTreePointers &pointers
       {
         OSSpinlockScopedLock lock(pointers.contextId->treeAnimIndexCountLock);
         --pointers.contextId->treeAnimIndexCount[iter->second.animIndex];
-      }
-
-      for (auto &elem : iter->second.elems)
-      {
-        if (ri_enable_caching)
-        {
-          auto &storage = (*pointers.freeUniqueTreeBLASes)[elem.first].blases.push_back();
-          storage.swap(elem.second.blas);
-        }
-
-        context_id->freeMetaRegion(elem.second.metaAllocId);
-
-        if (elem.second.buffer)
-        {
-          WinAutoLock lock(context_id->processBufferAllocatorLock);
-          context_id->processBufferAllocator[elem.second.buffer.allocator].first.free(elem.second.buffer.allocId);
-        }
       }
 
       dropCount++;

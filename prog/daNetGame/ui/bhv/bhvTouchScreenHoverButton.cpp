@@ -37,8 +37,8 @@ int BhvTouchScreenHoverButton::pointingEvent(
   if (!buttonState || buttonState->ahs.size() == 0)
     return 0;
 
-  Sqrat::Function onTouchEnd = elem->props.scriptDesc.GetFunction("onTouchEnd");
-  bool useActionOnTouchEnd = elem->props.scriptDesc.RawGetSlotValue("useActionOnTouchEnd", false);
+  Sqrat::Function onTouchEnd = elem->props.scriptDesc.GetFunction(strings->onTouchEnd);
+  bool useActionOnTouchEnd = elem->props.scriptDesc.RawGetSlotValue(strings->useActionOnTouchEnd, false);
 
   if (event == INP_EV_PRESS || event == INP_EV_POINTER_MOVE)
   {

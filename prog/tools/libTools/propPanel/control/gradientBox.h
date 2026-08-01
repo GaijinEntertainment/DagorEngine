@@ -30,6 +30,8 @@ public:
   void setGradientValue(PGradient value) override { gradientControl.setValue(value); }
   void getGradientValue(PGradient destGradient) const override { gradientControl.getValue(destGradient); }
 
+  void setGradientMinMaxPointCount(int min, int max) override { gradientControl.setMinMaxPointCount(min, max); }
+
   void setCaptionValue(const char value[]) override { controlCaption = value; }
 
   // current X value line

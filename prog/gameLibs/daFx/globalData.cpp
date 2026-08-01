@@ -10,7 +10,7 @@ bool init_global_values(GlobalData &dst)
 {
   int sz = DAFX_GLOBAL_DATA_SIZE;
   dst.size = sz;
-  dst.updateRequired = true;
+  interlocked_relaxed_store(dst.updateRequired, true);
 
   bool v = true;
   v &= create_cpu_res(dst.cpuRes, DAFX_ELEM_STRIDE * sizeof(int), sz / DAFX_ELEM_STRIDE, "dafx_global_data");
@@ -63,7 +63,7 @@ void set_global_value(Context &ctx, const char *name, size_t name_len, uint32_t 
   if (memcmp(ptr + v.offset, data, size) != 0)
   {
     memcpy(ptr + v.offset, data, size);
-    ctx.globalData.updateRequired = true;
+    interlocked_relaxed_store(ctx.globalData.updateRequired, true);
   }
 }
 
@@ -93,10 +93,10 @@ bool get_global_value(ContextId cid, const eastl::string &name, void *data, int 
 void update_global_data(Context &ctx, bool force)
 {
   TIME_D3D_PROFILE(dafx_update_global_data);
-  if (ctx.globalData.updateRequired || force)
+  if (interlocked_relaxed_load(ctx.globalData.updateRequired) || force)
   {
+    interlocked_relaxed_store(ctx.globalData.updateRequired, false);
     update_gpu_cb_buffer(ctx.globalData.gpuBuf.getBuf(), ctx.globalData.cpuRes.get(), ctx.globalData.size * sizeof(uint32_t));
-    ctx.globalData.updateRequired = false;
   }
 }
 

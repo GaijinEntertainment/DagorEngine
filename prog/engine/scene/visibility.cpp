@@ -37,7 +37,7 @@ __forceinline bool VisibilityFinder::isScreenRatioVisibleInline(vec3f sphc, vec4
   if (v_test_vec_x_ge(msor_sq, v_min(distSq, distSqOfs)))
     return true;
 
-  vec4f dist1 = v_add_x(v_sqrt_fast_x(distSq), V_C_ONE);
+  vec4f dist1 = v_add_x(v_sqrt_x(distSq), V_C_ONE);
   vec4f nearComparsion = v_div_x(sq_dif, v_sub_x(v_mul(dist1, dist1), sphr2));
   return v_test_vec_x_le(nearComparsion, c_nearRatioOffsetSq) ? true : false;
 }

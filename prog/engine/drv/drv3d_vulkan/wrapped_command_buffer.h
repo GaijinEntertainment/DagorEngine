@@ -1004,6 +1004,68 @@ struct WrappedCommandBuffer
       Globals::VK::dev.vkCmdWriteAccelerationStructuresPropertiesKHR(cb, accelerationStructureCount, pAccelerationStructures,
         queryType, queryPool, firstQuery);
   }
+
+#if VK_EXT_opacity_micromap
+  // vkCmdBuildMicromapsEXT
+  struct BuildMicromapsEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t infoCount;
+    VkMicromapBuildInfoEXT *pInfos;
+  };
+  void wCmdBuildMicromapsEXT(uint32_t infoCount, const VkMicromapBuildInfoEXT *pInfos)
+  {
+    if (reorder)
+    {
+      BuildMicromapsEXTParameters &par =
+        pushCmd<BuildMicromapsEXTParameters>({infoCount, (VkMicromapBuildInfoEXT *)parMem.push(infoCount, pInfos)});
+      for (uint32_t i = 0; i < par.infoCount; ++i)
+        if (par.pInfos[i].pUsageCounts)
+          par.pInfos[i].pUsageCounts = parMem.push(par.pInfos[i].usageCountsCount, par.pInfos[i].pUsageCounts);
+    }
+    else
+      Globals::VK::dev.vkCmdBuildMicromapsEXT(cb, infoCount, pInfos);
+  }
+  // vkCmdCopyMicromapEXT
+  struct CopyMicromapEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkCopyMicromapInfoEXT info;
+  };
+  void wCmdCopyMicromapEXT(const VkCopyMicromapInfoEXT *pInfo)
+  {
+    if (reorder)
+    {
+      pushCmd<CopyMicromapEXTParameters>({*pInfo});
+    }
+    else
+      Globals::VK::dev.vkCmdCopyMicromapEXT(cb, pInfo);
+  }
+  // vkCmdWriteMicromapsPropertiesEXT
+  struct WriteMicromapsPropertiesEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t micromapCount;
+    const VkMicromapEXT *pMicromaps;
+    VkQueryType queryType;
+    VkQueryPool queryPool;
+    uint32_t firstQuery;
+  };
+  void wCmdWriteMicromapsPropertiesEXT(uint32_t micromapCount, const VkMicromapEXT *pMicromaps, VkQueryType queryType,
+    VkQueryPool queryPool, uint32_t firstQuery)
+  {
+    if (reorder)
+    {
+      pushCmd<WriteMicromapsPropertiesEXTParameters>(
+        {micromapCount, parMem.push(micromapCount, pMicromaps), queryType, queryPool, firstQuery});
+    }
+    else
+      Globals::VK::dev.vkCmdWriteMicromapsPropertiesEXT(cb, micromapCount, pMicromaps, queryType, queryPool, firstQuery);
+  }
+#endif // VK_EXT_opacity_micromap
 #endif
 
   // vkCmdCopyQueryPoolResults
@@ -1269,6 +1331,496 @@ struct WrappedCommandBuffer
       Globals::VK::dev.vkCmdSetFragmentShadingRateKHR(cb, &fragmentSize, combinerOps);
   }
 #endif
+
+#if VK_EXT_extended_dynamic_state
+  // vkCmdBindVertexBuffers2EXT
+  struct BindVertexBuffers2EXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t firstBinding;
+    uint32_t bindingCount;
+    const VkBuffer *pBuffers;
+    const VkDeviceSize *pOffsets;
+    const VkDeviceSize *pSizes;
+    const VkDeviceSize *pStrides;
+  };
+  void wCmdBindVertexBuffers2EXT(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer *pBuffers, const VkDeviceSize *pOffsets,
+    const VkDeviceSize *pSizes, const VkDeviceSize *pStrides)
+  {
+    if (reorder)
+    {
+      pushCmd<BindVertexBuffers2EXTParameters>({firstBinding, bindingCount, parMem.push(bindingCount, pBuffers),
+        parMem.push(bindingCount, pOffsets), parMem.push(bindingCount, pSizes), parMem.push(bindingCount, pStrides)});
+    }
+    else
+      Globals::VK::dev.vkCmdBindVertexBuffers2EXT(cb, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides);
+  }
+
+  // vkCmdSetCullModeEXT
+  struct SetCullModeEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkCullModeFlags cullMode;
+  };
+  void wCmdSetCullModeEXT(VkCullModeFlags cullMode)
+  {
+    if (reorder)
+    {
+      pushCmd<SetCullModeEXTParameters>({cullMode});
+    }
+    else
+      Globals::VK::dev.vkCmdSetCullModeEXT(cb, cullMode);
+  }
+
+  // vkCmdSetDepthBoundsTestEnableEXT
+  struct SetDepthBoundsTestEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 depthBoundsTestEnable;
+  };
+  void wCmdSetDepthBoundsTestEnableEXT(VkBool32 depthBoundsTestEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetDepthBoundsTestEnableEXTParameters>({depthBoundsTestEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetDepthBoundsTestEnableEXT(cb, depthBoundsTestEnable);
+  }
+
+  // vkCmdSetDepthCompareOpEXT
+  struct SetDepthCompareOpEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkCompareOp depthCompareOp;
+  };
+  void wCmdSetDepthCompareOpEXT(VkCompareOp depthCompareOp)
+  {
+    if (reorder)
+    {
+      pushCmd<SetDepthCompareOpEXTParameters>({depthCompareOp});
+    }
+    else
+      Globals::VK::dev.vkCmdSetDepthCompareOpEXT(cb, depthCompareOp);
+  }
+
+  // vkCmdSetDepthTestEnableEXT
+  struct SetDepthTestEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 depthTestEnable;
+  };
+  void wCmdSetDepthTestEnableEXT(VkBool32 depthTestEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetDepthTestEnableEXTParameters>({depthTestEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetDepthTestEnableEXT(cb, depthTestEnable);
+  }
+
+  // vkCmdSetDepthWriteEnableEXT
+  struct SetDepthWriteEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 depthWriteEnable;
+  };
+  void wCmdSetDepthWriteEnableEXT(VkBool32 depthWriteEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetDepthWriteEnableEXTParameters>({depthWriteEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetDepthWriteEnableEXT(cb, depthWriteEnable);
+  }
+
+  // vkCmdSetFrontFaceEXT
+  struct SetFrontFaceEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkFrontFace frontFace;
+  };
+  void wCmdSetFrontFaceEXT(VkFrontFace frontFace)
+  {
+    if (reorder)
+    {
+      pushCmd<SetFrontFaceEXTParameters>({frontFace});
+    }
+    else
+      Globals::VK::dev.vkCmdSetFrontFaceEXT(cb, frontFace);
+  }
+
+  // vkCmdSetPrimitiveTopologyEXT
+  struct SetPrimitiveTopologyEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkPrimitiveTopology primitiveTopology;
+  };
+  void wCmdSetPrimitiveTopologyEXT(VkPrimitiveTopology primitiveTopology)
+  {
+    if (reorder)
+    {
+      pushCmd<SetPrimitiveTopologyEXTParameters>({primitiveTopology});
+    }
+    else
+      Globals::VK::dev.vkCmdSetPrimitiveTopologyEXT(cb, primitiveTopology);
+  }
+
+  // vkCmdSetScissorWithCountEXT
+  struct SetScissorWithCountEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t scissorCount;
+    const VkRect2D *pScissors;
+  };
+  void wCmdSetScissorWithCountEXT(uint32_t scissorCount, const VkRect2D *pScissors)
+  {
+    if (reorder)
+    {
+      pushCmd<SetScissorWithCountEXTParameters>({scissorCount, parMem.push(scissorCount, pScissors)});
+    }
+    else
+      Globals::VK::dev.vkCmdSetScissorWithCountEXT(cb, scissorCount, pScissors);
+  }
+
+  // vkCmdSetStencilOpEXT
+  struct SetStencilOpEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkStencilFaceFlags faceMask;
+    VkStencilOp failOp;
+    VkStencilOp passOp;
+    VkStencilOp depthFailOp;
+    VkCompareOp compareOp;
+  };
+  void wCmdSetStencilOpEXT(VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp, VkStencilOp depthFailOp,
+    VkCompareOp compareOp)
+  {
+    if (reorder)
+    {
+      pushCmd<SetStencilOpEXTParameters>({faceMask, failOp, passOp, depthFailOp, compareOp});
+    }
+    else
+      Globals::VK::dev.vkCmdSetStencilOpEXT(cb, faceMask, failOp, passOp, depthFailOp, compareOp);
+  }
+
+  // vkCmdSetStencilTestEnableEXT
+  struct SetStencilTestEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 stencilTestEnable;
+  };
+  void wCmdSetStencilTestEnableEXT(VkBool32 stencilTestEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetStencilTestEnableEXTParameters>({stencilTestEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetStencilTestEnableEXT(cb, stencilTestEnable);
+  }
+
+  // vkCmdSetViewportWithCountEXT
+  struct SetViewportWithCountEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t viewportCount;
+    const VkViewport *pViewports;
+  };
+  void wCmdSetViewportWithCountEXT(uint32_t viewportCount, const VkViewport *pViewports)
+  {
+    if (reorder)
+    {
+      pushCmd<SetViewportWithCountEXTParameters>({viewportCount, parMem.push(viewportCount, pViewports)});
+    }
+    else
+      Globals::VK::dev.vkCmdSetViewportWithCountEXT(cb, viewportCount, pViewports);
+  }
+#endif // VK_EXT_extended_dynamic_state
+
+#if VK_EXT_extended_dynamic_state2
+  // vkCmdSetDepthBiasEnableEXT
+  struct SetDepthBiasEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 depthBiasEnable;
+  };
+  void wCmdSetDepthBiasEnableEXT(VkBool32 depthBiasEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetDepthBiasEnableEXTParameters>({depthBiasEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetDepthBiasEnableEXT(cb, depthBiasEnable);
+  }
+
+  // vkCmdSetLogicOpEXT
+  struct SetLogicOpEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkLogicOp logicOp;
+  };
+  void wCmdSetLogicOpEXT(VkLogicOp logicOp)
+  {
+    if (reorder)
+    {
+      pushCmd<SetLogicOpEXTParameters>({logicOp});
+    }
+    else
+      Globals::VK::dev.vkCmdSetLogicOpEXT(cb, logicOp);
+  }
+
+  // vkCmdSetPatchControlPointsEXT
+  struct SetPatchControlPointsEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t patchControlPoints;
+  };
+  void wCmdSetPatchControlPointsEXT(uint32_t patchControlPoints)
+  {
+    if (reorder)
+    {
+      pushCmd<SetPatchControlPointsEXTParameters>({patchControlPoints});
+    }
+    else
+      Globals::VK::dev.vkCmdSetPatchControlPointsEXT(cb, patchControlPoints);
+  }
+
+  // vkCmdSetPrimitiveRestartEnableEXT
+  struct SetPrimitiveRestartEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 primitiveRestartEnable;
+  };
+  void wCmdSetPrimitiveRestartEnableEXT(VkBool32 primitiveRestartEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetPrimitiveRestartEnableEXTParameters>({primitiveRestartEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetPrimitiveRestartEnableEXT(cb, primitiveRestartEnable);
+  }
+
+  // vkCmdSetRasterizerDiscardEnableEXT
+  struct SetRasterizerDiscardEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 rasterizerDiscardEnable;
+  };
+  void wCmdSetRasterizerDiscardEnableEXT(VkBool32 rasterizerDiscardEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetRasterizerDiscardEnableEXTParameters>({rasterizerDiscardEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetRasterizerDiscardEnableEXT(cb, rasterizerDiscardEnable);
+  }
+#endif // VK_EXT_extended_dynamic_state2
+
+#if VK_EXT_extended_dynamic_state3
+  // vkCmdSetAlphaToCoverageEnableEXT
+  struct SetAlphaToCoverageEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 alphaToCoverageEnable;
+  };
+  void wCmdSetAlphaToCoverageEnableEXT(VkBool32 alphaToCoverageEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetAlphaToCoverageEnableEXTParameters>({alphaToCoverageEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetAlphaToCoverageEnableEXT(cb, alphaToCoverageEnable);
+  }
+
+  // vkCmdSetAlphaToOneEnableEXT
+  struct SetAlphaToOneEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 alphaToOneEnable;
+  };
+  void wCmdSetAlphaToOneEnableEXT(VkBool32 alphaToOneEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetAlphaToOneEnableEXTParameters>({alphaToOneEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetAlphaToOneEnableEXT(cb, alphaToOneEnable);
+  }
+
+  // vkCmdSetColorBlendEnableEXT
+  struct SetColorBlendEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t firstAttachment;
+    uint32_t attachmentCount;
+    const VkBool32 *pColorBlendEnables;
+  };
+  void wCmdSetColorBlendEnableEXT(uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32 *pColorBlendEnables)
+  {
+    if (reorder)
+    {
+      pushCmd<SetColorBlendEnableEXTParameters>({firstAttachment, attachmentCount, parMem.push(attachmentCount, pColorBlendEnables)});
+    }
+    else
+      Globals::VK::dev.vkCmdSetColorBlendEnableEXT(cb, firstAttachment, attachmentCount, pColorBlendEnables);
+  }
+
+  // vkCmdSetColorBlendEquationEXT
+  struct SetColorBlendEquationEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t firstAttachment;
+    uint32_t attachmentCount;
+    const VkColorBlendEquationEXT *pColorBlendEquations;
+  };
+  void wCmdSetColorBlendEquationEXT(uint32_t firstAttachment, uint32_t attachmentCount,
+    const VkColorBlendEquationEXT *pColorBlendEquations)
+  {
+    if (reorder)
+    {
+      pushCmd<SetColorBlendEquationEXTParameters>(
+        {firstAttachment, attachmentCount, parMem.push(attachmentCount, pColorBlendEquations)});
+    }
+    else
+      Globals::VK::dev.vkCmdSetColorBlendEquationEXT(cb, firstAttachment, attachmentCount, pColorBlendEquations);
+  }
+
+  // vkCmdSetColorWriteMaskEXT
+  struct SetColorWriteMaskEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    uint32_t firstAttachment;
+    uint32_t attachmentCount;
+    const VkColorComponentFlags *pColorWriteMasks;
+  };
+  void wCmdSetColorWriteMaskEXT(uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags *pColorWriteMasks)
+  {
+    if (reorder)
+    {
+      pushCmd<SetColorWriteMaskEXTParameters>({firstAttachment, attachmentCount, parMem.push(attachmentCount, pColorWriteMasks)});
+    }
+    else
+      Globals::VK::dev.vkCmdSetColorWriteMaskEXT(cb, firstAttachment, attachmentCount, pColorWriteMasks);
+  }
+
+  // vkCmdSetDepthClampEnableEXT
+  struct SetDepthClampEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 depthClampEnable;
+  };
+  void wCmdSetDepthClampEnableEXT(VkBool32 depthClampEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetDepthClampEnableEXTParameters>({depthClampEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetDepthClampEnableEXT(cb, depthClampEnable);
+  }
+
+  // vkCmdSetLogicOpEnableEXT
+  struct SetLogicOpEnableEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkBool32 logicOpEnable;
+  };
+  void wCmdSetLogicOpEnableEXT(VkBool32 logicOpEnable)
+  {
+    if (reorder)
+    {
+      pushCmd<SetLogicOpEnableEXTParameters>({logicOpEnable});
+    }
+    else
+      Globals::VK::dev.vkCmdSetLogicOpEnableEXT(cb, logicOpEnable);
+  }
+
+  // vkCmdSetPolygonModeEXT
+  struct SetPolygonModeEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkPolygonMode polygonMode;
+  };
+  void wCmdSetPolygonModeEXT(VkPolygonMode polygonMode)
+  {
+    if (reorder)
+    {
+      pushCmd<SetPolygonModeEXTParameters>({polygonMode});
+    }
+    else
+      Globals::VK::dev.vkCmdSetPolygonModeEXT(cb, polygonMode);
+  }
+
+  // vkCmdSetRasterizationSamplesEXT
+  struct SetRasterizationSamplesEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkSampleCountFlagBits rasterizationSamples;
+  };
+  void wCmdSetRasterizationSamplesEXT(VkSampleCountFlagBits rasterizationSamples)
+  {
+    if (reorder)
+    {
+      pushCmd<SetRasterizationSamplesEXTParameters>({rasterizationSamples});
+    }
+    else
+      Globals::VK::dev.vkCmdSetRasterizationSamplesEXT(cb, rasterizationSamples);
+  }
+
+  // vkCmdSetSampleMaskEXT
+  struct SetSampleMaskEXTParameters
+  {
+    static constexpr CmdID ID = AUTO_ID;
+
+    VkSampleCountFlagBits samples;
+    const VkSampleMask *pSampleMask;
+  };
+  void wCmdSetSampleMaskEXT(VkSampleCountFlagBits samples, const VkSampleMask *pSampleMask)
+  {
+    if (reorder)
+    {
+      // pSampleMask points to ceil(samples / 32) mask words
+      uint32_t maskWords = (samples + 31) / 32;
+      pushCmd<SetSampleMaskEXTParameters>({samples, parMem.push(maskWords, pSampleMask)});
+    }
+    else
+      Globals::VK::dev.vkCmdSetSampleMaskEXT(cb, samples, pSampleMask);
+  }
+#endif // VK_EXT_extended_dynamic_state3
 };
 
 #undef AUTO_ID

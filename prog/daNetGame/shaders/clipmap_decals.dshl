@@ -32,9 +32,9 @@ shader clipmap_decal_base
   }
 
   hlsl(ps) {
-    MRT_OUPUT landmesh_decal_clipmap_ps(VsOutput input)
+    VTEX_MRT landmesh_decal_clipmap_ps(VsOutput input)
     {
-      MRT_OUPUT ret;
+      VTEX_MRT ret;
       float alphaScale = alpha_height_scale.x;
       float displacementRange = alpha_height_scale.y;
       float displacementMin = alpha_height_scale.z;
@@ -78,20 +78,18 @@ shader clipmap_decal_base
 
       displacement = saturate(displacement * hmap_displacement_scale + heightmap_zerolevel);
 
-      half height = displacement;
-      ret.height = float4(height, height, height, displacementAmount);
-
-      ##if clipmap_writes_height_only == no
-        ret.color.rgb = diffuse.rgb;
-        ret.color.a = amount;
+      ##if (render_with_normalmap == render_displacement)
+        half height = displacement;
+        ret.height = float4(height, height, height, displacementAmount);
+      ##else
+        Vtex vtex = create_vtex();
+        set_diffuse(vtex, diffuse.rgb);
 
         float3 normal_emission = getDecalTex(n_tex, input.diffuseTexcoord).xyz;
         float2 normal = normal_emission.xy;
         normal = 2 * (normal - 0.5);
         normal = normal.x*input.tangent.xy + normal.y*input.tangent.zw;
-        ret.normal.xy = normal * 0.5 + 0.5;
-        ret.normal.z = 0.0; // to avoid warnings about partial target write
-        ret.normal.a = displacementAmount;
+        set_normalXY(vtex, normal);
 
         float emission = normal_emission.z;
         BRANCH
@@ -105,10 +103,18 @@ shader clipmap_decal_base
           float wetness = saturate((waterLevel - worldHeight) * waterLevel_wetnessAboveRcp.y + 1);
           float emissionModifier = pow2(1.0 - wetness);
           emission *= emissionModifier;
-          ret.color.rgb *= emissionModifier;
+          set_diffuse(vtex, diffuse.rgb * emissionModifier);
         }
-        ret.detail_ao_reflectance = half4(pack_detail_ao_reflectance_emission(
-            details_ao_reflectance.x, details_ao_reflectance.y, details_ao_reflectance.z, emission), amount);
+        set_emission(vtex, emission);
+
+        set_micro_detail(vtex, details_ao_reflectance.x);
+        set_ao(vtex, details_ao_reflectance.y);
+        set_reflectance(vtex, details_ao_reflectance.z);
+
+        ret = create_render_vtex(vtex);
+        set_alpha_diffuse(ret, amount);
+        set_alpha_normal_smoothness_or_lq_detail(ret, displacementAmount);
+        set_alpha_ao_reflectance_detail(ret, amount);
       ##endif
 
       return ret;

@@ -88,7 +88,7 @@ struct FilterBase
   }
   ~FilterBase() { memfree(fdata, tmpmem); }
 
-  bool isGammaSpace() { return fabsf(gamma - 1.0f) < 0.01f; }
+  bool isGammaSpace() { return is_equal_float(gamma, 1.0f); }
   static int align_4k(int sz) { return (sz + 0xFFF) & ~0xFFF; }
 
   template <class Filter>
@@ -652,7 +652,7 @@ public:
       dest_hdr.flags |= dest_hdr.FLG_VOLTEX;
     if (GET_PROP(Bool, "rtMipGen", false))
       dest_hdr.flags |= stricmp(mipFilt, "filterKaizer") == 0 ? dest_hdr.FLG_GENMIP_KAIZER : dest_hdr.FLG_GENMIP_BOX;
-    if (fabsf(gamma - 1.0f) < 1e-3f)
+    if (is_equal_float(gamma, 1.0f))
       dest_hdr.flags |= dest_hdr.FLG_GAMMA_EQ_1;
 
     bool alpha_used = false;
@@ -1155,7 +1155,7 @@ public:
       img = decode_image_from_dds(a, allow_mipstripe, mipCnt, mipCustomFilt, alpha_used, dds_d3dfmt, log);
       if (allow_mipstripe && initial_mipCnt != mipCnt && mipCnt > 0)
         mipCnt -= tmd.hqMip;
-      if (img && fabsf(gamma - 1.0f) > 1e-3f && !is_srgb_capable_d3d_fmt(dds_d3dfmt))
+      if (img && !is_equal_float(gamma, 1.0f) && !is_srgb_capable_d3d_fmt(dds_d3dfmt))
       {
         gamma = 1.0f;
         inpOptions.setGamma(1.0f, 1.0f);
@@ -2314,7 +2314,7 @@ public:
       }
       // save_tga32(String(0, "%s-pre.tga", a.getName()),(TexPixel32*)image->pixels(), image->width(), image->height(),
       // image->width()*4);
-      return convert_to_astc(cwr.getRawWriter(), imgSurf, texType, voltex_depth, fabs(gamma - 1.0) < 1e-3, tc_format,
+      return convert_to_astc(cwr.getRawWriter(), imgSurf, texType, voltex_depth, is_equal_float(gamma, 1.0f), tc_format,
         outHandler.hqPartLev, a.getName());
     }
 

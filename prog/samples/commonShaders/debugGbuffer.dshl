@@ -1,6 +1,5 @@
 include "shader_global.dshl"
 include "ssao_use.dshl"
-//include "bent_cones_use.dshl"
 include "gbuffer.dshl"
 include "ssr_use.dshl"
 include "viewVecVS.dshl"
@@ -60,11 +59,6 @@ shader debug_final_gbuffer
         return 0;
       float w = linearize_z(rd, zn_zfar.zw);
 
-      /*##if bent_cones_on == on
-      half4 BNAO = getBNAO(w, input.texcoord);
-      half ssao = BNAO.w;
-      ##else
-      ##endif*/
       half ssao = getSSAO(w, screenpos.xy).x;
 
       PackedGbuffer packGbuf = readPackedGbuffer(input.texcoord);

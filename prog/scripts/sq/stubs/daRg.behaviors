@@ -5,7 +5,6 @@ return {
   Slider = "Slider"
   Pannable = "Pannable"
   Pannable2touch = "Pannable2touch"
-  SwipeScroll = "SwipeScroll"
   MoveResize = "MoveResize"
   ComboPopup = "ComboPopup"
   SmoothScrollStack = "SmoothScrollStack"
@@ -33,4 +32,6 @@ return {
   EatInput = "EatInput"
   TextAreaEdit = "TextAreaEdit"
   JoystickScroll = "JoystickScroll"
+  BoundProps = "BoundProps"
+  ImageLoadState = "ImageLoadState"
 }

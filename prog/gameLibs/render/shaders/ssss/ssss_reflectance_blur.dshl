@@ -47,6 +47,8 @@ interval ssss_reflectance_follow_surface : no<1, yes;
 
 float ssss_reflectance_vertical_fov = 1; // Not angle, but: 1.0 / tan(0.5 * vertical_fov_in_rad)
 int ssss_reflectance_blur_pass = 1;
+// Taps brighter than center * ratio are treated as fireflies and suppressed. <= 0 disables the filter.
+float ssss_reflectance_firefly_ratio = 8;
 
 macro INIT_SSSS_REFLECTANCE_BLUR(stage)
   (stage)
@@ -55,6 +57,7 @@ macro INIT_SSSS_REFLECTANCE_BLUR(stage)
                                        ssss_reflectance_vertical_fov,
                                        ssss_reflectance_blur_pass,
                                        1.0 - ssss_reflectance_blur_pass);
+    ssss_reflectance_firefly_ratio@f1 = ssss_reflectance_firefly_ratio;
   }
 endmacro
 
@@ -64,6 +67,7 @@ macro USE_SSSS_REFLECTANCE_BLUR(stage)
     #define ssss_reflectance_blur_width ssss_reflectance_blur_params.x
     #define ssss_distance_to_proj_window ssss_reflectance_blur_params.y
     #define ssss_blur_dir ssss_reflectance_blur_params.zw
+    #define ssss_firefly_ratio ssss_reflectance_firefly_ratio
 
     //-----------------------------------------------------------------------------
     // Configurable Defines
@@ -244,9 +248,13 @@ macro USE_SSSS_REFLECTANCE_BLUR(stage)
         finalStep *= sssStrength; // Modulate it using SSS strength.
         finalStep *= 1.0 / 3.0; // Divide by 3 as the kernels range from -3 to 3.
 
+        float centerLuma = luminance(colorM.rgb);
+        float fireflyLimit = ssss_firefly_ratio > 0 ? ssss_firefly_ratio * centerLuma + 1e-4 : -1;
+
         // Accumulate the center sample:
         float4 colorBlurred = colorM;
-        colorBlurred.rgb *= kernel[0].rgb;
+        float3 colorSum = kernel[0].rgb * colorM.rgb;
+        float3 weightSum = kernel[0].rgb;
 
         // Accumulate the other samples:
         UNROLL
@@ -268,10 +276,14 @@ macro USE_SSSS_REFLECTANCE_BLUR(stage)
               color.rgb = colorM.rgb;
             #endif
 
+            float w = fireflyLimit > 0 ? rcp(1.0 + luminance(color.rgb) / fireflyLimit) : 1.0;
+
             // Accumulate:
-            colorBlurred.rgb += kernel[i].rgb * color.rgb;
+            colorSum += kernel[i].rgb * w * color.rgb;
+            weightSum += kernel[i].rgb * w;
         }
 
+        colorBlurred.rgb = colorSum / weightSum;
         return colorBlurred;
     }
   }

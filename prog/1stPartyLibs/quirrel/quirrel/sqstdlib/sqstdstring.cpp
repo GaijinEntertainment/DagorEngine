@@ -230,6 +230,11 @@ static SQInteger _rexobj_releasehook(HSQUIRRELVM SQ_UNUSED_ARG(vm), SQUserPointe
     return 1;
 }
 
+// an aborted match must not read as a plain mismatch
+#define CHECK_REX_ABORTED(v, self) \
+    if(sqstd_rex_matchaborted(self)) \
+        return sq_throwerror(v,"regexp match aborted: pattern too complex for this input")
+
 static SQInteger _regexp_match(HSQUIRRELVM v)
 {
     SETUP_REX(v);
@@ -240,6 +245,7 @@ static SQInteger _regexp_match(HSQUIRRELVM v)
         sq_pushbool(v,SQTrue);
         return 1;
     }
+    CHECK_REX_ABORTED(v, self);
     sq_pushbool(v,SQFalse);
     return 1;
 }
@@ -278,6 +284,7 @@ static SQInteger _regexp_search(HSQUIRRELVM v)
         _addrexmatch(v,str,begin,end);
         return 1;
     }
+    CHECK_REX_ABORTED(v, self);
     return 0;
 }
 
@@ -294,7 +301,7 @@ static SQInteger _regexp_capture(HSQUIRRELVM v)
         sq_newarray(v,0);
         for(SQInteger i = 0;i < n; i++) {
             sqstd_rex_getsubexp(self,i,&match);
-            if(match.len > 0)
+            if(match.begin)
                 _addrexmatch(v,str,match.begin,match.begin+match.len);
             else
                 _addrexmatch(v,str,str,str); //empty match
@@ -302,6 +309,7 @@ static SQInteger _regexp_capture(HSQUIRRELVM v)
         }
         return 1;
     }
+    CHECK_REX_ABORTED(v, self);
     return 0;
 }
 
@@ -349,13 +357,13 @@ static const SQRegFunctionFromStr rexobj_funcs[] = {
 static const SQRegFunctionFromStr stringlib_funcs[] = {
     { _string_format, "pure format(fmt: string, ...): string" },
     { _string_printf, "printf(fmt: string, ...)" },
-    { _string_strip, "pure strip(str: string): string" },
-    { _string_lstrip, "pure lstrip(str: string): string" },
-    { _string_rstrip, "pure rstrip(str: string): string" },
+    { _string_strip, "pure fastcall strip(str: string): string" },
+    { _string_lstrip, "pure fastcall lstrip(str: string): string" },
+    { _string_rstrip, "pure fastcall rstrip(str: string): string" },
     { _string_split_by_chars, "split_by_chars(str: string, separators: string, [skip_empty: bool]): array" },
     { _string_escape, "pure escape(str: string): string" },
-    { _string_startswith, "pure startswith(str: string, prefix: string): bool" },
-    { _string_endswith, "pure endswith(str: string, suffix: string): bool" },
+    { _string_startswith, "pure fastcall startswith(str: string, prefix: string): bool" },
+    { _string_endswith, "pure fastcall endswith(str: string, suffix: string): bool" },
     { NULL, NULL },
 };
 

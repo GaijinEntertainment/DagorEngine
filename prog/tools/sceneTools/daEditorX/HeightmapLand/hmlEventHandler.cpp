@@ -274,6 +274,13 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
 
     case CM_REBUILD_RIVERS: rebuildRivers(); break;
 
+    case CM_BUILD_NAVMESH:
+    {
+      BinDumpSaveCB cwr(1 << 10, _MAKE4C('PC'), false);
+      buildAndWriteNavMesh(cwr);
+      return true;
+    }
+
     case CM_BUILD_COLORMAP:
       generateLandColors();
       resetRenderer();

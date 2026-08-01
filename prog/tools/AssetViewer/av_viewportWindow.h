@@ -12,6 +12,9 @@ public:
   AssetStats &getAssetStats() { return assetStats; }
   bool needShowAssetStats() const { return shownStats.rootStats && showAssetStats; }
 
+  FxStats &getFxStats() { return fxStats; }
+  bool needShowFxStats() const { return shownStats.rootStats && showFxStats; }
+
 private:
   int onMenuItemClick(unsigned id) override;
   void load(const DataBlock &blk) override;
@@ -28,7 +31,10 @@ private:
   static void formatGeometryStat(String &statText, const char *stat_name, const AssetStats::GeometryStat &geometry);
 
   static constexpr bool DEFAULT_SHOW_ASSET_STATS = true;
+  static constexpr bool DEFAULT_SHOW_FX_STATS = true;
 
   AssetStats assetStats;
   bool showAssetStats = DEFAULT_SHOW_ASSET_STATS;
+  FxStats fxStats;
+  bool showFxStats = DEFAULT_SHOW_FX_STATS;
 };

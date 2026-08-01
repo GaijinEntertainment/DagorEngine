@@ -128,8 +128,8 @@ public:
     blk = a.props;
     if (const char *skel_nm = a.props.getStr("skeleton", NULL))
     {
-      GeomNodeTree tree;
-      if (!getSkeleton(tree, a.getMgr(), skel_nm, log))
+      GeomNodeTreeUniquePtr tree = getSkeleton(a.getMgr(), skel_nm, log);
+      if (!tree)
       {
         log.addMessage(log.ERROR, "cannot find skeleton: %s", skel_nm);
         return false;
@@ -156,7 +156,7 @@ public:
             if (b.getParamNameId(j) == nid_node && b.getParamType(j) == b.TYPE_STRING)
             {
               const char *n = b.getStr(j);
-              if (tree.findNodeIndex(n))
+              if (tree->findNodeIndex(n))
                 map.addNameId(n);
               else
                 logwarn("skipped node %s for skeleton");
@@ -171,7 +171,7 @@ public:
                 log.addMessage(log.ERROR, "%s:%s: bad regexp in nodemask <%s>: %s", a.getName(), a.getTypeStr(), name, b.getStr(j));
                 return false;
               }
-              addNodesByRE(map, tree, inc_re, NULL);
+              addNodesByRE(map, *tree, inc_re, NULL);
             }
           for (int j = 0; j < b.blockCount(); j++)
             if (b.getBlock(j)->getBlockNameId() == nid_nodesRE)
@@ -189,13 +189,13 @@ public:
                 log.addMessage(log.ERROR, "%s:%s: bad excl regexp in nodemask <%s>: %s", a.getName(), a.getTypeStr(), name, excl_re_s);
                 return false;
               }
-              addNodesByRE(map, tree, inc_re, excl_re_s ? &exc_re : NULL);
+              addNodesByRE(map, *tree, inc_re, excl_re_s ? &exc_re : NULL);
             }
 
           nodeStop.reset();
           for (int j = 0; j < b.paramCount(); j++)
             if (b.getParamNameId(j) == nid_nodesFrom && b.getParamType(j) == b.TYPE_STRING)
-              if (!addNodesRange(map, tree, b.getStr(j), nodeStop))
+              if (!addNodesRange(map, *tree, b.getStr(j), nodeStop))
               {
                 log.addMessage(log.ERROR, "%s:%s: start node <%s> not found in nodemask <%s>: %s", a.getName(), a.getTypeStr(),
                   b.getStr(j), name);
@@ -210,7 +210,7 @@ public:
               for (int k = 0; k < b2.paramCount(); k++)
                 if (b2.getParamNameId(k) == nid_to && b2.getParamType(k) == b.TYPE_STRING)
                   nodeStop.addNameId(b2.getStr(k));
-              if (!addNodesRange(map, tree, b2.getStr("from", ""), nodeStop))
+              if (!addNodesRange(map, *tree, b2.getStr("from", ""), nodeStop))
               {
                 log.addMessage(log.ERROR, "%s:%s: start node <%s> not found in nodemask <%s>: %s", a.getName(), a.getTypeStr(),
                   b2.getStr("from", ""), name);

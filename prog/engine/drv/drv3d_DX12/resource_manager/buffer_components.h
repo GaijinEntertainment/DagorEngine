@@ -61,6 +61,14 @@ protected:
   public:
     bool hasNoAllocations() const { return freeRanges.size() == 1 && freeRanges.front().size() == bufferMemory.size; }
 
+    uint64_t getUsedMemorySize() const
+    {
+      uint64_t freeSize = 0;
+      for (auto range : freeRanges)
+        freeSize += range.size();
+      return bufferMemory.size - freeSize;
+    }
+
     const dag::Vector<ValueRange<uint64_t>> &getFreeRanges() const { return freeRanges; }
     uint64_t getMaxFreeRangeSize() const { return maxFreeRangeSize; }
 
@@ -157,7 +165,7 @@ protected:
 
     size_t freeBuffer(BufferHeap *manager, const BufferState &buf, BufferHeap::FreeReason free_reason, const char *name);
 
-    size_t clear(ResourceMemoryHeapProvider *provider);
+    void clear(ResourceMemoryHeapProvider *provider);
 
 #if _TARGET_PC_WIN
     bool isOnDeviceBuffer(const BufferState &buffer, const FeatureSet &fs) const
@@ -181,8 +189,11 @@ protected:
   using BufferHeapStateWrapper = ContainerMutexWrapper<BufferHeapState, OSSpinlock>;
   BufferHeapStateWrapper bufferHeapState;
 
-  void notifyBufferMemoryRelease(size_t sz);
-  void notifyBufferMemoryAllocate(size_t sz, bool /*kick_off_shuffle*/);
+  // Tracks buffer heap memory that is in use by actual buffer objects for the engine persistent
+  // memory counter (texture streaming budget). Called exclusively by the Heap chunk allocation /
+  // free primitives and by heap teardown paths that drop still allocated chunks.
+  static void notifyBufferMemoryRelease(size_t sz);
+  static void notifyBufferMemoryAllocate(size_t sz);
 
   BufferGlobalId tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *device, BufferGlobalId buffer_id,
     BufferHeapStateWrapper::AccessToken &bufferHeapStateAccess, AllocationFlags allocation_flags, uint64_t buffer_resource_size);
@@ -208,8 +219,9 @@ public:
 
   using BufferAllocationResult = dag::Expected<BufferState, MemoryAllocationError>;
 
-  BufferState allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size, uint32_t discard_count,
-    DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name, bool disable_sub_alloc);
+  BufferAllocationResult allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size,
+    uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name,
+    bool disable_sub_alloc);
 
   BufferAllocationResult allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, Device &device, uint64_t size,
     uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,

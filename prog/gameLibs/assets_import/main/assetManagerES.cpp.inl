@@ -166,6 +166,8 @@ static void init_asset_manager_es(const ecs::Event &, DagorAssetMgr &asset__mana
   const char *assetCachePath = exportBlock->getStr("assetCache", "/cache");
   assetlocalprops::init(assetCachePath);
 
+  eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> loadContext;
+
   DataBlock::setRootIncludeResolver(dd_get_named_mount_path("appDir"));
   if (!asset__baseFolder.empty())
   {
@@ -176,7 +178,9 @@ static void init_asset_manager_es(const ecs::Event &, DagorAssetMgr &asset__mana
       dd_mkdir(assetsBasePath.c_str());
     }
     asset__baseFolderAbsPath = simplify_fname(assetsBasePath);
-    asset__manager.loadAssetsBase(assetsBasePath, "global");
+
+    loadContext = asset__manager.makeLoadAssetsBaseContext();
+    asset__manager.loadAssetsBase(assetsBasePath, "global", *loadContext);
   }
 
   for (const ecs::string &additionalFolder : asset__loadAdditionalFolders)
@@ -185,7 +189,11 @@ static void init_asset_manager_es(const ecs::Event &, DagorAssetMgr &asset__mana
     if (!dd_dir_exists(additionalFolderPath.c_str()))
       logerr("'%s' not exist", additionalFolderPath.c_str());
     else
-      asset__manager.loadAssetsBase(additionalFolderPath, "global");
+    {
+      if (!loadContext)
+        loadContext = asset__manager.makeLoadAssetsBaseContext();
+      asset__manager.loadAssetsBase(additionalFolderPath, "global", *loadContext);
+    }
   }
 
   dabuildcache::init(folders::get_exe_dir(), &messagePipe, get_dabuild_interface());

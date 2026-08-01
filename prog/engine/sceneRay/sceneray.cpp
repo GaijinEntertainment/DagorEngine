@@ -89,7 +89,7 @@ DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayLNodeVec(const vec3f &p, c
     IF_CONSTEXPR (allHits)
     {
       vec4f ts = v_splats(t);
-      int hitMask = v_signmask(traceray4TrianglesVecMask(p, dir, ts, vert, noCull));
+      int hitMask = v_truemask(traceray4TrianglesVecMask(p, dir, ts, vert, noCull));
       if (DAGOR_UNLIKELY(hitMask != 0))
       {
         alignas(16) float hitT[4];

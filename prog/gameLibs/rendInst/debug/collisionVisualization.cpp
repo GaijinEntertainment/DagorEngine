@@ -298,9 +298,7 @@ static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cr
       info.collRes = riPool.collRes;
       v_stu_bbox3(info.localBBox, riPool.lbb);
 
-      mat44f mat44;
-      v_mat43_transpose_to_mat44(mat44, riPool.riTm[j]);
-      v_mat_43cu_from_mat44(info.tm.array, mat44);
+      v_mat_43cu_from_mat43(info.tm.array, riPool.riTm[j]);
 
       out_collisions.push_back(info);
     }

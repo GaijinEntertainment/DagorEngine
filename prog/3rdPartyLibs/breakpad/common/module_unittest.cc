@@ -54,9 +54,7 @@ static Module::Function *generate_duplicate_function(const string &name) {
   const Module::Address DUP_SIZE = 0x200b26e605f99071LL;
   const Module::Address DUP_PARAMETER_SIZE = 0xf14ac4fed48c4a99LL;
 
-  Module::Function *function = new(Module::Function);
-  function->name = name;
-  function->address = DUP_ADDRESS;
+  Module::Function *function = new Module::Function(name, DUP_ADDRESS);
   function->size = DUP_SIZE;
   function->parameter_size = DUP_PARAMETER_SIZE;
   return function;
@@ -81,9 +79,8 @@ TEST(Write, OneLineFunc) {
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
   Module::File *file = m.FindFile("file_name.cc");
-  Module::Function *function = new(Module::Function);
-  function->name = "function_name";
-  function->address = 0xe165bf8023b9d9abLL;
+  Module::Function *function = new Module::Function(
+      "function_name", 0xe165bf8023b9d9abLL);
   function->size = 0x1e4bb0eb1cbf5b09LL;
   function->parameter_size = 0x772beee89114358aLL;
   Module::Line line = { 0xe165bf8023b9d9abLL, 0x1e4bb0eb1cbf5b09LL,
@@ -110,9 +107,8 @@ TEST(Write, RelativeLoadAddress) {
   Module::File *file2 = m.FindFile("filename-a.cc");
 
   // A function.
-  Module::Function *function = new(Module::Function);
-  function->name = "A_FLIBBERTIJIBBET::a_will_o_the_wisp(a clown)";
-  function->address = 0xbec774ea5dd935f3LL;
+  Module::Function *function = new Module::Function(
+      "A_FLIBBERTIJIBBET::a_will_o_the_wisp(a clown)", 0xbec774ea5dd935f3LL);
   function->size = 0x2922088f98d3f6fcLL;
   function->parameter_size = 0xe5e9aa008bd5f0d0LL;
 
@@ -168,9 +164,8 @@ TEST(Write, OmitUnusedFiles) {
   Module::File *file3 = m.FindFile("filename3");
 
   // Create a function.
-  Module::Function *function = new(Module::Function);
-  function->name = "function_name";
-  function->address = 0x9b926d464f0b9384LL;
+  Module::Function *function = new Module::Function(
+      "function_name", 0x9b926d464f0b9384LL);
   function->size = 0x4f524a4ba795e6a6LL;
   function->parameter_size = 0xbbe8133a6641c9b7LL;
 
@@ -217,9 +212,8 @@ TEST(Write, NoCFI) {
   Module::File *file1 = m.FindFile("filename.cc");
 
   // A function.
-  Module::Function *function = new(Module::Function);
-  function->name = "A_FLIBBERTIJIBBET::a_will_o_the_wisp(a clown)";
-  function->address = 0xbec774ea5dd935f3LL;
+  Module::Function *function = new Module::Function(
+      "A_FLIBBERTIJIBBET::a_will_o_the_wisp(a clown)", 0xbec774ea5dd935f3LL);
   function->size = 0x2922088f98d3f6fcLL;
   function->parameter_size = 0xe5e9aa008bd5f0d0LL;
 
@@ -260,15 +254,13 @@ TEST(Construct, AddFunctions) {
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
   // Two functions.
-  Module::Function *function1 = new(Module::Function);
-  function1->name = "_without_form";
-  function1->address = 0xd35024aa7ca7da5cLL;
+  Module::Function *function1 = new Module::Function(
+      "_without_form", 0xd35024aa7ca7da5cLL);
   function1->size = 0x200b26e605f99071LL;
   function1->parameter_size = 0xf14ac4fed48c4a99LL;
 
-  Module::Function *function2 = new(Module::Function);
-  function2->name = "_and_void";
-  function2->address = 0x2987743d0b35b13fLL;
+  Module::Function *function2 = new Module::Function(
+      "_and_void", 0x2987743d0b35b13fLL);
   function2->size = 0xb369db048deb3010LL;
   function2->parameter_size = 0x938e556cb5a79988LL;
 
@@ -443,11 +435,9 @@ TEST(Construct, Externs) {
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
   // Two externs.
-  Module::Extern *extern1 = new(Module::Extern);
-  extern1->address = 0xffff;
+  Module::Extern *extern1 = new Module::Extern(0xffff);
   extern1->name = "_abc";
-  Module::Extern *extern2 = new(Module::Extern);
-  extern2->address = 0xaaaa;
+  Module::Extern *extern2 = new Module::Extern(0xaaaa);
   extern2->name = "_xyz";
 
   m.AddExtern(extern1);
@@ -470,11 +460,9 @@ TEST(Construct, DuplicateExterns) {
   Module m(MODULE_NAME, MODULE_OS, MODULE_ARCH, MODULE_ID);
 
   // Two externs.
-  Module::Extern *extern1 = new(Module::Extern);
-  extern1->address = 0xffff;
+  Module::Extern *extern1 = new Module::Extern(0xffff);
   extern1->name = "_xyz";
-  Module::Extern *extern2 = new(Module::Extern);
-  extern2->address = 0xffff;
+  Module::Extern *extern2 = new Module::Extern(0xffff);
   extern2->name = "_abc";
 
   m.AddExtern(extern1);

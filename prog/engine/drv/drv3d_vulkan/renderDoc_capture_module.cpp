@@ -73,10 +73,13 @@ void RenderDocCaptureModule::triggerCapture(uint32_t count)
   }
 }
 
-void RenderDocCaptureModule::beginCapture()
+void RenderDocCaptureModule::beginCapture(const wchar_t *name)
 {
   if (docAPI)
+  {
+    setCapturePathTemplate(name);
     docAPI->StartFrameCapture(nullptr, nullptr);
+  }
 }
 
 void RenderDocCaptureModule::endCapture()

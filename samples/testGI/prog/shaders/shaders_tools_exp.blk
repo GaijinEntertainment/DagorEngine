@@ -3,6 +3,8 @@ include shaders_tools11.blk
 "@override:outDumpName":t="../../tools/tools.exp"
 outMiniDumpName:t="../../tools/tools.exp"
 
+compileRefinedBlock:b=no
+
 "@delete:source" {}
 source
 {

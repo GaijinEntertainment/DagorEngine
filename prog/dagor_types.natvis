@@ -675,8 +675,8 @@
   </Expand>
 </Type>
 
-<Type Name="ConcurrentElementPool&lt;*,*&gt;">
-  <AlternativeType Name="ConcurrentRangePool&lt;*,*&gt;" />
+<Type Name="dag::ConcurrentElementPool&lt;*,*&gt;">
+  <AlternativeType Name="dag::ConcurrentRangePool&lt;*,*&gt;" />
   <DisplayString>{{ size={totalElems} }}</DisplayString>
   <Expand>
     <Item Name="[size]">totalElems</Item>

@@ -41,6 +41,8 @@ void phys_send_broadcast_part_auth_state(IPhysActor *nu, danet::BitStream &&data
 bool phys_fetch_sim_res(bool wait);
 
 int get_interp_delay_ticks(PhysTickRateType tr_type);
+// Same as get_interp_delay_ticks * time_step + timespeed delay but reads values cached once per act (PhysUpdateCtx)
+float phys_get_interp_delay_sec(PhysTickRateType tr_type, float time_step);
 
 template <typename PhysActor>
 float get_interp_delay_time(const PhysActor &net_phys)
@@ -56,9 +58,8 @@ inline float calc_interpk(const PhysActor &net_phys, double at_time)
   float interpK = 0.f;
   if (net_phys.getRole() == IPhysActor::NetRole::ROLE_REMOTELY_CONTROLLED_SHADOW)
   {
-    const int delayTicks = get_interp_delay_ticks(net_phys.tickrateType);
-    const float interpDelay = float(delayTicks) * physDt + get_timespeed_accumulated_delay_sec();
-    const double atTime = at_time - interpDelay;
+    // cached delay matches the one the shadow interpolation itself was updated with
+    const double atTime = at_time - phys_get_interp_delay_sec(net_phys.tickrateType, physDt);
 
     if (const typename PhysActor::SnapshotPair *spair = net_phys.findPhysSnapshotPair(atTime))
     {

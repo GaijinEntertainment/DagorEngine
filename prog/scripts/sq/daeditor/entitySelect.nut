@@ -38,7 +38,7 @@ let numSelectedEntities = Computed(function() {
   return nSel
 })
 
-function matchEntityByText(eid, text) {
+function matchEntityByText(eid, text): bool {
   if (text==null || text=="" || eid.tostring().contains(text))
     return true
   let tplName = g_entity_mgr.getEntityTemplateName(eid)

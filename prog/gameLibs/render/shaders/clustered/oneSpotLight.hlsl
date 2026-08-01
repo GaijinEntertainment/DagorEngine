@@ -42,17 +42,9 @@
   #if !RT_DYNAMIC_LIGHTS && (SPOT_SHADOWS || defined(SPOT_CONTACT_SHADOWS_CALC))
     if (lightShadowTC.w > 1e-6)
     {
-      bool shadowTcValid;
       lightShadowTC.xyz /= lightShadowTC.w;
-      {
-        uint2 shadowRectOfsI = uint2(shadowAtlasRectBits & SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_MASK,
-          (shadowAtlasRectBits >> SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_BITS) & SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_MASK);
-        uint shadowRectExp = shadowAtlasRectBits >> (SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_BITS * 2u);
-        float2 shadowRectOfs = asfloat((127u << 23u) | (shadowRectOfsI << (23u - shadowRectExp))) - 1;
-        float shadowRectSize = asfloat((127u - shadowRectExp) << 23u);
-        float4 shadowTcRect = float4(shadowRectOfs, shadowRectOfs + shadowRectSize);
-        shadowTcValid = all(lightShadowTC.xy == clamp(lightShadowTC.xy, shadowTcRect.xy, shadowTcRect.zw));
-      }
+      float4 spotShadowUvBounds = getSpotLightShadowUvBounds(spot_light_index);
+      bool shadowTcValid = all(lightShadowTC.xy == clamp(lightShadowTC.xy, spotShadowUvBounds.xy, spotShadowUvBounds.zw));
 
       #if SPOT_SHADOWS
         #ifdef SIMPLE_PCF_SHADOW

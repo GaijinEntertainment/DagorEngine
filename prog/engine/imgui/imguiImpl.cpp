@@ -34,6 +34,9 @@ extern bool ImGui_Multiview_Init();
 extern void ImGui_Multiview_Shutdown();
 extern void ImGui_Multiview_NewFrame();
 
+extern void ImGui_TestRuntime_StartFrame();
+extern void ImGui_TestRuntime_EndFrame();
+
 namespace
 {
 
@@ -209,6 +212,8 @@ static bool init()
   ImPlot::CreateContext();
 
   ImGuiIO &io = ImGui::GetIO();
+
+  imgui_test_runtime_set(false, nullptr);
 
   // Load blk
   imgui_blk = eastl::make_unique<DataBlock>();
@@ -502,10 +507,14 @@ void imgui_update(int display_width, int display_height)
   imgui_endframe();
   ImGui::NewFrame();
   frameEnded = false;
+
+  ImGui_TestRuntime_StartFrame();
 }
 
 void imgui_endframe()
 {
+  ImGui_TestRuntime_EndFrame();
+
   imgui_set_default_font();
   if (!frameEnded)
   {

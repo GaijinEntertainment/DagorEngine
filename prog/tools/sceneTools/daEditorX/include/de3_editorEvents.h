@@ -15,3 +15,6 @@ static constexpr unsigned HUID_AfterD3DReset = 0x2322B8F8u;      // AfterD3DRese
 static constexpr unsigned HUID_AutoSaveDueToCrash = 0x998B4A22u; // AutoSaveDueToCrash
 static constexpr unsigned HUID_PostRenderObjects = 0x38092EF8u;  // PostRenderObjects
 static constexpr unsigned HUID_BeforeMainLoop = 0xC12CC2E4u;     // BeforeMainLoop
+
+static constexpr unsigned INVALIDATE_CLIPMAP_FORCE_REDRAW = 1;
+static constexpr unsigned INVALIDATE_CLIPMAP_SKIP_LAST_CLIP = 1 << 1;

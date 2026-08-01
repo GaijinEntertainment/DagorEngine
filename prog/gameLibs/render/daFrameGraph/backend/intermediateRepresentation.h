@@ -11,6 +11,7 @@
 #include <generic/dag_functionRef.h>
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_enhanced_barrier.h>
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_variableRateShading.h>
 #include <shaders/dag_shaderCommon.h>
@@ -139,6 +140,8 @@ enum class ClearStage
   RenderPass  ///< Resource is cleared in render pass
 };
 
+using EnhancedBarrier = eastl::variant<eastl::monostate, d3d::BufferBarrier, d3d::TextureBarrier>;
+
 struct ScheduledResource
 {
   eastl::variant<ResourceDescription, BlobDescription> description;
@@ -149,9 +152,22 @@ struct ScheduledResource
   ResourceClearFlags clearFlags;
   History history;
   bool autoMipCount;
+  EnhancedBarrier untrackedReleaseBarrier;
 
   bool isGpuResource() const { return eastl::holds_alternative<ResourceDescription>(description); }
   bool isCpuResource() const { return eastl::holds_alternative<BlobDescription>(description); }
+
+  bool isUntracked() const
+  {
+    if (!isGpuResource())
+      return false;
+    const uint32_t cFlags = getGpuDescription().asBasicRes.cFlags;
+    if (resourceType == ResourceType::Buffer)
+      return (cFlags & SBCF_NO_STATE_TRACKING) != 0;
+    if (resourceType == ResourceType::Texture)
+      return (cFlags & TEXCF_NO_STATE_TRACKING) != 0;
+    return false;
+  }
 
   const ResourceDescription &getGpuDescription() const
   {
@@ -241,6 +257,27 @@ struct Resource
       },
       eastl::move(resource));
   }
+  bool isUntrackedBuffer() const
+  {
+    if (getResType() != ResourceType::Buffer)
+      return false;
+    if (isScheduled())
+      return asScheduled().isUntracked();
+    if (isExternal())
+      return (eastl::get<BufferInfo>(asExternal().info).flags & SBCF_NO_STATE_TRACKING) != 0;
+    return false;
+  }
+  bool isUntrackedTexture() const
+  {
+    if (getResType() != ResourceType::Texture)
+      return false;
+    if (isScheduled())
+      return asScheduled().isUntracked();
+    if (isExternal())
+      return (eastl::get<TextureInfo>(asExternal().info).cflg & TEXCF_NO_STATE_TRACKING) != 0;
+    return false;
+  }
+  bool isUntracked() const { return isUntrackedBuffer() || isUntrackedTexture(); }
 };
 
 // Default value here is "unbind everything"

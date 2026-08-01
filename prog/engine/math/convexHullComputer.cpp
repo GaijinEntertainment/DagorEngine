@@ -28,7 +28,7 @@ inline int min_axis(vec4f v)
   // alignas(16) float v[4]; v_st(v, VV);
   // return v[0] < v[1] ? (v[0] < v[2] ? 0 : 2) : (v[1] < v[2] ? 1 : 2);
   vec4f minV = v_splat_x(v_min(v_min(v, v_perm_yzwx(v)), v_perm_zwxy(v)));
-  return min((unsigned)2, __bsf(v_signmask(v_cmp_eq(v, minV))));
+  return min((unsigned)2, __bsf(v_truemask(v_cmp_eq(v, minV))));
 }
 
 inline int max_axis(vec4f v)
@@ -36,7 +36,7 @@ inline int max_axis(vec4f v)
   // alignas(16) float v[4]; v_st(v, VV);
   // return v[0] > v[1] ? (v[0] > v[2] ? 0 : 2) : (v[1] > v[2] ? 1 : 2);
   vec4f minV = v_splat_x(v_max(v_max(v, v_perm_yzwx(v)), v_perm_zwxy(v)));
-  return min((unsigned)2, __bsf(v_signmask(v_cmp_eq(v, minV))));
+  return min((unsigned)2, __bsf(v_truemask(v_cmp_eq(v, minV))));
 }
 
 // Convex hull implementation based on Preparata and Hong

@@ -2,7 +2,6 @@
 
 #include "still.h"
 #include "../animTreeUtils.h"
-#include "../animTreePanelPids.h"
 #include <util/dag_simpleString.h>
 
 const int DEFAULT_START = -1;

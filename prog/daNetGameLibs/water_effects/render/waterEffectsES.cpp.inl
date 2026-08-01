@@ -90,9 +90,9 @@ static void destroy_water_effects_entity()
 
 FFTWater *get_water()
 {
-  FFTWater *waterPtr = nullptr;
-  get_water_ecs_query(*g_entity_mgr, [&waterPtr](FFTWater &water) { waterPtr = &water; });
-  return waterPtr;
+  FFTWater *fftWater = nullptr;
+  get_water_ecs_query(*g_entity_mgr, [&fftWater](FFTWater &water) { fftWater = &water; });
+  return fftWater;
 }
 
 static void apply_foam_fx_params(ecs::EntityManager &manager, WaterEffects &water_effects)
@@ -340,7 +340,7 @@ void WaterEffects::renderInternalWaterProjFx()
   TMatrix4 view, proj;
   Point3 pos;
   if (waterProjectedFx && waterProjectedFx->getView(view, proj, pos))
-    acesfx::renderTransWaterProj(waterProjectedFx->getTarget(0), view, proj, pos, getWaterProjectedFxLodBias());
+    acesfx::renderTransWaterProj(view, proj, pos, getWaterProjectedFxLodBias());
 }
 
 WaterEffects::~WaterEffects()
@@ -629,7 +629,8 @@ bool test_box_is_in_water(FFTWater &water, const TMatrix &transform, const BBox3
   Point3_vec4 worldCenter;
   v_st(&worldCenter.x, v_bbox3_center(worldBoxV));
 
-  if (v_extract_y(worldBoxV.bmin) > fft_water::get_max_level(&water) + fft_water::get_max_wave(&water)) // check if it is too high
+  // check if it is too high
+  if (v_extract_y(worldBoxV.bmin) > fft_water::get_max_level(&water) + fft_water::get_max_wave_height(&water))
     return false;
 
   float waterHeight = fft_water::get_height(&water, worldCenter);

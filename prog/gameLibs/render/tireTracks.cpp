@@ -15,6 +15,8 @@
 #include <generic/dag_tab.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
+#include <debug/dag_debug3d.h>
+#include <debug/dag_textMarks.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_driver.h>
@@ -53,9 +55,20 @@ static Tab<BBox3> updated_regions;
 
 struct TireTrackNode
 {
-  Point4 pos; // pos xz, side vector * width
-  Point4 tc;  // tc, omnidir blend, opacity
+  Point3 pos;
+  uint32_t scaledSideVector; // side vector * width
+  Point4 tc;                 // tc, omnidir blend, opacity
 };
+
+static uint32_t encode_side_vector(Point2 scaled_side_vec)
+{
+  return (float_to_half(scaled_side_vec.x) << 16) | float_to_half(scaled_side_vec.y);
+}
+
+static Point2 decode_side_vector(uint32_t scaled_side_vec)
+{
+  return Point2(half_to_float(scaled_side_vec >> 16), half_to_float(scaled_side_vec));
+}
 
 static int default_texture_idx = 0;
 static float transparency = 1.f;
@@ -110,6 +123,8 @@ static RealRange segmentLength(0.5f, 1.0f);
 // minimal horizontal angle (grad), when tracks must be split
 static real hAngleLimit = DEG_TO_RAD * 30.0f;
 static real vAngleLimit = DEG_TO_RAD * 20.0f;
+
+static float maxOmnidirTexBlendDelta = 1.0f;
 
 // reduce opacity on tracks' ends
 static bool fadeTrackEnds = false;
@@ -196,11 +211,17 @@ public:
 
     lastTex = tex_id;
 
+    totalBatchLen += (pos - lastPos).length();
     if (totalBatchLen >= 1000 * trackTypes[trackTypeNo].textureLength)
       totalBatchLen = 0.0f;
 
-    totalBatchLen += (pos - lastPos).length();
-
+    int prevIdx = currentIdx > 0 ? currentIdx - 1 : track.size() - 1;
+    if (maxOmnidirTexBlendDelta < 1.0f && prevIdx >= 0 && track[prevIdx].tc.w > 0.f)
+    {
+      float prevOmnidirBlend = track[prevIdx].tc.z;
+      omnidirectional_tex_blend =
+        clamp(omnidirectional_tex_blend, prevOmnidirBlend - maxOmnidirTexBlendDelta, prevOmnidirBlend + maxOmnidirTexBlendDelta);
+    }
     TireTrackNode node =
       genNewNode(pos, normalize(movedir), opacity, wetness, additional_width, omnidirectional_tex_blend, correct_previous_node);
 
@@ -211,35 +232,32 @@ public:
 
     if (correct_previous_node && node.tc.w > 0.f && track.size() > 2)
     {
-      auto getPrevIdx = [this](int idx) { return (idx - 1 < 0 && track.size() == MAX_NODES_PER_TRACK) ? track.size() - 1 : idx - 1; };
-      int prevIdx = getPrevIdx(currentIdx);
-      int secondPrevIdx = getPrevIdx(prevIdx);
+      int secondPrevIdx = prevIdx > 0 ? prevIdx - 1 : track.size() - 1;
 
       if (direction_changed)
         track[prevIdx].tc.w = 0.f;
 
-      Point4 &prevNodePos = track[prevIdx].pos;
-      Point4 &secondPrevNodePos = track[secondPrevIdx].pos;
+      Point3 prevNodePos = track[prevIdx].pos;
+      Point3 secondPrevNodePos = track[secondPrevIdx].pos;
 
-      Point2 lastSegmentDir = normalize(Point2::xy(node.pos) - Point2::xy(prevNodePos));
-      Point2 prevLastSegmentDir = normalize(Point2::xy(prevNodePos) - Point2::xy(secondPrevNodePos));
+      Point2 lastSegmentDir = normalize(Point2::xz(node.pos) - Point2::xz(prevNodePos));
+      Point2 prevLastSegmentDir = normalize(Point2::xz(prevNodePos) - Point2::xz(secondPrevNodePos));
       Point2 segmentBisector = lastSegmentDir + prevLastSegmentDir;
 
       float segmentBisectorLengthSquared = lengthSq(segmentBisector);
       if (segmentBisectorLengthSquared > 1.f) // a turn is less than 120 degrees
       {
-        Point2 sideVector = Point2(prevNodePos.z, prevNodePos.w);
+        Point2 sideVector = decode_side_vector(track[prevIdx].scaledSideVector);
         // A bisector of an angle between 2 polygonal chain segments is orthogonal to the bisector of corresponding vectors:
         Point2 newSideVector =
           Point2(segmentBisector.y, -segmentBisector.x) * safeinv(sqrtf(segmentBisectorLengthSquared)) * length(sideVector);
         if (dot(newSideVector, sideVector) < 0.f)
           newSideVector *= -1.f;
 
-        prevNodePos.z = newSideVector.x;
-        prevNodePos.w = newSideVector.y;
+        track[prevIdx].scaledSideVector = encode_side_vector(newSideVector);
 
         // We have to invalidate previous node with the corrected side vector
-        Point3 newSideVector3D = Point3(prevNodePos.z, 0.f, prevNodePos.w);
+        Point3 newSideVector3D = Point3::x0y(newSideVector);
         Point3 pPos = lastPos + newSideVector3D;
         v_bbox3_add_pt(updateBbox, v_ldu(&pPos.x));
         pPos = lastPos - newSideVector3D;
@@ -268,7 +286,7 @@ public:
   {
     for (int i = 0; i < track.size(); i++)
     {
-      Point2 posXZ = Point2(track[i].pos.x, track[i].pos.y);
+      Point2 posXZ = Point2(track[i].pos.x, track[i].pos.z);
       if (box & posXZ)
         track[i].tc.w = 0;
     }
@@ -298,8 +316,8 @@ private:
 
     Point3 pwidth = b * width;
 
-    result.pos = Point4(pos.x, pos.z, pwidth.x, pwidth.z);
-
+    result.pos = pos;
+    result.scaledSideVector = encode_side_vector(Point2::xz(pwidth));
     result.tc = genTexCoord(alpha * transparency, wetness, omnidirectional_tex_blend);
 
     // generate invalidation box
@@ -347,6 +365,8 @@ private:
 
     return result;
   }
+
+  friend void tire_tracks::render_debug(bool);
 };
 
 //*************************************************
@@ -354,6 +374,7 @@ private:
 //*************************************************
 // shaders
 DynamicShaderHelper trackMaterial;
+static DynamicShaderHelper tiresProjectiveDecalShader;
 
 //*************************************************
 // init/release
@@ -430,6 +451,7 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
     transparency = params->getReal("transparency", 1.f);
 
     fadeTrackEnds = params->getBool("fadeTrackEnds", false);
+    maxOmnidirTexBlendDelta = params->getReal("maxOmnidirTexBlendDelta", 1.0f);
   }
 
   init_emitters();
@@ -516,6 +538,8 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
     SBCF_DYNAMIC | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, String(0, "tire_tracks_data_vs"), RESTAG_TRACK);
 
   trackMaterial.init(shaderName, NULL, 0, "tire_track shader");
+  tiresProjectiveDecalShader.init("tires_projective_decal", NULL, 0, "tire_track shader", true);
+  index_buffer::init_box();
 }
 
 // release system
@@ -560,6 +584,8 @@ void release()
   clear_and_shrink(trackTypes);
   renderDataVS.close();
   trackMaterial.close();
+  tiresProjectiveDecalShader.close();
+  index_buffer::release_box();
 }
 
 //*************************************************
@@ -751,11 +777,10 @@ void delete_emitter(int emitterId)
   emitters[emitterId].alive = false;
 }
 
-void render(const Frustum &frustum, bool for_displacement)
+void render_to_clipmap(bool for_displacement)
 {
   if (!renderDataVS.getBuf())
     return;
-  G_UNUSED(frustum);
 
   index_buffer::Quads32BitUsageLock quads32Lock;
 
@@ -791,6 +816,65 @@ void render(const Frustum &frustum, bool for_displacement)
     shaders::overrides::reset();
     shaders::overrides::set(savedStateId);
   }
+}
+
+void render_projective_decals()
+{
+  if (!tiresProjectiveDecalShader.shader || !renderDataVS.getBuf())
+    return;
+  TIME_D3D_PROFILE(tire_tracks_decals);
+  index_buffer::use_box();
+  int startInstance = 0;
+  for (int renderType = 0; renderType < trackTypes.size(); renderType++)
+  {
+    if (renderCount[renderType] < 2)
+      continue;
+    setShaderVars(renderType);
+    ShaderGlobal::set_int(tires_start_instVarId, startInstance);
+    d3d::setvsrc_ex(0, NULL, 0, 0);
+    if (!tiresProjectiveDecalShader.shader->setStates())
+      return;
+    d3d::drawind_instanced(PRIM_TRILIST, 0, 12, 0, renderCount[renderType] - 1);
+    startInstance += renderCount[renderType];
+  }
+}
+
+void render_debug(bool show_nodes_data)
+{
+  begin_draw_cached_debug_lines(false, false, false);
+  for (const auto &tr : emitters)
+  {
+    if (tr.track.empty())
+      continue;
+    int startNodeIdx = tr.getStart();
+    Point3 prevPos = tr.track[startNodeIdx].pos;
+    E3DCOLOR trackDebugColor = E3DCOLOR(255, 0, 0);
+    E3DCOLOR textureExtendColor = E3DCOLOR(255, 255, 255);
+    for (int i = 0; i < tr.track.size(); ++i)
+    {
+      int nodeIdx = (startNodeIdx + i) % tr.track.size();
+      Point3 pos = tr.track[nodeIdx].pos;
+      Point3 sideVector = Point3::x0y(decode_side_vector(tr.track[nodeIdx].scaledSideVector));
+      draw_cached_debug_line(pos - sideVector, pos + sideVector, textureExtendColor);
+      Point3 trackHalfWidthVector = normalize(sideVector) * tr.trackWidth * 0.5f;
+      draw_cached_debug_line(pos - trackHalfWidthVector, pos + trackHalfWidthVector, trackDebugColor);
+      draw_cached_debug_line(prevPos, pos, trackDebugColor);
+      prevPos = pos;
+      if (show_nodes_data)
+      {
+        Point4 tc = tr.track[nodeIdx].tc;
+        int texId = tc.x * trackTypes[tr.trackTypeNo].frameCount;
+        float omnidirBlend = tc.z;
+        float opacity = tc.w - floorf(tc.w);
+        float wetness = floorf(tc.w) * 0.001f;
+        add_debug_text_mark(pos, String(0, "texId: %d", texId), -1, 0.f);
+        add_debug_text_mark(pos, String(0, "omnidir: %f", omnidirBlend), -1, 1.f);
+        add_debug_text_mark(pos, String(0, "opacity: %f", opacity), -1, 2.f);
+        add_debug_text_mark(pos, String(0, "wetness: %f", wetness), -1, 3.f);
+      }
+    }
+  }
+  end_draw_cached_debug_lines();
 }
 
 bool is_initialized() { return initialized; }

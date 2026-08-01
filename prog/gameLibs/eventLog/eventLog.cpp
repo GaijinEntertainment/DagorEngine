@@ -207,8 +207,11 @@ bool init(EventLogInitParams const &init_params)
   if (!id.empty())
     defaults::meta["system_id"] = id.c_str();
 
-  const debug_log_callback_t prevCb = debug_set_log_callback(netlog_handler);
-  interlocked_exchange_ptr(orig_debug_log, prevCb);
+  if (init_params.use_net_assert_log)
+  {
+    const debug_log_callback_t prevCb = debug_set_log_callback(netlog_handler);
+    interlocked_exchange_ptr(orig_debug_log, prevCb);
+  }
 
   return true;
 }

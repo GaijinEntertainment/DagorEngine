@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <Import Project="..\..\_jBuild\msbuild\projects\$(MSBuildProjectName).props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3a639bbe-feb3-4fb0-8fa2-7e661e7dc648}</ProjectGuid>
+    <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
+    <ProjectRootDir>$(RootDir)prog\tools\</ProjectRootDir>
+    <GameDir>$(ProjectRootDir)</GameDir>
+    <ProjectName>assetViewer2</ProjectName>
+    <GameType>tool</GameType>
+    <OutDir>$(RootDir)tools\dagor_cdk\$(JamPlatform)-$(JamPlatformArch)\</OutDir>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)defaults.props" />
+  <PropertyGroup Label="Configuration">
+    <NMakeIncludeSearchPath>$(NMakeIncludeSearchPath);$(RootDir)prog\tools\sharedInclude;$(RootDir)prog\tools\sceneTools\daEditorX\include;$(RootDir)prog\engine\sharedInclude;$(RootDir)prog\tools\sceneTools\impostorBaker;$(RootDir)prog\tools\sceneTools\pointCloudGen\generator;$(RootDir)prog\gameLibs\rendInst;$(RootDir)prog\gameLibs\publicInclude;$(RootDir)prog\1stPartyLibs\jsoncpp\include;$(RootDir)prog\daNetGame</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)config.props" />
+  <PropertyGroup>
+    <AdjunctOptions>$(AdjunctOptions) -sRoot=../.. -fAssetViewer/jamfile </AdjunctOptions>
+  </PropertyGroup>
+  <Import Project="$(MSBuildToolsDir)common.targets" />
+  <PropertyGroup>
+    <JamOutput>$(OutDir)assetViewer2$(NameSuffix).exe</JamOutput>
+    <ExeName>assetViewer2$(NameSuffix).exe</ExeName>
+    <NMakeOutput>$(JamOutput)</NMakeOutput>
+    <LocalDebuggerCommand>$(JamOutput)</LocalDebuggerCommand>
+  </PropertyGroup>
+  <ItemGroup Label="Wildcard">
+    <CppSource Include="**\*.cpp" />
+    <CppHeader Include="**\*.h;**\*.inl" />
+    <bat Include="**\*.bat;**\*.cmd" />
+  </ItemGroup>
+</Project>

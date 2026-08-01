@@ -30,35 +30,14 @@ macro GET_WEIGHT()
   }
 
 hlsl(ps) {
+  // get_weights() output is fully derived, so selecting this draw's landclass
+  // weight is a plain projection onto the one-hot selector consts
   half get_weight(half4 weight1, half3 weight2)
   {
-    #if (num_tex_count==0)
-      return 1;
-    #elif (num_tex_count==1)
+    #if (num_tex_count<=1)
       return 1;
     #else
-      #if (num_tex_count == 2)
-        weight1.x = saturate(1-weight1.y);
-        return dot(weight1_dot.xy, weight1.xy);
-      #elif (num_tex_count == 3)
-        weight1.z = saturate(1-dot(weight1.xy,1));
-        return dot(weight1_dot.xyz, weight1.xyz);
-      #elif (num_tex_count == 4)
-        weight1.z = saturate(1-dot(weight1.xyw,1));
-        return dot(weight1_dot.xyzw, weight1.xyzw);
-      #endif
-      #if (num_tex_count > 5)
-        #if (num_tex_count > 6)
-          weight2.z = saturate(1-dot(weight1,1)-weight2.x-weight2.y);
-          return dot(weight1_dot.xyzw, weight1.xyzw) + dot(weight2_dot.xyz, weight2.xyz);
-        #elif (num_tex_count == 6)
-          weight2.x = saturate(1-dot(weight1,1)-weight2.y);     
-          return dot(weight1_dot.xyzw, weight1.xyzw) + dot(weight2_dot.xy, weight2.xy);
-        #endif
-      #elif (num_tex_count == 5)
-        weight2.x = saturate(1-dot(weight1,1));
-        return dot(weight1_dot.xyzw, weight1.xyzw) + weight2_dot.x * weight2.x;
-      #endif
+      return dot(weight1_dot, weight1) + dot(weight2_dot.xyz, weight2);
     #endif
   }
 }
@@ -66,28 +45,20 @@ endmacro
 
 macro GET_ONE_LC_DETAIL_TEX()
 GET_WEIGHT()
+GET_WEIGHTS()
 hlsl(ps) {
-  half get_detail_tex_weight(float2 detMapCoord)
+  half get_detail_tex_weight(float2 world_pos_xz)
   {
-    #if (num_tex_count==0)
-      return 1;
-    #elif (num_tex_count==1)
+    #if (num_tex_count<=1)
       return 1;
     #else
-      half4 weight1 = h4tex2D(land_detail_map_n0, detMapCoord);     // Blended tiled texture.
-      half3 weight2 = 0;
-      #if (num_tex_count > 5)
-        weight2.xy = h2tex2D(land_detail_map_n1, detMapCoord).xy;
-      #endif
+      half4 weight1;
+      half3 weight2;
+      get_weights(world_pos_xz, weight1, weight2);
       return get_weight(weight1, weight2);
     #endif
   }
 }
-endmacro
-
-macro USE_MRT_OUTPUT()
-(ps) { render_with_normalmap@f1 = (render_with_normalmap, 0, 0, 0); }
-USE_CLIPMAP_MRT_OUTPUT()
 endmacro
 
 macro GET_MEGA_PS()
@@ -249,46 +220,39 @@ shader land_mesh_landclass_simple, land_mesh_landclass_detailed
       };
     }
 
-    USE_MRT_OUTPUT()
+    USE_CLIPMAP_MRT_OUTPUT()
 
     hlsl(ps) {
 
-      MRT_OUPUT landmesh_clipmap_ps(VsOutput input)
+      VTEX_MRT landmesh_clipmap_ps(VsOutput input)
       {
-        MRT_OUPUT ret;
-        half weight = get_detail_tex_weight(input.mapTexcoord);
+        VTEX_MRT ret;
+        half weight = get_detail_tex_weight(input.worldPos.xz);
         ##if shader == land_mesh_landclass_detailed
           half height, smoothness, colormapA;
           half3 diffuseColor, normal;
           get_detailed(height, diffuseColor, normal, smoothness, colormapA, input.tiledTexcoord0.xy, input.tiledTexcoord0.zw, land_bump_scale.y);
-
-          ##if clipmap_writes_height_only == no
-            ret.color = diffuseColor.rgbr;
-          ##endif
         ##elif shader == land_mesh_landclass_simple
           half4 diffuseColor  = h4tex2D(colormapTex, input.tiledTexcoord0.xy);
           half height = diffuseColor.x;
           half smoothness = 0;
           half3 normal = half3(0,0,1);
-          ##if clipmap_writes_height_only == no
-            ret.color = diffuseColor.rgbr;
-          ##endif
         ##endif
 
-        ret.height = height;
-        ret.height *= weight;
+        ##if (render_with_normalmap == render_displacement)
+          ret.height = height;
+          ret.height *= weight;
+        ##else
+          Vtex vtex = create_vtex();
+          set_diffuse(vtex, diffuseColor.rgb);
+          set_normal(vtex, normal);
+          set_smoothness(vtex, smoothness);
+          set_reflectance(vtex, 1); // fix-me?
+          set_ao(vtex, 0); // fix-me?
+          set_micro_detail(vtex, 0.5); // fix-me?
 
-        ##if clipmap_writes_height_only == no
-          ret.normal = half4(normal.xy*0.5+0.5, smoothness, 0);
-          ret.detail_ao_reflectance = half4(0, 1, 0.5, 0);
-          ret.normal *= weight;
-          ret.color *= weight;
-          ret.detail_ao_reflectance *= weight;
-
-          ##if in_editor_assume == yes || use_editor_render
-            if (render_with_normalmap>1)
-              ret.color =  ret.height;
-          ##endif
+          ret = create_render_vtex(vtex);
+          multiply_target(ret, weight);
         ##endif
         return ret;
       }
@@ -368,63 +332,34 @@ shader land_mesh_landclass_trivial
       };
     }
 
-    USE_MRT_OUTPUT()
+    USE_CLIPMAP_MRT_OUTPUT()
 
     hlsl(ps) {
 
-      MRT_OUPUT landmesh_trivial_clipmap_ps(VsOutput input)
+      VTEX_MRT landmesh_trivial_clipmap_ps(VsOutput input)
       {
-        MRT_OUPUT ret;
+        VTEX_MRT ret;
         half4 weight1;
         half3 weight2;
-        get_weights(input.mapTexcoord, weight1, weight2);
+        get_weights(input.worldPos.xz, weight1, weight2);
 
-        half3 diffuseColor = get_detail_tex(input.tiledTexcoord0, 
+        half3 diffuseColor = get_detail_tex_weighted(input.tiledTexcoord0,
                                             input.tiledTexcoord1,
                                             input.tiledTexcoord2,
                                             input.tiledTexcoord3,
                                             weight1, weight2).rgb;
 
-        half height = diffuseColor.r;
-        ret.height = height;
+        ##if (render_with_normalmap == render_displacement)
+          half height = diffuseColor.r;
+          ret.height = height;
+        ##else
+          Vtex vtex = create_vtex();
+          set_diffuse(vtex, diffuseColor.rgb);
+          set_reflectance(vtex, 1); // fix-me?
+          set_ao(vtex, 0); // fix-me?
+          set_micro_detail(vtex, 0.5); // fix-me?
 
-        ##if clipmap_writes_height_only == no
-          ret.color = diffuseColor.rgbr;
-          ret.color.a = 0;
-
-          float3 texOfs0 = float3(texsizes03.x, texsizes03.y, 0);
-          float3 texOfs1 = float3(texsizes03.z, texsizes03.w, 0);
-          float3 texOfs2 = float3(texsizes47.x, texsizes47.y, 0);
-          float3 texOfs3 = float3(texsizes47.z, texsizes47.w, 0);
-          half3 s01 = get_detail_tex(input.tiledTexcoord0 - texOfs0.xzyz,
-                                     input.tiledTexcoord1 - texOfs1.xzxz,
-                                     input.tiledTexcoord2 - texOfs2.xzyz,
-                                     input.tiledTexcoord3 - texOfs3.xzyz,
-                                     weight1, weight2).rgb;
-          half3 s21 = get_detail_tex(input.tiledTexcoord0 + texOfs0.xzyz,
-                                     input.tiledTexcoord1 + texOfs1.xzyz,
-                                     input.tiledTexcoord2 + texOfs2.xzyz,
-                                     input.tiledTexcoord3 + texOfs3.xzyz,
-                                     weight1, weight2).rgb;
-          half3 s10 = get_detail_tex(input.tiledTexcoord0 - texOfs0.zxzy,
-                                     input.tiledTexcoord1 - texOfs1.zxzy,
-                                     input.tiledTexcoord2 - texOfs2.zxzy,
-                                     input.tiledTexcoord3 - texOfs3.zxzy,
-                                     weight1, weight2).rgb;
-          half3 s12 = get_detail_tex(input.tiledTexcoord0 + texOfs0.zxzy,
-                                     input.tiledTexcoord1 + texOfs1.zxzy,
-                                     input.tiledTexcoord2 + texOfs2.zxzy,
-                                     input.tiledTexcoord3 + texOfs3.zxzy,
-                                     weight1, weight2).rgb;
-
-          half smoothness = 0;
-          ret.normal = half4(0.5, 0.5, smoothness, 0);
-          ret.detail_ao_reflectance = half4(0, 1, 0.5, 0);
-
-          ##if in_editor_assume == yes || use_editor_render
-            if (render_with_normalmap>1)
-              ret.color =  ret.height;
-          ##endif
+          ret = create_render_vtex(vtex);
         ##endif
         return ret;
       }
@@ -461,7 +396,8 @@ shader land_mesh_landclass_trivial
     supports land_mesh_grass_mask;
     INIT_HARDCODED_TEX_INFO()
     NUM_DETAIL_TEX()
-    GET_DETAIL_TEX()
+    GET_WEIGHTS()
+    GET_DETAIL_TEX_WEIGHTED()
     //USE_CLIPMAP_NONORMAL()
     //USE_CLIPMAP_LAST()
     color_write = rgb;
@@ -493,9 +429,11 @@ shader land_mesh_landclass_trivial
         tiledTexcoord[3] = input.tiledTexcoord3;
 
 
-        half3 mask = get_detail_tex(
-          tiledTexcoord,
-          input.tiledTexcoord3.zw).rgb;
+        half4 weight1;
+        half3 weight2;
+        get_weights(input.worldPos.xz, weight1, weight2);
+        half3 mask = get_detail_tex_weighted(tiledTexcoord[0], tiledTexcoord[1], tiledTexcoord[2], tiledTexcoord[3],
+          weight1, weight2).rgb;
 
         float maskScale = max(max(mask.r, mask.g), mask.b);
         float grassChannel = (maskScale == mask.r) ? 0 : (maskScale == mask.g ? 1./255. : 2./255);
@@ -941,14 +879,14 @@ shader landmesh_indexed_landclass, landmesh_indexed_landclass_weightmap
       };
     }
 
-    USE_MRT_OUTPUT()
+    USE_CLIPMAP_MRT_OUTPUT()
 
     hlsl(ps) {
 
-      MRT_OUPUT landmesh_mega_clipmap_ps(VsOutput input)
+      VTEX_MRT landmesh_mega_clipmap_ps(VsOutput input)
       {
-        MRT_OUPUT ret;
-        half weight = get_detail_tex_weight(input.mapTexcoord);
+        VTEX_MRT ret;
+        half weight = get_detail_tex_weight(input.tiledTexcoord0.zw);
         if (weight < 1./255)
           discard;
 
@@ -970,21 +908,19 @@ shader landmesh_indexed_landclass, landmesh_indexed_landclass_weightmap
           tc1, float4(ddx(tc1), ddy(tc1)), detailMul, weightTc, weightFactor);
         height = height*land_bump_scale.w + land_bump_scale.z;
 
-        ret.height = height*weight;
+        ##if (render_with_normalmap == render_displacement)
+          ret.height = height*weight;
+        ##else
+          Vtex vtex = create_vtex();
+          set_diffuse(vtex, diffuseColor);
+          set_normalXY(vtex, normal*2 - 1);
+          set_smoothness(vtex, smoothness);
+          set_micro_detail(vtex, detailNo);
+          set_ao(vtex, ao);
+          set_reflectance(vtex, reflectance);
 
-        ##if clipmap_writes_height_only == no
-          ret.color = diffuseColor.rgbr;
-          ret.color *= weight;
-          ret.normal = half4(normal.xy, smoothness, 0);
-          ret.normal *= weight;
-
-          ret.detail_ao_reflectance = half4(pack_detail_ao_reflectance_emission(detailNo, ao, reflectance, 0.0), 0);
-          ret.detail_ao_reflectance *= weight;
-
-          ##if in_editor_assume == yes || use_editor_render
-            if (render_with_normalmap>1)
-              ret.color =  ret.height;
-          ##endif
+          ret = create_render_vtex(vtex);
+          multiply_target(ret, weight);
         ##endif
         return ret;
       }
@@ -1075,14 +1011,12 @@ shader landmesh_indexed_landclass, landmesh_indexed_landclass_weightmap
       };
     }
 
-    USE_MRT_OUTPUT()
-
     hlsl(ps) {
 
       float4 landmesh_mega_clipmap_ps(VsOutput input): SV_Target0
       {
         float2 diffuseTc = input.tiledTexcoord0.xy;
-        half weight = get_detail_tex_weight(input.mapTexcoord);
+        half weight = get_detail_tex_weight(input.tiledTexcoord0.zw);
         weight *= h4tex2D(grassWeightTex, diffuseTc.xy).x;
         if (weight < 1./255)
           discard;
@@ -1470,42 +1404,47 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
 
     USE_PIXEL_TANGENT_SPACE()
 
-    USE_MRT_OUTPUT()
+    USE_CLIPMAP_MRT_OUTPUT()
     hlsl(ps) {
 
-      MRT_OUPUT landmesh_decal_clipmap_ps(VsOutput input)
+      VTEX_MRT landmesh_decal_clipmap_ps(VsOutput input)
       {
-        MRT_OUPUT ret;
+        VTEX_MRT ret;
         // land_mesh_combined.
         half3 combinedDiffuse, combinedNormal;
         half amount, norm_amount, r_amount, height, height_amount;
         half4 smoothness_ao_reflectance_detailNo;
         get_decal(combinedDiffuse, combinedNormal, smoothness_ao_reflectance_detailNo, height, amount, norm_amount, r_amount, height_amount, input.diffuseTexcoord__opacity, input.worldPos);
 
-        ret.height = half4(height,height,height,height_amount);
-
-        ##if clipmap_writes_height_only == no
-          ret.color = half4(combinedDiffuse.rgb, amount);
-          half3 normalWithSmoothness = half3(combinedNormal.xy*0.5+0.5, smoothness_ao_reflectance_detailNo.x);
+        ##if (render_with_normalmap == render_displacement)
+          ret.height = half4(height,height,height,height_amount);
+        ##else
+          Vtex vtex = create_vtex();
+          set_diffuse(vtex, combinedDiffuse.rgb);
           ##if shader == land_mesh_height_decal_mix
-            ret.normal = half4(normalWithSmoothness * norm_amount, 1);
+            set_normalXY(vtex, combinedNormal.xy * norm_amount);
+            set_smoothness(vtex, smoothness_ao_reflectance_detailNo.x * norm_amount);
           ##else
-            ret.normal = half4(normalWithSmoothness, norm_amount);
+            set_normalXY(vtex, combinedNormal.xy);
+            set_smoothness(vtex, smoothness_ao_reflectance_detailNo.x);
           ##endif
+          set_micro_detail(vtex, smoothness_ao_reflectance_detailNo.w);
+          set_ao(vtex, smoothness_ao_reflectance_detailNo.y);
+          set_reflectance(vtex, smoothness_ao_reflectance_detailNo.z);
+
+          ret = create_render_vtex(vtex);
+          set_alpha_diffuse(ret, amount);
+          ##if shader == land_mesh_height_decal_mix
+            set_alpha_normal_smoothness_or_lq_detail(ret, 1);
+          ##else
+            set_alpha_normal_smoothness_or_lq_detail(ret, norm_amount);
+          ##endif
+
           const float start = 0.7;
           const float finish = 0.8;
           const float a = 1/(finish-start);
           const float b = -start*a;
-          ret.detail_ao_reflectance = half4(
-            pack_detail_ao_reflectance_emission(smoothness_ao_reflectance_detailNo.w,
-                                                smoothness_ao_reflectance_detailNo.y,
-                                                smoothness_ao_reflectance_detailNo.z, 0),
-            (saturate(r_amount*a+b)));
-
-          ##if in_editor_assume == yes || use_editor_render
-            if (render_with_normalmap>1)
-              ret.color =  ret.height;
-          ##endif
+          set_alpha_ao_reflectance_detail(ret, saturate(r_amount*a+b));
         ##endif
         return ret;
       }
@@ -1576,13 +1515,13 @@ shader land_mesh_diffuse_modulate
   blend_src = zero; blend_dst = sc;
   blend_asrc = zero; blend_adst = one;
   color_write[0] = rgb;
-  color_write[1] = b;
+  color_write[1] = b; // smoothness
   color_write[2] = 0;
   color_write[3] = 0;
 
   supports land_mesh_prepare_clipmap;
 
-  if (lmesh_rendering_mode != rendering_clipmap || clipmap_writes_height_only == yes)
+  if (lmesh_rendering_mode != rendering_clipmap || render_with_normalmap == render_displacement)
   {
     dont_render;
   }
@@ -1620,21 +1559,22 @@ shader land_mesh_diffuse_modulate
 
   INIT_HARDCODED_WORLD_POS()
   USE_COMMON_LANDMESH_CLIPMAP_VS()
-  USE_MRT_OUTPUT()
+  USE_CLIPMAP_MRT_OUTPUT()
 
   hlsl(ps) {
-    MRT_OUPUT landmesh_decal_clipmap_ps(VsOutput input)
+    VTEX_MRT landmesh_decal_clipmap_ps(VsOutput input)
     {
-      MRT_OUPUT ret;
+      VTEX_MRT ret;
 
       float2 diffusetc = input.diffuseTexcoord__opacity.xy;
       half4 combinedDiffuse = tex2DBindlessSampler(get_colormapTex().tex, colormapTex_smp, diffusetc.xy);
 
-      ret.color = half4(combinedDiffuse.rgb * 2, 1);
-      ret.normal = half4(1, 1, combinedDiffuse.a  * 2, 1);
-      ret.height = half4(1, 1, 1, 1);
-      ret.detail_ao_reflectance = half4(1, 1, 1, 1);
+      Vtex vtex = create_vtex();
+      set_diffuse(vtex, combinedDiffuse.rgb * 2);
+      set_smoothness(vtex, combinedDiffuse.a * 2);
 
+      ret = create_render_vtex(vtex);
+      set_alpha(ret, 1);
       return ret;
     }
   }

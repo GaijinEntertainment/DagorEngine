@@ -527,8 +527,10 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
   const uint32_t minRequired = resDesc.requiredComponentsCount();
   const bool updateOneArchetype = first_archetype == archetypesCount - 1;
   const uint32_t totalDataComponentsCount = query.getComponentsCount();
+  // no required and no excluded components: every archetype fits, reject checks are pointless
+  const bool fitsAll = minRequired == 0 && resDesc.getNoCnt() == 0;
 
-  if (updateOneArchetype) // full pre-check before FRAMEMEM_REGION - avoids framemem alloc on mismatch
+  if (updateOneArchetype && !fitsAll) // full pre-check before FRAMEMEM_REGION - avoids framemem alloc on mismatch
   {
     const archetype_t ai = first_archetype;
     const bool relatedArchsRet = query.getArchetypesRelated() != 0;
@@ -539,10 +541,10 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
       return relatedArchsRet;
     const auto &archInfo = archetypes.getArchetypeInfoUnsafe(ai);
     for (uint32_t i = resDesc.getRQ().start, ei = i + resDesc.getRqCnt(); i < ei; ++i)
-      if (archInfo.getComponentId(resDesc.getComponents()[i]) == INVALID_ARCHETYPE_COMPONENT_ID)
+      if (!archInfo.hasComponent(resDesc.getComponents()[i]))
         return relatedArchsRet;
     for (uint32_t i = resDesc.getNO().start, ei = resDesc.getComponents().size(); i < ei; ++i)
-      if (archInfo.getComponentId(resDesc.getComponents()[i]) != INVALID_ARCHETYPE_COMPONENT_ID)
+      if (archInfo.hasComponent(resDesc.getComponents()[i]))
         return relatedArchsRet;
     for (uint32_t i = 0; i != totalDataComponentsCount; ++i)
     {
@@ -580,7 +582,9 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
     const auto &archInfo = archetypes.getArchetypeInfoUnsafe(ai);
     archetype_component_id tempIds[max_query_components_count];
 
-    if (!updateOneArchetype) // updateOneArchetype already did full pre-check before FRAMEMEM_REGION
+    // updateOneArchetype already did the full pre-check before FRAMEMEM_REGION;
+    // fitsAll queries take the checkless fill: optional lookups cannot reject
+    if (!updateOneArchetype && !fitsAll)
     {
       if (archetypes.getArchetype(ai).getComponentsCount() < minRequired)
         continue;
@@ -590,13 +594,13 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
       if (resDesc.getRqCnt())
       {
         for (uint32_t i = resDesc.getRQ().start, ei = i + resDesc.getRqCnt(); i < ei; ++i)
-          if (archInfo.getComponentId(resDesc.getComponents()[i]) == INVALID_ARCHETYPE_COMPONENT_ID)
+          if (!archInfo.hasComponent(resDesc.getComponents()[i]))
             goto loop_continue; // legal continue outer loop
       }
       if (resDesc.getNoCnt())
       {
         for (uint32_t i = resDesc.getNO().start, ei = resDesc.getComponents().size(); i < ei; ++i)
-          if (archInfo.getComponentId(resDesc.getComponents()[i]) != INVALID_ARCHETYPE_COMPONENT_ID)
+          if (archInfo.hasComponent(resDesc.getComponents()[i]))
             goto loop_continue; // legal continue outer loop
       }
       for (uint32_t i = 0; i != totalDataComponentsCount; ++i)
@@ -615,10 +619,7 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
     loop_normal:;
     }
     else
-    {
-      for (uint32_t i = 0; i != totalDataComponentsCount; ++i)
-        tempIds[i] = archInfo.getComponentId(resDesc.getComponents()[i]);
-    }
+      archInfo.getComponentIds(resDesc.getComponents().data(), totalDataComponentsCount, tempIds);
     // we have found acceptable archetype
     const uint32_t oldOffsets = allComponentsArchOffsets.size();
 
@@ -711,10 +712,9 @@ bool EntityManager::makeArchetypesQuery(archetype_t first_archetype, uint32_t in
           component_index_t cidx = trackedPair.first;
           component_index_t oldCidx = trackedPair.second;
           DAECS_EXT_ASSERT(aq >= first_archetype);
-          auto oldComponentInArchetypeIndex = archetypes.getArchetypeComponentIdUnsafe(aq, oldCidx);
-          if (oldComponentInArchetypeIndex == INVALID_ARCHETYPE_COMPONENT_ID)
+          if (!archetypes.hasComponentUnsafe(aq, oldCidx))
             continue;
-          DAECS_EXT_ASSERT(archetypes.getArchetypeComponentIdUnsafe(aq, cidx) != INVALID_ARCHETYPE_COMPONENT_ID);
+          DAECS_EXT_ASSERT(archetypes.hasComponentUnsafe(aq, cidx));
 
           trackedChanges.emplace_back(ScheduledArchetypeComponentTrack{aq, cidx});
         }
@@ -1191,6 +1191,8 @@ int EntityManager::getQuerySize(QueryId h)
 void EntityManager::updateAllQueriesInternal()
 {
   TIME_PROFILE_DEV(updateAllQueries);
+  // rare/bursty: run-accumulated totals are the comparable metric, not capture samples
+  TIME_PROFILE_UNIQUE_EVENT_DEV("updateAllQueries");
   DAECS_EXT_ASSERT(allQueriesUpdatedToArch < archetypes.size());
   const bool shouldResolveQueries = lastQueriesResolvedComponents != dataComponents.size();
   uint64_t newArchsBitmask = 0;

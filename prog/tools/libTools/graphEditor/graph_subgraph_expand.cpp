@@ -458,6 +458,15 @@ void splice_one(GraphData &gd, int instance_id, ExpandContext &ctx)
   {
     boundaryNodeIds.insert(kv.second.nodeId);
   }
+  // `subgraph separator` is a pinless section-label boundary (pure UI, exposed by the JS
+  // editor as a non-connectable divider pin) -- never splice it into the parent.
+  for (const GraphData::Node &n : working.nodes)
+  {
+    if (n.descName == "subgraph separator")
+    {
+      boundaryNodeIds.insert(n.id);
+    }
+  }
 
   working.edges.erase(
     eastl::remove_if(working.edges.begin(), working.edges.end(),

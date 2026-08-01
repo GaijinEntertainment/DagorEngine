@@ -9,15 +9,17 @@ float bvh_max_water_depth;
 macro INIT_BVH_WATER_LEVEL(stage)
   INIT_WORLD_TO_WATER_HEIGHTMAP(stage)
   (stage){
-    water_heightmap_lowres@smp2d = water_heightmap_lowres;
+    water_heightmap_lowres@tex2d = water_heightmap_lowres;
     water_heightmap_lowres_exists@i1 = exists_tex(water_heightmap_lowres);
     water_level@f1 = water_level;
   }
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
 endmacro
 
 macro USE_BVH_WATER_LEVEL(stage)
   hlsl(stage)
   {
+    #define water_heightmap_lowres_samplerstate global_linear_wrap_sampler
     float get_water_level(float3 worldPos)
     {
       if (water_heightmap_lowres_exists)

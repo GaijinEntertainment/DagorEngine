@@ -667,6 +667,7 @@ protected:
 		bool requires_relaxed_precision_analysis = false;
 		bool implicit_c_integer_promotion_rules = false;
 		bool supports_spec_constant_array_size = true;
+		bool requires_phi_undef_zero_init = false;
 	} backend;
 
 	void emit_struct(SPIRType &type);
@@ -690,6 +691,8 @@ protected:
 	void emit_flattened_io_block_member(const std::string &basename, const SPIRType &type, const char *qual,
 	                                    const SmallVector<uint32_t> &indices);
 	void emit_block_chain(SPIRBlock &block);
+	BlockID emit_block_chain_inner(SPIRBlock &block);
+	void emit_block_chain_cleanup(SPIRBlock &block);
 	void emit_hoisted_temporaries(SmallVector<std::pair<TypeID, ID>> &temporaries);
 	int get_constant_mapping_to_workgroup_component(const SPIRConstant &constant) const;
 	void emit_constant(const SPIRConstant &constant);
@@ -1016,6 +1019,7 @@ protected:
 
 	std::string emit_for_loop_initializers(const SPIRBlock &block);
 	void emit_while_loop_initializers(const SPIRBlock &block);
+	std::string undef_loop_variable_initializer_suffix(const SPIRVariable &var);
 	bool for_loop_initializers_are_same_type(const SPIRBlock &block);
 	bool optimize_read_modify_write(const SPIRType &type, const std::string &lhs, const std::string &rhs);
 	void fixup_image_load_store_access();

@@ -84,6 +84,10 @@ bool load_tex_atlas_data(const char *ta_fn, DataBlock &out_ta_blk, String &out_t
 // returns true when atlas referred by 'file_name' picture is dynamic; optionally returns alpha format
 bool is_picture_in_dynamic_atlas(const char *file_name, bool *out_premul_alpha = NULL);
 
+// returns false while picture content is still being produced (dynamic atlas item load/restore
+// or a pending picture render factory render); read-only, never schedules loading
+bool is_picture_content_ready(PICTUREID pid);
+
 
 struct PictureRenderContext;
 struct PictureRenderFactory
@@ -102,6 +106,12 @@ struct PictureRenderFactory
   virtual bool match(const DataBlock &pic_props, int &out_w, int &out_h) = 0;
   virtual void queueRender(PictureRenderContext &ctx, WinAutoLock *lock) = 0;
   virtual void updatePerFrame() {}
+  // true while a queued render for the pic is not finished yet (backs is_picture_content_ready).
+  // A factory that defers rendering past queueRender() must override this, or content is
+  // reported ready between queueRender() and the actual render.
+  // Called under PictureManager's internal lock: the override must not call back into
+  // PictureManager, and any lock it takes must never be held around PictureManager calls.
+  virtual bool isPicRenderPending(PICTUREID) { return false; }
 };
 
 struct PictureDelayedRenderFactory : public PictureRenderFactory

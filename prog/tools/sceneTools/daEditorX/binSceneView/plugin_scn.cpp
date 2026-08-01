@@ -13,10 +13,13 @@
 #include <de3_interface.h>
 #include <de3_editorEvents.h>
 #include <de3_entityFilter.h>
+#include <de3_hmapDebugShadingService.h>
 
 #include <libTools/util/strUtil.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/menu.h>
+#include <propPanel/control/panelWindow.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_wndPublic.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <perfMon/dag_visClipMesh.h>
@@ -32,14 +35,44 @@ static int navmeshSubtypeMask = -1;
 enum
 {
   CM_TOOL = CM_PLUGIN_BASE + 0,
+  CM_SHOW_PANEL,
   PID_SET_BIN_DUMP,
   PID_SHOW_SPLINES,
   PID_SHOW_SPLINE_PTS,
-  PID_SET_VIS_SETTS,
   PID_SHOW_NAVMESH,
   PID_SHOW_COLLISION,
   PID_SHOW_STATIC_GEOM,
   PID_SHOW_LANDMESH,
+
+  PID_PANEL_VISIBILITY_SETTINGS_GROUP,
+  PID_PANEL_SHOW_STATIC_GEOM,
+  PID_PANEL_SHOW_LANDMESH,
+  PID_PANEL_USE_LAND_MIRRORING,
+  PID_PANEL_SHOW_NAVMESH,
+  PID_PANEL_SHOW_SPLINES,
+  PID_PANEL_SHOW_SPLINE_PTS,
+  PID_PANEL_SPLINE_POINT_VISIBILITY_RANGE,
+  PID_PANEL_SHOW_STATIC_COLLISION,
+  PID_PANEL_SHOW_LAND_COLLISION,
+  PID_PANEL_COLLISION_VISIBILITY_RANGE,
+  PID_PANEL_SHOW_WIREFRAME_COLLISION,
+
+  PID_PANEL_LANDSCAPE_DEBUG_SHADING_GROUP,
+  PID_PANEL_LANDSCAPE_DEBUG_SHADING_START,
+  PID_PANEL_LANDSCAPE_DEBUG_SHADING_END = PID_PANEL_LANDSCAPE_DEBUG_SHADING_START + IHmapDebugShadingService::REQUIRED_PROPERTY_IDS,
+};
+
+namespace EditorCommandIds
+{
+
+static constexpr const char *SHOW_PANEL = "Plugin.SceneView.TogglePropertiesPanel";
+
+} // namespace EditorCommandIds
+
+enum
+{
+  PROPBAR_WIDTH = 280,
+  PROPBAR_SCENE_VIEW_WTYPE = 190,
 };
 
 BinSceneViewPlugin::BinSceneViewPlugin() : isVisible(false), streamingScene(NULL)
@@ -108,9 +141,18 @@ void BinSceneViewPlugin::setVisible(bool vis)
       {
         DAEDITOR3.conNote("Waiting for streaming to shutdown...");
 
+        // streaming only needs an approximate observer position to finish loading
+        Point3 camPos(0, 0, 0);
+        if (IGenViewportWnd *viewport = DAGORED2->getCurrentViewport())
+        {
+          TMatrix cameraTm;
+          viewport->getCameraTransform(cameraTm);
+          camPos = cameraTm.getcol(3);
+        }
+
         while (streamingScene->getSsm()->isLoading())
         {
-          streamingScene->update(grs_cur_view.tm.getcol(3), 0);
+          streamingScene->update(camPos, 0);
           perform_delayed_actions();
         }
 
@@ -124,21 +166,31 @@ void BinSceneViewPlugin::setVisible(bool vis)
 }
 
 
-bool BinSceneViewPlugin::begin(int toolbar_id, unsigned menu_id)
+void BinSceneViewPlugin::registerEditorCommands(IEditorCommandSystem &command_system)
 {
-  // menu
-  PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
-  mainMenu->addItem(menu_id, PID_SET_BIN_DUMP, "Set level binary dump");
-  mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, PID_SET_VIS_SETTS, "Edit visibility settings...");
+  command_system.addCommand(EditorCommandIds::SHOW_PANEL, ImGuiKey_P);
+}
 
-  // toolbar
-  toolBarId = toolbar_id;
-  PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
+
+void BinSceneViewPlugin::registerMenuAccelerators()
+{
+  IWndManager &wndManager = *DAGORED2->getWndManager();
+
+  wndManager.addViewportAccelerator(CM_SHOW_PANEL, EditorCommandIds::SHOW_PANEL);
+}
+
+
+void BinSceneViewPlugin::fillToolbar()
+{
+  IEditorCommandSystem *commandSystem = DAGORED2->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+
+  PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId);
   G_ASSERT(toolbar);
-  toolbar->setEventHandler(this);
+  PropPanel::ContainerPropertyControl *tool = toolbar->getContainerById(CM_TOOL);
+  G_ASSERT(tool);
 
-  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL);
+  tool->clear();
 
   tool->createButton(PID_SET_BIN_DUMP, "Set level binary dump");
   tool->setButtonPictures(PID_SET_BIN_DUMP, "import_hm");
@@ -159,16 +211,52 @@ bool BinSceneViewPlugin::begin(int toolbar_id, unsigned menu_id)
   tool->setBool(PID_SHOW_STATIC_GEOM, showStaticGeom);
   tool->createCheckBox(PID_SHOW_LANDMESH, "Render Land Geom");
   tool->setButtonPictures(PID_SHOW_LANDMESH, "asset_land");
-  tool->setBool(PID_SHOW_LANDMESH, true);
+  tool->setBool(PID_SHOW_LANDMESH, streamingScene && streamingScene->getLandscapeVis());
   tool->createSeparator(0);
-  tool->createButton(PID_SET_VIS_SETTS, "Edit visibility settings...");
-  tool->setButtonPictures(PID_SET_VIS_SETTS, "show_panel");
+
+  commandSystem->createToolbarToggleButton(*tool, CM_SHOW_PANEL, EditorCommandIds::SHOW_PANEL, "Show settings");
+  tool->setButtonPictures(CM_SHOW_PANEL, "show_panel");
+  tool->setBool(CM_SHOW_PANEL, propPanel != nullptr);
+}
+
+
+bool BinSceneViewPlugin::begin(int toolbar_id, unsigned menu_id)
+{
+  // menu
+  PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
+  mainMenu->addItem(menu_id, PID_SET_BIN_DUMP, "Set level binary dump");
+
+  // toolbar
+  toolBarId = toolbar_id;
+  PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
+  G_ASSERT(toolbar);
+  toolbar->setEventHandler(this);
+
+  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL);
+  fillToolbar();
+
+  IWndManager *manager = DAGORED2->getWndManager();
+  manager->registerWindowHandler(this);
+
+  if (propPanelVisible)
+    showPanel();
 
   return true;
 }
 
 
-bool BinSceneViewPlugin::end() { return true; }
+bool BinSceneViewPlugin::end()
+{
+  propPanelVisible = propPanel != nullptr;
+
+  if (propPanelVisible)
+    showPanel();
+
+  IWndManager *manager = DAGORED2->getWndManager();
+  manager->unregisterWindowHandler(this);
+
+  return true;
+}
 
 
 void BinSceneViewPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path)
@@ -216,6 +304,15 @@ void BinSceneViewPlugin::loadObjects(const DataBlock &blk, const DataBlock &loca
     binFn += ".bin";
   }
   strmBlk.setStr("maindump", binFn);
+
+  const DataBlock *panelStateBlk = local_data.getBlockByName("panel_state");
+  if (panelStateBlk)
+    mainPanelState.setFrom(panelStateBlk);
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+    debugShadingService->loadSettings(*local_data.getBlockByNameEx("debugShading"));
+
+  fillPanel();
 }
 
 
@@ -224,6 +321,9 @@ void BinSceneViewPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, cons
 
 void BinSceneViewPlugin::autoSaveObjects(DataBlock &local_data)
 {
+  DataBlock &autoBlk = *local_data.addBlock("panel_state");
+  autoBlk.setFrom(&mainPanelState);
+
   local_data.setBool("isDebugVisible", isDebugVisible);
   local_data.setBool("showSplines", showSplines);
   local_data.setBool("showSplinePoints", showSplinePoints);
@@ -245,6 +345,9 @@ void BinSceneViewPlugin::autoSaveObjects(DataBlock &local_data)
   }
   else
     local_data.setStr("bin_dump_file", binFn);
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+    debugShadingService->saveSettings(*local_data.addBlock("debugShading"));
 }
 
 
@@ -264,14 +367,17 @@ void BinSceneViewPlugin::actObjects(float dt)
     if (!viewport)
       return;
 
-    viewport->getCameraTransform(grs_cur_view.tm);
-    streamingScene->update(grs_cur_view.tm.getcol(3), dt);
+    TMatrix cameraTm;
+    viewport->getCameraTransform(cameraTm);
+    streamingScene->update(cameraTm.getcol(3), dt);
   }
   if (streamingScene)
   {
     PropPanel::ContainerPropertyControl *tb = DAGORED2->getCustomPanel(toolBarId);
     if (tb && tb->getBool(PID_SHOW_LANDMESH) != streamingScene->getLandscapeVis())
       tb->setBool(PID_SHOW_LANDMESH, streamingScene->getLandscapeVis());
+    if (propPanel && propPanel->getBool(PID_PANEL_SHOW_LANDMESH) != streamingScene->getLandscapeVis())
+      propPanel->setBool(PID_PANEL_SHOW_LANDMESH, streamingScene->getLandscapeVis());
   }
 }
 
@@ -314,6 +420,12 @@ void *BinSceneViewPlugin::queryInterfacePtr(unsigned huid)
   return NULL;
 }
 
+void BinSceneViewPlugin::onBeforeReset3dDevice()
+{
+  if (streamingScene)
+    streamingScene->beforeD3DReset();
+}
+
 bool BinSceneViewPlugin::catchEvent(unsigned ev_huid, void *userData)
 {
   if (ev_huid == HUID_InvalidateClipmap || ev_huid == HUID_AfterD3DReset)
@@ -322,7 +434,14 @@ bool BinSceneViewPlugin::catchEvent(unsigned ev_huid, void *userData)
     {
       if (streamingScene->lmeshMgr && streamingScene->lmeshMgr->getHmapHandler())
         streamingScene->lmeshMgr->getHmapHandler()->fillHmapTextures();
-      streamingScene->invalidateClipmap((bool)userData);
+
+      if (ev_huid == HUID_AfterD3DReset)
+        streamingScene->afterD3DReset((bool)(uintptr_t)userData);
+      else
+      {
+        auto flags = (uintptr_t)userData;
+        streamingScene->invalidateClipmap(flags & INVALIDATE_CLIPMAP_FORCE_REDRAW, !(flags & INVALIDATE_CLIPMAP_SKIP_LAST_CLIP));
+      }
     }
   }
   else if (ev_huid == HUID_PostRenderObjects && isVisible && showFrt && PhysMat::physMatCount() && streamingScene &&
@@ -333,7 +452,12 @@ bool BinSceneViewPlugin::catchEvent(unsigned ev_huid, void *userData)
     int prev_type = set_vcm_draw_type(showFrtWire);
     set_vcm_rad(maxFrtVisDist);
     set_vcm_visible(true);
-    ::render_visclipmesh(streamingScene->frtDump, ::grs_cur_view.pos);
+    if (IGenViewportWnd *vp = DAGORED2->getRenderViewport())
+    {
+      TMatrix cameraTm;
+      vp->getCameraTransform(cameraTm);
+      ::render_visclipmesh(streamingScene->frtDump, cameraTm.getcol(3));
+    }
     set_vcm_rad(prev_rad);
     set_vcm_visible(prev_vis);
     set_vcm_draw_type(prev_type);
@@ -421,6 +545,195 @@ void BinSceneViewPlugin::changeLevelBinary(const char *bin_fn)
 
 void BinSceneViewPlugin::setEnvironmentSettings(DataBlock &blk) { streamingScene->setEnvironmentSettings(blk); }
 
+
+void *BinSceneViewPlugin::onWmCreateWindow(int type)
+{
+  switch (type)
+  {
+    case PROPBAR_SCENE_VIEW_WTYPE:
+    {
+      if (propPanel)
+        return nullptr;
+
+      propPanel = IEditorCoreEngine::get()->createPropPanel(this, "Properties");
+      fillPanel();
+
+      if (PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId))
+        toolbar->setBool(CM_SHOW_PANEL, true);
+
+      return propPanel;
+    }
+    break;
+  }
+
+  return nullptr;
+}
+
+
+bool BinSceneViewPlugin::onWmDestroyWindow(void *window)
+{
+  if (window == propPanel)
+  {
+    mainPanelState.reset();
+    propPanel->saveState(mainPanelState);
+    del_it(propPanel);
+
+    if (PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolBarId))
+      toolbar->setBool(CM_SHOW_PANEL, false);
+
+    return true;
+  }
+
+  return false;
+}
+
+
+void BinSceneViewPlugin::showPanel()
+{
+  if (propPanel)
+    EDITORCORE->removePropPanel(propPanel);
+  else
+    EDITORCORE->addPropPanel(PROPBAR_SCENE_VIEW_WTYPE, hdpi::_pxScaled(PROPBAR_WIDTH));
+}
+
+
+void BinSceneViewPlugin::fillPanel()
+{
+  if (!propPanel)
+    return;
+
+  if (propPanel->getChildCount() > 0)
+  {
+    mainPanelState.reset();
+    propPanel->saveState(mainPanelState);
+  }
+
+  propPanel->clear();
+  propPanel->disableFillAutoResize();
+
+  {
+    PropPanel::ContainerPropertyControl *group = propPanel->createGroup(PID_PANEL_VISIBILITY_SETTINGS_GROUP, "Visibility settings");
+
+    group->createCheckBox(PID_PANEL_SHOW_STATIC_GEOM, "Render static geom", showStaticGeom);
+    if (streamingScene)
+    {
+      group->createCheckBox(PID_PANEL_SHOW_LANDMESH, "Render land geom", streamingScene->getLandscapeVis());
+      group->createCheckBox(PID_PANEL_USE_LAND_MIRRORING, "Use Land mirroring", streamingScene->getLandscapeMirroring());
+    }
+    group->createCheckBox(PID_PANEL_SHOW_NAVMESH, "Show navigation mesh", showNavMesh);
+    group->createSeparator(0);
+    group->createCheckBox(PID_PANEL_SHOW_SPLINES, "Show splines", showSplines);
+    group->createCheckBox(PID_PANEL_SHOW_SPLINE_PTS, "Show spline points", showSplinePoints);
+    group->createEditFloat(PID_PANEL_SPLINE_POINT_VISIBILITY_RANGE, "Spline points vis. range", maxPointVisDist);
+    group->createSeparator(0);
+    group->createCheckBox(PID_PANEL_SHOW_STATIC_COLLISION, "Show static collision", showFrt);
+    group->createCheckBox(PID_PANEL_SHOW_LAND_COLLISION, "Show land collision", showLrt);
+    group->createEditFloat(PID_PANEL_COLLISION_VISIBILITY_RANGE, "Collision  vis. range", maxFrtVisDist);
+    group->createCheckBox(PID_PANEL_SHOW_WIREFRAME_COLLISION, "Wireframe collision", showFrtWire);
+  }
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+  {
+    PropPanel::ContainerPropertyControl *group =
+      propPanel->createGroup(PID_PANEL_LANDSCAPE_DEBUG_SHADING_GROUP, "Landscape debug shading");
+    debugShadingService->fillPropertyPanel(*group, PID_PANEL_LANDSCAPE_DEBUG_SHADING_START);
+  }
+
+  propPanel->restoreFillAutoResize();
+  propPanel->loadState(mainPanelState);
+}
+
+
+void BinSceneViewPlugin::updateImgui()
+{
+  if (DAGORED2->curPlugin() == this)
+  {
+    if (propPanel)
+    {
+      bool open = true;
+      DAEDITOR3.imguiBegin(*propPanel, &open);
+      propPanel->updateImgui();
+      DAEDITOR3.imguiEnd();
+
+      if (!open && propPanel)
+      {
+        showPanel();
+        EDITORCORE->managePropPanels();
+      }
+    }
+  }
+}
+
+
+void BinSceneViewPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  switch (pcb_id)
+  {
+    case PID_PANEL_SHOW_STATIC_GEOM:
+      showStaticGeom = panel->getBool(pcb_id);
+      fillToolbar();
+      break;
+
+    case PID_PANEL_SHOW_LANDMESH:
+      if (streamingScene)
+      {
+        streamingScene->setLandscapeVis(panel->getBool(PID_PANEL_SHOW_LANDMESH));
+        fillToolbar();
+      }
+      break;
+
+    case PID_PANEL_USE_LAND_MIRRORING:
+      if (streamingScene)
+      {
+        const bool useLandMirroring = panel->getBool(PID_PANEL_USE_LAND_MIRRORING);
+        if (useLandMirroring != streamingScene->getLandscapeMirroring())
+        {
+          streamingScene->setLandscapeMirroring(useLandMirroring);
+          if (isVisible)
+          {
+            setVisible(false);
+            setVisible(true);
+          }
+        }
+      }
+      break;
+
+    case PID_PANEL_SHOW_NAVMESH:
+      showNavMesh = panel->getBool(pcb_id);
+      if (IGenEditorPlugin *p = DAGORED2->getPluginByName("_navmesh"))
+        p->setVisible(showNavMesh);
+      fillToolbar();
+      break;
+
+    case PID_PANEL_SHOW_SPLINES:
+      showSplines = panel->getBool(pcb_id);
+      fillToolbar();
+      break;
+
+    case PID_PANEL_SHOW_SPLINE_PTS:
+      showSplinePoints = panel->getBool(PID_PANEL_SHOW_SPLINE_PTS);
+      fillToolbar();
+      break;
+
+    case PID_PANEL_SPLINE_POINT_VISIBILITY_RANGE: maxPointVisDist = panel->getFloat(pcb_id); break;
+
+    case PID_PANEL_SHOW_STATIC_COLLISION:
+      showFrt = panel->getBool(pcb_id);
+      fillToolbar();
+      break;
+
+    case PID_PANEL_SHOW_LAND_COLLISION: showLrt = panel->getBool(pcb_id); break;
+
+    case PID_PANEL_COLLISION_VISIBILITY_RANGE: maxFrtVisDist = panel->getFloat(pcb_id); break;
+
+    case PID_PANEL_SHOW_WIREFRAME_COLLISION: showFrtWire = panel->getBool(pcb_id); break;
+  }
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+    debugShadingService->onChange(pcb_id, *panel, PID_PANEL_LANDSCAPE_DEBUG_SHADING_START);
+}
+
+
 void BinSceneViewPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   onPluginMenuClick(pcb_id);
@@ -428,24 +741,29 @@ void BinSceneViewPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl
   {
     case PID_SHOW_SPLINES:
       panel->setBool(pcb_id, showSplines = !showSplines);
+      fillPanel();
       DAGORED2->repaint();
       break;
     case PID_SHOW_SPLINE_PTS:
       panel->setBool(pcb_id, showSplinePoints = !showSplinePoints);
+      fillPanel();
       DAGORED2->repaint();
       break;
     case PID_SHOW_NAVMESH:
       panel->setBool(pcb_id, showNavMesh = !showNavMesh);
       if (IGenEditorPlugin *p = DAGORED2->getPluginByName("_navmesh"))
         p->setVisible(showNavMesh);
+      fillPanel();
       DAGORED2->repaint();
       break;
     case PID_SHOW_COLLISION:
       panel->setBool(pcb_id, showFrt = !showFrt);
+      fillPanel();
       DAGORED2->repaint();
       break;
     case PID_SHOW_STATIC_GEOM:
       panel->setBool(pcb_id, showStaticGeom = !showStaticGeom);
+      fillPanel();
       DAGORED2->repaint();
       break;
     case PID_SHOW_LANDMESH:
@@ -453,8 +771,12 @@ void BinSceneViewPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl
         streamingScene->setLandscapeVis(panel->getBool(pcb_id));
       else
         panel->setBool(pcb_id, false);
+      fillPanel();
       break;
   }
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+    debugShadingService->onClick(pcb_id, *panel, PID_PANEL_LANDSCAPE_DEBUG_SHADING_START);
 }
 
 
@@ -468,6 +790,11 @@ bool BinSceneViewPlugin::onPluginMenuClick(unsigned id)
 
   switch (id)
   {
+    case CM_SHOW_PANEL:
+      showPanel();
+      EDITORCORE->managePropPanels();
+      return true;
+
     case PID_SET_BIN_DUMP:
     {
       struct SelectBinDumpDlg : public PropPanel::DialogWindow
@@ -541,72 +868,6 @@ bool BinSceneViewPlugin::onPluginMenuClick(unsigned id)
           changeLevelBinary(recentFn[sel_idx]);
       }
       del_it(dialog);
-    }
-      return true;
-
-    case PID_SET_VIS_SETTS:
-    {
-      PropPanel::DialogWindow *dlg = DAGORED2->createDialog(_pxScaled(250), _pxScaled(380), "Set visibility settings");
-      PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
-      panel.createCheckBox(101, "Render static geom", showStaticGeom);
-      if (streamingScene)
-      {
-        panel.createCheckBox(102, "Render land geom", streamingScene->getLandscapeVis());
-        panel.createCheckBox(1021, "Use Land mirroring", streamingScene->getLandscapeMirroring());
-      }
-      panel.createCheckBox(103, "Show navigation mesh", showNavMesh);
-      panel.createSeparator(0);
-      panel.createCheckBox(201, "Show splines", showSplines);
-      panel.createCheckBox(202, "Show spline points", showSplinePoints);
-      panel.createEditFloat(203, "Spline points vis. range", maxPointVisDist);
-      panel.createSeparator(0);
-      panel.createCheckBox(301, "Show static collision", showFrt);
-      panel.createCheckBox(302, "Show land collision", showLrt);
-      panel.createEditFloat(303, "Collision  vis. range", maxFrtVisDist);
-      panel.createCheckBox(304, "Wireframe collision", showFrtWire);
-      int ret = dlg->showDialog();
-
-      if (ret == PropPanel::DIALOG_ID_OK)
-      {
-        showStaticGeom = panel.getBool(101);
-        showNavMesh = panel.getBool(103);
-
-        showSplines = panel.getBool(201);
-        showSplinePoints = panel.getBool(202);
-        maxPointVisDist = panel.getFloat(203);
-
-        showFrt = panel.getBool(301);
-        showLrt = panel.getBool(302);
-        maxFrtVisDist = panel.getFloat(303);
-        showFrtWire = panel.getBool(304);
-
-        PropPanel::ContainerPropertyControl *tb = DAGORED2->getCustomPanel(toolBarId);
-        tb->setBool(PID_SHOW_SPLINES, showSplines);
-        tb->setBool(PID_SHOW_SPLINE_PTS, showSplinePoints);
-        tb->setBool(PID_SHOW_NAVMESH, showNavMesh);
-        if (IGenEditorPlugin *p = DAGORED2->getPluginByName("_navmesh"))
-          p->setVisible(showNavMesh);
-        tb->setBool(PID_SHOW_COLLISION, showFrt);
-        tb->setBool(PID_SHOW_STATIC_GEOM, showStaticGeom);
-        if (streamingScene)
-        {
-          tb->setBool(PID_SHOW_LANDMESH, panel.getBool(102));
-          streamingScene->setLandscapeVis(panel.getBool(102));
-          if (panel.getBool(1021) != streamingScene->getLandscapeMirroring())
-          {
-            streamingScene->setLandscapeMirroring(panel.getBool(1021));
-            if (isVisible)
-            {
-              setVisible(false);
-              setVisible(true);
-            }
-          }
-        }
-
-        DAGORED2->invalidateViewportCache();
-      }
-      del_it(dlg);
-      break;
     }
       return true;
   }

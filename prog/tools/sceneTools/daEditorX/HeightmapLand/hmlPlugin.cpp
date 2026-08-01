@@ -37,6 +37,7 @@
 #include <de3_interface.h>
 #include <de3_entityFilter.h>
 #include <de3_splineGenSrv.h>
+#include <de3_dynRenderService.h>
 #include <assets/asset.h>
 
 #include <util/dag_texMetaData.h>
@@ -528,6 +529,7 @@ void HmapLandPlugin::registerEditorCommands(IEditorCommandSystem &command_system
   command_system.addCommand(EditorCommandIds::BUILD_COLORMAP, ImGuiMod_Ctrl | ImGuiKey_G);
   command_system.addCommand(EditorCommandIds::BUILD_LIGHTMAP);
   command_system.addCommand(EditorCommandIds::REBUILD_RIVERS);
+  command_system.addCommand(EditorCommandIds::BUILD_NAVMESH);
   command_system.addCommand(EditorCommandIds::EXPORT_AS_COMPOSIT);
   command_system.addCommand(EditorCommandIds::SPLIT_COMPOSIT);
   command_system.addCommand(EditorCommandIds::INSTANTIATE_GENOBJ_INTO_ENTITIES);
@@ -582,6 +584,7 @@ void HmapLandPlugin::registerMenuAccelerators()
   wndManager.addAccelerator(CM_BUILD_COLORMAP, EditorCommandIds::BUILD_COLORMAP);
   wndManager.addAccelerator(CM_BUILD_LIGHTMAP, EditorCommandIds::BUILD_LIGHTMAP);
   wndManager.addAccelerator(CM_REBUILD_RIVERS, EditorCommandIds::REBUILD_RIVERS);
+  wndManager.addAccelerator(CM_BUILD_NAVMESH, EditorCommandIds::BUILD_NAVMESH);
   wndManager.addAccelerator(CM_EXPORT_AS_COMPOSIT, EditorCommandIds::EXPORT_AS_COMPOSIT);
   wndManager.addAccelerator(CM_SPLIT_COMPOSIT, EditorCommandIds::SPLIT_COMPOSIT);
   wndManager.addAccelerator(CM_INSTANTIATE_GENOBJ_INTO_ENTITIES, EditorCommandIds::INSTANTIATE_GENOBJ_INTO_ENTITIES);
@@ -678,6 +681,7 @@ void HmapLandPlugin::createMenu(unsigned menu_id)
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_REBUILD, EditorCommandIds::REBUILD, "Rebuild colors and lighting");
   mainMenu->addSeparator(menu_id);
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_REBUILD_RIVERS, EditorCommandIds::REBUILD_RIVERS, "Rebuild rivers");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_BUILD_NAVMESH, EditorCommandIds::BUILD_NAVMESH, "Build nav mesh");
   mainMenu->addSeparator(menu_id);
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_EXPORT_AS_COMPOSIT, EditorCommandIds::EXPORT_AS_COMPOSIT, "Export as composit...");
   mainMenu->addSeparator(menu_id);
@@ -1115,27 +1119,37 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
     grp->createCheckBox(PID_RENDER_SEL_SPLINES_ALWAYS, "Render sel splines always", renderSelSplinesAlways);
 
     grp->createSeparator(0);
-    grp->createCheckBox(PID_MONOLAND, "Show monochrome land", showMonochromeLand);
-    grp->createColorBox(PID_MONOLAND_COL, "Monochrome land color", monochromeLandCol);
-
-    grp->createSeparator(0);
     grp->createColorBox(PID_GROUND_OBJECTS_COL, "Ground objects color");
 
-    if (dagGeom->getShaderVariableId("heightmap_show_level_curves") >= 0)
-    {
-      grp->createSeparator(0);
-      grp->createCheckBox(PID_HTLEVELS, "Show height level curves", showHtLevelCurves);
-      grp->createEditFloat(PID_HTLEVELS_STEP, "Level step, m", htLevelCurveStep);
-      grp->setMinMaxStep(PID_HTLEVELS_STEP, 0.01f, 100.f, 0.5);
-      grp->createEditFloat(PID_HTLEVELS_OFS, "Height base, m", htLevelCurveOfs);
-      grp->setMinMaxStep(PID_HTLEVELS_OFS, -8000, 8000.f, 1);
-      grp->createEditFloat(PID_HTLEVELS_THICK, "Curve thickness, m", htLevelCurveThickness);
-      grp->createEditFloat(PID_HTLEVELS_DARK, "Curve darkness, %", htLevelCurveDarkness * 100);
-      grp->setMinMaxStep(PID_HTLEVELS_DARK, 5, 100, 10);
-    }
     grp->createEditFloat(PID_RENDER_HM2_YBASE_FOR_LOD, "Base height for LOD", render.hm2YbaseForLod);
 
     panel.setBool(PID_RENDERER_GRP, true);
+  }
+
+  {
+    grp = panel.createGroup(PID_RENDERER_LANDSCAPE_DEBUG_SHADING_GROUP, "Landscape debug shading");
+
+    PropPanel::ContainerPropertyControl *monochromeGroup =
+      grp->createGroup(PID_RENDERER_LANDSCAPE_DEBUG_SHADING_MONOCHROME_GROUP, "Monochrome land");
+    monochromeGroup->createCheckBox(PID_MONOLAND, "Show monochrome land", showMonochromeLand);
+    monochromeGroup->createColorBox(PID_MONOLAND_COL, "Monochrome land color", monochromeLandCol);
+
+    if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+      debugShadingService->fillPropertyPanel(*grp, PID_RENDERER_LANDSCAPE_DEBUG_SHADING_START);
+
+    if (dagGeom->getShaderVariableId("heightmap_show_level_curves") >= 0)
+    {
+      PropPanel::ContainerPropertyControl *levelCurvesGroup =
+        grp->createGroup(PID_RENDERER_LANDSCAPE_DEBUG_SHADING_HEIGHT_LEVEL_CURVES_GROUP, "Height level curves");
+      levelCurvesGroup->createCheckBox(PID_HTLEVELS, "Show height level curves", showHtLevelCurves);
+      levelCurvesGroup->createEditFloat(PID_HTLEVELS_STEP, "Level step, m", htLevelCurveStep);
+      levelCurvesGroup->setMinMaxStep(PID_HTLEVELS_STEP, 0.01f, 100.f, 0.5);
+      levelCurvesGroup->createEditFloat(PID_HTLEVELS_OFS, "Height base, m", htLevelCurveOfs);
+      levelCurvesGroup->setMinMaxStep(PID_HTLEVELS_OFS, -8000, 8000.f, 1);
+      levelCurvesGroup->createEditFloat(PID_HTLEVELS_THICK, "Curve thickness, m", htLevelCurveThickness);
+      levelCurvesGroup->createEditFloat(PID_HTLEVELS_DARK, "Curve darkness, %", htLevelCurveDarkness * 100);
+      levelCurvesGroup->setMinMaxStep(PID_HTLEVELS_DARK, 5, 100, 10);
+    }
   }
 
   panel.setBool(PID_HMAP_PARAMS_GRP, true);
@@ -2699,6 +2713,9 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
     hmlService->setGrassBlk(grassBlk);
   }
   gpuGrassPanel.onChange(pcb_id, panel);
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+    debugShadingService->onChange(pcb_id, *panel, PID_RENDERER_LANDSCAPE_DEBUG_SHADING_START);
 }
 void HmapLandPlugin::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
@@ -3225,6 +3242,7 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
   else if (pcb_id == PID_REBUILD_MESH)
   {
     dd_erase(DAGORED2->getPluginFilePath(HmapLandPlugin::self, "delaunayGen.cache.bin"));
+    dd_erase(DAGORED2->getPluginFilePath(HmapLandPlugin::self, "delaunayGenEarly.cache.bin"));
     generateLandMeshMap(landMeshMap, DAGORED2->getConsole(), false, NULL);
     onWholeLandChanged(); // Place objects on current hmap.
     resetLandmesh();
@@ -3458,6 +3476,9 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
       if (propPanel)
         propPanel->fillPanel();
     });
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+    debugShadingService->onClick(pcb_id, *panel, PID_RENDERER_LANDSCAPE_DEBUG_SHADING_START);
 
   if (pcb_id >= PID_NAVMESH_START && pcb_id <= PID_NAVMESH_END)
   {
@@ -4455,6 +4476,13 @@ void HmapLandPlugin::onLandRegionChanged(int x0, int y0, int x1, int y1, bool re
   if (x0 > x1 || y0 > y1)
     return;
 
+  if (finished)
+  {
+    if (auto *dngRender = EDITORCORE->queryEditorInterface<IDynRenderService>())
+      if (dngRender->getRenderType() == IDynRenderService::RTYPE_DNG_BASED)
+        dngRender->invalidateEditorClipmap();
+  }
+
   float fx0, fz0, fx1, fz1;
   fx0 = heightMapOffset.x + gridCellSize * x0 * heightMap.getMapSizeX() / landClsMap.getMapSizeX();
   fz0 = heightMapOffset.y + gridCellSize * y0 * heightMap.getMapSizeY() / landClsMap.getMapSizeY();
@@ -4704,7 +4732,11 @@ void GrassLayerPanel::onPPChange(int pid, PropPanel::ContainerPropertyControl &p
 bool HmapLandPlugin::loadGrassLayers(const DataBlock &blk, bool update_grass_blk)
 {
   enableGrass = blk.getBool("enableGrass", enableGrass);
-  const Tab<LandClassDetailTextures> &landClasses = landMeshRenderer->getLandClasses();
+  // Read land classes from the manager (its own copy) rather than the renderer. LandMeshRenderer::getLandClasses()
+  // is now an out-of-line forwarder living in the heavy renderer TU; referencing it from this plugin pulls in the
+  // whole land/heightmap render stack and its shader/d3d runtime, which the editor plugin does not link. The manager
+  // getter is inline header member access and the data is identical for this read-only colormapId lookup.
+  const Tab<LandClassDetailTextures> &landClasses = landMeshManager->getLandClasses();
   grass.masks.clear();
   for (int i = 0; i < landClasses.size(); ++i)
   {
@@ -4826,6 +4858,7 @@ void HmapLandPlugin::loadGPUGrassFromLevelBlk()
   if (loadLevelSettingsBlk(level_blk))
   {
     loadGPUGrassFromBlk(level_blk);
+    gpuGrassService->createGrass(*gpuGrassBlk);
     gpuGrassService->enableGrass(savedEnableGrass);
     if (propPanel)
       propPanel->fillPanel();

@@ -89,7 +89,7 @@ static inline const char *classify_fatal_type(const char *msg, const char *file)
   static const char *OOMSignatures[] = {
     "ot enough memory", // Both "Not enough memory to alloc..." & "zstd error -64 (Allocation error : not enough memory)"
     "OUTOFMEMORY", "8007000E",
-#if _TARGET_C1 | _TARGET_C1
+#if _TARGET_C1 | _TARGET_C2
 
 #endif
   };
@@ -98,7 +98,7 @@ static inline const char *classify_fatal_type(const char *msg, const char *file)
   static const char *ccSignatures[] = {"zstd error",
     "zlib error", // bin blk (BB[zZ])
     "Corrupt file", "no GRP2 label", "Can't open GameResPack", "Can't open level",
-    "Error loading file" // FMOD_ERR_FILE_BAD
+    "Error loading file", // FMOD_ERR_FILE_BAD
     "read error",
     "seek error", // LFileGeneralLoadCB
     "LoadException"};

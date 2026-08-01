@@ -16,6 +16,10 @@
 
 #include "../DebugLevel.h"
 
+#define NBS_PERM_CONST(VAR, VALUE) static constexpr int VAR = VALUE
+#include <nbsPermutations/node_based_perm_inc.hlsli>
+#undef NBS_PERM_CONST
+
 #include <shaders/dag_shBindumps.h>
 ShaderBindumpHandle load_additional_shaders_bindump(dag::ConstSpan<uint8_t>, char const *) { return INVALID_BINDUMP_HANDLE; }
 ShaderBindumpHandle load_additional_shaders_bindump(char const *, d3d::shadermodel::Version) { return INVALID_BINDUMP_HANDLE; }
@@ -215,6 +219,47 @@ static String readFileToString(const char *file_name)
   return res;
 }
 
+static bool validatePermGroupLimits(const char *exe_path)
+{
+  String fn(0, "%s/../../../prog/gameLibs/publicInclude/nbsPermutations/node_based_perm_inc.dshl", exe_path);
+  const eastl::string txt = eastl::string(readFileToString(fn).c_str());
+  if (txt.empty())
+  {
+    printf("ERROR: cannot read '%s' for permutation limit validation\n", fn.str());
+    return false;
+  }
+
+  size_t pos = 0;
+  size_t nextLineBreak = txt.find('\n', pos);
+  eastl::vector<eastl::string> lines;
+  while (nextLineBreak != eastl::string::npos)
+  {
+    lines.push_back(txt.substr(pos, nextLineBreak - pos));
+    pos = nextLineBreak + 1;
+    nextLineBreak = txt.find('\n', pos);
+  }
+
+  int seenGroups = 0;
+  for (const eastl::string &line : lines)
+  {
+    if (line.find("interval") != eastl::string::npos)
+    {
+      seenGroups++;
+      int commas = 0;
+      for (const char c : line)
+        if (c == ',')
+          commas++;
+
+      if (commas != MAX_PERMS_PER_GROUP)
+        return false;
+    }
+  }
+  if (seenGroups != MAX_GROUP_COUNT)
+    return false;
+
+  return true;
+}
+
 static String getSubstring(const char *str, const char *beginMarker, const char *endMarker)
 {
   const char *begin = strstr(str, beginMarker);
@@ -253,6 +298,12 @@ bool is_correct_plugin(const String &shader_filename, String &plugin_name)
       plugin_name = "envi_cover_shader_editor";
       return true;
     }
+    String cloudPluginSearchStr(0, "\"pluginId\": \"[[plugin:%s]]\"", "clouds_shader_editor");
+    if (strstr(shaderFile.str(), cloudPluginSearchStr.str()) != nullptr)
+    {
+      plugin_name = "clouds_shader_editor";
+      return true;
+    }
   }
   else
   {
@@ -282,6 +333,8 @@ DataBlock read_shader_data_block(const String &shader_filename, NodeBasedShaderT
     shader_type = NodeBasedShaderType::Fog;
   else if (shaderTypeName == ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME)
     shader_type = NodeBasedShaderType::EnviCover;
+  else if (shaderTypeName == CLOUDS_SHADER_EDITOR_PLUGIN_NAME)
+    shader_type = NodeBasedShaderType::Clouds;
   else
     G_ASSERTF(false, "shader type can't be determined! %s", shader_filename.str());
 
@@ -304,6 +357,9 @@ static String getShaderNodesJS(NodeBasedShaderType type, char *exePath)
       result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesEnviCover.js ",
         exePath);
       break;
+    case NodeBasedShaderType::Clouds:
+      result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesClouds.js ", exePath);
+      break;
   }
   result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesCommon.js ", exePath);
 #if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
@@ -318,6 +374,8 @@ static NodeBasedShaderType plug_name_to_type(char const *plug_name)
     return NodeBasedShaderType::Fog;
   else if (strcmp(plug_name, ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME) == 0)
     return NodeBasedShaderType::EnviCover;
+  else if (strcmp(plug_name, CLOUDS_SHADER_EDITOR_PLUGIN_NAME) == 0)
+    return NodeBasedShaderType::Clouds;
   else
   {
     printf("ERROR: plugin in file '%s' is not recognized as a valid shader editor type!", settings.singleInputJson.str());
@@ -346,6 +404,13 @@ int DagorWinMain(bool)
 
   char exePath[1024];
   dag_get_appmodule_dir(exePath, sizeof(exePath));
+
+  if (!validatePermGroupLimits(exePath))
+  {
+    printf("ERROR: Mismatch between MAX_GROUP_COUNT:%d, MAX_PERMS_PER_GROUP:%d, and node_based_perm_inc.dshl intervals!",
+      MAX_GROUP_COUNT, MAX_PERMS_PER_GROUP);
+    return 1;
+  }
 
   String pluginName;
   if (settings.depDumpOnly)
@@ -380,12 +445,13 @@ int DagorWinMain(bool)
     String cmd(0,
       "%s%s\\duktape%s "
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\offlineEditorApiStub.js "
+      "%s\\..\\..\\..\\prog\\gameLibs\\publicInclude\\nbsPermutations\\node_based_perm_inc.hlsli "
       "%s" // Shader type based shaderNode variant
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\nodeUtils.js "
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\graphEditor.js "
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\rebuildShaderCode.js "
       "pluginName=%s globalSubgraphsDir=%s rootFileName=%s outputFileName=%s %s",
-      call_prefix, exePath, exe_suffix, exePath, getShaderNodesJS(shaderType, exePath).str(), exePath, exePath, exePath,
+      call_prefix, exePath, exe_suffix, exePath, exePath, getShaderNodesJS(shaderType, exePath).str(), exePath, exePath, exePath,
       pluginName.str(), settings.subgraphsFolder.str(), settings.singleInputJson.str(), outputJson.str(),
       (String("includes=") + settings.optionalGraphs).str());
 #if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
@@ -421,13 +487,15 @@ int DagorWinMain(bool)
             includePath:t="%s/../../../prog/gameLibs/webui/plugins/shaderEditors"
             includePath:t="%s/../../../prog/gameLibs/render/shaders"
             includePath:t="%s/../../../prog/gameLibs/daSDF/shaders"
+            includePath:t="%s/../../../prog/gameLibs/daSkies2/shaders"
+            includePath:t="%s/../../../prog/gameLibs/publicInclude"
           }
           Compile {
             fsh:t = 5.0
             additional_dump:b = yes
           }
         )",
-    settings.singleOutputBin, exePath, outputDshl, exePath, exePath, exePath);
+    settings.singleOutputBin, exePath, outputDshl, exePath, exePath, exePath, exePath, exePath);
 
   FINALLY([&] {
     dd_erase(outputDshl.str());

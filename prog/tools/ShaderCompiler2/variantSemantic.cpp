@@ -480,8 +480,8 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
       "named const <%s> of type <%s> generates its own declaration and must not have an hlsl block", def.baseName,
       def.nameSpaceTerm->text);
 
-  if (def.type != VariableType::f44 && state_block.arr && !state_block.arr->par)
-    report_error(parser, def.varTerm, "Array initializer for single named constants is only allowed for @f44 type");
+  if (def.type != VariableType::f44 && def.type != VariableType::f43 && state_block.arr && !state_block.arr->par)
+    report_error(parser, def.varTerm, "Array initializer for single named constants is only allowed for @f44 or @f43 type");
 
 #define TYPE(type) VariableType::type,
   if (!item_is_in(def.type, {ARRAY_ELIGIBLE_PRESHADER_VARIABLE_TYPE_LIST}) &&
@@ -515,6 +515,7 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     case VariableType::f3:
     case VariableType::f4:
     case VariableType::f44:
+    case VariableType::f43:
       def.shvarType = SHVT_COLOR4;
       def.regSpace = HLSL_RSPACE_C;
       break;
@@ -714,6 +715,8 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
 
   if (def.type == VariableType::f44 && !isMatrixFromVectors)
     def.shvarType = SHVT_FLOAT4X4;
+  if (def.type == VariableType::f43)
+    def.shvarType = SHVT_FLOAT4x3;
 
   if (state_block.arr && !state_block.arr->par && !isMatrixFromVectors && synInitializerElemCount > 1)
   {
@@ -757,8 +760,10 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     return true;
   };
 
-  const int elementRegisterSize = (def.type == VariableType::f44 && !isMatrixFromVectors) ? 4 : 1;
-  const bool allowsArithmeticExpressions = (vt_is_numeric(def.type) && def.type != VariableType::f44) || isMatrixFromVectors;
+  const int elementRegisterSize =
+    (def.type == VariableType::f44 && !isMatrixFromVectors) ? 4 : (def.type == VariableType::f43 ? 3 : 1);
+  const bool allowsArithmeticExpressions =
+    (vt_is_numeric(def.type) && def.type != VariableType::f44 && def.type != VariableType::f43) || isMatrixFromVectors;
 
   // All arithmetic consts are forced to be dynamic for blocks -- all stcode is run as if it were dynamic anyways, and until we can
   // bake pure constexpr expressions directly into hlsl (@TODO), we need to force them to be considered dynamic
@@ -848,7 +853,8 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     {
       if (!val.expr->lhs->lhs->var_name)
       {
-        report_error(parser, &val, "Arithmetic expressions are not supported for matrix. Check: %s@f44", def.baseName);
+        report_error(parser, &val, "Arithmetic expressions are not supported for matrix. Check: %s%s", def.baseName,
+          def.nameSpaceTerm->text);
         return eastl::nullopt;
       }
       auto [vi, vt, isGlobal] = semantic::lookup_state_var(*val.expr->lhs->lhs->var_name, ctx);
@@ -944,7 +950,8 @@ eastl::optional<NamedConstDefInfo> parse_named_const_definition(const state_bloc
     return eastl::nullopt;
 
   def.registerSize = def.initializer.size() * elementRegisterSize;
-  def.arrayElemCount = def.type == VariableType::f44 ? def.registerSize / 4 : def.registerSize;
+  def.arrayElemCount =
+    (def.type == VariableType::f44) ? def.registerSize / 4 : (def.type == VariableType::f43 ? def.registerSize / 3 : def.registerSize);
 
   // Validate semantic constraints on dynamicity and use of global/material vars combinations
 

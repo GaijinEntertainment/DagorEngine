@@ -87,7 +87,7 @@ public:
     if constexpr (rayCheck)
     {
       vec4f pos2d = v_perm_xzxz(object.getWBSph());
-      int mask = v_signmask(v_cmp_lt(pos2d, v_perm_xzac(extendedBox.bmin, extendedBox.bmax)));
+      int mask = v_truemask(v_cmp_lt(pos2d, v_perm_xzac(extendedBox.bmin, extendedBox.bmax)));
       if (mask != ((1 << 2) | (1 << 3)))
         return false;
       return objects_iterator.checkObjectBounding(object.getWBSph(), from, dir, len, radius);
@@ -238,8 +238,8 @@ public:
     vec4i vNewCellIds = v_srli_n(v_cvt_floori(new_pos), constants);
     vec4f cmp = v_cast_vec4f(v_cmp_eqi(vNewCellIds, vOldCellIds));
     maxObjBoundingRadius = max(maxObjBoundingRadius, new_radius);
-    if (DAGOR_UNLIKELY((v_signmask(cmp) & 0b0101) != 0b0101)) // Assume that objects are not that often crosses cells borders (hence
-                                                              // likely)
+    if (DAGOR_UNLIKELY(!v_check_xz_all_true(cmp))) // Assume that objects are not that often crosses cells borders (hence
+                                                   // likely)
     {
       unsigned oldIdx = hashFn(old_pos), newIdx = hashFn(new_pos);
       eraseAt(val, oldIdx);
@@ -284,6 +284,20 @@ public:
   float getMaxExtension() const { return maxObjBoundingRadius; }
 
   float getMaxObjectBoundingRadius() const { return maxObjBoundingRadius; }
+
+  // insert()/update() only ever raise the max object radius, since lowering it would
+  // cost a full walk on every removal. A caller that registered an object with a
+  // temporarily oversized radius calls this once the real one is known, otherwise
+  // every later bounding query on this grid stays extended by the old value.
+  void recalcMaxObjectBoundingRadius()
+  {
+    SpatialHashGridWriter writer(users);
+    float maxRadius = 0.f;
+    for (const CellType &cell : cells)
+      for (const ObjectType &obj : cell)
+        maxRadius = max(maxRadius, v_extract_w(obj.getWBSph()));
+    maxObjBoundingRadius = maxRadius;
+  }
 
   unsigned getCellSize() const { return 1 << uint8_t(cellSizeLog2); }
 

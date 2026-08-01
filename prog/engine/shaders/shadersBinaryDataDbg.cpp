@@ -222,6 +222,11 @@ static void dumpVarImpl(const shaderbindump::VarList &vars, const T &states, int
       debug_("float4x4()\n");
       break;
     }
+    case SHVT_FLOAT4x3:
+    {
+      debug_("float4x3()\n");
+      break;
+    }
     case SHVT_TEXTURE: debug_("tex(%d)\n", states.template get<shaders_internal::Tex>(i).texId); break;
     case SHVT_BUFFER: debug_("buf(%d)\n", states.template get<shaders_internal::Buf>(i).bufId); break;
     case SHVT_TLAS: debug_("tlas(%d)\n", states.template get<RaytraceTopAccelerationStructure *>(i)); break;

@@ -2,11 +2,11 @@
 
 #include <daBVH/dag_bvhReencode.h>
 #include <daBVH/swBLASLeafDefs.hlsli>
-#include "shaders/swBVHDefine.hlsli"
+#include <daBVH/swBVHDefine.hlsli>
 #include <vecmath/dag_vecMath.h>
 #include <string.h>
 
-#include "swCommon.h"
+#include <daBVH/swCommon.h>
 
 namespace build_bvh
 {
@@ -35,38 +35,56 @@ void reencodeBoxNodeToFP16(uint8_t *nodeData)
   memcpy(nodeData, mm, 12); // -V1086 preserve skip word
 }
 
-// Re-encode float3 vertices (12 bytes each) in-place from [0,65535] to [-1,1].
-static void reencodeVertsToNorm(uint8_t *vertData, int numVerts)
+// Map source float3 verts ([0,65535]) to [-1,1] and write them back in the requested GPU format.
+// Source stride is always 12; the destination stride is blasGpuVertStride(fp16) (8 when fp16). When
+// the destination is smaller the loop compacts in place forward (dst[v] starts before src[v] and each
+// src vert is read into a register before its dst write, so reads always run ahead of writes).
+static void reencodeVertsToNorm(uint8_t *vertData, int numVerts, bool fp16)
 {
-  const float toNorm = 1.0f / 32767.5f;
+  const vec4f toNorm = v_splats(1.0f / 32767.5f);
+  const vec4f bias = v_splats(-1.0f);
+  const int dstStride = blasGpuVertStride(fp16);
   for (int v = 0; v < numVerts; v++)
   {
-    float f[3];
-    memcpy(f, vertData + v * 12, 12);
-    f[0] = f[0] * toNorm - 1.0f;
-    f[1] = f[1] * toNorm - 1.0f;
-    f[2] = f[2] * toNorm - 1.0f;
-    memcpy(vertData + v * 12, f, 12);
+    vec4f n = v_madd(v_ldu_p3_safe((const float *)(vertData + v * 12)), toNorm, bias);
+    writeGpuBlasVert(vertData + v * dstStride, n, fp16);
   }
 }
 
-void reencodeQuadBlasToFP16(uint8_t *data, int blasStartOffset, int blasSize, int vertCount, int leafSize)
+void reencodeQuadBlasToFP16(uint8_t *data, int blasStartOffset, int blasSize, int vertCount, int leafSize, bool fp16_verts)
 {
+  const int vertRegionStart = blasStartOffset + blasSize;
+  const int dstStride = blasGpuVertStride(fp16_verts);
   int ofs = blasStartOffset;
-  const int endOfs = blasStartOffset + blasSize;
 
   // Walk tree nodes linearly
-  for (; ofs < endOfs;)
+  for (; ofs < vertRegionStart;)
   {
     uint32_t skip;
     memcpy(&skip, data + ofs + 12, sizeof(uint32_t));
 
     reencodeBoxNodeToFP16(data + ofs);
 
-    ofs += (skip & QUAD_LEAF_FLAG) ? leafSize : BVH_BLAS_NODE_SIZE;
+    const bool isLeaf = (skip & QUAD_LEAF_FLAG) != 0;
+    if (fp16_verts && isLeaf)
+    {
+      // The vertex pool shrinks 12 -> 8 B/vert, so the leaf's quad A base (W1[0:23], byte offset from
+      // leaf+16, >> 2) must be re-pointed to the new stride. Vertex-index deltas (o*, deltaB) are
+      // stride-independent and ride through untouched. Mirrors collapseQuadBLAS::emit.
+      const int w1Ofs = ofs + BVH_BLAS_NODE_SIZE;
+      uint32_t w1;
+      memcpy(&w1, data + w1Ofs, sizeof(uint32_t));
+      const int relBase = (int)((w1 & QUAD_BASE_MASK) << QUAD_BASE_ALIGN_SHIFT);
+      const int vertIdx = (w1Ofs + relBase - vertRegionStart) / 12;
+      const uint32_t baseNew = (uint32_t)((vertRegionStart + vertIdx * dstStride - w1Ofs) >> QUAD_BASE_ALIGN_SHIFT) & QUAD_BASE_MASK;
+      w1 = baseNew | (w1 & ~QUAD_BASE_MASK);
+      memcpy(data + w1Ofs, &w1, sizeof(uint32_t));
+    }
+
+    ofs += isLeaf ? leafSize : BVH_BLAS_NODE_SIZE;
   }
 
-  reencodeVertsToNorm(data + ofs, vertCount);
+  reencodeVertsToNorm(data + vertRegionStart, vertCount, fp16_verts);
 }
 
 } // namespace build_bvh

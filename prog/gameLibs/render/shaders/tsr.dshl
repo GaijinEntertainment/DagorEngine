@@ -188,7 +188,9 @@ shader tsr_cs
 
       cacheParams.prefetchIndexBase = threadIndex*PREFETCH_CALLS_IN_THREAD;
 
-      int2 borderedThreadId = (int2)(input_texel_coord - global_offset);
+      // center of the 3x3 stencil must stay one texel inside the 10x10 cache; at input==output
+      // res the fp reciprocal round-trip can tip the edge thread out of [1,8] and read OOB
+      int2 borderedThreadId = clamp((int2)(input_texel_coord - global_offset), 1, BORDERED_RESULT_WARP_SIZE - 2);
   #if DEBUG_SHOW_OUT_OF_BOUNDS
       if (any(borderedThreadId < 1 || borderedThreadId >= (BORDERED_RESULT_WARP_SIZE - 1)))
         borderedThreadId = BORDERED_RESULT_WARP_SIZE; // just out of bounds, great for testing if index is valid

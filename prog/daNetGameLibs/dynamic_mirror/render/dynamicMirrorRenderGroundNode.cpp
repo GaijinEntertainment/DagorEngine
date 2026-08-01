@@ -36,12 +36,12 @@ dafg::NodeHandle create_dynamic_mirror_render_ground_node()
       ShaderGlobal::set_float4(world_view_posVarId, cameraData->viewPos.x, cameraData->viewPos.y, cameraData->viewPos.z, 1);
       ShaderGlobal::set_float4(zn_zfarVarId, cameraData->prepassPersp.zn, cameraData->prepassPersp.zf, 0, 0);
 
-      lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
-      lmeshRenderer->setUseHmapTankSubDiv(0);
-      lmeshRenderer->forceLowQuality(true);
+      LandMeshRenderDesc desc;
+      desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+      // mirror renders from the mirror view but keeps terrain LOD centered on the main camera (saved above)
       lmeshRenderer->render(reinterpret_cast<const mat44f &>(cameraData->globTm), cameraData->projTm, cameraData->frustum,
-        *lmeshManager, LandMeshRenderer::RENDER_WITH_CLIPMAP, cameraData->viewPos);
-      lmeshRenderer->forceLowQuality(false);
+        *lmeshManager, LandMeshRenderer::RENDER_WITH_CLIPMAP, desc, cameraData->viewPos,
+        HmapOrigin(Point3(originalWorldPos.r, originalWorldPos.g, originalWorldPos.b)));
 
       ShaderGlobal::set_float4(world_view_posVarId, originalWorldPos);
       ShaderGlobal::set_float4(zn_zfarVarId, originalZnZfar);

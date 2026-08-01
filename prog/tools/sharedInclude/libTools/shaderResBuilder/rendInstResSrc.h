@@ -87,6 +87,7 @@ public:
 
   static constexpr uint32_t MAX_VOXEL_LAYERS = 4;
   static constexpr uint32_t VOXEL_DEPTH_BITS = 14;
+  static constexpr uint32_t MAX_VOXEL_PALETTE_COLORS = 16;
 
   struct VoxelSurfaceIndex
   {
@@ -108,6 +109,7 @@ public:
     carray<VoxelFace, 6> faces;
     Tab<carray<uint8_t, 4 * 4 * 2>> rgbaBlocks;
     Tab<carray<uint8_t, 4 * 4>> normBlocks;
+    Tab<uint32_t> palBlocks;
     IPoint3 numBlocks, rawSize;
     float voxelSize;
     Point3 boxMin;
@@ -130,6 +132,7 @@ public:
 
   Tab<Lod> lods;
   Tab<VoxelMip> voxelMips;
+  carray<uint16_t, MAX_VOXEL_PALETTE_COLORS> voxelPalette;
   Mesh voxelHull;
   int numVoxelLayers;
   SimpleString assetName;

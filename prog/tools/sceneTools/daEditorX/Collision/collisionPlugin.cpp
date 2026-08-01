@@ -52,7 +52,6 @@
 #include <generic/dag_tab.h>
 #include "de3_box_vs_tri.h"
 #include <3d/dag_render.h>
-#include <render/dag_cur_view.h>
 
 #if _TARGET_PC_WIN
 #include <io.h>
@@ -416,8 +415,14 @@ bool CollisionPlugin::catchEvent(unsigned ev_huid, void *userData)
   {
     if (showGameFrt)
       makeGameFrtPreviewCollision(false);
-    if (FastRtDump *rt = showGameFrt ? gameFrt : DagorPhys::getFastRtDump())
-      ::render_visclipmesh(*rt, ::grs_cur_view.pos);
+    FastRtDump *rt = showGameFrt ? gameFrt : DagorPhys::getFastRtDump();
+    IGenViewportWnd *vp = DAGORED2->getRenderViewport();
+    if (rt && vp)
+    {
+      TMatrix cameraTm;
+      vp->getCameraTransform(cameraTm);
+      ::render_visclipmesh(*rt, cameraTm.getcol(3));
+    }
   }
   return false;
 }
@@ -1303,11 +1308,11 @@ static void addMeshCollision(ICollisionDumpBuilder *rt, StaticGeometryNode &n, b
     for (int i = 0; i < mesh.vert.size(); ++i)
       mesh.vert[i] = n.wtm * mesh.vert[i];
     wtm = &TMatrix::IDENT;
-    int nPrevFaces = mesh.face.size();
     mesh.kill_unused_verts(0.0005f);
-    mesh.kill_bad_faces();
-    if (mesh.face.size() != nPrevFaces) // Was something removed? Do the second pass of degenerate removal
-      mesh.kill_bad_faces(1e-12f);
+    int nPrevFaces = mesh.face.size();
+    mesh.kill_sliver_faces(1e-12f, /* 1/1mm */ 1000.f);
+    if (mesh.face.size() != nPrevFaces)
+      mesh.kill_unused_verts();
   }
   Bitarray used_mats;
   if (for_game)

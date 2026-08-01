@@ -1602,6 +1602,8 @@ static int config_sortlist(struct apattern **sortlist, int *nsort,
       q = str;
       while (*q && *q != '/' && *q != ';' && !ISSPACE(*q))
         q++;
+      if (q-str >= 16)
+        return ARES_EBADSTR;
       memcpy(ipbuf, str, q-str);
       ipbuf[q-str] = '\0';
       /* Find the prefix */
@@ -1610,6 +1612,8 @@ static int config_sortlist(struct apattern **sortlist, int *nsort,
           const char *str2 = q+1;
           while (*q && *q != ';' && !ISSPACE(*q))
             q++;
+          if (q-str >= 32)
+            return ARES_EBADSTR;
           memcpy(ipbufpfx, str, q-str);
           ipbufpfx[q-str] = '\0';
           str = str2;

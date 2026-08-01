@@ -58,6 +58,11 @@ private:
   CameraBlobRequestType view;
 };
 
+inline void read_all_camera_view_tokens(dafg::NameSpaceRequest ns, const char *name)
+{
+  (ns / "view0").readBlob<OrderingToken>(name).optional();
+  (ns / "view1").readBlob<OrderingToken>(name).optional();
+}
 
 inline const char *get_camera_in_camera_blob_name()
 {
@@ -98,6 +103,34 @@ inline auto use_camera_in_camera(dafg::Registry registry, const bool jittered = 
 
   return jittered ? eastl::move(camReq).bindAsProj<&CameraParams::jitterProjTm>()
                   : eastl::move(camReq).bindAsProj<&CameraParams::noJitterProjTm>();
+}
+
+inline auto read_camera_view(dafg::Registry registry, const char *view_ns)
+{
+  return (registry.root() / view_ns).readBlob<CameraParams>("current_camera");
+}
+
+inline auto read_camera_view_history(dafg::Registry registry, const char *view_ns)
+{
+  return (registry.root() / view_ns).readBlobHistory<CameraParams>("current_camera");
+}
+
+inline auto use_camera_view(dafg::Registry registry, const char *view_ns, const bool jittered = true)
+{
+  auto camReq = read_camera_view(registry, view_ns)
+                  .bindAsView<&CameraParams::viewTm>()
+                  .bindToShaderVar<&CameraParams::jitteredCamPosToUnjitteredHistoryClip>("jitteredCamPosToUnjitteredHistoryClip");
+  return jittered ? eastl::move(camReq).bindAsProj<&CameraParams::jitterProjTm>()
+                  : eastl::move(camReq).bindAsProj<&CameraParams::noJitterProjTm>();
+}
+
+inline auto use_rot_camera_view(dafg::Registry registry, const char *view_ns, const bool jittered = true)
+{
+  auto camReq = read_camera_view(registry, view_ns)
+                  .bindAsView<&CameraParams::viewRotTm>()
+                  .bindToShaderVar<&CameraParams::jitteredCamPosToUnjitteredHistoryClip>("jitteredCamPosToUnjitteredHistoryClip");
+  return jittered ? eastl::move(camReq).bindAsProj<&CameraParams::jitterProjTm>().handle()
+                  : eastl::move(camReq).bindAsProj<&CameraParams::noJitterProjTm>().handle();
 }
 
 inline auto use_current_camera(dafg::Registry &registry)
@@ -150,6 +183,62 @@ inline auto request_common_published_transparent_state(dafg::Registry &registry,
 inline auto request_common_opaque_state(dafg::Registry registry)
 {
   auto camera = use_camera_in_camera(registry);
+  auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
+  auto stateRequest = registry.requestState().setFrameBlock("global_frame").allowWireframe();
+
+  // Many shaders read CSM shadows, so we just add dependency for all opaque state requests
+  registry.root().readTexture("csm_texture").optional().atStage(dafg::Stage::POST_RASTER);
+
+  // For impostor billboards and stuff
+  registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+
+  return eastl::pair{cameraHndl, stateRequest};
+}
+
+inline auto request_common_transparent_state_per_view(
+  dafg::Registry &registry, const char *view_ns, const char *depth_bind = nullptr, bool use_reactive_mask = true)
+{
+  if (use_reactive_mask)
+  {
+    auto reactiveMask = registry.modify("reactive_mask").texture().optional();
+    if (depth_bind)
+      registry.allowAsyncPipelines()
+        .requestRenderPass()
+        .color({"color_target", reactiveMask})
+        .depthReadTestAndSample("depth", {depth_bind});
+    else
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target", reactiveMask}).depthReadTestOnly("depth");
+  }
+  else
+  {
+    if (depth_bind)
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthReadTestAndSample("depth", {depth_bind});
+    else
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthReadTestOnly("depth");
+  }
+
+  registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+  return use_camera_view(registry, view_ns);
+}
+inline auto request_common_published_transparent_state_per_view(
+  dafg::Registry &registry, const char *view_ns, bool use_reactive_mask = false)
+{
+  if (use_reactive_mask)
+  {
+    auto reactiveMask = registry.modify("reactive_mask").texture().optional();
+    registry.requestRenderPass().color({"target_for_transparency", reactiveMask}).depth("depth_for_transparency");
+  }
+  else
+  {
+    registry.requestRenderPass().color({"target_for_transparency"}).depth("depth_for_transparency");
+  }
+  registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+  return use_camera_view(registry, view_ns);
+}
+
+inline auto request_common_opaque_state_per_view(dafg::Registry registry, const char *view_ns)
+{
+  auto camera = use_camera_view(registry, view_ns);
   auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
   auto stateRequest = registry.requestState().setFrameBlock("global_frame").allowWireframe();
 

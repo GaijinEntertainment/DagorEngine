@@ -30,14 +30,17 @@ if $(OS) = NT {
   _A_WIN_CMD_PREFIX = wine cmd /c ;
 }
 _AndroidClangLibFolder = lib64 ;
-if $(AndroidNdkVer) in r27c {
+if $(AndroidNdkVer) = r27c {
   _AndroidClangVer = 18 ;
+  _AndroidClangLibFolder = lib ;
+} else if $(AndroidNdkVer) = r29 {
+  _AndroidClangVer = 21 ;
   _AndroidClangLibFolder = lib ;
 } else {
   Exit cannot setup clag ver for AndroidNdkVer \= $(AndroidNdkVer) ;
 }
 
-if $(AndroidNdkVer) in r27c {
+if $(AndroidNdkVer) in r27c r29 {
   _A_NDK_SYSROOT = $(_A_TC_ROOT)/sysroot/usr/lib/aarch64-linux-android/$(AndroidApiVer) ;
   _A_NDK_SYSROOT_USR_LIB = $(_A_NDK_SYSROOT) ;
   _A_GCC_BIN = $(_A_NDK_DIR)/toolchains/llvm/prebuilt/$(_A_NDK_PREBUILT_SUFFIX)/bin/ ;
@@ -81,26 +84,37 @@ local _DEF_COM_CMDLINE =
   -ffast-math -ffinite-math-only -mrecip=none
   -D_TARGET_ANDROID -D_TARGET_STATIC_LIB
   -DANDROID_NDK -DANDROID
-  -D__ANDROID_API__=$(AndroidApiMinVer)
 ;
+
+if $(AndroidNdkVer) != r29 {
+  _DEF_COM_CMDLINE += -D__ANDROID_API__=$(AndroidApiMinVer) ;
+}
 
 if $(ClangThreadSafety) = yes {
   _DEF_COM_CMDLINE += -Wthread-safety ;
 }
 
-if $(AndroidNdkVer) in r27c {
+if $(AndroidNdkVer) in r27c r29 {
   _DEF_COM_CMDLINE += -Wno-unsupported-floating-point-opt -Wno-ignored-pragmas ;
 }
 
-if $(AndroidNdkVer) in r27c {
+if $(AndroidNdkVer) in r27c r29 {
   _DEF_COM_CMDLINE += -Wno-deprecated-builtins ;
 }
 
 if $(PlatformArch) in arm64-v8a {
-  _DEF_COM_CMDLINE += -target aarch64-none-linux-android ;
+  if $(AndroidNdkVer) = r29 {
+    _DEF_COM_CMDLINE += -target aarch64-none-linux-android$(AndroidApiMinVer) ;
+  } else {
+    _DEF_COM_CMDLINE += -target aarch64-none-linux-android ;
+  }
   _DEF_COM_CMDLINE += -isystem $(_A_NDK_DIR)/sysroot/usr/include/aarch64-linux-android ;
 } else {
-  _DEF_COM_CMDLINE += -target armv7-none-linux-androideabi ;
+  if $(AndroidNdkVer) = r29 {
+    _DEF_COM_CMDLINE += -target armv7-none-linux-androideabi$(AndroidApiMinVer) ;
+  } else {
+    _DEF_COM_CMDLINE += -target armv7-none-linux-androideabi ;
+  }
   _DEF_COM_CMDLINE += -isystem $(_A_NDK_DIR)/sysroot/usr/include/arm-linux-androideabi ;
 }
 
@@ -133,15 +147,23 @@ if $(Rtti) != yes {
   _DEF_CPP_CMDLINE += -frtti ;
 }
 
+if $(AndroidNdkVer) in r29 {
+  _DEF_CPP_CMDLINE += -Wno-nontrivial-memcall ;
+  _DEF_COM_CMDLINE += -Wno-nan-infinity-disabled ;
+}
+
+
 if $(OS) = NT {
-  if $(AndroidNdkVer) in r27c {
+  if $(AndroidNdkVer) = r29 {
+    _LINK         = $(_A_TC_PREFIX)clang++.exe --sysroot=$(_A_NDK_SYSROOT) -target aarch64-none-linux-android$(AndroidApiMinVer) -no-canonical-prefixes -fuse-ld=lld ;
+  } else if $(AndroidNdkVer) in r27c {
     _LINK         = $(_A_TC_PREFIX)clang++.exe --sysroot=$(_A_NDK_SYSROOT) -target aarch64-none-linux-android -no-canonical-prefixes -fuse-ld=lld ;
   } else if $(PlatformArch) in arm64-v8a {
     _LINK         = $(_A_TC_PREFIX)clang++.exe --sysroot=$(_A_NDK_SYSROOT) -target aarch64-none-linux-android -no-canonical-prefixes ;
   } else {
     _LINK         = $(_A_TC_PREFIX)clang++.exe --sysroot=$(_A_NDK_SYSROOT) -target armv7-none-linux-androideabi -no-canonical-prefixes ;
   }
-  if $(AndroidNdkVer) in r27c {
+  if $(AndroidNdkVer) in r27c r29 {
     _LIB          = $(_A_TC_PREFIX)llvm-ar.exe $(_A_TC_PREFIX)llvm-ranlib.exe ;
     _A_STRIP_EXE   = $(_A_TC_PREFIX)llvm-strip.exe ;
   } else {
@@ -152,14 +174,16 @@ if $(OS) = NT {
   _CPP_COMPILER = $(_A_TC_PREFIX)clang++.exe $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) -x c++ -D__STDC_INT64__ ;
   _GAS_COMPILER = $(_A_TC_PREFIX)clang.exe -g -c --sysroot=$(_A_NDK_SYSROOT) ;
 } else {
-  if $(AndroidNdkVer) in r27c {
+  if $(AndroidNdkVer) = r29 {
+    _LINK         = $(_A_TC_PREFIX)clang++ -pipe -fuse-ld=lld --sysroot=$(_A_NDK_SYSROOT) -target aarch64-none-linux-android$(AndroidApiMinVer) -no-canonical-prefixes ;
+  } else if $(AndroidNdkVer) in r27c {
     _LINK         = $(_A_TC_PREFIX)clang++ -pipe -fuse-ld=lld --sysroot=$(_A_NDK_SYSROOT) -target aarch64-none-linux-android -no-canonical-prefixes ;
   } else if $(PlatformArch) in arm64-v8a {
     _LINK         = $(_A_TC_PREFIX)clang++ -pipe -fuse-ld=$(_A_GCC_BIN)ld --sysroot=$(_A_NDK_SYSROOT) -target aarch64-none-linux-android -no-canonical-prefixes ;
   } else {
     _LINK         = $(_A_TC_PREFIX)clang++ -pipe -fuse-ld=$(_A_GCC_BIN)ld --sysroot=$(_A_NDK_SYSROOT) -target armv7-none-linux-androideabi -no-canonical-prefixes ;
   }
-  if $(AndroidNdkVer) in r27c {
+  if $(AndroidNdkVer) in r27c r29 {
     _LIB          = $(_A_TC_PREFIX)llvm-ar $(_A_TC_PREFIX)llvm-ranlib ;
     _A_STRIP_EXE   = $(_A_TC_PREFIX)llvm-strip ;
   } else {
@@ -173,6 +197,12 @@ if $(OS) = NT {
 
 if $(Sanitize) != disabled {
   _LINK += -fsanitize=$(Sanitize) ;
+}
+
+if $(UseWholeOpt) != no {
+  if $(UseWholeOptDevirt) = yes { _LINK += -fwhole-program-vtables ; }
+  if $(UseWholeOpt) = yes { _LINK += -flto=thin ; }
+  else { _LINK += -flto=$(UseWholeOpt) ; } # e.g. full
 }
 
 _INCLUDE      =

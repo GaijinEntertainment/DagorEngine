@@ -34,11 +34,11 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
         { \
           float4 prev_pos_reproj = (prev_pos); \
           VR_MULTIVIEW_REPROJECT(prev_pos_reproj); \
-          output.out_pos_prev = prev_pos_reproj; \
+          output.out_pos_prev = prev_pos_reproj.xyw; \
         }
         #define VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
         { \
-          output.out_pos = output.pos; \
+          output.out_pos = output.pos.xyw; \
         }
         #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
         { \
@@ -60,11 +60,11 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
         // and swizzle according to view, or reproject out_pos/out_pos_prev on Pixel Shader.
         #define VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
         { \
-          output.out_pos_prev = (prev_pos); \
+          output.out_pos_prev = (prev_pos).xyw; \
         }
         #define VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
         { \
-          output.out_pos = output.pos; \
+          output.out_pos = output.pos.xyw; \
         }
         #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
         { \
@@ -84,11 +84,11 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
       #define VR_MULTIVIEW_REPROJECT(pos)
       #define VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
       { \
-        output.out_pos_prev = (prev_pos); \
+        output.out_pos_prev = (prev_pos).xyw; \
       }
       #define VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
       { \
-        output.out_pos = output.pos; \
+        output.out_pos = output.pos.xyw; \
       }
       #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
       { \

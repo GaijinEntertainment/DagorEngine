@@ -129,6 +129,7 @@ static bool instSeedStoreZeroForRandom = false;
 static bool delayRiResInit = true; // stays true until first HUID_BeforeMainLoop event
 static bool riExtraRenderInited = false;
 static ska::flat_hash_set<rendinst::riex_handle_t, RiexHandlerHasher> ri_extras_to_ignore_in_collision;
+static WinCritSec riExtraCreateCs;
 
 class AcesRendInstEntity;
 class AcesRendInstEntityPool;
@@ -701,7 +702,7 @@ public:
   int defColorIdx;
   int pregenId;
   int layerIdx;
-  int pendingRiExtraCount = 0;
+  eastl::atomic<int> pendingRiExtraCount = 0;
   BBox2 precalculatedBox;
 
 
@@ -861,10 +862,10 @@ public:
   }
   void assureRiExtraCreated(float x0, float z0, float x1, float z1)
   {
-    if (pendingRiExtraCount <= 0)
+    int pendingToFind = pendingRiExtraCount.load();
+    if (pendingToFind <= 0)
       return;
 
-    int pendingToFind = pendingRiExtraCount;
     int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
     const LayerHiddenMask lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (auto *e : ent)
@@ -3208,23 +3209,26 @@ bool AcesRendInstEntity::showRiExtraInstance(bool moved)
 {
   if (tm.m[3][0] >= POS_NOT_INITED_XZ)
     return true;
-  if (!moved && riexHandle != rendinst::RIEX_HANDLE_NULL)
-    return false;
 
-  auto riExtraIdx = getPool()->getRiExtraIdx();
-  mat44f m;
-  v_mat44_make_from_43cu(m, &tm.array[0]);
-  if (riexHandle == rendinst::RIEX_HANDLE_NULL)
   {
-    riexHandle = rendinst::addRIGenExtra44(riExtraIdx, m, true, -1, -1, 1, &instSeed);
-
-    if (riExtraCollisionIgnored)
-      ri_extras_to_ignore_in_collision.insert(riexHandle);
-
-    getPool()->pendingRiExtraCount--;
-    return true;
+    WinAutoLock lock(riExtraCreateCs);
+    if (!moved && riexHandle != rendinst::RIEX_HANDLE_NULL)
+      return false;
+    auto riExtraIdx = getPool()->getRiExtraIdx();
+    if (riexHandle == rendinst::RIEX_HANDLE_NULL)
+    {
+      mat44f m;
+      v_mat44_make_from_43cu(m, &tm.array[0]);
+      riexHandle = rendinst::addRIGenExtra44(riExtraIdx, m, true, -1, -1, 1, &instSeed);
+      if (riExtraCollisionIgnored)
+        ri_extras_to_ignore_in_collision.insert(riexHandle);
+      getPool()->pendingRiExtraCount--;
+      return true;
+    }
   }
 
+  mat44f m;
+  v_mat44_make_from_43cu(m, &tm.array[0]);
   rendinst::moveRIGenExtra44(riexHandle, m, true, true);
   if (autoInstSeed && riExtraRenderInited)
     rendinst::set_riextra_instance_seed(riexHandle, instSeed);

@@ -8,6 +8,7 @@
 
 #include <catch2/catch_tostring.hpp>
 #include <catch2/interfaces/catch_interfaces_config.hpp>
+#include <catch2/interfaces/catch_interfaces_registry_hub.hpp>
 #include <catch2/internal/catch_context.hpp>
 #include <catch2/internal/catch_polyfills.hpp>
 
@@ -113,6 +114,11 @@ namespace Detail {
         for( ; i != end; i += inc )
              rss << std::setw(2) << static_cast<unsigned>(bytes[i]);
        return rss.str();
+    }
+
+    std::string makeExceptionHappenedString() {
+        return "{ stringification failed with an exception: \"" +
+               translateActiveException() + "\" }";
     }
 } // end Detail namespace
 

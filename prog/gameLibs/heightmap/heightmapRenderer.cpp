@@ -1,6 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <osApiWrappers/dag_critSec.h>
 #include <heightmap/lodGrid.h>
 #include <heightmap/heightmapRenderer.h>
 #include <heightmap/heightmapHandler.h>
@@ -24,60 +23,14 @@
 #include <util/dag_bitwise_cast.h>
 #include <util/dag_nameHashers.h>
 #include <util/dag_finally.h>
-#include <heightmap/simpleHeightmapRenderer.h>
+#include "lodGridVertexDataPool.h"
 
 constexpr uint32_t SUBPATCHES_DEPTH = 1;
 // Current implementation supports SUBPATCHES_DEPTH not bigger than 3.
 
 CONSOLE_BOOL_VAL("heightmap", use_hw_tesselation, true);
 
-namespace var
-{
-static ShaderVariableInfo hmap_object_tess_factor("hmap_object_tess_factor", true);
-}
-
-#define GLOBAL_VARS_LIST         \
-  VAR(heightmap_parent_edges_at) \
-  VAR(heightmap_has_morph)       \
-  VAR(heightmap_morph)           \
-  VAR(heightmap_edges)
-
-#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
-GLOBAL_VARS_LIST
-#undef VAR
-
-
-enum
-{
-  MAX_HW_INSTANCING = 440,
-  VDATA_OFS = 3,
-  MAX_VDATA = 4
-}; // bones
-
-static LodGridVertexData vdata[MAX_VDATA];
-
-
-template <class It>
-static inline int generate_patch_indices_quads(int dim, It &&indices)
-{
-  size_t index = 0;
-  for (int y = 0; y < dim; ++y)
-    for (int x = 0; x < dim; ++x)
-    {
-      const int topleft = y * (dim + 1) + x;
-      const int downleft = topleft + (dim + 1);
-      const int downright = topleft + (dim + 1) + 1;
-      const int topright = topleft + 1;
-      indices[index + 0] = topleft;
-      indices[index + 1] = downleft;
-      indices[index + 2] = downright;
-      indices[index + 3] = topright;
-      index += 4;
-    }
-  return index;
-}
-
-bool get_hw_tesselation_usage(int hmap_tess_factorVarId, const LodGridCullData &cull_data)
+bool get_hw_tesselation_usage(int hmap_tess_factorVarId, const LodGridRingCullData &cull_data)
 {
   return (hmap_tess_factorVarId != -1) && cull_data.useHWTesselation && use_hw_tesselation.get();
 }
@@ -93,268 +46,11 @@ static int get_tessellation_var_id(const char *hmap_tess_factor_name)
   return -1;
 }
 
-void LodGridVertexData::close()
-{
-  if (!refCnt)
-    return;
-  if (interlocked_decrement(refCnt) > 0)
-    return;
-  del_d3dres(ib);
-  del_d3dres(quadsIb);
-  patchDim = 0;
-}
-
-bool LodGridVertexData::init(int dim)
-{
-  if (interlocked_increment(refCnt) > 1)
-  {
-    G_ASSERT(patchDim == dim);
-    return true;
-  }
-  patchDim = dim;
-
-  return createBuffers();
-}
-
-bool LodGridVertexData::createBuffers()
-{
-  del_d3dres(ib);
-  del_d3dres(quadsIb);
-
-  recreateBuffers = false;
-  const int indexSize = 2;
-  int indicesCnt = patchDim * patchDim * 6;
-  int totalIndicesCnt = indicesCnt * 4;
-  G_ASSERT(!ib);
-  ib = d3d::create_ib(totalIndicesCnt * indexSize, (indexSize == 4 ? SBCF_INDEX32 : 0), "lod_grid_vdata_ib", RESTAG_LAND);
-  d3d_err(ib);
-  if (!ib)
-    return false;
-  if (auto lockedIndices = lock_sbuffer<uint16_t>(ib, 0, 0, VBLOCK_WRITEONLY))
-  {
-    generate_patch_indices(patchDim, lockedIndices, 0);
-    generate_patch_indices(patchDim, LockedBufferWithOffset(lockedIndices, indicesCnt), 1);
-    generate_patch_indices(patchDim, LockedBufferWithOffset(lockedIndices, indicesCnt * 2), 1, 0); // REGULAR_RTLB
-    generate_patch_indices(patchDim, LockedBufferWithOffset(lockedIndices, indicesCnt * 3), 0, 0); // REGULAR_LTRB
-  }
-  else
-  {
-    recreateBuffers = true;
-    logwarn("heightmap lock failed, reset device?");
-    return true;
-  }
-
-  if (d3d::get_driver_desc().caps.hasQuadTessellation)
-  {
-    int quadsIndicesCnt = indicesCnt / 6 * 4;
-    G_ASSERT(!quadsIb);
-    quadsIb = d3d::create_ib(quadsIndicesCnt * indexSize, (indexSize == 4 ? SBCF_INDEX32 : 0), "lod_grid_vdata_quadsIb", RESTAG_LAND);
-    d3d_err(quadsIb);
-    if (!quadsIb)
-      return false;
-    if (auto lockedIndices = lock_sbuffer<uint16_t>(quadsIb, 0, 0, VBLOCK_WRITEONLY))
-      generate_patch_indices_quads(patchDim, lockedIndices);
-    else
-    {
-      recreateBuffers = true;
-      logwarn("heightmap lock failed, reset device?");
-      return true;
-    }
-  }
-
-  debug("heightmap will be rendered using instanceId instancing");
-  ShaderGlobal::set_int(get_shader_variable_id("heightmap_use_instancing", true), 1);
-  return true;
-}
-
-void LodGridVertexData::beforeResetDevice()
-{
-  if (patchDim <= 0)
-    return;
-
-  recreateBuffers = true;
-  del_d3dres(ib);
-  del_d3dres(quadsIb);
-}
-
-void LodGridVertexData::afterResetDevice()
-{
-  if (recreateBuffers)
-    createBuffers();
-}
-
 static int heightmap_scale_offset_varId = -1;
 static int heightmap_scale_offset_c = 0;
 static int heightmap_region_gvid = -1;
 static int lod0_centerVarId = -1;
 static int worldToHmapLod0VarId = -1;
-static UniqueBuf heightmap_edges, heightmap_morph;
-static volatile int temp_buffers_ref_cnt = 0;
-
-void SimpleHeightmapRenderer::close()
-{
-  if (!shmat)
-    return;
-  shElem = NULL; // Deleted in shmat
-  del_it(shmat);
-  if (interlocked_decrement(temp_buffers_ref_cnt) == 0)
-  {
-    heightmap_edges.close();
-    heightmap_morph.close();
-  }
-  vdata[dimBits - VDATA_OFS].close();
-}
-
-bool SimpleHeightmapRenderer::init(const char *shader_name, bool do_fatal, int bits)
-{
-  heightmap_scale_offset_c = ShaderGlobal::get_int_fast(get_shader_variable_id("heightmap_scale_offset"));
-
-  dimBits = clamp(bits - VDATA_OFS, 0, MAX_VDATA - 1) + VDATA_OFS;
-  if (!vdata[dimBits - VDATA_OFS].init(1 << dimBits)) // || !vdata[dimBits-VDATA_OFS].vb)
-  {
-    if (do_fatal)
-      DAG_FATAL("can not init heightmap buffers");
-    return false;
-  }
-  if (dimBits != bits)
-  {
-    if (do_fatal)
-      DAG_FATAL("can't create hmap renderer for %d bits (should be %d..%d)", bits, VDATA_OFS, MAX_VDATA + VDATA_OFS - 1);
-    return false;
-  }
-  shmat = new_shader_material_by_name(shader_name, shader_name);
-  if (!shmat)
-  {
-    if (do_fatal)
-      DAG_FATAL("can't create ShaderMaterial for '%s'", shader_name);
-    return false;
-  }
-  shElem = shmat->make_elem();
-  if (!shElem)
-  {
-    del_it(shmat);
-    if (do_fatal)
-      DAG_FATAL("can't create ShaderElement for ShaderMaterial '%s'", shader_name);
-    return false;
-  }
-  interlocked_increment(temp_buffers_ref_cnt);
-  return true;
-}
-
-static void render_patches_in_batches(dag::ConstSpan<LodGridPatchParams> patches, int buffer_size, int startInd, bool use_ib,
-  int dim_bits)
-{
-  const int dim = 1 << dim_bits;
-  float v[4] = {0, bitwise_cast<float>(dim_bits << 1), bitwise_cast<float>(dim - 1), 0};
-  const int primitiveCount = 1 << (dim_bits + dim_bits + 1);
-  for (int patch = 0, total_instances = patches.size(); patch < total_instances;)
-  {
-    const int current_batch_size = min(total_instances - patch, buffer_size);
-    d3d::set_vs_const1(heightmap_scale_offset_c - 2, bitwise_cast<float>(patch), v[1], v[2], 0);
-    d3d::set_vs_const(heightmap_scale_offset_c, &patches[patch].params.x, current_batch_size);
-    if (use_ib)
-      d3d::drawind_instanced(PRIM_TRILIST, startInd, primitiveCount, 0, current_batch_size);
-    else
-      d3d::draw_instanced(PRIM_TRILIST, 0, primitiveCount, current_batch_size);
-    patch += current_batch_size;
-  }
-}
-
-void SimpleHeightmapRenderer::render(const LodGridCullData &cull_data, const ShaderElement *shElem, int dim_bits)
-{
-  if (!shElem || !cull_data.hasPatches())
-    return;
-  const uint32_t morphCount = cull_data.patches.size() - cull_data.morph_at;
-  const uint32_t morphNoEdgesCount = cull_data.patches.size() - cull_data.morph_no_edges_at;
-  const uint32_t morphEdgesCount = morphCount - morphNoEdgesCount;
-
-  if (!cull_data.edgesData.empty())
-  {
-    const uint32_t curSize = heightmap_edges ? heightmap_edges.getBuf()->getNumElements() : 0;
-    if (cull_data.edgesData.size() > curSize * 4)
-    {
-      heightmap_edges.close();
-      heightmap_edges = dag::create_sbuffer(sizeof(uint32_t), (cull_data.edgesData.size() + 3) >> 2,
-        SBCF_CPU_ACCESS_WRITE | SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "heightmap_edges_",
-        RESTAG_LAND);
-    }
-    const uint32_t maxSz = 2 << 20;
-    if (cull_data.edgesData.size() > maxSz)
-    {
-      debug("edges sz is too big %d", cull_data.edgesData.size());
-      debug_dump_stack();
-    }
-    heightmap_edges.getBuf()->updateData(0, min<uint32_t>(maxSz, cull_data.edgesData.size()), cull_data.edgesData.data(),
-      VBLOCK_DISCARD | VBLOCK_WRITEONLY);
-    ShaderGlobal::set_buffer(heightmap_edgesVarId, heightmap_edges.getBufId());
-  }
-  else
-    ShaderGlobal::set_buffer(heightmap_edgesVarId, BAD_TEXTUREID);
-  if (!cull_data.morphData.empty())
-  {
-    const uint32_t curMSize = heightmap_morph ? heightmap_morph.getBuf()->getNumElements() : 0;
-    if (cull_data.morphData.size() > curMSize)
-    {
-      heightmap_morph.close();
-      heightmap_morph = dag::create_sbuffer(sizeof(uint32_t), (cull_data.morphData.size() + 1023) & ~1023,
-        SBCF_CPU_ACCESS_WRITE | SBCF_DYNAMIC | SBCF_FRAMEMEM | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "heightmap_morph_",
-        RESTAG_LAND);
-    }
-    G_ASSERT(cull_data.morphData.size() == morphCount);
-    heightmap_morph.getBuf()->updateData(0, cull_data.morphData.size() * 4, cull_data.morphData.data(),
-      VBLOCK_DISCARD | VBLOCK_WRITEONLY);
-    ShaderGlobal::set_buffer(heightmap_morphVarId, heightmap_morph.getBufId());
-  }
-  else
-    ShaderGlobal::set_buffer(heightmap_morphVarId, BAD_TEXTUREID);
-
-  const uint32_t dim = 1 << dim_bits;
-  uint32_t bitEdgesOffset = dim;
-  bitEdgesOffset = bitEdgesOffset * bitEdgesOffset;
-
-  G_ASSERTF(cull_data.edgesData.empty() ||
-              cull_data.edgesData.size() ==
-                (bitEdgesOffset / 8 * (cull_data.morph_no_edges_at - cull_data.edges_at)) + morphEdgesCount * bitEdgesOffset / 32,
-    "edgesData.size() = %d (%d + %d) edges %d morph_no_edges %d morph %d total %d", cull_data.edgesData.size(),
-    (bitEdgesOffset / 8 * (cull_data.morph_no_edges_at - cull_data.edges_at)), morphEdgesCount * bitEdgesOffset / 32,
-    cull_data.edges_at, cull_data.morph_no_edges_at, morphCount, cull_data.patches.size());
-
-  ShaderGlobal::set_int4(heightmap_parent_edges_atVarId, (cull_data.morph_no_edges_at - cull_data.edges_at) * bitEdgesOffset,
-    cull_data.morph_at, cull_data.morph_no_edges_at, cull_data.edges_at);
-  ShaderGlobal::set_int(heightmap_has_morphVarId, cull_data.exact_edges ? 1 : 0);
-
-  const bool use_ib = !cull_data.exact_edges;
-  d3d::setvsrc_ex(0, NULL, 0, 0);
-  TIME_D3D_PROFILE(heightmap);
-
-  const int buffer_size =
-    d3d::set_vs_constbuffer_register_count(MAX_HW_INSTANCING + heightmap_scale_offset_c) - heightmap_scale_offset_c;
-  d3d::set_vs_const1(heightmap_scale_offset_c - 1, dim, bitwise_cast<float>(dim + 1), cull_data.scaleX, bitwise_cast<float>(dim_bits));
-
-  if (!shElem->setStates(0, true))
-    return;
-  if (use_ib)
-  {
-    const int vDataIndex = dim_bits - VDATA_OFS;
-    G_ASSERT(vDataIndex >= 0 && vDataIndex < MAX_VDATA && vdata[vDataIndex].ib);
-    d3d::setind(vdata[vDataIndex].ib);
-  }
-  render_patches_in_batches(make_span_const(cull_data.patches), buffer_size, 0, use_ib, dim_bits);
-  const int indicesCnt = 6 << (dim_bits + dim_bits);
-  int startIndex = indicesCnt;
-  for (int i = 0; i < cull_data.additionalTriPatches.size(); ++i)
-  {
-    render_patches_in_batches(make_span_const(cull_data.additionalTriPatches[i]), buffer_size, startIndex, use_ib, dim_bits);
-    startIndex += indicesCnt;
-  }
-
-  d3d::set_vs_constbuffer_register_count(0);
-
-  ShaderGlobal::set_int(heightmap_has_morphVarId, 0);
-
-  d3d::setind(nullptr);
-}
-
 HeightmapRenderer::HeightmapRenderer(int bits) : shmat(NULL), shElem(NULL)
 {
   dimBits = clamp(bits - VDATA_OFS, 0, MAX_VDATA - 1) + VDATA_OFS;
@@ -365,19 +61,7 @@ void HeightmapRenderer::close()
     return;
   shElem = NULL; // Deleted in shmat
   del_it(shmat);
-  vdata[dimBits - VDATA_OFS].close();
-}
-
-void HeightmapRenderer::beforeResetDevice()
-{
-  for (int i = 0; i < MAX_VDATA; ++i)
-    vdata[i].beforeResetDevice();
-}
-
-void HeightmapRenderer::afterResetDevice()
-{
-  for (int i = 0; i < MAX_VDATA; ++i)
-    vdata[i].afterResetDevice();
+  lod_grid_vdata[dimBits - VDATA_OFS].close();
 }
 
 bool HeightmapRenderer::init(const char *shader_name, const char *mat_script, const char *hmap_tess_factor_name, bool do_fatal,
@@ -405,7 +89,7 @@ bool HeightmapRenderer::init(const char *shader_name, const char *mat_script, co
       DAG_FATAL("can't create ShaderElement for ShaderMaterial '%s'", shader_name);
     return false;
   }
-  if (!vdata[dimBits - VDATA_OFS].init(1 << dimBits)) // || !vdata[dimBits-VDATA_OFS].vb)
+  if (!lod_grid_vdata[dimBits - VDATA_OFS].init(1 << dimBits)) // || !lod_grid_vdata[dimBits-VDATA_OFS].vb)
   {
     if (do_fatal)
       DAG_FATAL("can not init heightmap buffers");
@@ -452,19 +136,20 @@ void HeightmapRenderer::renderPatchesByBatches(dag::ConstSpan<LodGridPatchParams
   }
 }
 
-void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridCullData &cull_data, LodGridVertexData *vData, int vDataDim) const
+void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridRingCullData &cull_data, LodGridVertexData *vData,
+  int vDataDim) const
 {
   int vDataIndex = dimBits - VDATA_OFS;
   if (!shElem || !cull_data.hasPatches())
     return;
 
-  // should not happens, as we have reset_device handler, but better to be safe
+  // Recovery for consumers without reset-device hooks (tools); serialized via afterResetDevice.
   for (int i = 0; i < MAX_VDATA; ++i)
   {
-    if (vdata[i].recreateBuffers)
+    if (lod_grid_vdata[i].recreateBuffers)
     {
       logerr("heightmap: vdata is invalid during rendering, recreating");
-      vdata[i].createBuffers();
+      lod_grid_vdata[i].afterResetDevice();
     }
   }
 
@@ -479,7 +164,7 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridCullData &cu
   const int buffer_size =
     d3d::set_vs_constbuffer_register_count(maxReqInstances + heightmap_scale_offset_c) - heightmap_scale_offset_c;
   int dim = vDataDim >= 0 ? vDataDim : getDim();
-  LodGridVertexData *vdataPtr = vData ? vData : &vdata[vDataIndex];
+  LodGridVertexData *vdataPtr = vData ? vData : &lod_grid_vdata[vDataIndex];
   d3d::set_vs_const1(heightmap_scale_offset_c - 2, 0, bitwise_cast<float>(2 * get_log2i(dim)), bitwise_cast<float>(dim - 1), 0);
   d3d::set_vs_const1(heightmap_scale_offset_c - 1, dim, bitwise_cast<float>(dim + 1), cull_data.scaleX,
     bitwise_cast<float>(get_log2i(dim)));
@@ -512,28 +197,6 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridCullData &cu
   dag::ConstSpan<LodGridPatchParams> otherLodsPatches = make_span_const(cull_data.patches).last(cull_data.getCount() - renderedQuads);
   renderPatchesByBatches(otherLodsPatches, buffer_size, vDataIndex, cull_data.startFlipped - renderedQuads, false, quadsInPatch << 1);
   d3d::set_vs_constbuffer_register_count(0);
-}
-
-void HeightmapRenderer::renderOnePatch(const Point2 &left_top, const Point2 &bottom_right) const
-{
-  int vDataIndex = dimBits - VDATA_OFS;
-  if (!shElem)
-    return;
-  d3d::setvsrc_ex(0, NULL, 0, 0);
-  d3d::setind(vdata[vDataIndex].ib);
-  d3d::set_vs_constbuffer_register_count(522);
-  FINALLY([]() { d3d::set_vs_constbuffer_register_count(0); });
-  if (!shElem->setStates(0, true))
-    return;
-  TIME_D3D_PROFILE(heightmapOnePatch);
-  G_ASSERT(fabs((bottom_right.y - left_top.y) - (bottom_right.x - left_top.x)) < 0.00001);
-  Point4 oneConst = Point4((bottom_right.x - left_top.x), 0, left_top.x, left_top.y);
-  d3d::set_vs_const1(heightmap_scale_offset_c - 2, 0, bitwise_cast<float>(2 * get_log2i(getDim())), bitwise_cast<float>(getDim() - 1),
-    0);
-  d3d::set_vs_const1(heightmap_scale_offset_c - 1, getDim(), bitwise_cast<float>(getDim() + 1), 0,
-    bitwise_cast<float>(get_log2i(getDim())));
-  d3d::set_vs_const(heightmap_scale_offset_c, &oneConst.x, 1);
-  d3d::drawind(PRIM_TRILIST, 0, 2, 0);
 }
 
 struct GridCullingContext
@@ -631,7 +294,7 @@ static inline uint32_t uint_pack_edges_tess(int edgeTessOut[4])
 }
 
 void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
-  float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridCullData &cull_data,
+  float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridRingCullData &cull_data,
   const Occlusion *use_occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId, int dim, bool fight_t_junctions,
   const HeightmapHeightCulling *heightCulling, BBox2 *innerLodsRegion, float waterLevel, const Point3 *viewPos,
   eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb, void (*on_patch_cb)(const BBox3 &box))

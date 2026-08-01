@@ -17,19 +17,23 @@ static inline bool loadAssetBase(DagorAssetMgr &mgr, const char *app_dir, const 
   pbar.setActionDesc("Scanning asset base...");
 
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
-  int nid = blk.getNameId("base");
   bool success = true;
 
-  for (int i = 0; i < blk.paramCount(); i++)
-    if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid)
-    {
-      String base = make_eff_app_relative_path(blk.getStr(i));
-      if (!mgr.loadAssetsBase(base, "sample"))
+  { // load asset base
+    const int nid = blk.getNameId("base");
+    eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> loadContext = mgr.makeLoadAssetsBaseContext();
+
+    for (int i = 0; i < blk.paramCount(); i++)
+      if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid)
       {
-        debug("errors while loading base: %s", base.str());
-        success = false;
+        String base = make_eff_app_relative_path(blk.getStr(i));
+        if (!mgr.loadAssetsBase(base, "sample", *loadContext))
+        {
+          debug("errors while loading base: %s", base.str());
+          success = false;
+        }
       }
-    }
+  }
 
   if (blk.getStr("gameRes", NULL) || blk.getStr("ddsxPacks", NULL))
   {
@@ -37,7 +41,7 @@ static inline bool loadAssetBase(DagorAssetMgr &mgr, const char *app_dir, const 
     DataBlock scannedResBlk;
     set_gameres_scan_recorder(&scannedResBlk, blk.getStr("gameRes", NULL), blk.getStr("ddsxPacks", NULL));
 
-    nid = blk.getNameId("prebuiltGameResFolder");
+    const int nid = blk.getNameId("prebuiltGameResFolder");
     for (int i = 0; i < blk.paramCount(); i++)
       if (blk.getParamType(i) == DataBlock::TYPE_STRING && blk.getParamNameId(i) == nid)
       {

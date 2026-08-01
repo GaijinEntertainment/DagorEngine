@@ -160,7 +160,7 @@ int rebuildNavMesh_getTotalTiles() { return {}; }
 bool rebuildNavMesh_saveToFile(const char *) { return {}; }
 void rebuildNavMesh_close() {}
 
-uint32_t patchedNavMesh_getFileSizeAndNumTiles(const char *, int &) { return {}; }
+PatchedNavMeshFileInfo patchedNavMesh_getFileInfo(const char *) { return {}; }
 bool patchedNavMesh_loadFromFile(const char *, dtTileCache *, uint8_t *, ska::flat_hash_set<uint32_t> &) { return {}; }
 
 const Tab<uint32_t> &get_removed_tile_cache_tiles()

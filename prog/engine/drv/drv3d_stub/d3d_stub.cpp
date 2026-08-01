@@ -152,6 +152,7 @@ static inline int get_bytes_per_pixel(unsigned fmt)
     case TEXFMT_DXT3:
     case TEXFMT_DXT5:
     case TEXFMT_ATI2N:
+    case TEXFMT_BC5S:
     case TEXFMT_BC6H:
     case TEXFMT_BC7: return 16;
   }
@@ -837,8 +838,8 @@ bool d3d::init_driver()
   stub_desc.caps.hasForcedSamplerCount = true;
   stub_desc.caps.hasVolMipMap = true;
   stub_desc.caps.hasOcclusionQuery = true;
-  stub_desc.caps.hasConstBufferOffset = true;
   stub_desc.caps.hasResourceCopyConversion = true;
+  stub_desc.caps.hasDepthConversionByTransfer = true;
   stub_desc.caps.hasReadMultisampledDepth = true;
   stub_desc.caps.hasQuadTessellation = true;
   stub_desc.caps.hasGather4 = true;
@@ -859,6 +860,10 @@ bool d3d::init_driver()
 
 #if _TARGET_PC_WIN || _TARGET_PC_LINUX || _TARGET_ANDROID || _TARGET_C3
   stub_desc.caps.hasConditionalRender = true;
+#endif
+
+#if _TARGET_PC_WIN || _TARGET_PC_LINUX
+  stub_desc.caps.hasTileBasedArchitecture = dgs_get_settings()->getBlockByNameEx("stub3d")->getBool("hasTileBasedArchitecture", false);
 #endif
 
 #if !DAGOR_HOSTED_INTERNAL_SERVER
@@ -1280,7 +1285,7 @@ bool d3d::dispatch_indirect(Sbuffer *, uint32_t, GpuPipeline) { return true; }
 void d3d::dispatch_mesh(uint32_t, uint32_t, uint32_t) {}
 void d3d::dispatch_mesh_indirect(Sbuffer *, uint32_t, uint32_t, uint32_t) {}
 void d3d::dispatch_mesh_indirect_count(Sbuffer *, uint32_t, uint32_t, Sbuffer *, uint32_t, uint32_t) {}
-bool d3d::set_const_buffer(uint32_t, uint32_t, Sbuffer *, uint32_t, uint32_t) { return true; }
+bool d3d::set_const_buffer(uint32_t, uint32_t, Sbuffer *) { return true; }
 bool d3d::set_const_buffer(unsigned, unsigned, const float *, unsigned) { return true; }
 
 GPUFENCEHANDLE d3d::insert_fence(GpuPipeline /*gpu_pipeline*/) { return BAD_GPUFENCEHANDLE; }

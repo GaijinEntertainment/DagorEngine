@@ -508,7 +508,7 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
   hdr.w = w;
   hdr.h = h;
 
-  if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
+  if (is_equal_float(params.imgGamma, 1.0f))
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
   if (!is_srgb_config_valid(hdr))
   {
@@ -657,7 +657,7 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
   hdr.w = max(w >> skip_levels, 1);
   hdr.h = max(h >> skip_levels, 1);
 
-  if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
+  if (is_equal_float(params.imgGamma, 1.0f))
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
   if (!is_srgb_config_valid(hdr))
   {
@@ -828,7 +828,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
   hdr.depth = 0;
   hdr.bitsPerPixel = bpp;
 
-  if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
+  if (is_equal_float(params.imgGamma, 1.0f))
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
   float effGamma = params.imgGamma;
   if (!is_srgb_config_valid(hdr))

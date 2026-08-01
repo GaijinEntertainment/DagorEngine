@@ -36,7 +36,7 @@ void *os_dll_load_deep_bind(const char *filename)
   // RTLD_DEEPBIND is incompatible with sanitizer runtime
   // RTLD_DEEPBIND requires GLIBC 2.3.4 (introduced in 2004-12-29),
   //   keep it disabled on game client builds, as we have complains for it!
-#if !defined(__SANITIZE_ADDRESS__) && !defined(DAGOR_THREAD_SANITIZER)
+#if !DAGOR_ADDRESS_SANITIZER && !DAGOR_THREAD_SANITIZER
   return ::dlopen(filename, RTLD_LAZY | RTLD_DEEPBIND);
 #else
   return ::dlopen(filename, RTLD_LAZY);

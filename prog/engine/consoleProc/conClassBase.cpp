@@ -14,7 +14,7 @@ CommandList *ICommandProcessor::cmdCollector = NULL;
 bool ICommandProcessor::cmdSearchMode = false;
 
 int collector_cmp(const char *arg, int ac, const char *cmd, int min_args, int max_args, const char *description,
-  const char *argsDescription, const char *varValue, eastl::vector<CommandOptions> &&cmdOptions)
+  const char *argsDescription, const char *varValue, eastl::vector<CommandOptions> *cmdOptions)
 {
   if (!ICommandProcessor::cmdCollector)
   {
@@ -32,7 +32,7 @@ int collector_cmp(const char *arg, int ac, const char *cmd, int min_args, int ma
   if (!ICommandProcessor::cmdSearchMode || dd_stricmp(arg, cmd) == 0)
   {
     ICommandProcessor::cmdCollector->emplace_back(cmd, min_args, max_args, description, argsDescription, varValue,
-      eastl::forward<eastl::vector<CommandOptions>>(cmdOptions));
+      cmdOptions ? eastl::move(*cmdOptions) : eastl::vector<CommandOptions>());
     // continue if collecting all commands, stop if trying to find command and command found
     return !ICommandProcessor::cmdSearchMode ? 0 : -1;
   }

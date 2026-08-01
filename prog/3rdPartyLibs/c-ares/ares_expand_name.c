@@ -32,6 +32,9 @@
 #include "ares_nowarn.h"
 #include "ares_private.h" /* for the memdebug */
 
+/* Maximum number of indirections allowed for a name */
+#define MAX_INDIRS 50
+
 static int name_length(const unsigned char *encoded, const unsigned char *abuf,
                        int alen);
 
@@ -140,7 +143,7 @@ int ares_expand_name(const unsigned char *encoded, const unsigned char *abuf,
 static int name_length(const unsigned char *encoded, const unsigned char *abuf,
                        int alen)
 {
-  int n = 0, offset, indir = 0;
+  int n = 0, offset, indir = 0, top;
 
   /* Allow the caller to pass us abuf + alen and have us check for it. */
   if (encoded >= abuf + alen)
@@ -148,7 +151,8 @@ static int name_length(const unsigned char *encoded, const unsigned char *abuf,
 
   while (*encoded)
     {
-      if ((*encoded & INDIR_MASK) == INDIR_MASK)
+      top = (*encoded & INDIR_MASK);
+      if (top == INDIR_MASK)
         {
           /* Check the offset and go there. */
           if (encoded + 1 >= abuf + alen)
@@ -161,10 +165,11 @@ static int name_length(const unsigned char *encoded, const unsigned char *abuf,
           /* If we've seen more indirects than the message length,
            * then there's a loop.
            */
-          if (++indir > alen)
+          ++indir;
+          if (indir > alen || indir > MAX_INDIRS)
             return -1;
         }
-      else
+      else if (top == 0x00)
         {
           offset = *encoded;
           if (encoded + offset + 1 >= abuf + alen)
@@ -176,6 +181,13 @@ static int name_length(const unsigned char *encoded, const unsigned char *abuf,
               encoded++;
             }
           n++;
+        }
+      else
+        {
+          /* RFC 1035 4.1.4 says other options (01, 10) for top 2
+           * bits are reserved.
+           */
+          return -1;
         }
     }
 

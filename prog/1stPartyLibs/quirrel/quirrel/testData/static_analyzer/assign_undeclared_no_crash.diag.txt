@@ -1,0 +1,9 @@
+ERROR: Unknown variable [undeclaredVar]
+testData/static_analyzer/assign_undeclared_no_crash.nut:5:2
+
+foreach (v in arr) {
+  undeclaredVar = v
+  ^------------
+}
+
+

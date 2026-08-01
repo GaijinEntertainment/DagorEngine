@@ -181,7 +181,7 @@ int ossl_punycode_decode(const char *pEncoded, const size_t enc_len,
         n = n + i / (written_out + 1);
         i %= (written_out + 1);
 
-        if (written_out > max_out)
+        if (written_out >= max_out)
             return 0;
 
         memmove(pDecoded + i + 1, pDecoded + i,
@@ -255,30 +255,35 @@ int ossl_a2ulabel(const char *in, char *out, size_t *outlen)
      */
     char *outptr = out;
     const char *inptr = in;
-    size_t size = 0;
+    size_t size = 0, maxsize;
     int result = 1;
-
+    unsigned int i, j;
     unsigned int buf[LABEL_BUF_SIZE];      /* It's a hostname */
-    if (out == NULL)
+
+    if (out == NULL) {
         result = 0;
+        maxsize = 0;
+    } else {
+        maxsize = *outlen;
+    }
+
+#define PUSHC(c)                    \
+    do                              \
+        if (size++ < maxsize)       \
+            *outptr++ = c;          \
+        else                        \
+            result = 0;             \
+    while (0)
 
     while (1) {
         char *tmpptr = strchr(inptr, '.');
-        size_t delta = (tmpptr) ? (size_t)(tmpptr - inptr) : strlen(inptr);
+        size_t delta = tmpptr != NULL ? (size_t)(tmpptr - inptr) : strlen(inptr);
 
         if (strncmp(inptr, "xn--", 4) != 0) {
-            size += delta + 1;
-
-            if (size >= *outlen - 1)
-                result = 0;
-
-            if (result > 0) {
-                memcpy(outptr, inptr, delta + 1);
-                outptr += delta + 1;
-            }
+            for (i = 0; i < delta + 1; i++)
+                PUSHC(inptr[i]);
         } else {
             unsigned int bufsize = LABEL_BUF_SIZE;
-            unsigned int i;
 
             if (ossl_punycode_decode(inptr + 4, delta - 4, buf, &bufsize) <= 0)
                 return -1;
@@ -286,26 +291,15 @@ int ossl_a2ulabel(const char *in, char *out, size_t *outlen)
             for (i = 0; i < bufsize; i++) {
                 unsigned char seed[6];
                 size_t utfsize = codepoint2utf8(seed, buf[i]);
+
                 if (utfsize == 0)
                     return -1;
 
-                size += utfsize;
-                if (size >= *outlen - 1)
-                    result = 0;
-
-                if (result > 0) {
-                    memcpy(outptr, seed, utfsize);
-                    outptr += utfsize;
-                }
+                for (j = 0; j < utfsize; j++)
+                    PUSHC(seed[j]);
             }
 
-            if (tmpptr != NULL) {
-                *outptr = '.';
-                outptr++;
-                size++;
-                if (size >= *outlen - 1)
-                    result = 0;
-            }
+            PUSHC(tmpptr != NULL ? '.' : '\0');
         }
 
         if (tmpptr == NULL)
@@ -313,7 +307,9 @@ int ossl_a2ulabel(const char *in, char *out, size_t *outlen)
 
         inptr = tmpptr + 1;
     }
+#undef PUSHC
 
+    *outlen = size;
     return result;
 }
 
@@ -327,12 +323,11 @@ int ossl_a2ulabel(const char *in, char *out, size_t *outlen)
 
 int ossl_a2ucompare(const char *a, const char *u)
 {
-    char a_ulabel[LABEL_BUF_SIZE];
+    char a_ulabel[LABEL_BUF_SIZE + 1];
     size_t a_size = sizeof(a_ulabel);
 
-    if (ossl_a2ulabel(a, a_ulabel, &a_size) <= 0) {
+    if (ossl_a2ulabel(a, a_ulabel, &a_size) <= 0)
         return -1;
-    }
 
-    return (strcmp(a_ulabel, u) == 0) ? 0 : 1;
+    return strcmp(a_ulabel, u) != 0;
 }

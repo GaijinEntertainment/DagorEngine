@@ -12,7 +12,8 @@ struct TwoStepRelPath
 
   void setSdkRoot(const char *root_dir, const char *subdir = nullptr);
 
-  const char *mkRelPath(const char *fpath, storage_t &stor);
+  const char *mkRelPath(const char *fpath, storage_t &stor) const;
+  const char *getRootDir() const { return sdkRoot.str(); }
 
 protected:
   SimpleString sdkRoot;

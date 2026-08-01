@@ -48,6 +48,7 @@ CMD(CmdEndOcclusionQuery, silent, DUMP_DEFAULT);
 #if VULKAN_HAS_RAYTRACING
 CMD(CmdTraceRays, measured, DUMP_DEFAULT);
 CMD(CmdRaytraceBuildStructures, measured, DUMP_DEFAULT);
+CMD(CmdRaytraceBuildMicromaps, measured, DUMP_DEFAULT);
 CMD(CmdCopyRaytraceAccelerationStructure, measured, DUMP_CUSTOM);
 #endif
 CMD(CmdSetRenderPassTarget, silent, DUMP_CUSTOM);

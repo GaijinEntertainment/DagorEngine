@@ -11,6 +11,8 @@ class DataBlock;
 // It must be called after dagor_init_keyboard_win() and dagor_init_mouse_win().
 void editor_core_initialize_input_handler();
 
+void editor_core_initialize_test_runtime();
+
 void editor_core_initialize_imgui();
 
 // The tools don't use dag imgui's imgui.blk, instead they store hand-picked settings from it.

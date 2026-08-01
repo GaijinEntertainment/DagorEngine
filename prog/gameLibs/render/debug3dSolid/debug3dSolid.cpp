@@ -384,16 +384,18 @@ void draw_debug_solid_collision_node(int node_id, const CollisionResource &collr
       const int nodeId = node->nodeIndex;
       const int faceCount = collres.getNodeFaceCount(nodeId);
       const int vertCount = collres.getNodeVertCount(nodeId);
-      if (faceCount > 0 && vertCount > 0)
+      // draw_debug_solid_mesh uploads a uint16 index buffer; skip a node over 65536 node-local verts
+      // rather than truncate its faces (debug viz only).
+      if (faceCount > 0 && vertCount > 0 && vertCount <= 65536)
       {
         TMatrix node_tm;
         collres.getCollisionNodeTm(node, additional_tm, geom_node_tree, node_tm);
         SmallTab<uint16_t, TmpmemAlloc> tmpIdx;
         tmpIdx.resize(faceCount * 3);
-        collres.iterateNodeFaces(nodeId, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
-          tmpIdx[fi * 3 + 0] = i0;
-          tmpIdx[fi * 3 + 1] = i1;
-          tmpIdx[fi * 3 + 2] = i2;
+        collres.iterateNodeFaces(nodeId, [&](int fi, uint32_t i0, uint32_t i1, uint32_t i2) {
+          tmpIdx[fi * 3 + 0] = (uint16_t)i0;
+          tmpIdx[fi * 3 + 1] = (uint16_t)i1;
+          tmpIdx[fi * 3 + 2] = (uint16_t)i2;
         });
         SmallTab<Point3_vec4, TmpmemAlloc> tmpVerts;
         tmpVerts.resize(vertCount);

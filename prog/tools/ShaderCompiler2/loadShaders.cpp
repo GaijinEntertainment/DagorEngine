@@ -274,6 +274,12 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
     }
   }
 
+  for (const auto &name : header.usedSepDebugInfoNames)
+  {
+    if (ctx.compInfo().getCompleteDebugInfoPackListing().getNameId(name.c_str()) < 0)
+      return CompilerAction::COMPILE_AND_LINK;
+  }
+
   // If the file is reused from cache, we need to add it's saved dependencies to the dump
   if (shc::config().dependencyDumpMode)
     iterate_names_in_id_order(previousDepSet, [&ctx](int, char const *name) { ctx.reportDepFile(name); });
@@ -288,8 +294,9 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
 bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetContext &out_ctx)
 {
   ShadersBindump shaders;
+  ShadersBindumpHeader header;
   bindump::FileReader reader(filename);
-  if (!load_shaders_bindump(shaders, reader, out_ctx))
+  if (!load_shaders_bindump(shaders, header, reader, out_ctx))
     sh_debug(SHLOG_FATAL, "corrupted OBJ file: %s", filename);
 
   ShaderTargetStorage &stor = out_ctx.storage();
@@ -320,6 +327,8 @@ bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetCont
   out_ctx.cppStcode().regTable.combinedTable.reserve(shaders.cppcodeRegisterTables.size());
   for (auto &&table : shaders.cppcodeRegisterTables)
     out_ctx.cppStcode().regTable.combinedTable.emplace_back(eastl::move(table));
+
+  out_ctx.storage().usedSepDebugInfoNames = eastl::move(header.usedSepDebugInfoNames);
 
   for (auto cl : stor.shaderClass)
   {

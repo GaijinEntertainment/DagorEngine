@@ -61,8 +61,10 @@ def blood_decals_prepare_render(stg : UpdateStageInfoBeforeRender;
 
   if !blood_decals_traces_queue |> empty
 
-    d3d_set_render_target(null, uint8(0))
-    d3d_set_depth(blood_decals_depth_atlas.getTex2D, DepthAccess.RW)
+    var depthTarget : RenderTarget
+    depthTarget.tex = blood_decals_depth_atlas.getTex2D
+    let noColors : array<RenderTarget>
+    d3d_set_render_target(depthTarget, DepthAccess.RW, noColors)
     exec_with_shader_blocks_scope_reset() <| $()
       blood_decals_depth_shader |> setStates()
       var tracesOffset = 0

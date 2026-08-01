@@ -5,6 +5,8 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_sharedMem.h>
+#include <osApiWrappers/dag_critSec.h>
 #include <zlib.h>
 #include <ioSys/dag_zstdIo.h>
 #include <../ioSys/dataBlock/blk_shared.h>
@@ -111,6 +113,220 @@ static void patch_fs(VirtualRomFsData *fs, void *data_offs = NULL)
   }
 }
 
+// --- cross-process sharing of vromfs body data via GlobalSharedMemStorage ---
+// Mode picked per-load via hasStableBaseAddr():
+// - direct (tag VROMFS_SHMEM_TAG) shares a fully patch_fs()-ed VirtualRomFsData in place, valid only if every
+// sharer sees the segment at the same address;
+// - indexed (tag VROMFS_SHMEM_TAG_INDEXED) shares just the raw body, and each process builds its own small
+// private index via make_non_intrusive_vromfs()/dissect_vromfs_dump_body() instead.
+// Either loader also checks the other tag before allocating its own, to reuse an existing entry instead of
+// a redundant decompress+allocate - see make_rebased_vromfs_index()/make_indexed_vrom_index() for how each direction works.
+static GlobalSharedMemStorage *vromfs_shared_mem_storage = nullptr;
+static constexpr uint32_t VROMFS_SHMEM_TAG = _MAKE4C('VROM');
+static constexpr uint32_t VROMFS_SHMEM_TAG_INDEXED = _MAKE4C('VROI');
+// below this size the GlobalSharedMemStorage record/mutex overhead isn't worth it; keep such vroms private
+static constexpr unsigned VROMFS_SHMEM_MIN_SIZE = 8 << 10;
+
+// An indexed fs is private and points into a shared body, so doesPtrBelong(fs) can't see it; indexed_vrom_refs
+// tracks fs->sharedBody (and which tag it was allocated under) so release_vromfs_shared_mem_ref() can still
+// release it.
+namespace
+{
+struct IndexedVromRef
+{
+  VirtualRomFsData *fs;
+  void *sharedBody;
+  uint32_t sharedTag;
+};
+} // namespace
+static WinCritSec indexed_vrom_refs_cc;
+static Tab<IndexedVromRef> indexed_vrom_refs;
+
+static void register_indexed_vrom_ref(VirtualRomFsData *fs, void *shared_body, uint32_t shared_tag)
+{
+  WinAutoLock lock(indexed_vrom_refs_cc);
+  indexed_vrom_refs.push_back(IndexedVromRef{fs, shared_body, shared_tag});
+}
+
+void set_vromfs_shared_mem_storage(GlobalSharedMemStorage *sm) { vromfs_shared_mem_storage = sm; }
+
+// returns true if fs is shared (caller must NOT free it) and was released during call;
+// returns false if fs is private (possibly a released index) and still needs freeing.
+// Use release_vromfs() instead of calling this directly.
+static bool release_vromfs_shared_mem_ref(VirtualRomFsData *fs)
+{
+  if (!fs || !vromfs_shared_mem_storage)
+    return false;
+  {
+    WinAutoLock lock(indexed_vrom_refs_cc);
+    for (int i = 0; i < indexed_vrom_refs.size(); i++)
+      if (indexed_vrom_refs[i].fs == fs)
+      {
+        vromfs_shared_mem_storage->releasePtr(indexed_vrom_refs[i].sharedTag, indexed_vrom_refs[i].sharedBody);
+        indexed_vrom_refs[i] = indexed_vrom_refs.back();
+        indexed_vrom_refs.pop_back();
+        return false; // fs is a private index (indexed mode) - caller must still free it normally
+      }
+  }
+  if (vromfs_shared_mem_storage->doesPtrBelong(fs))
+  {
+    vromfs_shared_mem_storage->releasePtr(VROMFS_SHMEM_TAG, fs);
+    return true; // fs is the shared body itself (direct mode) - caller must NOT free it
+  }
+  return false;
+}
+
+void release_vromfs(VirtualRomFsData *&vromfs, IMemAlloc *mem)
+{
+  if (!vromfs)
+    return;
+  if (!release_vromfs_shared_mem_ref(vromfs))
+  {
+    if (mem)
+      memfree(vromfs, mem);
+    else
+      delete vromfs;
+  }
+  vromfs = nullptr;
+}
+
+// Builds a private index over an already-patched, shared direct-mode VirtualRomFsData whose absolute pointers
+// were baked against a different base than this process sees the segment at (delta corrects for that - see
+// GlobalSharedMemStorage::baseAddrDelta()).
+// Same shape as make_non_intrusive_vromfs(): table pointers (files.map, each file name, the data tab) are copied
+// into this private allocation and rebased between the two tables bases;
+// per-file data spans and the attributes pointer stay in the shared body, corrected by the flat delta instead.
+// Source counts/pointers here are already resolved (not the disk's packed-offset encoding), so unlike
+// dissect_vromfs_dump_body() they're read as-is, with no unpack step.
+static VirtualRomFsData *make_rebased_vromfs_index(VirtualRomFsData *shared_fs, ptrdiff_t delta, unsigned full_sz, IMemAlloc *mem)
+{
+  const char *body_start = (const char *)shared_fs + FS_OFFS;
+  const char *tables_end = (const char *)shared_fs->data.data() + delta + data_size(shared_fs->data);
+  if (tables_end < body_start || (size_t)(tables_end - body_start) > full_sz)
+    return nullptr;
+  size_t tables_sz = tables_end - body_start;
+
+  VirtualRomFsData *fs = new (mem->tryAlloc(FS_OFFS + tables_sz), _NEW_INPLACE) VirtualRomFsData;
+  if (!fs)
+    return nullptr;
+  memcpy(&fs->files, body_start, tables_sz); //-V780
+  fs->flags = shared_fs->flags;
+  fs->version = shared_fs->version;
+  fs->attr = shared_fs->attr;
+
+  void *newTablesBase = (char *)fs + FS_OFFS;
+  void *oldTablesBase = (char *)body_start - delta;
+
+  fs->files.map.rebase(newTablesBase, oldTablesBase);
+  for (int i = 0, ie = fs->files.map.size(); i < ie; i++)
+    fs->files.map[i].rebase(newTablesBase, oldTablesBase);
+
+  fs->data.rebase(newTablesBase, oldTablesBase);
+  for (int i = 0, ie = fs->data.size(); i < ie; i++)
+    fs->data[i].rebase((void *)delta, nullptr);
+
+  if (fs->attr.attrData)
+    fs->attr.attrData = (EVirtualRomFsFileAttributes *)((char *)fs->attr.attrData + delta);
+
+  return fs;
+}
+
+// Builds a private index over a raw, unpatched indexed-mode shared body via make_non_intrusive_vromfs()/
+// dissect_vromfs_dump_body().
+// Shared by the indexed-mode tail of both load_vromfs_dump_shared() and load_vromfs_dump_shared_file(),
+// and by a stable (direct-mode) process that finds an existing indexed entry instead of allocating its
+// own separate direct copy.
+static VirtualRomFsData *make_indexed_vrom_index(void *shared_body, const VirtualRomFsDataHdr &hdr, dag::ConstSpan<uint8_t> header,
+  dag::ConstSpan<uint8_t> header_ext, IMemAlloc *mem)
+{
+  VromfsDumpSections sections;
+  sections.header = header;
+  sections.headerExt = header_ext;
+  sections.body = make_span_const((const uint8_t *)shared_body, hdr.fullSz);
+
+  VromfsDumpBodySections bodySections;
+  unsigned outHdrSz = 0;
+  return dissect_vromfs_dump_body(sections, bodySections) ? make_non_intrusive_vromfs(sections, bodySections, mem, &outHdrSz)
+                                                          : nullptr;
+}
+
+// Builds a private index over shared_body (already found or just decompressed under VROMFS_SHMEM_TAG_INDEXED),
+// releasing it and returning nullptr on failure so the caller can fall back to a private load.
+static VirtualRomFsData *build_indexed_vrom(void *shared_body, const VirtualRomFsDataHdr &hdr, dag::ConstSpan<uint8_t> header,
+  dag::ConstSpan<uint8_t> header_ext, IMemAlloc *mem, int64_t mtime)
+{
+  VirtualRomFsData *fs = make_indexed_vrom_index(shared_body, hdr, header, header_ext, mem);
+  if (!fs)
+  {
+    vromfs_shared_mem_storage->releasePtr(VROMFS_SHMEM_TAG_INDEXED, shared_body);
+    return nullptr;
+  }
+  if (mtime >= 0)
+    fs->mtime = mtime;
+  register_indexed_vrom_ref(fs, shared_body, VROMFS_SHMEM_TAG_INDEXED);
+  return fs;
+}
+
+// Finds or allocates the shared-mem record for shared_mem_key under tag, logging reuse/alloc/failure.
+// is_leader is set when this call allocated the record, meaning the caller still has to fill it in and mark it ready.
+static void *find_or_alloc_shared_vrom_body(const char *shared_mem_key, uint32_t tag, unsigned allocSz, const char *mode,
+  bool &is_leader)
+{
+  void *sharedBody = vromfs_shared_mem_storage->findOrAlloc(shared_mem_key, tag, allocSz, is_leader);
+  if (sharedBody && !is_leader)
+    logmessage(_MAKE4C('SHMM'), "reusing %s VROMFS dump from shared mem: %p, %dK, '%s'", mode, sharedBody, allocSz >> 10,
+      shared_mem_key);
+  else if (is_leader)
+    logmessage(_MAKE4C('SHMM'), "allocated %s VROMFS dump in shared mem: %p, %dK, '%s' (mem %lluK/%lluK, rec=%d)", mode, sharedBody,
+      allocSz >> 10, shared_mem_key, ((uint64_t)vromfs_shared_mem_storage->getMemUsed()) >> 10,
+      ((uint64_t)vromfs_shared_mem_storage->getMemSize()) >> 10, vromfs_shared_mem_storage->getRecUsed());
+  else
+    logmessage(_MAKE4C('SHMM'),
+      "failed to allocate %s VROMFS dump in shared mem: %dK, '%s' (mem %lluK/%lluK, rec=%d); falling back to conventional "
+      "allocator",
+      mode, allocSz >> 10, shared_mem_key, ((uint64_t)vromfs_shared_mem_storage->getMemUsed()) >> 10,
+      ((uint64_t)vromfs_shared_mem_storage->getMemSize()) >> 10, vromfs_shared_mem_storage->getRecUsed());
+  return sharedBody;
+}
+
+// Checks the tag the OTHER mode would use, before this loader allocates its own:
+// - an unstable process reuses an existing direct entry via make_rebased_vromfs_index();
+// - a stable process reuses an existing indexed entry via build_indexed_vrom().
+// Returns nullptr (after releasing any found-but-unusable ref) if there's nothing to reuse.
+static VirtualRomFsData *try_reuse_other_tag_shared_vrom(bool direct, const char *shared_mem_key, const VirtualRomFsDataHdr &hdr,
+  dag::ConstSpan<uint8_t> header, dag::ConstSpan<uint8_t> header_ext, IMemAlloc *mem, int64_t mtime)
+{
+  if (!direct)
+  {
+    void *directBody = vromfs_shared_mem_storage->findPtr(shared_mem_key, VROMFS_SHMEM_TAG);
+    if (!directBody)
+      return nullptr;
+    if (VirtualRomFsData *fs =
+          make_rebased_vromfs_index((VirtualRomFsData *)directBody, vromfs_shared_mem_storage->baseAddrDelta(), hdr.fullSz, mem))
+    {
+      logmessage(_MAKE4C('SHMM'), "reusing direct VROMFS dump from shared mem as rebased index: %p, %dK, '%s'", directBody,
+        (FS_OFFS + hdr.fullSz) >> 10, shared_mem_key);
+      if (mtime >= 0)
+        fs->mtime = mtime;
+      register_indexed_vrom_ref(fs, directBody, VROMFS_SHMEM_TAG);
+      return fs;
+    }
+    vromfs_shared_mem_storage->releasePtr(VROMFS_SHMEM_TAG, directBody); // rebase failed; fall back below
+    return nullptr;
+  }
+
+  void *indexedBody = vromfs_shared_mem_storage->findPtr(shared_mem_key, VROMFS_SHMEM_TAG_INDEXED);
+  if (!indexedBody)
+    return nullptr;
+  if (VirtualRomFsData *fs = build_indexed_vrom(indexedBody, hdr, header, header_ext, mem, mtime))
+  {
+    logmessage(_MAKE4C('SHMM'), "reusing indexed VROMFS dump from shared mem as private index: %p, %dK, '%s'", indexedBody,
+      hdr.fullSz >> 10, shared_mem_key);
+    return fs;
+  }
+  return nullptr; // build_indexed_vrom() already released indexedBody on failure
+}
+
 bool init_vromfs_file_attr(VirtualRomFsFileAttributes &fsAttr, const VromfsDumpBodySections &bodySections)
 {
   if (!bodySections.attributes.data() || !bodySections.attributes.size())
@@ -153,7 +369,94 @@ static bool init_patched_fs_file_attr(VirtualRomFsData *fs, const char *fs_data,
   return true;
 }
 
-VirtualRomFsData *load_vromfs_dump_from_mem(dag::ConstSpan<char> data, IMemAlloc *mem)
+// Builds (or attaches to) a shared-mem-backed VirtualRomFsData under shared_mem_key, in either direct or indexed mode
+// (see the comment above VROMFS_SHMEM_TAG); header_and_ext must span exactly the header (+ ext header, if any) bytes
+static VirtualRomFsData *load_vromfs_dump_shared(const char *shared_mem_key, IMemAlloc *mem, const VirtualRomFsDataHdr &hdr,
+  dag::ConstSpan<uint8_t> header_and_ext, const void *packed_buf, int64_t mtime)
+{
+  const bool direct = vromfs_shared_mem_storage->hasStableBaseAddr();
+  const dag::ConstSpan<uint8_t> hdrSpan = header_and_ext.subspan(0, sizeof(VirtualRomFsDataHdr));
+  const dag::ConstSpan<uint8_t> hdrExtSpan =
+    hdr.label == _MAKE4C('VRFx') ? header_and_ext.subspan(sizeof(VirtualRomFsDataHdr)) : dag::ConstSpan<uint8_t>();
+
+  if (VirtualRomFsData *fs = try_reuse_other_tag_shared_vrom(direct, shared_mem_key, hdr, hdrSpan, hdrExtSpan, mem, mtime))
+    return fs;
+
+  const uint32_t tag = direct ? VROMFS_SHMEM_TAG : VROMFS_SHMEM_TAG_INDEXED;
+  const unsigned allocSz = direct ? FS_OFFS + hdr.fullSz : hdr.fullSz;
+  const char *mode = direct ? "direct" : "indexed";
+
+  bool isLeader;
+  void *sharedBody = find_or_alloc_shared_vrom_body(shared_mem_key, tag, allocSz, mode, isLeader);
+  if (!sharedBody)
+    return nullptr; // storage full, or lost the alloc race to another process; caller falls back to a private load
+
+  void *bodyDest = direct ? (char *)sharedBody + FS_OFFS : sharedBody;
+  if (isLeader)
+  {
+    // for direct mode, the placement-new MUST happen before decompression: it default-constructs fs->files/fs->data,
+    // which live at fs+FS_OFFS == bodyDest, so doing it after decompression would wipe out the just-written bytes
+    if (direct)
+    {
+      VirtualRomFsData *fs = (VirtualRomFsData *)sharedBody;
+      new (fs, _NEW_INPLACE) VirtualRomFsData();
+      if (mtime >= 0)
+        fs->mtime = mtime;
+    }
+
+    bool ok;
+    if (hdr.packedSz())
+    {
+      unsigned long sz = hdr.fullSz;
+      if (hdr.zstdPacked())
+      {
+        Tab<unsigned char> tmp;
+        tmp.resize(hdr.packedSz());
+        memcpy(tmp.data(), packed_buf, hdr.packedSz());
+        DEOBFUSCATE_ZSTD_DATA(tmp.data(), hdr.packedSz());
+        sz = (unsigned long)zstd_decompress(bodyDest, sz, tmp.data(), hdr.packedSz());
+        ok = (sz == hdr.fullSz);
+      }
+      else
+        ok = uncompress((unsigned char *)bodyDest, &sz, (const unsigned char *)packed_buf, hdr.packedSz()) == Z_OK;
+    }
+    else
+    {
+      memcpy(bodyDest, packed_buf, hdr.fullSz);
+      ok = true;
+    }
+
+    if (ok && direct)
+    {
+      VirtualRomFsData *fs = (VirtualRomFsData *)sharedBody;
+      int fs_attr_ofs = 0;
+      const VirtualRomFsExtHdr *hdr_ext =
+        hdr.label == _MAKE4C('VRFx') ? (const VirtualRomFsExtHdr *)(header_and_ext.data() + sizeof(VirtualRomFsDataHdr)) : nullptr;
+      if (hdr_ext && hdr_ext->size >= sizeof(VirtualRomFsExtHdr))
+      {
+        fs->flags = hdr_ext->flags;
+        fs->version = hdr_ext->version;
+        if (fs->flags & EVFSEF_HAVE_FILE_ATTRIBUTES)
+          fs_attr_ofs = *(const int *)(const char *)(hdr_ext + 1);
+      }
+      patch_fs(fs);
+      ok = init_patched_fs_file_attr(fs, (char *)fs + FS_OFFS, hdr.fullSz, fs_attr_ofs);
+    }
+    if (!ok)
+      return nullptr; // leaves an allocated-but-never-ready shared record; findPtr()'s own timeout bounds the fallout
+
+    mark_global_shared_mem_readonly(sharedBody, allocSz, true);
+    vromfs_shared_mem_storage->markPtrDataReady(sharedBody);
+  }
+
+  if (direct)
+    return (VirtualRomFsData *)sharedBody; // already decompressed, patched and marked ready by the leader
+
+  // indexed mode: every process (leader and followers alike) builds its own private index into the shared raw body
+  return build_indexed_vrom(sharedBody, hdr, hdrSpan, hdrExtSpan, mem, mtime);
+}
+
+VirtualRomFsData *load_vromfs_dump_from_mem(dag::ConstSpan<char> data, IMemAlloc *mem, const char *shared_vrom_name, int64_t mtime)
 {
   if (data_size(data) < sizeof(VirtualRomFsDataHdr))
     return NULL;
@@ -166,28 +469,50 @@ VirtualRomFsData *load_vromfs_dump_from_mem(dag::ConstSpan<char> data, IMemAlloc
   if (!checkTargetCode(hdr->target))
     return NULL;
 
-  VirtualRomFsData *fs = (VirtualRomFsData *)mem->tryAlloc(FS_OFFS + hdr->fullSz);
-  if (!fs)
-    return NULL;
-  new (fs, _NEW_INPLACE) VirtualRomFsData();
-
-  int fs_attr_ofs = 0;
+  const VirtualRomFsExtHdr *hdr_ext = nullptr;
   int vrom_hdr_sz = sizeof(VirtualRomFsDataHdr);
   if (hdr->label == _MAKE4C('VRFx'))
   {
-    const VirtualRomFsExtHdr *hdr_ext = (const VirtualRomFsExtHdr *)(data.data() + vrom_hdr_sz);
-    if (hdr_ext->size >= sizeof(VirtualRomFsExtHdr))
-    {
-      fs->flags = hdr_ext->flags;
-      fs->version = hdr_ext->version;
-      if (fs->flags & EVFSEF_HAVE_FILE_ATTRIBUTES)
-        fs_attr_ofs = *(const int *)(const char *)(hdr_ext + 1);
-    }
+    hdr_ext = (const VirtualRomFsExtHdr *)(data.data() + vrom_hdr_sz);
     vrom_hdr_sz += hdr_ext->size;
   }
   unsigned char *buf = (((unsigned char *)data.data()) + vrom_hdr_sz);
 
   dump_file_hash("mem://", data.data(), data.size());
+
+  if (shared_vrom_name && vromfs_shared_mem_storage && FS_OFFS + hdr->fullSz >= VROMFS_SHMEM_MIN_SIZE)
+  {
+    // reuse the dump's own trailing 16-byte body md5 (see dissect_vromfs_dump()) as the key's identity component,
+    // instead of requiring the caller to hash anything
+    size_t bodySz = hdr->packedSz() ? hdr->packedSz() : hdr->fullSz;
+    size_t md5Ofs = (size_t)vrom_hdr_sz + bodySz;
+    char md5Hex[33];
+    char sharedKeyBuf[192];
+    if (data_size(data) >= md5Ofs + 16 && data_to_str_hex_buf(md5Hex, sizeof(md5Hex), data.data() + md5Ofs, 16))
+    {
+      SNPRINTF(sharedKeyBuf, sizeof(sharedKeyBuf), "%s:%s", shared_vrom_name, md5Hex);
+      if (VirtualRomFsData *shared_fs =
+            load_vromfs_dump_shared(sharedKeyBuf, mem, *hdr, make_span_const((const uint8_t *)data.data(), vrom_hdr_sz), buf, mtime))
+        return shared_fs;
+    }
+  }
+
+  VirtualRomFsData *fs = (VirtualRomFsData *)mem->tryAlloc(FS_OFFS + hdr->fullSz);
+  if (!fs)
+    return NULL;
+  new (fs, _NEW_INPLACE) VirtualRomFsData();
+  if (mtime >= 0)
+    fs->mtime = mtime;
+
+  int fs_attr_ofs = 0;
+  if (hdr_ext && hdr_ext->size >= sizeof(VirtualRomFsExtHdr))
+  {
+    fs->flags = hdr_ext->flags;
+    fs->version = hdr_ext->version;
+    if (fs->flags & EVFSEF_HAVE_FILE_ATTRIBUTES)
+      fs_attr_ofs = *(const int *)(const char *)(hdr_ext + 1);
+  }
+
   if (hdr->packedSz())
   {
     unsigned long sz = hdr->fullSz;
@@ -825,9 +1150,134 @@ bool check_vromfs_dump_signature(VromfsSignatureChecker &checker, const VromfsDu
   return true;
 }
 
-VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, signature_checker_factory_cb checker_cb,
-  const dag::ConstSpan<uint8_t> *to_verify, int file_flags)
+// File-based counterpart of load_vromfs_dump_shared() (see the comment above VROMFS_SHMEM_TAG).
+// Unlike the mem-based version, the leader still runs full signature/md5 verification.
+// fp must be positioned right after the header(+ext) on entry.
+static VirtualRomFsData *load_vromfs_dump_shared_file(const char *shared_mem_key, IMemAlloc *mem, file_ptr_t fp,
+  VirtualRomFsDataHdr &hdr, const Tab<uint8_t> &hdr_ext_data, int fs_attr_ofs, VromfsSignatureChecker *checker,
+  const dag::ConstSpan<uint8_t> *to_verify, int64_t mtime)
 {
+  const bool direct = vromfs_shared_mem_storage->hasStableBaseAddr();
+  const dag::ConstSpan<uint8_t> hdrSpan = make_span_const((const uint8_t *)&hdr, sizeof(hdr));
+  const dag::ConstSpan<uint8_t> hdrExtSpan = hdr_ext_data.size() ? make_span_const(hdr_ext_data) : dag::ConstSpan<uint8_t>();
+
+  if (VirtualRomFsData *fs = try_reuse_other_tag_shared_vrom(direct, shared_mem_key, hdr, hdrSpan, hdrExtSpan, mem, mtime))
+    return fs;
+
+  const uint32_t tag = direct ? VROMFS_SHMEM_TAG : VROMFS_SHMEM_TAG_INDEXED;
+  const unsigned allocSz = direct ? FS_OFFS + hdr.fullSz : hdr.fullSz;
+  const char *mode = direct ? "direct" : "indexed";
+
+  bool isLeader;
+  void *sharedBody = find_or_alloc_shared_vrom_body(shared_mem_key, tag, allocSz, mode, isLeader);
+  if (!sharedBody)
+    return nullptr; // storage full, or lost the alloc race to another process; caller falls back to a private load
+
+  void *bodyDest = direct ? (char *)sharedBody + FS_OFFS : sharedBody;
+  if (isLeader)
+  {
+    // for direct mode, the placement-new MUST happen before decompression: it default-constructs fs->files/fs->data,
+    // which live at fs+FS_OFFS == bodyDest, so doing it after decompression would wipe out the just-written bytes
+    if (direct)
+    {
+      VirtualRomFsData *fs = (VirtualRomFsData *)sharedBody;
+      new (fs, _NEW_INPLACE) VirtualRomFsData();
+      fs->mtime = mtime;
+    }
+
+    void *buf = NULL;
+    bool ok;
+    if (hdr.packedSz())
+    {
+      buf = mem->tryAlloc(hdr.packedSz());
+      ok = buf && df_read(fp, buf, hdr.packedSz()) == (int)hdr.packedSz();
+      if (ok)
+      {
+        unsigned long sz = hdr.fullSz;
+        if (hdr.zstdPacked())
+        {
+          DEOBFUSCATE_ZSTD_DATA(buf, hdr.packedSz());
+          sz = (unsigned long)zstd_decompress(bodyDest, sz, buf, hdr.packedSz());
+          ok = (sz == hdr.fullSz);
+          OBFUSCATE_ZSTD_DATA(buf, hdr.packedSz());
+        }
+        else
+        {
+          ok = uncompress((unsigned char *)bodyDest, &sz, (unsigned char *)buf, hdr.packedSz()) == Z_OK;
+          if (ok)
+            hdr.fullSz = sz;
+        }
+      }
+    }
+    else
+      ok = df_read(fp, (char *)bodyDest, hdr.fullSz) == (int)hdr.fullSz;
+
+    char embedded_md5[16];
+    bool haveMd5 = false;
+    if (ok)
+    {
+      haveMd5 = df_read(fp, embedded_md5, sizeof(embedded_md5)) == sizeof(embedded_md5);
+      unsigned char signature[SIGNATURE_MAX_SIZE];
+      int signature_size = haveMd5 ? df_read(fp, signature, sizeof(signature)) : 0;
+
+      if (haveMd5 && signature_size > 0 && checker)
+      {
+        VromfsDumpSections sections;
+        sections.header = make_span_const((const uint8_t *)&hdr, sizeof(hdr));
+        if (hdr_ext_data.size())
+          sections.headerExt = make_span_const(hdr_ext_data);
+        sections.body = hdr.signedContents() ? make_span_const((const uint8_t *)bodyDest, hdr.fullSz)
+                                             : make_span_const((const uint8_t *)buf, hdr.packedSz() ? hdr.packedSz() : hdr.fullSz);
+        sections.md5 = make_span_const((const uint8_t *)embedded_md5, sizeof(embedded_md5));
+        sections.signature = make_span_const((const uint8_t *)signature, signature_size);
+        ok = check_vromfs_dump_signature(*checker, sections, to_verify);
+      }
+      else if (checker && !checker->allowAbsentSignature())
+        ok = false;
+      else if (haveMd5)
+      {
+        md5_state_t s;
+        md5_byte_t d[16];
+        md5_init(&s);
+        md5_append(&s, (const unsigned char *)bodyDest, hdr.fullSz);
+        md5_finish(&s, d);
+        ok = memcmp(d, embedded_md5, sizeof(embedded_md5)) == 0;
+      }
+    }
+    if (buf)
+      mem->free(buf);
+
+    if (ok && direct)
+    {
+      VirtualRomFsData *fs = (VirtualRomFsData *)sharedBody;
+      if (hdr_ext_data.size())
+      {
+        const VirtualRomFsExtHdr *hdr_ext = (const VirtualRomFsExtHdr *)hdr_ext_data.data();
+        fs->flags = hdr_ext->flags;
+        fs->version = hdr_ext->version;
+      }
+      patch_fs(fs);
+      ok = init_patched_fs_file_attr(fs, (char *)fs + FS_OFFS, hdr.fullSz, fs_attr_ofs);
+    }
+    if (!ok)
+      return nullptr; // leaves an allocated-but-never-ready shared record; findPtr()'s own timeout bounds the fallout
+
+    mark_global_shared_mem_readonly(sharedBody, allocSz, true);
+    vromfs_shared_mem_storage->markPtrDataReady(sharedBody);
+  }
+
+  if (direct)
+    return (VirtualRomFsData *)sharedBody; // already decompressed, verified, patched and marked ready by the leader
+
+  // indexed mode: every process builds its own private index into the shared raw body.
+  // hdr.fullSz is this process' own header read, corrected only in the leader's zlib path above - a follower trusts it as-is
+  return build_indexed_vrom(sharedBody, hdr, hdrSpan, hdrExtSpan, mem, mtime);
+}
+
+VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, signature_checker_factory_cb checker_cb,
+  const dag::ConstSpan<uint8_t> *to_verify, int file_flags, bool allow_shared_mem)
+{
+  const char *shared_vrom_name = allow_shared_mem ? dd_get_fname(fname) : nullptr;
   debug("%s <%s>", __FUNCTION__, fname);
 
   VromfsSignatureCheckerPtr checker = checker_cb ? checker_cb() : nullptr;
@@ -838,6 +1288,7 @@ VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, signature_
   int err = 0;
   char embedded_md5[16];
   int fs_attr_ofs = 0;
+  int vrom_hdr_sz;
   unsigned char signature[SIGNATURE_MAX_SIZE];
   int signature_size = 0;
   enum
@@ -877,12 +1328,7 @@ VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, signature_
   if (!checkTargetCode(hdr.target))
     goto load_fail;
 
-  fs = (VirtualRomFsData *)mem->tryAlloc(FS_OFFS + hdr.fullSz);
-  if (!fs)
-    goto load_fail;
-  new (fs, _NEW_INPLACE) VirtualRomFsData();
-  fs->mtime = st.mtime;
-
+  vrom_hdr_sz = sizeof(VirtualRomFsDataHdr);
   if (hdr.label == _MAKE4C('VRFx'))
   {
     VirtualRomFsExtHdr hdr_ext;
@@ -893,15 +1339,54 @@ VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, signature_
       memcpy(&hdr_ext_data[0], &hdr_ext, sizeof(hdr_ext));
       if (hdr_ext.size > sizeof(hdr_ext))
         df_read(fp, &hdr_ext_data[sizeof(hdr_ext)], hdr_ext.size - sizeof(hdr_ext));
-      fs->flags = hdr_ext.flags;
-      fs->version = hdr_ext.version;
-      if (fs->flags & EVFSEF_HAVE_FILE_ATTRIBUTES)
+      if (hdr_ext.flags & EVFSEF_HAVE_FILE_ATTRIBUTES)
       {
         if (hdr_ext.size < sizeof(hdr_ext) + sizeof(fs_attr_ofs))
           goto load_fail;
         memcpy(&fs_attr_ofs, &hdr_ext_data[sizeof(hdr_ext)], sizeof(fs_attr_ofs));
       }
     }
+    vrom_hdr_sz += hdr_ext.size;
+  }
+
+  if (shared_vrom_name && vromfs_shared_mem_storage && FS_OFFS + hdr.fullSz >= VROMFS_SHMEM_MIN_SIZE)
+  {
+    // reuse the dump's own trailing 16-byte body md5 (see dissect_vromfs_dump()) as the key's identity component,
+    // instead of requiring the caller to hash anything
+    size_t bodySz = hdr.packedSz() ? hdr.packedSz() : hdr.fullSz;
+    int64_t md5FileOfs = (int64_t)vrom_hdr_sz + (int64_t)bodySz;
+    char md5Hex[33];
+    if (df_seek_to(fp, md5FileOfs) == 0 && df_read(fp, embedded_md5, sizeof(embedded_md5)) == sizeof(embedded_md5) &&
+        data_to_str_hex_buf(md5Hex, sizeof(md5Hex), embedded_md5, sizeof(embedded_md5)))
+    {
+      char sharedKeyBuf[192];
+      SNPRINTF(sharedKeyBuf, sizeof(sharedKeyBuf), "%s:%s", shared_vrom_name, md5Hex);
+      df_seek_to(fp, vrom_hdr_sz);
+      if (VirtualRomFsData *shared_fs =
+            load_vromfs_dump_shared_file(sharedKeyBuf, mem, fp, hdr, hdr_ext_data, fs_attr_ofs, checker.get(), to_verify, st.mtime))
+      {
+        df_close(fp);
+        return shared_fs;
+      }
+    }
+    // regardless of what happened above, fp must be back at vrom_hdr_sz for the private-load fallback below
+    df_seek_to(fp, vrom_hdr_sz);
+  }
+  else if (shared_vrom_name && vromfs_shared_mem_storage)
+    debug("skipping shared mem for vrom '%s': dump size %uK below the %uK minimum", shared_vrom_name, (FS_OFFS + hdr.fullSz) >> 10,
+      VROMFS_SHMEM_MIN_SIZE >> 10);
+
+  fs = (VirtualRomFsData *)mem->tryAlloc(FS_OFFS + hdr.fullSz);
+  if (!fs)
+    goto load_fail;
+  new (fs, _NEW_INPLACE) VirtualRomFsData();
+  fs->mtime = st.mtime;
+
+  if (hdr_ext_data.size())
+  {
+    const VirtualRomFsExtHdr *hdr_ext_ptr = (const VirtualRomFsExtHdr *)hdr_ext_data.data();
+    fs->flags = hdr_ext_ptr->flags;
+    fs->version = hdr_ext_ptr->version;
     buffers[HDR_EXT] = hdr_ext_data.data();
     buf_sizes[HDR_EXT] = hdr_ext_data.size();
   }

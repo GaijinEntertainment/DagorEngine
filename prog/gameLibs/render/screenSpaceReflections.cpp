@@ -141,7 +141,7 @@ void ScreenSpaceReflections::updatePrevTarget()
 void ScreenSpaceReflections::setHistoryValid(bool valid) { isHistoryValid = valid; }
 
 void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
-  SubFrameSample sub_sample, const DynRes *dynamic_resolution)
+  SubFrameSample sub_sample)
 {
   G_ASSERT(ownTextures);
 
@@ -163,13 +163,11 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
     targetTex = *rtTemp0;
   }
 
-  render(view_tm, proj_tm, world_pos, sub_sample, ssrTex.getTex2D(), prevTex.getTex2D(), targetTex.getTex2D(), afrs.current().frameNo,
-    dynamic_resolution);
+  render(view_tm, proj_tm, world_pos, sub_sample, ssrTex.getTex2D(), prevTex.getTex2D(), targetTex.getTex2D(), afrs.current().frameNo);
 }
 
 void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
-  SubFrameSample sub_sample, BaseTexture *ssr_tex, BaseTexture *ssr_prev_tex, BaseTexture *target_tex, int callId,
-  const DynRes *dynamic_resolution)
+  SubFrameSample sub_sample, BaseTexture *ssr_tex, BaseTexture *ssr_prev_tex, BaseTexture *target_tex, int callId)
 {
   G_ASSERT(ssr_tex && ssr_prev_tex && target_tex);
   TIME_D3D_PROFILE(ssr);
@@ -187,12 +185,6 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
 
   int dw = ssrW;
   int dh = ssrH;
-  if (dynamic_resolution)
-  {
-    auto dd = calc_and_set_dynamic_resolution_stcode(ssrW, ssrH, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution));
-    dw = dd.x;
-    dh = dd.y;
-  }
 
   ShaderGlobal::set_float4(ssr_target_sizeVarId, dw, dh, 1.0f / dw, 1.0f / dh);
   ShaderGlobal::set_float4(ssr_frameNoVarId, callId & ((1 << 23) - 1), (callId % randomizeOverNFrames) * 1551,
@@ -214,7 +206,6 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
     d3d::set_rwtex(STAGE_CS, 0, target_tex, 0, 0);
     if (denoiser)
     {
-      G_ASSERTF_ONCE(!dynamic_resolution, "Handle dynamic resolution for non compute, denoised ssr!");
       ssrCompute->dispatchThreads(ssrW / 2, ssrH, 1);
     }
     else
@@ -263,9 +254,6 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
 
   ShaderGlobal::set_texture(ssr_prev_targetVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(ssr_targetVarId, BAD_TEXTUREID);
-
-  if (dynamic_resolution)
-    prevDynRes = *dynamic_resolution;
 }
 
 void ScreenSpaceReflections::setCurrentView(int index)

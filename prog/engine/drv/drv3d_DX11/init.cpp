@@ -102,6 +102,8 @@ void get_aftermath_status();
 static constexpr int DEVICE_RESET_FLUSH_TIMEOUT_MS = 120000;
 static constexpr int DEVICE_RESET_FLUSH_LONG_WAIT_MS = 10000;
 
+static bool device_initialized = false;
+
 static void dump_dll_version([[maybe_unused]] const char *file_name)
 {
 #if _TARGET_PC_WIN
@@ -231,7 +233,6 @@ static DXGI_ADAPTER_DESC adapterDesc;
 bool ignore_resource_leaks_on_exit = false;
 bool view_resizing_related_logging_enabled = true;
 bool hdr_enabled = false;
-bool command_list_wa = false;
 bool use_wait_object = true;
 ID3D11Fence *fence_progress = nullptr;
 dag::AtomicInteger<uint64_t> global_frame_progress = 0;
@@ -263,7 +264,7 @@ ID3D11_DEVCTX *dx_context = NULL;
 ID3D11_DEVCTX1 *dx_context1 = NULL;
 ID3D11_DEVCTX4 *dx_context4 = NULL;
 ID3D11InfoQueue *pInfoQueue = nullptr;
-os_spinlock_t dx_context_cs;
+OSSpinlock dx_context_cs;
 WinCritSec dx_res_cs;
 SmartReadWriteFifoLock reset_rw_lock;
 IDXGIOutput *target_output = NULL;
@@ -271,7 +272,6 @@ BaseTexture *secondary_backbuffer_color_tex = NULL;
 static char deviceName[128] = "unknown";
 bool is_nvapi_initialized = false;
 int default_display_index = 0;
-HMODULE hAtiDLL = NULL;
 #if HAS_AMD_DX_EXT
 IAmdDxExt *amdExtension = nullptr;
 IAmdDxExtDepthBounds *amdDepthBoundsExtension = nullptr;
@@ -576,7 +576,6 @@ static void close_aftermath()
     aftermath_releasecontexthandle = NULL;
     aftermath_context = NULL;
     aftermath_getdevicestatus = NULL;
-    FreeLibrary(aftermath_dllh);
     aftermath_dllh = NULL;
   }
 }
@@ -949,7 +948,7 @@ static bool validate_feature_level_and_required_features(D3D_FEATURE_LEVEL featu
 }
 
 DAGOR_NOINLINE
-static bool report_software_driver()
+static bool report_software_device()
 {
   debug("Error initializing video, Microsoft Basic Render Driver is not supported");
   if (get_d3d_reset_counter() > 1 || get_d3d_full_reset_counter() > 1)
@@ -978,6 +977,8 @@ template <bool after_reset = false>
 FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int screen_hgt, int screen_bpp,
   const char *opt_display_name, int64_t opt_adapter_luid, const char *window_class_name)
 {
+  device_initialized = false;
+
   FloatingPointExceptionsKeeper fkeeper;
 
   const DataBlock &blk_dx = *::dgs_get_settings()->getBlockByNameEx("directx");
@@ -1299,7 +1300,7 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
 
         if (preferiGPU) // video/preferiGPU is enabled.
         {
-          ID3D11Device *tmpDevice2;
+          ID3D11Device *tmpDevice2 = nullptr;
           D3D_FEATURE_LEVEL featureLevel;
           hr = createDx11Device(pAdapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr, flags, &featureLevelsSupported, 1, D3D11_SDK_VERSION,
             nullptr, nullptr, &tmpDevice2, &featureLevel, nullptr);
@@ -1318,8 +1319,8 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
                 targetAdapter = dataOptions2.UnifiedMemoryArchitecture ? pAdapter : nullptr;
               tmpDevice3->Release();
             }
+            tmpDevice2->Release();
           }
-          tmpDevice2->Release();
         }
         else if (!opt_adapter_luid || targetAdapter)
         {
@@ -1408,11 +1409,20 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
 
       if (res == NVAPI_OK)
         last_hres = S_OK;
+      else
+      {
+        // NvAPI did not recreate the device/context/swapchain released above;
+        // fail and null them so init does not proceed on released COM objects.
+        last_hres = E_FAIL;
+        swap_chain = NULL;
+        dx_device = NULL;
+        dx_context = NULL;
+      }
     }
   }
 #endif
 
-  if (hdr_enabled)
+  if (hdr_enabled && swap_chain)
   {
     IDXGIOutput *dxgiOutput;
     HRESULT hr = swap_chain->GetContainingOutput(&dxgiOutput);
@@ -1517,7 +1527,7 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
   if (scd.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
     create_waitable_object();
 
-  if (blk_dx.getBool("debug", false))
+  if (dx_device && blk_dx.getBool("debug", false))
   {
     dx_device->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&pInfoQueue);
     if (pInfoQueue)
@@ -1552,10 +1562,10 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
   g_device_desc.caps.hasVolMipMap = true;
   g_device_desc.caps.hasAsyncCompute = false;
   g_device_desc.caps.hasOcclusionQuery = true;
-  g_device_desc.caps.hasConstBufferOffset = false;
   g_device_desc.caps.hasDepthBoundsTest = false;
   g_device_desc.caps.hasConditionalRender = true;
   g_device_desc.caps.hasResourceCopyConversion = true;
+  g_device_desc.caps.hasDepthConversionByTransfer = true;
   g_device_desc.caps.hasReadMultisampledDepth = true;
   g_device_desc.caps.hasInstanceID = true;
   g_device_desc.caps.hasConservativeRassterization = false;
@@ -1689,6 +1699,11 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
     return false;
   }
 
+  if (!validate_feature_level_and_required_features(featureLevelsSupported, blk_dx))
+  {
+    return false;
+  }
+
   D3D11_FEATURE_DATA_THREADING dataThreading;
   if (dx_device->CheckFeatureSupport(D3D11_FEATURE_THREADING, &dataThreading, sizeof(dataThreading)) != S_OK ||
       !dataThreading.DriverConcurrentCreates)
@@ -1704,7 +1719,6 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
     g_device_desc.caps.hasForcedSamplerCount =
       g_device_desc.caps.hasForcedSamplerCount || FALSE != dataOptions.UAVOnlyRenderingForcedSampleCount;
     g_device_desc.caps.hasUAVOnlyForcedSampleCount = FALSE != dataOptions.UAVOnlyRenderingForcedSampleCount;
-    g_device_desc.caps.hasConstBufferOffset = FALSE != dataOptions.ConstantBufferOffsetting;
     g_device_desc.caps.hasBufferOverlapCopy = FALSE != dataOptions.CopyWithOverlap;
     isDiscardSeenByDriver = FALSE != dataOptions.DiscardAPIsSeenByDriver;
   }
@@ -1742,32 +1756,15 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
   if (FAILED(hr))
     g_device_desc.caps.hasConservativeRassterization = false;
 
-  if (g_device_desc.caps.hasConstBufferOffset || isDiscardSeenByDriver)
+  if (isDiscardSeenByDriver)
   {
     hr = dx_context->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **)&dx_context1);
     debug("ID3D11DeviceContext1 hr=0x%08X", hr);
-    if (FAILED(hr))
-      g_device_desc.caps.hasConstBufferOffset = false;
-    else
-    {
-      D3D11_DEVICE_CONTEXT_TYPE contextType = dx_context->GetType();
-      if (D3D11_DEVICE_CONTEXT_DEFERRED == contextType)
-      {
-        D3D11_FEATURE_DATA_THREADING threadingCaps = {FALSE, FALSE};
-        hr = dx_device->CheckFeatureSupport(D3D11_FEATURE_THREADING, &threadingCaps, sizeof(threadingCaps));
-        if (SUCCEEDED(hr) && !threadingCaps.DriverCommandLists)
-        {
-          command_list_wa = true; // the runtime emulates command lists.
-        }
-      }
-    }
   }
 
-  debug("MapNoOverwriteOnDynamicBufferSRV=%s, UAVOnlyRenderingForcedSampleCount=%s, ConservativeRasterization=%s, "
-        "ConstantBufferOffsetting=%s",
+  debug("MapNoOverwriteOnDynamicBufferSRV=%s, UAVOnlyRenderingForcedSampleCount=%s, ConservativeRasterization=%s",
     g_device_desc.caps.hasNoOverwriteOnShaderResourceBuffers ? "TRUE" : "FALSE",
-    g_device_desc.caps.hasForcedSamplerCount ? "TRUE" : "FALSE", g_device_desc.caps.hasConservativeRassterization ? "TRUE" : "FALSE",
-    g_device_desc.caps.hasConstBufferOffset ? "TRUE" : "FALSE");
+    g_device_desc.caps.hasForcedSamplerCount ? "TRUE" : "FALSE", g_device_desc.caps.hasConservativeRassterization ? "TRUE" : "FALSE");
 
   DriverVersion driverVersion = {};
   // Get GPU name.
@@ -1789,13 +1786,10 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
     adapter->Release();
   }
 
-  if (!validate_feature_level_and_required_features(featureLevelsSupported, blk_dx))
-    return false;
-
   // Ban Microsoft Basic Render Driver, it is slow and unreliable.
-  if (adapterDesc.VendorId == 0x1414 && adapterDesc.DeviceId == 0x8C)
+  if (DeviceDesc{adapterDesc}.isSoftwareDevice())
   {
-    return report_software_driver();
+    return report_software_device();
   }
 
   if constexpr (!after_reset)
@@ -1862,10 +1856,9 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
 
 #if HAS_AMD_DX_EXT
   dump_dll_version(gpu::amd_lib_name);
-  hAtiDLL = GetModuleHandleA(gpu::amd_lib_name);
-  if (hAtiDLL)
+  if (auto amdLib = GetModuleHandleA(gpu::amd_lib_name))
   {
-    auto amdDxExtCreate = reinterpret_cast<PFNAmdDxExtCreate11>(GetProcAddress(hAtiDLL, "AmdDxExtCreate11"));
+    auto amdDxExtCreate = reinterpret_cast<PFNAmdDxExtCreate11>(GetProcAddress(amdLib, "AmdDxExtCreate11"));
     if (amdDxExtCreate != nullptr)
     {
       HRESULT hr = amdDxExtCreate(dx_device, &amdExtension);
@@ -2166,6 +2159,8 @@ FORCE_INLINE static bool init_device(Driver3dInitCallback *cb, HWND window_hwnd,
 
   _in_win_started = inWin;
 
+  device_initialized = true;
+
   return SUCCEEDED(last_hres);
 }
 
@@ -2192,11 +2187,13 @@ static void close_device(bool is_reset)
 {
   GpuLatency::teardown();
   close_perf_analysis();
-  RenderState &rs = g_render_state;
-  DriverState &ds = g_driver_state;
 
-  DEBUG_CTX("deleted backbuffer %p", ds.backBufferColorTex);
-  del_d3dres(ds.backBufferColorTex);
+  if (g_driver_state_val)
+  {
+    DriverState &ds = g_driver_state;
+    DEBUG_CTX("deleted backbuffer %p", ds.backBufferColorTex);
+    del_d3dres(ds.backBufferColorTex);
+  }
 
   debug("%s", __FUNCTION__);
 
@@ -2205,7 +2202,10 @@ static void close_device(bool is_reset)
 
   SAFE_RELEASE(dx11_DXGIFactory);
 
-  close_all(is_reset);
+  if (device_initialized)
+  {
+    close_all(is_reset);
+  }
 
 #if HAS_AMD_DX_EXT
   SAFE_RELEASE(amdDepthBoundsExtension);
@@ -2469,8 +2469,6 @@ bool d3d::init_driver()
     return false;
   }
 
-  os_spinlock_init(&dx_context_cs);
-
   //  d3d_dump_memory_stat = &dx11_video_mem_stat;
 
   d3d_inited = true;
@@ -2521,8 +2519,6 @@ void d3d::release_driver()
 
   gpuThreadId = 0;
   gpuAcquireRefCount = 0;
-
-  os_spinlock_destroy(&dx_context_cs);
 
   d3d_inited = false;
 

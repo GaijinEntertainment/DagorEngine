@@ -137,10 +137,16 @@ void GpuDeformObjectsManager::updateDeforms()
     gridCrd[usedObstaclesCount].right = rb.x;
     gridCrd[usedObstaclesCount].bottom = rb.y;
     Point3 boxCenter = tm * inflatedBox.center(), boxWidth = inflatedBox.width();
-    obstacles[usedObstaclesCount].dir_x = Point4::xyzV(tm.getcol(0), boxCenter.x);
-    obstacles[usedObstaclesCount].dir_y = Point4::xyzV(tm.getcol(1), boxCenter.y);
-    obstacles[usedObstaclesCount].dir_z = Point4::xyzV(tm.getcol(2), boxCenter.z);
-    obstacles[usedObstaclesCount].box = Point4::xyzV(boxWidth, 0);
+
+    float x_scale = length(tm.getcol(0));
+    float y_scale = length(tm.getcol(1));
+    float z_scale = length(tm.getcol(2));
+
+    Point3 scaledBoxWidth = Point3(boxWidth.x * x_scale, boxWidth.y * y_scale, boxWidth.z * z_scale);
+    obstacles[usedObstaclesCount].dir_x = Point4::xyzV(tm.getcol(0) * safeinv(x_scale), boxCenter.x);
+    obstacles[usedObstaclesCount].dir_y = Point4::xyzV(tm.getcol(1) * safeinv(y_scale), boxCenter.y);
+    obstacles[usedObstaclesCount].dir_z = Point4::xyzV(tm.getcol(2) * safeinv(z_scale), boxCenter.z);
+    obstacles[usedObstaclesCount].box = Point4::xyzV(scaledBoxWidth, 0);
     usedObstaclesCount++;
   });
 

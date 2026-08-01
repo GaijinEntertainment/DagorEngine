@@ -152,7 +152,7 @@ shader dynamic_chevron
         init_ao(gbuffer, resultAO);
         init_dynamic(gbuffer, 1);
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
+          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
           init_motion_vector(gbuffer, motion);
         #endif
 

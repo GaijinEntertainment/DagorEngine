@@ -14,7 +14,6 @@
 #include <shaders/dag_overrideStateId.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <landMesh/lmeshManager.h>
-#include <landMesh/landRayTracer.h>
 #include <util/dag_oaHashNameMap.h>
 #include <stdlib.h>
 #include "gridRender.h"
@@ -70,7 +69,9 @@ public:
   void setZTransformPersp();
   void setZTransformPersp(float zn, float zf);
   void renderClipmaps();
-  void invalidateClipmap(bool force_redraw);
+  void invalidateClipmap(bool force_redraw, bool rebuild_last_clip = true);
+  void beforeD3DReset();
+  void afterD3DReset(bool full_reset);
 
   void prepareFixedClip(int texture_size);
   void setFixedClipToShader();

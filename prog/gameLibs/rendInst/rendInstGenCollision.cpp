@@ -143,6 +143,56 @@ struct TraceRayStrat : public MaterialRayStrat
   static constexpr bool hasRiExtraIgnoreFunction = false;
 };
 
+// Closest-hit trace that also records the hit RendInstDesc per ray into a caller span.
+// Geometry (outT/outNorm/outMatId) is produced by the base strategy unchanged; this only
+// adds per-ray desc capture, detected by the ray's outT shrinking on a closer hit. This
+// covers the non-cached paths (where executeForMesh/Pos get the real cell_idx); the cached
+// path fills the same span directly via rayTestIndividualNoLock, which is authoritative.
+struct TraceRayMultiDescStrat : public TraceRayStrat
+{
+  dag::Span<rendinst::RendInstDesc> outDescs;
+
+  TraceRayMultiDescStrat(PhysMat::MatID ray_mat, TraceFlags trace_flags, dag::Span<rendinst::RendInstDesc> descs) :
+    TraceRayStrat(ray_mat, trace_flags), outDescs(descs)
+  {}
+
+  __forceinline void storeDesc(int ray_idx, int layer_idx, int idx, int pool, int offs, int cell_idx)
+  {
+    if (ray_idx >= outDescs.size())
+      return;
+    rendinst::RendInstDesc &d = outDescs[ray_idx];
+    d.layer = layer_idx;
+    d.idx = idx;
+    d.pool = pool;
+    d.offs = offs;
+    d.cellIdx = cell_idx;
+  }
+
+  bool executeForMesh(CollisionResource *coll_res, mat44f_cref tm, int ray_idx, const Point3 &pos, const Point3 &dir, float &out_t,
+    Point3 &out_norm, rendinst::RendInstDesc *ri_desc, bool &have_collision, int layer_idx, int idx, int pool, int offs,
+    int &out_mat_id, int cell_idx)
+  {
+    float prevT = out_t;
+    bool r = TraceRayStrat::executeForMesh(coll_res, tm, ray_idx, pos, dir, out_t, out_norm, ri_desc, have_collision, layer_idx, idx,
+      pool, offs, out_mat_id, cell_idx);
+    if (out_t < prevT)
+      storeDesc(ray_idx, layer_idx, idx, pool, offs, cell_idx);
+    return r;
+  }
+
+  bool executeForPos(CollisionResource *coll_res, mat44f_cref tm, const BBox3 &box_collision, int ray_idx, const Point3 &pos,
+    const Point3 &dir, float &out_t, Point3 &out_norm, rendinst::RendInstDesc *ri_desc, bool &have_collision, int layer_idx, int idx,
+    int pool, int offs, int &out_mat_id, int cell_idx, const BBox3 &bbox_all)
+  {
+    float prevT = out_t;
+    bool r = TraceRayStrat::executeForPos(coll_res, tm, box_collision, ray_idx, pos, dir, out_t, out_norm, ri_desc, have_collision,
+      layer_idx, idx, pool, offs, out_mat_id, cell_idx, bbox_all);
+    if (out_t < prevT)
+      storeDesc(ray_idx, layer_idx, idx, pool, offs, cell_idx);
+    return r;
+  }
+};
+
 struct TraceRayStratWithRiExtraIgnoreFunction : TraceRayStrat
 {
   using TraceRayStrat::TraceRayStrat;
@@ -1419,7 +1469,7 @@ static bool rayTestIndividualNoLock(dag::Span<Trace> traces, const rendinst::Ren
 
   if (ri_desc.isRiExtra())
   {
-    if (ri_desc.pool >= rendinst::riExtra.size())
+    if (!rendinst::riExtra.isValid(ri_desc.pool))
       return false;
     rendinst::RiExtraPool *pool = rendinst::riExtra.data() + ri_desc.pool;
     if (!pool->isInGrid(ri_desc.idx))
@@ -1480,6 +1530,10 @@ static bool rayTestIndividualNoLock(dag::Span<Trace> traces, const rendinst::Ren
       traces[rayId].outNorm, safe_at(out_ri_desc, rayId), localHaveCollision, ri_desc.layer, ri_desc.idx, ri_desc.pool, ri_desc.offs,
       traces[rayId].outMatId, 0);
     haveCollision |= localHaveCollision;
+    // Authoritative per-ray desc for the cached path. executeForMesh above is passed cell_idx=0
+    // (this desc's real cell is not decomposed into the call), so a strategy that captures the
+    // desc from its args (TraceRayMultiDescStrat) gets an incomplete cellIdx; this supplies the
+    // full desc. Required - do not drop as redundant.
     if (localHaveCollision && rayId < out_ri_desc.size())
       out_ri_desc[rayId] = ri_desc;
     if (shouldExit)
@@ -1491,7 +1545,8 @@ static bool rayTestIndividualNoLock(dag::Span<Trace> traces, const rendinst::Ren
 
 template <typename Strategy>
 bool traceRayRIGenNormalizedInternal(Strategy &strategy, dag::Span<Trace> traces, TraceFlags trace_flags,
-  rendinst::RendInstDesc *out_ri_descs, const TraceMeshFaces *ri_cache, rendinst::riex_handle_t skip_riex_handle)
+  rendinst::RendInstDesc *out_ri_descs, const TraceMeshFaces *ri_cache, rendinst::riex_handle_t skip_riex_handle,
+  dag::Span<rendinst::RendInstDesc> out_ri_desc_span = {})
 {
   bool ret = false;
   if (ri_cache)
@@ -1505,7 +1560,7 @@ bool traceRayRIGenNormalizedInternal(Strategy &strategy, dag::Span<Trace> traces
       ri_cache->rendinstCache.foreachValid(rendinst::GatherRiTypeFlag::RiGenTmAndExtra,
         [&](const rendinst::RendInstDesc &ri_desc, bool) {
           if (rendinst::isRgLayerPrimary(ri_desc.layer))
-            ret |= rayTestIndividualNoLock(traces, ri_desc, {}, strategy, rayBox, skip_riex_handle);
+            ret |= rayTestIndividualNoLock(traces, ri_desc, out_ri_desc_span, strategy, rayBox, skip_riex_handle);
         });
 
       return ret;
@@ -1520,6 +1575,18 @@ bool traceRayRIGenNormalized(dag::Span<Trace> traces, TraceFlags trace_flags, in
 {
   TraceRayStrat traceRayStrategy(ray_mat_id, trace_flags);
   return traceRayRIGenNormalizedInternal(traceRayStrategy, traces, trace_flags, out_ri_descs, ri_cache, skip_riex_handle);
+}
+
+bool traceRayRIGenNormalizedMultiRay(dag::Span<Trace> traces, TraceFlags trace_flags, dag::Span<rendinst::RendInstDesc> ri_descs,
+  int ray_mat_id, const TraceMeshFaces *ri_cache, rendinst::riex_handle_t skip_riex_handle)
+{
+  G_ASSERT(traces.size() == ri_descs.size());
+  for (rendinst::RendInstDesc &d : ri_descs)
+    d.invalidate();
+  TraceRayMultiDescStrat strategy(ray_mat_id, trace_flags, ri_descs);
+  // Pass ri_descs both as the strategy's capture span (non-cached paths) and as the cached
+  // path's per-ray output; the cached rayTestIndividualNoLock write is authoritative there.
+  return traceRayRIGenNormalizedInternal(strategy, traces, trace_flags, /*single out*/ nullptr, ri_cache, skip_riex_handle, ri_descs);
 }
 
 bool traceRayRIGenNormalizedWithIgnoreFunc(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id,
@@ -2318,13 +2385,7 @@ public:
         return v_bbox3_test_box_intersect(aInB, local_box_b);
       }
 
-      if (v_bbox3_test_trasformed_box_intersect(worldBoxA, local_box_b, tm_b))
-        return true;
-
-      mat44f itmB;
-      v_mat44_inverse43(itmB, tm_b);
-      if (v_bbox3_test_trasformed_box_intersect(local_box_b, worldBoxA, itmB))
-        return true;
+      return v_bbox3_test_trasformed_box_likely_intersect(worldBoxA, local_box_b, tm_b);
     }
 
     if constexpr (eastl::is_same_v<bounding_type_t, OrientedObjectBox>)
@@ -2360,14 +2421,7 @@ public:
 
       mat44f tmBtoA;
       v_mat44_mul43(tmBtoA, itmA, tm_b);
-      if (v_bbox3_test_trasformed_box_intersect(boundingA.bbox, local_box_b, tmBtoA))
-        return true;
-
-      mat44f tmAtoB, itmB;
-      v_mat44_inverse43(itmB, tm_b);
-      v_mat44_mul43(tmAtoB, itmB, boundingA.tm);
-      if (v_bbox3_test_trasformed_box_intersect(local_box_b, boundingA.bbox, tmAtoB))
-        return true;
+      return v_bbox3_test_trasformed_box_likely_intersect(boundingA.bbox, local_box_b, tmBtoA);
     }
 
     if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
@@ -2386,7 +2440,7 @@ public:
     if constexpr (eastl::is_same_v<bounding_type_t, BSphere3>)
     {
       vec4f sphA = v_ldu_bsphere3(boundingA);
-      vec4f sphB = v_perm_xyzd(bsph_pos, bsph_rad);
+      vec4f sphB = v_perm_xyzd(bsph_pos, v_splat_x(bsph_rad));
       return v_test_bsph_bsph_intersection(sphA, sphB);
     }
 
@@ -2395,7 +2449,7 @@ public:
 
     if constexpr (eastl::is_same_v<bounding_type_t, Capsule>)
     {
-      vec4f sphB = v_perm_xyzd(bsph_pos, bsph_rad);
+      vec4f sphB = v_perm_xyzd(bsph_pos, v_splat_x(bsph_rad));
       return boundingA.cliptest(sphB);
     }
     return false;
@@ -2405,7 +2459,7 @@ private:
   static bool isSmallBox(bbox3f bbox)
   {
     const float smallObjWidth = 1.6f;
-    return (v_signmask(v_cmp_lt(v_bbox3_size(bbox), v_splats(smallObjWidth))) & 0b101) == 0b101;
+    return v_check_xz_all_true(v_cmp_lt(v_bbox3_size(bbox), v_splats(smallObjWidth)));
   }
 
   const bounding_type_t &boundingA;

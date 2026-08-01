@@ -97,6 +97,7 @@ TwoStepRelPath AssetExportCache::sdkRoot;
 
 void AssetExportCache::reset()
 {
+  cacheFname = String();
   fnames.reset();
   rec.clear();
   anames.reset();
@@ -111,6 +112,7 @@ void AssetExportCache::reset()
 bool AssetExportCache::load(const char *cache_fname, const DagorAssetMgr &mgr, int *end_pos)
 {
   reset();
+  cacheFname = cache_fname;
   FullFileLoadCB crd(cache_fname, DF_READ | DF_IGNORE_MISSING);
   DAGOR_TRY
   {
@@ -272,7 +274,7 @@ bool AssetExportCache::checkAllTouched()
       return false;
   return true;
 }
-void AssetExportCache::removeUntouched()
+int AssetExportCache::removeUntouched(bool confident_will_save)
 {
   OAHashNameMap<true> n_fn;
   Tab<FileDataHash> n_rec(tmpmem);
@@ -290,10 +292,19 @@ void AssetExportCache::removeUntouched()
     n_rec.push_back(rec[i]);
   }
 
+  int removed = rec.size() - n_rec.size();
+  if (removed)
+  {
+    timeChanged = 1; // dropped stale entries - persist so a future load doesn't carry them forward
+    if (!cacheFname.empty())
+      debug("%s(%s): cleaned %d stale entries%s", __FUNCTION__, cacheFname.str(), removed, confident_will_save ? ", resaving" : "");
+  }
+
   fnames = n_fn;
   rec = n_rec;
   resetTouchMark();
   touchMark.setAll();
+  return removed;
 }
 
 void AssetExportCache::updateFileHash(const char *fname)
@@ -319,7 +330,7 @@ void AssetExportCache::updateFileHash(const char *fname)
   }
 }
 
-bool AssetExportCache::checkFileChanged(const char *fname)
+bool AssetExportCache::checkFileChanged(const char *fname, int test_mode)
 {
   TwoStepRelPath::storage_t tmp_stor;
   int id = fnames.addNameId(mkRelPath(fname, tmp_stor));
@@ -341,6 +352,8 @@ bool AssetExportCache::checkFileChanged(const char *fname)
       timeChanged = 1;
       return false;
     }
+    if (test_mode < 0)
+      return true;
 
     memcpy(rec[id].hash, hash, sizeof(hash));
     rec[id].timeStamp = ts;
@@ -454,6 +467,50 @@ bool AssetExportCache::resetExtraAssets(dag::ConstSpan<DagorAsset *> assets)
       debug("reset %s", anames.getName(i));
     }
   return changed;
+}
+
+bool AssetExportCache::allTrackedFilesUpToDate(const char *pack_fname)
+{
+  const char *root = sdkRoot.getRootDir();
+  int rootLen = root ? (int)strlen(root) : 0;
+  String absPath;
+
+  int cnt = fnames.nameCount();
+  for (int i = 0; i < cnt; i++)
+  {
+    const char *relName = fnames.getName(i);
+    if (!relName)
+      continue;
+    int len = (int)strlen(relName);
+    if (len && relName[len - 1] == '*')
+      continue; // a checkDataBlockChanged() (asset props) hash entry, not a real file path
+
+    // mkRelPath() only produces a bare relative path or a single "../" prefix - both reconstruct via
+    // root + relName. An untouched absolute path (drive letter or leading slash) is the only exception.
+    if (!rootLen || strchr(relName, ':') || relName[0] == '/' || relName[0] == '\\')
+      return false;
+
+    absPath.printf(0, "%s%s", root, relName);
+    unsigned fsz;
+    if (!getFileTime(absPath, fsz))
+      // file no longer exists - a fossil entry from a long-since moved/removed asset that a long-lived
+      // cache never prunes without a gatherSrcDataFiles()-based sweep; not a signal that anything
+      // currently relevant changed
+      continue;
+
+    if (i < rec.size() && rec[i].changed)
+    {
+      debug("allTrackedFilesUpToDate(%s): not up to date, already recorded as changed: %s", pack_fname ? pack_fname : "?",
+        absPath.str());
+      return false;
+    }
+    if (checkFileChanged(absPath, -1))
+    {
+      debug("allTrackedFilesUpToDate(%s): not up to date, changed file: %s", pack_fname ? pack_fname : "?", absPath.str());
+      return false;
+    }
+  }
+  return true;
 }
 
 void AssetExportCache::setAssetExpVer(int asset_type, unsigned cls, int ver)

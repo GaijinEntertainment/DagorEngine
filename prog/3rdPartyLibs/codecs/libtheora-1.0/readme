@@ -144,3 +144,8 @@ libtool: link: warning: library `/usr/lib/libogg.la' was moved.
 
 Re-run theora/autogen.sh after an Ogg or Vorbis rebuild/reinstall
 
+UPSTREAM:
+
+Upstream: libtheora, https://github.com/xiph/theora (canonical: https://gitlab.xiph.org/xiph/theora)
+Vendored version: 1.0.
+

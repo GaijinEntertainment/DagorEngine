@@ -8,9 +8,9 @@ import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.text.InputFilter;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -29,11 +29,9 @@ public class NvSoftInput extends Dialog {
     private Context mContext = null;
     private EditText mEditText = null;
     private Window mWindow = null;
-    private static NvSoftInput mCurrent = null;
+    private static volatile NvSoftInput mCurrent = null;
     private boolean mInsideClose = false;
 
-    private static int mWidth = 720;
-    private static int mHeight = 100;
     private static boolean mInited = false;
 
     private static void Init(final Activity activity, String libName) {
@@ -79,7 +77,6 @@ public class NvSoftInput extends Dialog {
                     mCurrent.dismiss();
                     mCurrent = null;
                 }
-
                 mCurrent = new NvSoftInput(activity, initialText, hint, editFlags, imeOptions, cursorPos, maxLength);
                 mCurrent.show();
             }
@@ -87,24 +84,26 @@ public class NvSoftInput extends Dialog {
     }
 
     public static void Hide() {
-        if (mCurrent == null)
+        // Read mCurrent once to avoid a race between the null check and mContext access
+        NvSoftInput current = mCurrent;
+        if (current == null)
             return;
 
-        Activity activity = (Activity) mCurrent.mContext;
+        Activity activity = (Activity) current.mContext;
         activity.runOnUiThread(new Runnable() {
             public void run() {
-                if (mCurrent != null) {
-                    mCurrent.dismiss();
+                NvSoftInput toClose = mCurrent;
+                if (toClose != null) {
                     mCurrent = null;
+                    toClose.dismiss();
                 }
             }
         });
     }
 
     public static boolean IsShown() {
-        if (mCurrent != null)
-            return mCurrent.isShowing();
-        return false;
+        NvSoftInput current = mCurrent;
+        return current != null && current.isShowing();
     }
 
     private NvSoftInput(
@@ -135,19 +134,22 @@ public class NvSoftInput extends Dialog {
 
     private String getText() {
         if (mEditText != null)
-            return mEditText.getText().toString().trim();
-        return null;
+            return mEditText.getText().toString();
+        return "";
     }
 
     private void close(boolean isCanceled) {
         if (mInsideClose)
             return;
-
         mInsideClose = true;
 
-        nativeTextReport(getText(), mEditText.getSelectionEnd(), isCanceled);
+        int cursor = mEditText != null ? mEditText.getSelectionEnd() : 0;
+        // Clear mCurrent before dismiss so that any re-entrant close() via onCancel is a no-op
+        if (mCurrent == this)
+            mCurrent = null;
+        nativeTextReport(getText(), cursor, isCanceled);
+        dismiss();
 
-        NvSoftInput.Hide();
         mInsideClose = false;
     }
 
@@ -185,8 +187,10 @@ public class NvSoftInput extends Dialog {
 
         mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_NEXT)
+                if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_NEXT) {
                     close(false);
+                    return true;
+                }
                 return false;
             }
         });
@@ -214,14 +218,9 @@ public class NvSoftInput extends Dialog {
             }
         });
 
-        Rect dim = new Rect();
-        mEditText.getWindowVisibleDisplayFrame(dim);
-        mWidth = dim.width() / 2;
-
-        mEditText.measure(0, 0);
-        mHeight = mEditText.getMeasuredHeight();
-
-        mEditText.setMinWidth(mWidth);
+        // Use DisplayMetrics: getWindowVisibleDisplayFrame is unreliable before the view is attached
+        DisplayMetrics dm = mContext.getResources().getDisplayMetrics();
+        mEditText.setMinWidth(dm.widthPixels / 2);
         return mEditText;
     }
 }

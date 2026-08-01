@@ -170,6 +170,36 @@ shader dagi_albedo_fix_insufficient_cs
 
 
 
+// invariant: a block reachable through the free list has all-zero texels.
+// toroidal movement pushes blocks on the (LIFO) free list before their texels are cleared,
+// so this pass zeroes them BEFORE the allocate pass below can pop and fill them;
+// clearing after allocation would wipe blocks the allocate pass has just written
+shader dagi_albedo_clear_freed_cs
+{
+  hlsl {
+    #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
+  }
+  DAGI_ALBEDO_WRITE(cs)
+  DAGI_UPDATE_OTHER(cs)
+  hlsl(cs) {
+    [numthreads(DAGI_ALBEDO_BLOCK_SIZE, DAGI_ALBEDO_BLOCK_SIZE, 1)]
+    void dagi_albedo_clear_freed_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID)
+    {
+      uint wrappedAddress = loadBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_update_list_ofs_bytes() + 4 + gId*4);
+      BRANCH
+      if ((wrappedAddress>>30) != 2)//only blocks freed in toroidal movement
+        return;
+      uint blockIndex = wrappedAddress&((1<<30)-1);
+      uint3 texelCoord = dagi_decode_block_coord_from(blockIndex)<<DAGI_ALBEDO_BLOCK_SHIFT;
+      texelCoord.xy += gtId;
+      UNROLL
+      for (uint i = 0; i < DAGI_ALBEDO_BLOCK_SIZE; ++i)
+        texture3DAt(dagi_albedo_atlas, texelCoord + uint3(0,0, i)) = 0;
+    }
+  }
+  compile("target_cs", "dagi_albedo_clear_freed_cs");
+}
+
 shader dagi_albedo_allocate_after_toroidal_movement_cs
 {
   hlsl {
@@ -197,7 +227,7 @@ shader dagi_albedo_allocate_after_toroidal_movement_cs
       //uint blockIndex = blockindex_wrap.x;
       //uint wrappedAddress = blockindex_wrap.y;
       BRANCH
-      if (wrappedAddress>>31)
+      if ((wrappedAddress>>30) != 0)//only to-allocate addresses; 2=freed in toroidal movement, 3=released by this pass
         return;
 
       float voxelSize = asfloat(dagi_albedo_clipmap_update_box_sz.w)*(1./DAGI_ALBEDO_INTERNAL_BLOCK_SIZE);
@@ -288,14 +318,13 @@ shader dagi_albedo_allocate_after_toroidal_movement_pass2_cs
   DAGI_ALBEDO_WRITE(cs)
   DAGI_ALBEDO_FREE_BLOCK_USE(cs)
   DAGI_UPDATE_OTHER(cs)
-  PROJECT_BASE_ALBEDO(cs)
   hlsl(cs) {
     [numthreads(DAGI_ALBEDO_BLOCK_SIZE, DAGI_ALBEDO_BLOCK_SIZE, 1)]
     void dagi_albedo_allocate_after_toroidal_movement_pass2_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
     {
       uint wrappedAddress = loadBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_update_list_ofs_bytes() + 4 + gId*4);
       BRANCH
-      if (!(wrappedAddress>>31))//was already processed
+      if ((wrappedAddress>>30) != 3)//only blocks released by the allocate pass; toroidal-freed ones are cleared in dagi_albedo_clear_freed_cs
         return;
       uint blockIndex = wrappedAddress&((1<<30)-1);
       uint3 texelCoord = dagi_decode_block_coord_from(blockIndex)<<DAGI_ALBEDO_BLOCK_SHIFT;
@@ -303,7 +332,7 @@ shader dagi_albedo_allocate_after_toroidal_movement_pass2_cs
       UNROLL
       for (uint i = 0; i < DAGI_ALBEDO_BLOCK_SIZE; ++i)
         texture3DAt(dagi_albedo_atlas, texelCoord + uint3(0,0, i)) = 0;
-      if (((wrappedAddress>>30)==3) && tid == 0)
+      if (tid == 0)
         dagi_albedo_free_block(blockIndex);
     }
   }

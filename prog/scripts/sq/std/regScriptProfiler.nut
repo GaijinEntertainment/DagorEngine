@@ -21,7 +21,7 @@ function registerScriptProfiler(prefix, logRes = log.console_print, filePath = n
   let frp = require_optional("frp")
 
   local st = 0
-  function toggleProfiler(newVal = null, fileName = null) {
+  function toggleProfiler(newVal = null, fileName = null): string {
     if (newVal != null && newVal == isProfileOn.get()) {
       logRes("already")
       return "already"

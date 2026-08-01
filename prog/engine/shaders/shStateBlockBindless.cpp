@@ -16,8 +16,8 @@
 #include <osApiWrappers/dag_miscApi.h>
 
 #include "shStateBlock.h"
-#include "concurrentRangePool.h"
-#include "concurrentElementPool.h"
+#include <generic/dag_concurrentRangePool.h>
+#include <generic/dag_concurrentElementPool.h>
 
 using namespace shaders;
 
@@ -60,18 +60,18 @@ enum class PackedBufferId : uint8_t
   Invalid = 0
 };
 
-using ConstantsContainer = ConcurrentRangePool<Point4, get_const_log2(MAX_CONST_BUFFER_SIZE), 8, true>;
+using ConstantsContainer = dag::ConcurrentRangePool<Point4, get_const_log2(MAX_CONST_BUFFER_SIZE), 8, true>;
 
 // NOTE 9+6 <= GLOBAL_STATE_BITS because IDs from these need to fit there
-using StatesContainer = ConcurrentElementPool<GlobalStateId, BindlessState, 9, 6>;
-using BuffersContainer = ConcurrentElementPool<GlobalStateId, Sbuffer *, 9, 6>;
+using StatesContainer = dag::ConcurrentElementPool<GlobalStateId, BindlessState, 9, 6>;
+using BuffersContainer = dag::ConcurrentElementPool<GlobalStateId, Sbuffer *, 9, 6>;
 
 static ConstantsContainer dataConsts;
 static StatesContainer all;          // first one is default
 static BuffersContainer allConstBuf; // parallel to all
-using BindlessConstParamsStorage = ConcurrentRangePool<BindlessConstParams, get_const_log2(MAX_CONST_BUFFER_SIZE)>;
+using BindlessConstParamsStorage = dag::ConcurrentRangePool<BindlessConstParams, get_const_log2(MAX_CONST_BUFFER_SIZE)>;
 static BindlessConstParamsStorage bindlessConstParams;
-static ConcurrentElementPool<BindlessTexId, BindlessTexRecord, 10> uniqBindlessTex;
+static dag::ConcurrentElementPool<BindlessTexId, BindlessTexRecord, 10> uniqBindlessTex;
 static dag::Vector<eastl::tuple<D3DResourceType, uint32_t, uint32_t>> allocatedBindlessRanges;
 static OSSpinlock mutex;
 
@@ -82,11 +82,11 @@ static_assert(DEFAULT_BINDLESS_CONST_STATE_ID == static_cast<ConstStateIdx>(decl
 static eastl::deque<PackedStcodeId, EASTLAllocatorType, 2048> stcodeIdToPacked;
 
 // NOTE: 2+4 <= BUFFER_BITS because IDs from this need to fit there
-using PackedBuffersContainer = ConcurrentElementPool<PackedBufferId, Sbuffer *, 2, 4>;
+using PackedBuffersContainer = dag::ConcurrentElementPool<PackedBufferId, Sbuffer *, 2, 4>;
 
 // NOTE: 5+5 <= PACKED_STCODE_BITS because IDs from these need to fit there
 template <typename T>
-using PackedCont = ConcurrentElementPool<PackedStcodeId, T, 5, 5>;
+using PackedCont = dag::ConcurrentElementPool<PackedStcodeId, T, 5, 5>;
 
 static PackedCont<StatesContainer> packedAll;
 static PackedCont<ConstantsContainer> packedDataConsts;

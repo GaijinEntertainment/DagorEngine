@@ -167,6 +167,7 @@ ECS_REGISTER_EVENT(OnStoreApiTerm)
 ECS_REGISTER_EVENT(OnStoreApiUpdate)
 ECS_REGISTER_EVENT(StoreApiReportContentCorruption)
 
+extern void init_shared_memory();
 extern void init_shaders();
 extern void init_res_factories();
 extern void term_res_factories();
@@ -580,7 +581,7 @@ void set_fps_limit(int max_fps)
     min_frame_time_us = 1e6 / max_fps;
 
   allow_d3d_backend_frame_limiter = dgs_get_settings()->getBlockByNameEx("video")->getBool("d3dFrameLimiter", false);
-  use_pufd_frame_limiter = dgs_get_settings()->getBlockByName("video")->getBool("pufdGpuLatencyWait", true) &&
+  use_pufd_frame_limiter = dgs_get_settings()->getBlockByNameEx("video")->getBool("pufdGpuLatencyWait", true) &&
                            ::dgs_get_settings()->getBool("parallel_no_latency_mode", false);
   if (use_pufd_frame_limiter)
     set_additional_game_job_next_frame_start_cb(&wait_for_target_fps_limit_from_additional_game_job);
@@ -866,6 +867,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   curl_global::init();
 
+  systeminfo::init();
 
   g_entity_mgr->broadcastEventImmediate(OnStoreApiEarlyInit{});
 
@@ -896,6 +898,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #if _TARGET_C1 | _TARGET_C2
 
 #endif
+  init_shared_memory(); // run before loading any vromfs (to be usable for sharing vromfs)
   initial_load_settings();
 
 #if _TARGET_PC_WIN
@@ -952,7 +955,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   dng_load_localization();
 
-#if _TARGET_PC_WIN && (DAGOR_DBGLEVEL == 0)
+#if _TARGET_PC_WIN && !_TARGET_C4 && (DAGOR_DBGLEVEL == 0)
   if (!dedicated::is_dedicated() && !::dgs_execute_quiet)
   {
     if (::dgs_get_argv("forcestart") == NULL &&
@@ -1047,7 +1050,10 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #if _TARGET_ANDROID || _TARGET_IOS
   crashlytics::init(LOGLEVEL_WARN);
 #endif
-  enable_tex_mgr_mt(true, ::dgs_get_settings()->getBlockByNameEx("video")->getInt("maxTexCount", 8192));
+  // dedicated registers only a handful of stub textures, so the client-sized entry array
+  // (video/maxTexCount, ~120 bytes per entry) would be almost entirely wasted there
+  enable_tex_mgr_mt(true,
+    ::dgs_get_settings()->getBlockByNameEx("video")->getInt(dedicated::is_dedicated() ? "maxTexCountDedicated" : "maxTexCount", 8192));
   if (!dedicated::is_dedicated())
     dagor_show_splash_screen(); // For system splash of sony consoles until the shaders are initalized
   init_shaders();
@@ -1075,7 +1081,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     InitialLoadingThread() : DaThread("InitialLoadingThread", 192 << 10, 0, WORKER_THREADS_AFFINITY_MASK)
     {
       das::daScriptEnvironment::ensure();
-      bound = *das::daScriptEnvironment::bound;
+      bound = das::daScriptEnvironment::getBound();
     }
 
     void waitWithSplashAnimation()
@@ -1230,7 +1236,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     void execute() override
     {
       TIME_PROFILE_THREAD(getCurrentThreadName());
-      *das::daScriptEnvironment::bound = bound;
+      das::daScriptEnvironment::setBound(bound);
       ScopeSetWatchdogCurrentThreadDump wctd;
 
       execThread();

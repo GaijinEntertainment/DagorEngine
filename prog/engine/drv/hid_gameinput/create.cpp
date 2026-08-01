@@ -5,8 +5,10 @@
 #include "flightstick_classdrv.h"
 #include "keyboard_classdrv.h"
 #include "mouse_emu.h"
+#include "gameinput.h"
 
 #include <drv/hid/dag_hiCreate.h>
+#include <drv/hid/dag_hiComposite.h>
 #include <string.h>
 
 using namespace HumanInput;
@@ -25,6 +27,23 @@ IGenJoystickClassDrv *HumanInput::createGameInputJoystickClassDriver(bool should
 
 
 IGenJoystickClassDrv *HumanInput::createGameInputFlightStickClassDriver() { return new (inimem) FlightStickClassDriver(); }
+
+
+CompositeJoystickClassDriver *HumanInput::createGameInputCompositeJoystickClassDriver(bool should_mix_input, bool add_flight_stick)
+{
+  CompositeJoystickClassDriver *cd = CompositeJoystickClassDriver::create();
+  if (cd->init())
+  {
+    global_cls_composite_drv_joy = cd;
+    cd->addClassDrv(createGameInputJoystickClassDriver(should_mix_input), true);
+    if (add_flight_stick)
+      cd->addClassDrv(createGameInputFlightStickClassDriver(), true);
+    return cd;
+  }
+
+  delete cd;
+  return nullptr;
+}
 
 
 IGenJoystickClassDrv *HumanInput::createJoystickClassDriver(bool, bool) { return new (inimem) FlightStickClassDriver(); }
@@ -47,6 +66,7 @@ static MouseEmuDriver mouse_emu_drv;
 IGenPointingClassDrv *HumanInput::createMouseEmuClassDriver()
 {
   memset(&raw_state_pnt, 0, sizeof(raw_state_pnt));
+  gameinput::init();
   mouse_emu = &mouse_emu_drv;
   return &mouse_emu_drv;
 }
@@ -61,6 +81,12 @@ void enable_xbox_hw_mouse(bool en)
 
 
 bool is_xbox_hw_mouse_enabled() { return mouse_emu_drv.hwMouseEnabled; }
+
+
+bool gameinput_is_keyboard_connected() { return gameinput::has_input_device_of_kind(GameInputKindKeyboard); }
+
+
+bool gameinput_is_mouse_connected() { return gameinput::has_input_device_of_kind(GameInputKindMouse); }
 
 
 void enable_xbox_emulated_mouse(bool cursor, bool buttons)

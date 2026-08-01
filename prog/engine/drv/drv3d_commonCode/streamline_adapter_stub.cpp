@@ -46,7 +46,7 @@ DLSSFrameGeneration::~DLSSFrameGeneration() {}
 void DLSSFrameGeneration::setEnabled(int) {}
 bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &, void *) { return true; }
 unsigned DLSSFrameGeneration::getActualFramesPresented() const { return 1; }
-int DLSSFrameGeneration::getMaximumNumberOfGeneratedFrames() { return 1; }
+nv::DLSSFrameGenerationCapabilities DLSSFrameGeneration::getFrameGenerationCapabilities() { return {}; }
 
 bool Reflex::setOptions(GpuLatency::Mode, unsigned) { return false; }
 eastl::optional<Reflex::State> Reflex::getState() const { return eastl::nullopt; }

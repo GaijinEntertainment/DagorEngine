@@ -133,8 +133,16 @@ void AggressiveDCEPass::AddStores(Function* func, uint32_t ptrId) {
           AddToWorklist(user);
         }
         break;
+      // A store is only live here if it stores *to* ptrId; storing ptrId's
+      // value itself into another location must not mark it live, or DCE
+      // would fail to eliminate genuinely dead stores of the pointer value.
+      case spv::Op::OpStore: {
+        const uint32_t kStoreTargetAddrInIdx = 0;
+        if (user->GetSingleWordInOperand(kStoreTargetAddrInIdx) == ptrId)
+          AddToWorklist(user);
+        break;
+      }
       // If default, assume it stores e.g. frexp, modf, function call
-      case spv::Op::OpStore:
       default:
         AddToWorklist(user);
         break;
@@ -262,6 +270,9 @@ void AggressiveDCEPass::AddBreaksAndContinuesToWorklist(
 }
 
 bool AggressiveDCEPass::AggressiveDCE(Function* func) {
+  // Function declarations have no blocks; the traversal below needs an
+  // entry block and would segfault on one.
+  if (func->IsDeclaration()) return false;
   std::list<BasicBlock*> structured_order;
   cfg()->ComputeStructuredOrder(func, &*func->begin(), &structured_order);
   live_local_vars_.clear();

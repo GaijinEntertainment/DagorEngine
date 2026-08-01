@@ -24,6 +24,7 @@ struct ShaderTargetStorage
   Tab<TabFsh> ldShFsh{};
   Tab<TabVpr> ldShVpr{};
   Tab<SmallTab<unsigned, TmpmemAlloc> *> shadersCompProg{};
+  Tab<bindump::string> usedSepDebugInfoNames;
 
   Tab<shader_layout::StcodeConstValidationMask *> stcodeConstValidationMasks{};
 

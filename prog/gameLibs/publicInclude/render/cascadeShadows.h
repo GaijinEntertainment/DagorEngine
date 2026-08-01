@@ -71,6 +71,10 @@ public:
     // see extended cascade. If you turn back, you'll see real cascade range.
     // So I highly recommend to opt out of this feature.
     bool extendZBoxToNextCascade = true;
+    // Provides rotation invariance by ensuring that size of cascade is constant.
+    // Provides translation invariance by snapping ortho camera position to texel grid.
+    // Trades orientation dependant resolution for stability.
+    bool constantCascadeSize = false;
     enum class ResourceAccessStrategy
     {
       Internal,

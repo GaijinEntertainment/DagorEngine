@@ -23,6 +23,7 @@ they merge across appended capture segments and match cleanly between two captur
   "gpu": { ... },          // present only if the capture has a GPU thread
   "scopes": [ ... ],       // per-frame detail
   "scopesTail": [ ... ],   // summary-only (scopes below the detail threshold)
+  "uniqueEvents": [ ... ], // cumulative rare-event counters (UniqueEventsBoard)
   "samples": { ... }       // present only if the capture has stack sampling
 }
 ```
@@ -39,6 +40,7 @@ they merge across appended capture segments and match cleanly between two captur
 | `frameCount` | number of CPU frames (length of every per-frame array) |
 | `mainThread` | name of the frame thread |
 | `hasGpu`, `hasSamples` | whether `gpu` / `samples` sections exist |
+| `hasUniqueEvents` | whether the dump carried a UniqueEventsBoard (present even if empty; false distinguishes an old dump / kind that omits it) |
 | `summaryMeanMs` | mean frame ms from the SummaryPack (cross-check) |
 
 ### `threads`
@@ -108,6 +110,32 @@ the rest land in `scopesTail` with summary fields only.
 - `isWait` carries the profiler's explicit `IsWait` description flag, so a lock wait
   is classified as a wait even when its name (e.g. `critsec`, `mutex`) does not match
   the wait-name heuristics in `compare_captures.py`.
+
+### `uniqueEvents`
+
+Cumulative counters for `DA_PROFILE_UNIQUE_EVENT` sites -- rare or bursty work (ECS
+entity creation, template instantiation, ...) that is too infrequent for the
+per-frame timeline to resolve. Written by `save_dump` as a `UniqueEventsBoard`
+(response type 15) and present for every dump kind (ring / continuous / spike).
+
+```jsonc
+{
+  "name": "void __cdecl ecs::EntityManager::createEntityInternal(...)",
+  "src":  "entityManager2.cpp:150",
+  "count": 9880,          // total occurrences over the whole run (cumulative)
+  "totalUs": 1105200,     // summed duration
+  "minUs": 0, "maxUs": 130397,  // per-occurrence extremes
+  "frames": 4069          // frames the event was active over (uniqueEventsFrames - startFrame)
+}
+```
+
+- Counters accumulate from process start and are **not** per-frame; a dump is a
+  cumulative snapshot, so a later appended segment supersedes an earlier one for the
+  same event (the parser keeps the largest-count snapshot per name).
+- `name`/`src` resolve the record's description index against that segment's
+  description board, the same table the scopes use.
+- Ranked by `totalUs`. `compare_captures.py` compares two runs by count, total/avg
+  cost and min/max, and flags a large count gap as a workload mismatch.
 
 ### `samples` (only if the capture has stack sampling)
 

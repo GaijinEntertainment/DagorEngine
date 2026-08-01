@@ -13,6 +13,7 @@
 #include <cs/phyexp.h>
 #include <meshnormalspec.h>
 #include <impexp.h>
+#include <string_view>
 #include "comboBoxHelper.h"
 #include "dagor.h"
 #include "dagorLogWindow.h"
@@ -22,22 +23,15 @@
 #include "expanim.h"
 #include "expanim2.h"
 #include "Bones.h"
-#if MAX_RELEASE >= 4000
 #include "iparamb2.h"
 #include "ISkin.h"
-#endif
 #include "resource.h"
 #include "debug.h"
 #include "rolluppanel.h"
 #include "common.h"
 #include "datablk.h"
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
 #include <INamedSelectionSetManager.h>
-#endif
 
-#if (__cplusplus >= 201100L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201100L)
-#define SET_TYPE unordered_set
-#define MAP_TYPE unordered_map
 // #define TIMER
 #include <unordered_set>
 #include <unordered_map>
@@ -50,27 +44,22 @@
 #else
 #define INTERVAL(name, elapsed, type)
 #endif
-#else
-#define SET_TYPE set
-#define MAP_TYPE map
-#include <set>
-#include <map>
-#define INTERVAL(name, elapsed, type)
-#endif
 #include <string>
 #include <utility>
 #include <Shobjidl.h>
 #include <Shlobj.h>
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 
 bool is_default_layer(const ILayer &layer);
 
-std::wstring fix_empty_param_values(const std::wstring &_script, const std::wstring &classname);
-std::wstring normalize_param_values(const std::wstring &script, const std::wstring &classname);
+std::wstring fix_empty_param_values(std::wstring_view _script, std::wstring_view classname);
+std::wstring normalize_param_values(std::wstring_view script, std::wstring_view classname);
 
 #include "layout.h"
-#include "common.h"
+
+namespace fs = std::filesystem;
 
 #define ERRMSG_DELAY 3000
 
@@ -85,24 +74,9 @@ void export_physics(FILE *file, Interface *ip);
 
 void calc_momjs(Interface *ip);
 
-/*
-static void debug_tm(Matrix3 &tm) {
-  debug("");
-  for(int i=0;i<4;++i) {
-    Point3 p=tm.GetRow(i);
-    debug("%f %f %f",p.x,p.y,p.z);
-  }
-  debug("");
-}
-*/
-
 void scale_matrix(Matrix3 &tm)
 {
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  float masterScale = (float)GetSystemUnitScale(UNITS_METERS);
-#else
-  float masterScale = (float)GetMasterScale(UNITS_METERS);
-#endif
+  float masterScale = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
   tm.SetTrans(tm.GetTrans() * masterScale);
 }
 
@@ -110,11 +84,7 @@ class ExpUtil : public UtilityObj
 {
 public:
   // Warning! This is enum is stored in the Max file.
-#if (__cplusplus >= 201100L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201100L)
   enum class ExportMode
-#else
-  enum ExportMode
-#endif
   {
     Standard = 0,
     ObjectsAsDags = 1,
@@ -128,11 +98,11 @@ public:
   ICustEdit *epose, *erote, *escle, *eorte;
   ICustEdit *epose2, *erote2;
 
-  TSTR exp_fname;
-  TSTR exp_anim2_fname;
-  TSTR exp_camera_fname;
-  TSTR exp_phys_fname;
-  TSTR exp_instances_fname;
+  fs::path exp_fname;
+  fs::path exp_anim2_fname;
+  fs::path exp_camera_fname;
+  fs::path exp_phys_fname;
+  fs::path exp_instances_fname;
 
   int expflg;
   ExportMode exportMode;
@@ -165,8 +135,8 @@ public:
   int input_exp_camera_fname();
   int input_exp_phys_fname();
   int input_exp_instances_fname();
-  BOOL export_one_dag(const TCHAR *exp_fn);
-  BOOL export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn);
+  BOOL export_one_dag(const fs::path &exp_fn);
+  BOOL export_one_dag_cb(ExportENCB &cb, const fs::path &exp_fn);
   BOOL export_dag();
   void export_anim_v2();
   void export_camera_v1();
@@ -225,11 +195,7 @@ public:
   int IsPublic() override { return TRUE; }
   void *Create(BOOL loading) override { return new DagExport; }
   const TCHAR *ClassName() override { return GetString(IDS_DAGEXP); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return SCENE_EXPORT_CLASS_ID; }
   Class_ID ClassID() override { return DAGEXP_CID; }
   const TCHAR *Category() override { return _T(""); }
@@ -271,11 +237,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading = FALSE) override { return &util; }
   const TCHAR *ClassName() override { return GetString(IDS_EXPUTIL_NAME); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
   Class_ID ClassID() override { return ExpUtil_CID; }
   const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
@@ -301,11 +263,11 @@ enum
 IOResult ExpUtilDesc::Save(ISave *io)
 {
   ULONG nw;
-  if (util.exp_fname.Length())
+  if (!util.exp_fname.empty())
   {
     io->BeginChunk(CH_EXP_FNAME);
 
-    if (io->WriteCString(util.exp_fname) != IO_OK)
+    if (io->WriteCString(util.exp_fname.c_str()) != IO_OK)
       return IO_ERROR;
     io->EndChunk();
   }
@@ -337,24 +299,24 @@ IOResult ExpUtilDesc::Save(ISave *io)
     return IO_ERROR;
   io->EndChunk();
 
-  if (util.exp_anim2_fname.Length())
+  if (!util.exp_anim2_fname.empty())
   {
     io->BeginChunk(CH_EXP_ANIM2_FNAME);
-    if (io->WriteCString(util.exp_anim2_fname) != IO_OK)
+    if (io->WriteCString(util.exp_anim2_fname.c_str()) != IO_OK)
       return IO_ERROR;
     io->EndChunk();
   }
-  if (util.exp_camera_fname.Length())
+  if (!util.exp_camera_fname.empty())
   {
     io->BeginChunk(CH_EXP_CAMERA_FNAME);
-    if (io->WriteCString(util.exp_camera_fname) != IO_OK)
+    if (io->WriteCString(util.exp_camera_fname.c_str()) != IO_OK)
       return IO_ERROR;
     io->EndChunk();
   }
-  if (util.exp_phys_fname.Length())
+  if (!util.exp_phys_fname.empty())
   {
     io->BeginChunk(CH_EXP_PHYS_FNAME);
-    if (io->WriteCString(util.exp_phys_fname) != IO_OK)
+    if (io->WriteCString(util.exp_phys_fname.c_str()) != IO_OK)
       return IO_ERROR;
     io->EndChunk();
   }
@@ -524,7 +486,7 @@ BOOL ExpUtil::export_anim_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
         {
           TSTR s;
           s.Resize(64);
-          eastart->GetText(STR_DEST(s), 64);
+          eastart->GetText(s.dataForWrite(), 64);
           StringToTime(s, astart);
         }
         break;
@@ -532,7 +494,7 @@ BOOL ExpUtil::export_anim_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
         {
           TSTR s;
           s.Resize(64);
-          eaend->GetText(STR_DEST(s), 64);
+          eaend->GetText(s.dataForWrite(), 64);
           StringToTime(s, aend);
         }
         break;
@@ -560,7 +522,6 @@ BOOL ExpUtil::export_anim_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
 
 BOOL ExpUtil::export_other_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
 {
-  static TCHAR path[MAX_PATH];
   static bool prevent_enchange = false;
 
   switch (msg)
@@ -582,13 +543,13 @@ BOOL ExpUtil::export_other_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
         {
           static TCHAR dir[MAX_PATH];
 
-          _tcscpy(dir, dagor_path.data());
+          _tcscpy(dir, dagor_path.c_str());
 
           ip->ChooseDirectory(hw, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
           if (dir[0])
           {
             set_dagor_path(dir);
-            update_path_edit_control(hw, IDC_DAGORPATH, dagor_path.data());
+            update_path_edit_control(hw, IDC_DAGORPATH, dagor_path);
           }
         }
         break;
@@ -599,16 +560,15 @@ BOOL ExpUtil::export_other_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
             case EN_SETFOCUS: DisableAccelerators(); break;
             case EN_KILLFOCUS:
               EnableAccelerators();
-              GetDlgItemText(hw, IDC_DAGORPATH, path, MAX_PATH);
-              set_dagor_path(path);
+              set_dagor_path(get_window_text(GetDlgItem(hw, IDC_DAGORPATH)));
               break;
 
             case EN_CHANGE:
               if (!prevent_enchange)
               {
-                GetDlgItemText(hw, IDC_DAGORPATH, path, MAX_PATH);
+                const std::wstring path = get_window_text(GetDlgItem(hw, IDC_DAGORPATH));
 
-                TSTR new_path = drop_quotation_marks(path);
+                std::wstring new_path = drop_quotation_marks(path);
                 if (path != new_path)
                 {
                   Autotoggle eguard(prevent_enchange);
@@ -805,7 +765,7 @@ void ExpUtil::update_ui_other(HWND hw)
   CheckDlgButton(hw, IDC_CALC_MOMJ_ON_EXPORT, !(expflg & EXP_DONT_CALC_MOMJ));
   CheckDlgButton(hw, IDC_EXPLTARG, expflg & EXP_LTARG);
   CheckDlgButton(hw, IDC_EXPCTARG, expflg & EXP_CTARG);
-  update_path_edit_control(hw, IDC_DAGORPATH, dagor_path.data());
+  update_path_edit_control(hw, IDC_DAGORPATH, dagor_path);
 }
 
 void ExpUtil::update_ui()
@@ -814,13 +774,6 @@ void ExpUtil::update_ui()
   update_ui_anim(hExpAnim);
   update_ui_other(hExpOther);
 }
-
-/*
-void ExpUtil::update_vars() {
-  if(!ip) return;
-  util.exphidden=IsDlgButtonChecked(hPanel,IDC_EXPHIDDEN);
-}
-*/
 
 void ExpUtil::Init(HWND hw)
 {
@@ -912,11 +865,14 @@ int ExpUtil::input_exp_instances_fname()
   return get_save_filename(hExpOther, _T("Save instances placement..."), fl, _T("blk"), exp_instances_fname);
 }
 
-
+// isolate struct Block to avoid linker confusion with struct Block in dagimp.cpp
+namespace
+{
 struct Block
 {
   int ofs;
 };
+} // namespace
 
 static Tab<Block> blk;
 static FILE *fileh = NULL;
@@ -978,17 +934,17 @@ struct EMat
   INode *node;
   DWORD wirecolor;
 
-  EMat(const std::wstring &nm, Mtl *m, INode *n, DWORD wc) : name(nm), mtl(m), node(n), wirecolor(wc) {}
+  EMat(std::wstring_view nm, Mtl *m, INode *n, DWORD wc) : name(nm), mtl(m), node(n), wirecolor(wc) {}
 };
 
 struct ExpMat
 {
   DagMater m;
-  TCHAR *name, *classname, *script;
+  std::wstring name, classname, script;
   Mtl *mtl;
   DWORD wirecolor;
 
-  ExpMat() : name(0), classname(0), script(0), mtl(0), wirecolor(0) {}
+  ExpMat() : mtl(0), wirecolor(0) {}
 };
 
 class MyExpTMAnimCB : public ExpTMAnimCB
@@ -999,7 +955,6 @@ public:
 
   MyExpTMAnimCB(INode *n, INode *pn, INode *orig)
   {
-    // debug ( "n=%p  pn=%p  origin=%p", n, pn, origin );
     node = n;
     pnode = pn;
     origin = orig;
@@ -1137,14 +1092,6 @@ struct ExpNoteTrack
   INode *node;
 
   ExpNoteTrack(INode *n) { node = n; }
-  /*  int operator ==(ExpNoteTrack &a) {
-      if(kl.Count()!=a.kl.Count()) return 0;
-      int num=kl.Count();
-      for(int i=0;i<num;++i)
-        if(kl[i].id!=a.kl[i].id || kl[i].t!=a.kl[i].t) return 0;
-      return 1;
-    }
-  */
 };
 
 const char origin_lin_vel_node_name[] = "origin_lin_vel_node_name";
@@ -1173,8 +1120,8 @@ public:
   TimeValue time;
   Tab<INode *> node;
   Tab<bool> nodeExp; // used in a2d export to denote nodes that should be exported; 'node' contains all nodes
-  Tab<ExpMat> mat;
-  std::vector<std::SET_TYPE<Mtl *>> mtls;
+  std::vector<ExpMat> mat;
+  std::vector<std::unordered_set<Mtl *>> mtls;
   Tab<int> matIDtoMatIdx;
   std::vector<std::wstring> tex;
   std::unordered_map<std::wstring, int> texIndexMap; // lowercase key for case-insensitive O(1) lookup
@@ -1196,11 +1143,10 @@ public:
   bool hasNonDagorMaterials;
   bool hasNonDagorLights;
   bool hasSubSubMaterials;
-  bool hasAbsolutePaths;
   bool a2dExported;
 
   std::wstring tex_slot[DAGTEXNUM];
-  std::MAP_TYPE<std::wstring, std::vector<std::wstring>> shaderParamsMap;
+  std::unordered_map<std::wstring, std::vector<std::wstring>> shaderParamsMap;
 
   ExportENCB(TimeValue t, bool a2d)
   {
@@ -1215,37 +1161,20 @@ public:
     hasNonDagorMaterials = false;
     hasNonDagorLights = false;
     hasSubSubMaterials = false;
-    hasAbsolutePaths = false;
     nodeOrigin = NULL;
-#if (__cplusplus >= 201100L) || (defined(_MSVC_LANG) && _MSVC_LANG >= 201100L)
     useIdentityTransformForNode = nullptr;
-#else
-    useIdentityTransformForNode = NULL;
-#endif
     a2dExported = a2d;
   }
 
   ~ExportENCB() override
   {
-    int i;
-    for (i = 0; i < mat.Count(); ++i)
-    {
-      if (mat[i].name)
-        free(mat[i].name);
-      if (mat[i].classname)
-        free(mat[i].classname);
-      if (mat[i].script)
-        free(mat[i].script);
-    }
-
-    for (i = 0; i < ntrack.Count(); ++i)
+    for (int i = 0; i < ntrack.Count(); ++i)
       if (ntrack[i])
         delete (ntrack[i]);
   }
 
   int add_klabel(const TCHAR *n)
   {
-    // DebugPrint("add_klabel <%s>\n",n);
     if (!n)
       return -1;
     if (!n[0])
@@ -1261,13 +1190,11 @@ public:
     int idx = static_cast<int>(klabel.size());
     klabel.emplace_back(n);
     klabelIndexMap.emplace(std::move(key), idx);
-    // DebugPrint("  added %d\n",klabel.size());
     return idx;
   }
 
   int get_notetrack(INode *n, Tab<TimeValue> &gk)
   {
-    // DebugPrint("get_notetrk for <%s>\n",n->GetName());
     for (; n; n = n->GetParentNode())
     {
       int id = -1;
@@ -1276,7 +1203,6 @@ public:
           return i;
       if (n->HasNoteTracks())
       {
-        // DebugPrint("notetrk of <%s>\n",n->GetName());
         int num = n->NumNoteTracks();
         if (num > 0)
         {
@@ -1285,7 +1211,6 @@ public:
             DefNoteTrack *nt = (DefNoteTrack *)n->GetNoteTrack(ti);
             if (!nt)
               continue;
-            // DebugPrint("notetrk %d/%d\n",ti+1,num);
             for (int i = 0; i < nt->keys.Count(); ++i)
             {
               gk.Append(1, &nt->keys[i]->time);
@@ -1302,7 +1227,6 @@ public:
                 ExpKeyLabel k;
                 k.t = nt->keys[i]->time;
                 k.id = add_klabel(nt->keys[i]->note);
-                // DebugPrint("notekey[%d] at %d <%s> (%d)\n",i,k.t,(char*)nt->keys[i]->note,k.id);
                 ntrack[id]->kl.Append(1, &k);
               }
             }
@@ -1311,14 +1235,6 @@ public:
       }
       if (id >= 0)
       {
-        /*        if(id==ntrack.Count()-1) {
-                  for(int i=0;i<id;++i) if(*ntrack[i]==*ntrack[id]) {
-                    delete(ntrack[id]);
-                    ntrack.Delete(id,1);
-                    return i;
-                  }
-                }
-        */
         return id;
       }
     }
@@ -1345,38 +1261,24 @@ public:
     return idx;
   }
 
-  bool doesScriptMatch(const TCHAR *a, const TCHAR *b)
+  bool doesScriptMatch(std::wstring_view a, std::wstring_view b)
   {
-    std::wstring propsa(a), propsb(b);
-    wchar_t prop[512];
+    auto split_lines = [](std::wstring_view s) {
+      std::vector<std::wstring> lines;
+      for (size_t pos = 0; pos <= s.size();)
+      {
+        size_t end = s.find(L"\r\n", pos);
+        if (end == std::wstring::npos)
+          end = s.size();
+        if (end > pos)
+          lines.emplace_back(s.substr(pos, end - pos));
+        pos = end + 2;
+      }
+      std::sort(lines.begin(), lines.end());
+      return lines;
+    };
 
-    if (propsa.length() != propsb.length())
-      return false; // No need to check b entries against a
-    size_t pos = 0, prevPos = 0;
-    pos = propsa.find(_T("\r\n"), pos);
-    while (pos != propsa.npos)
-    {
-      propsa.copy(prop, pos - prevPos, prevPos);
-      prop[pos - prevPos] = L'\0';
-      size_t posB = propsb.find(prop);
-      if (posB == propsa.npos)
-        return false;
-      if (pos < propsa.length() - 2)
-        pos += 2;
-      if (pos - prevPos == 0)
-        break;
-      prevPos = pos;
-      pos = propsa.find(_T("\r\n"), pos);
-    }
-    if (pos < propsa.length())
-    {
-      propsa.copy(prop, propsa.length() - pos, pos);
-      prop[propsa.length() - pos] = L'\0';
-      size_t posB = propsb.find(prop);
-      if (posB == propsa.npos)
-        return false;
-    }
-    return true;
+    return split_lines(a) == split_lines(b);
   }
 
   void prepare_expmat()
@@ -1385,12 +1287,12 @@ public:
     {
       if (!em.mtl)
       {
-        assert(mat.Count() != 0xFFFF);
-        if (mat.Count() >= 0xFFFF)
+        assert(mat.size() != 0xFFFF);
+        if (mat.size() >= 0xFFFF)
           return;
 
         ExpMat e;
-        e.name = _tcsdup(em.name.data());
+        e.name = em.name;
         e.mtl = 0;
         e.wirecolor = em.wirecolor;
 
@@ -1402,8 +1304,8 @@ public:
         for (int i = 0; i < DAGTEXNUM; ++i)
           e.m.texid[i] = DAGBADMATID;
 
-        mtls.push_back(std::SET_TYPE<Mtl *>());
-        mat.Append(1, &e);
+        mtls.push_back(std::unordered_set<Mtl *>());
+        mat.push_back(std::move(e));
         continue;
       }
 
@@ -1417,14 +1319,14 @@ public:
         explogWarning(_T("'%s' has standard material '%s'\r\n"), em.node->GetName(), em.name.data());
         hasNonDagorMaterials = true;
 
-        assert(mat.Count() != 0xFFFF);
-        if (mat.Count() >= 0xFFFF)
+        assert(mat.size() != 0xFFFF);
+        if (mat.size() >= 0xFFFF)
           return;
 
         StdMat *m = (StdMat *)em.mtl;
 
         ExpMat e;
-        e.name = _tcsdup(em.name.data());
+        e.name = em.name;
         e.mtl = em.mtl;
         e.wirecolor = 0;
 
@@ -1447,19 +1349,19 @@ public:
           if (tex->ClassID() == Class_ID(BMTEX_CLASS_ID, 0))
           {
             BitmapTex *b = (BitmapTex *)tex;
-            e.m.texid[0] = add_tex(makeCheckedRelPath(em.node, em.mtl, b->GetMapName()));
+            e.m.texid[0] = add_tex(make_path_rel(b->GetMapName()));
             if (e.m.texid[0] != DAGBADMATID)
             {
               e.m.amb = e.m.diff = Color(1, 1, 1) * (1 - si);
               e.m.emis = Color(1, 1, 1) * si;
             }
           }
-        e.classname = _tcsdup(_T("simple"));
-        e.script = _tcsdup(_T("lighting=vltmap"));
+        e.classname = L"simple";
+        e.script = L"lighting=vltmap";
 
-        mtls.push_back(std::SET_TYPE<Mtl *>());
+        mtls.push_back(std::unordered_set<Mtl *>());
         mtls.back().insert(em.mtl);
-        mat.Append(1, &e);
+        mat.push_back(std::move(e));
         continue;
       }
 
@@ -1467,15 +1369,15 @@ public:
       {
         INTERVAL("DagorMat", dagorMatElapsed, TimerIntervalType::GATHER);
 
-        assert(mat.Count() != 0xFFFF);
-        if (mat.Count() >= 0xFFFF)
+        assert(mat.size() != 0xFFFF);
+        if (mat.size() >= 0xFFFF)
           return;
 
         IDagorMat *m = (IDagorMat *)em.mtl->GetInterface(I_DAGORMAT);
         assert(m);
 
         ExpMat e;
-        e.name = _tcsdup(em.name.data());
+        e.name = em.name;
         e.mtl = em.mtl;
         e.wirecolor = 0;
 
@@ -1492,21 +1394,18 @@ public:
         for (int i = 0; i < DAGTEXNUM; ++i)
           e.m.texid[i] = DAGBADMATID;
 
-        e.classname = _tcsdup(m->get_classname());
-        assert(e.classname);
-
-        e.script = _tcsdup(m->get_script());
-        assert(e.script);
+        e.classname = m->get_classname();
+        e.script = m->get_script();
 
         if (!isProxymatName(e.classname))
           for (int i = 0; i < DAGTEXNUM; ++i)
-            e.m.texid[i] = add_tex(makeCheckedRelPath(em.node, em.mtl, m->get_texname(i)));
+            e.m.texid[i] = add_tex(make_path_rel(m->get_texname(i)));
 
         em.mtl->ReleaseInterface(I_DAGORMAT, m);
 
-        mtls.push_back(std::SET_TYPE<Mtl *>());
+        mtls.push_back(std::unordered_set<Mtl *>());
         mtls.back().insert(em.mtl);
-        mat.Append(1, &e);
+        mat.push_back(std::move(e));
         continue;
       }
 
@@ -1520,10 +1419,10 @@ public:
     if (mat_a.mtl == mat_b.mtl)
       return true;
 
-    if (!mat_a.classname || !*mat_a.classname)
+    if (mat_a.classname.empty())
       return false;
 
-    if (!mat_b.classname || !*mat_b.classname)
+    if (mat_b.classname.empty())
       return false;
 
     bool is_proxy_a = isProxymatName(mat_a.classname);
@@ -1532,10 +1431,10 @@ public:
       return false;
 
     if (is_proxy_a)
-      return !_tcsicmp(mat_a.classname, mat_b.classname);
+      return !_tcsicmp(mat_a.classname.c_str(), mat_b.classname.c_str());
     else
     {
-      if (_tcsicmp(mat_a.classname, mat_b.classname))
+      if (_tcsicmp(mat_a.classname.c_str(), mat_b.classname.c_str()))
         return false;
     }
 
@@ -1559,25 +1458,25 @@ public:
         return false;
 
       // FIXME special symbols
-      const TSTR tex_a = extract_filename(tex[texid_a].c_str());
-      const TSTR tex_b = extract_filename(tex[texid_b].c_str());
-      if (_tcsicmp(tex_a.data(), tex_b.data()))
+      const std::wstring tex_a = fs::path(tex[texid_a]).stem().wstring();
+      const std::wstring tex_b = fs::path(tex[texid_b]).stem().wstring();
+      if (_tcsicmp(tex_a.c_str(), tex_b.c_str()))
         return false;
     }
 
-    return doesScriptMatch(normalize_param_values(mat_a.script, mat_a.classname).data(),
-      normalize_param_values(mat_b.script, mat_b.classname).data());
+    return doesScriptMatch(normalize_param_values(mat_a.script, mat_a.classname),
+      normalize_param_values(mat_b.script, mat_b.classname));
   }
 
   void optimize_materials(Tab<bool> &matUsed)
   {
-    for (size_t i = 0; i < mat.Count(); ++i)
+    for (size_t i = 0; i < mat.size(); ++i)
     {
       const auto &m = mat[i];
       if (!matUsed[i])
         continue;
 
-      for (size_t j = i + 1; j < mat.Count(); ++j)
+      for (size_t j = i + 1; j < mat.size(); ++j)
       {
         const auto &em = mat[j];
         if (!matUsed[j])
@@ -1594,13 +1493,11 @@ public:
 
   std::wstring makeUniqueMatName()
   {
-    TCHAR buf[64];
     for (int i = 0;; ++i)
     {
-      _stprintf(buf, _T("autoNamedMat_%d"), i);
-      std::wstring name = buf;
+      std::wstring name = format_str(_T("autoNamedMat_%d"), i);
       if (std::find_if(matList.begin(), matList.end(), [&name](EMat &em) { return em.name == name; }) == matList.end())
-        return buf;
+        return name;
     }
   }
 
@@ -1691,7 +1588,6 @@ public:
       {
         if (n->IsNodeHidden())
           return ECB_CONT;
-        // if(n->GetVisibility(time)<0) return ECB_CONT;
       }
       if (util.expflg & EXP_SEL)
         if (!n->Selected())
@@ -1711,9 +1607,6 @@ public:
       if (!(util.expflg & EXP_OBJECTS))
         return ECB_CONT;
 
-      // OutputDebugString(n->GetName());
-      // OutputDebugString("\n");
-
       Object *obj = n->EvalWorldState(time).obj;
       if (obj)
       {
@@ -1730,20 +1623,6 @@ public:
           if (!(util.expflg & EXP_LT))
             if (!n->NumberOfChildren())
               return ECB_CONT;
-        }
-        else if (scid == SHAPE_CLASS_ID)
-        {
-          /*
-          if(!(util.expflg&EXP_SPLINE))
-          if(!n->NumberOfChildren()) return ECB_CONT;
-          */
-        }
-        else if (obj->CanConvertToType(Class_ID(TRIOBJ_CLASS_ID, 0)))
-        {
-          /*
-          if(!(util.expflg&EXP_MESH))
-          if(!n->NumberOfChildren()) return ECB_CONT;
-          */
         }
       }
       if (!obj)
@@ -1802,12 +1681,12 @@ public:
   {
     if (!m)
     {
-      for (int i = 0; i < mat.Count(); ++i)
+      for (int i = 0; i < (int)mat.size(); ++i)
         if (mat[i].mtl == NULL && mat[i].wirecolor == wc)
           return i;
       return -1;
     }
-    for (int i = 0; i < mat.Count(); ++i)
+    for (int i = 0; i < (int)mat.size(); ++i)
       if (mat[i].mtl == m)
         return i;
     return -1;
@@ -1819,30 +1698,6 @@ public:
       if (fwrite(p, l, 1, h) != 1) \
         return 0;                  \
   }
-
-  /*
-bool wr_hlp( const void * p, int l, FILE * h )
-{
-  int pos = ftell( h );
-  if ( pos + l >0xc81 )
-  {
-    int r = 0xc81 - pos - 1;
-    if ( r >= 0 )
-    {
-      BYTE b = ((BYTE*)p)[ r ];
-      debug( "test");
-    }
-  }
-
-    if(fwrite(p,l,1,h)!=1)
-      return false;
-
-
-
-  return true;
-}
-
-#define wr(p,l) {if(l>0) if(!wr_hlp(p,l,h)) return 0;}*/
 
 #define bblk(id)        \
   {                     \
@@ -1858,18 +1713,12 @@ bool wr_hlp( const void * p, int l, FILE * h )
   bool checkDegenerateTriangle(INode *node, Matrix3 &applied_transform, unsigned int index1, unsigned int index2, unsigned int index3,
     Point3 &vertex1, Point3 &vertex2, Point3 &vertex3);
 
-  const TCHAR *makeCheckedRelPath(INode *node, Mtl *mtl, const TCHAR *absolute_path);
-
   bool useMOpt() const { return (util.expflg & EXP_MATOPT) && (util.expflg & EXP_MESH); }
 
   int save_node(ExpNode *enod, FILE *h)
   {
 
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-    float masterScale = (float)GetSystemUnitScale(UNITS_METERS);
-#else
-    float masterScale = (float)GetMasterScale(UNITS_METERS);
-#endif
+    float masterScale = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
 
     Matrix3 originTm;
     if (nodeOrigin)
@@ -1924,26 +1773,9 @@ bool wr_hlp( const void * p, int l, FILE * h )
       n->GetUserPropBuffer(s);
       std::wstring trimmed = trim_params(s.data());
 
-      //      DataBlock blk;
-      //      RollupPanel::saveUserPropBufferToBlk(blk, n);
-
       // TODO: create a check for presence of billboards
 
-      //      if(blk.paramCount())
-      //      {
-      //        if(n->GetMtl())
-      //        {
-      //          IDagorMat *m = (IDagorMat *) n->GetMtl()->GetInterface (I_DAGORMAT);
-      //          if(m && (strcmp(m->get_classname(),"billboard_atest")==NULL ||
-      //                   strcmp(m->get_classname(),"facing_leaves")==NULL) )
-      //          {
-      //            blk.setBool("billboard", true );
-      //            debug("find billboard material '%s'", m->get_classname());
-      //          }
-      //        }
-      //      }
-
-      std::string scr = wideToStr(trimmed.data());
+      std::string scr = wideToStr(trimmed);
       if (useMOpt())
       {
         for (int i = 0; i < mtls.size(); ++i)
@@ -1952,7 +1784,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
           size_t pos = scr.find("apex_interior_material:t=\"");
           if (pos != std::string::npos)
           {
-            for (std::SET_TYPE<Mtl *>::iterator mtlIt = mtls[i].begin(); mtlIt != mtls[i].end(); ++mtlIt)
+            for (std::unordered_set<Mtl *>::iterator mtlIt = mtls[i].begin(); mtlIt != mtls[i].end(); ++mtlIt)
               if (*mtlIt)
               {
                 std::string matName = wideToStr((*mtlIt)->GetName());
@@ -2072,25 +1904,13 @@ bool wr_hlp( const void * p, int l, FILE * h )
         }
         else
           ptm.IdentityMatrix();
-        /*
-                debug ( "node <%s> wtm (rows):", wideToStr(n->GetName()).c_str());
-                debug ( "  (%.3f,%.3f,%.3f)\n  (%.3f,%.3f,%.3f)\n  (%.3f,%.3f,%.3f)\n  (%.3f,%.3f,%.3f)",
-                        ntm.GetRow(0).x, ntm.GetRow(0).y, ntm.GetRow(0).z, ntm.GetRow(1).x, ntm.GetRow(1).y, ntm.GetRow(1).z,
-                        ntm.GetRow(2).x, ntm.GetRow(2).y, ntm.GetRow(2).z, ntm.GetRow(3).x, ntm.GetRow(3).y, ntm.GetRow(3).z );
-        */
         ptm = ntm * Inverse(ptm);
-        /*
-                debug ( "node <%s> tm (rows) local:", wideToStr(n->GetName()).c_str());
-                debug ( "  (%.3f,%.3f,%.3f)\n  (%.3f,%.3f,%.3f)\n  (%.3f,%.3f,%.3f)\n  (%.3f,%.3f,%.3f)",
-                        ptm.GetRow(0).x, ptm.GetRow(0).y, ptm.GetRow(0).z, ptm.GetRow(1).x, ptm.GetRow(1).y, ptm.GetRow(1).z,
-                        ptm.GetRow(2).x, ptm.GetRow(2).y, ptm.GetRow(2).z, ptm.GetRow(3).x, ptm.GetRow(3).y, ptm.GetRow(3).z );
-        */
         wr(ptm.GetAddr(), 4 * 3 * 4);
         eblk;
       }
       if (pos.Count() == 1 && rot.Count() == 1 && scl.Count() == 1)
       {
-        if (/*ntid>=0 &&*/ ntid < ntrack.Count())
+        if (ntid < ntrack.Count())
         {
           bblk(DAG_NODE_NOTETRACK);
           wr(&ntid, 2);
@@ -2209,8 +2029,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
       else if ((util.expflg & EXP_MESH) && os.obj->SuperClassID() == GEOMOBJECT_CLASS_ID &&
                os.obj->CanConvertToType(Class_ID(TRIOBJ_CLASS_ID, 0)))
       {
-        // DebugPrint("mesh <%s>\n",(char*)n->GetName());
-
         int modon = 0, numvert = 0;
         bool skinmod = false;
         bool physiqueMod = false;
@@ -2228,13 +2046,11 @@ bool wr_hlp( const void * p, int l, FILE * h )
               IDerivedObject &der = *(IDerivedObject *)n->GetProperty(PROPID_HAS_WSM);
               der.GetModifier(der.NumModifiers() - 1)->EnableMod();
             }
-#if MAX_RELEASE >= 4000
             else if (restore_obj_ref)
             {
               IDerivedObject &der = *(IDerivedObject *)n->GetObjectRef();
               der.GetModifier(der.NumModifiers() - 1)->EnableMod();
             }
-#endif
           }
         } restore_mod(n);
 
@@ -2253,7 +2069,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
           }
         }
 
-#if MAX_RELEASE >= 4000
         if (!modon)
         {
           Object *obj = n->GetObjectRef();
@@ -2293,7 +2108,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
               }
             }
         }
-#endif
 
         TriObject *tri = (TriObject *)n->EvalWorldState(time).obj->ConvertToType(time, Class_ID(TRIOBJ_CLASS_ID, 0));
         if (tri)
@@ -2302,7 +2116,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
           Mesh m = tri->mesh;
 
           if (tri != os.obj)
-            delete tri;
+            tri->DeleteMe();
           Matrix3 otm;
           int notSmoothed = 0;
           ;
@@ -2324,8 +2138,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
             hasNoSmoothing |= true;
             mesh_face_sel(m).ClearAll();
           }
-          // if(os.GetTM()) otm=*os.GetTM();
-          // else otm.IdentityMatrix();
           int v1 = 2, v2 = 1;
           otm = get_scaled_object_tm(n, time);
           if (otm.Parity())
@@ -2335,7 +2147,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
             v2 = a;
           }
           otm = otm * Inverse(get_scaled_stretch_node_tm(n, time));
-          //          if(!otm.Parity()) {int a=v1;v1=v2;v2=a;}
           numvert = m.numVerts;
           for (int i = 0; i < m.numVerts; ++i)
             m.verts[i] = (m.verts[i] * masterScale) * otm;
@@ -2346,7 +2157,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
             nofaces = 1;
           }
 
-#if MAX_RELEASE >= 3000
           int maxntv = 0;
           for (int i = 0; i < MAX_MESHMAPS; ++i)
             if (m.mapSupport(i))
@@ -2356,25 +2166,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 if (ntv > maxntv)
                   maxntv = ntv;
               }
-#else
-          int maxntv = m.numTVerts;
-          if (m.numCVerts > maxntv)
-            maxntv = m.numCVerts;
-#endif
           if (m.numVerts >= 0x10000 || m.numFaces >= 0x10000 || maxntv >= 0x10000)
           {
-
-            /*
-            if (m.numVerts >= 0x10000)
-              explog(_T( "'%s' has more than 64K vertices\r\n"), n->GetName());
-
-            if (m.numFaces >= 0x10000)
-              explog(_T( "'%s' has more than 64K faces\r\n"), n->GetName());
-
-            if (maxntv >= 0x10000)
-              explog(_T( "'%s' has more than 64K texture vertices\r\n"), n->GetName());
-            */
-
             hasBigMeshes = true;
 
             bblk(DAG_OBJ_BIGMESH);
@@ -2396,9 +2189,13 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 int num = mtl->NumSubMtls();
                 if (num)
                 {
-                  mid = subMatIdLUT[mid % num];
-                  if (mid < 0 && unusedSlotIdx >= 0)
-                    mid = (unsigned short)unusedSlotIdx;
+                  if (subMatIdLUT.Count())
+                  {
+                    int remapped = subMatIdLUT[mid % num];
+                    if (remapped < 0 && unusedSlotIdx >= 0)
+                      remapped = unusedSlotIdx;
+                    mid = (MtlID)remapped;
+                  }
                 }
                 else
                 {
@@ -2415,7 +2212,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 m.verts[m.faces[i].v[0]], m.verts[m.faces[i].v[1]], m.verts[m.faces[i].v[2]]);
             }
             unsigned char numch = 0;
-#if MAX_RELEASE >= 3000
             int ch;
             for (ch = 0; ch < MAX_MESHMAPS; ++ch)
               if (m.mapSupport(ch))
@@ -2448,49 +2244,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 wr(&f, sizeof(f));
               }
             }
-#else
-            if (m.numTVerts && m.tvFace)
-              ++numch;
-            if (m.numCVerts && m.vcFace)
-              ++numch;
-            wr(&numch, 1);
-            if (m.numTVerts && m.tvFace)
-            {
-              wr(&m.numTVerts, 4);
-              numch = 2;
-              wr(&numch, 1);
-              numch = 1;
-              wr(&numch, 1);
-              for (i = 0; i < m.numTVerts; ++i)
-                wr(&m.tVerts[i], 8);
-              for (i = 0; i < m.numFaces; ++i)
-              {
-                DagBigTFace f;
-                f.t[0] = m.tvFace[i].t[0];
-                f.t[v1] = m.tvFace[i].t[1];
-                f.t[v2] = m.tvFace[i].t[2];
-                wr(&f, sizeof(f));
-              }
-            }
-            if (m.numCVerts && m.vcFace)
-            {
-              wr(&m.numCVerts, 4);
-              numch = 2;
-              wr(&numch, 1);
-              numch = 2;
-              wr(&numch, 1);
-              for (i = 0; i < m.numCVerts; ++i)
-                wr(&m.vertCol[i], 8);
-              for (i = 0; i < m.numFaces; ++i)
-              {
-                DagBigTFace f;
-                f.t[0] = m.vcFace[i].t[0];
-                f.t[v1] = m.vcFace[i].t[1];
-                f.t[v2] = m.vcFace[i].t[2];
-                wr(&f, sizeof(f));
-              }
-            }
-#endif
             eblk;
           }
           else
@@ -2515,9 +2268,13 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 int num = mtl->NumSubMtls();
                 if (num)
                 {
-                  mid = subMatIdLUT[mid % num];
-                  if (mid < 0 && unusedSlotIdx >= 0)
-                    mid = (unsigned short)unusedSlotIdx;
+                  if (subMatIdLUT.Count())
+                  {
+                    int remapped = subMatIdLUT[mid % num];
+                    if (remapped < 0 && unusedSlotIdx >= 0)
+                      remapped = unusedSlotIdx;
+                    mid = (MtlID)remapped;
+                  }
                 }
                 else
                 {
@@ -2533,7 +2290,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 m.verts[m.faces[i].v[0]], m.verts[m.faces[i].v[1]], m.verts[m.faces[i].v[2]]);
             }
             unsigned char numch = 0;
-#if MAX_RELEASE >= 3000
             int ch;
             for (ch = 0; ch < MAX_MESHMAPS; ++ch)
               if (m.mapSupport(ch))
@@ -2566,49 +2322,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 wr(&f, sizeof(f));
               }
             }
-#else
-            if (m.numTVerts && m.tvFace)
-              ++numch;
-            if (m.numCVerts && m.vcFace)
-              ++numch;
-            wr(&numch, 1);
-            if (m.numTVerts && m.tvFace)
-            {
-              wr(&m.numTVerts, 2);
-              numch = 2;
-              wr(&numch, 1);
-              numch = 1;
-              wr(&numch, 1);
-              for (i = 0; i < m.numTVerts; ++i)
-                wr(&m.tVerts[i], 8);
-              for (i = 0; i < m.numFaces; ++i)
-              {
-                DagTFace f;
-                f.t[0] = (unsigned short)m.tvFace[i].t[0];
-                f.t[v1] = (unsigned short)m.tvFace[i].t[1];
-                f.t[v2] = (unsigned short)m.tvFace[i].t[2];
-                wr(&f, sizeof(f));
-              }
-            }
-            if (m.numCVerts && m.vcFace)
-            {
-              wr(&m.numCVerts, 2);
-              numch = 2;
-              wr(&numch, 1);
-              numch = 2;
-              wr(&numch, 1);
-              for (i = 0; i < m.numCVerts; ++i)
-                wr(&m.vertCol[i], 8);
-              for (i = 0; i < m.numFaces; ++i)
-              {
-                DagTFace f;
-                f.t[0] = (unsigned short)m.vcFace[i].t[0];
-                f.t[v1] = (unsigned short)m.vcFace[i].t[1];
-                f.t[v2] = (unsigned short)m.vcFace[i].t[2];
-                wr(&f, sizeof(f));
-              }
-            }
-#endif
             eblk;
           }
 
@@ -2876,11 +2589,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
                           return 0;
                         }
                         Matrix3 tm = md.bone[i].nodetm;
-                        // debug("bone %d:",i);
-                        // debug_tm(tm);
                         adjwtm(tm);
                         tm = tm * Inverse(originTm);
-                        // debug_tm(tm);
                         memcpy(&b.tm, tm.GetAddr(), 4 * 3 * 4);
                         wr(&b, sizeof(b));
                       }
@@ -2895,8 +2605,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
               }
               mod->ReleaseInterface(I_BONES_WARP, wsm);
             }
-
-#if MAX_RELEASE >= 4000
           }
           else
           {
@@ -2932,16 +2640,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
                   tm = bn->GetStretchTM(time) * tm;
                   scale_matrix(tm);
 
-                  /*
-                  debug(_T("%s: (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f)"), (TCHAR*) bn->GetName (),
-                          tm.GetRow(0).x, tm.GetRow(0).y, tm.GetRow(0).z, tm.GetRow(1).x, tm.GetRow(1).y, tm.GetRow(1).z,
-                          tm.GetRow(2).x, tm.GetRow(2).y, tm.GetRow(2).z, tm.GetRow(3).x, tm.GetRow(3).y, tm.GetRow(3).z );
-                  //*/
-                  // debug("bone %d:",i);
-                  // debug_tm(tm);
                   adjwtm(tm);
                   tm = tm * Inverse(originTm);
-                  // debug_tm(tm);
                   memcpy(&b.tm, tm.GetAddr(), 4 * 3 * 4);
                   wr(&b, sizeof(b));
                 }
@@ -2974,7 +2674,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
               else
                 explogWarning(_T( "%s: invalid skin bones data\r\n"), n->GetName());
             }
-#endif
           }
         }
 
@@ -3001,21 +2700,20 @@ bool wr_hlp( const void * p, int l, FILE * h )
   {
     prepare_expmat();
 
+    matIDtoMatIdx.SetCount((int)mat.size());
+    for (int i = 0; i < matIDtoMatIdx.Count(); ++i)
+      matIDtoMatIdx[i] = (util.expflg & EXP_MESH) ? -1 : i;
+
     if (util.expflg & EXP_MESH)
     {
       Tab<bool> matUsed;
-      int i;
-      matUsed.SetCount(mat.Count());
-      matIDtoMatIdx.SetCount(mat.Count());
-      for (i = 0; i < mat.Count(); ++i)
-      {
+      matUsed.SetCount((int)mat.size());
+      for (size_t i = 0; i < mat.size(); ++i)
         matUsed[i] = false;
-        matIDtoMatIdx[i] = -1;
-      }
 #ifdef TIMER
       double start = Timer::NowMs();
 #endif
-      for (i = 0; i < node.Count(); ++i)
+      for (int i = 0; i < node.Count(); ++i)
       {
         if (!node[i])
           continue;
@@ -3029,7 +2727,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
             {
               Mesh m = tri->mesh;
               if (tri != os.obj)
-                delete tri;
+                tri->DeleteMe();
 
               for (int j = 0; j < m.numFaces; ++j)
               {
@@ -3051,7 +2749,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
                     tempMat = getmatid(mtl->GetSubMtl(mat));
                     if (tempMat >= 0)
                       matUsed[tempMat] = true;
-                    else
+                    else if (mat < matUsed.Count())
                       matUsed[mat] = true;
                   }
                 }
@@ -3079,18 +2777,18 @@ bool wr_hlp( const void * p, int l, FILE * h )
       explog(_T("proc add mtl: %g\r\n"), procAddMtl);
       explog(_T("dagorMatElapsed: %g\r\n"), dagorMatElapsed);
       explog(_T("dagorMatEarlyExitElapsed: %g\r\n"), dagorMatEarlyExitElapsed);
-      explog(_T("mtls: %d mat: %d\r\n"), mtls.size(), mat.Count());
+      explog(_T("mtls: %d mat: %d\r\n"), mtls.size(), (int)mat.size());
 #endif
       std::wstring unused_mtls, unused_tex;
 
       Tab<int> tex_remap;
       std::vector<std::wstring> new_tex;
       tex_remap.SetCount(static_cast<int>(tex.size()));
-      for (i = 0; i < tex_remap.Count(); ++i)
+      for (int i = 0; i < tex_remap.Count(); ++i)
         tex_remap[i] = -1;
 
       int idx = 0;
-      for (i = 0; i < mat.Count(); ++i)
+      for (size_t i = 0; i < mat.size(); ++i)
         if (matUsed[i])
         {
           // remap textures
@@ -3098,6 +2796,11 @@ bool wr_hlp( const void * p, int l, FILE * h )
             if (mat[i].m.texid[j] != DAGBADMATID)
             {
               unsigned short &texid = mat[i].m.texid[j];
+              if (texid >= static_cast<unsigned short>(tex_remap.Count()))
+              {
+                texid = DAGBADMATID;
+                continue;
+              }
               int new_texid = tex_remap[texid];
               if (new_texid < 0)
               {
@@ -3116,18 +2819,14 @@ bool wr_hlp( const void * p, int l, FILE * h )
           unused_mtls += L"'";
 
           // reset unused material props
-          if (mat[i].classname)
-            free(mat[i].classname);
-          if (mat[i].script)
-            free(mat[i].script);
-
-          mat[i].classname = mat[i].script = NULL;
+          mat[i].classname.clear();
+          mat[i].script.clear();
           memset(&mat[i].m, 0, sizeof(mat[i].m));
           for (int j = 0; j < DAGTEXNUM; j++)
             mat[i].m.texid[j] = DAGBADMATID;
         }
 
-      for (i = 0; i < static_cast<int>(tex.size()); ++i)
+      for (int i = 0; i < static_cast<int>(tex.size()); ++i)
         if (tex_remap[i] < 0)
         {
           unused_tex += L"\r\n        '";
@@ -3169,7 +2868,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       wr(&num, 2);
       for (int i = 0; i < num; ++i)
       {
-        std::string name = wideToStr(tex[i].c_str());
+        std::string name = wideToStr(tex[i]);
 
         std::replace(name.begin(), name.end(), '\\', '/');
         if (name.find('/') == std::string::npos)
@@ -3196,12 +2895,12 @@ bool wr_hlp( const void * p, int l, FILE * h )
     }
 
     // save materials
-    for (int i = 0; i < mat.Count(); ++i)
+    for (int i = 0; i < (int)mat.size(); ++i)
     {
       if (matIDtoMatIdx[i] < 0)
         continue;
       bblk(DAG_MATER);
-      if (mat[i].name)
+      if (!mat[i].name.empty())
       {
         std::string s = wideToStr(mat[i].name);
         size_t l = s.length();
@@ -3215,7 +2914,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
         wr("\0", 1);
 
       wr(&mat[i].m, sizeof(DagMater));
-      if (mat[i].classname)
+      if (!mat[i].classname.empty())
       {
         std::string s = wideToStr(mat[i].classname);
         size_t l = s.length();
@@ -3229,9 +2928,9 @@ bool wr_hlp( const void * p, int l, FILE * h )
         wr("\0", 1);
 
       // don't export parameters of proxymats
-      if (mat[i].script && !isProxymatName(mat[i].classname))
+      if (!mat[i].script.empty() && !isProxymatName(mat[i].classname))
       {
-        std::string s = wideToStr(fix_empty_param_values(mat[i].script, mat[i].classname).data());
+        std::string s = wideToStr(fix_empty_param_values(mat[i].script, mat[i].classname));
         size_t l = s.length();
         if (l)
           wr(s.c_str(), l);
@@ -3292,11 +2991,9 @@ bool wr_hlp( const void * p, int l, FILE * h )
         if (pid < node.Count())
         {
           en[pid]->add_child(en[i]);
-          // debug ( "  <%s> is linked to <%s>", node[i]->GetName(), node[pid]->GetName());
         }
         else
         {
-          // debug ( "  <%s> has no parent! linked to root", node[i]->GetName());
           root->add_child(en[i]);
         }
       }
@@ -3925,7 +3622,6 @@ bool ExportENCB::getAnimations(Tab<INode *> &node, Tab<bool> &nodeExp, Tab<INode
 
     ExpTMAnimCB *expAnim = new MyExpTMAnimCB(node[i], parentNode, nodeOrigin);
     acb.Append(1, &expAnim);
-    // debug ( "acb[%d]: n=%p (en[i]->id=%d) pnode=%p (en[i]->parent->id=%u)", i, n, en[i]->id, pnode, en[i]->parent->id );
   }
 
   bool ret = get_tm_anim_2(pos, rot, scl, (util.expflg & EXP_ARNG) ? Interval(util.astart, util.aend) : FOREVER, exportNodes, acb,
@@ -3998,149 +3694,160 @@ void ExpUtil::warningMessage(const TCHAR *msg, const TCHAR *title)
   explogWarning(_T("WARNING! %s\r\n"), msg);
 }
 
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
-static bool trail_stricmp(const TCHAR *str, const TCHAR *str2)
+static bool find_co_layers(const fs::path &fname, std::vector<std::wstring> &fnames)
 {
-  size_t l = _tcslen(str), l2 = _tcslen(str2);
-  return (l >= l2) ? _tcsncicmp(str + l - l2, str2, l2) == 0 : false;
-}
-
-static bool find_co_layers(const TCHAR *fname, std::vector<std::wstring> &fnames)
-{
-  if (!trail_stricmp(fname, _T(".lod00.dag")))
+  if (!is_dag_file(fname) || !iequal(fname.stem().extension().c_str(), _T(".lod00")))
     return false;
-  int base_len = int(_tcslen(fname) - _tcslen(_T(".lod00.dag")));
+  const fs::path base = fname.parent_path() / fname.stem().stem();
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
   ILayer *l = NULL;
 
-  const TCHAR *p[2];
-  TCHAR str_buf[512];
+  std::wstring matched_layer_name;
+  std::wstring formatted_name;
   for (int i = 0; i < 16; i++)
   {
-    _stprintf_s(str_buf, _countof(str_buf), _T("LOD%02d"), i);
-    l = manager->GetLayer(str_buf);
+    formatted_name = format_str(_T("LOD%02d"), i);
+    l = manager->GetLayer(formatted_name.c_str());
     if (!l)
     {
-      _stprintf_s(str_buf, _countof(str_buf), _T("lod%02d"), i);
-      l = manager->GetLayer(str_buf);
+      formatted_name = format_str(_T("lod%02d"), i);
+      l = manager->GetLayer(formatted_name.c_str());
       if (!l)
       {
-        _stprintf_s(str_buf, _countof(str_buf), _T("Lod%02d"), i);
-        l = manager->GetLayer(str_buf);
+        formatted_name = format_str(_T("Lod%02d"), i);
+        l = manager->GetLayer(formatted_name.c_str());
       }
     }
     if (l && l->HasObjects())
     {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s.lod%02d.dag"), base_len, fname, i);
-      fnames.push_back(str_buf);
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("%s.lod%02d.dag"), base.c_str(), i);
+      fnames.push_back(formatted_name);
     }
   }
 
-  l = manager->GetLayer(p[0] = _T("DESTR"));
+  for (int i = 0; i < 16; i++)
+  {
+    matched_layer_name = format_str(_T("DESTR_LOD%02d"), i);
+    l = manager->GetLayer(matched_layer_name.c_str());
+    if (!l)
+    {
+      matched_layer_name = format_str(_T("destr_lod%02d"), i);
+      l = manager->GetLayer(matched_layer_name.c_str());
+      if (!l)
+      {
+        matched_layer_name = format_str(_T("Destr_lod%02d"), i);
+        l = manager->GetLayer(matched_layer_name.c_str());
+      }
+    }
+
+    if (l && l->HasObjects())
+    {
+      fnames.push_back(matched_layer_name);
+      formatted_name = format_str(_T("%s_destr.lod%02d.dag"), base.c_str(), i);
+      fnames.push_back(formatted_name);
+    }
+  }
+
+  matched_layer_name = _T("DM");
+  l = manager->GetLayer(matched_layer_name.c_str());
   if (!l)
-    l = manager->GetLayer(p[0] = _T("destr"));
+  {
+    matched_layer_name = _T("dm");
+    l = manager->GetLayer(matched_layer_name.c_str());
+    if (!l)
+    {
+      matched_layer_name = _T("Dm");
+      l = manager->GetLayer(matched_layer_name.c_str());
+    }
+  }
+  if (l && l->HasObjects())
+  {
+    fnames.push_back(matched_layer_name);
+    formatted_name = format_str(_T("%s_dm.dag"), base.c_str());
+    fnames.push_back(formatted_name);
+  }
+
+  for (int i = 0; i < 16; i++)
+  {
+    formatted_name = format_str(_T("DMG_LOD%02d"), i);
+    l = manager->GetLayer(formatted_name.c_str());
+    if (!l)
+    {
+      formatted_name = format_str(_T("dmg_lod%02d"), i);
+      l = manager->GetLayer(formatted_name.c_str());
+      if (!l)
+      {
+        formatted_name = format_str(_T("Dmg_lod%02d"), i);
+        l = manager->GetLayer(formatted_name.c_str());
+      }
+    }
+    if (l && l->HasObjects())
+    {
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("%s_dmg.lod%02d.dag"), base.c_str(), i);
+      fnames.push_back(formatted_name);
+    }
+  }
+
+  for (int i = 0; i < 16; i++)
+  {
+    formatted_name = format_str(_T("DMG2_LOD%02d"), i);
+    l = manager->GetLayer(formatted_name.c_str());
+    if (!l)
+    {
+      formatted_name = format_str(_T("dmg2_lod%02d"), i);
+      l = manager->GetLayer(formatted_name.c_str());
+      if (!l)
+      {
+        formatted_name = format_str(_T("Dmg2_lod%02d"), i);
+        l = manager->GetLayer(formatted_name.c_str());
+      }
+    }
+    if (l && l->HasObjects())
+    {
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("%s_dmg2.lod%02d.dag"), base.c_str(), i);
+      fnames.push_back(formatted_name);
+    }
+  }
+
+  for (int i = 0; i < 16; i++)
+  {
+    formatted_name = format_str(_T("EXPL_LOD%02d"), i);
+    l = manager->GetLayer(formatted_name.c_str());
+    if (!l)
+    {
+      formatted_name = format_str(_T("expl_lod%02d"), i);
+      l = manager->GetLayer(formatted_name.c_str());
+      if (!l)
+      {
+        formatted_name = format_str(_T("Expl_lod%02d"), i);
+        l = manager->GetLayer(formatted_name.c_str());
+      }
+    }
+    if (l && l->HasObjects())
+    {
+      fnames.push_back(formatted_name);
+      formatted_name = format_str(_T("%s_expl.lod%02d.dag"), base.c_str(), i);
+      fnames.push_back(formatted_name);
+    }
+  }
+
+  matched_layer_name = _T("XRAY");
+  l = manager->GetLayer(matched_layer_name.c_str());
+  if (!l)
+  {
+    matched_layer_name = _T("xray");
+    l = manager->GetLayer(matched_layer_name.c_str());
+  }
 
   if (l && l->HasObjects())
   {
-    fnames.push_back(p[0]);
-    _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_destr.lod00.dag"), base_len, fname);
-    fnames.push_back(str_buf);
-  }
-
-  // if (base_len > 2 && _tcsncmp(&fname[base_len-2], _T("_a"), 2)==0)
-  //   base_len -= 2;
-
-  l = manager->GetLayer(p[0] = _T("DM"));
-  if (!l)
-  {
-    l = manager->GetLayer(p[0] = _T("dm"));
-    if (!l)
-      l = manager->GetLayer(p[0] = _T("Dm"));
-  }
-  if (l && l->HasObjects())
-  {
-    fnames.push_back(p[0]);
-    _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_dm.dag"), base_len, fname);
-    fnames.push_back(str_buf);
-  }
-
-  for (int i = 0; i < 16; i++)
-  {
-    _stprintf_s(str_buf, _countof(str_buf), _T("DMG_LOD%02d"), i);
-    l = manager->GetLayer(str_buf);
-    if (!l)
-    {
-      _stprintf_s(str_buf, _countof(str_buf), _T("dmg_lod%02d"), i);
-      l = manager->GetLayer(str_buf);
-      if (!l)
-      {
-        _stprintf_s(str_buf, _countof(str_buf), _T("Dmg_lod%02d"), i);
-        l = manager->GetLayer(str_buf);
-      }
-    }
-    if (l && l->HasObjects())
-    {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_dmg.lod%02d.dag"), base_len, fname, i);
-      fnames.push_back(str_buf);
-    }
-  }
-
-  for (int i = 0; i < 16; i++)
-  {
-    _stprintf_s(str_buf, _countof(str_buf), _T("DMG2_LOD%02d"), i);
-    l = manager->GetLayer(str_buf);
-    if (!l)
-    {
-      _stprintf_s(str_buf, _countof(str_buf), _T("dmg2_lod%02d"), i);
-      l = manager->GetLayer(str_buf);
-      if (!l)
-      {
-        _stprintf_s(str_buf, _countof(str_buf), _T("Dmg2_lod%02d"), i);
-        l = manager->GetLayer(str_buf);
-      }
-    }
-    if (l && l->HasObjects())
-    {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_dmg2.lod%02d.dag"), base_len, fname, i);
-      fnames.push_back(str_buf);
-    }
-  }
-
-  for (int i = 0; i < 16; i++)
-  {
-    _stprintf_s(str_buf, _countof(str_buf), _T("EXPL_LOD%02d"), i);
-    l = manager->GetLayer(str_buf);
-    if (!l)
-    {
-      _stprintf_s(str_buf, _countof(str_buf), _T("expl_lod%02d"), i);
-      l = manager->GetLayer(str_buf);
-      if (!l)
-      {
-        _stprintf_s(str_buf, _countof(str_buf), _T("Expl_lod%02d"), i);
-        l = manager->GetLayer(str_buf);
-      }
-    }
-    if (l && l->HasObjects())
-    {
-      fnames.push_back(str_buf);
-      _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_expl.lod%02d.dag"), base_len, fname, i);
-      fnames.push_back(str_buf);
-    }
-  }
-
-  l = manager->GetLayer(p[0] = _T("XRAY"));
-  if (!l)
-    l = manager->GetLayer(p[0] = _T("xray"));
-
-  if (l && l->HasObjects())
-  {
-    fnames.push_back(p[0]);
-    _stprintf_s(str_buf, _countof(str_buf), _T("%.*s_xray.dag"), base_len, fname);
-    fnames.push_back(str_buf);
+    fnames.push_back(matched_layer_name);
+    formatted_name = format_str(_T("%s_xray.dag"), base.c_str());
+    fnames.push_back(formatted_name);
   }
 
   if (fnames.size() / 2 > 1)
@@ -4149,11 +3856,9 @@ static bool find_co_layers(const TCHAR *fname, std::vector<std::wstring> &fnames
   fnames.clear();
   return false;
 }
-#endif
 
 BOOL ExpUtil::export_dag()
 {
-#if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
 
   std::vector<std::wstring> fnames;
@@ -4162,21 +3867,21 @@ BOOL ExpUtil::export_dag()
   if (!find_co_layers(exp_fname, fnames))
     return export_one_dag(exp_fname);
 
-  static TCHAR buf[8192];
-  _stprintf_s(buf, _countof(buf), _T("Export layers to %d separate files?\n"), fnames.size() / 2);
-  for (int i = 0; i < (int)fnames.size(); i += 2)
-    if (_tcslen(buf) < (7 << 10))
-    {
-      int fn_len = (int)fnames[i + 1].size();
-      _stprintf_s(buf + _tcslen(buf), _countof(buf) - _tcslen(buf), _T("%s -> %s%s\n"), fnames[i].data(),
-        fn_len > 64 ? _T("...") : _T(""), fn_len > 48 ? fnames[i + 1].data() + fn_len - 48 : fnames[i + 1].data());
-    }
+  std::wstring buf = L"Export layers to " + std::to_wstring(fnames.size() / 2) + L" separate files?\n";
+  for (size_t i = 0; i + 1 < fnames.size() && buf.size() < (7 << 10); i += 2)
+  {
+    const std::wstring &dst = fnames[i + 1];
+    buf += fnames[i];
+    buf += L" -> ";
+    buf += dst.size() > 48 ? L"..." + dst.substr(dst.size() - 48) : dst;
+    buf += L'\n';
+  }
 
-  if (MessageBox(GetFocus(), buf, _T("Export layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES)
+  if (MessageBox(GetFocus(), buf.c_str(), _T("Export layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES)
     return export_one_dag(exp_fname);
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
-  isHidden.SetCount(fnames.size() / 2);
+  isHidden.SetCount(static_cast<int>(fnames.size() / 2));
   for (int i = 0; i < (int)fnames.size(); i += 2)
   {
     ILayer *l = manager->GetLayer(fnames[i].data());
@@ -4190,7 +3895,7 @@ BOOL ExpUtil::export_dag()
     manager->SetCurrentLayer(lnm);
     l->Hide(false);
 
-    export_one_dag(fnames[i + 1].data());
+    export_one_dag(fnames[i + 1]);
     l->Hide(true);
   }
   for (int i = 0; i < (int)fnames.size(); i += 2)
@@ -4201,12 +3906,9 @@ BOOL ExpUtil::export_dag()
   manager->SetCurrentLayer();
 
   return true;
-#else
-  return export_one_dag(exp_fname, textures, max_textures, default_material);
-#endif
 }
 
-BOOL ExpUtil::export_one_dag(const TCHAR *exp_fn)
+BOOL ExpUtil::export_one_dag(const fs::path &exp_fn)
 {
   ExportENCB cb(ip->GetTime(), false);
   enum_nodes(ip->GetRootNode(), &cb);
@@ -4220,13 +3922,13 @@ BOOL ExpUtil::export_one_dag(const TCHAR *exp_fn)
   return export_one_dag_cb(cb, exp_fn);
 }
 
-BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn)
+BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const fs::path &exp_fn)
 {
   INamedSelectionSetManager *IPNSS = INamedSelectionSetManager::GetInstance();
 
   checkDupesAndSpaces(cb.node);
 
-  FILE *h = _tfopen(exp_fn, _T ("wb"));
+  FILE *h = _tfopen(exp_fn.c_str(), _T ("wb"));
   if (!h)
   {
     errorMessage(GetString(IDS_FILE_CREATE_ERR));
@@ -4249,7 +3951,7 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn)
   if (cb.max_skeys_n)
     explog(_T ("  for \"%s\"\r\n"), cb.max_skeys_n->GetName());
   explog(_T ("%d nodes\r\n"), cb.node.Count());
-  explog(_T ("%d materials\r\n"), cb.mat.Count());
+  explog(_T ("%d materials\r\n"), cb.mat.size());
   explog(_T ("%d textures\r\n"), cb.tex.size());
   explog(_T ("%d key labels\r\n"), cb.klabel.size());
   explog(_T ("%d note tracks\r\n"), cb.ntrack.Count());
@@ -4291,18 +3993,12 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn)
   {
     warningMessage(GetString(IDS_SUB_SUB_MATERIALS));
   }
-  if (cb.hasAbsolutePaths)
-  {
-    // TSTR title = GetString (IDS_WARNING);
-    // MessageBox (ip->GetMAXHWnd (), GetString (IDS_ABSOLUTE_PATHS), title, MB_OK | MB_ICONSTOP);
-  }
-
   return true;
 }
 void ExpUtil::export_anim_v2()
 {
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
-  explog(_T ("Exporting Anim v2 to file <%s>...\r\n"), exp_anim2_fname);
+  explog(_T ("Exporting Anim v2 to file <%s>...\r\n"), exp_anim2_fname.c_str());
   int t0 = timeGetTime();
 
   ExportENCB cb(ip->GetTime(), true);
@@ -4331,12 +4027,17 @@ void ExpUtil::export_anim_v2()
   {
     errorMessage(GetString(IDS_FILE_WRITE_ERR));
     fclose(tmpFile);
+    std::error_code ec;
+    fs::remove(path, ec);
     return;
   }
 
   fclose(tmpFile);
-  CopyFile(path, exp_anim2_fname, false);
-  DeleteFile(path);
+  std::error_code ec;
+  fs::copy_file(path, exp_anim2_fname, fs::copy_options::overwrite_existing, ec);
+  if (ec)
+    errorMessage(GetString(IDS_FILE_CREATE_ERR));
+  fs::remove(path, ec);
 
   t0 = timeGetTime() - t0;
   explog(_T (" save anim2: %d ms\r\n"), t0);
@@ -4344,7 +4045,6 @@ void ExpUtil::export_anim_v2()
   explog(_T (" %d nodes\r\n"), cb.node.Count());
   explog(_T ("Success!\r\n"));
 }
-#if defined(MAX_RELEASE_R19_PREVIEW) && MAX_RELEASE >= MAX_RELEASE_R19_PREVIEW
 static bool FolderOpenDialog(TCHAR *path, HWND)
 {
   IFileDialog *pfd;
@@ -4392,24 +4092,6 @@ static bool FolderOpenDialog(TCHAR *path, HWND)
   pfd->Release();
   return SUCCEEDED(hr);
 }
-#else
-static bool FolderOpenDialog(TCHAR *path, HWND hPanel)
-{
-  BROWSEINFO bi;
-  bi.hwndOwner = hPanel;
-  bi.iImage = 0;
-  bi.lParam = 0;
-  bi.lpfn = NULL;
-  bi.lpszTitle = _T("Browse for folder");
-  bi.pidlRoot = NULL;
-  bi.pszDisplayName = path;
-  bi.ulFlags = BIF_NEWDIALOGSTYLE;
-  PCIDLIST_ABSOLUTE pidl = ::SHBrowseForFolder(&bi);
-  if (!pidl)
-    return false;
-  return ::SHGetPathFromIDList(pidl, path);
-}
-#endif
 
 void ExpUtil::exportObjectsAsDagsInternal(const TCHAR *folder, INode &node)
 {
@@ -4436,10 +4118,10 @@ void ExpUtil::exportObjectsAsDagsInternal(const TCHAR *folder, INode &node)
       // Use the node as origin instead of the scene.
       cb.useIdentityTransformForNode = childNode;
 
-      TSTR path;
-      path.printf(_T("%s\\%s.dag"), folder, childNode->GetName());
+      fs::path path = fs::path(folder) / childNode->GetName();
+      path += L".dag";
 
-      explog(_T("Exporting node \"%s\" to file \"%s\"\r\n"), childNode->GetName(), path.data());
+      explog(_T("Exporting node \"%s\" to file \"%s\"\r\n"), childNode->GetName(), path.c_str());
       export_one_dag_cb(cb, path);
       explog(_T("\r\n"));
     }
@@ -4495,10 +4177,10 @@ void ExpUtil::exportLayerAsDag(const TCHAR *folder, ILayer &layer)
 
     if (cb.node.Count() > 0)
     {
-      TSTR path;
-      path.printf(_T("%s\\%s.dag"), folder, layer.GetName().data());
+      fs::path path = fs::path(folder) / layer.GetName().data();
+      path += L".dag";
 
-      explog(_T("Exporting layer \"%s\" to file \"%s\"\r\n"), layer.GetName().data(), path.data());
+      explog(_T("Exporting layer \"%s\" to file \"%s\"\r\n"), layer.GetName().data(), path.c_str());
       export_one_dag_cb(cb, path);
       explog(_T("\r\n"));
     }
@@ -4518,13 +4200,8 @@ void ExpUtil::exportLayerAsDag(const TCHAR *folder, ILayer &layer)
 
 void ExpUtil::exportLayersAsDagsInternal(const TCHAR *folder, ILayer &layer)
 {
-#if defined(MAX_RELEASE_R19) && MAX_RELEASE >= MAX_RELEASE_R19
   const bool matchesVisibilityFilter = (util.expflg & EXP_HID) != 0 || !layer.IsHidden(false);
-#else
-  const bool matchesVisibilityFilter = (util.expflg & EXP_HID) != 0 || !layer.IsHidden();
-#endif
 
-#if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
   const int childLayerCount = layer.GetNumOfChildLayers();
 
   if (childLayerCount > 0)
@@ -4535,9 +4212,7 @@ void ExpUtil::exportLayersAsDagsInternal(const TCHAR *folder, ILayer &layer)
     for (int i = 0; i < childLayerCount; ++i)
       exportLayersAsDagsInternal(folder, *layer.GetChildLayer(i));
   }
-  else
-#endif
-    if (matchesVisibilityFilter)
+  else if (matchesVisibilityFilter)
     exportLayerAsDag(folder, layer);
 }
 
@@ -4563,26 +4238,18 @@ void ExpUtil::exportLayersAsDags()
     const int layerCount = manager->GetLayerCount();
     for (int layerIndex = 0; layerIndex < layerCount; ++layerIndex)
     {
-#if defined(MAX_RELEASE_R14) && MAX_RELEASE >= MAX_RELEASE_R14
       ILayer *layer = manager->GetLayer(layerIndex);
-#else
-      ILayer *layer = manager->GetLayer(manager->GetSavedLayer(layerIndex));
-#endif
 
       // Ignore non-top level layers, we will enumerate them hierarchially.
-#if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
       if (layer->GetParentLayer())
         continue;
-#endif
 
       // The default layer itself is not exported (except when "sel" is enabled and it is the active layer), only its children.
       if (is_default_layer(*layer))
       {
-#if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
         const int childLayerCount = layer->GetNumOfChildLayers();
         for (int childLayerIndex = 0; childLayerIndex < childLayerCount; ++childLayerIndex)
           exportLayersAsDagsInternal(folder, *layer->GetChildLayer(childLayerIndex));
-#endif
       }
       else
         exportLayersAsDagsInternal(folder, *layer);
@@ -4632,18 +4299,16 @@ public:
     if (obj->SuperClassID() != CAMERA_CLASS_ID)
       return ECB_CONT;
 
-    TCHAR s[1024];
     int j;
 
-    _stprintf(s, _T("%s_hero"), node->GetName());
+    std::wstring s = format_str(_T("%s_hero"), node->GetName());
 
     Cam c;
     c.cameraNode = node;
     c.camera = (CameraObject *)obj;
-    c.hero = ip->GetINodeByName(s);
+    c.hero = ip->GetINodeByName(s.c_str());
     c.keyNum = 0;
     c.animated = false;
-    // debug ( "%s: %p:%p:%p (%s)", (char*)node->GetName(), c.cameraNode, c.camera, c.hero, s );
 
     if (!node->HasNoteTracks())
       c.keyNum = 1;
@@ -4780,12 +4445,11 @@ public:
             else if (strnicmp(wnote.c_str(), "still", 5) == 0)
               krec.wFollow = 0.0;
 
-            // debug ( "note: %s krec.wFollow=%.3f wt=%.3f", (char*)nk->note, krec.wFollow, krec.w );
             idx++;
           }
         }
         if (idx - drec.keyIdx != drec.keyNum)
-          debug("node %s: idx=%d drec.keyIdx=%d drec.keyNum=%d", (char *)cam[i].cameraNode->GetName(), idx, drec.keyIdx, drec.keyNum);
+          debug(L"node %s: idx=%d drec.keyIdx=%d drec.keyNum=%d", cam[i].cameraNode->GetName(), idx, drec.keyIdx, drec.keyNum);
       }
       else
       {
@@ -4813,17 +4477,11 @@ public:
     Matrix3 m;
     interp_tm(node, parent, t, m);
     pos = m.GetRow(3);
-    // debug ( "%s: %d: pos=(%.3f,%.3f,%.3f)", (char*)node->GetName(), t, pos.x, pos.y, pos.z );
   }
   void getRotPos(INode *node, Point3 &pos, Quat &rot, TimeValue t)
   {
     Matrix3 m;
     interp_tm(node, t, m);
-    /*
-        debug ( "%s: %d: (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f) (%.3f,%.3f,%.3f)", (char*)node->GetName(), t,
-                m.GetRow(0).x, m.GetRow(0).y, m.GetRow(0).z, m.GetRow(1).x, m.GetRow(1).y, m.GetRow(1).z,
-                m.GetRow(2).x, m.GetRow(2).y, m.GetRow(2).z, m.GetRow(3).x, m.GetRow(3).y, m.GetRow(3).z );
-    */
     Point3 ax = m.GetRow(0), ay = m.GetRow(1), az = m.GetRow(2);
     pos = m.GetRow(3);
     float lx = Length(ax), ly = Length(ay), lz = Length(az);
@@ -4835,8 +4493,6 @@ public:
       m.SetRow(1, ay /= ly);
     if (lz != 0)
       m.SetRow(2, az /= lz);
-    // m.SetRow(3,Point3(0,0,0));
-    // m.SetIdentFlags(POS_IDENT|SCL_IDENT);
     rot = Quat(m);
     rot = Conjugate(rot);
   }
@@ -4879,13 +4535,13 @@ public:
 void ExpUtil::export_camera_v1()
 {
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
-  explog(_T ("Exporting Adv. Camera file <%s>...\r\n"), exp_camera_fname);
+  explog(_T ("Exporting Adv. Camera file <%s>...\r\n"), exp_camera_fname.c_str());
   int t0;
 
   CameraNodeEnumerator cne(ip);
   enum_nodes(ip->GetRootNode(), &cne);
 
-  FILE *h = _tfopen(exp_camera_fname, _T ("wb"));
+  FILE *h = _tfopen(exp_camera_fname.c_str(), _T ("wb"));
   if (!h)
   {
     errorMessage(GetString(IDS_FILE_CREATE_ERR));
@@ -4904,7 +4560,7 @@ void ExpUtil::export_camera_v1()
 void ExpUtil::exportPhysics()
 {
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
-  explog(_T ("Exporting physics file <%s>...\r\n"), exp_phys_fname);
+  explog(_T ("Exporting physics file <%s>...\r\n"), exp_phys_fname.c_str());
 
   if (!(util.expflg & EXP_DONT_CALC_MOMJ))
   {
@@ -4912,7 +4568,7 @@ void ExpUtil::exportPhysics()
     ::calc_momjs(ip);
   }
 
-  FILE *h = _tfopen(exp_phys_fname, _T ("wb"));
+  FILE *h = _tfopen(exp_phys_fname.c_str(), _T ("wb"));
   if (!h)
   {
     errorMessage(GetString(IDS_FILE_CREATE_ERR));
@@ -4940,7 +4596,6 @@ void ExpUtil::calcMomj()
 void ExpUtil::checkDupesAndSpaces(Tab<INode *> &node_list)
 {
   bool hasDupes = false;
-  bool hasSpaces = false;
   bool hasEmptyNames = false;
   for (int i = 0; i < node_list.Count(); ++i)
   {
@@ -4954,12 +4609,6 @@ void ExpUtil::checkDupesAndSpaces(Tab<INode *> &node_list)
     {
       explogWarning(_T("node with empty name\r\n"));
       hasEmptyNames = true;
-    }
-
-    if (_tcschr(node_list[i]->GetName(), ' ') != NULL)
-    {
-      // explog(_T("node name \"%s\" contains spaces\r\n"), node_list[i]->GetName());
-      hasSpaces = true;
     }
 
     for (int j = i + 1; j < node_list.Count(); ++j)
@@ -4984,14 +4633,6 @@ void ExpUtil::checkDupesAndSpaces(Tab<INode *> &node_list)
     warningMessage(_T("There are nodes with the same names.\n See log for details."), _T("Duplicate names"));
   }
 
-  if (hasSpaces)
-  {
-    // ip->DisplayTempPrompt (_T("There are node names with spaces."), ERRMSG_DELAY);
-    // MessageBox (ip->GetMAXHWnd (), _T("There are node names with spaces.\n Spaces will NOT be replaced with '_' right now.\n You may
-    // press 'Convert spaces' button\n on the 'Dagor Utility' rollout to convert names.\n See log for details."), _T ("Names with
-    // spaces"), MB_OK | MB_ICONSTOP);
-  }
-
   if (hasEmptyNames)
   {
     ip->DisplayTempPrompt(_T("There is a node with empty name."), ERRMSG_DELAY);
@@ -5003,12 +4644,12 @@ void ExpUtil::checkDupesAndSpaces(Tab<INode *> &node_list)
 void ExpUtil::export_instances()
 {
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
-  explog(_T("Exporting instances placement file <%s>...\r\n"), exp_instances_fname);
+  explog(_T("Exporting instances placement file <%s>...\r\n"), exp_instances_fname.c_str());
 
   ExportENCB cb(ip->GetTime(), false);
   enum_nodes(ip->GetRootNode(), &cb);
 
-  FILE *h = _tfopen(exp_instances_fname, _T("wb"));
+  FILE *h = _tfopen(exp_instances_fname.c_str(), _T("wb"));
   if (!h)
   {
     errorMessage(GetString(IDS_FILE_CREATE_ERR));
@@ -5034,18 +4675,14 @@ void ExpUtil::export_instances()
     float newPlaneOffsetX;
     if (!cb.node[nodeNo]->GetUserPropFloat(_T("PlaneOffsetX:r"), newPlaneOffsetX))
     {
-      TCHAR buf[1000];
-      _stprintf(buf, _T("'%s': invalid PlaneOffsetX:r"), cb.node[nodeNo]->GetName());
-      errorMessage(buf);
+      errorMessage(format_str(_T("'%s': invalid PlaneOffsetX:r"), cb.node[nodeNo]->GetName()).c_str());
       return;
     }
 
     float newPlaneOffsetZ;
     if (!cb.node[nodeNo]->GetUserPropFloat(_T("PlaneOffsetZ:r"), newPlaneOffsetZ))
     {
-      TCHAR buf[1000];
-      _stprintf(buf, _T("'%s': invalid PlaneOffsetZ:r"), cb.node[nodeNo]->GetName());
-      errorMessage(buf);
+      errorMessage(format_str(_T("'%s': invalid PlaneOffsetZ:r"), cb.node[nodeNo]->GetName()).c_str());
       return;
     }
 
@@ -5056,9 +4693,7 @@ void ExpUtil::export_instances()
 
       if (!cb.node[nodeNo]->GetUserPropFloat(_T("PlaneSize:r"), planeSize))
       {
-        TCHAR buf[1000];
-        _stprintf(buf, _T("'%s': invalid PlaneSize:r"), cb.node[nodeNo]->GetName());
-        errorMessage(buf);
+        errorMessage(format_str(_T("'%s': invalid PlaneSize:r"), cb.node[nodeNo]->GetName()).c_str());
         return;
       }
 
@@ -5107,11 +4742,7 @@ void ExpUtil::export_instances()
     if (name.length() > 0 && name[name.length() - 1] == '_')
       name.erase(name.length() - 1, 1);
 
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-    float masterScale = (float)GetSystemUnitScale(UNITS_METERS);
-#else
-    float masterScale = (float)GetMasterScale(UNITS_METERS);
-#endif
+    float masterScale = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
     Matrix3 tm = cb.node[nodeNo]->GetNodeTM(0);
     tm.SetTrans(tm.GetTrans() * masterScale + Point3(offsetX, offsetZ, 0.f));
     const Matrix3 m = tm;
@@ -5173,41 +4804,11 @@ bool ExportENCB::checkDegenerateTriangle(INode *node, Matrix3 &applied_transform
 
   if (degenerateAt)
   {
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-    Point3 transformedPoint = (*degenerateAt) / (float)GetSystemUnitScale(UNITS_METERS);
-#else
-    Point3 transformedPoint = (*degenerateAt) / (float)GetMasterScale(UNITS_METERS);
-#endif
+    Point3 transformedPoint = (*degenerateAt) / static_cast<float>(GetSystemUnitScale(UNITS_METERS));
     transformedPoint = Inverse(applied_transform) * node->GetObjTMAfterWSM(0) * transformedPoint;
 
     explogWarning(_T( "'%s' has degenerate triangle at (%g, %g, %g) (in units)\r\n"), node->GetName(), transformedPoint.x,
       transformedPoint.y, transformedPoint.z);
-
-#if 0
-      // Highlight degenerates.
-
-      Object *obj = (Object*)util.ip->CreateInstance(
-        GEOMOBJECT_CLASS_ID,
-        Class_ID(BOXOBJ_CLASS_ID,0));
-
-      IParamArray *pParams = obj->GetParamBlock();
-      assert(pParams);
-
-      int l = obj->GetParamBlockIndex(BOXOBJ_LENGTH);
-      pParams->SetValue(l,TimeValue(0), 0.01f);
-      int w = obj->GetParamBlockIndex(BOXOBJ_WIDTH);
-      pParams->SetValue(w,TimeValue(0), 0.01f);
-      int h = obj->GetParamBlockIndex(BOXOBJ_HEIGHT);
-      pParams->SetValue(h,TimeValue(0), 0.01f);
-
-      INode *node = util.ip->CreateObjectNode(obj);
-      TSTR name(_T("Degenerate"));
-      util.ip->MakeNameUnique(name);
-      node->SetName(name);
-      node->SetWireColor(RGB(255, 64, 64));
-
-      node->SetNodeTM(0, TransMatrix(transformedPoint));
-#endif
   }
 
   return degenerateAt != NULL;
@@ -5218,23 +4819,6 @@ void update_export_mode(bool use_legacy_import)
   util.exportMode = use_legacy_import ? ExpUtil::ExportMode::Standard : ExpUtil::ExportMode::LayersAsDags;
   util.update_ui_dag(util.hExpDag);
 }
-
-const TCHAR *ExportENCB::makeCheckedRelPath(INode *node, Mtl *mtl, const TCHAR *absolute_path)
-{
-  const TCHAR *relative_path = make_path_rel(absolute_path);
-  if (absolute_path && absolute_path[0] && relative_path == absolute_path) // Pointer comparison is valid here.
-  {
-    // explog("'%s' has material '%s' with absolute texture path '%s'\r\n",
-    //   node->GetName(),
-    //   mtl->GetName(),
-    //   absolute_path);
-
-    hasAbsolutePaths = true;
-  }
-
-  return relative_path;
-}
-
 
 //==========================================================================//
 
@@ -5283,10 +4867,4 @@ static IDagorExportUtil dagorexputiliface(Interface_ID(0x18da32ce, 0x739f1b15), 
   FP_CORE, fun_export, _T ("export"), -1, TYPE_BOOL, 0, 4, _T ("filename"), -1, TYPE_STRING, _T ("range"), -1, TYPE_INTERVAL,
   // f_keyArgDefault marks an optional keyArg param. The value
   // after that is its default value.
-  _T ("selectedOnly"), -1, TYPE_BOOL, f_keyArgDefault, false, _T ("suppressPrompts"), -1, TYPE_BOOL, f_keyArgDefault, false,
-#if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
-  p_end
-#else
-  end
-#endif
-);
+  _T ("selectedOnly"), -1, TYPE_BOOL, f_keyArgDefault, false, _T ("suppressPrompts"), -1, TYPE_BOOL, f_keyArgDefault, false, p_end);

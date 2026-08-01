@@ -49,7 +49,7 @@ void bind_params();
 void unbind_params();
 void do_update_probes(bool randomize_rays);
 void do_trace(const TMatrix4 &proj_tm);
-void denoise(const denoiser::TexMap &textures);
+void denoise(const denoiser::TexMap &textures, bool use_smart_depth);
 void denoise_noop(const denoiser::TexMap &textures);
 void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, bool csm_shadow, const denoiser::TexMap &textures,
   bool checkerboard, bool randomize_rays);

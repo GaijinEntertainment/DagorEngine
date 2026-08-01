@@ -63,8 +63,8 @@ static SQInteger _datetime_date(HSQUIRRELVM v)
 
 
 static const SQRegFunctionFromStr datetimelib_funcs[] = {
-    { _datetime_clock, "pure clock(): float", "Returns CPU time used by the process in seconds" },
-    { _datetime_time,  "time(): int", "Returns the current time as seconds since the Unix epoch" },
+    { _datetime_clock, "pure fastcall clock(): float", "Returns CPU time used by the process in seconds" },
+    { _datetime_time,  "fastcall time(): int", "Returns the current time as seconds since the Unix epoch" },
     { _datetime_date,  "date([time: int, format: int]): table", "Returns a table with date fields (sec,min,hour,day,month,year,wday,yday); format 'l' for local, 'u' for UTC" },
     { NULL, NULL, NULL }
 };

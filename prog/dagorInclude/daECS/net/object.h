@@ -28,6 +28,8 @@ struct Event;
 
 namespace net
 {
+struct TemplateCachedCompLists;
+const TemplateCachedCompLists &get_template_cached_comp_lists(ecs::template_t tid);
 void clear_cached_replicated_components();
 
 struct ObjectReplica;
@@ -101,7 +103,9 @@ private:
   CompVersMap::iterator insertNewCompVer(ecs::component_index_t cidx, CompVersMap::iterator cit); // iterator in compVers, returns
                                                                                                   // position at compVers
   bool skipInitialReplication(ecs::component_index_t cidx, Connection *conn, ObjectReplica *replica);
-  void forceReplicaVersion(CompVersMap::const_iterator cit, ecs::component_index_t cidx, ObjectReplica *replica) const;
+  int forceReplicaVersion(CompVersMap::const_iterator cit, ecs::component_index_t cidx, ObjectReplica *replica,
+    int to_version = -1) const;
+  int forceReplicaVersion(ecs::component_index_t cidx, ObjectReplica *replica, int to_version = -1) const;
 };
 
 inline bool Object::isReplica() const { return isReplicaFlag; }

@@ -2,7 +2,7 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
-#include "filteredComboBoxStandalone.h"
+#include <propPanel/control/filteredComboBoxStandalone.h>
 #include <gui/dag_imguiUtil.h>
 
 #include <imgui/imgui_internal.h>
@@ -67,11 +67,19 @@ void FilteredComboBoxStandalone::endFiltering()
   dropdownState->endFiltering();
 }
 
-void FilteredComboBoxStandalone::addItem(const char *label, int unfiltered_item_index, int match_position_in_label, bool exact_match)
+void FilteredComboBoxStandalone::addItem(const char *label, int unfiltered_item_index, int match_position_in_label, bool exact_match,
+  IconId icon)
 {
   DropdownOpenState *dropdownState = dropdownOpenState.get();
   G_ASSERT_RETURN(dropdownState, );
-  dropdownState->addItem(label, unfiltered_item_index, match_position_in_label, exact_match);
+  dropdownState->addItem(label, unfiltered_item_index, match_position_in_label, exact_match, icon);
+}
+
+void FilteredComboBoxStandalone::addSeparator()
+{
+  DropdownOpenState *dropdownState = dropdownOpenState.get();
+  G_ASSERT_RETURN(dropdownState, );
+  dropdownState->addSeparator();
 }
 
 const char *FilteredComboBoxStandalone::getFilter() const
@@ -110,7 +118,7 @@ void FilteredComboBoxStandalone::DropdownOpenState::endFiltering()
 }
 
 void FilteredComboBoxStandalone::DropdownOpenState::addItem(const char *label, int unfiltered_item_index, int match_position_in_label,
-  bool exact_match)
+  bool exact_match, IconId icon)
 {
   G_ASSERT(filterChanged);
 
@@ -120,7 +128,10 @@ void FilteredComboBoxStandalone::DropdownOpenState::addItem(const char *label, i
   filteredItem.unfilteredIndex = unfiltered_item_index;
   filteredItem.filterMatchPositionInLabel = match_position_in_label;
   filteredItem.exactMatch = exact_match;
+  filteredItem.icon = icon;
 }
+
+void FilteredComboBoxStandalone::DropdownOpenState::addSeparator() { separators.insert(static_cast<int>(filteredItems.size()) - 1); }
 
 int FilteredComboBoxStandalone::DropdownOpenState::getSelectedUnfilteredIndex() const
 {
@@ -161,8 +172,10 @@ bool FilteredComboBoxStandalone::DropdownOpenState::openPopup(float text_input_h
   const ImVec2 popupRightBottomPos(comboPreviewStartPos + comboPreviewSize + popupWindowPadding);
   const int itemCountToSizeFor = clamp((int)filteredItems.size(), 1, 20); // Show max. 20 items like ImGuiComboFlags_HeightLarge.
   const float dropdownItemsHeight = calcMaxPopupHeightFromItemCount(itemCountToSizeFor);
+  float separatorsSize = (2.f * separator_spacing + 1.f) * separators.size() -
+                         separator_spacing * (separators.count(-1) + separators.count(filteredItems.size() - 1));
   const ImVec2 popupSize(popupRightBottomPos.x - popupLeftTopPos.x,
-    dropdownItemsHeight + text_input_height + vertical_space_between_controls);
+    dropdownItemsHeight + text_input_height + vertical_space_between_controls + separatorsSize);
 
   // At the first positioning (when there is no filter) downward direction is allowed. If there was not enough space
   // then continue opening upward regardless the filtered size.
@@ -296,25 +309,72 @@ void FilteredComboBoxStandalone::DropdownOpenState::updateImguiComboBoxItems(int
     dropdownFirstVisibleFilteredIndex = -1;
     dropdownLastVisibleFilteredIndex = -1;
 
+    if (separators.count(-1))
+    {
+      ImGui::Separator();
+      ImGui::Dummy(ImVec2(0.f, separator_spacing + 1.f));
+    }
+
     for (int filteredItemIndex = 0; filteredItemIndex < filteredItemCount; ++filteredItemIndex)
     {
+      const FilteredItem &item = filteredItems[filteredItemIndex];
       // ScrollToItem is only a request, it will only apply in the next frame. To avoid flicker we render the old
       // selection now, and only show the new selection in the next frame to match the scrolling.
+      ImGui::PushID(filteredItemIndex);
 
       const bool wasSelected = filteredItemIndex == old_dropdown_filtered_index;
-      if (ImGui::Selectable(filteredItems[filteredItemIndex].label, wasSelected, ImGuiSelectableFlags_NoAutoClosePopups))
+      if (ImGui::Selectable("##item", wasSelected, ImGuiSelectableFlags_NoAutoClosePopups, ImVec2(0.0f, ImGui::GetTextLineHeight())))
       {
         dropdown_open = false;
         dropdownFilteredIndex = filteredItemIndex;
       }
+
+      ImGui::PopID();
+
+      const ImRect itemRect = ImGui::GetCurrentContext()->LastItemData.Rect;
 
       if (filteredItemIndex == dropdownFilteredIndex && scrollToSelectedItem)
         ImGui::ScrollToItem();
 
       if (ImGui::IsItemVisible())
       {
+        const ImGuiStyle &style = ImGui::GetStyle();
+        ImDrawList *drawList = ImGui::GetWindowDrawList();
+
+        const float halfSpaceX = style.ItemSpacing.x * 0.5f;
+        const float halfSpaceY = style.ItemSpacing.y * 0.5f;
+
+        ImRect contentRect = itemRect;
+        contentRect.Min.x += halfSpaceX;
+        contentRect.Max.x -= halfSpaceX;
+        contentRect.Min.y += halfSpaceY;
+        contentRect.Max.y -= halfSpaceY;
+        float labelClipMaxX = contentRect.Max.x;
+
+        if (item.icon != IconId::Invalid)
+        {
+          const ImTextureID textureId = get_im_texture_id_from_icon_id(item.icon);
+
+          const float iconSize = ImGui::GetTextLineHeight();
+          const ImVec2 iconMin(contentRect.Max.x - iconSize, contentRect.Min.y + (contentRect.GetHeight() - iconSize) * 0.5f);
+          const ImVec2 iconMax(iconMin.x + iconSize, iconMin.y + iconSize);
+
+          labelClipMaxX = iconMin.x - style.ItemInnerSpacing.x;
+
+          if (textureId)
+            drawList->AddImage(textureId, iconMin, iconMax);
+        }
+
+        const char *labelEnd = ImGui::FindRenderedTextEnd(item.label);
+        const ImVec2 textSize = ImGui::CalcTextSize(item.label, labelEnd);
+
+        if (labelClipMaxX > contentRect.Min.x)
+        {
+          ImGui::RenderTextEllipsis(drawList, contentRect.Min, ImVec2(labelClipMaxX, contentRect.Max.y), labelClipMaxX, item.label,
+            labelEnd, &textSize);
+        }
+
         // ImGui::Selectable adds padding in both directions.
-        const float halfSpaceY = ImGui::GetStyle().ItemSpacing.y * 0.5f;
 
         if ((ImGui::GetCurrentContext()->LastItemData.Rect.Min.y + halfSpaceY) >= ImGui::GetCurrentWindow()->ClipRect.Min.y &&
             (ImGui::GetCurrentContext()->LastItemData.Rect.Max.y - halfSpaceY) <= ImGui::GetCurrentWindow()->ClipRect.Max.y)
@@ -324,6 +384,12 @@ void FilteredComboBoxStandalone::DropdownOpenState::updateImguiComboBoxItems(int
 
           dropdownLastVisibleFilteredIndex = filteredItemIndex;
         }
+      }
+      if (separators.count(filteredItemIndex))
+      {
+        ImGui::Dummy(ImVec2(0.f, separator_spacing));
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.f, (filteredItemIndex != filteredItemCount - 1) ? separator_spacing + 1.f : 1.f));
       }
     }
 
@@ -392,6 +458,7 @@ bool FilteredComboBoxStandalone::DropdownOpenState::endCombo()
   if (filterChanged)
   {
     filteredItems.clear();
+    separators.clear();
     dropdownFilteredIndex = -1;
     dropdownFirstVisibleFilteredIndex = -1;
     dropdownLastVisibleFilteredIndex = -1;

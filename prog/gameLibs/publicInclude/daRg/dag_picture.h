@@ -37,14 +37,21 @@ public:
   void onAsyncLoadStopped(AsyncLoadRequest *req);
 
   IGuiScene *getScene() const;
+  // isLoading covers only the async load request; a dynamic atlas pic may still lack content
+  // after it (pending factory render, restore after eviction). Loading placeholders use
+  // isContentReady; fallbackImage selection and render code keep isLoading, since a pic with
+  // a pending render is present (valid id, declared size), just not drawn into the atlas yet.
   bool isLoading() const { return loadReq != nullptr; }
+  bool isContentReady() const;
   const PictureManager::PicDesc &getPic();
+  bool prefetch(); //> starts pending load, returns true if it is in flight
   BlendMode getBlendMode() const { return blendMode; }
   const char *getName() const { return srcName; }
   Point2 getLoadedPicSize();
 
 protected:
   bool load(const char *name); //> return true if loaded, false if requested to load asynchronously
+  void finishPrefetch();
 
 public:
   static constexpr TexFormat def_tex_format = TexFormat::SRGB_IN_UNORM;
@@ -58,6 +65,7 @@ protected:
   BlendMode blendMode = PREMULTIPLIED;
 
   bool lazy = true;
+  bool prefetchPending = false;
   String nameToLoadOnDemand;
   String srcName;
 };

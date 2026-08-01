@@ -4,10 +4,9 @@
 #include <locale.h>
 #include "dagor.h"
 #include "enumnode.h"
+#include "common.h"
+#include "dagorLogWindow.h"
 #include <string>
-
-std::string wideToStr(const TCHAR *sw);
-M_STD_STRING strToWide(const char *sz);
 
 #define MAKE4C(a, b, c, d) ((a) | ((b) << 8) | ((c) << 16) | ((d) << 24))
 
@@ -18,12 +17,6 @@ M_STD_STRING strToWide(const char *sz);
 #define COLL_ID_SPHERE  MAKE4C('C', 's', 'p', 'h')
 #define COLL_ID_BOX     MAKE4C('C', 'b', 'o', 'x')
 #define COLL_ID_CAPSULE MAKE4C('C', 'c', 'a', 'p')
-// #define COLL_ID_CYLINDER  MAKE4C('C', 'c', 'y', 'l')
-
-
-void explog(const TCHAR *s, ...);
-void explogWarning(const TCHAR *s, ...);
-void explogError(const TCHAR *s, ...);
 
 
 static const int CID_DagorPhysicsResource = 0xABEFB687; // DagorPhysicsResource
@@ -216,8 +209,8 @@ public:
     if (!node || !name)
       return;
 
-    M_STD_STRING wname = strToWide(name);
-    M_STD_STRING wval = strToWide(val);
+    std::wstring wname = strToWide(name);
+    std::wstring wval = strToWide(val);
     node->SetUserPropString(wname.c_str(), wval.c_str());
   }
 
@@ -263,13 +256,8 @@ public:
 
   static inline Matrix3 getScaledNodeTm(INode *node, TimeValue time)
   {
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-    float masterScale = (float)GetSystemUnitScale(UNITS_METERS);
-#else
-    float masterScale = (float)GetMasterScale(UNITS_METERS);
-#endif
+    float masterScale = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
     Matrix3 tm = node->GetStretchTM(time) * node->GetNodeTM(time);
-    // tm.SetTrans(tm.GetTrans() * masterScale);
     tm *= masterScale;
     adjWtm(tm);
     return tm;
@@ -278,13 +266,8 @@ public:
 
   static inline Matrix3 getScaledObjectTm(INode *node, TimeValue time)
   {
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-    float masterScale = (float)GetSystemUnitScale(UNITS_METERS);
-#else
-    float masterScale = (float)GetMasterScale(UNITS_METERS);
-#endif
+    float masterScale = static_cast<float>(GetSystemUnitScale(UNITS_METERS));
     Matrix3 tm = node->GetStretchTM(time) * node->GetObjectTM(time);
-    // tm.SetTrans(tm.GetTrans() * masterScale);
     tm *= masterScale;
     adjWtm(tm);
     return tm;
@@ -454,21 +437,6 @@ public:
 
       pt1.z = ht;
     }
-    /*
-    else if (cid==Class_ID(CYLINDER_CLASS_ID, 0))
-    {
-      // cylinder
-      type=COLL_ID_CYLINDER;
-
-      pt0=Point3(0, 0, 0);
-      pt1=Point3(0, 0, 0);
-      radius=0;
-      pb_get_value(*pblock, 0, curTime, radius);
-      pb_get_value(*pblock, 1, curTime, pt1.z);
-
-      if (radius<0) radius=0;
-    }
-    */
     else
     {
       explog(_T("Unknown collision geometry type '%s'\r\n"), node->GetName());
@@ -769,25 +737,8 @@ public:
 
       float sideJ = (32 * r * r * r + 45 * H * r * r + 20 * r * H * H + 5 * H * H * H) / (80 * r + 60 * H);
 
-      // momj=blk.getPoint3("momj",
-      //   Point3(r*r*(16*r+15*H)/(40*r+30*H), sideJ, sideJ)*mass);
       mj.momj = Inverse(tm) * diagonalMatrix3(Point3(sideJ, sideJ, r * r * (16 * r + 15 * H) / (40 * r + 30 * H)) * mj.mass) * tm;
     }
-    /*
-    else if (cid==Class_ID(CYLINDER_CLASS_ID, 0))
-    {
-      // cylinder
-      type=COLL_ID_CYLINDER;
-
-      pt0=Point3(0, 0, 0);
-      pt1=Point3(0, 0, 0);
-      radius=0;
-      pb_get_value(*pblock, 0, curTime, radius);
-      pb_get_value(*pblock, 1, curTime, pt1.z);
-
-      if (radius<0) radius=0;
-    }
-    */
     else
     {
       explog(_T("Unknown mass geometry type for '%s'\r\n"), node->GetName());
@@ -861,17 +812,6 @@ public:
 
     momj.ValidateFlags();
 
-    /*
-    MRow *m=momj.GetAddr();
-    explog("'%s' momj:\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n",
-      (const char*)node->GetName(),
-      m[0][0], m[0][1], m[0][2],
-      m[1][0], m[1][1], m[1][2],
-      m[2][0], m[2][1], m[2][2]
-    );
-    explog("mass=%f\r\n", mass);
-    //*/
-
     // find inertia ellipsoid axes
 
     // find eigenvalues
@@ -896,26 +836,6 @@ public:
       double g = 2 * b * b * b / (a * a * a * 27) - b * c / (a * a) / 3 + d / a;
       double h = g * g / 4 + f * f * f / 27;
 
-      // explog("  h=%g  f=%g  g=%g\r\n", h, f, g);
-
-      /*
-      if (h>0)
-      {
-        // single real root
-        double R=-g/2+sqrt(h);
-        double S=cubic_root(R);
-        //explog("  R=%g S=%g\r\n", R, S);
-        double T=-g/2-sqrt(h);
-        double U=cubic_root(T);
-        //explog("  T=%g U=%g\r\n", T, U);
-
-        double x1=S+U-b/(3*a);
-
-        dmomj=Point3(x1, x1, x1);
-      }
-      //else if (f==0 && g==0)
-      else
-      */
       if (f >= 0)
       {
         // 3 equal real roots
@@ -949,8 +869,6 @@ public:
         dmomj = Point3(x1, x2, x3);
       }
     }
-
-    // explog("dmomj=(%f  %f  %f)\r\n", dmomj.x, dmomj.y, dmomj.z);
 
     // find eigenvectors
     Matrix3 dmj(TRUE);
@@ -995,12 +913,6 @@ public:
       }
 
       Point3 v;
-
-      /*
-      explog("  sm[0]=(%f  %f  %f)\r\n", sm[0].x, sm[0].y, sm[0].z);
-      explog("  sm[1]=(%f  %f  %f)\r\n", sm[1].x, sm[1].y, sm[1].z);
-      explog("  sm[2]=(%f  %f  %f)\r\n", sm[2].x, sm[2].y, sm[2].z);
-      //*/
 
       if (LengthSquared(sm[0]) <= EPS)
       {
@@ -1057,16 +969,6 @@ public:
       dmj.SetRow(i, v);
     }
 
-    /*
-    m=dmj.GetAddr();
-    explog("'%s' dmj:\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n",
-      (const char*)node->GetName(),
-      m[0][0], m[0][1], m[0][2],
-      m[1][0], m[1][1], m[1][2],
-      m[2][0], m[2][1], m[2][2]
-    );
-    //*/
-
     // orthogonalize dmj
     int mi = 0;
     float mv = LengthSquared(dmj.GetRow(1) ^ dmj.GetRow(2));
@@ -1093,36 +995,12 @@ public:
       dmj.SetRow((mi + 2) % 3, a ^ v);
     }
 
-    /*
-    m=dmj.GetAddr();
-    explog("'%s' dmj:\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n",
-      (const char*)node->GetName(),
-      m[0][0], m[0][1], m[0][2],
-      m[1][0], m[1][1], m[1][2],
-      m[2][0], m[2][1], m[2][2]
-    );
-
-    momj=dmj*momj*Inverse(dmj);
-
-    m=momj.GetAddr();
-    explog("'%s' new momj:\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n%f\t%f\t%f\r\n",
-      (const char*)node->GetName(),
-      m[0][0], m[0][1], m[0][2],
-      m[1][0], m[1][1], m[1][2],
-      m[2][0], m[2][1], m[2][2]
-    );
-    //*/
-
     // set node tm and props
     setNodePropReal(node, "mass", mass);
     setNodePropPoint3(node, "momj", dmomj);
 
     Matrix3 newNodeWtm = dmj;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-    newNodeWtm.SetTrans(cm / (float)GetSystemUnitScale(UNITS_METERS));
-#else
-    newNodeWtm.SetTrans(cm / (float)GetMasterScale(UNITS_METERS));
-#endif
+    newNodeWtm.SetTrans(cm / static_cast<float>(GetSystemUnitScale(UNITS_METERS)));
     adjWtm(newNodeWtm);
 
     Matrix3 deltaTm = Inverse(newNodeWtm) * node->GetNodeTM(curTime);

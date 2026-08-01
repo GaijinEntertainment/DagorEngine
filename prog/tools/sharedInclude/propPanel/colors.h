@@ -151,6 +151,9 @@ struct ColorOverride
     // Button color of the keyboard shortcuts panel for non-default keybindings
     KEYBOARD_SHORTCUTS_ITEM_NON_DEFAULT,
 
+    // Color for short highlight blink animations to draw attention to something
+    BLINK_HIGHTLIGHT_ANIMATION_COLOR,
+
     COUNT
   };
 

@@ -60,6 +60,150 @@ static eastl::string nameForBarrier(ResourceBarrier barrier)
   return result;
 }
 
+constexpr eastl::pair<d3d::PipelineStageFlag, const char *> ENHANCED_STAGE_NAMES[]{
+  {d3d::PipelineStageFlag::All, "All"},
+  {d3d::PipelineStageFlag::ExecuteIndirect, "ExecuteIndirect"},
+  {d3d::PipelineStageFlag::IndexInput, "IndexInput"},
+  {d3d::PipelineStageFlag::VertexAttributeInput, "VertexAttributeInput"},
+  {d3d::PipelineStageFlag::AllVertexShading, "VertexShading"},
+  {d3d::PipelineStageFlag::Rasterization, "Rasterization"},
+  {d3d::PipelineStageFlag::EarlyFragmentTests, "EarlyFragmentTests"},
+  {d3d::PipelineStageFlag::PixelShading, "PixelShading"},
+  {d3d::PipelineStageFlag::LateFragmentTests, "LateFragmentTests"},
+  {d3d::PipelineStageFlag::OutputMerging, "OutputMerging"},
+  {d3d::PipelineStageFlag::ComputeShading, "ComputeShading"},
+  {d3d::PipelineStageFlag::Copy, "Copy"},
+  {d3d::PipelineStageFlag::Blit, "Blit"},
+  {d3d::PipelineStageFlag::Clear, "Clear"},
+  {d3d::PipelineStageFlag::Resolve, "Resolve"},
+};
+
+constexpr eastl::pair<d3d::AccessFlag, const char *> ENHANCED_ACCESS_NAMES[]{
+  {d3d::AccessFlag::UnorderedAccess, "UnorderedAccess"},
+  {d3d::AccessFlag::ShaderResource, "ShaderResource"},
+  {d3d::AccessFlag::ConstantBuffer, "ConstantBuffer"},
+  {d3d::AccessFlag::IndirectArgument, "IndirectArgument"},
+  {d3d::AccessFlag::VertexBuffer, "VertexBuffer"},
+  {d3d::AccessFlag::IndexBuffer, "IndexBuffer"},
+  {d3d::AccessFlag::RenderTargetRead, "RenderTargetRead"},
+  {d3d::AccessFlag::RenderTargetWrite, "RenderTargetWrite"},
+  {d3d::AccessFlag::DepthStencilRead, "DepthStencilRead"},
+  {d3d::AccessFlag::DepthStencilWrite, "DepthStencilWrite"},
+  {d3d::AccessFlag::InputAttachment, "InputAttachment"},
+  {d3d::AccessFlag::CopyRead, "CopyRead"},
+  {d3d::AccessFlag::CopyWrite, "CopyWrite"},
+  {d3d::AccessFlag::BlitRead, "BlitRead"},
+  {d3d::AccessFlag::BlitWrite, "BlitWrite"},
+  {d3d::AccessFlag::ResolveRead, "ResolveRead"},
+  {d3d::AccessFlag::ResolveWrite, "ResolveWrite"},
+  {d3d::AccessFlag::ShadingRate, "ShadingRate"},
+};
+
+constexpr eastl::pair<d3d::TextureLayout, const char *> ENHANCED_LAYOUT_NAMES[]{
+  {d3d::TextureLayout::Undefined, "Undefined"},
+  {d3d::TextureLayout::GenericRead, "GenericRead"},
+  {d3d::TextureLayout::RenderTarget, "RenderTarget"},
+  {d3d::TextureLayout::UnorderedAccess, "UnorderedAccess"},
+  {d3d::TextureLayout::DepthRwStencilRw, "DepthRwStencilRw"},
+  {d3d::TextureLayout::DepthRwStencilRo, "DepthRwStencilRo"},
+  {d3d::TextureLayout::DepthRoStencilRw, "DepthRoStencilRw"},
+  {d3d::TextureLayout::DepthRoStencilRo, "DepthRoStencilRo"},
+  {d3d::TextureLayout::DepthRw, "DepthRw"},
+  {d3d::TextureLayout::DepthRo, "DepthRo"},
+  {d3d::TextureLayout::ShaderResource, "ShaderResource"},
+  {d3d::TextureLayout::CopySource, "CopySource"},
+  {d3d::TextureLayout::CopyDest, "CopyDest"},
+  {d3d::TextureLayout::BlitSource, "BlitSource"},
+  {d3d::TextureLayout::BlitDest, "BlitDest"},
+  {d3d::TextureLayout::ResolveSource, "ResolveSource"},
+  {d3d::TextureLayout::ResolveDest, "ResolveDest"},
+  {d3d::TextureLayout::ShadingRateSource, "ShadingRateSource"},
+};
+
+static const char *nameForLayout(d3d::TextureLayout layout)
+{
+  for (auto [value, name] : ENHANCED_LAYOUT_NAMES)
+    if (value == layout)
+      return name;
+  return "Unknown";
+}
+
+static eastl::string nameForBarrier(const d3d::BufferBarrier &barrier)
+{
+  const auto joinStages = [](d3d::PipelineStageFlags mask) {
+    eastl::string r;
+    for (auto [flag, name] : ENHANCED_STAGE_NAMES)
+      if (bool(mask & flag))
+      {
+        if (!r.empty())
+          r += " | ";
+        r += name;
+      }
+    return r.empty() ? eastl::string("NoStage") : r;
+  };
+  const auto joinAccess = [](d3d::AccessFlags mask) {
+    eastl::string r;
+    for (auto [flag, name] : ENHANCED_ACCESS_NAMES)
+      if (bool(mask & flag))
+      {
+        if (!r.empty())
+          r += " | ";
+        r += name;
+      }
+    return r.empty() ? eastl::string("NoAccess") : r;
+  };
+
+  eastl::string result = "enhanced buffer barrier\nstages: ";
+  result += joinStages(barrier.pipelineSync.src);
+  result += " -> ";
+  result += joinStages(barrier.pipelineSync.dst);
+  result += "\naccess: ";
+  result += joinAccess(barrier.memorySync.src);
+  result += " -> ";
+  result += joinAccess(barrier.memorySync.dst);
+  return result;
+}
+
+static eastl::string nameForBarrier(const d3d::TextureBarrier &barrier)
+{
+  const auto joinStages = [](d3d::PipelineStageFlags mask) {
+    eastl::string r;
+    for (auto [flag, name] : ENHANCED_STAGE_NAMES)
+      if (bool(mask & flag))
+      {
+        if (!r.empty())
+          r += " | ";
+        r += name;
+      }
+    return r.empty() ? eastl::string("NoStage") : r;
+  };
+  const auto joinAccess = [](d3d::AccessFlags mask) {
+    eastl::string r;
+    for (auto [flag, name] : ENHANCED_ACCESS_NAMES)
+      if (bool(mask & flag))
+      {
+        if (!r.empty())
+          r += " | ";
+        r += name;
+      }
+    return r.empty() ? eastl::string("NoAccess") : r;
+  };
+
+  eastl::string result = "enhanced texture barrier\nlayout: ";
+  result += nameForLayout(barrier.layoutTransition.src);
+  result += " -> ";
+  result += nameForLayout(barrier.layoutTransition.dst);
+  result += "\nstages: ";
+  result += joinStages(barrier.pipelineSync.src);
+  result += " -> ";
+  result += joinStages(barrier.pipelineSync.dst);
+  result += "\naccess: ";
+  result += joinAccess(barrier.memorySync.src);
+  result += " -> ";
+  result += joinAccess(barrier.memorySync.dst);
+  return result;
+}
+
 static constexpr float NODE_WINDOW_PADDING = 10.f;
 
 constexpr ImU32 LINE_COLOR = IM_COL32(100, 100, 100, 255);
@@ -1065,7 +1209,14 @@ void ResourseVisualizer::drawCanvas(eastl::span<const HeapIndex> heapIndicesToDi
             if (showTooltips && ImGui::IsMouseHoveringRect(min, max))
             {
               hoveredIRResource = eastl::nullopt;
-              ImGui::SetTooltip("%s", nameForBarrier(barrier).c_str());
+              eastl::string tooltip;
+              if (auto *legacy = eastl::get_if<ResourceBarrier>(&barrier))
+                tooltip = nameForBarrier(*legacy);
+              else if (auto *bufferBarrier = eastl::get_if<d3d::BufferBarrier>(&barrier))
+                tooltip = nameForBarrier(*bufferBarrier);
+              else
+                tooltip = nameForBarrier(eastl::get<d3d::TextureBarrier>(barrier));
+              ImGui::SetTooltip("%s", tooltip.c_str());
             }
 
             drawList->AddRectFilled(min, max, IM_COL32(75, 75, 75, 128), 2.0f);
@@ -1560,6 +1711,18 @@ void ResourseVisualizer::recResourcePlacement(ResNameId id, int frame, int heap,
 void ResourseVisualizer::clearResourceBarriers() { resourceBarrierEntries.clear(); }
 
 void ResourseVisualizer::recResourceBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame, ResourceBarrier barrier)
+{
+  resourceBarrierEntries.push_back({res_id, res_frame, exec_time, exec_frame, barrier});
+}
+
+void ResourseVisualizer::recEnhancedBufferBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::BufferBarrier &barrier)
+{
+  resourceBarrierEntries.push_back({res_id, res_frame, exec_time, exec_frame, barrier});
+}
+
+void ResourseVisualizer::recEnhancedTextureBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+  const d3d::TextureBarrier &barrier)
 {
   resourceBarrierEntries.push_back({res_id, res_frame, exec_time, exec_frame, barrier});
 }

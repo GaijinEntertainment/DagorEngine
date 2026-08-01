@@ -937,7 +937,7 @@ public: // overridden from ValueArrayAllocator
 
       difference_type operator -( const SelfType &other ) const
       {
-         return computeDistance( other );
+         return other.computeDistance( *this );
       }
 
       /// Return either the index or the member name of the referenced value as a Value.

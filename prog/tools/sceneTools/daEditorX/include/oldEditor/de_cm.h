@@ -61,6 +61,7 @@ enum
   CM_VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES,
   CM_VIEW_DEVELOPER_TOOLS_CONTROL_GALLERY,
   CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER,
+  CM_VIEW_DEVELOPER_TOOLS_TEST_RUNTIME,
   CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER,
   CM_VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG,
   CM_VIEW_DEVELOPER_TOOLS_NODE_DEPS,
@@ -130,11 +131,13 @@ static constexpr const char *OPTIONS_TOTAL = "Main.OptionsTotal";
 static constexpr const char *USE_OCCLUDERS = "Main.ToggleUseOccluders";
 static constexpr const char *NAV_COMPASS = "Main.ToggleCompass";
 static constexpr const char *SHOW_COLLISION = "Main.ShowCollision";
+static constexpr const char *CAMERA_PRESETS = "Main.ToggleCameraBookmarksPanel";
 static constexpr const char *DISCARD_TEX_MODE = "Main.ToggleDiscardAssetTextures";
 static constexpr const char *TOGGLE_TAG_MANAGER = "Main.ToggleTagManager";
 static constexpr const char *VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES = "Main.View.ConsoleCommandsAndVariables";
 static constexpr const char *VIEW_DEVELOPER_TOOLS_CONTROL_GALLERY = "Main.View.ControlGallery";
 static constexpr const char *VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER = "Main.View.ImguiDebugger";
+static constexpr const char *VIEW_DEVELOPER_TOOLS_TEST_RUNTIME = "Main.View.TestRuntime";
 static constexpr const char *VIEW_DEVELOPER_TOOLS_TOAST_MANAGER = "Main.View.ToastManager";
 static constexpr const char *VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG = "Main.View.TextureDebug";
 static constexpr const char *VIEW_DEVELOPER_TOOLS_NODE_DEPS = "Main.View.NodeDependencies";

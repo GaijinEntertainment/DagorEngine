@@ -519,11 +519,22 @@ enet_socket_receive_impl (ENetSocket socket,
 
     recvLength = recvmsg (socket, & msgHdr, MSG_NOSIGNAL);
     if (recvLength < 0)
-      return errno == EWOULDBLOCK ? 0 : -1;
+    {
+        switch (errno)
+        {
+            case EWOULDBLOCK:
+                return 0;
+            case EINTR:
+            case EMSGSIZE:
+                return -2;
+            default:
+                return -1;
+        }
+    }
 
 #ifdef HAS_MSGHDR_FLAGS
     if (msgHdr.msg_flags & MSG_TRUNC)
-      return -1;
+      return -2;
 #endif
 
     if (address != NULL)

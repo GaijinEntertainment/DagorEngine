@@ -50,6 +50,9 @@ void NavmeshAreasProcessing::onObjectsRemove()
 
 void NavmeshAreasProcessing::onSplineSelectionChanged(SplineObject *obj)
 {
+  if (!tree)
+    return;
+
   tree->setSelLeaf(nullptr);
   for (int i = 0; i < areasData.size(); ++i)
   {
@@ -60,7 +63,11 @@ void NavmeshAreasProcessing::onSplineSelectionChanged(SplineObject *obj)
   }
 }
 
-void NavmeshAreasProcessing::setPropPanel(PropPanel::ContainerPropertyControl *prop_panel) { panel = prop_panel; }
+void NavmeshAreasProcessing::setPropPanel(PropPanel::ContainerPropertyControl *prop_panel)
+{
+  panel = prop_panel;
+  tree = nullptr;
+}
 
 void NavmeshAreasProcessing::fillNavmeshAreasPanel()
 {

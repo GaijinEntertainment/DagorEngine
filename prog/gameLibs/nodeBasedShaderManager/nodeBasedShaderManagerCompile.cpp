@@ -156,6 +156,8 @@ bool NodeBasedShaderManager::compileScriptedShaders(const String &shader_name, c
         includePath:t="%s/prog/gameLibs/webui/plugins/shaderEditors"
         includePath:t="%s/prog/gameLibs/render/shaders"
         includePath:t="%s/prog/gameLibs/daSDF/shaders"
+        includePath:t="%s/prog/gameLibs/daSkies2/shaders"
+        includePath:t="%s/prog/gameLibs/publicInclude"
       }
       Compile {
         fsh:t = 5.0
@@ -163,7 +165,7 @@ bool NodeBasedShaderManager::compileScriptedShaders(const String &shader_name, c
       }
     )",
     tmpDumpNameBase, DSC_TABLE[get_nbsm_platform()].dumpSuff, rootPath.str(), outputDshl, rootPath.str(), rootPath.str(),
-    rootPath.str());
+    rootPath.str(), rootPath.str(), rootPath.str());
   String dshl = ShaderGraphRecompiler::substituteDshl(shader, shaderBlk);
 
   if (!writeFile(outputDshl, dshl))

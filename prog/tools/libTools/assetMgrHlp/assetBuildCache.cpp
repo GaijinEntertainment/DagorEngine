@@ -13,6 +13,7 @@
 #include <gameRes/dag_gameResHooks.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
+#include <gameRes/dag_stdGameRes.h>
 #include <3d/dag_texMgr.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/strUtil.h>
@@ -23,8 +24,10 @@
 #include <util/dag_string.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_safeArg.h>
+#include <hash/xxh3.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <ioSys/dag_memIo.h>
 #include <debug/dag_debug.h>
 
 static const int ASSET_RESID_BASE = 512 << 10;
@@ -33,6 +36,7 @@ static WinCritSec dabuild_cache_cs;
 static String startDir;
 static IDaBuildInterface *dabuild = NULL;
 static DagorAssetMgr *assetMgr = NULL;
+static DataBlock bindAssetsBlock; // own copy: caller's appblk may be a scratch object, mutated/reused later
 static ILogWriter *buildLog = NULL;
 static FastNameMapEx resMap;
 static FastNameMap assetMap;
@@ -142,6 +146,7 @@ void dabuildcache::term()
   }
   reset_gameres_hooks();
   assetMgr = NULL;
+  bindAssetsBlock.reset();
 
   dabuild->unloadExporterPlugins();
   dabuild->term();
@@ -157,6 +162,8 @@ int dabuildcache::bind_with_mgr(DagorAssetMgr &mgr, DataBlock &appblk, const cha
   WinAutoLock lock(dabuild_cache_cs);
   if (!dabuild)
     return -1;
+
+  bindAssetsBlock.setFrom(appblk.getBlockByNameEx("assets"), appblk.resolveFilename());
 
   if (appblk.getStr("shaders", NULL))
     appblk.setStr("shadersAbs", make_eff_app_relative_path(appblk.getStr("shaders")));
@@ -485,6 +492,75 @@ static bool abc_get_res_refs(int res_id, Tab<int> &out_refs)
   return true;
 }
 
+// separateModelMatToDescBin strips materials into a "*Desc.bin" sidecar (exp_rendInst/exp_dynModel),
+// normally merged only when loading a fully prebuilt game (av_appwnd.cpp/de_engine.cpp) - the respack
+// fast path needs it too; a locally-rebuilt asset has materials embedded and doesn't.
+// Resolved once, like the game itself does at startup (no live-reload if a batch export changes it later).
+static bool matDescsLoaded = false;
+static void ensure_mat_descs_loaded()
+{
+  if (matDescsLoaded || bindAssetsBlock.isEmpty())
+    return;
+  matDescsLoaded = true;
+
+  const DataBlock &expblk = *bindAssetsBlock.getBlockByNameEx("export");
+  const DataBlock &buildblk = *bindAssetsBlock.getBlockByNameEx("build");
+  const DataBlock &pkgblk = *expblk.getBlockByNameEx("packages");
+  static const char *target_str = "PC"; // on-demand builds are always PC, no profile
+
+  struct TypeDesc
+  {
+    const char *typeName;
+    DataBlock *desc;
+  };
+  const TypeDesc types[] = {{"rendInst", &gameres_rendinst_desc}, {"dynModel", &gameres_dynmodel_desc}};
+
+  // av_appwnd.cpp/de_engine.cpp lock out further pack/desc loading after their own prebuilt-resource scan;
+  // bypass that lockdown for the duration of our own load, same as before it was installed.
+  auto savedConfirmHook = gamereshooks::on_gameres_pack_load_confirm;
+  gamereshooks::on_gameres_pack_load_confirm = nullptr;
+
+  for (const TypeDesc &t : types)
+  {
+    const DataBlock &tblk = *buildblk.getBlockByNameEx(t.typeName);
+    const char *descListOutPath = tblk.getStr("descListOutPath", nullptr);
+    if (!tblk.getBool("separateModelMatToDescBin", false) || !descListOutPath || !*descListOutPath)
+      continue;
+
+    // gameres_append_desc() dedups by file path forever (sets a same-named bool once loaded), so a
+    // stale invalidate_respack_caches() reload would otherwise silently keep the old data - force a
+    // clean reread of every path here.
+    t.desc->reset();
+
+    for (int pkid = -1; pkid < (int)pkgblk.blockCount(); pkid++)
+    {
+      const char *pkname = pkid < 0 ? nullptr : pkgblk.getBlock(pkid)->getBlockName();
+
+      // Merge base first: a resDiff-built patch only carries changed assets, so unchanged ones need base too.
+      String destBase, packFnamePrefix;
+      assethlp::build_package_dest_strings(destBase, packFnamePrefix, expblk, pkname, "%appDir", target_str, nullptr,
+        /*patch_build*/ false);
+      String descFname(260, "%s%s.bin", destBase.str(), descListOutPath);
+      simplify_fname(descFname);
+      gameres_append_desc(*t.desc, descFname, descFname, /*allow_override*/ false);
+
+      if (dabuild->isPatchBuildActive(pkname, target_str))
+      {
+        String patchDestBase, patchPackFnamePrefix;
+        assethlp::build_package_dest_strings(patchDestBase, patchPackFnamePrefix, expblk, pkname, "%appDir", target_str, nullptr,
+          /*patch_build*/ true);
+        String patchDescFname(260, "%s%s.bin", patchDestBase.str(), descListOutPath);
+        simplify_fname(patchDescFname);
+        gameres_append_desc(*t.desc, patchDescFname, patchDescFname, /*allow_override*/ true);
+      }
+    }
+
+    gameres_final_optimize_desc(*t.desc, descListOutPath);
+  }
+
+  gamereshooks::on_gameres_pack_load_confirm = savedConfirmHook;
+}
+
 class AssetCacheLoadCB final : public MemoryLoadCB
 {
 public:
@@ -558,6 +634,9 @@ static bool abc_load_game_resource_pack(int res_id, dag::Span<GameResourceFactor
   // save caches for dynModel and rendInst so ShaderMatVdata could setup Sbuffer::IReloadData for case of driver reset
   bool force_cache_store = (assetClassId == DynModelGameResClassId || assetClassId == RendInstGameResClassId);
 
+  if (force_cache_store)
+    ensure_mat_descs_loaded();
+
   if (dabuild->getBuiltRes(*a, cwr, exp, assetlocalprops::makePath("cache"), cachePath, dataOffset, force_cache_store))
   {
     AssetCacheLoadCB crd(cwr.getRawWriter().getMem(), false, eastl::move(cachePath), dataOffset);
@@ -628,4 +707,61 @@ bool dabuildcache::invalidate_asset(const DagorAsset &a, bool free_unused_resour
     assetRev[anid]++;
   }
   return false;
+}
+
+bool dabuildcache::get_built_res_hash_xxh3(DagorAsset &asset, unsigned char out_hash_xxh3_128[16])
+{
+  IDagorAssetExporter *exp = asset.getMgr().getAssetExporter(asset.getType());
+  memset(out_hash_xxh3_128, 0, 16);
+  if (!exp || !dabuild)
+    return false;
+  unsigned classId = assetTypeToClassId[asset.getType()];
+  mkbindump::BinDumpSaveCB cwr(1 << 20, _MAKE4C('PC'), false);
+  cwr.setFastBuildFlag(true);
+  bool build_result = false, from_grp = false;
+
+  {
+    WinAutoLock lock(dabuild_cache_cs);
+    String cachePath;
+    int dataOffset = 0;
+    build_result = dabuild->getBuiltRes(asset, cwr, exp, assetlocalprops::makePath("cache"), cachePath, dataOffset, true, &from_grp);
+    if (build_result && from_grp && (classId == RendInstGameResClassId || classId == DynModelGameResClassId))
+      ensure_mat_descs_loaded();
+  }
+
+  if (!build_result)
+    return false;
+
+  XXH3_state_t hashState;
+  ::XXH3_128bits_reset(&hashState);
+  for (const auto *mem = cwr.getRawWriter().getMem(); mem && mem->used; mem = mem->next)
+    ::XXH3_128bits_update(&hashState, mem->data, (int)mem->used);
+
+  if (from_grp && (classId == RendInstGameResClassId || classId == DynModelGameResClassId))
+  {
+    // Only a respack-served result can have materials split into *Desc.bin (a fallback rebuild above always
+    // embeds them via setFastBuildFlag). Safe to read gameres_*_desc unlocked here.
+    DynamicMemGeneralSaveCB matCwr(tmpmem, 4 << 10, 4 << 10);
+    const DataBlock *descRoot = (classId == RendInstGameResClassId) ? &gameres_rendinst_desc : &gameres_dynmodel_desc;
+    if (const DataBlock *assetDesc = descRoot->getBlockByName(asset.getName()))
+    {
+      if (const DataBlock *texBlk = assetDesc->getBlockByName("tex"))
+        texBlk->saveToTextStream(matCwr);
+      if (const DataBlock *matBlk = assetDesc->getBlockByName("mat"))
+        matBlk->saveToTextStream(matCwr);
+    }
+    if (matCwr.size())
+      ::XXH3_128bits_update(&hashState, matCwr.data(), matCwr.size());
+  }
+
+  ::XXH128_canonicalFromHash((XXH128_canonical_t *)out_hash_xxh3_128, ::XXH3_128bits_digest(&hashState));
+  return true;
+}
+
+void dabuildcache::invalidate_respack_caches()
+{
+  WinAutoLock lock(dabuild_cache_cs);
+  matDescsLoaded = false;
+  if (dabuild)
+    dabuild->invalidateRespackCaches();
 }

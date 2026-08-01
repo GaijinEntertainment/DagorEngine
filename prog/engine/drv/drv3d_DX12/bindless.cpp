@@ -212,7 +212,7 @@ void frontend::BindlessManager::reportBindlessSlotsAllocationInfoNoLock()
   for (auto r : state.freeSlotRanges)
   {
     logdbg("DX12: Free segment with %u slots, from %u to %u", r.size(), *r.begin(), *r.end());
-    totalFreeSlots = r.size();
+    totalFreeSlots += r.size();
   }
   logdbg("DX12: Bindless resource heap total slots occupied %u, leaving %u slots until exhaustion", state.resourceSlotInfo.size(),
     state.resourceSlotInfo.size() - totalFreeSlots,
@@ -228,6 +228,7 @@ uint32_t frontend::BindlessManager::allocateBindlessResourceRangeNoLock(uint32_t
     if ((r + count) > ::bindless::MAX_RESOURCE_INDEX_COUNT)
     {
       reportBindlessSlotsInfoNoLock();
+      reportBindlessSlotsAllocationInfoNoLock();
       D3D_CONTRACT_ERROR("DX12: Out of bindless slots, asked for %u while limit is %u and %u is already allocated", count,
         ::bindless::MAX_RESOURCE_INDEX_COUNT, r);
       DAG_FATAL("DX12: Critical D3D contract violation, out of bindless slots, can not continue");

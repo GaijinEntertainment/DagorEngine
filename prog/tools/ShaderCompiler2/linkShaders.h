@@ -74,6 +74,7 @@ struct ShadersBindumpHeader
   bindump::EnableHash<ShadersBindump> hash;
   bindump::vector<bindump::string> dependency_files;
   BindumpRefinedBlockLayout refined_block_layout;
+  SerializableTab<bindump::string> usedSepDebugInfoNames;
 };
 
 struct CompressedShadersBindump : ShadersBindumpHeader
@@ -99,7 +100,8 @@ void add_stcode_validation_mask(int stcode_id, shader_layout::StcodeConstValidat
 void count_shader_stats(unsigned &uniqueFshBytesInFile, unsigned &uniqueFshCountInFile, unsigned &uniqueVprBytesInFile,
   unsigned &uniqueVprCountInFile, unsigned &stcodeBytes, const shc::TargetContext &ctx);
 
-bool load_shaders_bindump(ShadersBindump &shaders, bindump::IReader &full_file_reader, shc::TargetContext &ctx);
+bool load_shaders_bindump(ShadersBindump &shaders, ShadersBindumpHeader &header, bindump::IReader &full_file_reader,
+  shc::TargetContext &ctx);
 bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char *filename, const char *source_name,
   shc::TargetContext &ctx);
 void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> files, shc::TargetContext &ctx,

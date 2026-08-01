@@ -63,7 +63,7 @@ void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix 
     };
 
     addLine("%s: %s", desc.isRiExtra() ? "RiExtra" : "RiGen", name);
-    addLine("Cell=%i Pool=i Idx=%i Offs=%i Layer=%i", desc.cellIdx, desc.pool, desc.idx, desc.offs, desc.layer);
+    addLine("Cell=%i Pool=%i Idx=%i Offs=%i Layer=%i", desc.cellIdx, desc.pool, desc.idx, desc.offs, desc.layer);
     if (desc.isRiExtra())
     {
       addLine("riExtra.handle = %llx", desc.getRiExtraHandle());

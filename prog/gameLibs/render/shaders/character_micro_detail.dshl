@@ -1,6 +1,7 @@
 include "normaldetail.dshl"
 
 texture character_micro_details;
+int character_micro_details_count always_referenced; // CPU R/W caching
 
 int need_character_microdetails_texture_check = 0;
 interval need_character_microdetails_texture_check: no < 1, yes; // Should be assumed per project

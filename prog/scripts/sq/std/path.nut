@@ -17,7 +17,7 @@ from "string" import split_by_chars, regexp
  *   normalize("a/.b/./c")            > "a/.b/c"
  *   normalize("/a/b///c\\d")         > "/a/b/c/d"
  */
-function normalize(path) {
+function normalize(path): string {
   let pathSegments = split_by_chars(path, "\\/")
   local isAbsolutePath = false
 
@@ -58,7 +58,7 @@ function normalize(path) {
 /**
  * Check is path already normalized
  */
-function isNormalized(path) {
+function isNormalized(path): bool {
   return path == normalize(path)
 }
 
@@ -66,7 +66,7 @@ function isNormalized(path) {
 /**
  * Get last slash separator index in past string
  */
-function getLastSeparatorIndex(path) {
+function getLastSeparatorIndex(path): int {
   for (local j = path.len() - 1; j >= 0; j--)
     if (path[j] == '/')
       return j
@@ -157,7 +157,7 @@ function _join(basePath, other) {
  *   joinArray([])                   > ""
  *   joinArray(["/"])                > "/"
  */
-function joinArray(pathArray) {
+function joinArray(pathArray): string {
   if (pathArray.len() > 1 && pathArray[0] == "/")
     return $"/{"/".join(pathArray.slice(1), true)}"
   return "/".join(pathArray)
@@ -186,7 +186,7 @@ function join(...) {
  *   splitToArray("")           > []
  *   splitToArray("/")          > ["/"]
  */
-function splitToArray(path) {
+function splitToArray(path): array {
   if (path == "")
     return []
   assert(type(path)=="string", @() $"path type is not string ({type(path)})")

@@ -31,6 +31,8 @@ float skies_panorama_mobile_blendup_coef = 0.0001;
 
 texture uav_depth_texture;
 
+float4 skies_panorama_below_skies_fill_color = float4(0, 0, 0, 0);
+
 shader applyCloudsPanorama
 {
   //blend_src = 1; blend_dst = sa;
@@ -56,13 +58,20 @@ shader applyCloudsPanorama
 
   (ps) {
     clouds_panorama_tex_res@f4 = (clouds_panorama_tex_res.x,clouds_panorama_tex_res.y, 1./clouds_panorama_tex_res.x, 1./clouds_panorama_tex_res.y);
-    clouds_panorama_tex@smp2d = clouds_panorama_tex;
-    clouds_panorama_patch_tex@smp2d = clouds_panorama_patch_tex;
+    clouds_panorama_tex@tex2d = clouds_panorama_tex;
+    clouds_panorama_patch_tex@tex2d = clouds_panorama_patch_tex;
     currentPanoramaWorldOffset@f3 = ((currentPanoramaWorldOffset-skies_world_view_pos)*currentPanoramaWorldOffset.w);
     skies_world_view_pos@f3 = skies_world_view_pos;
     skies_panorama_light_dir@f3 = skies_panorama_light_dir;
     skies_panorama_remove_sun_threshold@f1 = (1.5 + render_sun*1000,0,0,0);
     rgbm_panorama_scale_factor@f1 = (rgbm_panorama_scale_factor);
+    skies_panorama_below_skies_fill_color@f4 = skies_panorama_below_skies_fill_color;
+  }
+  INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(ps)
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
+  hlsl(ps) {
+    #define clouds_panorama_tex_samplerstate global_linear_wrap_u_clamp_v_sampler
+    #define clouds_panorama_patch_tex_samplerstate global_linear_clamp_sampler
   }
 
   if (uav_depth_texture != NULL)
@@ -213,10 +222,31 @@ shader applyCloudsPanorama
       half4 panorama = sample_biquadratic(sky_uv);
       //panorama = DodgsonQuadratic(sky_uv);//we don't use parametrized qudratic as it is slower, and basically we don't need sharpness
       #else
-      half4 panorama = tex2D( clouds_panorama_tex, sky_uv );
-
-      // if compressed panorama is active this decodes rgbm, else it does nothing because .a = 1, factor = 1
-      panorama = decode_rgbm(panorama, rgbm_panorama_scale_factor);
+      ##if compatibility_mode == compatibility_mode_on
+      //low-end: one hardware-bilinear tap and one decode; RGBM fringing at bright edges is accepted
+      half4 panorama = decode_rgbm(tex2D(clouds_panorama_tex, sky_uv), rgbm_panorama_scale_factor);
+      ##else
+      half4 panorama;
+      BRANCH
+      if (rgbm_panorama_scale_factor != 1)
+      {
+        //compressed panorama: RGBM must be decoded per tap; hardware-filtering the shared
+        //multiplier M against RGB fringes at bright edges (sun rim, cloud silhouettes)
+        float2 crd = sky_uv * clouds_panorama_tex_res.xy - 0.5;
+        float2 wt = frac(crd);
+        float2 base = (floor(crd) + 0.5) * clouds_panorama_tex_res.zw;//sampler wraps U across the seam
+        half4 t00 = sampleLevel0(base);
+        half4 t10 = sampleLevel0(base + float2(clouds_panorama_tex_res.z, 0));
+        half4 t01 = sampleLevel0(base + float2(0, clouds_panorama_tex_res.w));
+        half4 t11 = sampleLevel0(base + clouds_panorama_tex_res.zw);
+        panorama = lerp(lerp(t00, t10, wt.x), lerp(t01, t11, wt.x), wt.y);
+      }
+      else
+        //factor 1 does not imply uncompressed: dim-sun presets clamp the RGBM scale to
+        //exactly 1 while still encoding, so the shared multiplier must be applied here
+        //too (identity on truly uncompressed data where .a == 1)
+        panorama = decode_rgbm(tex2D(clouds_panorama_tex, sky_uv), rgbm_panorama_scale_factor);
+      ##endif
       #endif
 
       // Similar logic is also present in lightningFlashPanorama.dshl
@@ -263,6 +293,11 @@ shader applyCloudsPanorama
       #else
         half4 result=half4(pack_hdr(panorama.rgb).rgb, retAlpha);
       #endif
+
+      // use custom color to fill space below sky if it's provided
+      float belowFillFactor = skies_panorama_below_skies_fill_color.a*step(viewDirection.y, PANORAMA_VIEW_THRESHOLD);
+      result = lerp(result, float4(skies_panorama_below_skies_fill_color.rgb, 0.0), belowFillFactor);
+
       return result;
     }
   }
@@ -308,9 +343,11 @@ shader clouds_panorama_mip
 
 
   (ps) {
-    clouds_panorama_tex@smp2d = clouds_panorama_tex;
+    clouds_panorama_tex@tex2d = clouds_panorama_tex;
     rgbm_panorama_scale_factor@f1 = (rgbm_panorama_scale_factor);
   }
+  INIT_GLOBAL_LINEAR_WRAP_U_CLAMP_V_SAMPLER(ps)
+  hlsl(ps) { #define clouds_panorama_tex_samplerstate global_linear_wrap_u_clamp_v_sampler }
 
   hlsl(ps) {
     float4 samplePanorama(float2 uv)

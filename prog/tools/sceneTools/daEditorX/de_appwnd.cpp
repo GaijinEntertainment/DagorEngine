@@ -12,10 +12,12 @@
 #include "de_preferencesDialog.h"
 #include "de_screenshotMetaInfoLoader.h"
 #include "de_viewportWindow.h"
+#include "de_cameraPresets.h"
 #include "controlGallery.h"
 
 #include <de3_interface.h>
 #include <de3_lightService.h>
+#include <de3_hmapDebugShadingService.h>
 #include <de3_hmapService.h>
 #include <de3_huid.h>
 #include <de3_editorEvents.h>
@@ -53,6 +55,7 @@
 #include <perfMon/dag_daProfilerSettings.h>
 #include <gui/dag_baseCursor.h>
 #include <gui/dag_stdGuiRenderEx.h>
+#include <gui/dag_guiStartup.h>
 
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_gizmofilter.h>
@@ -64,6 +67,7 @@
 #include <EditorCore/ec_ObjectEditor.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_imguiInitialization.h>
+#include <EditorCore/ec_testSystem.h>
 #include <EditorCore/ec_input.h>
 #include <EditorCore/ec_startup.h>
 #include <EditorCore/ec_viewportSplitter.h>
@@ -117,6 +121,7 @@
 #include <eventLog/errorLog.h>
 #include <util/dag_delayedAction.h>
 #include <util/dag_threadPool.h>
+#include <util/dag_string.h>
 
 #include <gui/dag_imgui.h>
 #include <imgui/imgui.h>
@@ -145,6 +150,7 @@ enum
   CM_NAV_COMPASS = CM_PLUGIN_BASE - 10,
   CM_DISCARD_TEX_MODE,
   CM_SHOW_COLLISION,
+  CM_CAMERA_PRESETS
 };
 
 extern void init3d_early();
@@ -194,6 +200,7 @@ extern void *get_generic_water_proj_fx_service();
 extern void *get_generic_cable_service();
 extern void *get_generic_spline_gen_service();
 extern void *get_generic_wind_service();
+extern void *get_hmap_debug_shading_service();
 extern void *get_pixel_perfect_selection_service();
 extern void *get_visibility_finder_service();
 
@@ -201,6 +208,7 @@ extern void release_generic_hmap_service();
 extern void release_generic_water_proj_fx_service();
 extern void release_generic_water_service();
 extern void release_generic_cable_service();
+extern void release_hmap_debug_shading_service();
 
 extern FastNameMap cmdline_include_dll_re, cmdline_exclude_dll_re;
 
@@ -257,6 +265,7 @@ enum
   VIEWPORT_TYPE,
   TAGMANAGER_TYPE,
   SHORTCUTS_EDITOR_TYPE,
+  CAMERA_PRESETS_TYPE,
 };
 
 
@@ -318,6 +327,10 @@ static String get_global_de_hotkey_settings_file_path()
   return make_full_path(sgg::get_exe_path_full(), "../.local/de3_hotkeys.blk");
 }
 
+static String get_heightmap_debug_shading_gradient_settings_file_path()
+{
+  return make_full_path(sgg::get_exe_path_full(), "../.local/color_presets_heightmap_debug_shading.blk");
+}
 
 //==============================================================================
 DagorEdAppWindow::DagorEdAppWindow(IWndManager *manager, const char *open_fname) :
@@ -467,6 +480,9 @@ DagorEdAppWindow::~DagorEdAppWindow()
 
     DAEDITOR3.saveAssetsTags();
 
+    if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+      debugShadingService->saveGradientsFile(get_heightmap_debug_shading_gradient_settings_file_path());
+
     // switchToPlugin(-1);
 
     const String windowLayoutBlkPath = getPerApplicationWindowLayoutBlkPath();
@@ -495,13 +511,17 @@ DagorEdAppWindow::~DagorEdAppWindow()
   release_generic_hmap_service();
   release_generic_water_proj_fx_service();
   release_generic_water_service();
+  release_hmap_debug_shading_service();
   dynrend::close();
   console::shutdown();
   imgui_shutdown();
+
   StdGuiRender::close_fonts();
   StdGuiRender::close_render();
+  unregister_gui_base_rproc(); // Done by hand
 
   del_it(aboutDlg);
+  del_it(mCameraPresets);
   del_it(wsp);
 
   threadpool::shutdown();
@@ -521,6 +541,7 @@ void DagorEdAppWindow::init(const char *)
   dagor_init_keyboard_win();
   dagor_init_mouse_win();
   editor_core_initialize_input_handler();
+  editor_core_initialize_test_runtime();
   startup_game(RESTART_ALL);
 
   editor_core_initialize_imgui();
@@ -602,11 +623,13 @@ void DagorEdAppWindow::registerEditorCommands()
   editor_command_system.addCommand(EditorCommandIds::USE_OCCLUDERS);
   editor_command_system.addCommand(EditorCommandIds::NAV_COMPASS);
   editor_command_system.addCommand(EditorCommandIds::SHOW_COLLISION);
+  editor_command_system.addCommand(EditorCommandIds::CAMERA_PRESETS);
   editor_command_system.addCommand(EditorCommandIds::DISCARD_TEX_MODE);
   editor_command_system.addCommand(EditorCommandIds::TOGGLE_TAG_MANAGER);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONTROL_GALLERY);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER, ImGuiMod_Ctrl | ImGuiKey_F12);
+  editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEST_RUNTIME, ImGuiMod_Alt | ImGuiKey_T);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_TOAST_MANAGER);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_NODE_DEPS);
@@ -708,12 +731,14 @@ void DagorEdAppWindow::addEditorAccelerators()
     mManager->addAccelerator(CM_USE_OCCLUDERS, EditorCommandIds::USE_OCCLUDERS);
     mManager->addAccelerator(CM_NAV_COMPASS, EditorCommandIds::NAV_COMPASS);
     mManager->addAccelerator(CM_SHOW_COLLISION, EditorCommandIds::SHOW_COLLISION);
+    mManager->addAccelerator(CM_NAV_COMPASS, EditorCommandIds::CAMERA_PRESETS);
     mManager->addAccelerator(CM_DISCARD_TEX_MODE, EditorCommandIds::DISCARD_TEX_MODE);
     mManager->addAccelerator(CM_WINDOW_TAGMANAGER, EditorCommandIds::TOGGLE_TAG_MANAGER);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES,
       EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_CONTROL_GALLERY, EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONTROL_GALLERY);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER, EditorCommandIds::VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER);
+    mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_TEST_RUNTIME, EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEST_RUNTIME);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER, EditorCommandIds::VIEW_DEVELOPER_TOOLS_TOAST_MANAGER);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG, EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG);
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_NODE_DEPS, EditorCommandIds::VIEW_DEVELOPER_TOOLS_NODE_DEPS);
@@ -988,6 +1013,17 @@ void *DagorEdAppWindow::onWmCreateWindow(int type)
       return mShortcutsPanel;
     }
     break;
+
+    case CAMERA_PRESETS_TYPE:
+    {
+      if (!mCameraPresets || mCameraPresets->isPanelVisible())
+        return nullptr;
+
+      mCameraPresets->showPanel();
+      getMainMenu()->setCheckById(CM_CAMERA_PRESETS, true);
+      return mCameraPresets->getPanel();
+    }
+    break;
   }
 
   return nullptr;
@@ -1021,6 +1057,13 @@ bool DagorEdAppWindow::onWmDestroyWindow(void *window)
   {
     mTagManager = nullptr;
     getMainMenu()->setCheckById(CM_WINDOW_TAGMANAGER, false);
+    return true;
+  }
+
+  if (mCameraPresets && window == mCameraPresets->getPanel())
+  {
+    mCameraPresets->hidePanel();
+    getMainMenu()->setCheckById(CM_CAMERA_PRESETS, false);
     return true;
   }
 
@@ -1062,6 +1105,8 @@ void DagorEdAppWindow::fillMainToolBar()
   tb2->setButtonPictures(CM_NAV_COMPASS, "compass");
   tb2->setBool(CM_NAV_COMPASS, static_cast<DagorEdAppEventHandler *>(appEH)->showCompass);
   editor_command_system.createToolbarButton(*tb2, CM_SHOW_COLLISION, EditorCommandIds::SHOW_COLLISION, "Show collision");
+  editor_command_system.createToolbarToggleButton(*tb2, CM_CAMERA_PRESETS, EditorCommandIds::CAMERA_PRESETS, "Show camera presets");
+  tb2->setButtonPictures(CM_CAMERA_PRESETS, "camera_list");
 
   tb2->setButtonPictures(CM_SHOW_COLLISION, "collision_preview");
 
@@ -1130,6 +1175,7 @@ void DagorEdAppWindow::fillMenu(PropPanel::IMenu *menu)
   // menu->setCheckById(CM_USE_OCCLUDERS, shouldUseOccluders);
   editor_command_system.addMenuItem(*menu, CM_VIEW, CM_NAV_COMPASS, EditorCommandIds::NAV_COMPASS, "Show compass");
   editor_command_system.addMenuItem(*menu, CM_VIEW, CM_SHOW_COLLISION, EditorCommandIds::SHOW_COLLISION, "Show collision");
+  editor_command_system.addMenuItem(*menu, CM_VIEW, CM_CAMERA_PRESETS, EditorCommandIds::CAMERA_PRESETS, "Show camera presets");
   editor_command_system.addMenuItem(*menu, CM_VIEW, CM_DISCARD_TEX_MODE, EditorCommandIds::DISCARD_TEX_MODE,
     "Discard textures (show stub tex)");
 
@@ -1147,6 +1193,8 @@ void DagorEdAppWindow::fillMenu(PropPanel::IMenu *menu)
     EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONTROL_GALLERY, "Control gallery");
   editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER,
     EditorCommandIds::VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER, "ImGui debugger");
+  editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_TEST_RUNTIME,
+    EditorCommandIds::VIEW_DEVELOPER_TOOLS_TEST_RUNTIME, "Test runtime");
   editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER,
     EditorCommandIds::VIEW_DEVELOPER_TOOLS_TOAST_MANAGER, "Toast manager");
   editor_command_system.addMenuItem(*menu, CM_VIEW_DEVELOPER_TOOLS, CM_VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG,
@@ -1524,6 +1572,9 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
     case CM_FILE_EXPORT_COLLISION_TO_DAG: exportLevelToDag(false); return 1;
 
     case CM_UNDO:
+      // Bring the user to the plugin that owns the op before applying it (no-op for same-plugin
+      // or owner-less ops), so the change is visible instead of mutating an off-screen plugin.
+      switchToUndoOpOwner(undoSystem->get_undo_owner());
       undoSystem->undo();
       updateUndoRedoMenu();
       IEditorCoreEngine::get()->updateViewports();
@@ -1531,6 +1582,7 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
       return 1;
 
     case CM_REDO:
+      switchToUndoOpOwner(undoSystem->get_redo_owner());
       undoSystem->redo();
       updateUndoRedoMenu();
       IEditorCoreEngine::get()->updateViewports();
@@ -1673,6 +1725,11 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
       IEditorCoreEngine::get()->invalidateViewportCache();
       return 1;
     }
+    case CM_CAMERA_PRESETS:
+    {
+      showCameraPresets(!mCameraPresets || !mCameraPresets->isPanelVisible());
+      return 1;
+    }
 
     case CM_SHOW_COLLISION: imgui_window_set_visible("", "Collision", !imgui_window_is_visible("", "Collision")); return 1;
 
@@ -1682,7 +1739,7 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
       mToolPanel->setBool(id, discardTexMode);
       ec_set_busy(true);
       texconvcache::build_on_demand_tex_factory_limit_tql(discardTexMode ? TQL_thumb : TQL_uhq);
-      spawnEvent(HUID_InvalidateClipmap, (void *)true);
+      spawnEvent(HUID_InvalidateClipmap, (void *)(uintptr_t)INVALIDATE_CLIPMAP_FORCE_REDRAW);
       ec_set_busy(false);
       return 1;
 
@@ -1705,6 +1762,12 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
     case CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER:
       imguiDebugWindowsVisible = !imguiDebugWindowsVisible;
       getMainMenu()->setCheckById(id, imguiDebugWindowsVisible);
+      return 1;
+
+    case CM_VIEW_DEVELOPER_TOOLS_TEST_RUNTIME:
+      testRuntimeWindowVisible = !editor_core_test_runtime_window_is_visible();
+      editor_core_test_runtime_set_window(testRuntimeWindowVisible);
+      getMainMenu()->setCheckById(id, testRuntimeWindowVisible);
       return 1;
 
     case CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER: PropPanel::show_toast_debug_panel(); return 1;
@@ -2188,11 +2251,10 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
 
     init3d(getPerApplicationWindowLayoutBlkPath());
 
-    const DataBlock &debugSettings = *dgs_get_settings()->getBlockByNameEx("debug");
-    const DataBlock *profiler = debugSettings.getBlockByName("profiler");
-    da_profiler::set_profiling_settings(debugSettings);
-    if (profiler && profiler->getBool("auto_dump", false))
-      da_profiler::start_file_dump_server("");
+    da_profiler::set_profiling_settings(*dgs_get_settings()->getBlockByNameEx("debug"));
+    da_profiler::tick_frame(); // Apply settings instantly to allow profiling loading times.
+
+    TIME_PROFILE(DagorEdAppWindow::startWithWorkspace);
 
     editor_core_initialize_imgui();
     editor_core_load_imgui_theme(getThemeFileName());
@@ -2307,13 +2369,31 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
   queryEditorInterface<IDynRenderService>()->selectAsGameScene();
   spawnEvent(HUID_AfterProjectLoad, NULL);
 
+  preparePluginsListmenu();
+
   repaint();
   force_screen_redraw();
   dagor_idle_cycle();
   DEBUG_CP();
-  ec_set_busy(false);
 
   DAGORED2->getConsole().hideConsole();
+
+  { // Wait till the window layout is ready.
+    // Temporarily lift the FPS limit to prevent dagor_work_cycle() from returning because of not enough elapsed time.
+    const bool oldLimitFps = dgs_limit_fps;
+    dgs_limit_fps = false;
+
+    // The first DagorEdAppWindow::renderUI() call loads the last used layout or sets the default one, then ImGui needs
+    // two frames to handle auto sizing.
+    for (int i = 0; i < 3; i++)
+      dagor_work_cycle();
+
+    dgs_limit_fps = oldLimitFps;
+  }
+
+  ec_set_busy(false);
+
+  logdbg("daEditorX has loaded and ready for interaction");
 }
 
 
@@ -2388,6 +2468,9 @@ void *DagorEdAppWindow::queryEditorInterfacePtr(unsigned huid)
 
   if (huid == IEditorCommandSystem::HUID)
     return &editor_command_system;
+
+  if (huid == IHmapDebugShadingService::HUID)
+    return ::get_hmap_debug_shading_service();
 
   RETURN_INTERFACE(huid, IMainWindowImguiRenderingService);
   RETURN_INTERFACE(huid, IEditorCommandKeyChordChangeEventHandler);
@@ -2923,6 +3006,8 @@ bool DagorEdAppWindow::gracefulFatalExit(const char *msg, const char *call_stack
 //==============================================================================
 bool DagorEdAppWindow::loadProject(const char *filename)
 {
+  TIME_PROFILE(DagorEdAppWindow::loadProject);
+
   logdbg("Loading project \"%s\".", filename);
 
   projectLoaded = false;
@@ -2944,6 +3029,10 @@ bool DagorEdAppWindow::loadProject(const char *filename)
   String basePath, projectName;
   String lastplugin;
   splitProjectFilename(filename, basePath, projectName);
+
+  del_it(mCameraPresets);
+  mCameraPresets = new CameraPresetsManager(basePath);
+  getMainMenu()->setCheckById(CM_CAMERA_PRESETS, false);
 
   set_colliders_to_default_state();
 
@@ -3211,6 +3300,9 @@ bool DagorEdAppWindow::loadProject(const char *filename)
 
   DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
   queryEditorInterface<IDynRenderService>()->reloadCharacterMicroDetails(*appBlk.getBlockByNameEx("dynamicDeferred"), localBlk);
+
+  if (IHmapDebugShadingService *debugShadingService = DAGORED2->queryEditorInterface<IHmapDebugShadingService>())
+    debugShadingService->loadGradientsFile(get_heightmap_debug_shading_gradient_settings_file_path());
 
   con.setActionDesc("Preparing to show...");
 
@@ -3688,6 +3780,25 @@ void DagorEdAppWindow::showShortcutsEditor(bool show)
   }
 }
 
+void DagorEdAppWindow::showCameraPresets(bool show)
+{
+  if (!mCameraPresets)
+    return;
+
+  const bool isCurrentlyShown = mCameraPresets->isPanelVisible();
+  if (show == isCurrentlyShown)
+    return;
+
+  if (isCurrentlyShown)
+  {
+    mManager->removeWindow(mCameraPresets->getPanel());
+  }
+  else
+  {
+    mManager->setWindowType(nullptr, CAMERA_PRESETS_TYPE);
+  }
+}
+
 //==============================================================================
 
 bool DagorEdAppWindow::getPendingTextureLoadTotalCount(unsigned int &total_count)
@@ -3950,13 +4061,16 @@ void DagorEdAppWindow::renderUIViewport(ViewportWindow &viewport, const Point2 &
 
   viewport.updateImgui(viewportCanvasId, size, item_spacing);
 
+  if (mCameraPresets)
+    mCameraPresets->captureViewportRect(ged.findViewportIndex(&viewport));
+
   ImGui::PopID();
 }
 
 void DagorEdAppWindow::renderUIViewports()
 {
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-  ImGui::Begin("Viewport");
+  ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
   ImGui::PopStyleVar();
 
   const float itemSpacing = ImGui::GetStyle().ItemSpacing.y; // Use the same spacing in both directions.
@@ -4187,6 +4301,23 @@ void DagorEdAppWindow::renderUI()
 
   PropPanel::render_toast_messages();
 
+  if (mCameraPresets && mCameraPresets->isPanelVisible())
+  {
+    ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f), ImGuiCond_FirstUseEver);
+
+    bool open = true;
+    DAEDITOR3.imguiBegin("Camera presets", &open);
+    mCameraPresets->getPanel()->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open)
+      showCameraPresets(false);
+  }
+
+  // Viewport overlays rendered last so they appear on top of the docked viewport windows.
+  if (mCameraPresets)
+    mCameraPresets->renderAllViewportOverlays();
+
   ImGui::EndChild();
 
   ImGui::End();
@@ -4202,6 +4333,8 @@ void DagorEdAppWindow::updateImgui()
   // updateImgui. See the notes at the PropPanel::MessageQueue class.
   G_ASSERT(!renderingImgui);
   renderingImgui = true;
+
+  editor_core_test_runtime_begin_frame();
 
   PropPanel::after_new_frame();
 
@@ -4236,6 +4369,8 @@ void DagorEdAppWindow::updateImgui()
   renderUI();
 
   PropPanel::before_end_frame();
+
+  editor_core_test_runtime_end_frame();
 
   renderingImgui = false;
 }

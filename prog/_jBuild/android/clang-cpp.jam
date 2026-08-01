@@ -28,6 +28,12 @@ rule ProcessCompileTarget
   }
   if $(CheckOnly) != yes { _CONFIG_OPT += -g ; }
 
+  if $(UseWholeOpt) != no {
+    if $(UseWholeOpt) = yes { _CONFIG_OPT += -flto=thin ; }
+    else { _CONFIG_OPT += -flto=$(UseWholeOpt) ; } # e.g. full
+    if $(UseWholeOptDevirt) = yes { _CONFIG_OPT += -fwhole-program-vtables ; }
+  }
+
   _CPP_OPT = "-I "$(AddIncludes) $(_CONFIG_OPT) $(_SUPPRESS_OPT) $(CPPopt) $(GlobalCPPopt) ;
 
   $(Target)__CPP_OPT =  -include memory/dag_memBase.h $(_CPP_OPT) ;

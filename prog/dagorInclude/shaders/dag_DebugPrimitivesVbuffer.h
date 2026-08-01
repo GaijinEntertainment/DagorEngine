@@ -35,6 +35,7 @@ public:
   void render();
   void renderEx(bool z_test, bool z_write, bool z_func_less, Color4 color_multiplier);
   void setTm(const TMatrix &tm);
+  void setZBias(float z_bias, float slope_z_bias);
 
   inline bool isValid() { return vbuffer != nullptr; }
 

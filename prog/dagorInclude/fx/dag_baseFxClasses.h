@@ -170,6 +170,18 @@ public:
 };
 
 
+// setParam(_MAKE4C('PFXG'), ...) payload: pre-simulate the effect so it appears mid-playing
+struct BaseFxWarmupParams
+{
+  float time = 0;   // seconds to pre-simulate; < 0 = auto (one full particle lifetime, i.e. steady state)
+  float stepDt = 0; // simulation step; 0 = dafx::Config::warmup_per_instance_step_dt; only used in per-instance mode
+  // set by the request's origin, not by caller choice: true = requested warmup (AcesEffect::warmup),
+  // false = EffectManager's internal load-time catch-up. Actual per-instance stepping also requires
+  // dafx::Config::warmup_per_instance_mode, otherwise shared-budget stepping is used either way.
+  bool perInstanceMode = false;
+};
+
+
 class BaseTrailEffect : public BaseEffectObject
 {
 public:

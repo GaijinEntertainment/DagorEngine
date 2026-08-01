@@ -86,7 +86,7 @@ struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
       vertices.reserve(idxBase + coll_res->getNodeVertCount(node->nodeIndex));
       coll_res->iterateNodeVerts(node->nodeIndex, [&](int, vec4f v) { vertices.push_back(v_mat44_mul_vec3p(nodeTm, v)); });
       indices.reserve(indices.size() + coll_res->getNodeFaceCount(node->nodeIndex) * 3);
-      coll_res->iterateNodeFaces(node->nodeIndex, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+      coll_res->iterateNodeFaces(node->nodeIndex, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
         indices.push_back(idxBase + int(i0));
         indices.push_back(idxBase + int(i1));
         indices.push_back(idxBase + int(i2));

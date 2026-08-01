@@ -65,7 +65,6 @@ explicit_var_ref
   ref:t = impostor_normal_mip
   ref:t = fom_shadows_cos
   ref:t = fom_shadows_sin
-  ref:t = random_pattern_tex
   ref:t = downsampled_far_depth_tex
   ref:t = lowres_fx_source_tex
   ref:t = cables_buf

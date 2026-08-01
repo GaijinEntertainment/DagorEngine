@@ -63,14 +63,16 @@ static String select_file(void *hwnd, const char fn[], const char mask[], const 
   if (strlen(def_ext))
     ofn.lpstrDefExt = (LPSTR)def_ext;
 
+  // OFN_NOCHANGEDIR: the default dialog behavior silently chdirs to the
+  // browsed folder, breaking every relative path the app resolves afterwards
   if (!save_nopen)
   {
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
     result = GetOpenFileName(&ofn);
   }
   else
   {
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT | OFN_EXTENSIONDIFFERENT;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT | OFN_EXTENSIONDIFFERENT | OFN_NOCHANGEDIR;
     result = GetSaveFileName(&ofn);
   }
 

@@ -331,7 +331,16 @@ int rebuildNavMesh_getTotalTiles();
 bool rebuildNavMesh_saveToFile(const char *);
 void rebuildNavMesh_close();
 
-uint32_t patchedNavMesh_getFileSizeAndNumTiles(const char *, int &num_tiles);
+struct PatchedNavMeshFileInfo
+{
+  uint32_t fileSize = 0; // patch payload size, 0 when the file is missing or malformed
+  int numTcTiles = 0;    // tile cache tiles stored in the patch
+  int numNavTiles = 0;   // nav mesh tiles stored in the patch
+  // highest tile array index pinned by the patch nav tiles, -1 when unknown; the
+  // loader must size the navmesh tile array to cover it
+  int maxNavTileIndex = -1;
+};
+PatchedNavMeshFileInfo patchedNavMesh_getFileInfo(const char *file_name);
 bool patchedNavMesh_loadFromFile(const char *, dtTileCache *, uint8_t *, ska::flat_hash_set<uint32_t> &);
 
 const Tab<uint32_t> &get_removed_tile_cache_tiles();

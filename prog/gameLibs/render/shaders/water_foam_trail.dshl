@@ -53,6 +53,7 @@ shader water_foam_trail
   (vs) {
     globtm@f44 = globtm;
     params@f4 = (water_foam_trail_params.x, water_foam_trail_params.y, water_foam_trail_params.z, water_foam_trail_gen);
+    water_level@f1 = water_level;
   }
   (ps) { params@f4 = (water_foam_trail_params.x, water_foam_trail_params.y, water_foam_trail_params.z, water_foam_trail_gen); }
 
@@ -106,7 +107,7 @@ shader water_foam_trail
       float width = lerp( 1.f, fwd_expand, ( 1.f - fadeout ) * input.dir.w );
       pos += input.dir.xy * width * 1.5;
 
-      output.pos = mul( float4( pos.x, 0.f, pos.y, 1.f ), globtm );
+      output.pos = mul( float4( pos.x, water_level, pos.y, 1.f ), globtm );
       output.grd.x = saturate( side );
       output.grd.y = input.pos.w * dist_remap;
       output.grd.z = alpha;

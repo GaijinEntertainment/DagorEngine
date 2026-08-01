@@ -3,5 +3,3 @@
 
 void debug(const char *, ...);
 void debug(const wchar_t *, ...);
-
-void close_debug();

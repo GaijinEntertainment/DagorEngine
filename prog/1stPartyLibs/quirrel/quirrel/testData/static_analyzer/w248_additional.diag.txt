@@ -1,5 +1,14 @@
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:54:21
+testData/static_analyzer/w248_additional.nut:25:33
+
+  let c = foo()?.z
+  let _bad = c != null ? c.val : a.missing
+                                 ^
+}
+
+
+WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
+testData/static_analyzer/w248_additional.nut:92:21
 
   let outer = foo()?.captured
   let _closure = @() outer.accessed
@@ -8,7 +17,7 @@ testData/static_analyzer/w248_additional.nut:54:21
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:91:8
+testData/static_analyzer/w248_additional.nut:129:8
 
   if (val == "string") {
     foo(obj.asString)
@@ -17,7 +26,7 @@ testData/static_analyzer/w248_additional.nut:91:8
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:93:8
+testData/static_analyzer/w248_additional.nut:131:8
 
   } else if (val == "number") {
     foo(obj.asNumber)
@@ -26,7 +35,7 @@ testData/static_analyzer/w248_additional.nut:93:8
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:119:14
+testData/static_analyzer/w248_additional.nut:157:14
 
   let nullable = foo()?.item
   let _arr = [nullable.prop]
@@ -35,7 +44,7 @@ testData/static_analyzer/w248_additional.nut:119:14
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:120:21
+testData/static_analyzer/w248_additional.nut:158:21
 
   let _arr = [nullable.prop]
   let _tbl = { key = nullable.prop2 }
@@ -44,7 +53,7 @@ testData/static_analyzer/w248_additional.nut:120:21
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:141:6
+testData/static_analyzer/w248_additional.nut:179:6
 
   bar(arg)
   foo(arg.field)
@@ -53,7 +62,7 @@ testData/static_analyzer/w248_additional.nut:141:6
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:151:8
+testData/static_analyzer/w248_additional.nut:189:8
 
   try {
     foo(val.attempt)
@@ -62,7 +71,7 @@ testData/static_analyzer/w248_additional.nut:151:8
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:153:8
+testData/static_analyzer/w248_additional.nut:191:8
 
   } catch (_e) {
     foo(val.fallback)
@@ -71,7 +80,7 @@ testData/static_analyzer/w248_additional.nut:153:8
 
 
 WARNING: w248 (access-potentially-nulled) 'expression' can be null, but is used as a container without checking.
-testData/static_analyzer/w248_additional.nut:175:6
+testData/static_analyzer/w248_additional.nut:213:6
 
   if (!x) return         // guard proves NEW x is non-null, but y has OLD value
   foo(y.field)           // warning - y might be null (holds old x value)

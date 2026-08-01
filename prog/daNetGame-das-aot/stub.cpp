@@ -60,6 +60,10 @@ void send_echo_msg(uint32_t) { G_ASSERT(0); }
 bool is_server() { G_ASSERT_RETURN(false, false); }
 bool is_true_net_server() { G_ASSERT_RETURN(false, false); }
 bool has_network() { G_ASSERT_RETURN(false, false); }
+namespace net
+{
+bool is_this_thread_net_em_owner() { G_ASSERT_RETURN(false, true); }
+} // namespace net
 bool dedicated::is_dedicated() { G_ASSERT_RETURN(false, false); }
 int get_build_number() { G_ASSERT_RETURN(false, 0); }
 net::IConnection *get_server_conn() { G_ASSERT_RETURN(false, nullptr); }
@@ -772,6 +776,7 @@ void dedicated_matching::ban_player_in_room(matching::UserId) { G_ASSERT(0); }
 int dedicated_matching::get_room_members_count() { G_ASSERT_RETURN(false, 0); }
 int dedicated_matching::get_player_req_teams_num(matching::UserId) { G_ASSERT_RETURN(false, 0); }
 const char *dedicated_matching::get_player_custom_info(matching::UserId) { G_ASSERT_RETURN(false, ""); }
+bool dedicated_matching::has_player_penalty(matching::UserId, const char *) { G_ASSERT_RETURN(false, false); }
 
 #include <render/priorityManagedShadervar.h>
 namespace PriorityShadervar
@@ -839,6 +844,7 @@ ILagCompensationMgr &get_lag_compensation()
 bool is_hosted_internal_server_active() { G_ASSERT_RETURN(false, false); }
 bool try_begin_hosted_server_start() { G_ASSERT_RETURN(false, false); }
 void clear_hosted_server_start_pending() { G_ASSERT(0); }
+void cancel_scheduled_internal_server_start() { G_ASSERT(0); }
 bool is_hosted_server_start_pending() { G_ASSERT_RETURN(false, false); }
 
 #include <perFrameStat/perFrameStat.h>

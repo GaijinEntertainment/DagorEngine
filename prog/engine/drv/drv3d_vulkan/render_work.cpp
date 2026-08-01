@@ -183,6 +183,11 @@ void RenderWork::cleanup()
   raytraceGeometryKHRStore.clear();
   raytraceBLASBufferRefsStore.clear();
   raytraceStructureBuildStore.clear();
+#if VK_EXT_opacity_micromap
+  raytraceMicromapUsageStore.clear();
+  raytraceMicromapBuildStore.clear();
+  raytraceBLASOmmLinkageStore.clear();
+#endif
 #endif
   shaderModuleUses.clear();
   cmds.clear();

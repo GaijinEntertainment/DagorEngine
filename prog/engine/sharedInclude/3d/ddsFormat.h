@@ -557,6 +557,7 @@ typedef struct _DDSURFACEDESC2
 #define FOURCC_DXT5  (MAKEFOURCC('D', 'X', 'T', '5'))
 #define FOURCC_ATI1N (MAKEFOURCC('A', 'T', 'I', '1'))
 #define FOURCC_ATI2N (MAKEFOURCC('A', 'T', 'I', '2'))
+#define FOURCC_BC5S  (MAKEFOURCC('B', 'C', '5', 'S'))
 
 #define FOURCC_DX10 (MAKEFOURCC('D', 'X', '1', '0'))
 

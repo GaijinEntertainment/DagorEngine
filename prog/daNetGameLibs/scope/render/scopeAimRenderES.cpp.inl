@@ -135,7 +135,7 @@ static void get_scope_camera_node_ecs_query(ecs::EntityManager &manager, ecs::En
 
 extern ShaderBlockIdHolder dynamicSceneBlockId;
 extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
-extern ShaderBlockIdHolder dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder dynamicTransSceneBlockId;
 
 extern ConVarT<bool, false> vrs_dof;
 
@@ -315,7 +315,7 @@ static __forceinline void render_scope_trans(ecs::EntityId eid,
   int nodeId,
   const TexStreamingContext &texCtx,
   ShaderElement *shader_override = nullptr,
-  const int block_id = dynamicSceneTransBlockId.get())
+  const int block_id = dynamicTransSceneBlockId.get())
 {
   G_ASSERT(nodeId >= 0);
   process_animchars_and_render(make_span_const(&eid, 1), ShaderMesh::STG_trans, ShaderMesh::STG_trans, block_id, 0, false,
@@ -398,7 +398,7 @@ void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, c
         scopeLensInst.showNode(nodeId, false);
       }
       process_animchars_and_render(make_span_const(&scopeAimData.entityWithScopeLensEid, 1), ShaderMesh::STG_trans,
-        ShaderMesh::STG_trans, dynamicSceneTransBlockId, VISFLG_COCKPIT_VISIBLE, false, NeedPreviousMatrices::No, texCtx, -1);
+        ShaderMesh::STG_trans, dynamicTransSceneBlockId, VISFLG_COCKPIT_VISIBLE, false, NeedPreviousMatrices::No, texCtx, -1);
       if (scopeAimData.lensNodeId >= 0)
         scopeLensInst.showNode(scopeAimData.lensNodeId, lensVisible);
       for (int nodeId : ScopeCrosshairNodeIterator(scopeAimData.crosshairNodeIds))

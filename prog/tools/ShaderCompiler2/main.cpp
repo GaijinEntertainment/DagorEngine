@@ -216,6 +216,7 @@ static void showUsage()
     "  -cppStcode       - compile cpp stcode along with bytecode (overrides compileCppStcode:b from blk). use "
     "-cppStcode=[regular|brances] for specific mode (regular is default).\n"
     "  -noCppStcode     - complie only bytecode stcode (overrides compileCppStcode:b from blk).\n"
+    "  -noCppStcodeJam  - generate cpp stcode, but no run jam (for tests)\n"
     "  -cppUnityBuild   - use unity build for cpp stcode.\n"
     "  -cppStcodeArch   - Arch for stcode compilation. Default is chosen when it is not specified. Opts: "
     "  -cppStcodeConfig - build config for cpp stcode [dev|rel|dbg]. Default is dev.\n"
@@ -410,7 +411,8 @@ static void mergeDataBlock(DataBlock &dest, const DataBlock &src, bool override_
 
 static void compile(Tab<String> &&source_files, const char *fn, const char *bindump_fnprefix, const ShHardwareOptions &opt,
   const char *blk_file_name, const char *cfg_dir, const char *binminidump_fnprefix, BindumpPackingFlags packing_flags,
-  shc::CompilerConfig &config_rw, const DataBlock *config_args, bool is_additional_dump)
+  shc::CompilerConfig &config_rw, const DataBlock *config_args, bool is_additional_dump, bool tools_shaders_detected,
+  int in_target_shader_amount_limit)
 {
   Tab<String> sourceList = eastl::move(source_files);
   String intermediateDir{};
@@ -602,6 +604,11 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
   else
     ++stcode_lib_fn;
 
+  StcodeCompilationDirs stcodeDirs = init_stcode_compilation(intermediateDir.c_str(), intermediateDir.c_str());
+
+  ShCompilationInfo compilation{
+    destFnBase, intermediateDir.c_str(), eastl::move(sourceList), blkHash, eastl::move(stcodeDirs), is_additional_dump, opt};
+
   {
     char destDir[260];
     dd_get_fname_location(destDir, bindump_fn);
@@ -625,21 +632,31 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
 #elif _CROSS_TARGET_DX12
     if (!shc::config().noSave)
     {
-      String pdb(260, "%s_pdb/", destDir[0] ? bindump_fnprefix : "./");
+      const char *suffix = "";
+      // For proper management of debug info (keeping only actual ones) need to split by debug info type.
+      // If pragma dfull is used to elevate debug level, we still store it in the same dir as the other ones.
+      switch (shc::config().hlslDebugLevel)
+      {
+        case DebugLevel::NONE: suffix = "_default"; break; // We may need a debug info dir in this case due to pragma dfull elevations
+        case DebugLevel::BASIC: suffix = "_pdb"; break;
+        case DebugLevel::FULL_DEBUG_INFO: suffix = "_dfull"; break;
+        case DebugLevel::AFTERMATH: suffix = "_daftermath"; break;
+      }
+      String pdb(260, "%s%s/", destDir[0] ? bindump_fnprefix : "./", suffix);
       static wchar_t dx12_pdb_cache_dir_storage[260];
+      static char dx12_pdb_cache_dir_storage_utf8[260];
       mbstowcs(dx12_pdb_cache_dir_storage, pdb, 260);
+      SNPRINTF(dx12_pdb_cache_dir_storage_utf8, sizeof(dx12_pdb_cache_dir_storage_utf8), "%s", pdb.str());
       config_rw.dx12PdbCacheDir = dx12_pdb_cache_dir_storage;
+      config_rw.dx12PdbCacheDirUtf8 = dx12_pdb_cache_dir_storage_utf8;
+      compilation.buildDebugInfoDirListing(dx12_pdb_cache_dir_storage_utf8, {".hlsl", ".cso", ".pdb"});
     }
 #endif
   }
 
-  StcodeCompilationDirs stcodeDirs = init_stcode_compilation(intermediateDir.c_str(), intermediateDir.c_str());
+  shc::CompilationContext compilationCtx{compilation, ShCompilationLimits{in_target_shader_amount_limit, tools_shaders_detected}};
 
-  ShCompilationInfo compilation{
-    destFnBase, intermediateDir.c_str(), eastl::move(sourceList), blkHash, eastl::move(stcodeDirs), is_additional_dump, opt};
-  shc::CompilationContext compilationCtx{compilation};
-
-  CompilerAction compAction = shc::config().forceRebuild ? CompilerAction::COMPILE_AND_LINK : shc::should_recompile(compilation);
+  CompilerAction compAction = shc::config().forceRebuild ? CompilerAction::COMPILE_AND_LINK : shc::should_recompile(compilationCtx);
   if (shc::config().singleCompilationShName)
   {
     if (compAction == CompilerAction::COMPILE_AND_LINK)
@@ -668,7 +685,7 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
 
     if (proc::is_multiproc())
     {
-      const bool compileResult = doCompileModulesAsync(compilation);
+      const bool compileResult = doCompileModulesAsync(compilationCtx);
 
       if (compileResult)
       {
@@ -1401,6 +1418,10 @@ int DagorWinMain(bool debugmode)
       }
       useCppStcodeOverride.emplace(shader_layout::ExternalStcodeMode::NONE);
     }
+    else if (dd_stricmp("-noCppStcodeJam", __argv[i]) == 0)
+    {
+      globalConfigRW.cppStcodeNoJam = true;
+    }
     else if (dd_stricmp("-cppUnityBuild", __argv[i]) == 0)
     {
       globalConfigRW.cppStcodeUnityBuild = true;
@@ -1550,7 +1571,7 @@ int DagorWinMain(bool debugmode)
     Tab<String> sourceFiles(midmem);
     sourceFiles.push_back(String(filename));
     compile(eastl::move(sourceFiles), filename, makeShBinDumpName(filename), shc::config().singleOptions, NULL, getDir(filename), NULL,
-      BindumpPackingFlagsBits::NONE, globalConfigRW, nullptr, true);
+      BindumpPackingFlagsBits::NONE, globalConfigRW, nullptr, true, false, INT_MAX);
   }
   else
   {
@@ -1607,6 +1628,7 @@ int DagorWinMain(bool debugmode)
     }
 
     globalConfigRW.generateCppStcodeValidationData &= globalConfigRW.compileCppStcode();
+    globalConfigRW.compileRefinedBlock = blk.getBool("compileRefinedBlock", true);
 
     Tab<String> sourceFiles(midmem);
     DataBlock *sourceBlk = blk.getBlockByName("source");
@@ -1805,10 +1827,26 @@ int DagorWinMain(bool debugmode)
           blk_vv = NULL;
         shc::setValidVariantsBlock(blk_vv);
 
+        bool toolsShadersDetected = false;
+        if (blk_av)
+        {
+          constexpr const char TOOLS_ASSUME_NAME[] = "in_editor_assume";
+          toolsShadersDetected = blk_av->getInt(TOOLS_ASSUME_NAME, 0) >= 1;
+          dblk::iterate_child_blocks(*blk_av, [&](const DataBlock &b) {
+            dblk::iterate_params(b, [&](int idx, int, int type) {
+              const char *name = b.getParamName(idx);
+              if (streq(name, TOOLS_ASSUME_NAME) && type == DataBlock::TYPE_INT)
+                sh_debug(SHLOG_FATAL, "Assuming \"in_editor_assume\" var only allowed at global blk scope");
+            });
+          });
+        }
+
         if (blk_rs)
           globalConfigRW.requiredShaders = blk_rs;
         if (blk_av)
           globalConfigRW.assumedVarsConfig = blk_av;
+
+        const int inTargetShaderAmountLimit = blk.getInt("shaderAmountLimit", INT_MAX);
 
         ShaderCompilerStat::reset();
 
@@ -1821,7 +1859,8 @@ int DagorWinMain(bool debugmode)
             packingFlags |= BindumpPackingFlagsBits::WHOLE_BINARY;
         }
         compile(eastl::move(sourceFiles), fName, comp->getStr("outDumpName", defShBindDumpPrefix), opt, filename, getDir(filename),
-          blk.getStr("outMiniDumpName", NULL), packingFlags, globalConfigRW, &configArgs, isAdditionalDump);
+          blk.getStr("outMiniDumpName", NULL), packingFlags, globalConfigRW, &configArgs, isAdditionalDump, toolsShadersDetected,
+          inTargetShaderAmountLimit);
       }
     }
   }

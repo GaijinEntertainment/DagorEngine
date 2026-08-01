@@ -15,6 +15,7 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_direct.h>
 #include <landMesh/lmeshManager.h>
+#include <landMesh/landRayTracerSoA4.h>
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/clipMap.h>
 #include <landMesh/lastClip.h>
@@ -39,6 +40,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <libTools/util/strUtil.h>
@@ -710,7 +712,7 @@ void AcesScene::update(const Point3 &op, float dt)
 
   BaseStreamingSceneHolder::act(op);
   if (!riPlugin || riPlugin->getVisible())
-    rendinst::scheduleRIGenPrepare(make_span(&grs_cur_view.pos, 1));
+    rendinst::scheduleRIGenPrepare(make_span_const(&op, 1));
   if (waterService)
     waterService->act(dt);
 }
@@ -768,8 +770,10 @@ void AcesScene::beforeRender()
     if (!tracerayNormalizedHeightmap(::grs_cur_view.pos, Point3(0, -1, 0), cameraHeight, NULL) && ::grs_cur_view.pos.y < 14000)
       cameraHeight = 20;
 
+    if (HeightmapHandler *h = lmeshMgr->getHmapHandler())
+      h->makeBookKeeping(); // once per frame; prepare() no longer does per-frame upkeep
     renderClipmaps();
-    lmeshRenderer->prepare(*lmeshMgr, ::grs_cur_view.pos, cameraHeight);
+    lmeshRenderer->prepare(*lmeshMgr, HmapOrigin(::grs_cur_view.pos));
   }
 
   ShaderGlobal::set_int_fast(inEditorGvId, 1);
@@ -801,6 +805,9 @@ void AcesScene::beforeRender()
 
 void AcesScene::renderClipmaps()
 {
+  if (is_restoring_3d_device())
+    return;
+
   class LandmeshCMRenderer : public ClipmapRenderer, public ToroidalHeightmapRenderer
   {
   public:
@@ -813,6 +820,7 @@ void AcesScene::renderClipmaps()
     Driver3dPerspective p;
     Tab<IRenderingService *> rendSrv;
     shaders::OverrideStateId flipCullStateId;
+    Point3 hmapOrigin = ::grs_cur_view.pos; // seed for renderFeedback() before startRenderTiles() runs (fallback feedback pass)
     LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p) :
       renderer(r), provider(p), omode(LMeshRenderingMode::RENDERING_LANDMESH)
     {
@@ -828,10 +836,12 @@ void AcesScene::renderClipmaps()
       minZ = landBox[0].y - 10;
       maxZ = landBox[1].y + 10;
 
-      omode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
+      omode = renderer.getLMeshRenderingMode();
+      ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
       static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
       ShaderGlobal::setBlock(land_mesh_prepare_clipmap_blockid, ShaderGlobal::LAYER_SCENE);
-      renderer.prepare(provider, pos, ::grs_cur_view.pos.y);
+      hmapOrigin = pos;
+      renderer.prepare(provider, HmapOrigin(pos));
       TMatrix vtm = TMatrix::IDENT;
       d3d::gettm(TM_VIEW, &ovtm);
       d3d::gettm(TM_PROJ, &oproj);
@@ -856,8 +866,9 @@ void AcesScene::renderClipmaps()
     }
     void endRenderTiles() override
     {
-      renderer.setRenderInBBox(BBox3());
+      ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+      // restore the ambient mode shadervar for tool passes that still rely on inheriting it
       renderer.setLMeshRenderingMode(omode);
       d3d::settm(TM_VIEW, &ovtm);
       d3d::settm(TM_PROJ, &oproj);
@@ -874,8 +885,11 @@ void AcesScene::renderClipmaps()
       proj = matrix_ortho_off_center_lh(region[0].x, region[1].x, region[1].y, region[0].y, minZ, maxZ);
       d3d::settm(TM_PROJ, &proj);
       BBox3 region3(Point3(region[0].x, minZ, region[0].y), Point3(region[1].x, maxZ + 500, region[1].y));
-      renderer.setRenderInBBox(region3);
-      renderer.render(provider, renderer.RENDER_CLIPMAP, ::grs_cur_view.pos);
+      LandMeshRenderDesc desc;
+      desc.mode = LMeshRenderingMode::RENDERING_CLIPMAP;
+      desc.renderInBBox = region3;
+      desc.invGeomLodDist = renderer.getInvGeomLodDist();
+      renderer.render(provider, renderer.RENDER_CLIPMAP, desc, ::grs_cur_view.pos, HmapOrigin(hmapOrigin));
 
       int old_st_mask = DAEDITOR3.getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
       DAEDITOR3.setEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, decal_ent_mask | decal3d_ent_mask);
@@ -885,8 +899,11 @@ void AcesScene::renderClipmaps()
     }
     void renderFeedback(const TMatrix4 &globtm) override
     {
-      LMeshRenderingMode omesh = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_FEEDBACK);
-      renderer.render(provider, renderer.RENDER_DEPTH, ::grs_cur_view.pos);
+      LMeshRenderingMode omesh = renderer.getLMeshRenderingMode();
+      LandMeshRenderDesc desc;
+      desc.mode = LMeshRenderingMode::RENDERING_FEEDBACK;
+      desc.invGeomLodDist = renderer.getInvGeomLodDist();
+      renderer.render(provider, renderer.RENDER_DEPTH, desc, ::grs_cur_view.pos, HmapOrigin(hmapOrigin));
       static int land_mesh_render_depth_blockid = ShaderGlobal::getBlockId("land_mesh_render_depth");
       ShaderGlobal::setBlock(land_mesh_render_depth_blockid, ShaderGlobal::LAYER_SCENE);
 
@@ -901,6 +918,7 @@ void AcesScene::renderClipmaps()
       DAEDITOR3.setEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, old_st_mask);
 
       ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
+      // restore the ambient mode shadervar for tool passes that still rely on inheriting it
       renderer.setLMeshRenderingMode(omesh);
     }
   };
@@ -971,7 +989,7 @@ void AcesScene::prepareFixedClip(int texture_size)
   data.texture_size = texture_size;
   data.use_dxt = false; // true;
   data.decals_cb = render_decals_cb;
-  data.global_frame_id = frameBlkId;
+  data.global_frame_id = -1;
   data.flipCullStateId = flipCullStateId.get();
   data.land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
   LMeshRenderingMode oldm = lmeshRenderer->getLMeshRenderingMode();
@@ -1002,8 +1020,9 @@ void AcesScene::render(bool render_rs)
   ShaderGlobal::set_int_fast(inEditorGvId, 0);
   if (lmeshRenderer && (st_mask & (land_mesh_mask | hmap_mask)))
   {
-    lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
-    lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_WITH_CLIPMAP, ::grs_cur_view.pos);
+    LandMeshRenderDesc desc;
+    desc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+    lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_WITH_CLIPMAP, desc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
   }
   clipmap->endUAVFeedback();
   clipmap->copyUAVFeedback();
@@ -1055,27 +1074,25 @@ void AcesScene::renderHeight()
   if (!lmeshRenderer)
     return;
 
-  DagorCurView savedView = ::grs_cur_view;
-  lmeshRenderer->prepare(*lmeshMgr, lmeshMgr->getBBox().center(), cameraHeight);
+  lmeshRenderer->prepare(*lmeshMgr, HmapOrigin(lmeshMgr->getBBox().center()));
 
   ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
-  LMeshRenderingMode oldMode = lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
+  LMeshRenderingMode oldMode = lmeshRenderer->getLMeshRenderingMode();
 
-  float oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
-  lmeshRenderer->setRenderInBBox(lmeshMgr->getBBox());
-  lmeshRenderer->setInvGeomLodDist(0.5 / lmeshMgr->getBBox().width().length());
+  LandMeshRenderDesc desc;
+  desc.mode = LMeshRenderingMode::RENDERING_HEIGHTMAP;
+  desc.renderInBBox = lmeshMgr->getBBox();
+  desc.invGeomLodDist = 0.5 / lmeshMgr->getBBox().width().length();
 
   shaders::overrides::set(blendOpMaxStateId);
-  lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_ONE_SHADER, ::grs_cur_view.pos);
+  lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_ONE_SHADER, desc, ::grs_cur_view.pos,
+    HmapOrigin(lmeshMgr->getBBox().center()));
   lmeshRenderer->setLMeshRenderingMode(oldMode);
   shaders::overrides::reset();
 
   ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
-  lmeshRenderer->setRenderInBBox(BBox3());
-  lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
-  ::grs_cur_view = savedView;
 }
 
 void AcesScene::renderShadows()
@@ -1098,12 +1115,10 @@ void AcesScene::renderShadowsVsm()
   ShaderGlobal::set_int_fast(inEditorGvId, 0);
   ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
 
-  DagorCurView savedView = ::grs_cur_view;
-  lmeshRenderer->forceLowQuality(true);
-  lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
-  lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_ONE_SHADER, ::grs_cur_view.pos);
-  lmeshRenderer->forceLowQuality(false);
-  ::grs_cur_view = savedView;
+  LandMeshRenderDesc vsmDesc;
+  vsmDesc.mode = LMeshRenderingMode::RENDERING_VSM;
+  vsmDesc.invGeomLodDist = lmeshRenderer->getInvGeomLodDist();
+  lmeshRenderer->render(*lmeshMgr, lmeshRenderer->RENDER_ONE_SHADER, vsmDesc, ::grs_cur_view.pos, HmapOrigin(::grs_cur_view.pos));
 
   ShaderGlobal::set_int_fast(inEditorGvId, 1);
 }
@@ -1139,8 +1154,11 @@ void AcesScene::renderSplines()
 }
 void AcesScene::renderSplinePoints(float max_dist)
 {
-  bool ortho = DAGORED2->getRenderViewport()->isOrthogonal();
-  Point3 cpos = grs_cur_view.pos;
+  IGenViewportWnd *vp = DAGORED2->getRenderViewport();
+  bool ortho = vp->isOrthogonal();
+  TMatrix cameraTm;
+  vp->getCameraTransform(cameraTm);
+  Point3 cpos = cameraTm.getcol(3);
   float dist2 = max_dist * max_dist;
   E3DCOLOR rendCol(70, 170, 255, 255);
 
@@ -1197,13 +1215,33 @@ void AcesScene::renderSplinePoints(float max_dist)
   splinepoint::ptDynBuf->flush();
 }
 
-void AcesScene::invalidateClipmap(bool force_redraw)
+void AcesScene::invalidateClipmap(bool force_redraw, bool rebuild_last_clip)
 {
   if (clipmap)
     clipmap->invalidate(force_redraw);
   if (toroidalHeightmap)
     toroidalHeightmap->invalidate();
-  rebuildLastClip = true;
+  if (rebuild_last_clip)
+    rebuildLastClip = true;
+}
+
+void AcesScene::beforeD3DReset()
+{
+  if (clipmap)
+    clipmap->beforeReset();
+  lod_grid_vdata_before_reset_device();
+}
+
+void AcesScene::afterD3DReset(bool full_reset)
+{
+  lod_grid_vdata_after_reset_device();
+  if (lmeshMgr)
+    lmeshMgr->afterDeviceReset(lmeshRenderer, full_reset);
+  if (clipmap)
+  {
+    clipmap->afterReset();
+    invalidateClipmap(true);
+  }
 }
 
 void AcesScene::placeResObjects()

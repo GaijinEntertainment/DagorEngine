@@ -322,10 +322,12 @@ macro SCOPE_LENS_SHADER()
         diffuse_tex@staticSmp = tex;
         emissive_mul@f1 = emissive_mul;
         screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
-        scope_lens_mask@smp2d = scope_lens_mask;
+        scope_lens_mask@tex2d = scope_lens_mask;
       }
+      INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
       hlsl(ps) {
+        #define scope_lens_mask_samplerstate global_linear_wrap_sampler
 
         float4 crosshair_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
         {
@@ -395,10 +397,12 @@ macro SCOPE_LENS_SHADER()
         }
 
         (ps) {
-          scope_lens_mask@smp2d = scope_lens_mask;
+          scope_lens_mask@tex2d = scope_lens_mask;
         }
+        INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
       }
       hlsl(ps) {
+        #define scope_lens_mask_samplerstate global_linear_wrap_sampler
         float4 scope_lens_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
         {
           #if SET_UP_MULTIDRAW
@@ -478,7 +482,7 @@ macro SCOPE_LENS_SHADER()
 
       if (assume_wt_scope_hack == on)
       {
-        (ps) { scope_lens_mask@smp2d = scope_lens_mask; }
+        (ps) { scope_lens_mask@tex2d = scope_lens_mask; }
       }
 
       hlsl(ps) {

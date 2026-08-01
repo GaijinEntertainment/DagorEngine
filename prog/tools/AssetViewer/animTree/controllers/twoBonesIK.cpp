@@ -2,6 +2,7 @@
 
 #include "twoBonesIK.h"
 #include "../animTreeUtils.h"
+#include "../animTreeDragListHandler.h"
 #include "../animTreePanelPids.h"
 
 #include <ioSys/dag_dataBlock.h>
@@ -118,11 +119,30 @@ void two_bones_ik_set_selected_node_list_settings(PropPanel::ContainerPropertyCo
 
 void two_bones_ik_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
 {
-  const SimpleString removeName = panel->getText(PID_CTRLS_NODES_LIST);
-  for (int i = 0; i < settings->blockCount(); ++i)
-    if (removeName == settings->getBlock(i)->getStr("start", nullptr))
-    {
-      settings->removeBlock(i);
-      return;
-    }
+  const int removeIdx = panel->getInt(PID_CTRLS_NODES_LIST);
+  dag::Vector<int> positions = collect_block_positions_by_name(*settings, "bones");
+  if (removeIdx >= 0 && removeIdx < positions.size())
+    settings->removeBlock(positions[removeIdx]);
+}
+
+class TwoBonesIKReorderHandler : public BaseCtrlReorderHandler
+{
+public:
+  TwoBonesIKReorderHandler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+    PropPanel::ContainerPropertyControl *panel) :
+    BaseCtrlReorderHandler(plugin, controllers, panel)
+  {}
+
+protected:
+  void handleSpecificReorder(DataBlock &settings, int from, int to) override
+  {
+    dag::Vector<int> positions = collect_block_positions_by_name(settings, "bones");
+    move_block_at_positions(settings, positions, from, to);
+  }
+};
+
+IListReorderHandler *two_bones_ik_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel)
+{
+  return new TwoBonesIKReorderHandler(plugin, controllers, panel);
 }

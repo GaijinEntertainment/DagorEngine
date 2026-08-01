@@ -779,7 +779,10 @@ int DataBlock::paramCountById(int nid) const
 void DataBlock::changeParamName(uint32_t i, const char *name)
 {
   if (i < paramCount())
-    (isOwned() ? getParam<true>(i) : getParam<false>(i)).nameId = addNameId(name);
+  {
+    toOwned(); // RO param data can be shared with other blocks (dedup dump), never write it in place
+    getParam<true>(i).nameId = addNameId(name);
+  }
 }
 
 template <bool rw>
@@ -911,15 +914,10 @@ bool DataBlock::removeParam(uint32_t idx)
 {
   if (uint32_t(idx) >= (uint32_t)paramCount())
     return false;
-  Param *p = getParamsImpl();
-  p += idx;
-  if (isOwned())
-  {
-    memmove(p, p + 1, data->data.data() + data->data.size() - (const char *)(p + 1));
-    data->data.resize(data->data.size() - sizeof(Param));
-  }
-  else
-    memmove(p, p + 1, (paramsCount - 1 - idx) * sizeof(Param));
+  toOwned(); // RO param data can be shared with other blocks (dedup dump), never write it in place
+  Param *p = getParams<true>() + idx;
+  memmove(p, p + 1, data->data.data() + data->data.size() - (const char *)(p + 1));
+  data->data.resize(data->data.size() - sizeof(Param));
   paramsCount--;
   return true;
 }

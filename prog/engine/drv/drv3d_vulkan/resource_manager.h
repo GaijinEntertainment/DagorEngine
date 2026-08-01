@@ -467,6 +467,7 @@ class ResourceManager
 
   bool allowMixedPages;
   bool allowBufferSuballoc;
+  bool allowBufferSuballocOnTempRings;
   bool allowAligmentTailOverlap;
   AllocationMethodPriorityList getAllocationMethods(const AllocationDesc &desc);
 

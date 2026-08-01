@@ -50,6 +50,24 @@ FRUSTUM_CLUSTERS_INLINE float frustum_clusters_get_depth_at_slice(FRUSTUM_CLUSTE
   return FRUSTUM_CLUSTERS_EXP2F(((float)slice) / dSliceScale - dSliceBias / dSliceScale);
 };
 
+#ifndef __cplusplus
+  uint frustum_clusters_get_cluster_index(float2 tc, float depth, float slice_scale, float slice_bias)
+  {
+    uint sliceId = min(frustum_clusters_get_slice_at_depth(depth, slice_scale, slice_bias), CLUSTERS_D);
+    return frustum_clusters_get_cluster_index(tc, sliceId);
+  };
+
+  uint get_cluster_grid_omni_address(uint cluster_index, uint words_per_omni)
+  {
+    return cluster_index * words_per_omni;
+  };
+
+  // the flat bit grid packs omni words for all clusters first, spot words after them
+  uint get_cluster_grid_spot_address(uint cluster_index, uint words_per_spot, uint words_per_omni)
+  {
+    return cluster_index * words_per_spot + (CLUSTERS_D + 1) * CLUSTERS_H * CLUSTERS_W * words_per_omni;
+  };
+#endif
 
 #undef FRUSTUM_CLUSTERS_LOG2F
 #undef FRUSTUM_CLUSTERS_INLINE

@@ -6,8 +6,7 @@
 #include <generic/dag_initOnDemand.h>
 #include <util/dag_globDef.h>
 #include <util/dag_string.h>
-#include <EASTL/vector.h>
-#include <EASTL/unique_ptr.h>
+#include <dag/dag_vector.h>
 #include <debug/dag_log.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -20,10 +19,10 @@ public:
   {
     int resId;
     int refCount;
-    eastl::unique_ptr<GeomNodeTree> nodeTree;
+    GeomNodeTreeUniquePtr nodeTree;
   };
 
-  eastl::vector<TreeData> treeData;
+  dag::Vector<TreeData> treeData;
 
 
   int findResData(int res_id) const
@@ -158,8 +157,7 @@ public:
         return;
     }
 
-    TreeData td{res_id, 0, eastl::make_unique<GeomNodeTree>()};
-    td.nodeTree->load(cb);
+    TreeData td{res_id, 0, GeomNodeTreeUniquePtr(GeomNodeTree::load(cb))};
     td.nodeTree->partialCalcWtm(dag::Index16(td.nodeTree->nodeCount()));
 
     WinAutoLock lock2(cs);
@@ -173,6 +171,7 @@ public:
 
   IMPLEMENT_DUMP_RESOURCES_REF_COUNT(treeData, resId, refCount)
 };
+DAG_DECLARE_RELOCATABLE(GeomNodeTreeGameResFactory::TreeData);
 
 static InitOnDemand<GeomNodeTreeGameResFactory> geom_node_tree_factory;
 

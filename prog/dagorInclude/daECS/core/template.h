@@ -20,6 +20,7 @@
 #include <daECS/core/componentsMap.h>
 #include <daECS/core/ecsHash.h>
 #include "internal/inplaceKeySet.h"
+#include "internal/asserts.h"
 
 class DataBlock;
 
@@ -146,6 +147,12 @@ private:
   uint32_t ignoredOfs() const { return replicatedOfs() + replicatedCount; }
   void buildSets(const component_set &tracked, const component_set &repl, const component_set &ignored);
   uint32_t resolveComponentsFlagsRecursive(const TemplatesData &db) const;
+  const ChildComponent *getComponentDFS(const HashedConstString &name, const TemplatesData &db,
+    eastl::bitvector<framemem_allocator> &visited) const;
+  bool hasComponentDFS(const HashedConstString &name, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const;
+  bool needCopyDFS(component_t comp, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const;
+  bool isReplicatedDFS(component_t comp, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const;
+  uint32_t getRegExpInheritedFlagsDFS(component_t aname, const TemplatesData &db, eastl::bitvector<framemem_allocator> &visited) const;
   void resolveFlags(const TemplatesData &db)
   {
     setInheritedFlags(resolveComponentsFlagsRecursive(db) | FLAG_CANT_INSTANTIATE);
@@ -333,7 +340,11 @@ struct TemplatesData : public TemplateComponentsDB
     return i < 0 ? end() : templates.begin() + i;
   }
   const Template *getTemplateById(uint32_t id) const { return id < templates.size() ? &templates[id] : nullptr; }
-  const Template &getTemplateRefById(uint32_t id) const { return templates[id]; }
+  const Template &getTemplateRefById(uint32_t id) const
+  {
+    DAECS_EXT_ASSERTF(id < templates.size(), "template id %d out of %d", id, templates.size());
+    return templates[id];
+  }
   inline int getTemplateIdByName(const HashedLenConstString &n) const { return templatesIds.getNameId(n.str, (size_t)n.len, n.hash); }
   inline int getTemplateIdByName(const char *n) const { return getTemplateIdByName(ECS_HASHLEN_SLOW(n)); }
 
@@ -341,6 +352,8 @@ struct TemplatesData : public TemplateComponentsDB
   inline void iterate_parents(const uint32_t t, PreCallable pre, PostCallable post) const;
   template <typename Callable>
   inline void iterate_template_parents(const Template &, Callable fn) const;
+  template <typename Callable>
+  inline void iterate_template_parents_visited(const Template &, Callable &fn, eastl::bitvector<framemem_allocator> &visited) const;
 };
 
 struct TemplateRefs : public TemplatesData
@@ -527,11 +540,37 @@ private:
 };
 
 template <typename Callable>
+inline void TemplatesData::iterate_template_parents_visited(const Template &parent, Callable &fn,
+  eastl::bitvector<framemem_allocator> &visited) const
+{
+  for (auto p : parent.parents)
+  {
+    if (visited.test(p, false))
+      continue;
+    visited.set(p, true);
+    const Template &pt = getTemplateRefById(p);
+    fn(pt);
+    iterate_template_parents_visited(pt, fn, visited);
+  }
+}
+
+// Each unique ancestor is visited once, in first-visit DFS order (self, then
+// each parent's subtree in stored parent order). Resolution is first-visit-wins, so
+// skipping revisits preserves results while avoiding the O(paths) blowup on
+// diamond-shaped hierarchies (compound templates, mods).
+template <typename Callable>
 inline void TemplatesData::iterate_template_parents(const Template &parent, Callable fn) const
 {
   fn(parent);
-  for (auto p : parent.parents)
-    iterate_template_parents(getTemplateRefById(p), fn);
+  if (parent.parents.empty())
+    return;
+  eastl::bitvector<framemem_allocator> visited(templates.size());
+  // parent may be standalone (not an element of templates, e.g. an updateTemplate
+  // argument): selfId is then out of range and self-marking is skipped
+  const size_t selfId = &parent - templates.begin();
+  if (selfId < templates.size())
+    visited.set(selfId, true);
+  iterate_template_parents_visited(parent, fn, visited);
 }
 
 template <typename PreCallable, typename PostCallable>

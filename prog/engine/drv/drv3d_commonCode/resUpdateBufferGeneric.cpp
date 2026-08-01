@@ -127,9 +127,7 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
 #if _TARGET_C1 || _TARGET_C2
 
 #endif
-  unsigned tex_fmt = ti.cflg & TEXFMT_MASK;
-  bool is_block_fmt = tex_fmt == TEXFMT_DXT1 || tex_fmt == TEXFMT_DXT3 || tex_fmt == TEXFMT_DXT5 || tex_fmt == TEXFMT_BC7 ||
-                      tex_fmt == TEXFMT_BC6H || tex_fmt == TEXFMT_ATI1N || tex_fmt == TEXFMT_ATI2N;
+  bool is_block_fmt = is_bc_texformat(ti.cflg);
 
   if (is_block_fmt && (ti.w < 4 || ti.h < 4))
   {

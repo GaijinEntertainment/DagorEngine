@@ -42,7 +42,7 @@ void Communications_Incoming_CmdTexture(RemoteClient::Client& Client)
 	Client.mTextureHistory[idx].isCreate			= pCmdTexture->mStatus == CmdTexture::eType::Create;
 	Client.mTextureHistory[idx].isDestroy			= pCmdTexture->mStatus == CmdTexture::eType::Destroy;
 	Client.mTextureHistory[idx].isUpdate			= pCmdTexture->mStatus == CmdTexture::eType::Update;
-	Client.mTextureHistory[idx].isDearImguiManaged	= pCmdTexture->mIsDearImGuiManaged != 0;
+	Client.mTextureHistory[idx].isDearImguiManaged	= pCmdTexture->mUpdatable != 0; // For now always true, but might change
 	Client.mTextureHistory[idx].x					= pCmdTexture->mOffsetX;
 	Client.mTextureHistory[idx].y					= pCmdTexture->mOffsetY;
 	Client.mTextureHistory[idx].w					= pCmdTexture->mWidth;

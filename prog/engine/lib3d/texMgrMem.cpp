@@ -339,17 +339,23 @@ static void on_frame_finished()
       mt ? load_tex_on_usage_cb(list, true) : add_delayed_callback(+[](void *d) { load_tex_on_usage_cb(d, /*mt*/ false); }, list);
   }
 
-  if (tql::mem_quota_kb && sys_mem_usage_thres_mb && RMGR.getTotalBdCount())
+#if _TARGET_PC_WIN
+  static const int sys_mem_min_avail_commit_mb =
+    dgs_get_settings()->getBlockByNameEx("texStreaming")->getInt("sysMemMinAvailCommitMB", 512);
+#endif
+
+  if (tql::mem_quota_kb && sys_mem_usage_thres_mb && RMGR.getTotalBdCount()) //-V1051
   {
     size_t mem_used_mb = (dagor_memory_stat::get_memchunk_count(true) * 32 + dagor_memory_stat::get_memory_allocated(true)) >> 20;
 #if _TARGET_PC_WIN
     MEMORYSTATUSEX msx;
     msx.dwLength = sizeof(msx);
     if (GlobalMemoryStatusEx(&msx))
-      if ((msx.ullAvailPhys >> 20) < sys_mem_add_free_mb)
+      if ((msx.ullAvailPhys >> 20) < sys_mem_add_free_mb || (msx.ullAvailPageFile >> 20) < sys_mem_min_avail_commit_mb)
       {
         if (mgr_log_level >= 1)
-          debug("SYSMEM# AvailPhys=%dM AvailVirtual=%dM mem_used=%dM", msx.ullAvailPhys >> 20, msx.ullAvailVirtual >> 20, mem_used_mb);
+          debug("SYSMEM# AvailPhys=%dM AvailCommit=%dM AvailVirtual=%dM mem_used=%dM", msx.ullAvailPhys >> 20,
+            msx.ullAvailPageFile >> 20, msx.ullAvailVirtual >> 20, mem_used_mb);
         mem_used_mb += sys_mem_add_free_mb;
         if (mem_used_mb < sys_mem_usage_thres_mb)
           mem_used_mb = sys_mem_usage_thres_mb + 1;
@@ -385,6 +391,22 @@ static void on_frame_finished()
 
       int new_quota_kb = min(observedMemUsedPersistentKb + RMGR.getTotalUsedTexSzKB() + free_gpu_mem_sz_kb, total_gpu_mem_sz_kb) -
                          max(tql::gpu_mem_reserve_kb, as_reserve_kb);
+
+#if _TARGET_PC_WIN
+      MEMORYSTATUSEX msx;
+      msx.dwLength = sizeof(msx);
+      if (GlobalMemoryStatusEx(&msx))
+      {
+        int64_t commit_quota_kb = observedMemUsedPersistentKb + RMGR.getTotalUsedTexSzKB() +
+                                  max(int64_t(msx.ullAvailPageFile >> 10) - (int64_t(sys_mem_min_avail_commit_mb) << 10), int64_t(0));
+        if (commit_quota_kb < new_quota_kb)
+        {
+          debug("freeGPUmem= quota clamped by commit: %dM -> %dM, availCommit=%dM", new_quota_kb >> 10, commit_quota_kb >> 10,
+            msx.ullAvailPageFile >> 20);
+          new_quota_kb = int(commit_quota_kb);
+        }
+      }
+#endif
 
       if (new_quota_kb + (2 << 10) < tql::mem_quota_kb || new_quota_kb > tql::mem_quota_kb + (64 << 10))
       {

@@ -45,6 +45,20 @@ expectErr("string-overrun", function() {
   b.readobject({})
 })
 
+// A serialized container may not exceed the same nesting limit as writeobject.
+expectErr("deep-nesting", function() {
+  let b = blob()
+  b.writen(0xEA, 'b')
+  for (local i = 0; i < 201; i++) {
+    b.writen(0x51, 'b')
+    b.writen(1, 'b')
+  }
+  b.writen(1, 'b')
+  b.writen(0xFA, 'b')
+  b.seek(0)
+  b.readobject({})
+})
+
 // a valid object still deserializes after all the failures (state not corrupted)
 let ok = blob()
 ok.writeobject([1, "two", 3.0])

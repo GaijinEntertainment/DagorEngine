@@ -13,6 +13,10 @@
 #include <osApiWrappers/dag_atomic.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
+#include <perfMon/dag_cpuFreq.h>
+#include <atomic>
+#include <daECS/core/internal/typesAndLimits.h>
+#include <daECS/core/internal/asserts.h>
 #include <daECS/net/time.h>
 #include <daECS/net/network.h>
 #include "net.h"
@@ -85,16 +89,17 @@ void clear_net_em();
 extern InitOnDemand<net::NetContext, false> net_context;
 
 
+// Field names mirror the live function names so READ_CURRENT_OR_SNAPSHOT(name) works one-arg.
 struct NetStateSnapshot
 {
-  bool hasNetwork = false;
-  bool isServer = true;
-  bool isTrueNetServer = false;
-  bool isDummyTime = true;
-  net::ServerFlags srvFlags = net::ServerFlags::None;
-  float syncTimeSec = 0.f;
-  double syncTimeSecD = 0.0;
-  int syncMillis = 0;
+  bool has_network = false;
+  bool is_server = true;
+  bool is_true_net_server = false;
+  bool is_dummy_time = true;
+  net::ServerFlags get_server_flags = net::ServerFlags::None;
+  float get_sync_time = 0.f;
+  double get_sync_time_d = 0.0;
+  int get_sync_millis = 0;
 };
 
 struct NetGlobals
@@ -106,7 +111,7 @@ struct NetGlobals
 
   OSSpinlock snapshotLock;
   NetStateSnapshot authoritativeSnapshot DAG_TS_GUARDED_BY(snapshotLock);
-  volatile uint64_t authoritativeVersion = 0;
+  std::atomic<uint32_t> snapshotVersion{0}; // bumped at most once per owner tick (release, under lock)
 
   ~NetGlobals();
 };
@@ -116,7 +121,7 @@ extern NetGlobals g_net_globals;
 // daNetGame-private NetContext accessor. Same lenient check as GET_NET() in net.h.
 #define GET_NET_CTX()                                                                                                      \
   ([]() -> net::NetContext * {                                                                                             \
-    G_ASSERTF(net::is_this_thread_net_em_owner() || net::topology_read_pin_active(),                                       \
+    DAECS_EXT_ASSERTF(net::is_this_thread_net_em_owner() || net::topology_read_pin_active(),                               \
       "GET_NET_CTX off the net-owner thread without a topology ReadScope (cur=%lld)", (long long)get_current_thread_id()); \
     return net_context.get();                                                                                              \
   }())
@@ -159,29 +164,50 @@ extern NetGlobals g_net_globals;
       (long long)get_current_thread_id());                                                                                     \
   } while (0)
 
+// TLS cache of net state, versioned against the authoritative snapshot. NetSnapshotScope primes
+// it on entry; publish_net_state_now bumps the version on the owner tick. Reads compare versions
+// and lazy-resync on divergence (see read_snapshot_lazy_resync), so a read from any thread returns
+// a coherent value even with no active scope.
 extern thread_local NetStateSnapshot net_snap;
-extern thread_local uint64_t net_snap_version;
+extern thread_local uint32_t net_snap_tls_version; // 0 = never synced
+extern thread_local bool net_snap_valid;
 
-namespace net
+// Out-of-line slow path (netSnapshot.cpp): resync a scope-less thread's TLS from the authoritative
+// snapshot and warn once (logwarn, not logerr -- logerr fails the test build). Kept off the hot
+// path.
+void net_snapshot_tls_resync();
+
+// Hot path. Owner and active-scope threads keep their own TLS coherent (publish primes the owner
+// each tick; NetSnapshotScope primes on entry and holds a stable snapshot for its whole duration),
+// so we read it as-is -- resyncing them mid-scope would reintroduce the cross-field TOCTOU the scope
+// exists to prevent. Only a scope-less thread lazy-resyncs, and only when its cached version is
+// stale so repeated reads stay a single TLS load.
+inline void read_snapshot_lazy_resync()
 {
-// Refresh TLS snapshot from authoritative without touching the pinned flag.
-// Used by sync_thread_net_snapshot() and by ensure_tls_snapshot_fresh() to catch up
-// lazy/unpinned readers and to refresh stale pinned readers after diagnostic.
-void sync_thread_net_snapshot_lazy();
+  if (DAGOR_UNLIKELY(!net_snap_valid && g_net_globals.snapshotVersion.load(std::memory_order_acquire) != net_snap_tls_version))
+    net_snapshot_tls_resync();
+}
 
-// Bring the TLS snapshot up to date for a read about to happen on this thread.
-// In debug, also emits warn/err diagnostics for pinned threads that fall behind.
-// Caller must already have asserted off-EM-owner; this only touches TLS.
-void ensure_tls_snapshot_fresh();
-} // namespace net
+inline void assert_non_owner_snapshot_read()
+{
+  G_FAST_ASSERT(!net::is_this_thread_net_em_owner() && "owner reading non-time snapshot field; call the live function");
+}
 
-#define READ_NET_SNAPSHOT_FIELD(field)                                                                                            \
-  ([]() -> auto {                                                                                                                 \
-    G_ASSERTF(!net::is_this_thread_net_em_owner(),                                                                                \
-      "net snapshot TLS read from net-EM owner thread (%lld) -- owner reads truth, not TLS", (long long)get_current_thread_id()); \
-    net::ensure_tls_snapshot_fresh();                                                                                             \
-    return net_snap.field;                                                                                                        \
-  }())
+// Non-time field: owner -> name_live() (file-static); non-owner -> scope-guarded TLS.
+#define READ_CURRENT_OR_SNAPSHOT(name) (net::is_this_thread_net_em_owner() ? (name##_live()) : READ_SNAPSHOT(name))
+
+// Strict snapshot read; asserts non-owner (owner must call the live function for non-time fields).
+#define READ_SNAPSHOT(field) ((read_snapshot_lazy_resync(), assert_non_owner_snapshot_read(), net_snap.field))
+
+// "No current": single TLS load on every thread, no branch on owner identity. The owner
+// thread sees the previous publish's value within one frame (publish_net_state_now updates
+// owner TLS atomically with the global snapshot, so the gap is bounded to one publish);
+// callers that need this-tick precision must go through the live timeMgr instead. Read speed
+// matters more here than freshness -- daRg/UI builds call these getters in tight loops.
+// read_snapshot_lazy_resync keeps the TLS coherent on every thread (owner primes it via publish,
+// others via NetSnapshotScope or the lazy resync), so this stays a single TLS load in the common
+// case with only a version compare guarding it.
+#define READ_SNAPSHOT_NO_CURRENT(field) (read_snapshot_lazy_resync(), net_snap.field)
 
 void publish_net_state_now();
 

@@ -563,6 +563,7 @@ __forceinline static void exec_stcode(dag::ConstSpan<int> cod, int internal_bloc
     {
       case SHCOD_GET_GVEC: color4_reg(regs, getOp2p1(opc)) = gvarsState.get<Color4>(getOp2p2(opc)); break;
       case SHCOD_GET_GMAT44: float4x4_reg(regs, getOp2p1(opc)) = gvarsState.get<TMatrix4>(getOp2p2(opc)); break;
+      case SHCOD_GET_GMAT43: set_float3x4_reg(regs, getOp2p1(opc), gvarsState.get<TMatrix>(getOp2p2(opc))); break;
       case SHCOD_VPR_CONST:
         const_setter->setVsConst(getOp2p1(opc), get_reg_ptr<float>(regs, getOp2p2(opc)), 1);
         stcode::dbg::record_set_const(stcode::dbg::RecordType::REFERENCE, STAGE_VS, getOp2p1(opc),

@@ -206,6 +206,8 @@ public:
 
   void updatePrevWtm()
   {
+    if (!sceneInstance)
+      return;
     for (uint32_t i = 0; i < sceneInstance->getNodeCount(); i++)
     {
       TMatrix wtm = sceneInstance->getNodeWtm(i);

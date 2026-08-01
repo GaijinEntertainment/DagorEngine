@@ -21,10 +21,10 @@
 float4 sample_4depths(float Level, float4 tc0, float4 tc1)
 {
   float4 rawDepth;
-  rawDepth.x = tex2Dlod(ssr_depth, float4(tc0.xy * current_dynamic_resolution_scale, 0, Level)).r;
-  rawDepth.y = tex2Dlod(ssr_depth, float4(tc0.zw * current_dynamic_resolution_scale, 0, Level)).r;
-  rawDepth.z = tex2Dlod(ssr_depth, float4(tc1.xy * current_dynamic_resolution_scale, 0, Level)).r;
-  rawDepth.w = tex2Dlod(ssr_depth, float4(tc1.zw * current_dynamic_resolution_scale, 0, Level)).r;
+  rawDepth.x = tex2Dlod(ssr_depth, float4(tc0.xy, 0, Level)).r;
+  rawDepth.y = tex2Dlod(ssr_depth, float4(tc0.zw, 0, Level)).r;
+  rawDepth.z = tex2Dlod(ssr_depth, float4(tc1.xy, 0, Level)).r;
+  rawDepth.w = tex2Dlod(ssr_depth, float4(tc1.zw, 0, Level)).r;
   return rawDepth;
 }
 float4 ssr_smootherstep_vec4(float4 x)
@@ -147,7 +147,7 @@ half4 sample_vignetted_color(float3 hit_uv_z, float fade, float linear_roughness
   BRANCH
   if (fade>0)
   {
-    result.rgb = tex2Dlod(prev_frame_tex, float4(sampleUV.xy * current_dynamic_resolution_scale, 0, 0 * TXlod)).rgb;
+    result.rgb = tex2Dlod(prev_frame_tex, float4(sampleUV.xy, 0, 0 * TXlod)).rgb;
     result.a = 1;
     float2 vignette = saturate(abs(screenPos) * 10 - 9);
 

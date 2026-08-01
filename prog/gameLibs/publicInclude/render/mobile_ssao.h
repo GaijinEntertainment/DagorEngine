@@ -29,8 +29,7 @@ public:
 
 private:
   void render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, BaseTexture *ssaoTex,
-    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 *, SubFrameSample sub_sample = SubFrameSample::Single,
-    const DynRes *dynamic_resolution = nullptr) override;
+    BaseTexture *prevSsaoTex, BaseTexture *tmpTex, const DPoint3 *, SubFrameSample sub_sample = SubFrameSample::Single) override;
 
   void setFrameNo();
   void renderSSAO(BaseTexture *depth_tex_to_use);

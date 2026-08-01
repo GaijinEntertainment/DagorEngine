@@ -13,13 +13,9 @@
 #include <perfMon/dag_statDrv.h>
 #include <render/viewVecs.h>
 #include <render/ssao.h>
-#include <shaders/dag_dynamicResolutionStcode.h>
 #include <render/set_reprojection.h>
 #include <drv/3d/dag_lock.h>
 #include <poisson/poisson_buffer_helper.h>
-
-#define PATTERN_SIZE 3
-#define SAMPLE_COUNT 8
 
 #define GLOBAL_VARS_LIST               \
   VAR(ssao_frame_no)                   \
@@ -89,33 +85,6 @@ SSAORenderer::SSAORenderer(int w, int h, int num_views, uint32_t flags, bool use
   }
 
   reset();
-
-  if (!(flags & SSAO_SKIP_RANDOM_PATTERN_GENERATION))
-    initRandomPattern();
-}
-
-void SSAORenderer::initRandomPattern()
-{
-  String name(128, "%srandom_pattern_tex", tag);
-
-  randomPatternTex.close();
-  randomPatternTex = UniqueTexWithShaderVar(dag::create_tex(nullptr, PATTERN_SIZE * PATTERN_SIZE, SAMPLE_COUNT,
-                                              TEXCF_RTARGET | TEXFMT_A16B16G16R16F, 1, name.data(), RESTAG_AO),
-    "random_pattern_tex");
-  renderRandomPattern();
-}
-
-void SSAORenderer::renderRandomPattern()
-{
-  d3d::GpuAutoLock lock;
-  SCOPE_RESET_SHADER_BLOCKS;
-  Driver3dRenderTarget prevRt;
-  d3d::get_render_target(prevRt);
-  d3d::set_render_target({}, DepthAccess::RW, {{randomPatternTex.getTex2D(), 0, 0}});
-  PostFxRenderer randomizer;
-  randomizer.init("bent_cones_random_pattern");
-  randomizer.render();
-  d3d::set_render_target(prevRt);
 }
 
 void SSAORenderer::generatePoissonPoints(int num_samples, int num_frames)
@@ -142,12 +111,6 @@ void SSAORenderer::reset()
     view.prevWorldPos = DPoint3(0, 0, 0);
     view.frameNo = 0;
   });
-
-  if (randomPatternTex.getTex2D())
-  {
-    randomPatternTex.setVar();
-    renderRandomPattern();
-  }
 }
 
 SSAORenderer::~SSAORenderer()
@@ -159,21 +122,13 @@ SSAORenderer::~SSAORenderer()
     viewSpecific.forEach([&](ViewSpecific &view) { view.ssaoTex = nullptr; });
   }
   poissonPoints.close();
-  clearRandomPattern();
 }
 
-void SSAORenderer::renderSSAO(BaseTexture *depth_to_use, BaseTexture *ssaoTex, BaseTexture *prevSsaoTex, bool clear_rt,
-  const DynRes *dynamic_resolution)
+void SSAORenderer::renderSSAO(BaseTexture *depth_to_use, BaseTexture *ssaoTex, BaseTexture *prevSsaoTex, bool clear_rt)
 {
   G_UNUSED(depth_to_use);
   ShaderGlobal::set_texture(ssao_prev_texVarId, prevSsaoTex);
   d3d::set_render_target({}, DepthAccess::RW, {{ssaoTex, 0, 0}});
-
-  if (dynamic_resolution)
-  {
-    IPoint2 sres = calc_and_set_dynamic_resolution_stcode(*ssaoTex, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution));
-    d3d::setviewscissor(0, 0, sres.x, sres.y);
-  }
 
   if (clear_rt)
     d3d::clearview(CLEAR_DISCARD, 0xFFFFFFFF, 1.0, 0);
@@ -199,7 +154,7 @@ void SSAORenderer::updateFrameNo()
   viewSpecific->frameNo &= ((1 << 22) - 1);
 }
 
-void SSAORenderer::applyBlur(BaseTexture *ssaoTex, BaseTexture *tmpTex, const DynRes *dynamic_resolution)
+void SSAORenderer::applyBlur(BaseTexture *ssaoTex, BaseTexture *tmpTex)
 {
   Color4 texelOffset(0.5, 0.5, 1.f / aoWidth, 1.f / aoHeight);
 
@@ -207,12 +162,6 @@ void SSAORenderer::applyBlur(BaseTexture *ssaoTex, BaseTexture *tmpTex, const Dy
 
   // Phase 1. horizontal. ssao -> blurredSsaoTex
   d3d::set_render_target({}, DepthAccess::RW, {{tmpTex, 0, 0}});
-
-  if (dynamic_resolution)
-  {
-    IPoint2 sres = calc_and_set_dynamic_resolution_stcode(*tmpTex, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution));
-    d3d::setviewscissor(0, 0, sres.x, sres.y);
-  }
 
   ShaderGlobal::set_texture(ssao_texVarId, ssaoTex);
   const int order = viewSpecific->frameNo & 1; // we change order of blur each odd frame. that's hide it's unsepratable nature, with a
@@ -225,19 +174,13 @@ void SSAORenderer::applyBlur(BaseTexture *ssaoTex, BaseTexture *tmpTex, const Dy
   // Phase 2. vertical. blurredSsaoTex -> shadowBufferTex
   d3d::set_render_target({}, DepthAccess::RW, {{ssaoTex, 0, 0}});
 
-  if (dynamic_resolution)
-  {
-    IPoint2 sres = calc_and_set_dynamic_resolution_stcode(*ssaoTex, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution));
-    d3d::setviewscissor(0, 0, sres.x, sres.y);
-  }
-
   ssaoBlurRenderer->getMat()->set_int_param(ssaoBlurVerticalVarId.get_var_id(), 1 - order);
   ShaderGlobal::set_texture(ssao_texVarId, tmpTex);
   ssaoBlurRenderer->render();
 }
 
 void SSAORenderer::renderSSAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, BaseTexture *ssao_tex,
-  BaseTexture *prev_ssao_tex, const DPoint3 *world_pos, SubFrameSample sub_sample, bool clear_rt, const DynRes *dynamic_resolution)
+  BaseTexture *prev_ssao_tex, const DPoint3 *world_pos, SubFrameSample sub_sample, bool clear_rt)
 {
   // SSAO Renderer can work in two modes - using it's own textures or external ones. Mode is set in constructor.
   G_ASSERT(useOwnTextures || (ssao_tex && prev_ssao_tex));
@@ -265,14 +208,11 @@ void SSAORenderer::renderSSAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, B
     ssaoTex = viewSpecific->ssaoTex.get()->getBaseTex();
   }
 
-  if (randomPatternTex.getTex2D())
-    randomPatternTex.setVar();
-
   ShaderGlobal::set_float(ssao_half_hfov_tanVarId, 1.0f / max(proj_tm.m[0][0], 1e-6f));
 
   {
     TIME_D3D_PROFILE(SSAO_render)
-    renderSSAO(depth_tex_to_use, ssaoTex, prevSsaoTex, clear_rt, dynamic_resolution);
+    renderSSAO(depth_tex_to_use, ssaoTex, prevSsaoTex, clear_rt);
   }
 
   if (useOwnTextures)
@@ -281,7 +221,7 @@ void SSAORenderer::renderSSAO(const TMatrix &view_tm, const TMatrix4 &proj_tm, B
   }
 }
 
-void SSAORenderer::applySSAOBlur(BaseTexture *ssao_tex, BaseTexture *tmp_tex, const DynRes *dynamic_resolution)
+void SSAORenderer::applySSAOBlur(BaseTexture *ssao_tex, BaseTexture *tmp_tex)
 {
   G_ASSERT(useOwnTextures || (ssao_tex && tmp_tex));
 
@@ -300,7 +240,7 @@ void SSAORenderer::applySSAOBlur(BaseTexture *ssao_tex, BaseTexture *tmp_tex, co
       tmpSsao = ssaoRTPool->acquire();
       tmpTex = tmpSsao.get()->getBaseTex();
     }
-    applyBlur(ssaoTex, tmpTex, dynamic_resolution);
+    applyBlur(ssaoTex, tmpTex);
     if (useOwnTextures)
       tmpSsao = nullptr;
     d3d::resource_barrier({ssaoTex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -318,16 +258,10 @@ void SSAORenderer::applySSAOBlur(BaseTexture *ssao_tex, BaseTexture *tmp_tex, co
 }
 
 void SSAORenderer::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, BaseTexture *depth_tex_to_use, BaseTexture *ssao_tex,
-  BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample,
-  const DynRes *dynamic_resolution)
+  BaseTexture *prev_ssao_tex, BaseTexture *tmp_tex, const DPoint3 *world_pos, SubFrameSample sub_sample)
 {
-  G_UNUSED(dynamic_resolution);
-
-  renderSSAO(view_tm, proj_tm, depth_tex_to_use, ssao_tex, prev_ssao_tex, world_pos, sub_sample, true, dynamic_resolution);
-  applySSAOBlur(ssao_tex, tmp_tex, dynamic_resolution);
-
-  if (dynamic_resolution)
-    prevDynRes = *dynamic_resolution;
+  renderSSAO(view_tm, proj_tm, depth_tex_to_use, ssao_tex, prev_ssao_tex, world_pos, sub_sample, true);
+  applySSAOBlur(ssao_tex, tmp_tex);
 }
 
 Texture *SSAORenderer::getSSAOTex()

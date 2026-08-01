@@ -13649,8 +13649,8 @@ static duk_uint8_t *duk__dump_func(duk_hthread *thr, duk_hcompfunc *func, duk_bu
 	ins_end = DUK_HCOMPFUNC_GET_CODE_END(thr->heap, func);
 	DUK_ASSERT((duk_size_t) (ins_end - ins) == (duk_size_t) count_instr);
 #if defined(DUK_USE_INTEGER_BE)
-	DUK_MEMCPY((void *) p, (const void *) ins, (size_t) (ins_end - ins));
-	p += (size_t) (ins_end - ins);
+	DUK_MEMCPY((void *) p, (const void *) ins, (size_t) (ins_end - ins) * 4);
+	p += (size_t) (ins_end - ins) * 4;
 #else
 	while (ins != ins_end) {
 		tmp32 = (duk_uint32_t) (*ins);
@@ -36370,7 +36370,12 @@ void duk_bi_json_stringify_helper(duk_hthread *thr,
 			duk_uarridx_t plist_idx = 0;
 			duk_small_uint_t enum_flags;
 
-			js_ctx->idx_proplist = duk_push_array(thr);  /* XXX: array internal? */
+			/* Use a bare array (no prototype) so that building the
+			 * proplist cannot trigger inherited Array.prototype
+			 * index setters (GH-2202).
+			 */
+			js_ctx->idx_proplist = duk_push_array(thr);
+			duk_hobject_set_prototype_updref(thr, duk_known_hobject(thr, -1), NULL);
 
 			enum_flags = DUK_ENUM_ARRAY_INDICES_ONLY |
 			             DUK_ENUM_SORT_ARRAY_INDICES;  /* expensive flag */
@@ -38400,7 +38405,9 @@ DUK_INTERNAL void duk_proxy_ownkeys_postprocess(duk_hthread *thr, duk_hobject *h
 		}
 
 		/* [ obj trap_result res_arr propname ] */
-		duk_put_prop_index(thr, -2, idx++);
+		duk_push_uarridx(thr, idx++);
+		duk_insert(thr, -2);
+		duk_def_prop(thr, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_SET_WEC);
 		continue;
 
 	 skip_key:
@@ -63148,6 +63155,15 @@ DUK_LOCAL duk_int_t duk__handle_call_raw(duk_hthread *thr,
 	/* [ ... func this arg1 ... argN ] */
 
 	/*
+	 *  Grow value stack to required size before env setup.  This
+	 *  must happen before env setup to handle some corner cases
+	 *  correctly, e.g. test-bug-scope-segv-gh2448.js.
+	 */
+
+	duk_valstack_grow_check_throw(thr, vs_min_bytes);
+	act->reserve_byteoff = (duk_size_t) ((duk_uint8_t *) thr->valstack_end - (duk_uint8_t *) thr->valstack);
+
+	/*
 	 *  Environment record creation and 'arguments' object creation.
 	 *  Named function expression name binding is handled by the
 	 *  compiler; the compiled function's parent env will contain
@@ -63168,12 +63184,7 @@ DUK_LOCAL duk_int_t duk__handle_call_raw(duk_hthread *thr,
 	 *  Setup value stack: clamp to 'nargs', fill up to 'nregs',
 	 *  ensure value stack size matches target requirements, and
 	 *  switch value stack bottom.  Valstack top is kept.
-	 *
-	 *  Value stack can only grow here.
 	 */
-
-	duk_valstack_grow_check_throw(thr, vs_min_bytes);
-	act->reserve_byteoff = (duk_size_t) ((duk_uint8_t *) thr->valstack_end - (duk_uint8_t *) thr->valstack);
 
 	if (use_tailcall) {
 		DUK_ASSERT(nregs >= 0);
@@ -73242,17 +73253,21 @@ DUK_LOCAL duk_small_uint_t duk__handle_longjmp(duk_hthread *thr, duk_activation 
 			DUK_DD(DUK_DDPRINT("-> yield an error, converted to a throw in the resumer, propagate"));
 			goto check_longjmp;
 		} else {
-			duk_hthread_activation_unwind_norz(resumer);
-			duk__handle_yield(thr, resumer, &thr->heap->lj.value1);
+			/* When handling the yield, the last reference to
+			 * 'thr' may disappear.
+			 */
 
+			DUK_GC_TORTURE(resumer->heap);
+			duk_hthread_activation_unwind_norz(resumer);
+			DUK_GC_TORTURE(resumer->heap);
 			thr->state = DUK_HTHREAD_STATE_YIELDED;
 			thr->resumer = NULL;
 			DUK_HTHREAD_DECREF_NORZ(thr, resumer);
 			resumer->state = DUK_HTHREAD_STATE_RUNNING;
 			DUK_HEAP_SWITCH_THREAD(thr->heap, resumer);
-#if 0
-			thr = resumer;  /* not needed, as we exit right away */
-#endif
+			duk__handle_yield(thr, resumer, &thr->heap->lj.value1);
+			thr = resumer;
+			DUK_GC_TORTURE(resumer->heap);
 
 			DUK_DD(DUK_DDPRINT("-> yield a value, restart execution in resumer"));
 			retval = DUK__LONGJMP_RESTART;
@@ -79875,6 +79890,7 @@ void duk__putvar_helper(duk_hthread *thr,
                         duk_tval *val,
                         duk_bool_t strict) {
 	duk__id_lookup_result ref;
+	duk_tval tv_tmp_val;
 	duk_tval tv_tmp_obj;
 	duk_tval tv_tmp_key;
 	duk_bool_t parents;
@@ -79895,6 +79911,13 @@ void duk__putvar_helper(duk_hthread *thr,
         DUK_ASSERT_REFCOUNT_NONZERO_HEAPHDR(env);
         DUK_ASSERT_REFCOUNT_NONZERO_HEAPHDR(name);
 	DUK_ASSERT_REFCOUNT_NONZERO_TVAL(val);
+
+	/* 'val' may be a value stack pointer which becomes stale if the
+	 * variable lookup below reallocates the value stack (e.g. via a
+	 * with(proxy) side effect), so stabilize it first.
+	 */
+	DUK_TVAL_SET_TVAL(&tv_tmp_val, val);  /* Stabilize. */
+	val = NULL;
 
 	/*
 	 *  In strict mode E5 protects 'eval' and 'arguments' from being
@@ -79927,7 +79950,7 @@ void duk__putvar_helper(duk_hthread *thr,
 
 			tv_val = ref.value;
 			DUK_ASSERT(tv_val != NULL);
-			DUK_TVAL_SET_TVAL_UPDREF(thr, tv_val, val);  /* side effects */
+			DUK_TVAL_SET_TVAL_UPDREF(thr, tv_val, &tv_tmp_val);  /* side effects */
 
 			/* ref.value invalidated here */
 		} else {
@@ -79935,7 +79958,7 @@ void duk__putvar_helper(duk_hthread *thr,
 
 			DUK_TVAL_SET_OBJECT(&tv_tmp_obj, ref.holder);
 			DUK_TVAL_SET_STRING(&tv_tmp_key, name);
-			(void) duk_hobject_putprop(thr, &tv_tmp_obj, &tv_tmp_key, val, strict);
+			(void) duk_hobject_putprop(thr, &tv_tmp_obj, &tv_tmp_key, &tv_tmp_val, strict);
 
 			/* ref.value invalidated here */
 		}
@@ -79959,11 +79982,7 @@ void duk__putvar_helper(duk_hthread *thr,
 
 	DUK_TVAL_SET_OBJECT(&tv_tmp_obj, thr->builtins[DUK_BIDX_GLOBAL]);
 	DUK_TVAL_SET_STRING(&tv_tmp_key, name);
-	(void) duk_hobject_putprop(thr, &tv_tmp_obj, &tv_tmp_key, val, 0);  /* 0 = no throw */
-
-	/* NB: 'val' may be invalidated here because put_value may realloc valstack,
-	 * caller beware.
-	 */
+	(void) duk_hobject_putprop(thr, &tv_tmp_obj, &tv_tmp_key, &tv_tmp_val, 0);  /* 0 = no throw */
 }
 
 DUK_INTERNAL
@@ -87349,6 +87368,8 @@ DUK_LOCAL void duk__regexp_match_helper(duk_hthread *thr, duk_small_int_t force_
 			 * as 'undefined'.  The same is done when saved[] pointers are insane
 			 * (this should, of course, never happen in practice).
 			 */
+			duk_push_uarridx(thr, (duk_uarridx_t) (i / 2));
+
 			if (re_ctx.saved[i] && re_ctx.saved[i + 1] && re_ctx.saved[i + 1] >= re_ctx.saved[i]) {
 				duk_push_lstring(thr,
 				                 (const char *) re_ctx.saved[i],
@@ -87365,8 +87386,8 @@ DUK_LOCAL void duk__regexp_match_helper(duk_hthread *thr, duk_small_int_t force_
 				duk_push_undefined(thr);
 			}
 
-			/* [ ... re_obj input bc saved_buf res_obj val ] */
-			duk_put_prop_index(thr, -2, (duk_uarridx_t) (i / 2));
+			/* [ ... re_obj input bc saved_buf res_obj idx val ] */
+			duk_def_prop(thr, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_SET_WEC);
 		}
 
 		/* [ ... re_obj input bc saved_buf res_obj ] */

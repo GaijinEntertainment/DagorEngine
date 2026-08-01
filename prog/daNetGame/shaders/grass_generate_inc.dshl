@@ -5,6 +5,9 @@ int grass_use_quads always_referenced;
 interval grass_use_quads : no < 1, yes;
 int grass_instancing = 0;
 interval grass_instancing:off<1, on;
+int grass_use_hzb_occlusion = 0;
+interval grass_use_hzb_occlusion: no<1, yes;
+
 float4 grass_gen_lod;
 float grass_gen_lod_index;
 int grass_max_instance_count;

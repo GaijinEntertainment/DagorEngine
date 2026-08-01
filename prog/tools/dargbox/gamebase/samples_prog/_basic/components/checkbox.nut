@@ -10,9 +10,8 @@ let defBoxStyle = {
   hoverColor = Color(250,250,250)
 }
 
-function defMkText(text, state=null, stateFlags=null, style = null){
+function defMkText(text, _state=null, _stateFlags=null, style = null){
   return @(){
-    watch = [state, stateFlags]
     rendObj = ROBJ_TEXT
     text = text
   }.__update(style ?? {})

@@ -152,6 +152,8 @@ enum
 
   PID_SHGLVAR_GRP = 100,
   PID_SHGLVAR_PANEL,
+  PID_PARALLAX_SHADOW,
+  PID_PARALLAX_AO,
 
   PID_WIND_GROUP,
   PID_WIND_ENABLED,
@@ -167,6 +169,11 @@ enum
 
 
 static DataBlock ShGlobVars;
+
+static bool parallaxShadowEnabled = true;
+static bool parallaxAoEnabled = true;
+static int parallaxShadowVarId = -1;
+static int parallaxAoVarId = -1;
 
 static bool supportRenderDebug = false;
 static int rdbgEnabledGvid = -1;
@@ -192,6 +199,8 @@ static void detectRenderDebug()
   rdbgUseDtexGvid = get_shader_glob_var_id("rdbgUseDtex", true);
   rdbgUseLtGvid = get_shader_glob_var_id("rdbgUseLt", true);
   rdbgUseChromeGvid = get_shader_glob_var_id("rdbgUseChrome", true);
+  parallaxShadowVarId = get_shader_variable_id("parallax_shadow_enabled", true);
+  parallaxAoVarId = get_shader_variable_id("parallax_ao_enabled", true);
   supportRenderDebug = VariableMap::isGlobVariablePresent(rdbgEnabledGvid);
 }
 
@@ -1027,6 +1036,15 @@ public:
         environment::renderEnviEntity(*ald);
         break;
 
+      case PID_PARALLAX_SHADOW:
+        parallaxShadowEnabled = panel->getBool(pcb_id);
+        ShaderGlobal::set_int(parallaxShadowVarId, parallaxShadowEnabled ? 1 : 0);
+        break;
+      case PID_PARALLAX_AO:
+        parallaxAoEnabled = panel->getBool(pcb_id);
+        ShaderGlobal::set_int(parallaxAoVarId, parallaxAoEnabled ? 1 : 0);
+        break;
+
       default:
         if (pcb_id >= PID_RENDER_OPT && pcb_id < PID_RENDER_OPT_LAST)
         {
@@ -1161,6 +1179,12 @@ private:
     dialog->scheme = scheme;
     dialog->schemeGrp = grp;
 
+    if (appBlk.getBool("parallaxControlsVisible", false))
+    {
+      grp->createCheckBox(PID_PARALLAX_SHADOW, "parallax shadow", parallaxShadowEnabled);
+      grp->createCheckBox(PID_PARALLAX_AO, "parallax AO", parallaxAoEnabled);
+    }
+
     dialog->getPanel()->loadState(av_ui_state, /*by_name = */ true);
 
     if (!dialog->hasEverBeenShown())
@@ -1259,6 +1283,13 @@ void load_settings(DataBlock &blk, AssetLightData *ald, const AssetLightData *al
     if (drSrv->getRenderOptSupported(i))
       drSrv->setRenderOptEnabled(i, blk.getBool(drSrv->getRenderOptName(i), drSrv->getRenderOptEnabled(i)));
   drSrv->setShadowQuality(blk.getInt("shadowQ", appBlk.getInt("AV_defaultShadowQ", 0)));
+  if (appBlk.getBool("parallaxControlsVisible", false))
+  {
+    parallaxShadowEnabled = blk.getBool("parallaxShadow", true);
+    parallaxAoEnabled = blk.getBool("parallaxAo", true);
+    ShaderGlobal::set_int(parallaxShadowVarId, parallaxShadowEnabled ? 1 : 0);
+    ShaderGlobal::set_int(parallaxAoVarId, parallaxAoEnabled ? 1 : 0);
+  }
   if (drSrv->hasExposure())
     drSrv->setExposure(blk.getReal("exposure", appBlk.getReal("AV_defaultExposure", 1.0f)));
 
@@ -1339,6 +1370,8 @@ static void save_settings_internal(DataBlock &blk, AssetLightData *ald, const As
     if (drSrv->getRenderOptSupported(i))
       blk.setBool(drSrv->getRenderOptName(i), drSrv->getRenderOptEnabled(i));
   blk.setInt("shadowQ", drSrv->getShadowQuality());
+  blk.setBool("parallaxShadow", parallaxShadowEnabled);
+  blk.setBool("parallaxAo", parallaxAoEnabled);
   if (drSrv->hasExposure())
     blk.setReal("exposure", drSrv->getExposure());
 

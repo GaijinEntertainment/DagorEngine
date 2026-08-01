@@ -11,7 +11,7 @@ macro USE_DAGDP_COMMON_PLACER()
   READ_WORLD_SDF(cs)
 
   (cs) {
-    dagdp__global_density_mul@f1 = dagdp__global_density_mul;
+    dagdp__global_density_mul@f1#rb = dagdp__global_density_mul;
   }
 
   hlsl(cs) {
@@ -167,30 +167,22 @@ macro USE_DAGDP_COMMON_PLACER()
 
     uint getRenderableIndex(VariantGpuData variant, uint placeableIndex, float3 instancePos, float3 viewportPos, float randScale)
     {
-      uint rangeOffset = ~0u;
+      if (placeableIndex == ~0u)
+        return placeableIndex;
 
-      FLATTEN
-      if (placeableIndex != ~0u) {
-        float dist = distance(instancePos, viewportPos) / randScale;
+      float dist = distance(instancePos, viewportPos) / randScale;
 
-        LOOP
-        for (uint i = variant.drawRangeStartIndex; i < variant.drawRangeEndIndex; ++i)
+      LOOP
+      for (uint i = variant.drawRangeStartIndex; i < variant.drawRangeEndIndex; ++i)
+      {
+        if (dist < structuredBufferAt(draw_ranges, i))
         {
-          if (dist < structuredBufferAt(draw_ranges, i))
-          {
-            rangeOffset = i - variant.drawRangeStartIndex;
-            break;
-          }
+          uint rangeOffset = i - variant.drawRangeStartIndex;
+          return structuredBufferAt(renderable_indices, variant.renderableIndicesStartIndex + rangeOffset * variant.placeableCount + placeableIndex - variant.placeableStartIndex);
         }
       }
 
-      uint renderableIndex = ~0u;
-
-      FLATTEN
-      if (rangeOffset != ~0u)
-        renderableIndex = structuredBufferAt(renderable_indices, variant.renderableIndicesStartIndex + rangeOffset * variant.placeableCount + placeableIndex - variant.placeableStartIndex);
-
-      return renderableIndex;
+      return ~0u;
     }
   }
 endmacro

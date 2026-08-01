@@ -142,6 +142,10 @@ public:
 // unenforced).
 bool darg_das_compile_in_flight();
 
+// Dev-build guard against cross-thread eval overlap on one context (unserialized, heaps reset
+// on unlock -> data race). Call at each eval entry, before tryRestartAndLock(). No-op in release.
+void darg_das_check_eval_thread(das::Context *ctx);
+
 void bind_das(Sqrat::Table &exports);
 
 } // namespace darg

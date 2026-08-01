@@ -5,6 +5,7 @@
 #pragma once
 
 #include <debug/dag_assert.h>
+#include <util/dag_globDef.h> // FMT_B3, VB3D and friends, used by printStats and by LG_VERIFYF
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_Point3.h>
 #include <math/dag_bounds3.h>
@@ -30,8 +31,10 @@
 #define EXTRA_SMALL_BRANCHES_AND_64K_LEAFS_LIMIT 0
 
 #if VERIFY_ALL
-#define LG_VERIFY(x)    G_ASSERT(x)
-#define LG_VERIFYF(...) G_ASSERTF(__VA_ARGS__)
+#define LG_VERIFY(x)       G_ASSERT(x)
+// Pass the condition as a named argument: msvc without /Zc:preprocessor forwards __VA_ARGS__ as a
+// single argument, so G_ASSERTF would be left without its format string
+#define LG_VERIFYF(x, ...) G_ASSERTF(x, __VA_ARGS__)
 #else
 #define LG_VERIFY(x)
 #define LG_VERIFYF(...)
@@ -157,8 +160,8 @@ public:
 
   __forceinline static bool shouldUseWooRay(vec4i clamped_limits)
   {
-    LG_VERIFYF(v_signmask(v_and(v_cmp_gti(clamped_limits, v_splatsi(-1)),
-                 v_cmp_lti(clamped_limits, v_splatsi(LINEAR_GRID_SUBGRID_WIDTH)))) == 0b1111,
+    LG_VERIFYF(v_check_xyzw_all_true(v_cast_vec4f(
+                 v_andi(v_cmp_gti(clamped_limits, v_splatsi(-1)), v_cmp_lti(clamped_limits, v_splatsi(LINEAR_GRID_SUBGRID_WIDTH))))),
       "Not clamped limits");
     const int MIN_SIDE = 4;
     uint64_t from = v_extract_xi64(clamped_limits);
@@ -176,7 +179,8 @@ public:
     return unsigned(offsetXZ >> 32) * LINEAR_GRID_SUBGRID_WIDTH + unsigned(offsetXZ);
   }
 
-  void insertAt(LinearGrid<ObjectType> *parent_grid, ObjectType object, vec4i v_sub_cell_ids, bbox3f wbb, int change_weight = +1)
+  void insertAt(LinearGrid<ObjectType> *parent_grid, ObjectType object, vec4i v_sub_cell_ids, const bbox3f &wbb,
+    int change_weight = +1)
   {
     unsigned offset = getCellOffset(v_sub_cell_ids);
     LinearGridSubCell<ObjectType> &cell = cellsData[offset];
@@ -351,7 +355,7 @@ __forceinline static vec4i pack_bboxes_16b(bbox3f left_bbox, bbox3f right_bbox, 
 #if VERIFY_ALL
   vec4f packOverflow =
     v_or(v_cmp_gt(unpackedMinCorrection, v_splats(UINT16_MAX - 1)), v_cmp_gt(unpackedMaxCorrection, v_splats(UINT16_MAX - 1)));
-  LG_VERIFYF((v_signmask(packOverflow) & 0b111) == 0, "uint16 overflow on box packing");
+  LG_VERIFYF(v_check_xyz_all_false(packOverflow), "uint16 overflow on box packing");
 #endif
   // floori makes inner boxes clother to parent (bigger)
   vec4i one = v_subi(v_zeroi(), v_set_all_bitsi());
@@ -384,14 +388,14 @@ __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::
   for (ObjectType object : objects)
   {
     vec4f wbsph = object.getWBSph();
-    LG_VERIFY(v_extract_wi(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
+    LG_VERIFY(v_extract_w(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
     if (!objects_iterator.filterFunc(object, wbsph))
       continue;
     if (fast_pos_check)
     {
       vec4f pos2d = v_perm_xzxz(wbsph);
       vec4f cmp = v_cmp_gt(pos2d, max_extended_box_2d);
-      if (DAGOR_LIKELY(v_signmask(cmp) != 0b0011))
+      if (DAGOR_LIKELY(v_truemask(cmp) != 0b0011))
         continue;
     }
     if (objects_iterator.checkObjectBounding(wbsph, box) && objects_iterator.predFunc(object))
@@ -407,14 +411,14 @@ __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::
   for (ObjectType object : objects)
   {
     vec4f wbsph = object.getWBSph();
-    LG_VERIFY(v_extract_wi(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
+    LG_VERIFY(v_extract_w(wbsph) > VERY_SMALL_NUMBER); // check for very small, and also for negative radiuses
     if (!objects_iterator.filterFunc(object, wbsph))
       continue;
     if (fast_pos_check)
     {
       vec4f pos2d = v_perm_xzxz(wbsph);
       vec4f cmp = v_cmp_gt(pos2d, max_extended_box_2d);
-      if (DAGOR_LIKELY(v_signmask(cmp) != 0b0011))
+      if (DAGOR_LIKELY(v_truemask(cmp) != 0b0011))
         continue;
     }
     if (objects_iterator.checkObjectBounding(wbsph, ray->start, ray->dir, ray->len, ray->radius) && objects_iterator.predFunc(object))
@@ -425,7 +429,7 @@ __forceinline eastl::pair<bool, ObjectType> find_object_intersection(const dag::
 
 template <typename ObjectType, typename FilterType, typename ObjectsIterator>
 VECTORCALL DAGOR_NOINLINE static ObjectType leaf_iterate_intersected(const LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
-  bbox3f parent_leaf_box, FilterType bbox_or_ray, const ObjectsIterator &__restrict objects_iterator)
+  const bbox3f &parent_leaf_box, const FilterType &bbox_or_ray, const ObjectsIterator &__restrict objects_iterator)
 {
   LG_VERIFY(leaf_idx != EMPTY_LEAF);
   if (grid->isBranch(leaf_idx))
@@ -580,7 +584,7 @@ __forceinline leaf_id_t leaf_insert_object_to_better_branch(LinearGrid<ObjectTyp
 // Final leafs can change their idx when their type changed from objects container to branch
 template <typename ObjectType>
 VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_insert_object(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
-  bbox3f old_parent_leaf_box, bbox3f wbb, ObjectType object)
+  const bbox3f &old_parent_leaf_box, const bbox3f &wbb, ObjectType object)
 {
   LG_VERIFY(leaf_idx != EMPTY_LEAF);
   if (grid->isBranch(leaf_idx))
@@ -605,7 +609,7 @@ VECTORCALL DAGOR_NOINLINE static leaf_id_t leaf_insert_object(LinearGrid<ObjectT
     if (leaf.objects.size() == leaf.objects.capacity() && grid->isOptimized())
       leaf.objects.reserve(leaf.objects.size() + grid->getObjectsGrowStep());
     leaf.objects.emplace_back(object);
-    if (grid->needCreateBranch(leaf.objects.size()))
+    if (grid->needCreateBranch(leaf_idx, leaf.objects.size()))
     {
       bbox3f bboxesSum;
       dag::Vector<ObjectType, MidmemAlloc> objects = eastl::move(leaf.objects);
@@ -701,7 +705,7 @@ DAGOR_NOINLINE static unsigned leaf_count_objects(const LinearGrid<ObjectType> *
 
 template <typename ObjectType, typename T>
 VECTORCALL DAGOR_NOINLINE static void leaf_iterate_branch_boxes(const LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
-  bbox3f parent_leaf_box, int min_depth, const T &cb)
+  const bbox3f &parent_leaf_box, int min_depth, const T &cb)
 {
   LG_VERIFY(leaf_idx != EMPTY_LEAF);
   if (grid->isBranch(leaf_idx)) // bnode
@@ -724,7 +728,7 @@ VECTORCALL DAGOR_NOINLINE static void leaf_iterate_branch_boxes(const LinearGrid
 
 template <typename ObjectType>
 VECTORCALL DAGOR_NOINLINE static void leaf_repack_bboxes(LinearGrid<ObjectType> *__restrict grid, leaf_id_t leaf_idx,
-  bbox3f old_parent_box, bbox3f new_parent_box)
+  const bbox3f &old_parent_box, const bbox3f &new_parent_box)
 {
   if (grid->isBranch(leaf_idx))
   {
@@ -924,7 +928,7 @@ public:
         vec4i relOffsets = v_subi(subLimits, v_splatsi64(subgridOffset));
         vec4i haveIntersection = v_cmp_lti(relOffsets, v_make_vec4i(LINEAR_GRID_SUBGRID_WIDTH, LINEAR_GRID_SUBGRID_WIDTH, 0, 0));
         // sometimes we intersect only main cell extension, but subgrid's is smaller
-        if (v_signmask(v_cast_vec4f(haveIntersection)) != 0b0011)
+        if (v_truemask(v_cast_vec4f(haveIntersection)) != 0b0011)
           return ObjectType::null();
         vec4i subgridLimits = v_clampi(relOffsets, v_zeroi(), v_splatsi(LINEAR_GRID_SUBGRID_WIDTH - 1));
         LinearGridBoxIteratorImpl<LinearSubGrid<ObjectType>, ObjectType> subLayerIterator(subGrid, subgridLimits, queryBox);
@@ -1158,7 +1162,7 @@ public:
         vec4i relOffsets = v_subi(subLimits, v_splatsi64(subgridOffset));
         vec4i haveIntersection = v_cmp_lti(relOffsets, v_make_vec4i(LINEAR_GRID_SUBGRID_WIDTH, LINEAR_GRID_SUBGRID_WIDTH, 0, 0));
         // sometimes we intersect only main cell extension, but subgrid's is smaller
-        if (v_signmask(v_cast_vec4f(haveIntersection)) != 0b0011)
+        if (v_truemask(v_cast_vec4f(haveIntersection)) != 0b0011)
           return ObjectType::null();
         vec4i clampedSubLimits = v_clampi(relOffsets, v_zeroi(), v_splatsi(LINEAR_GRID_SUBGRID_WIDTH - 1));
         auto subLayerCb = [this, &objects_iterator](uint64_t, const LinearGridSubCell<ObjectType> &__restrict cv) FORCEINLINE_ATTR {
@@ -1346,6 +1350,7 @@ public:
       memset(leafsData + leaf + 1, 0, sizeof(LinearGridLeaf<ObjectType>));
 #endif
     freeLeafs.push_back(leaf);
+    unsplittableLeafs.erase(leaf);
   }
   void sortFreeLeafs() { stlsort::sort_branchless(freeLeafs.begin(), freeLeafs.end()); }
   __forceinline UnpackedBranch unpackBranch(leaf_id_t leaf_idx) const
@@ -1485,6 +1490,7 @@ public:
       leafs.reserve(oldLeafs.size());
       leafsData = nullptr;
       freeLeafs.clear();
+      unsplittableLeafs.clear(); // all leafs are reindexed below
       branches.clear();
       for (LinearGridMainCell<ObjectType> &cell : cells)
       {
@@ -1659,28 +1665,30 @@ public:
     return &getCellByIds(cellIds);
   };
 
-  bool needCreateBranch(uint32_t leaf_objects_count) const
+  // A leaf whose objects could not be split stays over configMaxLeafObjects, so without this it would
+  // be re-split on every following insert. leaf_rebuild drops the mark, that is the retry path.
+  bool needCreateBranch(leaf_id_t leaf, uint32_t leaf_objects_count) const
   {
-    return DAGOR_DBGLEVEL && optimized && leaf_objects_count > configMaxLeafObjects;
+    return DAGOR_DBGLEVEL && optimized && leaf_objects_count > configMaxLeafObjects &&
+           unsplittableLeafs.find(leaf) == unsplittableLeafs.end();
   }
 
   VECTORCALL DAGOR_NOINLINE leaf_id_t createBranchOnLeaf(leaf_id_t leaf_idx, dag::Vector<ObjectType, MidmemAlloc> &&objects,
     bbox3f &bboxes_sum)
   {
     G_ASSERT(leaf_idx == EMPTY_LEAF || (!isBranch(leaf_idx) && getLeaf(leaf_idx).objects.empty()));
-    dag::RelocatableFixedVector<eastl::pair<ObjectType, bbox3f>, 64, true, framemem_allocator> bboxes;
-    bboxes.reserve(objects.size());
-    bboxes.resize(objects.size());
+    // objects is used as scratch storage for the in-place partitions, its contents are not preserved
+    dag::RelocatableFixedVector<bbox3f, 64, true /*overflow*/, framemem_allocator, uint32_t, false /*init*/> boxes;
+    boxes.resize(objects.size());
     v_bbox3_init_empty(bboxes_sum);
-    unsigned bboxesCount = 0;
-    for (ObjectType obj : objects)
+    for (unsigned i = 0; i < objects.size(); i++)
     {
-      bbox3f bbox = obj.getWBBox();
-      bboxes.data()[bboxesCount++] = eastl::make_pair(obj, bbox);
+      bbox3f bbox = objects.data()[i].getWBBox();
+      boxes.data()[i] = bbox;
       v_bbox3_add_box(bboxes_sum, bbox);
     }
     OptimizationStats stats;
-    return reCreateBalancedLeaf(leaf_idx, eastl::move(objects), bboxes, bboxes_sum, stats);
+    return reCreateBalancedLeaf(leaf_idx, make_span(objects), make_span(boxes), bboxes_sum, stats);
   }
 
   DAGOR_NOINLINE void clear()
@@ -1698,14 +1706,23 @@ public:
       if (!isBranch(leafIdx))
         eastl::destroy_at(&leafs.data()[leafIdx].objects);
     }
+    // clear() is full teardown (level change); release capacity so a grid sized
+    // for a big scene does not stay allocated into the next one
     cells.clear();
+    cells.shrink_to_fit();
     leafs.clear();
+    leafs.shrink_to_fit();
     freeLeafs.clear();
-    branches.clear();
+    freeLeafs.shrink_to_fit();
+    unsplittableLeafs.clear();
+    unsplittableLeafs.shrink_to_fit();
+    branches = decltype(branches)();
     for (LinearSubGrid<ObjectType> *subGrid : subGrids)
       delete subGrid;
     subGrids.clear();
+    subGrids.shrink_to_fit();
     oversizeObjects.clear();
+    oversizeObjects.shrink_to_fit();
   }
 
   template <typename T>
@@ -1786,7 +1803,7 @@ public:
   }
 
 private:
-  VECTORCALL void insertAt(ObjectType object, vec4i v_main_cell_ids, vec4i v_sub_cell_ids, bbox3f wbb, int change_weight = +1,
+  VECTORCALL void insertAt(ObjectType object, vec4i v_main_cell_ids, vec4i v_sub_cell_ids, const bbox3f &wbb, int change_weight = +1,
     bool initial = false)
   {
     vec4f mainExt = calcMaxExtension(v_main_cell_ids, cellSizeLog2, wbb);
@@ -1928,7 +1945,7 @@ private:
   {
     vec4i vGridSize = v_ldi(&gridSize.lim[0].x);
     vec4i cmp = v_cmp_lti(cell_ids, vGridSize);
-    int mask = v_signmask(v_cast_vec4f(cmp));
+    int mask = v_truemask(v_cast_vec4f(cmp));
     return mask == 0b1100;
   }
 
@@ -2002,23 +2019,40 @@ private:
     stats.totalObjects += objects.size();
     stlsort::sort_branchless(objects.begin(), objects.end());
 
-    dag::Vector<eastl::pair<ObjectType, bbox3f>, framemem_allocator> bboxes;
-    unsigned bboxesCount = 0;
-    unsigned smallObjectsCount = 0;
-
-    if (objects.size() > min(configObjectsToCreateSubGrid, configMaxLeafObjects))
+    if (DAGOR_UNLIKELY(objects.empty()))
     {
-      bboxes.reserve(objects.size());
-      bboxes.resize(objects.size());
-
-      smallObjectsCount = eastl::count_if(objects.begin(), objects.end(), [&](ObjectType obj) {
-        bboxes.data()[bboxesCount++] = eastl::make_pair(obj, obj.getWBBox());
-        float objRad = v_extract_w(obj.getWBSph());
-        return objRad <= configMaxSubExtension;
-      });
+      stats.emptyCells++;
+      cell.rootLeaf = EMPTY_LEAF;
+      return;
     }
 
-    dag::Vector<ObjectType, MidmemAlloc> subgridObjects[LINEAR_GRID_SUBGRID_WIDTH * LINEAR_GRID_SUBGRID_WIDTH];
+    // A cell too small for both a tree and a subgrid stays one flat leaf, so its object boxes are never needed
+    if (objects.size() <= min(configObjectsToCreateSubGrid, configMaxLeafObjects))
+    {
+      stats.mainObjects += objects.size();
+      cell.rootLeaf = storeLeafObjects(cell.rootLeaf, make_span_const(objects));
+      return;
+    }
+
+    // objects and boxes are index-parallel for the whole build, including all recursive partitions.
+    // Declaration order must match allocation order, framemem frees in reverse.
+    constexpr unsigned SUB_CELLS = LINEAR_GRID_SUBGRID_WIDTH * LINEAR_GRID_SUBGRID_WIDTH;
+    constexpr uint8_t NOT_IN_SUBGRID = 0xFF;
+    dag::Vector<bbox3f, framemem_allocator> boxes;
+    dag::Vector<uint8_t, framemem_allocator> subCellIdxs;
+    dag::Vector<ObjectType, framemem_allocator> subObjects;
+    dag::Vector<bbox3f, framemem_allocator> subBoxes;
+    eastl::array<uint32_t, SUB_CELLS + 1> subCellStarts;
+
+    boxes.resize(objects.size());
+    unsigned smallObjectsCount = 0;
+    for (unsigned i = 0; i < objects.size(); i++)
+    {
+      ObjectType obj = objects.data()[i];
+      boxes.data()[i] = obj.getWBBox();
+      smallObjectsCount += v_extract_w(obj.getWBSph()) <= configMaxSubExtension ? 1 : 0;
+    }
+
     LinearSubGrid<ObjectType> *subGrid = nullptr;
 
     // Create subgrid
@@ -2032,32 +2066,63 @@ private:
       int subCellWidth = getCellSize() >> LINEAR_GRID_SUBGRID_WIDTH_LOG2;
       vec4i ibox = v_make_vec4i(x, z, x + subCellWidth, z + subCellWidth);
       subGrid->setLowestCellBox(v_cvti_vec4f(ibox));
-      // Move small objects to sub grid
-      for (unsigned objId = 0; objId < objects.size(); objId++)
+
+      // Pick small objects and count them per sub cell
+      subCellIdxs.resize(objects.size());
+      mem_set_0(make_span(subCellStarts));
+      unsigned subObjectsCount = 0;
+      for (unsigned i = 0; i < objects.size(); i++)
       {
-        ObjectType obj = objects.data()[objId];
-        vec4f wbsph = obj.getWBSph(); // don't use pre-filter by radius, it's unprecise
+        subCellIdxs.data()[i] = NOT_IN_SUBGRID;
+        vec4f wbsph = objects.data()[i].getWBSph(); // don't use pre-filter by radius, it's unprecise
         if (v_extract_w(wbsph) > configMaxSubRadius)
           continue;
         unsigned subGridCellSizeLog2 = cellSizeLog2 - LINEAR_GRID_SUBGRID_WIDTH_LOG2;
         vec4i subCellIds = calcCellIds(wbsph, subGridCellSizeLog2);
-        bbox3f bbox = bboxes.data()[objId].second;
+        bbox3f bbox = boxes.data()[i];
         float ext = v_extract_x(v_hmax(calcMaxExtension(subCellIds, subGridCellSizeLog2, bbox)));
         if (ext > configMaxSubExtension)
           continue;
         maxSubExtension = max(maxSubExtension, ext);
         unsigned offset = subGrid->getCellOffset(subCellIds);
         subGrid->getCellByOffset(offset).addBBox(bbox);
-        subgridObjects[offset].emplace_back(obj);
-        objects.data()[objId] = ObjectType::null();
+        subCellIdxs.data()[i] = offset;
+        subCellStarts[offset + 1]++;
+        subObjectsCount++;
       }
-      objects.erase(eastl::remove(objects.begin(), objects.end(), ObjectType::null()), objects.end());
+      for (unsigned offset = 0; offset < SUB_CELLS; offset++)
+        subCellStarts[offset + 1] += subCellStarts[offset];
+
+      // Move small objects to sub grid, keeping each sub cell's objects contiguous and in sorted order
+      subObjects.resize(subObjectsCount);
+      subBoxes.resize(subObjectsCount);
+      eastl::array<uint32_t, SUB_CELLS> writePos;
+      memcpy(writePos.data(), subCellStarts.data(), sizeof(writePos));
+      unsigned mainCount = 0;
+      for (unsigned i = 0; i < objects.size(); i++)
+      {
+        unsigned offset = subCellIdxs.data()[i];
+        if (offset == NOT_IN_SUBGRID)
+        {
+          objects.data()[mainCount] = objects.data()[i];
+          boxes.data()[mainCount] = boxes.data()[i];
+          mainCount++;
+        }
+        else
+        {
+          unsigned pos = writePos[offset]++;
+          subObjects.data()[pos] = objects.data()[i];
+          subBoxes.data()[pos] = boxes.data()[i];
+        }
+      }
+      objects.resize(mainCount);
+      boxes.resize(mainCount);
     }
 
     if (!objects.empty())
     {
       stats.mainObjects += objects.size();
-      cell.rootLeaf = reCreateBalancedLeaf(cell.rootLeaf, eastl::move(objects), bboxes, cell.getBBox(), stats);
+      cell.rootLeaf = reCreateBalancedLeaf(cell.rootLeaf, make_span(objects), make_span(boxes), cell.getBBox(), stats);
     }
     else
     {
@@ -2068,19 +2133,37 @@ private:
     // Create trees in subgrid
     if (subGrid)
     {
-      for (unsigned offset = 0; offset < LINEAR_GRID_SUBGRID_WIDTH * LINEAR_GRID_SUBGRID_WIDTH; offset++)
+      for (unsigned offset = 0; offset < SUB_CELLS; offset++)
       {
-        if (subgridObjects[offset].empty())
+        uint32_t from = subCellStarts[offset], count = subCellStarts[offset + 1] - from;
+        if (!count)
         {
           stats.emptySubCells++;
           continue;
         }
         LinearGridSubCell<ObjectType> &subCell = subGrid->getCellByOffset(offset);
-        subCell.rootLeaf =
-          reCreateBalancedLeaf(EMPTY_LEAF, eastl::move(subgridObjects[offset]), make_span_const(bboxes), subCell.getBBox(), stats);
+        subCell.rootLeaf = reCreateBalancedLeaf(EMPTY_LEAF, make_span(subObjects.data() + from, count),
+          make_span(subBoxes.data() + from, count), subCell.getBBox(), stats);
         subCell.empty = 0;
       }
     }
+  }
+
+  // Fill a final leaf with exact capacity. Objects are sorted because the splits above do not keep
+  // their input order, and a leaf scan is faster on handles ordered like the pools they index.
+  leaf_id_t storeLeafObjects(leaf_id_t leaf_idx, dag::ConstSpan<ObjectType> objects)
+  {
+    if (leaf_idx == EMPTY_LEAF)
+      leaf_idx = createLeaf(false /*is_branch*/);
+    if (DAGOR_UNLIKELY(leaf_idx == EMPTY_LEAF)) // leafs pool exhausted
+      return EMPTY_LEAF;
+    unsplittableLeafs.erase(leaf_idx); // the mark describes one set of objects, this is a new one
+    LinearGridLeaf<ObjectType> &leaf = getLeaf(leaf_idx);
+    G_ASSERT(leaf.objects.empty());
+    leaf.objects.reserve(objects.size());
+    leaf.objects.assign(objects.begin(), objects.end());
+    stlsort::sort_branchless(leaf.objects.begin(), leaf.objects.end());
+    return leaf_idx;
   }
 
   // try to find best mids to put maximum balanced amount of boxes to left and right sides without mid intersection
@@ -2192,29 +2275,20 @@ private:
     return bestIdx;
   }
 
-  VECTORCALL DAGOR_NOINLINE leaf_id_t reCreateBalancedLeaf(leaf_id_t leaf_idx, dag::Vector<ObjectType, MidmemAlloc> &&objects,
-    dag::ConstSpan<eastl::pair<ObjectType, bbox3f>> bboxes, bbox3f parent_box, OptimizationStats &stats)
+  // Objects and boxes are index-parallel and are partitioned in place. Both spans are scratch:
+  // final leafs copy their objects out, so the caller's contents are not preserved.
+  VECTORCALL DAGOR_NOINLINE leaf_id_t reCreateBalancedLeaf(leaf_id_t leaf_idx, dag::Span<ObjectType> objects, dag::Span<bbox3f> boxes,
+    bbox3f parent_box, OptimizationStats &stats)
   {
     G_ASSERT(leaf_idx == EMPTY_LEAF || !isBranch(leaf_idx));
+    G_ASSERT(objects.size() == boxes.size());
     if (DAGOR_UNLIKELY(objects.empty()))
       return leaf_idx;
     if (leaf_idx != EMPTY_LEAF)
-    {
-      G_ASSERT(uintptr_t(&getLeaf(leaf_idx).objects) != uintptr_t(&objects));
       memset(&getLeaf(leaf_idx), 0, sizeof(LinearGridLeaf<ObjectType>));
-    }
 
     if (objects.size() <= configMaxLeafObjects)
-    {
-      if (leaf_idx == EMPTY_LEAF)
-        leaf_idx = createLeaf(false);
-      else
-        G_ASSERT(getLeaf(leaf_idx).objects.empty());
-
-      objects.shrink_to_fit();
-      getLeaf(leaf_idx).objects = eastl::move(objects);
-      return leaf_idx;
-    }
+      return storeLeafObjects(leaf_idx, objects);
 
     vec4f bboxSize = v_bbox3_size(parent_box);
     vec4f sideOversize = v_div(v_add(v_perm_yzxw(bboxSize), v_perm_zxyw(bboxSize)), bboxSize);
@@ -2228,19 +2302,15 @@ private:
     vec4i belowCounters = v_zeroi();
     vec3f maxOverflow = v_zero();
 
-    auto bboxIt = bboxes.begin();
-    for (unsigned i = 0; DAGOR_LIKELY(i < objects.size()); i++)
+    for (unsigned i = 0; DAGOR_LIKELY(i < boxes.size()); i++)
     {
-      bboxIt = eastl::find_if(bboxIt, bboxes.end(),
-        [obj = objects.data()[i]](const eastl::pair<ObjectType, bbox3f> &pair) { return pair.first == obj; });
-      LG_VERIFY(bboxIt != bboxes.end());
-      bbox3f bbox = bboxIt->second;
+      bbox3f bbox = boxes.data()[i];
       vec4f belowOverflow = v_sub(bbox.bmax, center);
       vec4f aboveOverflow = v_sub(center, bbox.bmin);
       vec4f belowIsLess = v_cmp_lt(belowOverflow, aboveOverflow);
       maxOverflow = v_max(maxOverflow, v_max(belowOverflow, aboveOverflow));
       belowCounters = v_subi(belowCounters, v_cast_vec4i(belowIsLess));
-      belowMasks.data()[i] = v_signmask(belowIsLess);
+      belowMasks.data()[i] = v_truemask(belowIsLess);
     }
     vec4i halfObjects = v_splatsi(objects.size() / 2);
     vec4i absDiff = v_absi(v_subi(belowCounters, halfObjects));
@@ -2250,94 +2320,70 @@ private:
     vec3f isBigOverflow = v_cmp_gt(maxOverflow, v_mul(v_bbox3_size(parent_box), v_splats(configMaxSplitOverflow)));
     score = v_sel(score, v_splats(FLT_MAX), v_or(isOneSideEmpty, isBigOverflow));
     vec4f selectBest = v_andnot(v_cmp_eq(score, v_splats(FLT_MAX)), v_cmp_eq(score, v_hmin3(score)));
-    int bestMask = v_signmask(selectBest) & 0b111;
+    int bestMask = v_truemask(selectBest) & 0b111;
     int splitBySide;
-    unsigned belowCount, aboveCount;
+    unsigned belowCount;
     if (bestMask)
     {
       splitBySide = __bsf_unsafe(bestMask);
-      // Split to 2 bboxes and vectors
       int iBelowCounters[4];
       v_stui(iBelowCounters, belowCounters);
       belowCount = iBelowCounters[splitBySide];
-      aboveCount = objects.size() - belowCount;
     }
     else
     {
       belowCount = 0;
-      aboveCount = 0;
-      dag::RelocatableFixedVector<bbox3f, 128, true /*overflow*/, framemem_allocator, uint32_t, false /*init*/> objBoxes;
-      objBoxes.reserve(objects.size());
-      bboxIt = bboxes.begin();
-      for (unsigned i = 0; DAGOR_LIKELY(i < objects.size()); i++)
-      {
-        bboxIt = eastl::find_if(bboxIt, bboxes.end(),
-          [obj = objects.data()[i]](const eastl::pair<ObjectType, bbox3f> &pair) { return pair.first == obj; });
-        G_ASSERT(bboxIt != bboxes.end());
-        objBoxes.push_back(bboxIt->second);
-      }
       Point3 mids;
-      splitBySide = findBestHalfCut(make_span_const(objBoxes), mids);
+      splitBySide = findBestHalfCut(make_span_const(boxes.data(), boxes.size()), mids);
       vec4f sideMask = v_make_vec4f_mask(1 << splitBySide);
-      for (int i = 0; i < objects.size(); i++)
+      for (unsigned i = 0; i < boxes.size(); i++)
       {
-        bbox3f bbox = objBoxes[i];
+        bbox3f bbox = boxes.data()[i];
         vec4f scoreLeft = v_sub(v_splats(mids[splitBySide]), bbox.bmax);
         vec4f scoreRight = v_sub(bbox.bmin, v_splats(mids[splitBySide]));
         vec4f cmp = v_and(v_cmp_gt(scoreLeft, scoreRight), sideMask);
         int leftBetter = v_test_any_bit_set(cmp) ? 1 : 0;
         belowMasks.data()[i] = leftBetter << splitBySide;
-        if (leftBetter)
-          belowCount++;
-        else
-          aboveCount++;
+        belowCount += leftBetter;
       }
-      if (DAGOR_UNLIKELY(!belowCount || !aboveCount))
+      if (DAGOR_UNLIKELY(!belowCount || belowCount == objects.size()))
       {
         optimizationStats.splitFails++;
         optimizationStats.splitFailMaxObj = max(optimizationStats.splitFailMaxObj, objects.size());
-        if (leaf_idx == EMPTY_LEAF)
-          leaf_idx = createLeaf(false);
-        objects.shrink_to_fit();
-        getLeaf(leaf_idx).objects = eastl::move(objects);
+        leaf_idx = storeLeafObjects(leaf_idx, objects);
+        if (DAGOR_LIKELY(leaf_idx != EMPTY_LEAF))
+          unsplittableLeafs.insert(leaf_idx);
         return leaf_idx;
       }
     }
 #if VERIFY_ALL
-    G_ASSERT_RETURN(belowCount && aboveCount, false);
+    G_ASSERT_RETURN(belowCount && belowCount < objects.size(), EMPTY_LEAF);
 #endif
-    dag::Vector<ObjectType, MidmemAlloc> belowObjects = eastl::move(objects);
-    dag::Vector<ObjectType, MidmemAlloc> aboveObjects;
-    aboveObjects.reserve(aboveCount);
-    aboveObjects.resize(aboveCount);
+    // Partition objects and boxes in place, below half first. Order inside a half is not kept,
+    // final leafs re-sort their objects instead.
+    const uint8_t sideBit = uint8_t(1 << splitBySide);
+    unsigned lo = 0;
+    for (unsigned hi = objects.size(); lo < hi;)
+    {
+      if (belowMasks.data()[lo] & sideBit)
+      {
+        lo++;
+        continue;
+      }
+      hi--;
+      eastl::swap(objects.data()[lo], objects.data()[hi]);
+      eastl::swap(boxes.data()[lo], boxes.data()[hi]);
+      eastl::swap(belowMasks.data()[lo], belowMasks.data()[hi]);
+    }
+    G_ASSERT(lo == belowCount); // masks and the counter must agree, children spans are cut by belowCount
+    G_UNUSED(lo);
     bbox3f belowBox, aboveBox;
     v_bbox3_init_empty(belowBox);
     v_bbox3_init_empty(aboveBox);
-    auto bboxIter = bboxes.begin();
-    ObjectType *writeBelowPos = belowObjects.data();
-    ObjectType *writeAbovePos = aboveObjects.data();
-    const uint8_t *objBelowMask = belowMasks.data();
-    for (const ObjectType &obj : belowObjects)
-    {
-      bboxIter =
-        eastl::find_if(bboxIter, bboxes.end(), [obj](const eastl::pair<ObjectType, bbox3f> &pair) { return pair.first == obj; });
-      LG_VERIFY(bboxIter != bboxes.end());
-      bbox3f bbox = bboxIter->second;
-      bool isBelow = *objBelowMask++ & (1 << splitBySide);
-      if (isBelow)
-      {
-        *writeBelowPos++ = obj;
-        v_bbox3_add_box(belowBox, bbox);
-      }
-      else
-      {
-        *writeAbovePos++ = obj;
-        v_bbox3_add_box(aboveBox, bbox);
-      }
-    }
-    LG_VERIFY(writeBelowPos == belowObjects.data() + belowCount);
-    LG_VERIFY(writeAbovePos == aboveObjects.data() + aboveCount);
-    belowObjects.resize(belowCount); // set real size, shrink will be later
+    for (unsigned i = 0; i < belowCount; i++)
+      v_bbox3_add_box(belowBox, boxes.data()[i]);
+    for (unsigned i = belowCount; i < boxes.size(); i++)
+      v_bbox3_add_box(aboveBox, boxes.data()[i]);
 
     // Create childs
     leaf_id_t reuseIdx = EMPTY_LEAF;
@@ -2358,8 +2404,8 @@ private:
     leaf_idx = createLeaf(true);
 #endif
 
-    leaf_id_t leftIdx = reCreateBalancedLeaf(reuseIdx, eastl::move(belowObjects), bboxes, belowBox, stats);
-    leaf_id_t rightIdx = reCreateBalancedLeaf(EMPTY_LEAF, eastl::move(aboveObjects), bboxes, aboveBox, stats);
+    leaf_id_t leftIdx = reCreateBalancedLeaf(reuseIdx, objects.first(belowCount), boxes.first(belowCount), belowBox, stats);
+    leaf_id_t rightIdx = reCreateBalancedLeaf(EMPTY_LEAF, objects.subspan(belowCount), boxes.subspan(belowCount), aboveBox, stats);
     LG_VERIFY(leftIdx != EMPTY_LEAF && rightIdx != EMPTY_LEAF);
     stats.branchesCount++;
 
@@ -2405,6 +2451,7 @@ private:
   dag::Vector<LinearGridLeaf<ObjectType>, MidmemAlloc> leafs;
   dag::Vector<LinearSubGrid<ObjectType> *, MidmemAlloc> subGrids;
   dag::Vector<leaf_id_t, MidmemAlloc> freeLeafs;
+  dag::VectorSet<leaf_id_t, eastl::less<leaf_id_t>, MidmemAlloc> unsplittableLeafs;
   bool optimized;
   OptimizationStats optimizationStats;
 

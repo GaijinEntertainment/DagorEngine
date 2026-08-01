@@ -64,6 +64,10 @@ struct CollisionInfoAnnotation final : das::ManagedStructureAnnotation<rendinst:
 namespace bind_dascript
 {
 
+static char rendInst_das[] =
+#include "rendInst.das.inl"
+  ;
+
 void draw_debug_collisions(int flags, const Point3 &view_pos, bool reverse_depth, float max_coll_dist_sq, float max_label_dist_sq)
 {
   // TODO: move to das
@@ -98,6 +102,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(rendinst::getRiGenExtraResCount)>(*this, lib, "rendinst_getRiGenExtraResCount",
       das::SideEffects::accessExternal, "rendinst::getRiGenExtraResCount");
+    das::addExtern<DAS_BIND_FUN(rendinst::isRiGenExtraResIdValid)>(*this, lib, "rendinst_isRiGenExtraResIdValid",
+      das::SideEffects::accessExternal, "rendinst::isRiGenExtraResIdValid");
     das::addExtern<DAS_BIND_FUN(rendinst::isRiExtraLoaded)>(*this, lib, "rendinst_isRiExtraLoaded", das::SideEffects::accessExternal,
       "rendinst::isRiExtraLoaded");
     das::addExtern<DAS_BIND_FUN(find_ri_extra_eid)>(*this, lib, "find_ri_extra_eid", das::SideEffects::accessExternal,
@@ -260,6 +266,7 @@ public:
     das::addCtorAndUsing<rendinst::RendInstDesc, int, int, int, uint32_t, int>(*this, lib, "RendInstDesc", "::rendinst::RendInstDesc");
 
     addAnnotation(new RiExtraComponentAnnotation(lib));
+    compileBuiltinModule("rendInst.das", (unsigned char *)rendInst_das, sizeof(rendInst_das));
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

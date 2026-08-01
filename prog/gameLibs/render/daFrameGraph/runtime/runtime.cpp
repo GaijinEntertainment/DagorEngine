@@ -8,12 +8,15 @@
 #include <drv/3d/dag_heap.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_enhanced_barrier.h>
+#include <drv/3d/dag_rwResource.h>
 
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_convar.h>
 #include <memory/dag_framemem.h>
 
 #include <render/daFrameGraph/daFG.h>
+#include <shaders/dag_refinedBlock.h>
 
 #include <debug/backendDebug.h>
 #include <frontend/multiplexingInternal.h>
@@ -285,9 +288,22 @@ auto Runtime::scheduleBarriers(const IrNodesChanged &nodesChanged, const IrResou
   auto lifetimeChangedResources =
     barrierScheduler.scheduleEvents(allResourceEvents, intermediateGraph, passColoring, nodesChanged, resourcesChanged);
 
+  cacheUntrackedReleaseBarriers();
+
   currentStage = CompilationStage::REQUIRES_STATE_DELTA_RECALCULATION;
 
   return lifetimeChangedResources;
+}
+
+void Runtime::cacheUntrackedReleaseBarriers()
+{
+  for (const auto &frameEvents : allResourceEvents)
+    for (const auto &nodeEvents : frameEvents.values())
+      for (const auto &ev : nodeEvents)
+        if (auto *deact = eastl::get_if<BarrierScheduler::Event::Deactivation>(&ev.data);
+            deact && !eastl::holds_alternative<eastl::monostate>(deact->release))
+          if (intermediateGraph.resources.isMapped(ev.resource) && intermediateGraph.resources[ev.resource].isScheduled())
+            intermediateGraph.resources[ev.resource].asScheduled().untrackedReleaseBarrier = deact->release;
 }
 
 void Runtime::recalculateStateDeltas(const IrNodesChanged &nodesChanged, const IrResourcesChanged &resourcesChanged)
@@ -390,7 +406,7 @@ void Runtime::scheduleResources(const IrResourcesChanged &lifetimeChangedResourc
   const auto &schedule = resourceScheduler.computeSchedule(prevFrame, schedulingCtx);
 
   // Don't deactivate resources that were preserved
-  for (auto [idx, res] : resourceAllocator->cachedIntermediateResources.enumerate())
+  for (auto [idx, res] : intermediateGraph.resources.enumerate())
     if (resourceScheduler.isResourcePreserved(prevFrame, idx))
       pendingDeactivations[historyPairing[idx]] = eastl::monostate{};
 
@@ -412,10 +428,20 @@ void Runtime::updateHistory()
   for (const auto &deactivation : pendingDeactivations)
     eastl::visit(
       [](const auto &res) {
-        if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, BaseTexture *>)
-          d3d::deactivate_texture(res);
-        else if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, Sbuffer *>)
-          d3d::deactivate_buffer(res);
+        if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, TextureDeactivation>)
+        {
+          if (res.release)
+            d3d::enhanced_texture_barrier(*res.release, res.texture);
+          else
+            d3d::deactivate_texture(res.texture);
+        }
+        else if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, BufferDeactivation>)
+        {
+          if (res.release)
+            d3d::enhanced_buffer_barrier(*res.release, res.buffer);
+          else
+            d3d::deactivate_buffer(res.buffer);
+        }
         else if constexpr (eastl::is_same_v<eastl::remove_cvref_t<decltype(res)>, BlobDeactivationRequest>)
           res.destructor(res.blob);
       },
@@ -500,11 +526,71 @@ void Runtime::updateHistory()
         {
           case ResourceType::Texture:
           {
+            auto tex = resourceAllocator->getTexture(prevFrame, resIdx);
+
+            if (res.isUntrackedTexture())
+            {
+              const auto activationScope = enhanced_texture_barrier_for_activation(usage);
+              bool copied = false;
+              if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
+              {
+                const auto *srcRelease = eastl::get_if<d3d::TextureBarrier>(
+                  &intermediateGraph.resources[historySourceResIdx].asScheduled().untrackedReleaseBarrier);
+                if (srcRelease)
+                {
+                  BaseTexture *prevTex = resourceAllocator->getTexture(prevFrame, historySourceResIdx);
+                  TextureInfo texInfo = {};
+                  tex->getinfo(texInfo);
+
+                  d3d::enhanced_texture_barrier(
+                    {{d3d::PipelineStageFlag::All, d3d::PipelineStageFlag::Copy}, {{}, d3d::AccessFlag::CopyWrite},
+                      {d3d::TextureLayout::Undefined, d3d::TextureLayout::CopyDest}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE},
+                    tex);
+                  d3d::enhanced_texture_barrier(
+                    {{srcRelease->pipelineSync.src, d3d::PipelineStageFlag::Copy},
+                      {srcRelease->memorySync.src, d3d::AccessFlag::CopyRead},
+                      {srcRelease->layoutTransition.src, d3d::TextureLayout::CopySource}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE},
+                    prevTex);
+
+                  copied = true;
+                  for (int slice = 0; slice < texInfo.a && copied; slice++)
+                    for (int mip = 0; mip < texInfo.mipLevels; mip++)
+                    {
+                      const int subResIdx = tex->calcSubResIdx(mip, slice, texInfo.mipLevels);
+                      if (tex->updateSubRegion(prevTex, subResIdx, 0, 0, 0, max(1, texInfo.w >> mip), max(1, texInfo.h >> mip),
+                            max(1, texInfo.d >> mip), subResIdx, 0, 0, 0))
+                        continue;
+                      logerr("daFG: failed to copy historical texture data for '%s'",
+                        registry.knownNames.getName(res.frontendResources.back()));
+                      copied = false;
+                      break;
+                    }
+                }
+              }
+
+              if (copied)
+                d3d::enhanced_texture_barrier(
+                  {{d3d::PipelineStageFlag::Copy, activationScope.pipelineSync.dst},
+                    {d3d::AccessFlag::CopyWrite, activationScope.memorySync.dst},
+                    {d3d::TextureLayout::CopyDest, activationScope.layoutTransition.dst}, ENTIRE_TEXTURE_SUBRESOURCE_RANGE},
+                  tex);
+              else if (res.asScheduled().history == History::ClearZeroOnFirstFrame)
+              {
+                const auto &baseRes = res.asScheduled().getGpuDescription().asBasicRes;
+                const auto channels = get_tex_format_desc(baseRes.cFlags & TEXFMT_MASK).mainChannelsType;
+                const bool isInt = channels == ChannelDType::UINT || channels == ChannelDType::SINT;
+                activate_untracked_texture(tex, baseRes.cFlags, activationScope,
+                  get_history_activation(DesiredActivationBehaviour::Clear, baseRes.activation, isInt), ResourceClearValue{});
+              }
+              else
+                d3d::enhanced_texture_barrier(activationScope, tex);
+              break;
+            }
+
             const auto &base_res = res.asScheduled().getGpuDescription().asBasicRes;
             const auto channels = get_tex_format_desc(base_res.cFlags & TEXFMT_MASK).mainChannelsType;
             auto activation =
               get_history_activation(behavior, base_res.activation, channels == ChannelDType::UINT || channels == ChannelDType::SINT);
-            auto tex = resourceAllocator->getTexture(prevFrame, resIdx);
             d3d::activate_texture(tex, activation, ResourceClearValue{});
 
             if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
@@ -512,12 +598,19 @@ void Runtime::updateHistory()
               TextureInfo texInfo = {};
               tex->getinfo(texInfo);
               BaseTexture *prevTex = resourceAllocator->getTexture(prevFrame, historySourceResIdx);
-              d3d::resource_barrier({tex, RB_RW_COPY_DEST, 0, texInfo.mipLevels});
-              d3d::resource_barrier({prevTex, RB_RO_COPY_SOURCE, 0, texInfo.mipLevels});
 
-              for (int i = 0; i < texInfo.mipLevels; i++)
-                if (!tex->updateSubRegion(prevTex, i, 0, 0, 0, max(1, texInfo.w >> i), max(1, texInfo.h >> i), texInfo.d, i, 0, 0, 0))
+              d3d::resource_barrier({tex, RB_RW_COPY_DEST, 0, 0});
+              d3d::resource_barrier({prevTex, RB_RO_COPY_SOURCE, 0, 0});
+
+              bool copyFailed = false;
+              for (int slice = 0; slice < texInfo.a && !copyFailed; slice++)
+                for (int mip = 0; mip < texInfo.mipLevels; mip++)
                 {
+                  const int subResIdx = tex->calcSubResIdx(mip, slice, texInfo.mipLevels);
+                  if (tex->updateSubRegion(prevTex, subResIdx, 0, 0, 0, max(1, texInfo.w >> mip), max(1, texInfo.h >> mip),
+                        max(1, texInfo.d >> mip), subResIdx, 0, 0, 0))
+                    continue;
+
                   logerr("daFG: failed to copy historical texture data for '%s'",
                     registry.knownNames.getName(res.frontendResources.back()));
                   if (res.asScheduled().history == History::ClearZeroOnFirstFrame)
@@ -525,6 +618,8 @@ void Runtime::updateHistory()
                     d3d::deactivate_texture(tex);
                     d3d::activate_texture(tex, activation, ResourceClearValue{});
                   }
+                  copyFailed = true;
+                  break;
                 }
             }
 
@@ -537,8 +632,42 @@ void Runtime::updateHistory()
 
           case ResourceType::Buffer:
           {
-            auto activation = get_history_activation(behavior, res.asScheduled().getGpuDescription().asBasicRes.activation);
             auto buf = resourceAllocator->getBuffer(prevFrame, resIdx);
+
+            if (res.isUntrackedBuffer())
+            {
+              const auto usageScope = enhanced_buffer_barrier_for_activation(usage);
+              bool copied = false;
+              if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
+              {
+                auto srcBuf = resourceAllocator->getBuffer(prevFrame, historySourceResIdx);
+                d3d::enhanced_buffer_barrier(
+                  {{d3d::PipelineStageFlag::All, d3d::PipelineStageFlag::Copy}, {{}, d3d::AccessFlag::CopyWrite}}, buf);
+                d3d::enhanced_buffer_barrier({{usageScope.pipelineSync.dst, d3d::PipelineStageFlag::Copy},
+                                               {usageScope.memorySync.dst, d3d::AccessFlag::CopyRead}},
+                  srcBuf);
+                copied = srcBuf->copyTo(buf);
+                if (!copied)
+                  logerr("daFG: failed to copy historical buffer data for '%s'",
+                    registry.knownNames.getName(res.frontendResources.back()));
+              }
+              if (copied)
+                d3d::enhanced_buffer_barrier({{d3d::PipelineStageFlag::Copy, usageScope.pipelineSync.dst},
+                                               {d3d::AccessFlag::CopyWrite, usageScope.memorySync.dst}},
+                  buf);
+              else
+              {
+                d3d::enhanced_buffer_barrier(
+                  {{d3d::PipelineStageFlag::All, d3d::PipelineStageFlag::Clear}, {{}, d3d::AccessFlag::UnorderedAccess}}, buf);
+                d3d::zero_rwbufi(buf);
+                d3d::enhanced_buffer_barrier({{d3d::PipelineStageFlag::Clear, usageScope.pipelineSync.dst},
+                                               {d3d::AccessFlag::UnorderedAccess, usageScope.memorySync.dst}},
+                  buf);
+              }
+              break;
+            }
+
+            auto activation = get_history_activation(behavior, res.asScheduled().getGpuDescription().asBasicRes.activation);
             d3d::activate_buffer(buf, activation);
 
             if (historySourceResIdx != intermediate::RESOURCE_NOT_MAPPED)
@@ -637,7 +766,77 @@ void Runtime::updateDynamicResolution(int curr_frame)
   }
 }
 
-bool Runtime::runNodes()
+Runtime::BlockProviderMap Runtime::applyRefinedBlockBindings(int curr_frame, int prev_frame)
+{
+  BlockProviderMap blockProviderMap;
+  for (auto [nodeId, node] : registry.nodes.enumerate())
+    for (const auto &[blockId, provider] : node.registeredRefinedBlocks)
+      blockProviderMap[blockId] = &provider;
+
+  for (auto [nodeId, node] : registry.nodes.enumerate())
+  {
+    if (!registryValidator.validityInfo.nodeValid[nodeId])
+      continue;
+    for (const auto &[blockId, bindings] : node.refinedBlockBindings)
+    {
+      const auto blockProviderIt = blockProviderMap.find(blockId);
+      G_ASSERTF_CONTINUE(blockProviderIt != blockProviderMap.end(),
+        "daFG: forBlock binding in node '%s' references unregistered block '%s'", registry.knownNames.getName(nodeId),
+        registry.knownNames.getName(blockId));
+
+      const RefinedBlockProvider &blockProvider = *blockProviderIt->second;
+
+      for (const auto &[svId, binding] : bindings)
+      {
+        G_ASSERTF_CONTINUE(svId >= 0, "daFG: forBlock binding in node '%s' references invalid slot %d for block '%s'",
+          registry.knownNames.getName(nodeId), svId, registry.knownNames.getName(blockId));
+
+        const ResNameId resolvedId = nameResolver.resolve(binding.resource);
+        G_ASSERTF_CONTINUE(resolvedId != ResNameId::Invalid || binding.optional,
+          "daFG: forBlock resource for block '%s' var %d is not available", registry.knownNames.getName(blockId), svId);
+
+        uint32_t prevHandleId = refined_block::PassBlockHandle{}.getId();
+        for (auto midx : IdRange<intermediate::MultiplexingIndex>(irMapping.multiplexingExtent()))
+        {
+          if (!irMapping.wasResMapped(resolvedId, midx))
+            continue;
+
+          const intermediate::ResourceIndex resIdx = irMapping.mapRes(resolvedId, midx);
+          const auto &irRes = intermediateGraph.resources[resIdx];
+
+          G_ASSERTF_CONTINUE(irRes.isScheduled(), "daFG: External resource can't be used. Block '%s' var %d",
+            registry.knownNames.getName(blockId), svId);
+
+          multiplexing::Index blockMultiIdx = multiplexing_index_from_ir(midx, currentMultiplexingExtents);
+          if (binding.history)
+            blockMultiIdx = clamp(blockMultiIdx, historyMultiplexingExtents);
+          refined_block::PassBlockHandle passBlock = blockProvider(blockMultiIdx);
+
+          G_ASSERTF(prevHandleId == refined_block::PassBlockHandle{}.getId() || passBlock.getId() != prevHandleId,
+            "daFG: block '%s' var %d: provider returned the same PassBlockHandle for multiple multiplexing indices;"
+            " only the last index's resources will be set. Use the provider overload of registerBlock().",
+            registry.knownNames.getName(blockId), svId);
+          prevHandleId = passBlock.getId();
+
+          const int frameToGet = binding.history ? prev_frame : curr_frame;
+
+          switch (irRes.getResType())
+          {
+            case ResourceType::Texture: passBlock.set(svId, resourceAllocator->getTexture(frameToGet, resIdx)); break;
+            case ResourceType::Buffer: passBlock.set(svId, resourceAllocator->getBuffer(frameToGet, resIdx)); break;
+            case ResourceType::Blob:
+            case ResourceType::Invalid:
+              G_ASSERT(0); // Should never happen, sanity check
+              break;
+          }
+        }
+      }
+    }
+  }
+  return blockProviderMap;
+}
+
+bool Runtime::runNodes(bool flush_blocks)
 {
   if (DAGOR_UNLIKELY(d3d::device_lost(nullptr)))
   {
@@ -672,10 +871,14 @@ bool Runtime::runNodes()
   const int currFrame = (++frameIndex % SCHEDULE_FRAME_WINDOW);
 
   updateDynamicResolution(currFrame);
+  auto blockProviders = applyRefinedBlockBindings(currFrame, prevFrame);
+
+  if (flush_blocks)
+    refined_block::flush();
 
   const auto &frameEvents = allResourceEvents[currFrame];
 
-  nodeExec->execute(prevFrame, currFrame, currentMultiplexingExtents, frameEvents, perNodeStateDeltas);
+  nodeExec->execute(prevFrame, currFrame, currentMultiplexingExtents, frameEvents, perNodeStateDeltas, blockProviders);
 
   return true;
 }

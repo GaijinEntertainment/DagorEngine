@@ -289,6 +289,8 @@ typedef int socklen_t;
 #endif // NO_SOCKLEN_T
 #define _DARWIN_UNLIMITED_SELECT
 
+#define IP_ADDR_STR_LEN 50  // IPv6 hex string is 46 chars
+
 #if !defined(MSG_NOSIGNAL)
 #define MSG_NOSIGNAL 0
 #endif
@@ -342,6 +344,7 @@ struct ssl_func {
 #define SSLv23_client_method (* (SSL_METHOD * (*)(void)) ssl_sw[17].ptr)
 #define SSL_pending (* (int (*)(SSL *)) ssl_sw[18].ptr)
 #define SSL_CTX_set_verify (* (void (*)(SSL_CTX *, int, int)) ssl_sw[19].ptr)
+#define SSL_shutdown (* (int (*)(SSL *)) ssl_sw[20].ptr)
 
 #define CRYPTO_num_locks (* (int (*)(void)) crypto_sw[0].ptr)
 #define CRYPTO_set_locking_callback \
@@ -376,6 +379,7 @@ static struct ssl_func ssl_sw[] = {
   {"SSLv23_client_method", NULL},
   {"SSL_pending", NULL},
   {"SSL_CTX_set_verify", NULL},
+  {"SSL_shutdown",   NULL},
   {NULL,    NULL}
 };
 
@@ -619,7 +623,7 @@ static void cry(struct mg_connection *conn,
 
 // Print error message to the opened error log stream.
 static void cry(struct mg_connection *conn, const char *fmt, ...) {
-  char buf[MG_BUF_LEN], src_addr[20];
+  char buf[MG_BUF_LEN], src_addr[IP_ADDR_STR_LEN];
   va_list ap;
   FILE *fp;
   time_t timestamp;
@@ -1567,6 +1571,12 @@ int mg_read(struct mg_connection *conn, void *buf, size_t len) {
   int n, buffered_len, nread;
   const char *body;
 
+  // If Content-Length is not set, read until socket is closed
+  if (conn->consumed_content == 0 && conn->content_len == 0) {
+    conn->content_len = INT64_MAX;
+    conn->must_close = 1;
+  }
+
   nread = 0;
   if (conn->consumed_content < conn->content_len) {
     // Adjust number of bytes to read.
@@ -1704,7 +1714,7 @@ static int url_decode(const char *src, int src_len, char *dst,
 #define HEXTOI(x) (isdigit(x) ? x - '0' : x - 'W')
 
   for (i = j = 0; i < src_len && j < dst_len - 1; i++, j++) {
-    if (src[i] == '%' &&
+    if (src[i] == '%' && i < src_len - 2 &&
         isxdigit(* (const unsigned char *) (src + i + 1)) &&
         isxdigit(* (const unsigned char *) (src + i + 2))) {
       a = tolower(* (const unsigned char *) (src + i + 1));
@@ -2845,7 +2855,7 @@ static void handle_file_request(struct mg_connection *conn, const char *path,
   r1 = r2 = 0;
   hdr = mg_get_header(conn, "Range");
   if (hdr != NULL && (n = parse_range_header(hdr, &r1, &r2)) > 0 &&
-      r1 >= 0 && r2 > 0) {
+      r1 >= 0 && r2 >= 0) {
     conn->status_code = 206;
     cl = n == 2 ? (r2 > cl ? cl : r2) - r1 + 1: cl - r1;
     mg_snprintf(conn, range, sizeof(range),
@@ -2933,7 +2943,7 @@ static int parse_http_message(char *buf, int len, struct mg_request_info *ri) {
     ri->http_version = skip(&buf, "\r\n");
     if (((is_request = is_valid_http_method(ri->request_method)) &&
          memcmp(ri->http_version, "HTTP/", 5) != 0) ||
-        (!is_request && memcmp(ri->request_method, "HTTP/", 5)) != 0) {
+        (!is_request && memcmp(ri->request_method, "HTTP/", 5) != 0)) {
       request_length = -1;
     } else {
       if (is_request) {
@@ -2958,6 +2968,7 @@ static int read_request(FILE *fp, struct mg_connection *conn,
   while (*nread < bufsiz && request_len == 0 &&
          (n = pull(fp, conn, buf + *nread, bufsiz - *nread)) > 0) {
     *nread += n;
+    assert(*nread <= bufsiz);
     request_len = get_request_len(buf, *nread);
   }
 
@@ -3138,7 +3149,7 @@ static void prepare_cgi_environment(struct mg_connection *conn,
                                     struct cgi_env_block *blk) {
   const char *s, *slash;
   struct vec var_vec;
-  char *p, src_addr[20];
+  char *p, src_addr[IP_ADDR_STR_LEN];
   int  i;
 
   blk->len = blk->nvars = 0;
@@ -3927,7 +3938,8 @@ int mg_websocket_write(struct mg_connection* conn, int opcode,
 } // end of mongoose 3.9 function
 
 static void handle_websocket_request(struct mg_connection *conn) {
-  if (strcmp(mg_get_header(conn, "Sec-WebSocket-Version"), "13") != 0) {
+  const char *version = mg_get_header(conn, "Sec-WebSocket-Version");
+  if (version == NULL || strcmp(version, "13") != 0) {
     send_http_error(conn, 426, "Upgrade Required", "%s", "Upgrade Required");
   } else if (conn->ctx->callbacks.websocket_connect != NULL &&
              conn->ctx->callbacks.websocket_connect(conn) != 0) {
@@ -4430,6 +4442,8 @@ static int parse_port_string(const struct vec *vec, struct socket *so) {
   } else if (sscanf(vec->ptr, "%d%n", &port, &len) != 1 ||
              len <= 0 ||
              len > (int) vec->len ||
+             port < 1 ||
+             port > 65535 ||
              (vec->ptr[len] && vec->ptr[len] != 's' &&
               vec->ptr[len] != 'r' && vec->ptr[len] != ',')) {
     return 0;
@@ -4452,7 +4466,7 @@ static int set_ports_option(struct mg_context *ctx) {
   const char *list = ctx->config[LISTENING_PORTS];
   int on = 1, success = 1;
   struct vec vec;
-  struct socket so;
+  struct socket so, *ptr;
 
   while (success && (list = next_option(list, &vec, NULL)) != NULL) {
     if (!parse_port_string(&vec, &so)) {
@@ -4474,12 +4488,14 @@ static int set_ports_option(struct mg_context *ctx) {
           (int) vec.len, vec.ptr, strerror(ERRNO));
       closesocket(so.sock);
       success = 0;
+    } else if ((ptr = realloc(ctx->listening_sockets,
+                              (ctx->num_listening_sockets + 1) *
+                              sizeof(ctx->listening_sockets[0]))) == NULL) {
+      closesocket(so.sock);
+      success = 0;
     } else {
       set_close_on_exec(so.sock);
-      // TODO: handle realloc failure
-      ctx->listening_sockets = realloc(ctx->listening_sockets,
-                                       (ctx->num_listening_sockets + 1) *
-                                       sizeof(ctx->listening_sockets[0]));
+      ctx->listening_sockets = ptr;
       ctx->listening_sockets[ctx->num_listening_sockets] = so;
       ctx->num_listening_sockets++;
     }
@@ -4506,7 +4522,7 @@ static void log_header(const struct mg_connection *conn, const char *header,
 static void log_access(const struct mg_connection *conn) {
   const struct mg_request_info *ri;
   FILE *fp;
-  char date[64], src_addr[20];
+  char date[64], src_addr[IP_ADDR_STR_LEN];
 
   fp = conn->ctx->config[ACCESS_LOG_FILE] == NULL ?  NULL :
     fopen(conn->ctx->config[ACCESS_LOG_FILE], "a+");
@@ -4778,15 +4794,18 @@ static void close_socket_gracefully(struct mg_connection *conn) {
 
 static void close_connection(struct mg_connection *conn) {
   conn->must_close = 1;
+#ifndef NO_SSL
+  if (conn->ssl != NULL) {
+    // Run SSL_shutdown twice to ensure completly close SSL connection
+    SSL_shutdown(conn->ssl);
+    SSL_shutdown(conn->ssl);
+    SSL_free(conn->ssl);
+    conn->ssl = NULL;
+  }
+#endif
   if (conn->client.sock != INVALID_SOCKET) {
     close_socket_gracefully(conn);
   }
-#ifndef NO_SSL
-  // Must be done AFTER socket is closed
-  if (conn->ssl != NULL) {
-    SSL_free(conn->ssl);
-  }
-#endif
   if (conn->response_data && conn->response_free_func)
     conn->response_free_func(conn->response_data);
 }
@@ -4892,6 +4911,10 @@ static int getreq(struct mg_connection *conn, char *ebuf, size_t ebuf_len) {
                !mg_strcasecmp(conn->request_info.request_method, "PUT")) {
       conn->content_len = -1;
     } else {
+      // Content-Length is not set. Set content_len to maximum possible
+      // value, instructing mg_read() to read data until socket is closed.
+      // Message boundary is not known in this case, therefore this
+      // connection must be closed after
       conn->content_len = 0;
     }
     conn->birth_time = time(NULL);
@@ -4959,21 +4982,20 @@ static void process_new_connection(struct mg_connection *conn) {
     // is using parsed request, which will be invalid after memmove's below.
     // Therefore, memorize should_keep_alive() result now for later use
     // in loop exit condition.
-    keep_alive = should_keep_alive(conn);
+    keep_alive = interlocked_load(&conn->ctx->stop_flag) == 0 &&
+      keep_alive_enabled && conn->content_len >= 0 &&
+      should_keep_alive(conn);
 
     // Discard all buffered data for this request
-    discard_len = conn->content_len >= 0 &&
-      conn->request_len + conn->content_len < (int64_t) conn->data_len ?
+    discard_len = conn->content_len >= 0 && conn->request_len > 0 &&
+      conn->content_len < (int64_t) conn->data_len - conn->request_len ?
       (int) (conn->request_len + conn->content_len) : conn->data_len;
+    assert(discard_len >= 0);
     memmove(conn->buf, conn->buf + discard_len, conn->data_len - discard_len);
     conn->data_len -= discard_len;
     assert(conn->data_len >= 0);
     assert(conn->data_len <= conn->buf_size);
-
-  } while (interlocked_load(&conn->ctx->stop_flag) == 0 &&
-           keep_alive_enabled &&
-           conn->content_len >= 0 &&
-           keep_alive);
+  } while (keep_alive);
 }
 
 // Worker threads take accepted socket from the queue
@@ -5289,7 +5311,7 @@ static int set_sock_timeout(SOCKET sock, int milliseconds) {
 static void accept_new_connection(const struct socket *listener,
                                   struct mg_context *ctx) {
   struct socket so;
-  char src_addr[20];
+  char src_addr[IP_ADDR_STR_LEN];
   socklen_t len = sizeof(so.rsa);
   int on = 1;
 

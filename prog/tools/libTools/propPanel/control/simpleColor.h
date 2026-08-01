@@ -25,6 +25,16 @@ public:
   unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_COLOR | CONTROL_CAPTION; }
   unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_COLOR; }
 
+  unsigned getWidth() const override
+  {
+    if (mW <= 0)
+      return ImguiHelper::getDefaultRightSideEditWidth();
+    else if (mW == (int)Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE)
+      return ImGui::GetFrameHeight();
+    else
+      return mW;
+  }
+
   E3DCOLOR getColorValue() const override { return controlValue; }
   void setColorValue(E3DCOLOR value) override { controlValue = value; }
 
@@ -64,8 +74,12 @@ public:
 
     if (!controlCaption.empty())
     {
-      float availableWidthForLabel =
-        ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemInnerSpacing.x - ImguiHelper::getDefaultRightSideEditWidth();
+      float availableWidthForLabel = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemInnerSpacing.x;
+      if (mW == (int)Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE)
+        availableWidthForLabel -= ImGui::GetFrameHeight();
+      else
+        availableWidthForLabel -= ImguiHelper::getDefaultRightSideEditWidth();
+
       if (availableWidthForLabel < 0.0f)
         availableWidthForLabel = 0.0f;
 
@@ -81,9 +95,14 @@ public:
     G_STATIC_ASSERT(sizeof(Color4) == (sizeof(float) * 4));
     Color4 asColor4(controlValue);
 
-    const ImVec2 previewSize(ImGui::GetContentRegionAvail().x, 0.0f);
+    float previewWidth;
+    if (mW == (int)Constants::SIMPLE_COLOR_BUTTON_FRAME_SIZE)
+      previewWidth = min(ImGui::GetFrameHeight(), ImGui::GetContentRegionAvail().x);
+    else
+      previewWidth = ImGui::GetContentRegionAvail().x;
+
     const bool pressed = ImGui::ColorButton("##preview", ImVec4(asColor4.r, asColor4.g, asColor4.b, asColor4.a),
-      ImGuiColorEditFlags_AlphaPreviewHalf | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoTooltip, previewSize);
+      ImGuiColorEditFlags_AlphaPreviewHalf | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoTooltip, ImVec2(previewWidth, 0.0f));
 
     if (pressed)
     {

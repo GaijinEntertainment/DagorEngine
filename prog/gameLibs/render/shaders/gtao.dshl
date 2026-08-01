@@ -8,7 +8,6 @@ include "get_additional_ao.dshl"
 include "ssao_reprojection.dshl"
 include "halfres_close_depth_with_normals.dshl"
 include "camera_in_camera.dshl"
-include "dynamic_resolution.dshl"
 
 float gtao_cutoff_radius_mul = 1.68;
 float gtao_cutoff_smoothness = 0.8;
@@ -100,8 +99,6 @@ macro GTAO_MAIN_CORE(code)
   INIT_READ_IS_HERO_COCKPIT(code)
   USE_READ_IS_HERO_COCKPIT(code)
 
-  INIT_DYNAMIC_RESOLUTION(code)
-
   hlsl(code) {
     half3 GetCameraVec(half2 uv)
     {
@@ -110,7 +107,7 @@ macro GTAO_MAIN_CORE(code)
 
     half3 GetPosition(half2 uv)
     {
-      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(uv.xy * current_dynamic_resolution_scale, 0, 0)).x, zn_zfar.zw);
+      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(uv.xy, 0, 0)).x, zn_zfar.zw);
       return GetCameraVec(uv) * sceneDepth;
     }
 
@@ -135,7 +132,7 @@ macro GTAO_MAIN_CORE(code)
       float cutoff_radius, float inv_falloff_range, inout float closest)
     {
       half2 uv = tc_base + aoDir * i;
-      float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy * current_dynamic_resolution_scale, 0, targetMip)).x;
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(uv.xy, 0, targetMip)).x;
 
       ##if (maybe(screen_mask_enabled))
         if (rawDepth >= 1)
@@ -175,7 +172,7 @@ macro GTAO_MAIN_CORE(code)
     {
 
       // Vector from camera to the current pixel's position
-      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(tc_original.xy * current_dynamic_resolution_scale, 0, 0)).x, zn_zfar.zw);
+      float sceneDepth = decode_depth(tex2Dlod(half_res_close_depth, float4(tc_original.xy, 0, 0)).x, zn_zfar.zw);
       half3 ray = GetCameraVec(tc_original) * sceneDepth;
 
       float3 normal = normalize(float3(
@@ -256,13 +253,13 @@ macro GTAO_MAIN_CORE(code)
       #else
         #define GTAO_VALUE_X gtao_value.x
       #endif
-      float rawDepth = tex2Dlod(half_res_close_depth, float4(texcoord * current_dynamic_resolution_scale, 0, 0)).x;
+      float rawDepth = tex2Dlod(half_res_close_depth, float4(texcoord, 0, 0)).x;
       BRANCH
       if (rawDepth <= 0 || rawDepth >= 1)//why not just rawDepth <= 0
         return 1;
 
       float depth1 = decode_depth(rawDepth, zn_zfar.zw);
-      half3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(texcoord * current_dynamic_resolution_scale, 0, 0)).xyz * 2 - 1);
+      half3 wsNormal = normalize(tex2Dlod(half_res_close_depth_normals, float4(texcoord, 0, 0)).xyz * 2 - 1);
       float3 cameraToPoint = depth1 * viewVect;
       float w = depth1;
       float3 pixelPos = cameraToPoint + world_view_pos;
@@ -295,7 +292,7 @@ macro GTAO_MAIN_CORE(code)
                 cameraToPoint, -from_sun_direction,
                 max(w * contact_shadow_len, min(contact_shadow_min_len, w)),
                 filteredSteps, steps, dither - 0.5,
-                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(current_dynamic_resolution_scale.xy,0,0)
+                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(1,1,0,0)
               );
             }
             else
@@ -305,7 +302,7 @@ macro GTAO_MAIN_CORE(code)
                 cameraToPoint, -from_sun_direction,
                 max(w * contact_shadow_len, min(contact_shadow_min_len, w)),
                 filteredSteps, steps, dither - 0.5,
-                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(current_dynamic_resolution_scale.xy,0,0)
+                projectionMatrix, w, viewProjectionMatrixNoOfs, hitUV, half4(1,1,0,0)
               );
             }
 
@@ -313,20 +310,20 @@ macro GTAO_MAIN_CORE(code)
             gtao_value.CONTACT_SHADOWS_ATTR *= lerp (1, contactShadow, shadow_strength);
           }
         }
-        gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, texcoord * current_dynamic_resolution_scale, w);
+        gtao_value.CONTACT_SHADOWS_ATTR = getAdditionalShadow(gtao_value.CONTACT_SHADOWS_ATTR, cameraToPoint, texcoord, w);
       }
       ##endif
 
 
       ##if gbuffer_has_hero_cockpit && hero_cockpit_camera_fade == on
         BRANCH
-        if (isGbufferHeroCockpit(texcoord * current_dynamic_resolution_scale))
+        if (isGbufferHeroCockpit(texcoord))
         {
           float fade = saturate(dot(float4(pixelPos, 1), hero_cockpit_vec));
           float fadeGtao = getAdditionalAmbientOcclusion(1.f, pixelPos, wsNormal, texcoord);
           GTAO_VALUE_X = lerp(GTAO_VALUE_X, fadeGtao, fade);
           ##if maybe(ssao_contact_shadows)
-            float fadeShadow = getAdditionalShadow(1.f, cameraToPoint,  texcoord * current_dynamic_resolution_scale, w);
+            float fadeShadow = getAdditionalShadow(1.f, cameraToPoint,  texcoord, w);
             gtao_value.CONTACT_SHADOWS_ATTR = lerp(gtao_value.CONTACT_SHADOWS_ATTR, fadeShadow, fade);
           ##endif
         }
@@ -394,7 +391,7 @@ shader gtao_main_cs
         return;
 
       float2 pixelCenter = DTid + 0.5;
-      float2 texcoord = pixelCenter * gtao_texel_size.xy * current_inv_dynamic_resolution_scale;
+      float2 texcoord = pixelCenter * gtao_texel_size.xy;
 
       DISCARD_IF_INVALID_VIEW_AREA_CS(texcoord.xy);
 

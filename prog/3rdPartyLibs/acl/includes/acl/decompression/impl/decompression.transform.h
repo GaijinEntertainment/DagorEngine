@@ -215,7 +215,8 @@ namespace acl
 			if (decompression_settings_type::clamp_sample_time())
 				sample_time = rtm::scalar_clamp(sample_time, 0.0F, context.clip_duration);
 
-			if (context.sample_time == sample_time && context.get_rounding_policy() == rounding_policy)
+			const uint8_t requested_rounding_policy = static_cast<uint8_t>(rounding_policy);
+			if (context.sample_time == sample_time && context.requested_rounding_policy == requested_rounding_policy)
 				return;
 
 			const transform_tracks_header& transform_header = get_transform_tracks_header(*tracks);
@@ -239,7 +240,8 @@ namespace acl
 			uint32_t key_frame1;
 			find_linear_interpolation_samples_with_sample_rate(header.num_samples, header.sample_rate, sample_time, rounding_policy, looping_policy_, key_frame0, key_frame1, context.interpolation_alpha);
 
-			context.rounding_policy = static_cast<uint8_t>(rounding_policy);
+			context.requested_rounding_policy = requested_rounding_policy;
+			context.effective_rounding_policy = requested_rounding_policy;
 
 			uint32_t segment_key_frame0;
 			uint32_t segment_key_frame1;
@@ -316,6 +318,16 @@ namespace acl
 					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
 					// if key frames have been removed
 					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, key_frame0, key_frame1, sample_rounding_policy::none, looping_policy_);
+
+					// If we use floor/ceil/nearest then perhaps the keyframe we need has been stripped and isn't present
+					// When this happens, we need to reconstruct it through interpolation which requires us to update
+					// the effective rounding policy
+					// If we use none, then we were already interpolating
+					// If we use per-track rounding, then we assume that the caller knows what they are doing,
+					// see sample_rounding_policy::per_track for details
+					// We floor the interpolation alpha and compare it against itself to detect if it is different from 0.0 and 1.0
+					if (rounding_policy != sample_rounding_policy::per_track && rtm::scalar_floor(context.interpolation_alpha) != context.interpolation_alpha)
+						context.effective_rounding_policy = static_cast<uint8_t>(sample_rounding_policy::none);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
@@ -470,6 +482,16 @@ namespace acl
 					// We used the rounding policy above to snap to the correct key frame earlier but we might need to interpolate now
 					// if key frames have been removed
 					context.interpolation_alpha = find_linear_interpolation_alpha(sample_index, clip_key_frame0, clip_key_frame1, sample_rounding_policy::none, looping_policy_);
+
+					// If we use floor/ceil/nearest then perhaps the keyframe we need has been stripped and isn't present
+					// When this happens, we need to reconstruct it through interpolation which requires us to update
+					// the effective rounding policy
+					// If we use none, then we were already interpolating
+					// If we use per-track rounding, then we assume that the caller knows what they are doing,
+					// see sample_rounding_policy::per_track for details
+					// We floor the interpolation alpha and compare it against itself to detect if it is different from 0.0 and 1.0
+					if (rounding_policy != sample_rounding_policy::per_track && rtm::scalar_floor(context.interpolation_alpha) != context.interpolation_alpha)
+						context.effective_rounding_policy = static_cast<uint8_t>(sample_rounding_policy::none);
 
 					// Find where our data lives (clip or database tier X)
 					sample_indices0 = segment_tier0_header0->sample_indices;
@@ -1972,16 +1994,6 @@ namespace acl
 
 			// Finally reached our desired track, unpack it
 
-			float interpolation_alpha = context.interpolation_alpha;
-			if (decompression_settings_type::is_per_track_rounding_supported())
-			{
-				const sample_rounding_policy rounding_policy = context.get_rounding_policy();
-				const sample_rounding_policy rounding_policy_ = writer.get_rounding_policy(rounding_policy, track_index);
-				ACL_ASSERT(rounding_policy_ != sample_rounding_policy::per_track, "track_writer::get_rounding_policy() cannot return per_track");
-
-				interpolation_alpha = apply_rounding_policy(interpolation_alpha, rounding_policy_);
-			}
-
 			if (rotation_sub_track_type == 0)
 			{
 				if (default_rotation_mode != default_sub_track_mode::skipped)
@@ -1998,7 +2010,7 @@ namespace acl
 				if (rotation_sub_track_type & 1)
 					rotation = constant_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 				else
-					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index, interpolation_alpha);
+					rotation = animated_track_cache.unpack_rotation_within_group<decompression_settings_type>(context, rotation_group_sample_index);
 
 				writer.write_rotation(track_index, rotation);
 			}
@@ -2019,7 +2031,7 @@ namespace acl
 				if (translation_sub_track_type & 1)
 					translation = constant_track_cache.unpack_translation_within_group(translation_group_sample_index);
 				else
-					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index, interpolation_alpha);
+					translation = animated_track_cache.unpack_translation_within_group<translation_adapter>(context, translation_group_sample_index);
 
 				writer.write_translation(track_index, translation);
 			}
@@ -2040,7 +2052,7 @@ namespace acl
 				if (scale_sub_track_type & 1)
 					scale = constant_track_cache.unpack_scale_within_group(scale_group_sample_index);
 				else
-					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index, interpolation_alpha);
+					scale = animated_track_cache.unpack_scale_within_group<scale_adapter>(context, scale_group_sample_index);
 
 				writer.write_scale(track_index, scale);
 			}

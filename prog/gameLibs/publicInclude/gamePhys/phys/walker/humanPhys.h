@@ -260,9 +260,7 @@ struct HumanPhysState : public HumanSerializableState
   int walkMatId = 0;
   int torsoContactMatId = PHYSMAT_INVALID;
   int16_t torsoContactRendinstPool = -1;
-  // TODO: replace to StaticTab<> after fixing it's `is_trivially_destructible` trait
-  uint16_t numTorsoContacts = 0;
-  carray<gamephys::CollisionContactDataMin, 2> torsoContacts;
+  StaticTab<gamephys::CollisionContactDataMin, 2> torsoContacts;
 
   HumanPhysState();
 
@@ -390,7 +388,7 @@ public:
   carray<float, ESS_NUM> alignSpeeds;
 
   carray<Point2, ESS_NUM> rotateAngles;
-  carray<float, EMS_NUM> fricitonByState;
+  carray<float, EMS_NUM> frictionByState;
   carray<float, EMS_NUM> accelerationByState;
   float externalFrictionPerSpeedMult = 5.0;
   float minWalkSpeed = 0.01f;
@@ -518,6 +516,7 @@ public:
   float climbAngleCos = 0.f;
   float climbMinHorzSize = 0.65f;
   float climbOnMinVertSize = 1.1f;
+  float climbOnMinVertForwDist = 0.2f;
   float climbThroughMinVertSize = 0.65f;
   float climbThroughForwardDist = 0.3f;
   Point3 climbThroughPosOffset = Point3(0.f, 0.25f, 0.f);
@@ -540,26 +539,32 @@ public:
     float time;
   };
 
-  enum ClimbState
+  enum ClimbTrajectoryStage
   {
-    CLIMB_STATE_JUMP_UP = 0,
-    CLIMB_STATE_CLIMB = 1,
-    CLIMB_STATE_JUMP_DOWN = 2,
-    CLIMB_STATE_FLY_DOWN = 3,
-    CLIMB_STATE_LANDING = 4,
+    CLIMB_STAGE_JUMP_UP = 0,
+    CLIMB_STAGE_CLIMB = 1,
+    CLIMB_STAGE_JUMP_DOWN = 2,
+    CLIMB_STAGE_FLY_DOWN = 3,
+    CLIMB_STAGE_LANDING = 4,
+    CLIMB_STAGE_STAND_UP = 5,
   };
 
   bool useClimbTrajectory = false;
-  Tab<ClimbTrajectoryPoint> climbTrajectory;
-  int climbTrajectoryStage = 0;
+  Tab<ClimbTrajectoryPoint> climbTrajectoryClimb;
+  Tab<ClimbTrajectoryPoint> climbTrajectoryJumpDown;
+  int climbTrajectoryPrevStage = 0;
+  int climbTrajectoryNextStage = 0;
   float climbTime = 0.f;
-  float climbMaxTime = 0.f;
+  float climbProgress = 0.f;
+  float climbTrajectoryClimbMaxProgress = 0.f;
+  float climbTrajectoryJumpDownMaxProgress = 0.f;
   float climbTrajectorySpeedCoef = 1.f;
+  float climbTrajectoryTransitionK = -1.f;
   Point3 climbTrajectoryStartPositionOffset;
-  Point3 climbTrajectoryPrevPos = {0.f, 0.f, 0.f};
-  Point3 climbTrajectoryNextPos = {0.f, 0.f, 0.f};
-  float climbTrajectoryPrevTime = 0.f;
-  float climbTrajectoryNextTime = 0.f;
+  Point3 climbTrajectoryPrevPosition = {0.f, 0.f, 0.f};
+  Point3 climbTrajectoryNextPosition = {0.f, 0.f, 0.f};
+  float climbTrajectoryPrevProgress = 0.f;
+  float climbTrajectoryNextProgress = 0.f;
 
   CollisionObject torsoCollision;
   CollisionObject climberCollision;
@@ -675,6 +680,7 @@ public:
   float ccdRad = 0.2f;
   bool ccdSolveByNormal = false;
   float collideRiPosMinDiff = -1.f;
+  float postMoveFrictionViscosityMult = 1.f;
   float maxStamina = 100.f;
   int rayMatId = -1;
   eastl::unique_ptr<HumanCollision> humanCollision; // not null
@@ -795,7 +801,8 @@ public:
 
   void tryClimbing(bool was_jumping, bool is_in_air, const Point3 &gun_node_proj, float at_time);
   bool testClimbingIteration(int front_pos, int horz_pos, bool need_min_pos, bool only_one_climb_pos, bool is_in_air,
-    const Point3 &gun_node_proj, bool &have_min_pos, bool &have_max_pos, ClimbQueryResults &best_res, float &best_score);
+    const Point3 &gun_node_proj, bool &have_min_pos, bool &have_max_pos, ClimbQueryResults &best_res, float &best_score,
+    bool &best_climb_thru);
   void finishClimbing(const TMatrix &tm, const Point3 &cur_coll_center, const Point3 &vert_dir);
   ClimbQueryResults climbQueryImpl(const TMatrix &tm, const Point3 &overhead_pos, const Point3 &cur_ccd_pos,
     const Point3 &climb_from_pos, const Point3 &vert_dir, bool check_norm, int ray_mat_id, TraceMeshFaces *handle) const;

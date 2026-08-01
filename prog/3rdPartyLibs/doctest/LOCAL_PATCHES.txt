@@ -1,0 +1,18 @@
+Base: doctest 2.4.6, single-header release (doctest.h)
+Upstream: https://github.com/doctest/doctest
+
+Not a pristine 2.4.6 drop. Backported upstream commits (see the git
+history of this directory for full details):
+- 8989a65 re-implement the thread-local string-stream as a stack so
+  nested toString calls do not clobber each other (#569)
+- 969bd7f initialize TestSuite members (#556)
+- ce13bc4 fix move-only types failing to decompose (#634)
+- bf4863d single forwarding overload in
+  DOCTEST_DO_BINARY_EXPRESSION_COMPARISON (#651)
+- e8ba771 (partial) bound filldata<const char[N]> to the array length
+  to stop OOB reads past non-null-terminated char arrays (#585)
+
+Local deviations from upstream:
+- rawMemoryToString saves/restores the shared TLSS stream format
+  state (upstream instead deleted the function in #585, which is not
+  backported in full)

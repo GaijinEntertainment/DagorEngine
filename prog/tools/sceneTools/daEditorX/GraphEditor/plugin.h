@@ -18,6 +18,7 @@
 
 #include <graphEditor/graph_data.h>
 
+#include "graph_undo.h"
 #include "resource_paths.hpp"
 
 class BaseNodesPanel;
@@ -123,8 +124,103 @@ public:
 
   // Builds a fresh node via makeNodeFromBaseBlk, allocates id via graphPanel, hands to
   // graphPanel->addNode. The drop handler in GraphPanel calls this. No-op if graphPanel
-  // is null or template_uid is unknown.
+  // is null or template_uid is unknown. Records an undo entry ("Create node").
   void spawnBaseNode(const char *template_uid, float x, float y);
+
+  // Undo/redo primitives used by the graph_undo.h entries. They mutate the canonical graphData
+  // and kick a regen; they go through graphPanel when it exists (so the canvas refreshes), and
+  // fall back to a direct mutateGraphData edit when the Graph panel is closed -- undo must keep
+  // graphData consistent even with no panel open. Single-element: reinsertNode / reinsertEdge add
+  // one; eraseNode removes a node and its incident edges, eraseEdge removes one edge. Batch:
+  // restoreNodesAndEdges re-adds a captured sub-graph (nodes first, then edges, so no edge dangles);
+  // eraseNodes removes a set.
+  void reinsertNode(const GraphData::Node &node);
+  void reinsertEdge(const GraphData::Edge &edge);
+  void eraseNode(int node_id);
+  void eraseEdge(int edge_id);
+  void eraseNodes(const eastl::vector<int> &node_ids);
+  void restoreNodesAndEdges(const eastl::vector<GraphData::Node> &nodes, const eastl::vector<GraphData::Edge> &edges);
+
+  // Removes node_ids (and their incident edges) as one undoable operation: snapshots the removed
+  // sub-graph, erases it, and records an UndoDeleteNodes entry. The Delete path in GraphPanel
+  // calls this once per Delete action (after the block-children prompt resolves), so a whole
+  // multi-selection undoes/redoes atomically.
+  void deleteNodesUndoable(const eastl::vector<int> &node_ids);
+
+  // Edge create/delete undo. addEdgeUndoable adds one edge and records an UndoCreateEdge (the
+  // link-drag handler calls it); deleteEdgesUndoable snapshots edge_ids, erases them, and records
+  // one UndoDeleteEdges (the link-Delete handler and the "remove edges at pin" tool call it).
+  void addEdgeUndoable(GraphData::Edge edge);
+  void deleteEdgesUndoable(const eastl::vector<int> &edge_ids);
+
+  // Records undo for an already-applied paste as one grouped operation -- a UndoCreateNode per node
+  // plus a UndoCreateEdge per edge under a single "Paste" entry (no dedicated paste class needed).
+  // The CANVAS_PASTE handler pastes via CanvasClipboard (which adds the nodes/edges) and hands the
+  // inserted fragment here. Copy is read-only (no undo) and cut undoes via the delete path.
+  void recordPaste(eastl::vector<GraphData::Node> pasted_nodes, eastl::vector<GraphData::Edge> pasted_edges);
+
+  // Records an already-applied "remove keeping connections" splice as one grouped operation: a single
+  // UndoDeleteNodes for the removed nodes and their incident edges, plus a UndoCreateEdge per bridge
+  // edge the splice added, under one "Remove keeping connections" entry. Like recordPaste the panel
+  // applies the splice and hands the result here. No dedicated class needed.
+  void recordRemoveKeepingConnections(eastl::vector<GraphData::Node> removed_nodes, eastl::vector<GraphData::Edge> removed_edges,
+    eastl::vector<GraphData::Edge> bridge_edges);
+
+  // Records an already-applied edge reconnect (the A / "Modify edge" tool) as one grouped operation.
+  // The tool removes the picked edge when the drag begins and adds a replacement if the drag drops on
+  // a valid pin. Pass the removed edge always; pass the added edge when one was created, or nullptr
+  // when the drag was cancelled (which leaves just the removal). Recorded under "Reconnect edge":
+  // redo removes the old edge then adds the new, undo removes the new then restores the old.
+  void recordReconnectEdge(const GraphData::Edge &removed_edge, const GraphData::Edge *added_edge);
+
+  // Records a deliberate selection change (click, box-select, the select / show commands) as one
+  // "Select" entry. The GraphPanel's frame-end detector calls it with the selection (nodes + links)
+  // before and after; selection changes that are side effects of an edit are folded into that edit.
+  void recordSelectionChange(GraphSelection old_selection, GraphSelection new_selection);
+
+  // Move/resize undo. commitNodeTransforms records a finished drag as one entry: a UndoMoveNodes for
+  // nodes whose position changed and/or a UndoBlockResize for blocks whose size changed. A corner
+  // resize changes both for the same block, so folding them lets one Ctrl+Z restore position and size
+  // together. It commits the new positions to graphData first (sizes are already committed live by
+  // syncBlockSizes); the GraphPanel drag-end detector calls it. applyNodePositions writes positions
+  // into graphData and pushes them to the node editor (used by restore/redo). Display-only -- no regen.
+  void commitNodeTransforms(eastl::vector<NodePos> old_positions, eastl::vector<NodePos> new_positions,
+    eastl::vector<BlockSize> old_sizes, eastl::vector<BlockSize> new_sizes);
+  void applyNodePositions(const eastl::vector<NodePos> &positions);
+
+  // Applies a selection (nodes + links; used by UndoSelection). Selection is imgui-node-editor view
+  // state whose select calls are in-frame only, so this hands the set to the GraphPanel to push to ne
+  // on its next render pass. No-op with the Graph panel closed (selection is meaningless without a canvas).
+  void applySelection(const GraphSelection &selection);
+
+  // Node-property undo support (see UndoNodeProps). getNodeProperties copies a node's propertyValues
+  // out (clears out if the node is gone); setNodeProperties replaces them, kicks a regen, and refreshes
+  // the PropertiesPanel display. The PropertiesPanel brackets an edit with begin()/put(new UndoNodeProps)
+  // /accept(), so one gesture is one entry; these back the undo object's restore/redo.
+  void getNodeProperties(int node_id, eastl::vector<eastl::pair<eastl::string, eastl::string>> &out) const;
+  void setNodeProperties(int node_id, const eastl::vector<eastl::pair<eastl::string, eastl::string>> &props);
+
+  // Graph-settings undo (see UndoGraphSettings). getGraphSettings copies the graph-level fields out;
+  // setGraphSettings writes them, re-pushes heightmap params, regenerates, and refreshes the panel.
+  // recordGraphSettingsChange records one "Change graph settings" entry when old differs from current;
+  // the PropertiesPanel snapshots the settings before a graph-field edit and calls it afterward.
+  void getGraphSettings(GraphSettings &out) const;
+  void setGraphSettings(const GraphSettings &settings);
+  void recordGraphSettingsChange(GraphSettings old_settings);
+
+  // Pin-comment undo (the "Comment a pin" tool). setPinComment writes one pin's comment (used by
+  // UndoPinComment restore/redo); pin comments are display-only, so it does not regenerate -- the
+  // canvas re-reads graphData each frame. setPinCommentUndoable reads the current comment as the undo's
+  // old value, applies new_comment, and records one "Edit pin comment" entry when it differs.
+  void setPinComment(int node_id, int pin_index, const eastl::string &comment);
+  void setPinCommentUndoable(int node_id, int pin_index, const eastl::string &new_comment);
+
+  // Block-resize undo. applyBlockSizes writes the given block sizes into graphData and queues a
+  // ne::SetGroupSize push (ne stores the group bounds and ignores drawBlockNode's supplied size for an
+  // existing group, so the size must be pushed explicitly -- the GraphPanel drains it in drawBlockNode).
+  // Block size is display-only, so no regen. Used by UndoBlockResize restore/redo; the drag-end detector
+  // records it via commitNodeTransforms (folded with any move of the same drag).
+  void applyBlockSizes(const eastl::vector<BlockSize> &sizes);
 
   // Mark the graph dirty so the texgen worker thread runs `compile_graph_to_blks`
   // asynchronously and regenerates. Use for every mutation that doesn't change

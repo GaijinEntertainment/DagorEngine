@@ -66,6 +66,8 @@
 # include "UriCommon.h"
 #endif
 
+#include <stddef.h> /* for ptrdiff_t */
+
 
 
 /*extern*/ const URI_CHAR * const URI_FUNC(SafeToPointTo) = _UT("X");
@@ -88,6 +90,8 @@ int URI_FUNC(CompareRange)(
 		const URI_TYPE(TextRange) * a,
 		const URI_TYPE(TextRange) * b) {
 	int diff;
+	ptrdiff_t lenA;
+	ptrdiff_t lenB;
 
 	/* NOTE: Both NULL means equal! */
 	if ((a == NULL) || (b == NULL)) {
@@ -99,14 +103,16 @@ int URI_FUNC(CompareRange)(
 		return ((a->first == NULL) ? 0 : 1) - ((b->first == NULL) ? 0 : 1);
 	}
 
-	diff = ((int)(a->afterLast - a->first) - (int)(b->afterLast - b->first));
-	if (diff > 0) {
+	lenA = a->afterLast - a->first;
+	lenB = b->afterLast - b->first;
+
+	if (lenA > lenB) {
 		return 1;
-	} else if (diff < 0) {
+	} else if (lenA < lenB) {
 		return -1;
 	}
 
-	diff = URI_STRNCMP(a->first, b->first, (a->afterLast - a->first));
+	diff = URI_STRNCMP(a->first, b->first, (size_t)lenA);
 
 	if (diff > 0) {
 		return 1;
@@ -141,7 +147,7 @@ UriBool URI_FUNC(RemoveDotSegmentsEx)(URI_TYPE(Uri) * uri,
 	walker->reserved = NULL; /* Prev pointer */
 	do {
 		UriBool removeSegment = URI_FALSE;
-		int len = (int)(walker->text.afterLast - walker->text.first);
+		const size_t len = walker->text.afterLast - walker->text.first;
 		switch (len) {
 		case 1:
 			if ((walker->text.first)[0] == _UT('.')) {
@@ -151,12 +157,19 @@ UriBool URI_FUNC(RemoveDotSegmentsEx)(URI_TYPE(Uri) * uri,
 
 				/* Is this dot segment essential? */
 				removeSegment = URI_TRUE;
-				if (relative && (walker == uri->pathHead) && (walker->next != NULL)) {
-					const URI_CHAR * ch = walker->next->text.first;
-					for (; ch < walker->next->text.afterLast; ch++) {
-						if (*ch == _UT(':')) {
-							removeSegment = URI_FALSE;
-							break;
+				if ((walker == uri->pathHead) && (walker->next != NULL)) {
+					/* Detect case "/.//" (with or without scheme) */
+					if ((walker->next->text.first == walker->next->text.afterLast)
+							&& (URI_FUNC(IsHostSet)(uri) == URI_FALSE)) {
+						removeSegment = URI_FALSE;
+					/* Detect case "./withcolon:" */
+					} else if (relative) {
+						const URI_CHAR * ch = walker->next->text.first;
+						for (; ch < walker->next->text.afterLast; ch++) {
+							if (*ch == _UT(':')) {
+								removeSegment = URI_FALSE;
+								break;
+							}
 						}
 					}
 				}
@@ -302,19 +315,40 @@ UriBool URI_FUNC(RemoveDotSegmentsEx)(URI_TYPE(Uri) * uri,
 						}
 					} else {
 						URI_TYPE(PathSegment) * const anotherNextBackup = walker->next;
+						UriBool freeWalker = URI_TRUE;
 						/* First segment -> update head pointer */
 						uri->pathHead = walker->next;
 						if (walker->next != NULL) {
 							walker->next->reserved = NULL;
-						} else {
-							/* Last segment -> update tail */
+						} else if (uri->absolutePath) {
+							/* First and only segment -> update head
+							 * OLD: head -> walker -> NULL
+							 * NEW: head -----------> NULL */
+							uri->pathHead = NULL;
+
+							/* Last segment -> update tail
+							 * OLD: tail -> walker
+							 * NEW: tail -> NULL */
 							uri->pathTail = NULL;
+						} else {
+							/* Re-use segment for "" path segment to represent trailing slash,
+							 * then update head and tail */
+							if (pathOwned && (walker->text.first != walker->text.afterLast)) {
+								memory->free(memory, (URI_CHAR *)walker->text.first);
+							}
+							walker->text.first = URI_FUNC(SafeToPointTo);
+							walker->text.afterLast = URI_FUNC(SafeToPointTo);
+							uri->pathHead = walker;
+							uri->pathTail = walker;
+							freeWalker = URI_FALSE;
 						}
 
-						if (pathOwned && (walker->text.first != walker->text.afterLast)) {
-							memory->free(memory, (URI_CHAR *)walker->text.first);
+						if (freeWalker) {
+							if (pathOwned && (walker->text.first != walker->text.afterLast)) {
+								memory->free(memory, (URI_CHAR *)walker->text.first);
+							}
+							memory->free(memory, walker);
 						}
-						memory->free(memory, walker);
 
 						walker = anotherNextBackup;
 					}

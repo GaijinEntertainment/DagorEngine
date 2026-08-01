@@ -39,9 +39,13 @@ public:
 
   void resetTouchMark();
   bool checkAllTouched();
-  void removeUntouched();
+  // Returns number of untouched entries were dropped.
+  // confident_will_save is used only for wording of trace logs (if any entry was dropped and cacheName was set in prior load())
+  int removeUntouched(bool confident_will_save = false);
 
-  bool checkFileChanged(const char *fname);
+  // test_mode < 0: check-only, never commits a genuine change as the new baseline (a mtime-only fixup
+  // on an unchanged hash is always applied regardless). Use the default 0 only right before a real rebuild.
+  bool checkFileChanged(const char *fname, int test_mode = 0);
   bool checkDataBlockChanged(const char *fname_ref, DataBlock &blk, int test_mode = 0);
   bool checkAssetExpVerChanged(int asset_type, unsigned classid, int ver);
   bool checkTargetFileChanged(const char *fname);
@@ -63,6 +67,12 @@ public:
   void setWarnings(const dag::ConstSpan<String> in_warnings) { warnings = in_warnings; }
   bool resetExtraAssets(dag::ConstSpan<DagorAsset *> assets);
 
+  // gatherSrcDataFiles()-free: true only if every file this cache recorded from the last real build still matches.
+  // Only covers the source-file half - callers must also separately check
+  // checkAssetExpVerChanged()/getAssetDataPos()/checkDataBlockChanged() per asset and resetExtraAssets().
+  // pack_fname (if not null) is only for the debug trace, to tell which pack a logged file belongs to.
+  bool allTrackedFilesUpToDate(const char *pack_fname = nullptr);
+
   static bool getFileHash(const char *fname, unsigned char out_hash[HASH_SZ]);
   static void getDataHash(const void *data, int data_len, unsigned char out_hash[HASH_SZ]);
   static unsigned getFileTime(const char *fname, unsigned &out_sz);
@@ -71,6 +81,7 @@ public:
   static const char *mkRelPath(const char *fpath, TwoStepRelPath::storage_t &stor) { return sdkRoot.mkRelPath(fpath, stor); }
 
   bool isTimeChanged() { return timeChanged == 1; }
+  void clearTimeChanged() { timeChanged = 0; }
 
   static void createSharedData(const char *fname);
   static void releaseSharedData();
@@ -106,6 +117,8 @@ protected:
     unsigned classId;
     int ver;
   };
+
+  SimpleString cacheFname; // set by load(), for removeUntouched()'s trace only
 
   OAHashNameMap<true> fnames;
   OAHashNameMap<true> anames;

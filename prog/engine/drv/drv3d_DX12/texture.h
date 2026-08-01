@@ -187,8 +187,8 @@ public:
   {
     void *ptr = nullptr;
     uint32_t rowPitch = 0;
-    uint32_t slicePitch = 0;
-    uint32_t memSize = 0;
+    uint64_t slicePitch = 0;
+    uint64_t memSize = 0;
   };
 
   static HostDeviceSharedMemoryRegion allocate_read_write_staging_memory(const Image *image,

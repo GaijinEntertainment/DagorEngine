@@ -19,6 +19,11 @@ if $(Platform) = linux {
   AddLibs += -ldbus-1 ;
 }
 
+if $(ImguiTestRuntime) = yes {
+  CPPopt += -DIMGUI_ENABLE_TEST_ENGINE ;
+  Target = $(Target:S=~ete.lib) ;
+}
+
 Sources =
   propPanel.cpp
   propPanelService.cpp

@@ -158,7 +158,8 @@ public:
 
   /// Convert viewport world coordinates to normal device coordinates.
   /// @param[in] world - world coordinates
-  /// @param[out] ndc - normal device coordinates
+  /// @param[out] ndc - normal device coordinates; ndc.z is forward depth (0 at znear,
+  ///                   1 at zfar), NOT the reverse-Z the projection matrix produces
   void worldToNDC(const Point3 &world, Point3 &ndc) const override;
 
   /// Convert viewport world coordinates to screen coordinates.
@@ -353,6 +354,8 @@ public:
   static Tab<ViewportParams> viewportsParams;
 
   TMatrix getViewTm() const;
+  // reverse-Z, the projection setViewProjTms applies; before-render plugin hooks may
+  // still adjust the driver z range, render code samples TM_PROJ after them for that
   TMatrix4 getProjTm() const;
 
   struct Input

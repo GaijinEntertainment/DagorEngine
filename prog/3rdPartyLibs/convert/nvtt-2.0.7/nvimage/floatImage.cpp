@@ -34,10 +34,13 @@ namespace
 
 	static int mirror(int x, int w)
 	{
+		if (w == 1) return 0;
+
 		x = abs(x);
 		while (x >= w) {
-			x = 2 * w - x - 2;
+			x = abs(w + w - x - 2);
 		}
+
 		return x;
 	}
 }

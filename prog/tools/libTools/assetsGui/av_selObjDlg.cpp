@@ -675,7 +675,7 @@ eastl::unique_ptr<SelectAssetDlg> assets_gui_create_asset_selector_dialog(const 
   {
     Tab<bool> gr;
     dlg->getTreeNodesExpand(gr);
-    mem_set_ff(gr);
+    eastl::fill(gr.begin(), gr.end(), true);
     dlg->setTreeNodesExpand(gr);
   }
 

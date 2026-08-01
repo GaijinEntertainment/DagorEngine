@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <physMap/physMap.h>
+#include <physMap/physMapCompactDecals.h>
 
 #include <util/dag_treeBitmap.h>
 #include <scene/dag_physMat.h>
@@ -8,10 +9,13 @@
 #include <memory/dag_framemem.h>
 #include <math/integer/dag_IPoint4.h>
 #include <math/dag_mathUtils.h>
+#include <vecmath/dag_vecMath.h>
+#include <string.h>
 
 void PhysMap::clear()
 {
   del_it(parent);
+  del_it(compactDecals);
   clear_and_shrink(decals);
 }
 
@@ -24,7 +28,10 @@ int PhysMap::getMaterialAt(const Point2 &pos) const
 
   uint16_t posX = clamp<uint16_t>(uint16_t((pos.x - worldOffset.x) * invScale), 0, size - 1);
   uint16_t posY = clamp<uint16_t>(uint16_t((pos.y - worldOffset.y) * invScale), 0, size - 1);
-  return materials[parent->get(posX, posY, size)];
+  uint8_t idx = parent->get(posX, posY, size);
+  // a corrupt/out-of-version bitmap byte beyond the table maps to PHYSMAT_INVALID,
+  // matching the fine remap path in fillMaterialsRegion instead of reading OOB
+  return idx < materials.size() ? materials[idx] : PHYSMAT_INVALID;
 }
 
 
@@ -69,8 +76,36 @@ void PhysMap::fillMaterialsRegion(const BBox2 &box, dag::Span<uint8_t> map, cons
   parent->gatherPixels(IPoint4(left, top, left + cacheWidth, top + cacheWidth), make_span(matCache), cacheWidth, size);
   Point2 invStep = Point2(safeinv(step.x), safeinv(step.y));
 
-  for (uint8_t &matIdx : matCache)
-    matIdx = matIdx != 0xff ? materials[matIdx] : PHYSMAT_INVALID;
+  // branchless per-pixel remap; 0xff and out-of-table indices stay PHYSMAT_INVALID
+  uint8_t remapLut[256];
+  memset(remapLut, 0xff, sizeof(remapLut));
+  for (int i = 0; i < materials.size() && i < 255; ++i)
+    remapLut[i] = uint8_t(materials[i]);
+#if _TARGET_SIMD_SSE >= 3 || _TARGET_SIMD_NEON // on SSE2 v_perm_i8 is scalar emulation, slower than the byte-LUT loop
+  if (materials.size() <= 16)
+  {
+    // valid indices fit one dynamic byte shuffle; table lanes at
+    // [materials.size(), 16) hold 0xff and every byte outside [0, 15]
+    // (0xff included) is forced back to 0xff, so the result is
+    // byte-identical to the LUT loop for all 256 input values
+    vec4i tbl = v_ldui((const int *)remapLut); //-V1032 v_ldui is an unaligned load; the byte buffer needs no alignment
+    vec4i hiNibble = v_splatsi(int(0xF0F0F0F0u));
+    vec4i ones = v_splatsi(-1);
+    uint8_t *p = matCache.data();
+    int n = matCache.size(), i = 0;
+    for (; i + 16 <= n; i += 16)
+    {
+      vec4i v = v_ldui((const int *)(p + i));
+      vec4i valid = v_cmp_eqi8(v_andi(v, hiNibble), v_zeroi());
+      v_stui(p + i, v_ori(v_perm_i8(tbl, v), v_andnoti(valid, ones)));
+    }
+    for (; i < n; ++i)
+      p[i] = remapLut[p[i]];
+  }
+  else
+#endif
+    for (uint8_t &matIdx : matCache)
+      matIdx = remapLut[matIdx];
 
   auto getMat = [&](int rx, int ry) { return matCache[(ry - top) * cacheWidth + (rx - left)]; };
 

@@ -158,8 +158,8 @@ dafg::NodeHandle makeDepthWithTransparencyNode();
 dafg::NodeHandle makeDownsampleDepthWithTransparencyNode();
 
 resource_slot::NodeHandleWithSlotsAccess makePostFxNode();
+dafg::NodeHandle makeFilmGrainNode();
 
-dafg::NodeHandle makeUpsampleDepthForSceneDebugNode();
 dafg::NodeHandle makeShowSceneDebugNode();
 
 dafg::NodeHandle makeSSAANode();
@@ -198,6 +198,8 @@ dafg::NodeHandle makeNoFxFrameNode();
 dafg::NodeHandle makeRendinstUpdateNode();
 
 eastl::fixed_vector<dafg::NodeHandle, 2, false> makeCameraInCameraSetupNodes();
+
+dafg::NodeHandle makeViewCameraProviderNode(const char *view_ns, const char *src_camera_blob);
 
 eastl::array<dafg::NodeHandle, 4> makeResolveMotionAndEnviCoverNode(bool has_motion_vecs, bool use_envi_cover_nodes, bool use_NBS);
 

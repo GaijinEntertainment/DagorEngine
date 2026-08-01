@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <util/dag_stdint.h>
 #include <math/dag_Point2.h>
 #include <math/integer/dag_IPoint2.h>
 #include <resourcePool/resourcePool.h>
@@ -51,6 +52,7 @@ enum class AntialiasingMethod
   FSR,
   SGSR,
   METALFX,
+  METALFX_TEMPORAL,
   MOBILE_MSAA,
   SGSR2,
   ARM_ASR,
@@ -204,12 +206,15 @@ float get_mip_bias();
 void adjust_mip_bias(const IPoint2 &dynamic_resolution, const IPoint2 &output_resolution);
 
 bool is_metalfx_upscale_supported();
+bool is_metalfx_temporal_upscale_supported();
 bool is_arm_asr_supported();
 
 void before_render_view(int view_index);
 void before_render_frame();
 
-Point2 get_jitter_offset(const RenderView &view, bool vr_mode);
+bool before_render_view(const RenderView &view);
+Point2 get_jitter_offset(uint32_t frame_index);
+int get_jitter_sequence_length();
 
 void apply_fxaa(AntialiasingMethod method, Texture *src_color, Texture *src_depth, const Point4 &tc_scale_offset);
 void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, const ApplyContext &ctx);
@@ -227,6 +232,7 @@ void suppress_frame_generation(bool suppress);
 void enable_frame_generation(bool enable);
 void schedule_generated_frames(const FrameGenContext &ctx);
 int get_supported_generated_frames(const char *method, bool exclusive_fullscreen);
+bool is_dynamic_mfg_supported(const char *method, bool exclusive_fullscreen);
 const char *get_frame_generation_unsupported_reason(const char *method, bool exclusive_fullscreen);
 int get_presented_frame_count();
 bool is_frame_generation_enabled();

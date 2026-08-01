@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <math/dag_bounds2.h>
 #include <math/dag_bounds3.h>
+#include <math/dag_TMatrix.h>
+#include <generic/dag_tab.h>
 #include <3d/dag_resPtr.h>
 #include <shaders/dag_overrideStateId.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -29,12 +32,16 @@ public:
   void preparePuddles(const Point3 &at);
 
   void invalidatePuddles(bool force);
+  void invalidatePuddles(const BBox2 &world_box);
   void removePuddlesInCrater(const Point3 &pos, float radius);
 
 private:
+  void renderPuddleRegion(ToroidalQuadRegion &reg, const float texel_size, const TMatrix4 &vtm);
+
   const LandMeshManager *lmeshMgr = nullptr;
 
   ToroidalHelper puddlesHelper;
+  Tab<BBox2> invalidBoxes;
   UniqueTexWithShaderVar puddles;
   bool removedPuddlesNeedUpdate = false;
   uint32_t removedPuddlesIndexToAdd = 0;

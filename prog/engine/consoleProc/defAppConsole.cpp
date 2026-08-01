@@ -34,8 +34,11 @@ static bool def_app_console_handler(const char *argv[], int argc) // use it only
   }
   CONSOLE_CHECK_NAME("mem", "alloc_10mb", 1, 2)
   {
-    for (unsigned int blockNo = 0; blockNo < 1024 * (argc > 1 ? to_int(argv[1]) : 1); blockNo++)
-      new char[10 * 1024];
+    const int blocks = 10 * (argc > 1 ? to_int(argv[1]) : 1);
+    char *last = nullptr;
+    for (int blockNo = 0; blockNo < blocks; blockNo++)
+      last = new char[1 << 20];
+    console::print_d("allocated %d x 1MB, last at %p", blocks, last);
   }
   CONSOLE_CHECK_NAME("mem", "stats", 1, 1)
   {
@@ -44,7 +47,7 @@ static bool def_app_console_handler(const char *argv[], int argc) // use it only
     console::print_d("%s", mstatsbuf);
   }
   CONSOLE_CHECK_NAME("mem", "profile", 2, 2) { DagDbgMem::enable_stack_fill(to_bool(argv[1])); }
-  CONSOLE_CHECK_NAME("mem", "leak", 1, 1) { (void)new char[1]; }
+  CONSOLE_CHECK_NAME("mem", "leak", 1, 1) { console::print_d("leak at %p", new char[1]); }
   CONSOLE_CHECK_NAME("mem", "set_sysmem_ref", 1, 1) { memreport::set_sysmem_reference(); }
   CONSOLE_CHECK_NAME("mem", "reset_sysmem_ref", 1, 1) { memreport::reset_sysmem_reference(); }
   CONSOLE_CHECK_NAME("app", "logerr", 1, 2) { logerr("%s", argc > 1 ? argv[1] : nullptr); }

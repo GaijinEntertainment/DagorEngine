@@ -8,6 +8,7 @@
 #include <3d/dag_resPtr.h>
 #include <generic/dag_tab.h>
 #include <math/dag_Point2.h>
+#include <math/dag_bounds2.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <render/toroidalHelper.h>
 #include <shaders/dag_postFxRenderer.h>
@@ -92,6 +93,7 @@ class DepthAOAboveRenderer
   {
     ToroidalHelper worldAODepthData;
     Tab<IBBox2> invalidAORegions;
+    Tab<BBox2> refreshedRegions;
     float depthAroundDistance = 0;
     Tab<RegionToRender> regionsToRender;
 
@@ -100,12 +102,17 @@ class DepthAOAboveRenderer
     using TileMap = FixedBitArray<REFRESH_TILE_DIM * REFRESH_TILE_DIM>;
     TileMap refreshTileMap;
     int cycleId = 0;
+    bool validAtAnyQuality = false;
   };
-  // Note: the code assumes that MAX_CASCADES == 2 and cannot handle more for now
+
+public:
+  // Note: the code assumes that MAX_DEPTH_ABOVE_CASCADES == 2 and cannot handle more for now
   // Need more? Move cascade dependant shadervars and etc to an array
-  static constexpr int MAX_CASCADES = 2;
+  static constexpr int MAX_DEPTH_ABOVE_CASCADES = 2;
+
+private:
   float extraCascadeMult = 2.0f;
-  dag::RelocatableFixedVector<CascadeDependantData, MAX_CASCADES, false> cascadeDependantData;
+  dag::RelocatableFixedVector<CascadeDependantData, MAX_DEPTH_ABOVE_CASCADES, false> cascadeDependantData;
 
   const unsigned int texSize;
   const unsigned int refreshTileSize;
@@ -120,7 +127,7 @@ class DepthAOAboveRenderer
 
   void renderAODepthQuads(dag::ConstSpan<RegionToRender> regions, IRenderDepthAOCB &renderDepthCb, int cascade_no);
   void renderAODepthQuads(dag::ConstSpan<RegionToRender> regions, IRenderDepthAOCB &renderDepthCb, BaseTexture *depthTex,
-    RenderDepthAOType type, RenderDepthAOClearFirst clear_mode, int cascade_no);
+    RenderDepthAOType type, RenderDepthAOClearFirst clear_mode, int cascade_no, bool collect_refreshed);
   void renderAODepthQuadsTransparent(dag::ConstSpan<RegionToRender> regions, IRenderDepthAOCB &renderDepthCb,
     RenderDepthAOClearFirst clear_mode, int cascade_no);
   void copyDepthAboveRegions(dag::ConstSpan<RegionToRender> regions, BaseTexture *depthTex, int cascade_no);
@@ -159,4 +166,11 @@ public:
   void setVars();
   void setInvalidVars();
   bool isValid() const;
+  bool isValidAtAnyQuality() const;
+
+  const Tab<BBox2> &getRefreshedRegionsForCascade(int cascade_no) const
+  {
+    G_ASSERT(cascade_no < cascadeDependantData.size());
+    return cascadeDependantData[cascade_no].refreshedRegions;
+  }
 };

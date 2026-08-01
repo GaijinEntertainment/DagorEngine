@@ -10,7 +10,7 @@ bool rendinst::isRiGenInWorld(const rendinst::RendInstDesc &desc)
     return false;
 
   if (desc.isRiExtra())
-    return desc.pool < rendinst::riExtra.size() && rendinst::riExtra[desc.pool].isInGrid(desc.idx);
+    return rendinst::riExtra.isValid(desc.pool) && rendinst::riExtra[desc.pool].isInGrid(desc.idx);
   else
     return !riutil::is_rendinst_data_destroyed(desc);
 }
@@ -21,7 +21,7 @@ bool rendinst::isRiGenDescValid(const rendinst::RendInstDesc &desc)
     return false;
 
   if (desc.isRiExtra())
-    return desc.pool < rendinst::riExtra.size() && rendinst::riExtra[desc.pool].isValid(desc.idx);
+    return rendinst::riExtra.isValid(desc.pool) && rendinst::riExtra[desc.pool].isValid(desc.idx);
   else
     return !riutil::is_rendinst_data_destroyed(desc);
 }

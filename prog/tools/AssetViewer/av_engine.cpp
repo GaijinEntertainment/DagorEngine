@@ -17,12 +17,12 @@
 
 #include <3d/dag_render.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <3d/dag_texPackMgr2.h>
 #include <3d/dag_stereoIndex.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
-#include <render/dag_cur_view.h>
 
 #include <EditorCore/ec_gizmofilter.h>
 
@@ -541,31 +541,6 @@ void AssetViewerApp::actObjects(real dt)
   for (int i = 0; i < plugin.size(); ++i)
     plugin[i]->actObjects(dt);
 
-  // NOTE: ImGui porting: delay the selection of the last used asset (from the previous application run) till we have a
-  // valid viewport. This is needed to make sure that when ViewportWindow::zoomAndCenter executes the viewport's size is
-  // set. This is ugly but probably still more robust than handling it in ViewportWindow would be.
-  if (!assetToInitiallySelect.empty())
-  {
-    IGenViewportWnd *viewport = ged.getViewport(0);
-    if (viewport)
-    {
-      int viewportWidth = 0;
-      int viewportHeight = 0;
-      viewport->getViewportSize(viewportWidth, viewportHeight);
-      if (viewportWidth > 0 && viewportHeight > 0)
-      {
-        const DagorAsset *asset = DAEDITOR3.getAssetByName(assetToInitiallySelect);
-        assetToInitiallySelect.clear();
-        if (asset)
-          selectAsset(*asset);
-
-        if (mPropPanel)
-          mPropPanel->loadState(propPanelStateOfTheAssetToInitiallySelect, true);
-        propPanelStateOfTheAssetToInitiallySelect.reset();
-      }
-    }
-  }
-
   static unsigned last_t = 0;
   if (last_t + 1000 < get_time_msec())
   {
@@ -581,6 +556,7 @@ void AssetViewerApp::beforeRenderObjects()
   if (!is_managed_textures_streaming_load_on_demand())
     ddsx::tex_pack2_perform_delayed_data_loading();
   ViewportWindow *vpw = ged.getRenderViewport();
+  Point3 cameraPos(0, 0, 0);
   if (vpw)
   {
     if (!skipSetViewProj)
@@ -590,6 +566,10 @@ void AssetViewerApp::beforeRenderObjects()
     vpw->getViewportSize(vp_w, vp_h);
     TMatrix4 globTm = TMatrix4(vpw->getViewTm()) * vpw->getProjTm();
     prepare_debug_text_marks(globTm, vp_w, vp_h);
+
+    TMatrix cameraTm;
+    vpw->getCameraTransform(cameraTm);
+    cameraPos = cameraTm.getcol(3);
   }
 
   IGenEditorPlugin *curPlug = curPlugin();
@@ -597,7 +577,7 @@ void AssetViewerApp::beforeRenderObjects()
   if (worldViewPosVarId == -2)
     worldViewPosVarId = ::get_shader_variable_id("world_view_pos");
   if (worldViewPosVarId >= 0)
-    ShaderGlobal::set_float4(worldViewPosVarId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
+    ShaderGlobal::set_float4(worldViewPosVarId, Color4(cameraPos.x, cameraPos.y, cameraPos.z, 1.f));
 
   plugin[0]->beforeRenderObjects();
   if (curPlug)
@@ -683,8 +663,15 @@ void AssetViewerApp::renderGrid()
   vpw->getCameraTransform(camera);
 
   float dh = fabs(camera.getcol(3).y - grid.getGridHeight()) + 1;
+
+  // the grid must depth-match the pass being rendered (VR eye matrices, plugin
+  // z range overrides), which is the driver state here, not the viewport's own matrix
+  TMatrix gridViewTm;
+  TMatrix4 gridProjTm;
+  d3d::gettm(TM_VIEW, gridViewTm);
+  d3d::gettm(TM_PROJ, &gridProjTm);
   grid.render(pt.data(), dirs.data(), fabs(vpw->isOrthogonal() ? vpw->getOrthogonalZoom() : perspectiveZoom / dh),
-    ged.findViewportIndex(vpw));
+    ged.findViewportIndex(vpw), gridViewTm, gridProjTm);
 }
 
 //==============================================================================

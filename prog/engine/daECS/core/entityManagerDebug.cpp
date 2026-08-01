@@ -113,11 +113,19 @@ size_t EntityManager::dumpMemoryUsage()
   debug("templates count = %d initial=%d totalData= %d", templates.size(), templInitialData, templData);
 
   size_t archData = 0, data = 0, index = 0, needData = 0, chunkData = 0, chunksCount = 0, emptyData = 0;
+  size_t indexIdeal = 0, liveComponents = 0, liveTrackedPods = 0, emptyAuxArchetypes = 0;
   for (int i = 0; i < archetypes.size(); ++i)
   {
     auto &a = archetypes.getArchetype(i);
     const Archetypes::ArchetypeInfo &ai = archetypes.getArchetypeInfoUnsafe(i);
-    index += ai.count * sizeof(component_index_t);
+    index += ai.memBytes();
+    // ideal reverse-map size: one slot per non-eid component
+    indexIdeal += (a.componentsCnt > 1 ? a.componentsCnt - 1 : 0) * sizeof(archetype_component_id);
+    liveComponents += a.componentsCnt;
+    liveTrackedPods += archetypes.getTrackedPodPairs(i).size();
+    if (archetypes.getTrackedPodPairs(i).empty() && archetypes.getCreatables(i).empty() &&
+        archetypes.getCreatableTrackeds(i).empty() && archetypes.getComponentsWithResources(i).empty())
+      emptyAuxArchetypes++;
     chunkData += a.manager.getChunksCount() * 16; // sizeof(DataComponentManager::Chunk);//should be capacity
     chunksCount += a.manager.getChunksCount();
     for (int ci = 0, ce = a.manager.getChunksCount(); ci < ce; ++ci)
@@ -130,6 +138,7 @@ size_t EntityManager::dumpMemoryUsage()
     }
   }
   archData += archetypes.archetypeComponents.capacity() * (sizeof(component_index_t) + sizeof(uint16_t) * 2);
+  archData += archetypes.allTrackedPodsCidx.capacity() * sizeof(component_index_t);
   archData += archetypes.archetypes.capacity() * sizeof(typename decltype(archetypes.archetypes)::value_tuple);
   uint32_t creationQueueCount = 0;
 
@@ -148,6 +157,10 @@ size_t EntityManager::dumpMemoryUsage()
   debug("archetypes count = %d chunks=%d index= %d archData=%d allocatedData= %d neededData = %d emptyData = %d "
         "chunkData = %d, total = %d",
     archetypes.size(), chunksCount, index, archData, data, needData, emptyData, chunkData, index + archData + data + chunkData);
+  debug("archetypes index: map bytes = %d ideal bytes = %d; archetypeComponents live = %d stored = %d; "
+        "trackedPodsCidx live = %d stored = %d; no tracked/creatable/resource archetypes = %d",
+    index, indexIdeal, liveComponents, archetypes.archetypeComponents.size(), liveTrackedPods, archetypes.allTrackedPodsCidx.size(),
+    emptyAuxArchetypes);
   size_t archetypeQueriesMem = 0;
   for (auto &aq : archetypeQueries)
     archetypeQueriesMem += aq.memUsage();

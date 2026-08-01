@@ -379,7 +379,7 @@ eastl::string Lexer::get_symbol_location(int name_id, SymbolType type)
   auto found = mSymbols.find(makeSymbolId(name_id, type, mLexedEntityId, mContextType));
   if (found == mSymbols.end() && mContextType != LexedEntityType::GLOBAL)
   {
-    auto found = mSymbols.find(makeSymbolId(name_id, type, 0, Lexer::LexedEntityType::GLOBAL));
+    found = mSymbols.find(makeSymbolId(name_id, type, 0, Lexer::LexedEntityType::GLOBAL));
     if (found == mSymbols.end())
       return "<unknown file>";
   }

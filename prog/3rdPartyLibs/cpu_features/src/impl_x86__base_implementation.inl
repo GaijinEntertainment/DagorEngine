@@ -238,16 +238,17 @@ static bool HasTmmOsXSave(uint32_t xcr0_eax) {
 ////////////////////////////////////////////////////////////////////////////////
 
 static void SetVendor(const Leaf leaf, char* const vendor) {
-  *(uint32_t*)(vendor) = leaf.ebx;
-  *(uint32_t*)(vendor + 4) = leaf.edx;
-  *(uint32_t*)(vendor + 8) = leaf.ecx;
+  memcpy(vendor, &leaf.ebx, 4);
+  memcpy(vendor + 4, &leaf.edx, 4);
+  memcpy(vendor + 8, &leaf.ecx, 4);
   vendor[12] = '\0';
 }
 
 static int IsVendor(const Leaf leaf, const char* const name) {
-  const uint32_t ebx = *(const uint32_t*)(name);
-  const uint32_t edx = *(const uint32_t*)(name + 4);
-  const uint32_t ecx = *(const uint32_t*)(name + 8);
+  uint32_t ebx, edx, ecx;
+  memcpy(&ebx, name, 4);
+  memcpy(&edx, name + 4, 4);
+  memcpy(&ecx, name + 8, 4);
   return leaf.ebx == ebx && leaf.ecx == ecx && leaf.edx == edx;
 }
 

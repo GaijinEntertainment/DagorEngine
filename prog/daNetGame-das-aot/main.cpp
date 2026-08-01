@@ -188,7 +188,7 @@ int DagorWinMain(bool debugmode)
   bind_dascript::init_systems(bind_dascript::AotMode::NO_AOT, bind_dascript::HotReload::DISABLED, bind_dascript::LoadDebugCode::YES,
     bind_dascript::LogAotErrors::NO, syntax, !modulePath.empty() ? modulePath.c_str() : nullptr);
 
-  (*das::daScriptEnvironment::bound)->das_def_tab_size = indenting;
+  das::daScriptEnvironment::getBound()->das_def_tab_size = indenting;
 
   const int res = aot_main(dgs_argc, (char **)dgs_argv);
 

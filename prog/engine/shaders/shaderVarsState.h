@@ -10,22 +10,24 @@
 #include <shaders/dag_shaderVarType.h>
 #include <shaders/shInternalTypes.h>
 #include <shaders/shader_layout.h>
+#include <math/dag_TMatrix.h>
 
 
 struct RaytraceTopAccelerationStructure;
 
 // NOTE: this CAN be done through templates, but I hate it
 // Also note that we use simd types for their alignment
-#define SHVAR_TYPES                      \
-  X(SHVT_INT, int)                       \
-  X(SHVT_REAL, float)                    \
-  X(SHVT_COLOR4, vec4f)                  \
-  X(SHVT_TEXTURE, shaders_internal::Tex) \
-  X(SHVT_BUFFER, shaders_internal::Buf)  \
-  X(SHVT_INT4, vec4i)                    \
-  X(SHVT_FLOAT4X4, TMatrix4_vec4)        \
-  X(SHVT_SAMPLER, d3d::SamplerHandle)    \
-  X(SHVT_TLAS, RaytraceTopAccelerationStructure *)
+#define SHVAR_TYPES                                \
+  X(SHVT_INT, int)                                 \
+  X(SHVT_REAL, float)                              \
+  X(SHVT_COLOR4, vec4f)                            \
+  X(SHVT_TEXTURE, shaders_internal::Tex)           \
+  X(SHVT_BUFFER, shaders_internal::Buf)            \
+  X(SHVT_INT4, vec4i)                              \
+  X(SHVT_FLOAT4X4, TMatrix4_vec4)                  \
+  X(SHVT_SAMPLER, d3d::SamplerHandle)              \
+  X(SHVT_TLAS, RaytraceTopAccelerationStructure *) \
+  X(SHVT_FLOAT4x3, TMatrix)
 
 class ShaderVarsState
 {

@@ -412,6 +412,12 @@ rule ProcessTargetVariables
       if $(TargetType) = dll { $(Target)__ImpLibBase = $(Target:S=) ; }
     }
 
+    # CocoaPodFramework must be handled before link/compile options are captured below
+    if $(CocoaPodFramework) {
+      if $(Platform) in iOS tvOS { ProcessCocoaPods $(CocoaPodFramework) ; }
+      CocoaPodFramework = ;
+    }
+
     {
       local _USE_LIBS = ;
       if $(ImportsRelativeDir) && $(Platform) in linux {
@@ -501,9 +507,19 @@ rule ProcessTargetVariables
       AndroidSources = ;
     }
 
-    if $(AndroidLibProguard) {
-      if $(AndroidGradleOutDir) { ProcessAndroidLibProguard $(AndroidLibProguard) ; }
-      AndroidLibProguard = ;
+    if $(AndroidCopy) {
+      if $(AndroidGradleOutDir) { ProcessAndroidCopy $(AndroidCopy) ; }
+      AndroidCopy = ;
+    }
+
+    # Unified proguard rules: both the app (jamfile of the apk target) and every
+    # module use a single AndroidProguard variable. All rule files are copied into
+    # the gradle staging dir's proguard.d/ folder and picked up by build.gradle via
+    # a fileTree glob. Whether obfuscation actually runs is controlled separately by
+    # the AndroidObfuscate flag (see android/clang-link.jam), not by this variable.
+    if $(AndroidProguard) {
+      if $(AndroidGradleOutDir) { ProcessAndroidProguard $(AndroidProguard) ; }
+      AndroidProguard = ;
     }
 
    if $(AndroidLibs) {
@@ -534,6 +550,10 @@ rule ProcessTargetVariables
 
   $(Target)__Location = $(Location) ;
   Location = ;
+
+  # targets fetched at build time (e.g. CocoaPods) that objs depend on
+  $(Target)__ExtraCompileDeps = $(ExtraCompileDeps) ;
+  ExtraCompileDeps = ;
 
   $(Target)__OutDir = $(OutDir) ;
   OutDir = ;
@@ -591,6 +611,7 @@ rule ProcessTargetVariables
 
   _TARGETS += $(Target) ;
 
+  CocoaPodFramework = ;
   CPPopt = ;
   Copt = ;
   ASMopt = ;
@@ -622,6 +643,8 @@ rule ClearTargetVariables
   UseProgArtifacts = ;
   UseRootLibs = ;
   ImportProgLibs = ;
+  CocoaPodFramework = ;
+  ExtraCompileDeps = ;
   CPPopt = ;
   Copt = ;
   ASMopt = ;
@@ -1723,6 +1746,15 @@ for t_lev in 1 2 3 4 5 6 7 8 {
   targets = $(_TARGETS) ;
 }
 
+# pods declared by libs may ship resource bundles and embedded frameworks
+if $(_COCOAPODS_RES_BUNDLES) || $(_COCOAPODS_EMBED_FRAMEWORKS) {
+  if $(Platform) in iOS tvOS {
+    for t in $(_TARGETS0) {
+      if $($(t)__TargetType) in exe dll { RegisterCocoaPodAppResources $(t) ; }
+    }
+  }
+}
+
 rule CleanAndroidOutput
 {
   if $(OS) = MACOSX {
@@ -1864,6 +1896,9 @@ rule MarkSourcesChanged # sources : tmp_dir : recompile_list_varname : suffixes
   }
   return $(ret) ;
 }
+# newer jam.exe provides this rule as a C builtin (see $(JAM_BUILTINS));
+# keep the interpreted fallback for older jam.exe
+if ! SplitStringsOnSpace in $(JAM_BUILTINS) {
 rule SplitStringsOnSpace # list
 {
   local ret = ;
@@ -1872,6 +1907,7 @@ rule SplitStringsOnSpace # list
     if $(split) { ret += $(split[1]) $(split[2]) ; } else { ret += $(s) ; }
   }
   return $(ret) ;
+}
 }
 rule ReplaceRootPrefixForKnownOptionAndStripHarmless # option
 {
@@ -1893,6 +1929,9 @@ rule ReplaceRootPrefix # file
   }
   return $(ret) ;
 }
+# newer jam.exe provides this rule as a C builtin (see $(JAM_BUILTINS));
+# keep the interpreted fallback for older jam.exe
+if ! AddEscapesToMakeJamValidForWrite in $(JAM_BUILTINS) {
 rule AddEscapesToMakeJamValidForWrite # list
 {
   local spec_sym = "\"\\" ;
@@ -1911,6 +1950,7 @@ rule AddEscapesToMakeJamValidForWrite # list
     ret += $(result:J) ;
   }
   return $(ret) ;
+}
 }
 
 
@@ -2261,6 +2301,12 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
       LibTarget $(out_dir)/$(target) : $(tmp_dir)/$(objs) : $(target) ;
     } else if $($(target)__TargetType) in $(_FinalBinTargetTypes) {
       LinkTarget $(out_dir)/$(target) : $(tmp_dir)/$(objs) : $(target) : $($(target)__CopyTo) ;
+    }
+
+    # SDKs fetched at build time (e.g. CocoaPodFramework) must be on disk before compile/link
+    if $($(target)__ExtraCompileDeps) { Depends $(tmp_dir)/$(objs) : $($(target)__ExtraCompileDeps) ; }
+    if $(GlobalLinkPrereqs) && $($(target)__TargetType) in $(_FinalBinTargetTypes) {
+      Depends $(out_dir)/$(target) : $(GlobalLinkPrereqs) ;
     }
 
     for src in $(sources) {

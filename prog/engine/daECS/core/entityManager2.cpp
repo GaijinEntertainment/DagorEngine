@@ -147,6 +147,7 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
   create_entity_async_cb_t &&creation_cb)
 {
   TIME_PROFILE_DEV(createEntityInternal)
+  TIME_PROFILE_UNIQUE_DEV;                          // run-accumulated create cost, comparable across runs
   G_FAST_ASSERT(templId != INVALID_TEMPLATE_INDEX); // couldn't happen
   EntityCreationProfiler entCreatProf(templId, *this);
   DAECS_EXT_ASSERTF(doesEntityExist(eid), "Attempt to use destroyed/not allocated eid handle %d %d", (ecs::entity_id_t)eid,
@@ -223,22 +224,35 @@ void EntityManager::createEntityInternal(EntityId eid, template_t templId, Compo
   if (createdBits)
     memset(createdBits, 0, createdWordsCount * sizeof(createdWordSize));
 
-  const uint16_t *__restrict newOffsets = archetypes.componentDataOffsets(newArchetype);
-  // Iterate in reverse order, so later values overwrite earlier ones
-  for (auto initIt = initializer.end() - 1, initE = initializer.begin() - 1; initIt != initE; --initIt)
+  if (!initializerEmpty)
   {
-    InitializerNode &init = *initIt;
-    const component_index_t initializerIndex = init.cIndex;
-    DAECS_EXT_ASSERT(initializerIndex == INVALID_COMPONENT_INDEX || initializerIndex == dataComponents.findComponentId(initIt->name));
-    const auto i = archetypes.getArchetypeComponentIdUnsafe(newArchetype, initializerIndex);
-    if (i == INVALID_ARCHETYPE_COMPONENT_ID || !createdSetIfNotSet(createdBits, i)) //-V1004
-      continue;
-    const uint32_t componentSize = init.second.getSize();
-    // optimize me
-    void *__restrict cData = chunkData + componentSize * idInChunk + (newOffsets[i] << chunkCapacityBits);
-    DAECS_EXT_ASSERT(cData == archetypes.getComponentDataUnsafeNoCheck(newArchetype, i, componentSize, chunkId, idInChunk));
-    SPECIALIZE_MEMCPY(componentSize, cData, init.second.getRawData());
-    init.second.resetBoxedMem(); // was moved
+    // resolve all initializer components up front: the batched lookups overlap in
+    // flight instead of serializing against each iteration's copy work
+    dag::RelocatableFixedVector<archetype_component_id, 128, true, framemem_allocator> initIdsStorage;
+    initIdsStorage.resize(initializer.size());
+    archetype_component_id *__restrict initIds = initIdsStorage.data();
+    const auto &archInfo = archetypes.getArchetypeInfoUnsafe(newArchetype);
+    const InitializerNode *__restrict nodes = initializer.begin();
+    for (uint32_t k = 0, ke = (uint32_t)initializer.size(); k < ke; ++k)
+    {
+      DAECS_EXT_ASSERT(nodes[k].cIndex == INVALID_COMPONENT_INDEX || nodes[k].cIndex == dataComponents.findComponentId(nodes[k].name));
+      initIds[k] = archInfo.getComponentId(nodes[k].cIndex);
+    }
+    const uint16_t *__restrict newOffsets = archetypes.componentDataOffsets(newArchetype);
+    // Iterate in reverse order, so later values overwrite earlier ones
+    for (auto initIt = initializer.end() - 1, initE = initializer.begin() - 1; initIt != initE; --initIt)
+    {
+      InitializerNode &init = *initIt;
+      const auto i = initIds[initIt - initializer.begin()];
+      if (i == INVALID_ARCHETYPE_COMPONENT_ID || !createdSetIfNotSet(createdBits, i)) //-V1004
+        continue;
+      const uint32_t componentSize = init.second.getSize();
+      // optimize me
+      void *__restrict cData = chunkData + componentSize * idInChunk + (newOffsets[i] << chunkCapacityBits);
+      DAECS_EXT_ASSERT(cData == archetypes.getComponentDataUnsafeNoCheck(newArchetype, i, componentSize, chunkId, idInChunk));
+      SPECIALIZE_MEMCPY(componentSize, cData, init.second.getRawData());
+      init.second.resetBoxedMem(); // was moved
+    }
   }
 
   if (isRecreating) // migrate from old template
@@ -631,7 +645,7 @@ inline bool EntityManager::validateInitializer(template_t templId, ComponentsIni
     }
 #if DAECS_EXTENSIVE_CHECKS
     // todo: store initializerIndex in ComponentsInitializer parallel array.
-    if (DAGOR_UNLIKELY(archetypes.getArchetypeComponentIdUnsafe(archetype, initIt->cIndex) == INVALID_ARCHETYPE_COMPONENT_ID))
+    if (DAGOR_UNLIKELY(!archetypes.hasComponentUnsafe(archetype, initIt->cIndex)))
     {
       component_t name = dataComponents.getComponentTpById(initIt->cIndex);
       auto flagsIt = getTemplateDB().info().componentFlags.find(name);
@@ -666,7 +680,7 @@ EntityManager::RequestResources EntityManager::requestResources(EntityId eid, ar
   for (auto &component : archetypes.getComponentsWithResources(archetype))
   {
     component_index_t cIndex = component.cIndex;
-    if (!recreating || archetypes.getArchetypeComponentIdUnsafe(oldArchetype, cIndex) == INVALID_ARCHETYPE_COMPONENT_ID)
+    if (!recreating || !archetypes.hasComponentUnsafe(oldArchetype, cIndex))
       componentTypes.getTypeManager(component.typeIndex)->requestResources(dataComponents.getComponentNameById(cIndex), rcb);
   }
   requestingTop = oldRequestingTop;
@@ -870,6 +884,8 @@ template_t EntityManager::instantiateTemplate(int id, bool update_queries)
   const template_t ret =
     templates.createTemplate(*this, archetypes, id, templComponentsIndices.cbegin(), templComponentsIndices.size(),
       templReplicatedEntries.cbegin(), templReplicatedEntries.size(), templComponentsData.cbegin(), dataComponents, componentTypes);
+  if (DAGOR_UNLIKELY(ret == INVALID_TEMPLATE_INDEX)) // id width or entity size limit, already logged
+    return INVALID_TEMPLATE_INDEX;
 
 #if DAECS_EXTENSIVE_CHECKS
   debug("template %d <%s> has archetype %d", ret, templ.getName(), templates.getTemplate(ret).archetype);
@@ -918,6 +934,11 @@ template_t EntityManager::templateByName(const char *templ_name, EntityId eid, b
 
 EntityId EntityManager::createEntitySync(const char *templ_name, ComponentsInitializer &&initializer, ComponentsMap &&map)
 {
+  if (!templ_name || templ_name[0] == 0)
+  {
+    logerr("Invalid create entity template name: '%s' ", templ_name ? templ_name : "(nullptr)");
+    return INVALID_ENTITY_ID;
+  }
   ScopedMTMutex lock(isConstrainedMTMode(), ownerThreadId, creationMutex);
   auto tId = templateByName(templ_name);
   if (bool(lock))
@@ -934,6 +955,11 @@ EntityId EntityManager::createEntitySync(const char *templ_name, ComponentsIniti
 EntityId EntityManager::createEntityAsync(const char *templ_name, ComponentsInitializer &&initializer, ComponentsMap &&map,
   create_entity_async_cb_t &&cb)
 {
+  if (!templ_name || templ_name[0] == 0)
+  {
+    logerr("Invalid create entity template name: '%s' ", templ_name ? templ_name : "(nullptr)");
+    return INVALID_ENTITY_ID;
+  }
   ScopedMTMutex lock(isConstrainedMTMode(), ownerThreadId, creationMutex);
   EntityId eid = allocateOneEidDelayed(isConstrainedMTMode());
   emplaceCreate(eid, DelayedEntityCreation::Op::Create, templ_name, eastl::move(initializer), eastl::move(map), eastl::move(cb));
@@ -1099,8 +1125,8 @@ void EntityManager::allocateInvalid()
 
 int EntityManager::getNumEntities() const
 {
-  return int(nextResevedEidIndex - freeIndicesReserved.size() - 1) +                         // -1 for INVALID_ENTITY_ID
-         int(entDescs.size() - size_t(MAX_RESERVED_EID_IDX_CONST + 1) - freeIndices.size()); //-V1065
+  return int(nextResevedEidIndex - freeIndicesReserved.size() - 1) +                           // -1 for INVALID_ENTITY_ID
+         int(entDescs.size() - (size_t(MAX_RESERVED_EID_IDX_CONST) + 1) - freeIndices.size()); //-V1065
 }
 
 CompileTimeQueryDesc *CompileTimeQueryDesc::tail = nullptr;

@@ -256,6 +256,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, const Tab
       case SHCOD_GET_GTLAS:
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
+      case SHCOD_GET_GMAT43:
       case SHCOD_ADD_REAL:
       case SHCOD_SUB_REAL:
       case SHCOD_MUL_REAL:

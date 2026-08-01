@@ -387,6 +387,7 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
   {
     case TEXFMT_R8:
     case TEXFMT_R8G8:
+      return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE | USAGE_UNORDERED | ret;
     case TEXFMT_R8G8B8A8:
         return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_SRGBREAD | USAGE_SRGBWRITE | ret;
     case TEXFMT_A8R8G8B8:
@@ -394,9 +395,11 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
              USAGE_UNORDERED | ret;
     case TEXFMT_A1R5G5B5:
     case TEXFMT_R5G6B5:
+      return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | ret;
     case TEXFMT_A16B16G16R16F:
     case TEXFMT_A32B32G32R32F:
-    case TEXFMT_R32F:      return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | ret;
+    case TEXFMT_R32F:
+      return USAGE_RTARGET | USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | USAGE_UNORDERED | ret;
 
     case TEXFMT_A8:        return USAGE_TEXTURE | USAGE_VERTEXTEXTURE | USAGE_FILTER | USAGE_BLEND | ret;
 
@@ -434,6 +437,7 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
       return USAGE_TEXTURE | USAGE_FILTER | ret;
     case TEXFMT_ATI1N:
     case TEXFMT_ATI2N:
+    case TEXFMT_BC5S:
     case TEXFMT_DXT1:
     case TEXFMT_DXT3:
     case TEXFMT_DXT5:      return (supportsCompressedTexture(type) ? (USAGE_TEXTURE | USAGE_FILTER | USAGE_SRGBREAD) : 0) | ret;

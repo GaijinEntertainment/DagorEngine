@@ -32,6 +32,7 @@
 #include <math/random/dag_random.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_mathUtils.h>
+#include <math/dag_plane3.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <ioSys/dag_dataBlock.h>
@@ -39,7 +40,10 @@
 #include <math/dag_math3d.h>
 #include <util/dag_convar.h>
 #include <util/dag_stlqsort.h>
+#include <util/dag_oaHashNameMap.h>
+#include <util/dag_threadPool.h>
 #include <generic/dag_sort.h>
+#include <generic/dag_initOnDemand.h>
 #include <perfMon/dag_statDrv.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <debug/dag_debug3d.h>
@@ -47,6 +51,12 @@
 #include <util/dag_string.h>
 #include <util/dag_finally.h>
 #include <scene/dag_occlusion.h>
+#include <shaders/dag_shaderMesh.h>
+#include <3d/dag_materialData.h>
+#include <daFracture/render/renderMesh.h>
+#include <daFracture/core/meshCommon.h>
+#include <daFracture/core/meshSlicing.h>
+
 
 #if DAGOR_DBGLEVEL > 0
 #define TREE_DESTR_DEBUG 1
@@ -83,6 +93,7 @@ CONSOLE_FLOAT_VAL("ridestr", maxAngularVelocityOverride, -1.0f);
 
 #if DAGOR_DBGLEVEL > 0
 CONSOLE_BOOL_VAL("ridestr", ri_debug_collision, false);
+CONSOLE_BOOL_VAL("ridestr", ri_debug_fracture_slicing, false);
 #else
 static constexpr bool ri_debug_collision = false;
 #endif
@@ -109,6 +120,7 @@ static rendinstdestr::remove_physx_collision_object_callback rem_physx_collision
 static rendinstdestr::create_apex_actors_callback create_apex_actors_at_point_cb = NULL;
 static rendinstdestr::apex_force_remove_actor_callback apex_force_remove_actor_cb = NULL;
 static rendinstdestr::on_destr_changed_callback on_changed_destr_cb = NULL;
+static rendinstdestr::on_ri_restored_callback on_ri_restored_cb = NULL;
 static rendinstdestr::on_tree_destr_created_callback on_tree_destr_created_cb = NULL;
 static rendinstdestr::get_camera_pos get_current_camera_pos = NULL;
 static rendinstdestr::get_current_time_callback g_get_current_time_cb = NULL;
@@ -206,6 +218,142 @@ static eastl::hash_set<rendinst::RendInstDesc> apex_destructed_list;
 #define FMT_DESC_V(X)     int((X).pool), int((X).cellIdx), int((X).idx), int((X).offs)
 #define VERBOSE_SYNC(...) // debug("[ri destr sync] " __VA_ARGS__)
 
+
+struct DestrPropsRegistry
+{
+  struct Material
+  {
+    Ptr<MaterialData> matData;
+    Ptr<ShaderMaterial> shMat;
+    Ptr<ShaderElement> shElem;
+  };
+
+  struct Props
+  {
+    int presetId = -1;
+  };
+
+  struct Preset
+  {
+    int interiorMatId = -1;
+    eastl::optional<frx::ShatterMaterialProfile> shatter;
+  };
+
+  template <typename T>
+  struct NamedPropsMap
+  {
+    FastNameMap nm;
+    dag::Vector<T> vec;
+
+    int getNameId(const char *str) const { return nm.getNameId(str); }
+    T *getById(int id) const { return unsigned(id) < vec.size() ? &vec[id] : nullptr; }
+
+    template <typename InitFn>
+    int getOrAddByName(const char *str, InitFn &&init)
+    {
+      int nameId = nm.addNameId(str);
+      G_ASSERT_RETURN(nameId <= vec.size(), -1);
+      if (nameId == vec.size())
+        if (!init(vec.push_back()))
+        {
+          nm.erase(nameId);
+          vec.pop_back();
+          return -1;
+        }
+      return nameId;
+    }
+  };
+
+  dag::Vector<Props> propsVec;
+  NamedPropsMap<Preset> presetsMap;
+  NamedPropsMap<Material> materialsMap;
+  int defaultPresetId = -1;
+
+  CallbackToken loadPropsCb, clearPropsCb;
+
+  const Props *getProps(int props_id) const { return unsigned(props_id) < propsVec.size() ? &propsVec[props_id] : nullptr; }
+  const Preset &getPreset(int preset_id) const
+  {
+    return unsigned(preset_id) < presetsMap.vec.size() ? presetsMap.vec[preset_id] : presetsMap.vec[defaultPresetId];
+  }
+  const Material *getMaterial(int id) const { return unsigned(id) < materialsMap.vec.size() ? &materialsMap.vec[id] : nullptr; }
+
+  int getOrLoadMaterial(const char *mat_name)
+  {
+    if (!mat_name || !*mat_name)
+      return -1;
+    return materialsMap.getOrAddByName(mat_name, [&](Material &mat) {
+      mat.matData = (MaterialData *)get_one_game_resource_ex(mat_name, MaterialGameResClassId);
+      G_LOGERR_AND_DO(mat.matData, return false, "can't load material resource <%s>", mat_name);
+      mat.matData.delRef(); // Ptr<>::operator= calls addRef
+      mat.shMat = ::new_shader_material(*mat.matData);
+      G_LOGERR_AND_DO(mat.shMat, return false, "can't make ShaderMaterial for material <%s>", mat_name);
+      mat.shElem = mat.shMat->make_elem();
+      G_LOGERR_AND_DO(mat.shElem, return false, "can't make ShaderElement for material <%s>", mat_name);
+      return true;
+    });
+  }
+
+  int getOrLoadPreset(const char *preset_name, const DataBlock *ri_cfg_blk)
+  {
+    const auto loadPresetFromBlk = [&](Preset &preset, const DataBlock *presetBlk) {
+      preset.interiorMatId = getOrLoadMaterial(presetBlk->getStr("interiorMat", ""));
+      if (const DataBlock *shatterBlk = presetBlk->getBlockByName("shatter"))
+        preset.shatter.emplace().loadFromBlk(*shatterBlk);
+      return true;
+    };
+    if (defaultPresetId == -1)
+    {
+      constexpr const char *DEFAULT_PRESET_NAME = "__default";
+      defaultPresetId = presetsMap.getOrAddByName(DEFAULT_PRESET_NAME, [&](Preset &preset) {
+        loadPresetFromBlk(preset, ri_cfg_blk->getBlockByNameEx("DestructionPresets")->getBlockByNameEx(DEFAULT_PRESET_NAME));
+        return true; // always load it
+      });
+    }
+    if (!preset_name || !*preset_name)
+      return defaultPresetId;
+    const int presetId = presetsMap.getOrAddByName(preset_name, [&](Preset &preset) {
+      const DataBlock *presetBlk = ri_cfg_blk->getBlockByNameEx("DestructionPresets")->getBlockByName(preset_name);
+      if (presetBlk == nullptr)
+      {
+        logerr("unknown destrPreset <%s>", preset_name);
+        return false;
+      }
+      return loadPresetFromBlk(preset, presetBlk);
+    });
+    return presetId >= 0 ? presetId : defaultPresetId;
+  }
+
+  void loadProps(int props_id, const char *, const DataBlock *ri_blk, const DataBlock *ri_cfg_blk)
+  {
+    if (propsVec.size() <= props_id)
+      propsVec.resize(props_id + 1);
+    Props &p = propsVec[props_id];
+    p.presetId = getOrLoadPreset(ri_blk->getStr("destrPreset", ""), ri_cfg_blk);
+  }
+
+  void clear()
+  {
+    clear_and_shrink(propsVec);
+    presetsMap = {};
+    materialsMap = {};
+    defaultPresetId = -1;
+  }
+
+  DestrPropsRegistry()
+  {
+    loadPropsCb = rendinst::props::custom_props_load_cb.subscribe(
+      [this](int props_id, const char *ri_name, const DataBlock *ri_blk, const DataBlock *ri_cfg_blk) {
+        if (!ri_blk)
+          return;
+        loadProps(props_id, ri_name, ri_blk, ri_cfg_blk);
+      });
+    clearPropsCb = rendinst::props::custom_props_clear_all_cb.subscribe([this](bool) { clear(); });
+  }
+
+  ~DestrPropsRegistry() {}
+};
+static InitOnDemand<DestrPropsRegistry> g_destr_props;
 
 static void call_restorable_rendinst_cb(const rendinst::RendInstDesc &desc, rendinstdestr::RestorableRendinstState state)
 {
@@ -311,6 +459,253 @@ static void invalidate_handle_cb(rendinst::riex_handle_t invalidate_handle)
     restr.invalidateHandle(invalidate_handle);
 }
 
+
+static void queue_ri_collision_for_debris(const mat44f &inst_tm, const bbox3f &local_bbox);
+
+struct AsyncFractureJob : cpujobs::IJob
+{
+  volatile int isTermRequested = 0;
+  int seed = grnd();
+
+  rendinst::riex_handle_t sentinelHandle = rendinst::RIEX_HANDLE_NULL;
+  const RenderableInstanceLodsResource *res = nullptr;
+  rendinst::RendInstBufferData buffer;
+  destructables::DestructableCreationParams destr;
+
+  DestrPropsRegistry::Material interiorMat;
+  frx::ShatterImpactProfile shatterImpactProfile;
+  frx::ShatterMaterialProfile shatterMaterialProfile;
+  Point3 impactImpulse = Point3::ZERO;
+  PhysMat::MatID physMatId = PHYSMAT_DEFAULT;
+
+  const char *getJobName(bool &) const override { return "AsyncFractureJob"; }
+
+  void doJob() override { doAsyncFracture(); }
+
+  void doAsyncFracture()
+  {
+    FRAMEMEM_REGION;
+
+    if (interlocked_relaxed_load(isTermRequested))
+      return;
+
+    G_ASSERT_RETURN(
+      !res->getUsedLods().empty() && res->getUsedLods()[0].scene != nullptr && res->getUsedLods()[0].scene->getMesh() != nullptr, );
+    const ShaderMesh *mesh = res->getUsedLods()[0].scene->getMesh()->getMesh()->getMesh();
+
+    TMatrix riTm;
+    v_mat_43cu_from_mat44(riTm.array, buffer.tm);
+    frx::PerInstRenderData perInstData;
+    perInstData.basePosAndHash = v_perm_xyzd(v_ldu(&riTm.getcol(3).x), v_cast_vec4f(v_splatsi(buffer.riExUserData[0])));
+    frx::DestrContext ctx;
+#if DAGOR_DBGLEVEL > 0
+    ctx.dbgDraw.drawCutEdgeGraph = ri_debug_fracture_slicing;
+#endif
+    frx::DestrMesh riMesh;
+    frx::ShaderGeomLoadRequest geomLoadReq{
+      .outMesh = &riMesh, .smvd = res->getSmvd()[0], .shaderMesh = mesh, .tm = TMatrix::IDENT, .instData = perInstData};
+    frx::add_destr_geometry(ctx, make_span(&geomLoadReq, 1));
+    riMesh.tm = riTm;
+    if (riMesh.faces.empty())
+      return;
+
+    uint16_t interiorMatId = 0;
+    if (interiorMat.shElem)
+      interiorMatId = frx::add_render_material(ctx, interiorMat.shMat,
+        {.shElem = interiorMat.shElem, .stage = ShaderMesh::STG_opaque, .instData = {}});
+    else
+      interiorMatId = riMesh.faces[0].mat;
+
+    // cut off rendinst bottom and discard it
+    frx::DestrSystem sys;
+    {
+      frx::mesh_slice(ctx, riMesh, &sys.pieces[0], nullptr, Plane3(Point3(0, 1, 0), riMesh.tm.getcol(3) + Point3(0, 0.05f, 0)),
+        interiorMatId, 0.0f);
+      if (sys.pieces[0].faces.empty())
+        return;
+    }
+    frx::shatter_into_pieces(ctx, sys, /* start piece */ 0, interiorMatId, shatterImpactProfile, shatterMaterialProfile, seed);
+
+    if (interlocked_relaxed_load(isTermRequested))
+      return;
+
+    auto *physWorld = dacoll::get_phys_world();
+    dag::Vector<frx::MeshUploadRequest> meshesToUpload;
+    meshesToUpload.reserve(sys.pieces.size());
+
+    {
+      TIME_PROFILE(create_fracture_bodies)
+      dag::Vector<Point3, framemem_allocator> convexHull;
+      for (auto &[id, piece] : sys.pieces)
+      {
+        G_ASSERT_CONTINUE(!piece.faces.empty());
+        auto &obj = destr.fracturePhysObjects.push_back();
+        obj.prevTm = obj.tm = piece.tm;
+
+        PhysBodyCreationData pbcd;
+        pbcd.materialId = PhysMat::getPhysBodyMaterial(physMatId);
+        pbcd.autoInertia = true;
+        pbcd.addToWorld = false;
+        pbcd.group = destructables::get_config().defaultFGroup;
+        pbcd.mask = destructables::get_config().defaultFMask;
+        frx::mesh_prepare_convex_hull(ctx, piece, 0.1f, convexHull);
+        if (!convexHull.empty())
+        {
+          PhysConvexHullCollision hullColl(convexHull, true, 0.01f);
+          obj.body.reset(new PhysBody(physWorld, 1.f, &hullColl, obj.tm, pbcd));
+        }
+        else
+        {
+          PhysBoxCollision boxColl(0.1f, 0.1f, 0.1f);
+          obj.body.reset(new PhysBody(physWorld, 1.f, &boxColl, obj.tm, pbcd));
+        }
+        obj.mesh = eastl::make_unique<frx::RenderMesh>();
+        if (!obj.body->isValid())
+        {
+          destr.fracturePhysObjects.pop_back();
+          continue;
+        }
+        meshesToUpload.push_back({&piece, obj.mesh.get()});
+      }
+    }
+    frx::upload_mesh_batch(ctx, make_span(meshesToUpload));
+  }
+
+  void onDoneSync()
+  {
+    rendinst::delRIGenExtra(sentinelHandle);
+
+    if (isTermRequested)
+      return;
+    if (destr.fracturePhysObjects.empty())
+      return;
+
+    TMatrix riTm;
+    v_mat_43cu_from_mat44(riTm.array, buffer.tm);
+    bbox3f lbb = rendinst::riex_get_lbb(buffer.desc.pool);
+    BBox3 riLocalBB;
+    v_stu_bbox3(riLocalBB, lbb);
+
+    for (auto &obj : destr.fracturePhysObjects)
+    {
+      PhysBody *body = obj.body.get();
+      phys_world->addBody(body, false);
+    }
+
+    destr.timeToLive = 50.f;
+    destr.inactiveTimeBeforeSink = 20.0f;
+    destr.timeToKinematic = 20.0f;
+    gamephys::DestructableObject *destrPtr = nullptr;
+    destructables::addDestructable(&destrPtr, eastl::move(destr), dacoll::get_phys_world());
+    if (destrPtr)
+      destrPtr->setupInitialPhysState(riTm, riLocalBB, shatterImpactProfile.pos, impactImpulse);
+
+    if (ri_destr_collision_queue_count >= 0)
+      queue_ri_collision_for_debris(buffer.tm, lbb);
+  }
+
+  ~AsyncFractureJob() override = default;
+};
+
+struct AsyncFractureJobMgr
+{
+  dag::Vector<AsyncFractureJob *> jobs;
+
+  void addJob(AsyncFractureJob *job)
+  {
+    G_ASSERT(is_main_thread());
+    threadpool::add(job, threadpool::PRIO_LOW);
+    jobs.push_back(job);
+  }
+
+  void updateDoneJobs()
+  {
+    G_ASSERT(is_main_thread());
+    for (auto it = jobs.begin(); it != jobs.end();)
+    {
+      AsyncFractureJob *job = *it;
+      if (interlocked_acquire_load(job->done))
+      {
+        job->onDoneSync();
+        delete job;
+        it = jobs.erase_unsorted(it);
+      }
+      else
+        ++it;
+    }
+  }
+
+  void termAndWait()
+  {
+    G_ASSERT(is_main_thread());
+    for (AsyncFractureJob *job : jobs)
+      interlocked_release_store(job->isTermRequested, 1);
+    for (AsyncFractureJob *job : jobs)
+    {
+      threadpool::wait(job);
+      job->onDoneSync(); // do it even on termination to delete sentinel RI
+      delete job;
+    }
+    clear_and_shrink(jobs);
+  }
+
+  ~AsyncFractureJobMgr() { termAndWait(); }
+} g_async_fracture_jobs;
+
+static bool perform_procedural_destruction(const rendinst::RendInstBufferData &buffer, const Point3 &impact_pos,
+  const Point3 &impact_impulse)
+{
+  if (!buffer.desc.isRiExtra())
+    return false;
+
+  const DestrPropsRegistry::Props *props = g_destr_props->getProps(rendinst::props::get_custom_props_id(buffer.desc));
+  if (props == nullptr)
+    return false;
+  const DestrPropsRegistry::Preset &preset = g_destr_props->getPreset(props->presetId);
+  if (!preset.shatter)
+    return false;
+
+#if DAGOR_DBGLEVEL > 0
+  {
+    static float last_dbg_draw_time = 0.f;
+    if (last_dbg_draw_time + 5.f < g_get_current_time_cb() || ri_debug_fracture_slicing.pullValueChange())
+      clear_buffered_debug_lines();
+    last_dbg_draw_time = g_get_current_time_cb();
+  }
+#endif
+
+  RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(buffer.desc.pool);
+  G_ASSERT_RETURN(res, false);
+  AsyncFractureJob *job = new AsyncFractureJob();
+  job->res = res;
+  job->buffer = buffer;
+  if (const auto *interiorMat = g_destr_props->getMaterial(preset.interiorMatId))
+    job->interiorMat = *interiorMat;             // copy
+  job->shatterMaterialProfile = *preset.shatter; // copy to avoid races, when accessing from worker thread
+  frx::ShatterImpactProfile &impactProfile = job->shatterImpactProfile;
+  impactProfile.pos = impact_pos;
+  // TODO: pass more parameters from gameplay logic to compute falloff curve
+  impactProfile.radiusRange = Point2(0.f, 2.f);
+  impactProfile.powerRange = Point2(1.f, 0.f);
+  impactProfile.falloffPow = 3.f;
+  if (impactProfile.pos == Point3::ZERO)
+    impactProfile.powerRange = Point2::ZERO;
+  job->impactImpulse = impact_impulse;
+  if (const CollisionResource *collRes = rendinst::getRiGenCollisionResource(buffer.desc))
+    for (const CollisionNode &node : collRes->getAllNodes())
+      if ((node.behaviorFlags & CollisionNode::PHYS_COLLIDABLE) && node.physMatId >= 0)
+      {
+        job->physMatId = node.physMatId;
+        break;
+      }
+  job->sentinelHandle = rendinst::addRIGenExtra44(buffer.desc.pool, buffer.tm, false /*has_collision*/, -1, -1,
+    buffer.riExUserData[15], buffer.riExUserData.data());
+  g_async_fracture_jobs.addJob(job);
+
+  return true;
+}
+
+
 rendinstdestr::DestrSettings &rendinstdestr::get_mutable_destr_settings() { return destrSettings; }
 
 const rendinstdestr::DestrSettings &rendinstdestr::get_destr_settings() { return destrSettings; }
@@ -341,6 +736,8 @@ void rendinstdestr::init_ex(rendinstdestr::on_destr_changed_callback on_destr_cb
   is_branch_destruction_supported = enable_branch_destruction;
   riexsync::pool_mapping_change_callback = on_riex_pool_mapping_change;
   riexsync::sync_active = true;
+
+  g_destr_props.demandInit();
 }
 
 void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, bool apply_pending, bool enable_branch_destruction,
@@ -360,6 +757,8 @@ void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, b
   get_current_camera_pos = get_camera_pos_cb;
   g_get_current_time_cb = get_current_time_cb;
 
+  g_destr_props.demandInit();
+
   debugTreeInstData.branchDestrFromDamage = get_tree_destr().branchDestrFromDamage;
   debugTreeInstData.branchDestrOther = get_tree_destr().branchDestrOther;
   riexsync::pool_mapping_change_callback = on_riex_pool_mapping_change;
@@ -371,6 +770,7 @@ void rendinstdestr::set_occlusion_callback(get_occlusion_callback cb) { get_occl
 
 void rendinstdestr::clear()
 {
+  g_async_fracture_jobs.termAndWait();
   restorables.clear();
   restorables.shrink_to_fit();
   riexsync::clear_synced_ri_extra_pools();
@@ -387,6 +787,8 @@ void rendinstdestr::shutdown()
   ri_effect_cb = nullptr;
   rendinst::sweep_rendinst_cb = nullptr;
   on_rendinst_destroyed_callbacks.clear();
+
+  g_destr_props.demandDestroy();
 }
 
 void rendinstdestr::startSession(void *phys_wld)
@@ -632,7 +1034,6 @@ void rendinstdestr::resetApexDestructedRIList()
 #endif
 }
 
-
 using DestrNeighborsSet =
   eastl::vector_map<rendinst::riex_handle_t, rendinst::CollisionInfo, eastl::less<rendinst::riex_handle_t>, framemem_allocator>;
 
@@ -692,7 +1093,7 @@ void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreat
   if (riexHandle != rendinst::RIEX_HANDLE_NULL)
   {
     params.timeToSinkUnderground = rendinst::get_riextra_destr_time_to_sink_underground(riexHandle);
-    params.defaultTimeToLive = rendinst::get_riextra_destr_default_time_to_live(riexHandle);
+    params.inactiveTimeBeforeSink = rendinst::get_riextra_destr_default_time_to_live(riexHandle);
   }
   params.isDestroyedByExplosion = bool(flags & rendinst::DestrOptionFlag::DestroyedByExplosion);
   auto disintegrationParams =
@@ -713,6 +1114,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   if (!rendinst::isRiGenInWorld(desc) || !phys_world)
     return desc;
 
+  G_ASSERT(desc.layer >= 0);
   G_ASSERTF(lengthSq(impulse) < sqr(MAX_RI_DESTROY_IMPULSE), "Bad destroy rendInst impulse %@", impulse);
 
 #if ENABLE_APEX
@@ -781,12 +1183,16 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   if (outRiRemoved && create_destr_effects)
     rendinst::playRIGenDestrEffect(riBuffer, ri_effect_cb, pos != Point3::ZERO ? &pos : nullptr);
 
+  bool isDestructableCreated = false;
+
+  if (outRiRemoved && create_destr_effects && rendinstdestr::get_destr_settings().createDestr)
+    isDestructableCreated = perform_procedural_destruction(riBuffer, pos, impulse);
 
   bool apex_asset_created = false;
   int apex_destructible_id = -1;
 #if ENABLE_APEX
-  if (
-    rendinst::enable_apex && create_destr_effects && rendinstdestr::get_destr_settings().createDestr && create_apex_actors_at_point_cb)
+  if (!isDestructableCreated && rendinst::enable_apex && create_destr_effects && rendinstdestr::get_destr_settings().createDestr &&
+      create_apex_actors_at_point_cb)
   {
     TMatrix normalizedTm = mainTm;
     Point3 scale = Point3(mainTm.getcol(0).length(), mainTm.getcol(1).length(), mainTm.getcol(2).length());
@@ -804,9 +1210,11 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
         desc.offs, apex_destructed_list.size());
     apex_asset_created = apex_destructible_id != -1; // NOTE: check exactly != -1 (not >=0, ..._cb may return negative values,
                                                      // depending on its logic)
+    isDestructableCreated = apex_asset_created;
   }
 #else
   G_UNUSED(apex_dmg_info);
+  G_UNUSED(apex_asset_created);
 #endif
 
 #if ENABLE_APEX
@@ -816,7 +1224,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     rendinstdestr::call_on_rendinst_destroyed_cb(desc.getRiExtraHandle(), mainTm, bbox);
 
   destructables::id_t destrId = destructables::INVALID_ID;
-  if (!apex_asset_created && poData && create_destr_effects && rendinstdestr::get_destr_settings().createDestr) //-V560
+  if (!isDestructableCreated && poData && create_destr_effects && rendinstdestr::get_destr_settings().createDestr) //-V560
   {
     // Queue nearby RI collision loading so debris can collide with standing rendinsts
     {
@@ -836,7 +1244,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     G_ASSERT(!isDestructableTmNaN);
     if (!isDestructableTmNaN)
     {
-      destrId = destructables::addDestructable(&destr, params, phys_world);
+      destrId = destructables::addDestructable(&destr, eastl::move(params), phys_world);
       if (destr) //-V1051
       {
         if (impulse.lengthSq() > 0.f)
@@ -971,7 +1379,7 @@ void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TM
     fill_ri_destructable_params(params, rendinst::RendInstDesc(riex_handle), poData, transform, flags);
 
     gamephys::DestructableObject *destr = nullptr;
-    destructables::addDestructable(&destr, params, phys_world);
+    destructables::addDestructable(&destr, eastl::move(params), phys_world);
     if (destr && impulse.lengthSq() > 0.f)
     {
       G_ASSERTF(lengthSq(impulse) < sqr(MAX_RI_DESTROY_IMPULSE), "Bad destroy rendInst impulse %@", impulse);
@@ -992,6 +1400,8 @@ void rendinstdestr::update_paused(float current_time, const Frustum *frustum) { 
 void rendinstdestr::update(float dt, float current_time, const Frustum *frustum)
 {
   TIME_PROFILE(rendinstdestr_update);
+
+  g_async_fracture_jobs.updateDoneJobs();
 
   {
     TIME_PROFILE_DEV(update_cached_collision_objects);
@@ -1171,8 +1581,11 @@ void rendinstdestr::update(float dt, float current_time, const Frustum *frustum)
       {
         if (!physObject)
         {
+          const rendinst::RendInstDesc restoredDesc = phys.ri ? phys.ri->savedData.desc : rendinst::RendInstDesc();
           if (rendinst::returnRIGenExternalControl(phys.desc, phys.ri))
           {
+            if (on_ri_restored_cb)
+              on_ri_restored_cb(restoredDesc);
             cleanup_ri_phys(phys);
             erase_items(riPhys, i, 1);
             i--;
@@ -1322,7 +1735,7 @@ void rendinstdestr::update(float dt, float current_time, const Frustum *frustum)
 
       mat44f m44;
       v_mat44_make_from_43cu_unsafe(m44, tm.array);
-      v_mat43_apply_scale(m44, v_ldu(&phys.scale.x));
+      v_mat44_apply_scale33(m44, v_ldu(&phys.scale.x));
 
       bbox3f bbox = rendinst::riex_get_lbb(rendinst::handle_to_ri_type(phys.ri->riHandle));
       bbox3f fullBBox;
@@ -2420,6 +2833,8 @@ void rendinstdestr::set_on_rendinst_destroyed_cb(on_rendinst_destroyed_callback 
   if (cb && eastl::find(cblist.begin(), cblist.end(), cb) == cblist.end())
     cblist.push_back(cb);
 }
+
+void rendinstdestr::set_on_ri_restored_cb(on_ri_restored_callback cb) { on_ri_restored_cb = cb; }
 
 void rendinstdestr::call_on_rendinst_destroyed_cb(rendinst::riex_handle_t handle, const TMatrix &tm, const BBox3 &box)
 {
@@ -3560,15 +3975,15 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, float at_time, bool c
 
   rendinst::riex_collidable_t ri_h;
   rendinst::gatherRIGenExtraCollidable(ri_h, box, true /*read_lock*/);
-  bool tooManyDestructables = ri_h.size() >= destructables::maxNumberOfDestructableBodies;
+  bool tooManyDestructables = ri_h.size() >= destructables::get_config().maxNumberOfDestructableBodies;
 
   if (create_destr && tooManyDestructables)
   {
     float riDamageRadiusSq = (box.center() - box.lim[0]).lengthSq();
-    if (riDamageRadiusSq >= destructables::minDestrRadiusSq)
+    if (riDamageRadiusSq >= destructables::get_config().minDestrRadiusSq)
     {
       Point3 dirToExplosion = box.center() - view_pos;
-      if (dirToExplosion.lengthSq() > riDamageRadiusSq + destructables::minDestrRadiusSq)
+      if (dirToExplosion.lengthSq() > riDamageRadiusSq + destructables::get_config().minDestrRadiusSq)
         create_destr = false;
     }
   }
@@ -3613,7 +4028,7 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, float at_time, bool c
         continue;
     }
     bool local_create_destr = false;
-    if (create_destr && (!tooManyDestructables || ((view_pos - riPos).lengthSq() < destructables::minDestrRadiusSq)))
+    if (create_destr && (!tooManyDestructables || ((view_pos - riPos).lengthSq() < destructables::get_config().minDestrRadiusSq)))
       local_create_destr = true;
 
     rendinst::DestrOptionFlags curFlags = flags;
@@ -3782,8 +4197,11 @@ static void imguiWindow()
     for (int i = 0; i < riPhys.size(); ++i)
     {
       RendInstPhys &phys = riPhys[i];
+      const rendinst::RendInstDesc restoredDesc = phys.ri ? phys.ri->savedData.desc : rendinst::RendInstDesc();
       if (rendinst::returnRIGenExternalControl(phys.desc, phys.ri))
       {
+        if (on_ri_restored_cb)
+          on_ri_restored_cb(restoredDesc);
         cleanup_ri_phys(phys);
         erase_items(riPhys, i, 1);
         i--;

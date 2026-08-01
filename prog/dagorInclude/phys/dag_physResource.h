@@ -70,6 +70,11 @@ public:
     float angDiff = 0;
   };
 
+  struct CollisionPair
+  {
+    int body0, body1;
+  };
+
   struct Body
   {
     SimpleString name;
@@ -158,6 +163,8 @@ public:
 
   dag::ConstSpan<NodeAlignCtrl> getNodeAlignCtrl() const { return nodeAlignCtrl; }
 
+  dag::ConstSpan<CollisionPair> getNoCollisionPairs() const { return noCollisionPairs; }
+
 protected:
   Tab<Body> bodies;
 
@@ -166,6 +173,7 @@ protected:
   Tab<RevoluteJoint> revoluteJoints;
   Tab<SphericalJoint> sphericalJoints;
   Tab<NodeAlignCtrl> nodeAlignCtrl;
+  Tab<CollisionPair> noCollisionPairs;
 end_dclass_decl();
 
 

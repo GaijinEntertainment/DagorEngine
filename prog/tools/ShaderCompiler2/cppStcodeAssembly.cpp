@@ -252,7 +252,7 @@ void StcodeRoutine::addSetConstStmt(const char *type, size_t type_size, const ch
 {
   const auto arrOffset = array_index == 0 ? "" : string_f(" + (%d * %d)", type_size, array_index);
   const auto loc = string_f("(LOC(%s)%s)", location, arrOffset.c_str());
-  addFormattedStatement("(%s &)(%s[%s]) = %s;\n", type, dest_array, loc.c_str(), expr);
+  addFormattedStatement("reinterpret_cast<%s &>(%s[%s]) = %s;\n", type, dest_array, loc.c_str(), expr);
 }
 
 // @TODO: proper indentation for decls
@@ -579,7 +579,17 @@ static const char *get_shader_const_type_name(ShaderVarType type, semantic::Vari
 
 static bool shader_const_is_numeric(ShaderVarType shvt)
 {
-  return item_is_in(shvt, {SHVT_INT, SHVT_REAL, SHVT_INT4, SHVT_COLOR4, SHVT_FLOAT4X4});
+  return item_is_in(shvt, {SHVT_INT, SHVT_REAL, SHVT_INT4, SHVT_COLOR4, SHVT_FLOAT4X4, SHVT_FLOAT4x3});
+}
+
+static int shader_var_type_reg_count(ShaderVarType shvt)
+{
+  switch (shvt)
+  {
+    case SHVT_FLOAT4X4: return 4;
+    case SHVT_FLOAT4x3: return 3;
+    default: return 1;
+  }
 }
 
 void DynamicStcodeRoutine::addShaderConst(ShaderStage stage, ShaderVarType shvt, semantic::VariableType vt, const char *name, int id,
@@ -590,7 +600,7 @@ void DynamicStcodeRoutine::addShaderConst(ShaderStage stage, ShaderVarType shvt,
   const char *typeName = get_shader_const_type_name(shvt, vt);
   const eastl::string location = string_f("%s_%s", name, stage_to_name_prefix(stage));
 
-  const int regSize = shvt == SHVT_FLOAT4X4 ? 4 : 1;
+  const int regSize = shader_var_type_reg_count(shvt);
   const int size = shader_const_is_numeric(shvt) ? regSize * FLOAT4_REG_SIZE : regSize;
 
   addSetConstStmt(typeName, size, location.c_str(), val, stage_to_const_array_name(stage), array_index);
@@ -727,7 +737,7 @@ void StaticStcodeRoutine::addShaderConst(ShaderVarType shvt, semantic::VariableT
   const char *typeName = get_shader_const_type_name(shvt, vt);
   const eastl::string location = string_f("%s%s", name, STATIC_CONSTS_NAME_SUFFIX);
 
-  const int regSize = shvt == SHVT_FLOAT4X4 ? 4 : 1;
+  const int regSize = shader_var_type_reg_count(shvt);
   const int size = shader_const_is_numeric(shvt) ? regSize * FLOAT4_REG_SIZE : regSize;
 
   addSetConstStmt(typeName, size, location.c_str(), val, STATIC_CONSTS_ARRAY_NAME, array_index);

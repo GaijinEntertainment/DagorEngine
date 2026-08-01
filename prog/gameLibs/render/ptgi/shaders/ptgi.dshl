@@ -57,7 +57,7 @@ shader rt_gi
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = ptgi_resolutionI.xy;
-    inv_aligned_resolution@f2 = (ptgi_res_mul * screen_pos_to_texcoord.xy / (current_dynamic_resolution.xy / current_dynamic_resolution.zw));
+    inv_aligned_resolution@f2 = ptgi_res_mul * screen_pos_to_texcoord.xy;
     output@uav = ptgi_target hlsl { RWTexture2D<float4> output@uav; };
     impostor_shadow_offset@f1 = impostor_shadow_offset;
     ptgi_res_mul@i1 = ptgi_res_mul;
@@ -181,7 +181,8 @@ shader rt_gi
 
     void write_output(uint2 output_index, float3 color, float d, float w, float roughness)
     {
-      ##assert(!any(isnan(color)) && !any(isinf(color)), "nan or inf in ptgi output color");
+      ##assert(!any(isnan(color)), "nan in ptgi output color");
+      ##assert(!any(isinf(color)), "inf in ptgi output color");
 
       if (ptgi_use_rr)
       {
@@ -236,6 +237,8 @@ shader rt_gi
       PackedGbuffer packedGbuffer = loadPackedGbuffer(rayIndex * ptgi_res_mul);
       UnpackedGbuffer unpackedGbuffer = unpackGbuffer(packedGbuffer);
       ProcessedGbuffer processedGbuffer = processGbuffer(unpackedGbuffer);
+
+      bool isCamoNet = processedGbuffer.isCamoNet;
 
       float3 normal;
       float roughness;
@@ -297,6 +300,10 @@ shader rt_gi
 
       ml::Rng::Hash::Initialize(rayIndex, frame_index);
 
+      uint groupMask = bvhGroupGI;
+      if (isCamoNet)
+        groupMask &= ~bvhGroupCamoNet;
+
       [loop]
       for (uint bounce = 0; bounce < max_bounces && any(throughput > throughputTreshold); ++bounce)
       {
@@ -347,7 +354,7 @@ shader rt_gi
 
         ##if ptgi_pipeline_mode == inline
           HitInfo hitInfo;
-          bool isHit = trace_ray(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, bvhGroupGI, hitInfo, half3(1,1,1), traceFlags);
+          bool isHit = trace_ray(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, groupMask, hitInfo, traceFlags);
           if (isHit)
           {
             hitSurface = calc_surface_params(hitInfo, -sampleDir, -TRACING_LOD); // Use fix texture LOD
@@ -365,7 +372,11 @@ shader rt_gi
 
           uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | traceFlags;
 
-          TraceRay(bvhMain, flags, bvhGroupGI, 0, 0, 0, ray, payload);
+          #ifdef HAS_RAYQUERY_FLAG_ALLOW_OPACITY_MICROMAPS
+            flags |= RAY_FLAG_FORCE_OMM_2_STATE;
+          #endif
+
+          TraceRay(bvhMain, flags, groupMask, 0, 0, 0, ray, payload);
 
           bool isHit = pl_get_distance(payload) < giDistance;
           hitDistance = pl_get_distance(payload);
@@ -414,6 +425,9 @@ shader rt_gi
 
       giColor = lerp(dagiColor, giColor, underwaterFade);
 
+      // After the first bounce, we don't care about camo nets.
+      groupMask &= ~bvhGroupCamoNet;
+
       write_output(outputIndex, giColor, firstDistance, w, roughness);
     }
 
@@ -443,8 +457,7 @@ shader rt_gi
                                              ObjectToWorld3x4(),
                                              WorldToObject3x4(),
                                              HitKind() == HIT_KIND_TRIANGLE_FRONT_FACE,
-                                             InstanceIndex(),
-                                             1);
+                                             InstanceIndex());
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD); // Use fix texture LOD
         pl_set_albedo(payload, hitSurface.albedo);
         pl_set_reflectance(payload, hitSurface.reflectance);
@@ -458,7 +471,6 @@ shader rt_gi
       }
 
       RaytracingShaderConfig shader_config={sizeof(RayPayload), sizeof(BuiltInTriangleIntersectionAttributes)};
-      RaytracingPipelineConfig pipeline_config = {1}; // No recursion
     ##endif
   }
 
@@ -468,6 +480,9 @@ shader rt_gi
   }
   else
   {
+    // GI rays trace alpha-tested geometry; allow OMM where the device supports it. No recursion.
+    max_recursion = 1;
+    allow_opacity_micromaps;
     compile("lib_6_5", "rt_gi_raygen");
   }
 }
@@ -476,10 +491,7 @@ texture ptgi_decode_src;
 texture ptgi_decode_dst;
 
 int ptgi_decode_albedo_mul;
-interval ptgi_decode_albedo_mul: no < 1, yes;
-
 int ptgi_decode_tonemap;
-interval ptgi_decode_tonemap: no < 1, yes;
 
 shader rt_gi_decode
 {
@@ -495,6 +507,8 @@ shader rt_gi_decode
     ptgi_res_mul@i1 = ptgi_res_mul;
     ptgi_use_rr@u1 = ptgi_use_rr;
     ptgi_inv_uv_scale@f2 = (1.0 / ptgi_uv_scale.xy);
+    ptgi_decode_albedo_mul@u1 = ptgi_decode_albedo_mul;
+    ptgi_decode_tonemap@u1 = ptgi_decode_tonemap;
   }
 
   hlsl(cs) {
@@ -525,13 +539,11 @@ shader rt_gi_decode
       else
         value = texture2DAt(input, dtid * ptgi_res_mul).rgb;
 
-      ##if (ptgi_decode_albedo_mul == yes)
+      if (ptgi_decode_albedo_mul)
         value *= readPackedGbuffer((dtid + 0.5f) / resolution * ptgi_inv_uv_scale).albedo_ao.rgb;
-      ##endif
 
-      ##if (ptgi_decode_tonemap == yes)
+      if (ptgi_decode_tonemap)
         value = performLUTTonemap(value);
-      ##endif
 
       texture2DAt(output, dtid) = float4(value, 1);
     }

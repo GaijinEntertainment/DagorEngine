@@ -252,15 +252,31 @@ public:
   using base_type::size;
   using base_type::static_size;
 
-  ~RelocatableFixedVector() { clear(); }
+  // C++20 P0848 conditionally-trivial dtor: the defaulted overload is chosen for the
+  // inplace + trivially-destructible T case, keeping the whole type trivially relocatable.
+  ~RelocatableFixedVector()
+    requires(canOverflow || !eastl::is_trivially_destructible_v<T>)
+  {
+    destroyAndFreeHeap();
+  }
+  ~RelocatableFixedVector() = default;
   RelocatableFixedVector() = default;
   RelocatableFixedVector(size_type sz) { resize(sz); }
+
+  // Inplace-only storage of a trivially-copyable T never touches the heap, so every
+  // copy/move is a plain memcpy: default them all, keeping the whole type trivially copyable.
+  static constexpr bool trivially_copyable = !canOverflow && eastl::is_trivially_copyable_v<value_type>;
+
   RelocatableFixedVector(RelocatableFixedVector &&a)
+    requires(!trivially_copyable)
   {
     CHECK_RELOCATABLE();
     memcpy(this, &a, a.calcUsedSize()); // -V::780
     a.used() = 0;
   }
+  RelocatableFixedVector(RelocatableFixedVector &&)
+    requires(trivially_copyable)
+  = default;
   template <typename V, typename VT = typename V::value_type, typename U = T,
     typename B = typename eastl::enable_if_t<eastl::is_same<VT const, U const>::value>>
   explicit RelocatableFixedVector(const V &v)
@@ -270,14 +286,38 @@ public:
 
   RelocatableFixedVector(std::initializer_list<value_type> ilist) { allocateAndCopy(eastl::size(ilist), eastl::data(ilist)); }
 
-  RelocatableFixedVector &operator=(RelocatableFixedVector &&a);
-  RelocatableFixedVector(const RelocatableFixedVector &a) { allocateAndCopy(a.size(), a.data()); }
+  RelocatableFixedVector &operator=(RelocatableFixedVector &&a)
+    requires(!trivially_copyable)
+  {
+    if (this == &a)
+      return *this;
+    clear();
+    CHECK_RELOCATABLE();
+    memcpy(this, &a, a.calcUsedSize());
+    a.used() = 0;
+    return *this;
+  }
+  RelocatableFixedVector &operator=(RelocatableFixedVector &&)
+    requires(trivially_copyable)
+  = default;
+  RelocatableFixedVector(const RelocatableFixedVector &a)
+    requires(!trivially_copyable)
+  {
+    allocateAndCopy(a.size(), a.data());
+  }
+  RelocatableFixedVector(const RelocatableFixedVector &)
+    requires(trivially_copyable)
+  = default;
   RelocatableFixedVector &operator=(const RelocatableFixedVector &a)
+    requires(!trivially_copyable)
   {
     if (&a != this)
       assign(a.begin(), a.end());
     return *this;
   }
+  RelocatableFixedVector &operator=(const RelocatableFixedVector &)
+    requires(trivially_copyable)
+  = default;
   template <typename V, typename VT = typename V::value_type, typename U = T,
     typename B = typename eastl::enable_if_t<eastl::is_same<VT const, U const>::value>>
   RelocatableFixedVector &operator=(const V &v)
@@ -289,10 +329,7 @@ public:
 
   void clear()
   {
-    for (auto e = end() - 1, b = begin() - 1; e != b; --e)
-      e->~T();
-    if (base_type::isHeap())
-      deallocate(base_type::heap.data);
+    destroyAndFreeHeap();
     base_type::used() = 0;
   }
   void resize(size_type size);
@@ -402,6 +439,13 @@ public:
   shallow_copy_t getShallowCopy() const { return (shallow_copy_t) * this; }
 
 protected:
+  void destroyAndFreeHeap()
+  {
+    for (auto e = end() - 1, b = begin() - 1; e != b; --e)
+      e->~T();
+    if (base_type::isHeap())
+      deallocate(base_type::heap.data);
+  }
   static constexpr size_t min_allocate_size_bytes = 16;                         // none of allocators can allocate less than 16 bytes
   static constexpr size_t min_allocate_size_mask = min_allocate_size_bytes - 1; // none of allocators can allocate less than 16 bytes
   static size_t minHeapSize(size_t required)
@@ -548,18 +592,6 @@ inline void RelocatableFixedVector<T, N, O, A, C, Z>::assign(size_type newCount,
     for (auto i = cData + newCount, ie = cData + oldCount; i != ie; ++i)
       i->~value_type();
   base_type::used() = newCount;
-}
-
-template <typename T, size_t N, bool O, typename A, typename C, bool Z>
-inline RelocatableFixedVector<T, N, O, A, C, Z> &RelocatableFixedVector<T, N, O, A, C, Z>::operator=(RelocatableFixedVector &&a)
-{
-  if (this == &a)
-    return *this;
-  clear();
-  CHECK_RELOCATABLE();
-  memcpy(this, &a, a.calcUsedSize());
-  a.used() = 0;
-  return *this;
 }
 
 template <typename T, size_t N, bool O, typename A, typename C, bool Z>
@@ -818,14 +850,18 @@ inline typename RelocatableFixedVector<T, N, O, A, C, Z>::iterator RelocatableFi
 }
 
 
+// Trivially-copyable instances are already covered by the generic is_trivially_copyable
+// specialization; exclude them here so the two do not tie into an ambiguous match.
 template <typename T, size_t N, bool O, typename A, typename C, bool Z>
-struct is_type_relocatable<RelocatableFixedData<T, N, O, A, C, Z>, typename eastl::enable_if_t<is_type_relocatable<T>::value>>
-  : public eastl::true_type
+struct is_type_relocatable<RelocatableFixedData<T, N, O, A, C, Z>,
+  typename eastl::enable_if_t<is_type_relocatable<T>::value &&
+                              !eastl::is_trivially_copyable_v<RelocatableFixedData<T, N, O, A, C, Z>>>> : public eastl::true_type
 {};
 
 template <typename T, size_t N, bool O, typename A, typename C, bool Z>
-struct is_type_relocatable<RelocatableFixedVector<T, N, O, A, C, Z>, typename eastl::enable_if_t<is_type_relocatable<T>::value>>
-  : public eastl::true_type
+struct is_type_relocatable<RelocatableFixedVector<T, N, O, A, C, Z>,
+  typename eastl::enable_if_t<is_type_relocatable<T>::value &&
+                              !eastl::is_trivially_copyable_v<RelocatableFixedVector<T, N, O, A, C, Z>>>> : public eastl::true_type
 {};
 
 template <typename T, size_t N1, bool O1, typename A1, typename C1, bool Z1, size_t N2, bool O2, typename A2, typename C2, bool Z2>

@@ -83,7 +83,6 @@ static curl_off_t strtooff(const char *nptr, char **endptr, int base)
   int overflow;
   int i;
   curl_off_t value = 0;
-  curl_off_t newval;
 
   /* Skip leading whitespace. */
   end = (char *)nptr;
@@ -134,14 +133,12 @@ static curl_off_t strtooff(const char *nptr, char **endptr, int base)
   for(i = get_char(end[0], base);
       i != -1;
       end++, i = get_char(end[0], base)) {
-    newval = base * value + i;
-    if(newval < value) {
-      /* We've overflowed. */
+    /* check without signed wrapping, as that is undefined behavior */
+    if(value > (CURL_OFF_T_MAX - i) / base) {
       overflow = 1;
       break;
     }
-    else
-      value = newval;
+    value = base * value + i;
   }
 
   if(!overflow) {

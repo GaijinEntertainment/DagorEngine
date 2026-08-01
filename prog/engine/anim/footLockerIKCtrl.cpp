@@ -66,7 +66,10 @@ static void solve_ik_two_bones(mat44f_cref bone_root, mat44f_cref bone_mid, mat4
   float lenBC = len1;
   float lenAT = rootToTargetLen;
 
-  vec3f ACnorm = v_norm3(v_sub(bone_end.col3, bone_root.col3));
+  vec3f rootToEnd = v_sub(bone_end.col3, bone_root.col3);
+  if (v_extract_x(v_length3_sq_x(rootToEnd)) < 1e-8f)
+    return; // fully folded chain: end at root, bend plane is undefined; keep default outputs
+  vec3f ACnorm = v_norm3(rootToEnd);
   vec3f ABnorm = v_div(v_sub(bone_mid.col3, bone_root.col3), v_splats(lenAB));
   vec3f BAnorm = v_neg(ABnorm);
   vec3f BCnorm = v_div(v_sub(bone_end.col3, bone_mid.col3), v_splats(lenBC));
@@ -126,9 +129,13 @@ void AnimV20::FootLockerIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
   tree.calcWtm();
   vec3f worldOffset = v_add(ctx.worldTranslate, ctx.ac->getWtmOfs());
 
-  dag::RelocatableFixedVector<AnimCharV20::LegsIkRay, 4, true /*OF*/, framemem_allocator> traces;
+  dag::RelocatableFixedVector<AnimCharV20::TraceRayInfo, 4, true /*OF*/, framemem_allocator> traces;
   traces.resize(numLegs * 2);
-  memset(traces.data(), 0, sizeof(AnimCharV20::LegsIkRay) * traces.size());
+  memset(traces.data(), 0, sizeof(AnimCharV20::TraceRayInfo) * traces.size());
+
+  dag::RelocatableFixedVector<float, 4, true /*OF*/, framemem_allocator> traceDistances;
+  traceDistances.resize(numLegs * 2);
+  memset(traceDistances.data(), 0, sizeof(float) * traceDistances.size());
 
   const bool isProceduralStepAllowed = allowProceduralStepVarId >= 0 && st.getParamInt(allowProceduralStepVarId) > 0;
   const bool isProceduralStepReady = isProceduralStepAllowed && st.getParam(proceduralStepTimerVarId) > proceduralStepCooldown;
@@ -165,7 +172,7 @@ void AnimV20::FootLockerIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
       v_stu(&traces[toeTraceIdx].pos.x, v_add(toeTraceFrom, worldOffset));
       traces[toeTraceIdx].t = traceDist;
       traces[toeTraceIdx].dir = Point3(0, -1, 0);
-      traces[toeTraceIdx].legsDiff = traceDist; // `legsDiff` is not used, just store max trace distance here
+      traceDistances[toeTraceIdx] = traceDist;
       vec3f ankleTraceFrom = v_perm_xbzw(v_add(anklePos, posOffset), v_splats(traceFromY));
       v_stu(&traces[ankleTraceIdx].pos.x, v_add(ankleTraceFrom, worldOffset));
       traces[ankleTraceIdx].t = traceDist;
@@ -181,7 +188,10 @@ void AnimV20::FootLockerIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
         float dist = v_extract_x(v_length3_x(v_and(v_sub(lockedPosRel, toePos), V_CI_MASK1010)));
         // Choose farthest leg first
         if (dist > proceduralStepMinDistance && dist > proceduralStepDistance)
+        {
           proceduralStepLeg = legNo;
+          proceduralStepDistance = dist;
+        }
       }
     }
   }
@@ -207,11 +217,13 @@ void AnimV20::FootLockerIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
     float len0 = v_extract_x(v_length3_x(v_sub(hip.col3, knee.col3)));
     float len1 = v_extract_x(v_length3_x(v_sub(knee.col3, ankle.col3)));
     float len2 = v_extract_x(v_length3_x(v_sub(ankle.col3, toe.col3)));
+    if (len0 <= 1e-4f || len1 <= 1e-4f || len2 <= 1e-4f)
+      continue; // degenerate bones (e.g. nodes hidden via zero scale): IK undefined, division by len2 would produce NaN
 
     int toeTraceIdx = 2 * legNo;
     int ankleTraceIdx = toeTraceIdx + 1;
 
-    float maxTraceDist = traces[toeTraceIdx].legsDiff;
+    float maxTraceDist = traceDistances[toeTraceIdx];
     bool toeTraceValid = traceRes == GIRQR_TraceOK && traces[toeTraceIdx].t < maxTraceDist;
     if (!leg.isLocked)
     {
@@ -300,14 +312,18 @@ void AnimV20::FootLockerIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomN
     else if (leg.isLocked)
     {
       vec3f lockedPosRel = v_sub(v_ldu(&leg.lockedPosition.x), worldOffset);
-      float horzDist = v_extract_x(v_length3_x(v_and(v_sub(lockedPosRel, toe.col3), V_CI_MASK1010)));
+      float horzDistSq = v_extract_x(v_length3_sq_x(v_and(v_sub(lockedPosRel, toe.col3), V_CI_MASK1010)));
       float unreachableDist = v_extract_x(v_length3_x(v_sub(lockedPosRel, hip.col3))) - (len0 + len1 + len2);
       bool toeTooHigh = v_extract_y(v_sub(lockedPosRel, hip.col3)) > -TOE_UNDER_HIP_LIMIT;
-      if (!needLock || horzDist > unlockRadius || unreachableDist > unlockWhenUnreachableRadius || toeTooHigh ||
+      if (!needLock || horzDistSq > sqr(unlockRadius) || unreachableDist > unlockWhenUnreachableRadius || toeTooHigh ||
           leg.isProceduralStepActive)
       {
         leg.isLocked = false;
-        v_stu_p3(&leg.posOffset.x, v_sub(v_add(lockedPosRel, v_ldu(&leg.posOffset.x)), toe.col3));
+        // Treat unreachable distance higher than 1 meter as teleportation. It shouldn't hit during usual movement
+        // because `unlockRadius`/`unlockWhenUnreachableRadius` will unlock leg earlier.
+        bool isTeleported = unreachableDist > 1.f;
+        vec3f newOffset = isTeleported ? v_zero() : v_sub(v_add(lockedPosRel, v_ldu(&leg.posOffset.x)), toe.col3);
+        v_stu_p3(&leg.posOffset.x, newOffset);
       }
     }
 

@@ -7,6 +7,7 @@
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/aotDagorMath.h>
 #include <dasModules/dasManagedTab.h>
+#include <util/dag_bitwise_cast.h>
 #include <gamePhys/common/loc.h>
 #include <gamePhys/common/mass.h>
 #include <gamePhys/props/atmosphere.h>
@@ -44,7 +45,12 @@ inline void orient_transformInv(const gamephys::Orient &orient, das::float3 &vec
 {
   orient.transformInv(reinterpret_cast<Point3 &>(vec));
 }
-inline void location_toTM(const gamephys::Loc &location, das::float3x4 &tm) { location.toTM(reinterpret_cast<TMatrix &>(tm)); }
+inline void location_toTM(const gamephys::Loc &location, das::float3x4 &tm)
+{
+  TMatrix res;
+  location.toTM(res);
+  tm = dag::bit_cast<das::float3x4>(res);
+}
 inline TMatrix location_makeTM(const gamephys::Loc &location) { return location.makeTM(); }
 
 template <typename Phys>

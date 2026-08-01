@@ -51,6 +51,22 @@ void BEContext::accumulateRaytraceBuildAccesses(const RaytraceStructureBuildData
           bufferRefs.transform, {bufferRefs.transformOffset, RT_TRANSFORM_SIZE});
       }
     }
+#if VK_EXT_opacity_micromap
+    for (const RaytraceBLASOmmLinkageData &l :
+      make_span(data->raytraceBLASOmmLinkageStore.data() + blbd.firstOmmLinkage, blbd.ommLinkageCount))
+    {
+      if (l.indexBuffer)
+      {
+        verifyResident(l.indexBuffer);
+        Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_SHADER_READ_BIT},
+          l.indexBuffer, {l.indexOffset, l.indexSize});
+      }
+      // sync1 has no micromap access bits, AS read at AS build stage is the closest legal ordering
+      if (l.micromap)
+        Backend::sync.addAccelerationStructureAccess(
+          {VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR}, l.micromap);
+    }
+#endif
     if (blbd.compactionSizeBuffer)
       verifyResident(blbd.compactionSizeBuffer.buffer);
   }
@@ -126,6 +142,16 @@ void BEContext::buildAccelerationStructure(const RaytraceStructureBuildData &bui
     VkAccelerationStructureBuildGeometryInfoKHR buildInfo;
     initBuildInfo(buildInfo, build_data);
 
+#if VK_EXT_opacity_micromap
+    // stores are frozen at execution time, safe to install pointers into them now
+    for (RaytraceBLASOmmLinkageData &l :
+      make_span(data->raytraceBLASOmmLinkageStore.data() + build_data.blas.firstOmmLinkage, build_data.blas.ommLinkageCount))
+    {
+      l.desc.pUsageCounts = data->raytraceMicromapUsageStore.data() + l.firstUsage;
+      data->raytraceGeometryKHRStore[l.geometryIndex].geometry.triangles.pNext = &l.desc;
+    }
+#endif
+
     buildInfo.geometryCount = build_data.blas.geometryCount;
     buildInfo.pGeometries = data->raytraceGeometryKHRStore.data() + build_data.blas.firstGeometry;
 
@@ -153,22 +179,67 @@ void BEContext::queryAccelerationStructureCompationSizes(const RaytraceStructure
   if (!compactSizeBuf)
     return;
 
-  // checked in previous build step
-  //  verifyResident(compactSizeBuf.buffer);
-
   VkAccelerationStructureKHR dstAc = build_data.dst->getHandle();
+
+  const RaytraceBLASCompactionSizeQueryPool::PendingCopy &range = Globals::rtSizeQueryPool.allocateRange(1, compactSizeBuf, 0);
+  G_ASSERTF(range.count == 1, "queryAccelerationStructureCompationSizes was unable to allocate copy range");
+  VULKAN_LOG_CALL(Backend::cb.wCmdResetQueryPool(range.pool, range.firstSlot, range.count));
+  VULKAN_LOG_CALL(Backend::cb.wCmdWriteAccelerationStructuresPropertiesKHR(range.count, &dstAc,
+    VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, range.pool, range.firstSlot));
+}
+
+#if VK_EXT_opacity_micromap
+
+void BEContext::accumulateMicromapBuildAccesses(const RaytraceMicromapBuildData &build_data)
+{
+  // sync1 has no micromap build stage/access bits (they are sync2-only), use
+  // all commands + memory access as the conservative legal equivalent; micromap
+  // builds are rare and batched, so the wide barrier is acceptable
+  const VkPipelineStageFlags micromapStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+  verifyResident(build_data.inputBuffer.buffer);
+  Backend::sync.addBufferAccess({micromapStage, VK_ACCESS_MEMORY_READ_BIT}, build_data.inputBuffer.buffer,
+    {build_data.inputBuffer.bufOffset(build_data.inputOffset), build_data.inputBuffer.visibleDataSize - build_data.inputOffset});
+
+  verifyResident(build_data.triangleArrayBuffer.buffer);
+  Backend::sync.addBufferAccess({micromapStage, VK_ACCESS_MEMORY_READ_BIT}, build_data.triangleArrayBuffer.buffer,
+    {build_data.triangleArrayBuffer.bufOffset(build_data.triangleArrayOffset),
+      build_data.triangleArrayBuffer.visibleDataSize - build_data.triangleArrayOffset});
+
+  if (build_data.scratchBuf)
+  {
+    verifyResident(build_data.scratchBuf.buffer);
+    Backend::sync.addBufferAccess({micromapStage, VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT},
+      build_data.scratchBuf.buffer, {build_data.scratchBuf.bufOffset(0), build_data.scratchBuf.visibleDataSize});
+  }
+
+  if (build_data.compactionSizeBuffer)
+    verifyResident(build_data.compactionSizeBuffer.buffer);
+
+  Backend::sync.addAccelerationStructureAccess({micromapStage, VK_ACCESS_MEMORY_WRITE_BIT}, build_data.dst);
+}
+
+void BEContext::queryMicromapCompactionSize(const RaytraceMicromapBuildData &build_data)
+{
+  BufferRef compactSizeBuf = build_data.compactionSizeBuffer;
+  if (!compactSizeBuf)
+    return;
+
+  VkMicromapEXT dstMm = build_data.dst->getMicromapHandle();
 
   // do blocking-like size query for now, if not efficient - redo with per frame query pool copy
   constexpr VkDeviceSize querySize = sizeof(uint64_t);
-  VULKAN_LOG_CALL(Backend::cb.wCmdResetQueryPool(Globals::rtSizeQueryPool.getPool(), 0, 1));
-  VULKAN_LOG_CALL(Backend::cb.wCmdWriteAccelerationStructuresPropertiesKHR(1, &dstAc,
-    VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR, Globals::rtSizeQueryPool.getPool(), 0));
-  VULKAN_LOG_CALL(Backend::cb.wCmdCopyQueryPoolResults(Globals::rtSizeQueryPool.getPool(), 0, 1, compactSizeBuf.getHandle(),
+  VULKAN_LOG_CALL(Backend::cb.wCmdResetQueryPool(Globals::rtSizeQueryPool.getMicromapPool(), 0, 1));
+  VULKAN_LOG_CALL(Backend::cb.wCmdWriteMicromapsPropertiesEXT(1, &dstMm, VK_QUERY_TYPE_MICROMAP_COMPACTED_SIZE_EXT,
+    Globals::rtSizeQueryPool.getMicromapPool(), 0));
+  VULKAN_LOG_CALL(Backend::cb.wCmdCopyQueryPoolResults(Globals::rtSizeQueryPool.getMicromapPool(), 0, 1, compactSizeBuf.getHandle(),
     compactSizeBuf.bufOffset(0), querySize, VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT));
 
   Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, compactSizeBuf.buffer,
     {compactSizeBuf.bufOffset(0), querySize});
 }
+
+#endif // VK_EXT_opacity_micromap
 
 #endif
 
@@ -185,14 +256,83 @@ TSPEC void BEContext::execCmd(const CmdRaytraceBuildStructures &cmd)
   Backend::sync.completeNeeded();
   for (RaytraceStructureBuildData &itr : dataRange)
     queryAccelerationStructureCompationSizes(itr);
+  if (!Globals::cfg.bits.delayCompactionSizeCopy)
+    flushCompactionSizeCopies();
   Backend::sync.completeNeeded();
   for (RaytraceStructureBuildData &itr : dataRange)
     accumulateAssumedRaytraceStructureReads(itr);
 }
 
+TSPEC void BEContext::execCmd(const CmdRaytraceBuildMicromaps &cmd)
+{
+#if VK_EXT_opacity_micromap
+  beginCustomStage("RaytraceBuildMicromaps");
+  DA_PROFILE_TAG(count, "%u", cmd.count);
+  auto dataRange = make_span(&data->raytraceMicromapBuildStore[cmd.index], cmd.count);
+  for (const RaytraceMicromapBuildData &itr : dataRange)
+    accumulateMicromapBuildAccesses(itr);
+  Backend::sync.completeNeeded();
+
+  dag::Vector<VkMicromapBuildInfoEXT> buildInfos;
+  buildInfos.reserve(cmd.count);
+  for (const RaytraceMicromapBuildData &itr : dataRange)
+  {
+    VkMicromapBuildInfoEXT mbi = {VK_STRUCTURE_TYPE_MICROMAP_BUILD_INFO_EXT};
+    mbi.type = VK_MICROMAP_TYPE_OPACITY_MICROMAP_EXT;
+    mbi.flags = itr.flags;
+    mbi.mode = VK_BUILD_MICROMAP_MODE_BUILD_EXT;
+    mbi.dstMicromap = itr.dst->getMicromapHandle();
+    mbi.usageCountsCount = itr.usageCount;
+    mbi.pUsageCounts = data->raytraceMicromapUsageStore.data() + itr.firstUsage;
+    mbi.data.deviceAddress = itr.inputBuffer.devOffset(itr.inputOffset);
+    if (itr.scratchBuf)
+      mbi.scratchData.deviceAddress = itr.scratchBuf.devOffset(0);
+    mbi.triangleArray.deviceAddress = itr.triangleArrayBuffer.devOffset(itr.triangleArrayOffset);
+    mbi.triangleArrayStride = itr.triangleArrayStride;
+    buildInfos.push_back(mbi);
+  }
+  VULKAN_LOG_CALL(Backend::cb.wCmdBuildMicromapsEXT(buildInfos.size(), buildInfos.data()));
+
+  for (const RaytraceMicromapBuildData &itr : dataRange)
+  {
+    if (!itr.compactionSizeBuffer)
+      continue;
+    // reading the compacted size of the fresh build, plus transfer write of the query result
+    Backend::sync.addAccelerationStructureAccess({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_MEMORY_READ_BIT}, itr.dst);
+    Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, itr.compactionSizeBuffer.buffer,
+      {itr.compactionSizeBuffer.bufOffset(0), sizeof(uint64_t)});
+  }
+  Backend::sync.completeNeeded();
+  for (const RaytraceMicromapBuildData &itr : dataRange)
+    queryMicromapCompactionSize(itr);
+  Backend::sync.completeNeeded();
+#else
+  G_UNUSED(cmd);
+  G_ASSERTF(false, "CmdRaytraceBuildMicromaps executed without VK_EXT_opacity_micromap support");
+#endif
+}
+
 TSPEC void BEContext::execCmd(const CmdCopyRaytraceAccelerationStructure &cmd)
 {
 #if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
+#if VK_EXT_opacity_micromap
+  if (cmd.src->getDescription().isMicromap)
+  {
+    beginCustomStage("RaytraceCopyMicromap");
+    // sync1 has no micromap access bits (sync2-only), use all commands + memory access as the
+    // conservative legal equivalent, matching the micromap build path
+    Backend::sync.addAccelerationStructureAccess({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_MEMORY_READ_BIT}, cmd.src);
+    Backend::sync.addAccelerationStructureAccess({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_MEMORY_WRITE_BIT}, cmd.dst);
+    Backend::sync.completeNeeded();
+
+    VkCopyMicromapInfoEXT ci{VK_STRUCTURE_TYPE_COPY_MICROMAP_INFO_EXT, nullptr};
+    ci.mode = cmd.compact ? VK_COPY_MICROMAP_MODE_COMPACT_EXT : VK_COPY_MICROMAP_MODE_CLONE_EXT;
+    ci.src = cmd.src->getMicromapHandle();
+    ci.dst = cmd.dst->getMicromapHandle();
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyMicromapEXT(&ci));
+    return;
+  }
+#endif
   beginCustomStage("RaytraceCopyAccelerationStructure");
   Backend::sync.addAccelerationStructureAccess(
     {VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR}, cmd.src);
@@ -213,4 +353,34 @@ TSPEC void FaultReportDump::dumpCmd(const CmdCopyRaytraceAccelerationStructure &
   VK_CMD_DUMP_PARAM_PTR(src);
   VK_CMD_DUMP_PARAM_PTR(dst);
 }
+
+void BEContext::flushCompactionSizeCopies()
+{
+#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
+  const auto &pending = Globals::rtSizeQueryPool.getPendingCopies();
+  if (pending.empty())
+    return;
+
+  constexpr VkDeviceSize querySize = sizeof(uint64_t);
+  for (const RaytraceBLASCompactionSizeQueryPool::PendingCopy &i : pending)
+  {
+    verifyResident(i.dst.buffer);
+    Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT}, i.dst.buffer,
+      {i.dst.bufOffset(i.dstByteOffset), querySize * i.count});
+  }
+  Backend::sync.completeNeeded();
+
+  for (const RaytraceBLASCompactionSizeQueryPool::PendingCopy &i : pending)
+  {
+    VULKAN_LOG_CALL(Backend::cb.wCmdCopyQueryPoolResults(i.pool, i.firstSlot, i.count, i.dst.getHandle(),
+      i.dst.bufOffset(i.dstByteOffset), querySize, VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT));
+    Backend::sync.addBufferAccess({VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_HOST_READ_BIT}, i.dst.buffer,
+      {i.dst.bufOffset(i.dstByteOffset), querySize * i.count});
+  }
+  Backend::sync.completeNeeded();
+
+  Globals::rtSizeQueryPool.onPendingCopiesFlushed();
+#endif
+}
+
 #endif

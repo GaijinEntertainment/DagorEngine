@@ -1,6 +1,5 @@
 import "dagor.profiler" as profiler
 import "math" as math
-import "string" as string
 import "%sqstd/rand.nut" as Rand
 from "dagor.system" import exit, get_arg_value_by_name
 from "datetime" import clock

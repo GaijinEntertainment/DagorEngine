@@ -239,6 +239,7 @@ bool AcesEffect::isAlive() const { return cachedFlags & IS_LOCKED; }
 void AcesEffect::unsetEmitter() { mgr->unsetFxEmitterBuff(fxId); }
 void AcesEffect::stop() { mgr->stopFxBuff(fxId); }
 void AcesEffect::pauseSound(bool pause) { mgr->pauseFxSoundBuff(fxId, pause); }
+void AcesEffect::warmup(float time, float step_dt) { mgr->setFxWarmupBuff(fxId, time, step_dt); }
 bool AcesEffect::hasSound() const { return (*mgr->params.sfxPath) && (*mgr->params.sfxEvent); }
 void AcesEffect::enableActiveQuery()
 {
@@ -281,7 +282,8 @@ enum BuffCmdType
   FX_CMD_TM,
   FX_CMD_UNSET_EMITTER,
   FX_CMD_ENABLE_ACTIVE_QUERY,
-  FX_CMD_FAKE_BRIGHTNESS_BACKGROUND_POS
+  FX_CMD_FAKE_BRIGHTNESS_BACKGROUND_POS,
+  FX_CMD_WARMUP
 };
 struct BuffCommand
 {
@@ -400,6 +402,31 @@ static void register_base_fx_res(BaseEffectObject *base_fx)
   base_fx->setParam(_MAKE4C('PFXR'), &forceRecreate); // register dafx system
 }
 
+
+static void validate_fx_tm(const EffectManager *fx_mgr, const TMatrix &tm, const char *res_name)
+{
+#if DAGOR_DBGLEVEL > 0
+  constexpr int errMax = 3;
+  static thread_local int errCount = 0;
+  const float posLenSq = tm.col[3].lengthSq();
+  if (check_nan(tm.col[0].lengthSq()) || check_nan(tm.col[1].lengthSq()) || check_nan(tm.col[2].lengthSq()) || check_nan(posLenSq))
+  {
+    if (errCount++ < errMax)
+      logerr("fxMgr: NaN tm for fx:'%s'/'%s' (%d)", fx_mgr->getName(), res_name, errCount);
+  }
+  if (posLenSq < 0.0001f)
+  {
+    if (errCount++ < errMax)
+      logerr("fxMgr: Zero pos for fx:'%s'/'%s' (%d)", fx_mgr->getName(), res_name, errCount);
+  }
+#else
+  G_UNUSED(fx_mgr);
+  G_UNUSED(tm);
+  G_UNUSED(res_name);
+#endif
+}
+
+
 void EffectManager::validateDeleted(const BaseEffect &fx)
 {
 #if DAGOR_DBGLEVEL > 0
@@ -444,17 +471,7 @@ void EffectManager::destroyEffect(AcesEffect::FxId fx_id, BaseEffect &fx)
 
 void EffectManager::setFxTm(BaseEffect &fx, const TMatrix &tm, bool is_emitter_tm)
 {
-#if DAGOR_DBGLEVEL > 0
-  if (check_nan(tm.getcol(0).lengthSq()) || check_nan(tm.getcol(1).lengthSq()) || check_nan(tm.getcol(2).lengthSq()) ||
-      check_nan(tm.getcol(3).lengthSq()))
-    logerr("fx : NaN in fx tm (%s/%s)", params.name, params.resName);
-
-  if (tm.getcol(3).lengthSq() < 0.0001f)
-  {
-    logerr("%s : zero pos for fx: %s/%s", __FUNCTION__, params.name, params.resName);
-    debug_dump_stack();
-  }
-#endif
+  validate_fx_tm(this, tm, params.resName.c_str());
   validateDeleted(fx);
 
   fx.tm = tm;
@@ -538,6 +555,26 @@ void EffectManager::setFxSpawnRate(BaseEffect &fx, float value)
     fx.obj->setSpawnRate(&value);
   else
     pendingList[fx.pendingId].spawnRate = value;
+}
+
+void EffectManager::setFxWarmup(BaseEffect &fx, float time, float step_dt)
+{
+  validateDeleted(fx);
+  if (time == 0.f)
+    return;
+  if (fx.pendingId < 0)
+  {
+    BaseFxWarmupParams warmupParams = {time, step_dt, /*perInstanceMode*/ true};
+    fx.obj->setParam(_MAKE4C('PFXG'), &warmupParams);
+    return;
+  }
+  PendingData &pe = pendingList[fx.pendingId];
+  if (time < 0.f || pe.warmupTime < 0.f)
+    pe.warmupTime = min(pe.warmupTime, time); // auto wins: replaces accumulated positive time, survives later positives
+  else
+    pe.warmupTime += time;
+  if (step_dt > 0.f) // 0 = no opinion: an earlier requested step_dt survives
+    pe.warmupStepDt = step_dt;
 }
 
 void EffectManager::setFxLightRadiusMultiplier(BaseEffect &fx, float multiplier)
@@ -771,8 +808,20 @@ void EffectManager::createFxRes(AcesEffect::FxId fx_id, bool is_player, const Po
     if (pe.unsetEmitter)
       unsetFxEmitter(*fx);
 
-    if (warmupDt > 0)
-      fx->obj->setParam(_MAKE4C('PFXG'), &warmupDt);
+    if (pe.warmupTime != 0.f)
+    {
+      // requested warmup (AcesEffect::warmup) - per-instance stepping. Auto (< 0) keeps the
+      // sentinel: the steady-state pre-simulation supersedes load-time catch-up
+      BaseFxWarmupParams warmupParams = {pe.warmupTime < 0.f ? pe.warmupTime : warmupDt + pe.warmupTime, pe.warmupStepDt,
+        /*perInstanceMode*/ true};
+      fx->obj->setParam(_MAKE4C('PFXG'), &warmupParams);
+    }
+    else if (warmupDt > 0.f)
+    {
+      // load-time catch-up only (no caller request) - shared-budget stepping
+      BaseFxWarmupParams warmupParams = {warmupDt, /*stepDt*/ 0.f, /*perInstanceMode*/ false};
+      fx->obj->setParam(_MAKE4C('PFXG'), &warmupParams);
+    }
 
     BaseEffect *swapFx = remove_and_fix_subfx(pendId, pendingList, fxList);
     if (swapFx)
@@ -1326,6 +1375,7 @@ void EffectManager::teleportAllRandomRad(float r)
 
 void EffectManager::setFxTmBuff(AcesEffect::FxId fx_id, const TMatrix &tm, bool is_emitter_tm)
 {
+  validate_fx_tm(this, tm, params.resName.c_str());
   if (push_fx_cmd(this, fx_id, is_emitter_tm ? FX_CMD_EMM_TM : FX_CMD_TM, [&](BuffCommand &cmd) { cmd.tm = tm; }))
     return;
   mgrSLock.lock();
@@ -1403,6 +1453,18 @@ void EffectManager::setFxSpawnRateBuff(AcesEffect::FxId fx_id, float value)
     mgrSLock.lock();
   if (EffectManager::BaseEffect *e = fxList.get(fx_id))
     setFxSpawnRate(*e, value);
+  mgrSLock.unlock();
+}
+
+void EffectManager::setFxWarmupBuff(AcesEffect::FxId fx_id, float time, float step_dt)
+{
+  if (time == 0.f)
+    return;
+  if (push_fx_cmd(this, fx_id, FX_CMD_WARMUP, [&](BuffCommand &cmd) { cmd.p2 = Point2(time, step_dt); }))
+    return;
+  mgrSLock.lock();
+  if (EffectManager::BaseEffect *e = fxList.get(fx_id))
+    setFxWarmup(*e, time, step_dt);
   mgrSLock.unlock();
 }
 
@@ -1605,6 +1667,7 @@ void EffectManager::updateCmdBuff()
         updateCachedFlags(*e);
       }
       break;
+      case FX_CMD_WARMUP: cmd.mgr->setFxWarmup(*e, cmd.p2.x, cmd.p2.y); break;
       default: G_FAST_ASSERT(0); break;
     }
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC

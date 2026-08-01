@@ -805,6 +805,10 @@ namespace das
         context->stackWalk(lineInfo, args, vars);
     }
 
+    char * builtin_get_stackwalk ( bool args, bool vars, bool outOfScope, bool topOnly, Context * context, LineInfoArg * lineInfo ) {
+        return context->allocateString(context->getStackWalk(lineInfo, args, vars, outOfScope, topOnly), lineInfo);
+    }
+
     void builtin_terminate ( Context * context, LineInfoArg * at ) {
         context->throw_error_at(at, "terminate");
     }
@@ -2011,6 +2015,13 @@ namespace das
                 ->args({"args","vars","context","lineinfo"});
         fnsw->arguments[0]->init = new ExprConstBool(true);
         fnsw->arguments[1]->init = new ExprConstBool(true);
+        auto fngsw = addExtern<DAS_BIND_FUN(builtin_get_stackwalk)>(*this, lib, "get_stackwalk",
+            SideEffects::accessExternal, "builtin_get_stackwalk")
+                ->args({"args","vars","out_of_scope","top_only","context","lineinfo"});
+        fngsw->arguments[0]->init = new ExprConstBool(true);
+        fngsw->arguments[1]->init = new ExprConstBool(true);
+        fngsw->arguments[2]->init = new ExprConstBool(false);
+        fngsw->arguments[3]->init = new ExprConstBool(false);
         // profiler
         addExtern<DAS_BIND_FUN(resetProfiler)>(*this, lib, "reset_profiler",
             SideEffects::modifyExternal, "resetProfiler")

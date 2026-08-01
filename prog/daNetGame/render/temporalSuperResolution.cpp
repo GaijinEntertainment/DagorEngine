@@ -38,6 +38,7 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
   ShaderGlobal::set_float(var::contrast_adaptive_sharpening_aa_bias, 0.1);
 
   applierNode = dafg::register_node("tsr", DAFG_PP_NODE_SRC, [this, output_resolution](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::Viewport);
     auto opaqueFinalTargetHndl =
       registry.readTexture("target_for_transparency").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
     read_gbuffer(registry, dafg::Stage::PS_OR_CS);
@@ -72,14 +73,24 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &output_resolutio
 
     auto camera = registry.readBlob<CameraParams>("current_camera");
     CameraViewShvars{camera}.bindViewVecs();
+    auto cameraHndl = eastl::move(camera).handle();
+    auto cameraHistory = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
     registry.readBlob<OrderingToken>("motion_vector_access_token");
 
-    return [this, opaqueFinalTargetHndl, antialiasedHndl, antialiasedHistHndl, confidenceHndl, confidenceHistHndl, reactiveMaskHndl] {
+    // Run after the AA benchmark consumed target_for_transparency (no-op when the benchmark is off).
+    (registry.root() / "aa_benchmark").readBlob("accumulate_ordering_token").optional();
+
+    auto resources = eastl::make_tuple(opaqueFinalTargetHndl, antialiasedHndl, antialiasedHistHndl, confidenceHndl, confidenceHistHndl,
+      reactiveMaskHndl, cameraHndl, cameraHistory);
+
+    return [this, resources = eastl::make_unique<decltype(resources)>(resources)] {
+      auto [opaqueFinalTargetHndl, antialiasedHndl, antialiasedHistHndl, confidenceHndl, confidenceHistHndl, reactiveMaskHndl,
+        cameraHndl, cameraHistory] = *resources;
       render::antialiasing::ApplyContext ctx;
-      ctx.resetHistory = frameCounter == 0;
-      ctx.jitterPixelOffset = jitterOffset;
+      ctx.jitterPixelOffset = cameraHndl.ref().jitterOffset;
       ctx.inputResolution = inputResolution;
+      ctx.resetHistory = is_teleporting(cameraHndl.ref(), cameraHistory.ref());
       render::antialiasing::apply_tsr(opaqueFinalTargetHndl.get(), ctx, antialiasedHndl.get(), antialiasedHistHndl.get(),
         confidenceHndl.get(), confidenceHistHndl.get(), reactiveMaskHndl.get());
     };

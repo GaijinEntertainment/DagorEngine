@@ -8,10 +8,10 @@ distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 */
 
-#include <shared/math.h>
-#include <shared/cpu_raster.h>
-#include <shared/texture.h>
-#include <shared/util.h>
+#include "util/math.h"
+#include "util/cpu_raster.h"
+#include "util/texture.h"
+#include "util/util.h"
 
 namespace omm
 {
@@ -76,6 +76,7 @@ struct LevelLineIntersectionKernel
     };
 
 private:
+#if 0
     // Borrowed from https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
     struct Triangle
     {
@@ -109,6 +110,7 @@ private:
         float2 _v1;
         float2 _v2;
     };
+#endif
 
     struct Edge
     {
@@ -130,18 +132,18 @@ private:
         const float _length;
     };
      
-    static bool IsZero(float value, float kEpsilon = 1e-6f) {
-        return std::abs(value) < kEpsilon;
+    inline static bool IsZero(float value, float kEpsilon = 1e-6f) {
+        return value < kEpsilon && value > -kEpsilon;
     };
 
-    static bool IsPointInsideUnitSquare(const float2& p)
+    inline static bool IsPointInsideUnitSquare(const float2& p)
     {
         return p.x >= 0.f && p.x <= 1.f && p.y >= 0.f && p.y <= 1.f;
     }
 
-    static bool TestEdgeHyperbolaIntersection(
-        float2 p0, float2 p1,       // 'Edge'       - Defined by the end points (in any order)
-        const float4& h             // 'Hyperbola'  - Hyperbolic curve on the form x * h.x + y * h.y + x * y + h.z + h.w = 0
+    inline static bool TestEdgeHyperbolaIntersection(
+        float2& p0, float2& p1,                     // 'Edge'       - Defined by the end points (in any order)
+        const float4& h                             // 'Hyperbola'  - Hyperbolic curve on the form x * h.x + y * h.y + x * y + h.z + h.w = 0
     )
     {
         if (p0.x > p1.x)
@@ -236,26 +238,39 @@ private:
     }
 public:
 
-    template<ommCpuTextureFormat eFormat, ommTextureAddressMode eTextureAddressMode, TilingMode eTilingMode, bool bIsDegenerate>
+    template<ommCpuTextureFormat eFormat, ommTextureAddressMode eTextureAddressMode, TilingMode eTilingMode, bool bIsDegenerate, bool bTexIsPow2>
     static void run(int2 pixel, void* ctx)
     {
+        Params* p = (Params*)ctx;
+
+        const float2& invSize = p->texture->GetRcpSize(p->mipLevel);
+
         // We add +0.5 here in order to compensate for the raster offset.
         const float2 pixelf = (float2)pixel + 0.5f;
+        const float2 invPixelf = pixelf * invSize;
 
-        Params* p = (Params*)ctx;
-        int2 coord[TexelOffset::MAX_NUM];
-        omm::GatherTexCoord4<eTextureAddressMode>(glm::floor(pixelf), p->size, coord);
+        int2 coord00, coord10, coord01, coord11;
+        omm::GatherTexCoord4<eTextureAddressMode, bTexIsPow2>(pixel, p->texture->GetSize(p->mipLevel), p->texture->GetSizeLog2(p->mipLevel), coord00, coord10, coord01, coord11);
 
         auto IsBorder = [](int2 coord) {
-            return eTextureAddressMode == ommTextureAddressMode_Border && (coord.x == kTexCoordBorder || coord.y == kTexCoordBorder);
+            return (coord.x == kTexCoordBorder || coord.y == kTexCoordBorder);
         };
 
         float4 gatherRed;
-        gatherRed.x = IsBorder(coord[TexelOffset::I0x0]) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord[TexelOffset::I0x0], p->mipLevel);
-        gatherRed.y = IsBorder(coord[TexelOffset::I0x1]) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord[TexelOffset::I0x1], p->mipLevel);
-        gatherRed.z = IsBorder(coord[TexelOffset::I1x1]) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord[TexelOffset::I1x1], p->mipLevel);
-        gatherRed.w = IsBorder(coord[TexelOffset::I1x0]) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord[TexelOffset::I1x0], p->mipLevel);
-
+        if constexpr (eTextureAddressMode == ommTextureAddressMode_Border)
+        {
+            gatherRed.x = IsBorder(coord00) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord00, p->mipLevel);
+            gatherRed.y = IsBorder(coord01) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord01, p->mipLevel);
+            gatherRed.z = IsBorder(coord11) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord11, p->mipLevel);
+            gatherRed.w = IsBorder(coord10) ? p->borderAlpha : p->texture->Load<eFormat, eTilingMode>(coord10, p->mipLevel);
+        }
+        else
+        {
+            gatherRed.x = p->texture->Load<eFormat, eTilingMode>(coord00, p->mipLevel);
+            gatherRed.y = p->texture->Load<eFormat, eTilingMode>(coord01, p->mipLevel);
+            gatherRed.z = p->texture->Load<eFormat, eTilingMode>(coord11, p->mipLevel);
+            gatherRed.w = p->texture->Load<eFormat, eTilingMode>(coord10, p->mipLevel);
+        }
 
         // ~~~ Look for internal extremes ~~~ 
 		if (!bIsDegenerate)
@@ -266,18 +281,23 @@ public:
             const bool IsOpaque3 = p->alphaCutoff < gatherRed.w;
 
 
-            Triangle t;
-            t.Init(p->triangle->p0, p->triangle->p1, p->triangle->p2);
+            const float2 p0x0 = invPixelf;
+            const float2 p0x1 = invPixelf + float2(0.0f, invSize.y);
+            const float2 p1x1 = invPixelf + invSize;
+            const float2 p1x0 = invPixelf + float2(invSize.x, 0.0f);
 
-            const float2 p0x0 = p->invSize * (pixelf + float2(0.0f, 0.0f));
-            const float2 p0x1 = p->invSize * (pixelf + float2(0.0f, 1.0f));
-            const float2 p1x1 = p->invSize * (pixelf + float2(1.0f, 1.0f));
-            const float2 p1x0 = p->invSize * (pixelf + float2(1.0f, 0.0f));
+            bool IsInside0 = true;
+            bool IsInside1 = true;
+            bool IsInside2 = true;
+            bool IsInside3 = true;
 
-            const bool IsInside0 = t.PointInTriangle(p0x0);
-            const bool IsInside1 = t.PointInTriangle(p0x1);
-            const bool IsInside2 = t.PointInTriangle(p1x1);
-            const bool IsInside3 = t.PointInTriangle(p1x0);
+            //if (coverage == Coverage::PartiallyCovered)
+            {
+                IsInside0 = p->triangle->PointInTriangle(p0x0);
+                IsInside1 = p->triangle->PointInTriangle(p0x1);
+                IsInside2 = p->triangle->PointInTriangle(p1x1);
+                IsInside3 = p->triangle->PointInTriangle(p1x0);
+            }
 
             bool IsOpaque = false;
             bool IsTransparent = false;
@@ -338,8 +358,8 @@ public:
                 if (bIsDegenerate)
                 {
                     // Transform the edge to the local coordinate system of the texel.
-                    const float2 p0 = (float2)p->size * p->triangle->aabb_s - pixelf;
-                    const float2 p1 = (float2)p->size * p->triangle->aabb_e - pixelf;
+                    float2 p0 = (float2)p->size * p->triangle->aabb_s - pixelf;
+                    float2 p1 = (float2)p->size * p->triangle->aabb_e - pixelf;
 
                     // Hyperbolic paraboloid (3D surface) => Hyperbola (2D line)
                     // f(x, y) = a + b * x + c * y + d * x * y where f(x, y) = p->alphaCutoff =>
@@ -357,8 +377,8 @@ public:
                     for (uint32_t edge = 0; edge < 3; ++edge) 
                     {
                         // Transform the edge to the local coordinate system of the texel.
-                        const float2 p0 = (float2)p->size * p->triangle->getP(edge % 3) - pixelf;
-                        const float2 p1 = (float2)p->size * p->triangle->getP((edge + 1) % 3) - pixelf;
+                        float2 p0 = (float2)p->size * p->triangle->getP(edge % 3) - pixelf;
+                        float2 p1 = (float2)p->size * p->triangle->getP((edge + 1) % 3) - pixelf;
 
                         // Hyperbolic paraboloid (3D surface) => Hyperbola (2D line)
                         // f(x, y) = a + b * x + c * y + d * x * y where f(x, y) = p->alphaCutoff =>
@@ -387,13 +407,14 @@ struct ConservativeBilinearKernel
         OmmCoverage*            vmCoverage;
         float2                  invSize;
         int2                    size;
+        int2                    sizeLog2;
         const TextureImpl*      texture;
         float                   alphaCutoff;
         float                   borderAlpha;
         uint32_t                mipLevel;
     };
 
-    template<ommCpuTextureFormat eFormat, ommTextureAddressMode eTextureAddressMode, TilingMode eTilingMode>
+    template<ommCpuTextureFormat eFormat, ommTextureAddressMode eTextureAddressMode, TilingMode eTilingMode, bool bTexIsPow2>
     static void run(int2 pixel, void* ctx)
     {
         // We add +0.5 here in order to compensate for the raster offset.
@@ -401,7 +422,7 @@ struct ConservativeBilinearKernel
 
         Params* p = (Params*)ctx;
         int2 coord[TexelOffset::MAX_NUM];
-        omm::GatherTexCoord4<eTextureAddressMode>(glm::floor(pixelf), p->size, coord);
+        omm::GatherTexCoord4<eTextureAddressMode, bTexIsPow2>(int2(pixelf), p->size, p->sizeLog2, coord);
 
         auto IsBorder = [](int2 coord) {
             return eTextureAddressMode == ommTextureAddressMode_Border && (coord.x == kTexCoordBorder || coord.y == kTexCoordBorder);

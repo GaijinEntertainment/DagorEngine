@@ -9,7 +9,6 @@
 #include "device_queue.h"
 #include "extra_data_arrays.h"
 #include "fsr_args.h"
-#include "fsr2_wrapper.h"
 #include "info_types.h"
 #include "pipeline.h"
 #include "query_manager.h"

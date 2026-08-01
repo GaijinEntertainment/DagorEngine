@@ -47,7 +47,7 @@ static eastl::optional<PROCESS_INFORMATION> create_child_process(const char *cmd
 static int read_from_pipe(HANDLE hOutReadPipe, eastl::fixed_string<char, OUTPUT_SIZE> &output)
 {
   DWORD dwRead;
-  CHAR chBuf[PIPE_SIZE];
+  CHAR chBuf[PIPE_SIZE + 1];
   BOOL bSuccess = FALSE;
   int tries = 0;
   for (; tries < PIPE_MAX_READ_TRIES; ++tries)

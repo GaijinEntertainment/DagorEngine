@@ -10,6 +10,7 @@
 #include <drv/hid/dag_hiPointing.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_input.h>
+#include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_restart.h>
@@ -23,13 +24,33 @@ extern bool ec_mouse_cursor_hidden;
 
 static IWndManagerEventHandler *editor_main_window_event_handler = nullptr;
 static void (*old_shutdown_handler)() = nullptr;
+static ImguiWndManagerBase::WindowPositionAndSize last_windw_position_and_size;
+static bool exit_requested = false;
 
 class EditorCoreGeneralGuiManager : public IGeneralGuiManager
 {
 public:
-  void beforeRender(int) override {}
+  void beforeRender(int) override
+  {
+    void *wnd = win32_get_main_wnd();
 
-  bool canCloseNow() override { return !editor_main_window_event_handler || editor_main_window_event_handler->onClose(); }
+    int x = 0, y = 0;
+    linux_GUI::get_window_frame_position(wnd, x, y);
+
+    // Saving client size, XCreateWindow() expects that.
+    int width = 0, height = 0;
+    linux_GUI::get_window_client_size(wnd, width, height);
+
+    last_windw_position_and_size.rectangle = EcRect{.l = x, .t = y, .r = x + width, .b = y + height};
+    last_windw_position_and_size.maximized = linux_GUI::is_window_maximized(wnd);
+  }
+
+  bool canCloseNow() override
+  {
+    if (!editor_main_window_event_handler || editor_main_window_event_handler->onClose())
+      exit_requested = true;
+    return false;
+  }
 
   void drawFps(float, float, float) override {}
 };
@@ -41,11 +62,28 @@ class ImguiWndManagerLinux : public ImguiWndManagerBase
 public:
   explicit ImguiWndManagerLinux(void *main_hwnd) : mainHwnd(main_hwnd) {}
 
-  void close() override { quit_game(); }
+  void close() override { general_gui_manager.canCloseNow(); }
 
-  void loadMainWindowPositionAndSize(const DataBlock &) override {}
+  void loadMainWindowPositionAndSize(const DataBlock &blk) override
+  {
+    const IPoint2 position = blk.getIPoint2("position", IPoint2::ZERO);
+    const IPoint2 size = blk.getIPoint2("size", IPoint2::ZERO);
+    requestedMainWindowPositionAndSize.rectangle.l = position.x;
+    requestedMainWindowPositionAndSize.rectangle.t = position.y;
+    requestedMainWindowPositionAndSize.rectangle.r = position.x + size.x;
+    requestedMainWindowPositionAndSize.rectangle.b = position.y + size.y;
+    requestedMainWindowPositionAndSize.maximized = blk.getBool("maximized", true);
+  }
 
-  void saveMainWindowPositionAndSize(DataBlock &) override {}
+  void saveMainWindowPositionAndSize(DataBlock &blk) override
+  {
+    if (!last_windw_position_and_size.isValid())
+      return;
+
+    blk.addIPoint2("position", IPoint2(last_windw_position_and_size.rectangle.l, last_windw_position_and_size.rectangle.t));
+    blk.addIPoint2("size", IPoint2(last_windw_position_and_size.rectangle.width(), last_windw_position_and_size.rectangle.height()));
+    blk.addBool("maximized", last_windw_position_and_size.maximized);
+  }
 
   void *getMainWindow() const override { return mainHwnd; }
 
@@ -68,6 +106,18 @@ public:
 
   bool init3d(const char *drv_name, const DataBlock *blkTexStreaming, const char *caption, const char *icon) override
   {
+    tools3d::load_settings();
+
+    if (requestedMainWindowPositionAndSize.isValid())
+    {
+      WindowPositionAndSize &wps = requestedMainWindowPositionAndSize;
+      DataBlock &videoBlk = *const_cast<DataBlock *>(dgs_get_settings())->addBlock("video");
+      videoBlk.setStr("resolution", String(0, "%dx%d", wps.rectangle.width(), wps.rectangle.height()));
+      videoBlk.setIPoint2("position", IPoint2(wps.rectangle.l, wps.rectangle.t));
+      videoBlk.setBool("maximized", wps.maximized);
+      wps.reset();
+    }
+
     const bool succeeded = tools3d::init(drv_name, blkTexStreaming, caption, nullptr);
     mainHwnd = win32_get_main_wnd();
 
@@ -163,6 +213,7 @@ private:
   void *mainHwnd;
   CursorParams cursorParams;
   bool cursorParamsMakeHiddenCursor = false;
+  WindowPositionAndSize requestedMainWindowPositionAndSize;
 };
 
 static void post_shutdown_handler()
@@ -191,7 +242,7 @@ void EditorMainWindow::run(FileDropHandler file_drop_handler)
   onMainWindowCreated();
 
   ::dagor_reset_spent_work_time();
-  for (;;) // infinite loop!
+  while (!exit_requested)
     if (d3d::is_inited())
       ::dagor_work_cycle();
     else

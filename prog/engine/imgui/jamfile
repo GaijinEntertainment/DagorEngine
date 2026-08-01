@@ -7,7 +7,13 @@ Target                = engine/imgui.lib ;
 Sources =
   imguiImpl.cpp
   imguiRenderer.cpp
+  imguiTestRuntime.cpp
 ;
+
+if $(ImguiTestRuntime) = yes {
+  CPPopt += -DIMGUI_ENABLE_TEST_ENGINE ;
+  Target = $(Target:S=~ete.lib) ;
+}
 
 if $(Platform) in windows { Sources += imgui_impl_win32.cpp ; }
 else if $(Platform) in macOS { Sources += imgui_impl_osx.mm ; }

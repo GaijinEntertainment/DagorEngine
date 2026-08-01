@@ -206,6 +206,7 @@ static bool dbldStripGfxFields(BinDumpReader &crd, mkbindump::BinDumpSaveCB &cwr
       int detailDataOfs = baseDataOffset + crd.readInt32e();
       int tileDataOfs = baseDataOffset + crd.readInt32e();
       int rayTracerOfs = baseDataOffset + crd.readInt32e();
+      bool hasLegacyTracer = rayTracerOfs > baseDataOffset;
 
       int cell_bounds_data_sz = lnd_hdr.mapSizeX * lnd_hdr.mapSizeY * (sizeof(BBox3) + sizeof(float)), ofs = 16;
       if (meshMapOfs < baseDataOffset + 16 || detailDataOfs <= meshMapOfs)
@@ -216,17 +217,30 @@ static bool dbldStripGfxFields(BinDumpReader &crd, mkbindump::BinDumpSaveCB &cwr
       cwr.writeInt32e(ofs);
       cwr.writeInt32e(ofs);
       ofs += 4;
-      cwr.writeInt32e(rayTracerOfs > baseDataOffset ? ofs : -1);
+      cwr.writeInt32e(hasLegacyTracer ? ofs : 0);
 
       crd.seekto(detailDataOfs - cell_bounds_data_sz);
       copy_stream_to_stream(crd.getRawReader(), cwr.getRawWriter(), cell_bounds_data_sz);
 
-      if (rayTracerOfs > baseDataOffset)
+      if (hasLegacyTracer)
       {
         crd.seekto(rayTracerOfs - 4);
         copy_stream_to_stream(crd.getRawReader(), cwr.getRawWriter(), crd.getBlockRest());
       }
+      else
+      {
+        // LTS4 follows the vertical-texture tail, which starts after the optional tile payload.
+        crd.seekto(tileDataOfs);
+        if (useTile)
+        {
+          String tileTexName;
+          crd.readDwString(tileTexName);
+          crd.seekrel(2 * sizeof(float));
+        }
+        copy_stream_to_stream(crd.getRawReader(), cwr.getRawWriter(), crd.getBlockRest());
+      }
       cwr.endBlock();
+      crd.endBlock();
       continue;
     }
 

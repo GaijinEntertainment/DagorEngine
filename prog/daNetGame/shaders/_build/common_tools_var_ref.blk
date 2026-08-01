@@ -17,3 +17,10 @@
   ref:t=point_lights_const_no
   ref:t=dynamic_lights_cb_const_no
   ref:t=use_clouds_reprojection
+
+  ref:t=frustumPlane03X
+  ref:t=frustumPlane03Y
+  ref:t=frustumPlane03Z
+  ref:t=frustumPlane03W
+  ref:t=frustumPlane4
+  ref:t=frustumPlane5

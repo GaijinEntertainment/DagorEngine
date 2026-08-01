@@ -76,8 +76,17 @@ dwarf_find_unwind_table (struct elf_dyn_info *edi,
           if (phdr[i].p_vaddr + phdr[i].p_memsz > end_ip)
             end_ip = phdr[i].p_vaddr + phdr[i].p_memsz;
 
-          if ((phdr[i].p_flags & PF_X) == PF_X)
-            ptxt = phdr + i;
+          /* Find the PT_LOAD segment that corresponds to the memory mapping.
+             When there are multiple executable segments, we need to match
+             the one whose file offset corresponds to mapoff. */
+          if ((phdr[i].p_flags & PF_X) == PF_X) {
+            if (ptxt == NULL || phdr[i].p_offset == mapoff) {
+              ptxt = phdr + i;
+            } else {
+              Debug(5, "skipping PT_LOAD segment at p_offset=0x%lx (does not match mapoff=0x%lx)\n",
+                    (long)phdr[i].p_offset, (long)mapoff);
+            }
+          }
           if ((uintptr_t) edi->ei.image + phdr->p_filesz > max_load_addr)
             max_load_addr = (uintptr_t) edi->ei.image + phdr->p_filesz;
           break;
@@ -114,13 +123,12 @@ dwarf_find_unwind_table (struct elf_dyn_info *edi,
 
   if (peh_hdr)
     {
-      if (pdyn)
+      Elf_W(Dyn) *dyn = (Elf_W(Dyn) *)elf_w (get_program_segment) (&edi->ei, pdyn, NULL);
+      if (dyn)
         {
           /* For dynamically linked executables and shared libraries,
              DT_PLTGOT is the value that data-relative addresses are
              relative to for that object.  We call this the "gp".  */
-                Elf_W(Dyn) *dyn = (Elf_W(Dyn) *)(pdyn->p_offset
-                                                 + (char *) edi->ei.image);
           for (; dyn->d_tag != DT_NULL; ++dyn)
             if (dyn->d_tag == DT_PLTGOT)
               {
@@ -136,8 +144,13 @@ dwarf_find_unwind_table (struct elf_dyn_info *edi,
            absolute.  */
         edi->di_cache.gp = 0;
 
-      hdr = (struct dwarf_eh_frame_hdr *) (peh_hdr->p_offset
-                                           + (char *) edi->ei.image);
+      hdr = (struct dwarf_eh_frame_hdr *) elf_w (get_program_segment) (&edi->ei, peh_hdr, NULL);
+      if (!hdr)
+        {
+          Debug (1, "table `%s' missing\n", path);
+          return -UNW_ENOINFO;
+        }
+
       if (hdr->version != DW_EH_VERSION)
         {
           Debug (1, "table `%s' has unexpected version %d\n",
@@ -165,6 +178,10 @@ dwarf_find_unwind_table (struct elf_dyn_info *edi,
       if ((ret = dwarf_read_encoded_pointer (unw_local_addr_space, a,
                                              &addr, hdr->fde_count_enc, &pi,
                                              &fde_count, NULL)) < 0)
+        return -UNW_ENOINFO;
+
+      /* A value of DW_EH_PE_omit indicates the binary search table is not present. */
+      if (hdr->table_enc == DW_EH_PE_omit)
         return -UNW_ENOINFO;
 
       if (hdr->table_enc != (DW_EH_PE_datarel | DW_EH_PE_sdata4))

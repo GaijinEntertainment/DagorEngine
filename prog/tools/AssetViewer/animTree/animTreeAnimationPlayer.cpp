@@ -130,8 +130,18 @@ void AnimTreeAnimationPlayer::reloadDynModel(const DagorAsset &asset)
   }
 
   entity = DAEDITOR3.createEntity(*modelAsset);
+  if (!entity)
+  {
+    logerr("Can't create entity for load dynModel: %s", modelName);
+    return;
+  }
   entity->setSubtype(DAEDITOR3.registerEntitySubTypeId("single_ent"));
   ctrl = entity->queryInterface<ILodController>();
+  if (!ctrl)
+  {
+    logerr("Can't get ILodController for dynModel: %s", modelName);
+    return;
+  }
   origGeomTree = ctrl->getSkeleton();
   if (!origGeomTree)
     return;
@@ -155,9 +165,8 @@ void AnimTreeAnimationPlayer::setValuesFromCommonNode(PropPanel::ContainerProper
   }
   else
   {
-    const int lastTrackIdx = selectedA2d->dumpData.noteTrack.size() - 1;
     firstKey = 0;
-    lastKey = selectedA2d->dumpData.noteTrack[lastTrackIdx].time;
+    lastKey = selectedA2d->dumpData.noteTrack.empty() ? 0 : selectedA2d->dumpData.noteTrack.back().time;
   }
 }
 
@@ -221,9 +230,8 @@ void AnimTreeAnimationPlayer::loadA2dResource(PropPanel::ContainerPropertyContro
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
   if (tree->getUserData(leaf) == &ANIM_BLEND_NODE_A2D)
   {
-    const int lastTrackIdx = selectedA2d->dumpData.noteTrack.size() - 1;
     firstKey = 0;
-    lastKey = selectedA2d->dumpData.noteTrack[lastTrackIdx].time;
+    lastKey = selectedA2d->dumpData.noteTrack.empty() ? 0 : selectedA2d->dumpData.noteTrack.back().time;
     animTime = 1.f;
     loop = false;
     type = BlendNodeType::UNSET;

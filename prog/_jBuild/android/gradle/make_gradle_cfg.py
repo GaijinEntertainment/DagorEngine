@@ -35,9 +35,10 @@ VERSION_NAME={VERSION_NAME}
 MIN_SDK={MIN_SDK}
 TARGET_SDK={TARGET_SDK}
 android.enableR8.fullMode=false
-org.gradle.jvmargs=-Xmx8192m
+org.gradle.jvmargs=-Xmx8192m -XX:+UseParallelGC
+org.gradle.caching=true
 android.useAndroidX=true
-android.enableJetifier=true
+android.enableJetifier=false
 """.format(
   APK_NAMESPACE=args.APK_NAMESPACE,
   VERSION_CODE=args.VERSION_CODE,

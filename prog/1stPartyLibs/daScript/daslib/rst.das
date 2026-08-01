@@ -21,6 +21,25 @@ require daslib/strings_boost
 require daslib/regex
 require daslib/regex_boost
 
+enum DocumentBlock {
+    Typedefs,
+    GlobalConstants,
+    Enumerations,
+    Structures,
+    StructureAnnotations,
+    FunctionAnnotations,
+    CallMacros,
+    ReaderMacros,
+    VariantMacros,
+    TypeinfoMacros,
+    Annotations,
+    EnumerationAnnotations,
+    StructureMacros,
+    TypeMacros,
+    Classes,
+    Functions,
+}
+
 let { //! Configuration constants for the RST documentation generator.
     log_documentation = false
     show_hidden_groups = false
@@ -36,6 +55,24 @@ var public {
     strict_struct_fields = true
     group_function_overloads = true
     property_assignment_operator = ":="
+    doc_block_order = [
+        DocumentBlock.Typedefs,
+        DocumentBlock.GlobalConstants,
+        DocumentBlock.Enumerations,
+        DocumentBlock.Structures,
+        DocumentBlock.StructureAnnotations,
+        DocumentBlock.FunctionAnnotations,
+        DocumentBlock.CallMacros,
+        DocumentBlock.ReaderMacros,
+        DocumentBlock.VariantMacros,
+        DocumentBlock.TypeinfoMacros,
+        DocumentBlock.Annotations,
+        DocumentBlock.EnumerationAnnotations,
+        DocumentBlock.StructureMacros,
+        DocumentBlock.TypeMacros,
+        DocumentBlock.Classes,
+        DocumentBlock.Functions
+    ]
 }
 
 var private seen_function_labels : table<string; uint>
@@ -2212,25 +2249,44 @@ def public documents(name : string; mods : array<Module?>; fname : string; var g
         break
     }
 
-    document_typedefs(doc_file, mods)
-    document_global_constants(doc_file, mods)
-    let wasEnums = document_enumerations(doc_file, mods)
-    if (hook.afterEnums != null) {
-        hook.afterEnums |> invoke(doc_file, wasEnums)
+    for (docBlock in doc_block_order) {
+        if (docBlock == DocumentBlock.Typedefs) {
+            document_typedefs(doc_file, mods)
+        } elif (docBlock == DocumentBlock.GlobalConstants) {
+            document_global_constants(doc_file, mods)
+        } elif (docBlock == DocumentBlock.Enumerations) {
+            let wasEnums = document_enumerations(doc_file, mods)
+            if (hook.afterEnums != null) {
+                hook.afterEnums |> invoke(doc_file, wasEnums)
+            }
+        } elif (docBlock == DocumentBlock.Structures) {
+            document_structures(doc_file, mods)
+        } elif (docBlock == DocumentBlock.StructureAnnotations) {
+            document_structure_annotations(doc_file, mods, hook)
+        } elif (docBlock == DocumentBlock.FunctionAnnotations) {
+            document_function_annotations(doc_file, mods, hook)
+        } elif (docBlock == DocumentBlock.CallMacros) {
+            document_call_macros(doc_file, mods)
+        } elif (docBlock == DocumentBlock.ReaderMacros) {
+            document_reader_macros(doc_file, mods)
+        } elif (docBlock == DocumentBlock.VariantMacros) {
+            document_variant_macros(doc_file, mods)
+        } elif (docBlock == DocumentBlock.TypeinfoMacros) {
+            document_typeinfo_macros(doc_file, mods)
+        } elif (docBlock == DocumentBlock.Annotations) {
+            document_annotations(doc_file, mods, hook)
+        } elif (docBlock == DocumentBlock.EnumerationAnnotations) {
+            document_enumeration_annotations(doc_file, mods, hook)
+        } elif (docBlock == DocumentBlock.StructureMacros) {
+            document_structure_macros(doc_file, mods)
+        } elif (docBlock == DocumentBlock.TypeMacros) {
+            document_typemacros(doc_file, mods)
+        } elif (docBlock == DocumentBlock.Classes) {
+            document_classes(doc_file, mods)
+        } elif (docBlock == DocumentBlock.Functions) {
+            document_functions(doc_file, mods, groups)
+        }
     }
-    document_structures(doc_file, mods)
-    document_structure_annotations(doc_file, mods, hook)
-    document_function_annotations(doc_file, mods, hook)
-    document_call_macros(doc_file, mods)
-    document_reader_macros(doc_file, mods)
-    document_variant_macros(doc_file, mods)
-    document_typeinfo_macros(doc_file, mods)
-    document_annotations(doc_file, mods, hook)
-    document_enumeration_annotations(doc_file, mods, hook)
-    document_structure_macros(doc_file, mods)
-    document_typemacros(doc_file, mods)
-    document_classes(doc_file, mods)
-    document_functions(doc_file, mods, groups)
     fwrite(doc_file, "\n")
     fclose(doc_file)
 }

@@ -58,7 +58,7 @@ bool register_subsystem(Context &ctx, SystemTemplate &sys, const SystemDesc &des
     return false;
   }
 
-  if (emLimit >= ctx.cfg.emission_limit || emLimit >= Config::emission_max_limit)
+  if (emLimit > ctx.cfg.emission_limit || emLimit > Config::emission_max_limit)
   {
     logerr("dafx: sys: %s, emission is over the limits - %d (%d)", name, emLimit);
     return false;

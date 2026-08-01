@@ -123,6 +123,7 @@ shader bvh_process_skinned_vertices
       uint packedWeights = loadBuffer(source, vertexStart + skin_weights_offset);
 
       input.normal            = float4((packedNormal  >> INPUT_ENCODING_OFFSET) & 255) / 255;
+      input.normal.xyz        = input.normal.xyz * 2 - 1;
       input.packedBoneIndices = float4((packedIndices >> INPUT_ENCODING_OFFSET) & 255) / 255;
       input.boneWeights       = float4((packedWeights >> INPUT_ENCODING_OFFSET) & 255) / 255;
 

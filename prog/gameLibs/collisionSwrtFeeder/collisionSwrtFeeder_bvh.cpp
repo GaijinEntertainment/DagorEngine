@@ -6,101 +6,77 @@
 #include <daBVH/dag_bvhSerialization.h>
 #include <daBVH/dag_quadBLASBuilder.h>
 #include <daBVH/dag_bvhReencode.h>
-#include <daBVH/dag_swBLAS_ray.h>
+#include <daBVH/dag_swBLAS_leaf.h>        // RayData::unpackVert21; no stackless traversal here
+#include <daBVH/dag_swBLAS_soa4Convert.h> // soa4::buildStackless (grid stores the SoA4 CPU layout)
 #include <daSWRT/swBVH.h>
 #include <daSWRT/swBLASBoxResemblance.h>
 #include <generic/dag_tab.h>
 #include <debug/dag_assert.h>
+#include <debug/dag_log.h>
 #include <gameRes/dag_collisionResource.h>
 #include <math/dag_mathBase.h>
 #include <vecmath/dag_vecMath.h>
 #include <daBVH/swBLASLeafDefs.hlsli>
 
-// Fast path: re-encode the whole combined-per-behavior collision BLAS into a daSWRT BuiltBLAS,
-// skipping the triangle-soup flatten + daBVH SAH rebuild. The grid already holds a daBVH quad-BLAS
-// over exactly the IDENT mesh nodes of its behavior, in (almost) the SWRT BuiltBLAS layout:
-// internal-node headers (16 B packed bbox + skip/encoding word) are byte-identical, leaves carry a
-// trailing 4 B relOfs. Two things differ: vertex stride (collision packs vert21 at 8 B/vert, SWRT
-// stores float3 at 12 B/vert) and encoding (collision keeps quantized uint16 [0,65535], SWRT wants
-// FP16 [-1,1]). So we copy the tree re-deriving each leaf's relOfs for the wider stride, expand
-// vert21 -> float3 in the same [0,65535] frame, and let reencodeQuadBlasToFP16 map node boxes and
-// verts into SWRT's representation in one pass. The caller guarantees the grid's resident-node set
-// equals the feeder's eligible set, so the whole tree is exactly SWRT's model (all nodes IDENT ->
-// resource-local == node-local, no TM to apply, no geometry dropped).
+// Fast path: emit the pre-built collision grid BLAS as a daSWRT BuiltBLAS, skipping the
+// triangle-soup flatten + SAH rebuild: convert the grid's SoA4 tree to the stackless GPU layout
+// (byte-identical vert region), then reencode boxes and verts to the same-size GPU formats in
+// place (details at the loops below). The caller gates on fp16 (the 12 B float3 GPU format widens
+// verts and takes the soup path) and guarantees the grid's resident-node set equals the eligible
+// set (all nodes IDENT, so no TM to apply and no geometry dropped).
 static int buildSwrtBLAS_gridFast(RenderSWRT &swrt, const CollisionResource::Grid &grid, float dim_as_box_min, float dim_as_box_max)
 {
-  const int treeBytes = (int)grid.blasTreeBytes;
-  const int srcVertsOfs = (int)grid.blasVertsOfs(); // 8-aligned; tree..vertsOfs gap is padding
-  const uint8_t *srcBuf = grid.blasData.data();     // [tree][pad][vert21]: tree starts at offset 0
-  const uint8_t *srcVerts = srcBuf + srcVertsOfs;
-  const int vertCount = (int)((grid.blasData.size() - (size_t)srcVertsOfs) / 8u);
-  G_ASSERT(treeBytes > 0 && vertCount > 0);
-
   daSWRT::BuiltBLAS built;
   // Verts/tree were quantized against grid.blasBBox; the SWRT model box must be that same box so the
   // [0,65535] -> [-1,1] remap below stays consistent with the runtime world -> BLAS mapping.
   built.box = grid.blasBBox;
-  built.data.resize((size_t)treeBytes + (size_t)vertCount * 12, 0);
-  built.treeBytes = (uint32_t)treeBytes;
-  uint8_t *dst = built.data.data();
+  // built.vertsFp16 stays at the BuiltBLAS default (true): this fast path's in-place reencode emits 8 B
+  // fp16 verts, and the caller gates it on blasVertsFp16.
 
-  // Score box-resemblance on the SOURCE grid tree (still Quantized16). The dst tree's boxes get
-  // re-encoded to FP16 inline below, so read the score off the source where Quantized16 is
-  // unambiguous -- matches the soup path, which scores writeQuadBLAS output before addPreBuiltModel
-  // re-encodes.
+  const soa4::StacklessResult rt = soa4::buildStackless(grid.blasData.data(), grid.blasRootRef, (int)grid.blasVertsOfs(),
+    (int)(grid.blasData.size() - grid.blasVertsOfs()), built.data);
+  if (!rt.valid())
+  {
+    // Structurally impossible for a validly built grid (the conversion round-trips 1:1); degrade
+    // loudly to "no SWRT model for this resource", never a corrupt upload.
+    logerr("swrtFeeder: SoA4->stackless conversion failed for grid BLAS; no SWRT model");
+    return -1;
+  }
+  const int treeBytes = rt.treeBytes;
+  const int srcVertsOfs = rt.vertsOfs;
+  const int vertCount = (int)((built.data.size() - (size_t)srcVertsOfs) / 8u);
+  G_ASSERT(treeBytes > 0 && vertCount > 0);
+  built.treeBytes = (uint32_t)treeBytes;
+
+  // Score box-resemblance on the emitted stackless tree (still Quantized16), before the boxes are
+  // reencoded.
   built.dimAsBoxDist = dim_as_box_max;
   if (dim_as_box_max > dim_as_box_min)
   {
-    float boxLike = daSWRT::computeBlasBoxResemblanceVoxel(srcBuf, 0, treeBytes, built.box, daSWRT::BlasBoxEncoding::Quantized16);
+    float boxLike =
+      daSWRT::computeBlasBoxResemblanceVoxel(built.data.data(), 0, treeBytes, built.box, daSWRT::BlasBoxEncoding::Quantized16);
     boxLike = powf(boxLike, 1.5f);
     built.dimAsBoxDist = lerp(dim_as_box_max, dim_as_box_min, boxLike);
   }
 
-  // Bulk-copy the whole tree, then fix it up in a single walk. The tree keeps its byte layout
-  // verbatim (16 B internal / 20 B leaf), so one memcpy beats N per-node copies and the fixup needs
-  // only one cursor (dst offset == src offset). We do NOT copy the vert21 stream: it changes stride
-  // (8 B -> 12 B float3), so the vertex loop below expands it from the source into the wider slots.
-  memcpy(dst, srcBuf, (size_t)treeBytes);
-  int ofs = 0;
-  while (ofs < treeBytes)
+  uint8_t *dst = built.data.data();
+  for (int ofs = 0; ofs < treeBytes;)
   {
     uint32_t encWord;
     memcpy(&encWord, dst + ofs + 12, sizeof(uint32_t)); // QUAD_LEAF_FLAG + quad/single encoding live at +12
-    const bool isLeaf = (encWord & QUAD_LEAF_FLAG) != 0;
-    build_bvh::reencodeBoxNodeToFP16(dst + ofs); // box uint16 [0,65535] -> FP16 [-1,1]; preserves the +12 word
-    ofs += BVH_BLAS_NODE_SIZE;
-
-    if (isLeaf)
-    {
-      // relOfs (signed byte offset from this field to the leaf's first vertex) sits after the 16 B
-      // header. The copied value targets vert21 (8 B stride); re-derive the vertex index and re-emit
-      // it for the 12 B float3 stride (field offset unchanged, dst offset == src).
-      int relOfsOrig;
-      memcpy(&relOfsOrig, dst + ofs, sizeof(int));
-      const int vertIdx = (ofs + relOfsOrig - srcVertsOfs) / 8; // ofs + relOfs = vertIdx * 8 + srcVertsOfs
-      const int relOfsNew = vertIdx * 12 + treeBytes - ofs;
-      memcpy(dst + ofs, &relOfsNew, sizeof(int));
-      ofs += BVH_BLAS_LEAF_SIZE - BVH_BLAS_NODE_SIZE; // = 4
-    }
+    build_bvh::reencodeBoxNodeToFP16(dst + ofs);        // box uint16 [0,65535] -> FP16 [-1,1]; preserves +12
+    ofs += (encWord & QUAD_LEAF_FLAG) ? BVH_BLAS_LEAF_SIZE : BVH_BLAS_NODE_SIZE;
   }
-  // The walk must land exactly on treeBytes: node sizes (16 B internal / 20 B leaf, keyed on
-  // QUAD_LEAF_FLAG) sum to treeBytes by construction. Mirrors the producer's invariant assert
-  // (Grid::buildBLAS / writeQuadBLAS both G_ASSERTF dataOffset == treeBytes).
-  G_ASSERT(ofs == treeBytes);
 
-  // Decode vert21 (8 B/vert, [0,65535]) straight into the final FP16-space float3 (12 B/vert,
-  // [-1,1]) in ONE pass: unpack, then apply the same f/32767.5 - 1 map reencodeQuadBlasToFP16's
-  // vertex pass would. No intermediate float3, no second walk. (Read from the source grid, not in
-  // place -- grid.blasData is the live collision BLAS and must not be written.)
+  // vert21 -> fp16 in place: unpack to box space, map f/32767.5 - 1 to [-1,1], repack. Same 8 B slot, so
+  // the read completes (into a register) before the write -- no aliasing.
   const vec4f vertToNorm = v_splats(1.0f / 32767.5f);
   const vec4f vertBias = v_splats(-1.0f);
-  uint8_t *vertDst = dst + treeBytes;
+  uint8_t *verts = dst + srcVertsOfs;
   for (int v = 0; v < vertCount; ++v)
   {
-    vec3f n = v_madd(RayData::unpackVert21(srcVerts + (size_t)v * 8), vertToNorm, vertBias);
-    alignas(16) float f[4];
-    v_st(f, n);
-    memcpy(vertDst + (size_t)v * 12, f, 12); //-V1086
+    vec3f n = v_madd(RayData::unpackVert21(verts + (size_t)v * 8), vertToNorm, vertBias);
+    build_bvh::writeGpuBlasVert(verts + (size_t)v * 8, n, /*fp16*/ true);
   }
 
   return swrt.addBuiltModel(eastl::move(built));
@@ -142,7 +118,9 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
   //     geometry); or
   //   - node_filter carves out a strict subset of the grid's nodes (e.g. skyquake filters out
   //     transparent phys-mats) -- eligibleCount trails blasNodeRanges and a partial tree can't be
-  //     reproduced without re-splicing leaves.
+  //     reproduced without re-splicing leaves; or
+  //   - the GPU vertex format is 12 B float3 (swrt.blasVertsFp16 == false) -- the in-place reencode
+  //     only matches the 8 B fp16 layout, so the wider-stride case takes the soup path.
   // SOLID needs no special test: a single SOLID node in TRACEABLE makes Grid::buildBLAS abandon the
   // whole grid, so hasBlas already excludes that.
   {
@@ -157,11 +135,11 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
         if (!nodeIsEligible(node))
           continue;
         ++eligibleCount;
-        // Gate on blasNodeRanges membership, NOT BLAS_RESIDENT: residency only says whose vert21
+        // Gate on blasNodeRanges membership, NOT residency: residency only says whose vert21
         // array node->verticesOfs indexes (a TRACEABLE|PHYS_COLLIDABLE node is stamped resident in
-        // the COLLIDABLE grid -- see getBlasGridForResidentNode), and a post-dup vert span > 65536
-        // leaves a covered node non-resident. Either way its triangles are in THIS grid's BLAS
-        // bytes, which is all gridFast re-encodes.
+        // the COLLIDABLE grid -- see getBlasGridForResidentNode). A node in this grid's ranges has
+        // its triangles in THIS grid's BLAS bytes regardless of vert span, which is all gridFast
+        // re-encodes.
         bool inGrid = false;
         for (const auto &nr : grid.blasNodeRanges)
           if (nr.nodeIndex == node->nodeIndex)
@@ -171,7 +149,7 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
           }
         allEligibleInGrid &= inGrid;
       }
-      if (allEligibleInGrid && eligibleCount > 0 && eligibleCount == grid.blasNodeRanges.size())
+      if (allEligibleInGrid && eligibleCount > 0 && eligibleCount == grid.blasNodeRanges.size() && swrt.blasVertsFp16)
         return buildSwrtBLAS_gridFast(swrt, grid, dim_as_box_min, dim_as_box_max);
     }
   }
@@ -212,10 +190,10 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
     }
 
     const uint32_t vertOffset = firstVertex;
-    coll_res.iterateNodeFaces(ni, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
-      scratch.indices.push_back((uint32_t)i0 + vertOffset);
-      scratch.indices.push_back((uint32_t)i1 + vertOffset);
-      scratch.indices.push_back((uint32_t)i2 + vertOffset);
+    coll_res.iterateNodeFaces(ni, [&](int, uint32_t i0, uint32_t i1, uint32_t i2) {
+      scratch.indices.push_back(i0 + vertOffset);
+      scratch.indices.push_back(i1 + vertOffset);
+      scratch.indices.push_back(i2 + vertOffset);
     });
     firstVertex += vertCount;
   }
@@ -234,7 +212,7 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
   // SAH-leaf-order renumber + shared window-block over-spread dup (build_bvh, see dag_bvhBuild.h).
   // scratch.orderedVerts becomes the BLAS vertex array; scratch.indices is rewritten to index it.
   build_bvh::leafOrderVertexFetch(scratch.indices.data(), (unsigned)scratch.indices.size(), (const vec4f *)scratch.verts.data(),
-    (unsigned)scratch.verts.size(), QUAD_O1_MAX + 1u, scratch.orderedVerts);
+    (unsigned)scratch.verts.size(), scratch.orderedVerts);
 
   const vec4f *vertsPtr = scratch.orderedVerts.data();
   const int vertCountTotal = (int)scratch.orderedVerts.size();
@@ -245,18 +223,30 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
   Tab<build_bvh::QuadPrim> prims;
   int quadCount = 0, singleCount = 0;
   build_bvh::buildQuadPrims(prims, quadCount, singleCount, scratch.indices.data(), faceCount, vertsPtr);
+  // buildQuadPrims drops duplicate-index (zero-area) faces; if every gathered face is degenerate it
+  // yields no prims. writeQuadBLAS would emit nothing and the treeBytes math below would underflow, so
+  // report no model (same as the empty-input guard above).
+  if (prims.empty())
+    return -1;
+
+  // Pair into double-quad leaves (4 tris/leaf). This soup BLAS feeds GPU RT only (no per-node
+  // tri_ref / filtering), so pairing is unconstrained (vert_group = nullptr).
+  dag::Vector<build_bvh::DoubleQuadPrim> dqPrims;
+  build_bvh::buildDoubleQuadPrims(dqPrims, prims.data(), (int)prims.size(), vertsPtr);
 
   scratch.primBoxes.clear();
-  scratch.primBoxes.resize(prims.size());
-  build_bvh::addQuadPrimitivesAABBList(scratch.primBoxes.data(), prims.data(), (int)prims.size(), vertsPtr);
+  scratch.primBoxes.resize(dqPrims.size());
+  build_bvh::addDoubleQuadPrimitivesAABBList(scratch.primBoxes.data(), dqPrims.data(), (int)dqPrims.size(), vertsPtr);
 
   Tab<bbox3f> nodes;
   int maxDepth = 0;
-  const int root = build_bvh::create_bvh_node_sah(nodes, scratch.primBoxes.data(), (uint32_t)prims.size(), 4, maxDepth);
+  const int root = build_bvh::create_bvh_node_sah(nodes, scratch.primBoxes.data(), (uint32_t)dqPrims.size(), 4, maxDepth);
 
   dag::Vector<uint8_t> blasBytes;
-  build_bvh::writeQuadBLAS(blasBytes, box, nodes.data(), root, prims.data(), (int)prims.size(),
+  const bool builtBlas = build_bvh::writeDoubleQuadBLAS(blasBytes, box, nodes.data(), root, dqPrims.data(), (int)dqPrims.size(),
     reinterpret_cast<const uint8_t *>(vertsPtr), (int)sizeof(vec4f), vertCountTotal);
+  if (!builtBlas) // vert span overflowed the unsigned 24-bit leaf base; drop this model's SWRT BLAS
+    return -1;
 
   // Score box-resemblance on the SWRT BuiltBLAS itself (FP16-encoded tree)
   // if its already a box, we have early exit above (build_bvh::checkIfIsBox)
@@ -269,5 +259,5 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
     dimAsBoxDist = lerp(dim_as_box_max, dim_as_box_min, boxLike);
   }
 
-  return swrt.addPreBuiltModel(box, eastl::move(blasBytes), vertCountTotal, (int)nodes.size(), (int)prims.size(), dimAsBoxDist);
+  return swrt.addPreBuiltModel(box, eastl::move(blasBytes), vertCountTotal, (int)nodes.size(), (int)dqPrims.size(), dimAsBoxDist);
 }

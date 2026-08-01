@@ -37,17 +37,17 @@ void CloudsLightRenderer::init()
 
 CloudsChangeFlags CloudsLightRenderer::render(const Point3 &main_light_dir, const Point3 &second_light_dir)
 {
-  if (fabsf(lastMainLightDirY - main_light_dir.y) > 1e-4f || fabsf(lastSecondLightDirY - second_light_dir.y) > 1e-4f) // todo: check
-                                                                                                                      // for
-                                                                                                                      // brightness
-                                                                                                                      // as well?
+  // full direction, not just elevation: azimuth matters for the far texels of the
+  // +-280km domain, and sun<->moon swaps can keep elevation while changing light.
+  // Brightness/param changes invalidate through DaSkies::setSkyParams already.
+  if (lengthSq(lastMainLightDir - main_light_dir) > 1e-8f || lengthSq(lastSecondLightDir - second_light_dir) > 1e-8f)
     invalidate();
   const uint32_t cresetGen = get_d3d_full_reset_counter();
   if (resetGen == cresetGen) // nothing to update
     return CLOUDS_NO_CHANGE;
   TIME_D3D_PROFILE(render_clouds_light);
-  lastMainLightDirY = main_light_dir.y;
-  lastSecondLightDirY = second_light_dir.y;
+  lastMainLightDir = main_light_dir;
+  lastSecondLightDir = second_light_dir;
 
   if (gen_clouds_light_texture_cs)
   {

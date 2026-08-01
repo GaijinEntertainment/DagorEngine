@@ -52,6 +52,8 @@ public:
   // The gap between the edit box and the spin buttons.
   static int getSpaceBeforeSpinButtons() { return hdpi::_pxS(Constants::SPACE_BETWEEN_EDIT_BOX_AND_BUTTON_IN_COMBINED_CONTROL); }
 
+  // tooltip_owner: if you use the spin control as a component of another control then pass the same tooltip owner for both of their
+  // tooltips for correct behavior.
   void updateImgui(WindowControlEventHandler &event_handler, const String *tooltip = nullptr, const void *tooltip_owner = nullptr);
 
 private:

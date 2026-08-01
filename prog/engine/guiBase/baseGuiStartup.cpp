@@ -43,3 +43,5 @@ void startup_gui_base(const char *fonts_blk_filename)
 
   add_restart_proc(gui_base_rproc);
 }
+
+void unregister_gui_base_rproc() { remove_restart_proc(gui_base_rproc); }

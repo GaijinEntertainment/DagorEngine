@@ -166,7 +166,6 @@ let loginInfoC = @() {
 let logsBlock = @() {
   flow = FLOW_HORIZONTAL
   size = const [pw(100), flex()]
-  watch = [lastResult, serverNotify]
   children = [
     {
       flow = FLOW_VERTICAL

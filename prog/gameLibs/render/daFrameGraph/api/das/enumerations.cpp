@@ -15,6 +15,9 @@ DAS_BASE_BIND_ENUM_IMPL(dafg::ResNameId, ResNameId, //-V1008
 DAS_BASE_BIND_ENUM_IMPL(dafg::AutoResTypeNameId, AutoResTypeNameId, //-V1008
   Invalid);
 
+DAS_BASE_BIND_ENUM_IMPL(dafg::RefinedBlockNameId, RefinedBlockNameId, //-V1008
+  Invalid);
+
 DAS_BASE_BIND_ENUM_IMPL(dafg::multiplexing::Mode, MultiplexingMode, None, SuperSampling, SubSampling, Viewport, FullMultiplex);
 
 DAS_BASE_BIND_ENUM_IMPL(dafg::SideEffects, SideEffect, None, Internal, External);
@@ -61,6 +64,7 @@ void DaFgCoreModule::addEnumerations(das::ModuleLibrary &lib)
 
   addEnumeration(new EnumerationResourceType());
   addEnumeration(new EnumerationAutoResTypeNameId());
+  addEnumeration(new EnumerationRefinedBlockNameId());
   addEnumeration(new EnumerationVariableRateShadingCombiner());
   addEnumeration(new EnumerationBindingType());
 }

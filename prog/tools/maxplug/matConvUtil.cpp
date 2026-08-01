@@ -7,13 +7,11 @@
 #include "dagor.h"
 #include "mater.h"
 #include "resource.h"
+#include "common.h"
 
 #include <string>
 
 #define ERRMSG_DELAY 3000
-
-std::string wideToStr(const TCHAR *sw);
-M_STD_STRING strToWide(const char *sz);
 
 
 enum
@@ -74,11 +72,7 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading = FALSE) override { return &util; }
   const TCHAR *ClassName() override { return GetString(IDS_MatConvUtil_NAME); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return UTILITY_CLASS_ID; }
   Class_ID ClassID() override { return MatConvUtil_CID; }
   const TCHAR *Category() override { return GetString(IDS_UTIL_CAT); }
@@ -115,13 +109,6 @@ static INT_PTR CALLBACK MatConvUtilDlgProc(HWND hWnd, UINT msg, WPARAM wParam, L
           break;
       }
       break;
-      /*
-                      case WM_LBUTTONDOWN:
-                      case WM_LBUTTONUP:
-                      case WM_MOUSEMOVE:
-                              util.ip->RollupMouseMessage(hWnd,msg,wParam,lParam);
-                              break;
-      */
     default: return FALSE;
   }
   return TRUE;

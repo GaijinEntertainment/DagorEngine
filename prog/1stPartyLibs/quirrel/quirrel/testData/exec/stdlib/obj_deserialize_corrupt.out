@@ -2,5 +2,6 @@ err: empty
 truncation errors: true
 err: bad-type-tag
 err: string-overrun
+err: deep-nesting
 recovered: 1 two 3
 deserialize corrupt: OK

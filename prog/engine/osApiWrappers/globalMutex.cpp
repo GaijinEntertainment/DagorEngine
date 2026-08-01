@@ -44,7 +44,7 @@ int global_mutex_enter(void *mutex, int timeout_msec)
   int ret = sem && timeout_msec < 0 ? sem_wait(sem) : -1;
   if (timeout_msec >= 0 && sem)
   {
-    int64_t end_reft = rel_ref_time_ticks(ref_time_ticks(), timeout_msec);
+    int64_t end_reft = rel_ref_time_ticks(ref_time_ticks(), timeout_msec * 1000);
     while ((ret = sem_trywait(sem)) != 0 && ref_time_ticks() < end_reft)
       sleep_msec(1);
   }

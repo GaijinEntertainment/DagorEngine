@@ -134,8 +134,6 @@ if $(Platform) in windows ps4 xboxOne linux macOS ps5 scarlett && [ GLOB $(Root)
 }
 
 XessEnabled ?= yes ;
-DlssEnabled ?= yes ;
-Fsr2Enabled ?= yes ;
 
 if $(Platform) = android {
   AndroidApiMinVer ?= 29 ;

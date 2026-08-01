@@ -1,0 +1,165 @@
+include "psh_tangent.dshl"
+
+int parallax_shadow_enabled = 0;
+interval parallax_shadow_enabled : off < 1, on;
+
+int parallax_ao_enabled = 0;
+interval parallax_ao_enabled : off < 1, on;
+
+bool use_parallax_shadows_or_ao = parallax_shadow_enabled == on || parallax_ao_enabled == on;
+
+// The intended usecase for this is that the code is behind the interval,
+// but AO and shadows can still be toggled independently with a uniform branch
+macro INIT_PARALLAX_SHADOW_RUNTIME()
+  (ps)
+  {
+    parallax_shadow_enabled@i1 = parallax_shadow_enabled;
+    parallax_ao_enabled@i1 = parallax_ao_enabled;
+  }
+endmacro
+
+macro USE_PARALLAX_SHADOW(sample_height_tex, UserData, wt_compatibility_parameter)
+  USE_PIXEL_TANGENT_SPACE()
+  hlsl(ps) {
+    float get_parallax_vignette(float3 pointToEye)
+    {
+      float3 vignette = abs(pointToEye);
+      float vignetteEffect = saturate(10.f - 0.0144f * dot(vignette, vignette));
+      return vignetteEffect;
+    }
+
+    // pos can be camera relative or world, the offset doesn't change the derivate
+    float get_parallax_tc_scale(float3 pos, float2 texcoord)
+    {
+      float3 wp = ddx(pos);
+      float2 tc = ddx(texcoord);
+      return length(wp) / max(length(tc), 1e-8);
+    }
+
+    struct ParallaxCommonParams
+    {
+      float3 pointToEye;
+      float3 normal;
+      UserData userData;
+
+      float2 tc;
+      float tcScale;
+      #ifdef PARALLAX_SECOND_TC
+      // Second detail layer has its own tiling, so it needs its own tc and world-to-tc scale.
+      float2 tc2;
+      float tcScale2;
+      #endif
+
+      float centerHeight;
+    };
+
+    ParallaxCommonParams make_parallax_common_params(float3 pointToEye, float3 normal, float2 tc,
+    #ifdef PARALLAX_SECOND_TC
+      float2 tc2,
+    #endif
+      UserData userData)
+    {
+      ParallaxCommonParams result;
+      result.pointToEye = pointToEye;
+      result.normal = normalize(normal);
+      result.userData = userData;
+
+      result.tc = tc;
+      result.tcScale = get_parallax_tc_scale(pointToEye, tc);
+    #ifdef PARALLAX_SECOND_TC
+      result.tc2 = tc2;
+      result.tcScale2 = get_parallax_tc_scale(pointToEye, tc2);
+      result.centerHeight = sample_height_tex(tc, tc2, userData);
+    #else
+      result.centerHeight = sample_height_tex(tc, userData);
+    #endif
+
+      return result;
+    }
+
+    float3 get_parallax_sun_dir(float3 pointToEye, float3 normal, float2 tc, float3 from_sun_dir)
+    {
+      half3x3 tangent = cotangent_frame(normal, pointToEye, tc);
+      float3 lightDir = normalize(mul(tangent, from_sun_dir));
+      return lightDir;
+    }
+
+    float calc_parallax_shadow(ParallaxCommonParams common_params, float3 from_sun_dir, float ray_length, float tolerance_max)
+    {
+      float3 lightDir = get_parallax_sun_dir(common_params.pointToEye, common_params.normal, common_params.tc, from_sun_dir);
+      BRANCH
+      if ( lightDir.z >= 0.f )
+        return 0.f;
+      lightDir.z = -lightDir.z;
+      const float parallax_shadow_min_layers = 6.f;
+      const float parallax_shadow_max_layers = 14.f;
+      float numLayers = lerp(parallax_shadow_max_layers, parallax_shadow_min_layers, abs(lightDir.z));
+
+      float2 currentTc = common_params.tc;
+      float currentLayerHeight = common_params.centerHeight;
+
+      float stepLength = ray_length / numLayers;
+      float layerHeight = lightDir.z * stepLength;
+      float2 deltaTc = lightDir.xy * common_params.tcScale * stepLength;
+    #ifdef PARALLAX_SECOND_TC
+      // Second layer has its own tangent basis (different tc), so its light dir differs.
+      float3 lightDir2 = get_parallax_sun_dir(common_params.pointToEye, common_params.normal, common_params.tc2, from_sun_dir);
+      float2 currentTc2 = common_params.tc2;
+      float2 deltaTc2 = lightDir2.xy * common_params.tcScale2 * stepLength;
+    #endif
+
+      float shadowMin = 1;
+      UNROLL_HINT(14)
+      for (uint i = 0; i < numLayers; ++i)
+      {
+        float tolerance = lerp(0, tolerance_max, float(i) / numLayers);
+        currentTc += deltaTc;
+      #ifdef PARALLAX_SECOND_TC
+        currentTc2 += deltaTc2;
+        float currentHeightMapValue = sample_height_tex(currentTc, currentTc2, common_params.userData);
+      #else
+        float currentHeightMapValue = sample_height_tex(currentTc, common_params.userData);
+      #endif
+        currentLayerHeight += layerHeight;
+        float shadow = smoothstep(currentHeightMapValue, currentHeightMapValue+tolerance, currentLayerHeight);
+        shadowMin = min(shadow, shadowMin);
+        if (shadowMin == 0)
+          break;
+      }
+
+      return shadowMin;
+    }
+
+    float calc_parallax_ao(ParallaxCommonParams common_params, float ray_length)
+    {
+      const uint parallax_ao_directions = 4;
+      const uint parallax_ao_steps = 3;
+      const float2 directions[parallax_ao_directions] = {
+        float2( 1.f,  0.f), float2(-1.f,  0.f), float2( 0.f,  1.f), float2( 0.f, -1.f)
+      };
+
+      float stepDist = ray_length / parallax_ao_steps;
+      float occlusion = 0.f;
+      UNROLL
+      for (uint dir = 0; dir < parallax_ao_directions; ++dir)
+      {
+        float maxTan = 0.f;
+        UNROLL
+        for (uint i = 1; i <= parallax_ao_steps; ++i)
+        {
+          float dist = i * stepDist;
+          float2 sampleTc = common_params.tc + directions[dir] * dist * common_params.tcScale;
+        #ifdef PARALLAX_SECOND_TC
+          float2 sampleTc2 = common_params.tc2 + directions[dir] * dist * common_params.tcScale2;
+          float sampleHeight = sample_height_tex(sampleTc, sampleTc2, common_params.userData);
+        #else
+          float sampleHeight = sample_height_tex(sampleTc, common_params.userData);
+        #endif
+          maxTan = max(maxTan, (sampleHeight - common_params.centerHeight) / dist);
+        }
+        occlusion += maxTan * rsqrt(1.f + maxTan * maxTan); // sin of horizon angle
+      }
+      return saturate(1.f - occlusion / parallax_ao_directions);
+    }
+  }
+endmacro

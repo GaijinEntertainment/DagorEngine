@@ -8,7 +8,7 @@
 #include <libTools/util/iLogWriter.h>
 #include <math/dag_geomTree.h>
 
-static bool getSkeleton(GeomNodeTree &out_tree, DagorAssetMgr &m, const char *gn_name, ILogWriter &log)
+static GeomNodeTreeUniquePtr getSkeleton(DagorAssetMgr &m, const char *gn_name, ILogWriter &log)
 {
   static DagorAssetMgr *mgr = NULL;
   static int skeleton_atype = -2;
@@ -22,30 +22,29 @@ static bool getSkeleton(GeomNodeTree &out_tree, DagorAssetMgr &m, const char *gn
   if (!gn_name)
   {
     log.addMessage(ILogWriter::ERROR, "skeleton asset not specified");
-    return false;
+    return {};
   }
   DagorAsset *gn_a = m.findAsset(gn_name, skeleton_atype);
   if (!gn_a)
   {
     log.addMessage(ILogWriter::ERROR, "can't get skeleton asset <%s>", gn_name);
-    return false;
+    return {};
   }
 
   IDagorAssetExporter *e = m.getAssetExporter(skeleton_atype);
   if (!e)
   {
     log.addMessage(ILogWriter::ERROR, "can't get skeleton exporter plugin");
-    return false;
+    return {};
   }
 
   mkbindump::BinDumpSaveCB cwr(16 << 10, _MAKE4C('PC'), false);
   if (!e->exportAsset(*gn_a, cwr, log))
   {
     log.addMessage(ILogWriter::ERROR, "can't build skeleton asset <%s> data", gn_name);
-    return false;
+    return {};
   }
 
   MemoryLoadCB crd(cwr.getMem(), false);
-  out_tree.load(crd);
-  return true;
+  return GeomNodeTreeUniquePtr(GeomNodeTree::load(crd));
 }

@@ -6,6 +6,7 @@
 #include <EASTL/string_view.h>
 #include <EASTL/tuple.h>
 #include <EASTL/unique_ptr.h>
+
 #include <Windows.h>
 
 
@@ -96,4 +97,38 @@ struct RegistryKey
   explicit operator bool() const { return static_cast<bool>(ptr); }
 };
 
-eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs();
+struct DeviceDesc
+{
+  constexpr DeviceDesc() = default;
+  constexpr DeviceDesc(uint16_t vendor_id, uint16_t device_id) : vendorId(vendor_id), deviceId(device_id) {}
+  DeviceDesc(const struct DXGI_ADAPTER_DESC &desc);
+  DeviceDesc(const struct DXGI_ADAPTER_DESC1 &desc);
+  constexpr bool isSoftwareDevice() const { return vendorId == 0x1414 && deviceId == 0x008C; }
+  uint16_t vendorId = 0;
+  uint16_t deviceId = 0;
+};
+
+eastl::fixed_vector<DeviceDesc, 8> getDisplayDevices();
+
+enum class GpuHwSchedulingState
+{
+  Unknown,
+  NotSupported,
+  Disabled,
+  Enabled
+};
+
+constexpr const char *to_string(GpuHwSchedulingState value)
+{
+  switch (value)
+  {
+    using enum GpuHwSchedulingState;
+    case Unknown: return "Unknown";
+    case NotSupported: return "NotSupported";
+    case Disabled: return "Disabled";
+    case Enabled: return "Enabled";
+  }
+  return "<invalid>";
+}
+
+GpuHwSchedulingState get_hw_scheduling_from_luid(const LUID &luid);

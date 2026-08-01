@@ -12,11 +12,21 @@
 
 #include <util/dag_convar.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include "shaders/clouds2/cloud_settings.hlsli"
 
 CONSOLE_BOOL_VAL("clouds", regenField, false);
 
+CONSOLE_BOOL_VAL("clouds", use_nbs_field, false);
+
 // todo: move it to gameParams
 CONSOLE_INT_VAL("clouds", downsampled_field_res, 1, 1, 3); // 1<<(4+x)
+
+static eastl::unique_ptr<NodeBasedShader> createNodeBasedClouds(NodeBasedShaderCloudsVariant variant)
+{
+  return eastl::move(
+    eastl::make_unique<NodeBasedShader>(NodeBasedShaderType::Clouds, String(::get_shader_name(NodeBasedShaderType::Clouds)),
+      String(::get_shader_suffix(NodeBasedShaderType::Clouds)), static_cast<uint32_t>(variant)));
+}
 
 bool CloudsField::getReadbackData(float &alt_start, float &alt_top) const
 {
@@ -72,11 +82,8 @@ void CloudsField::genFieldGeneral(VoltexRenderer &renderer, DynamicShaderHelper 
   d3d::resource_barrier({layersPixelCount.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
 }
 
-void CloudsField::genFieldCompressed()
+void CloudsField::copyFieldCompressed()
 {
-  TIME_D3D_PROFILE(cloud_field_vol_cmpr);
-  genFieldGeneral(genCloudsFieldCmpr, genCloudLayersNonEmptyCmpr, cloudsFieldVolTemp);
-
   // todo: remove me on consoles - we can alias memory
   TIME_D3D_PROFILE(copy_compr);
   cloudsFieldVolCompressed->updateSubRegion(cloudsFieldVolTemp.getVolTex(), 0, 0, 0, 0, // source mip, x,y,z
@@ -85,11 +92,114 @@ void CloudsField::genFieldCompressed()
   // todo: we can remove temp texture
 }
 
+void CloudsField::genFieldCompressed()
+{
+  TIME_D3D_PROFILE(cloud_field_vol_cmpr);
+  genFieldGeneral(genCloudsFieldCmpr, genCloudLayersNonEmptyCmpr, cloudsFieldVolTemp);
+
+  copyFieldCompressed();
+}
+
 void CloudsField::genField()
 {
   TIME_D3D_PROFILE(cloud_field_vol);
   genFieldGeneral(genCloudsField, genCloudLayersNonEmpty, cloudsFieldVol);
   d3d::resource_barrier({cloudsFieldVol.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+}
+
+void CloudsField::genFieldNBS()
+{
+  TIME_D3D_PROFILE(cloud_field_vol_nbs);
+  // register slots must match cloudsShaderTemplate.dshl (u0 output, u1 layerHt)
+  STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 1, VALUE, 0, 0), layersPixelCount.getTex2D());
+
+  if (useCompression)
+  {
+    const int blockW = max(1, resXZ / 4), blockH = max(1, resXZ / 4);
+
+    STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), cloudsFieldVolTemp.getVolTex());
+    nbsFieldCompressedCs->dispatch((blockW + CLOUD_WARP_SIZE - 1) / CLOUD_WARP_SIZE, (blockH + CLOUD_WARP_SIZE - 1) / CLOUD_WARP_SIZE,
+      (resY + CLOUD_WARP_SIZE - 1) / CLOUD_WARP_SIZE);
+
+    d3d::resource_barrier({cloudsFieldVolTemp.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+
+    copyFieldCompressed();
+  }
+  else
+  {
+    STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, 0, VALUE, 0, 0), cloudsFieldVol.getVolTex());
+    nbsFieldCs->dispatch((resXZ + CLOUD_WARP_SIZE - 1) / CLOUD_WARP_SIZE, (resXZ + CLOUD_WARP_SIZE - 1) / CLOUD_WARP_SIZE,
+      (resY + CLOUD_WARP_SIZE - 1) / CLOUD_WARP_SIZE);
+
+    d3d::resource_barrier({cloudsFieldVol.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+  }
+  d3d::resource_barrier({layersPixelCount.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
+}
+
+bool CloudsField::isNBSActive() const { return use_nbs_field.get() && useNBS; }
+
+void CloudsField::initNBS(const String &root_graph)
+{
+  if (!VoltexRenderer::is_compute_supported())
+    return;
+
+  useNBS = true;
+
+  if (!nbsFieldCs)
+    nbsFieldCs = createNodeBasedClouds(NodeBasedShaderCloudsVariant::Field);
+
+  if (!nbsFieldCompressedCs)
+    nbsFieldCompressedCs = createNodeBasedClouds(NodeBasedShaderCloudsVariant::FieldCompressed);
+
+  nbsFieldCs->init(root_graph);
+  nbsFieldCompressedCs->init(root_graph);
+
+  invalidate();
+}
+
+bool CloudsField::updateNBSShaders(const String &shader_name, const DataBlock &shader_blk, String &out_errors)
+{
+  if (!VoltexRenderer::is_compute_supported())
+    return false;
+
+  if (!nbsFieldCs)
+    nbsFieldCs = createNodeBasedClouds(NodeBasedShaderCloudsVariant::Field);
+
+  if (!nbsFieldCompressedCs)
+    nbsFieldCompressedCs = createNodeBasedClouds(NodeBasedShaderCloudsVariant::FieldCompressed);
+
+  if (!(nbsFieldCs->update(shader_name, shader_blk, out_errors)))
+    return false;
+
+  if (!(nbsFieldCompressedCs->update(shader_name, shader_blk, out_errors)))
+    return false;
+
+  invalidate();
+  return true;
+}
+
+void CloudsField::enableNBSOptionalGraph(const String &graph_name, bool enable)
+{
+  if (nbsFieldCs)
+    nbsFieldCs->enableOptionalGraph(graph_name, enable);
+
+  if (nbsFieldCompressedCs)
+    nbsFieldCompressedCs->enableOptionalGraph(graph_name, enable);
+}
+
+void CloudsField::closeNBS()
+{
+  useNBS = false;
+
+  if (nbsFieldCs)
+    nbsFieldCs->closeShader();
+  nbsFieldCs.reset();
+
+  if (nbsFieldCompressedCs)
+    nbsFieldCompressedCs->closeShader();
+  nbsFieldCompressedCs.reset();
+
+  invalidate();
 }
 
 void CloudsField::initDownsampledField()
@@ -217,6 +327,13 @@ void CloudsField::doReadback()
 
 CloudsChangeFlags CloudsField::render()
 {
+  static bool previousFrameWasNBS = false;
+
+  if (isNBSActive() != previousFrameWasNBS)
+    invalidate();
+
+  previousFrameWasNBS = isNBSActive();
+
   if (frameValid && !regenField.get())
   {
     int ratio = resXZ >= 512 ? 3 : 2;
@@ -237,7 +354,9 @@ CloudsChangeFlags CloudsField::render()
   {
     ShaderGlobal::set_float4(clouds_field_resVarId, resXZ, resY, targetXZ, targetY);
     ShaderGlobal::set_float(clouds_average_weightVarId, averaging);
-    if (useCompression)
+    if (isNBSActive())
+      genFieldNBS();
+    else if (useCompression)
       genFieldCompressed();
     else
       genField();

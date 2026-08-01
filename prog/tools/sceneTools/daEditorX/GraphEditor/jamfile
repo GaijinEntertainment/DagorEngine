@@ -23,6 +23,7 @@ Sources =
   graph_panel.cpp
   graph_shortcuts_panel.cpp
   graph_status_bar.cpp
+  graph_undo.cpp
   graph_validation.cpp
   histogram_panel.cpp
   landscape_preview_panel.cpp

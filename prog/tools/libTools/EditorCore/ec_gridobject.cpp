@@ -80,7 +80,7 @@ void GridObject::resetToDefault()
   infiniteGridMajorSubdivisions = DEFAULT_INF_GRID_MAJOR_SUBDIVS;
 }
 
-void GridObject::renderInfiniteGrid()
+void GridObject::renderInfiniteGrid(const TMatrix &view_tm, const TMatrix4 &proj_tm)
 {
   if (!infiniteGridInitialized)
   {
@@ -112,12 +112,7 @@ void GridObject::renderInfiniteGrid()
 
   TIME_D3D_PROFILE(infiniteGrid);
 
-  TMatrix viewTm;
-  TMatrix4 projTm;
-  d3d::gettm(TM_VIEW, viewTm);
-  d3d::gettm(TM_PROJ, &projTm);
-
-  const TMatrix4 viewProj = TMatrix4(viewTm) * projTm;
+  const TMatrix4 viewProj = TMatrix4(view_tm) * proj_tm;
   const bool drawMajorLines = isDrawMajorLines && infiniteGridMajorSubdivisions > 1;
 
   ShaderGlobal::set_float4(infinite_grid_major_line_colorVarId, drawMajorLines ? infiniteGridMajorLineColor : E3DCOLOR(0, 0, 0, 0));
@@ -129,7 +124,7 @@ void GridObject::renderInfiniteGrid()
   ShaderGlobal::set_float(infinite_grid_major_subdivisionsVarId, drawMajorLines ? infiniteGridMajorSubdivisions : 1);
   ShaderGlobal::set_float4x4(infinite_grid_view_projVarId, viewProj);
   ShaderGlobal::set_float(infinite_grid_y_positionVarId, gridHeight);
-  set_viewvecs_to_shader(viewTm, projTm);
+  set_viewvecs_to_shader(view_tm, proj_tm);
 
   if (!infiniteGridShaderElement->setStates(0, true))
     return;
@@ -139,7 +134,8 @@ void GridObject::renderInfiniteGrid()
   d3d::drawind_instanced(PRIM_TRILIST, 0, 2, 0, 1);
 }
 
-void GridObject::render(Point3 *pt, Point3 *dirs, real zoom, int index, bool test_z, bool write_z)
+void GridObject::render(Point3 *pt, Point3 *dirs, real zoom, int index, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool test_z,
+  bool write_z)
 {
   struct LineDesc
   {
@@ -160,7 +156,7 @@ void GridObject::render(Point3 *pt, Point3 *dirs, real zoom, int index, bool tes
 
   if (isUseInfiniteGrid)
   {
-    renderInfiniteGrid();
+    renderInfiniteGrid(view_tm, proj_tm);
     return;
   }
 

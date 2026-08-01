@@ -19,6 +19,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <util/dag_string.h>
@@ -141,7 +142,6 @@ static GpuVendor get_active_gpu_vendor_pc(String &out_active_gpu_description, ui
           pDXGIDevice->Release();
         }
 
-        LibPointer amdLib;
 #if HAS_NVAPI
         if (init_nvapi() &&                                                    // Always initializes if NV GPU is present.
             NVAPI_OK == NvAPI_D3D11_SetDepthBoundsTest(device, 1, 0.f, 1.f) && // Succeeds only if NV GPU is active.
@@ -153,10 +153,9 @@ static GpuVendor get_active_gpu_vendor_pc(String &out_active_gpu_description, ui
 #endif
         {
 #if HAS_AMD_DX_EXT
-          amdLib.reset(LoadLibraryA(amd_lib_name));
-          if (amdLib)
+          if (auto amdLib = GetModuleHandleA(gpu::amd_lib_name))
           {
-            auto amdDxExtCreate = reinterpret_cast<PFNAmdDxExtCreate11>(GetProcAddress(amdLib.get(), "AmdDxExtCreate11"));
+            auto amdDxExtCreate = reinterpret_cast<PFNAmdDxExtCreate11>(GetProcAddress(amdLib, "AmdDxExtCreate11"));
             if (amdDxExtCreate)
             {
               IAmdDxExt *amdExtension;
@@ -568,6 +567,9 @@ bool d3d::get_gpu_freq(String &out_freq)
 int d3d::get_gpu_temperature()
 {
 #if HAS_NVAPI
+  if (is_restoring_3d_device() || dagor_d3d_force_driver_reset)
+    return 0;
+
   if (get_nv_physical_gpu())
   {
     NV_GPU_THERMAL_SETTINGS thermalSettings = {0};

@@ -11,6 +11,7 @@
 #define BVH_GRASS 1 << 1
 #define BVH_FOLIAGE 1 << 2
 #define BVH_FACING_SUN 1 << 3
+#define BVH_CAMO_NET 1 << 4
 
 #define BASE_MAT_BIT_CNT 2
 #define BASE_MAT_CNT (1 << BASE_MAT_BIT_CNT)

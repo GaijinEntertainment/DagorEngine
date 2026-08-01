@@ -46,8 +46,11 @@ inline void build_ro_hier_bitmap(BinDumpSaveCB &cwr, const Bitmap &bm, int l1_np
           int l1_ones_cnt = 0;
           mem_set_0(bits);
 
-          for (int dy2 = 0; dy2 < L1_SZ; dy2++)
-            for (int dx2 = 0; dx2 < L1_SZ; dx2++)
+          // bitmap size may be smaller than the L2 block and Bitmap::get does not
+          // bounds-check, so pixels outside the bitmap must be treated as zeroes
+          int my = min(bm.getH() - y - dy, L1_SZ), mx = min(bm.getW() - x - dx, L1_SZ);
+          for (int dy2 = 0; dy2 < my; dy2++)
+            for (int dx2 = 0; dx2 < mx; dx2++)
               if (bm.get(x + dx + dx2, y + dy + dy2))
               {
                 l1_ones_cnt++;

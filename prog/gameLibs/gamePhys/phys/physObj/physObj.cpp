@@ -18,8 +18,8 @@
 
 template class PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>;
 
-// This ensure faster copy/relocation code path. Can be removed if _really_ needed.
-static_assert(eastl::is_trivially_destructible_v<PhysObjState>);
+// Try to keep PhysObjState trivially copyable (perf); this assert may be dropped if needed.
+static_assert(eastl::is_trivially_copyable_v<PhysObjState>);
 
 void PhysObjState::reset()
 {
@@ -184,12 +184,17 @@ void PhysObj::loadCollisionSettings(const DataBlock *blk, const CollisionResourc
   boundingRadius = blk->getReal("boundingRadius", -1.f);
   useFutureContacts = blk->getBool("useFutureContacts", false);
   shouldTraceGround = blk->getBool("shouldTraceGround", false);
+  shouldBounceOnGroundTrace = blk->getBool("shouldBounceOnGroundTrace", false);
+  if (shouldBounceOnGroundTrace)
+    useFutureContacts = true;
   currentState.logCCD = blk->getBool("logCCD", false);
   physMatId = PhysMat::getMaterialId(blk->getStr("physMat", "default"));
   ignoreCollision = blk->getBool("ignoreCollision", ignoreCollision);
   addToWorld = blk->getBool("addToWorld", addToWorld);
   ccdClipVelocityMult = blk->getReal("ccdClipVelocityMult", ccdClipVelocityMult);
   ccdCollisionMarginMult = blk->getReal("ccdCollisionMarginMult", ccdCollisionMarginMult);
+  if (blk->getBool("ccdIgnoreKinematic", false))
+    ccdCastMask &= ~dacoll::EPL_KINEMATIC;
 
   using namespace dacoll;
   const int physLayer = blk->getInt("physLayer", PhysLayer::EPL_KINEMATIC);
@@ -300,8 +305,8 @@ static inline bool apply_impulse_to_ri(rendinst::RendInstDesc &ri_desc, float at
 
 static inline bool solve_ccd(const Point3 &from, const Point3 &to, float rad, Point3 &offset, float &offset_len, Point3 &vel,
   float collision_margin, int phys_mat_id, dag::ConstSpan<CollisionObject> collision, dag::ConstSpan<int> ignore_objs,
-  float energy_conservation, float clip_velocity_mult, Point3 &contact_point, rendinst::RendInstDesc *out_desc = nullptr,
-  Point3 *out_ray_hit_pos = nullptr)
+  float energy_conservation, float clip_velocity_mult, int cast_mask, Point3 &contact_point,
+  rendinst::RendInstDesc *out_desc = nullptr, Point3 *out_ray_hit_pos = nullptr)
 {
   offset.zero();
   offset_len = 0.0f;
@@ -329,8 +334,7 @@ static inline bool solve_ccd(const Point3 &from, const Point3 &to, float rad, Po
       ignore_coll_objs.insert(ignore_coll_objs.end(), collObjs.begin(), collObjs.end());
     }
   }
-  int mask = dacoll::EPL_ALL & ~(dacoll::EPL_CHARACTER | dacoll::EPL_DEBRIS);
-  if (dacoll::sphere_cast_ex(from, to, rad, sphQuery, phys_mat_id, ignore_coll_objs, nullptr, mask))
+  if (dacoll::sphere_cast_ex(from, to, rad, sphQuery, phys_mat_id, ignore_coll_objs, nullptr, cast_mask))
   {
     float penetration = (1.f - sphQuery.t) * len;
     offset_len = min(len, penetration + collision_margin + rad);
@@ -419,17 +423,17 @@ void PhysObj::resolveCollision(float dt, dag::ConstSpan<gamephys::CollisionConta
   Tab<gamephys::SeqImpulseInfo> collisions(framemem_ptr());
   daphys::convert_contacts_to_solver_data(cogPos, orient, contacts, collisions, safeinv(mass), invMoi, contactParams);
   daphys::energy_conservation_vel_patch(collisions, vel, omega, contactParams);
-  daphys::apply_cached_contacts(cogPos, orient, vel, omega,
-    make_span_const(currentState.cachedContacts.data(), currentState.numCachedContacts), collisions, invMass, invMoi, contactParams);
+  daphys::apply_cached_contacts(cogPos, orient, vel, omega, make_span_const(currentState.cachedContacts), collisions, invMass, invMoi,
+    contactParams);
   daphys::resolve_contacts(orient, vel, omega, collisions, invMass, invMoi, contactParams, 10);
 
   if (warmstartingFactor > 0.f)
   {
     Tab<gamephys::CachedContact> cachedContacts(framemem_ptr());
     daphys::cache_solved_contacts(collisions, cachedContacts, PHYS_OBJ_MAX_CACHED_CONTACTS);
-    currentState.numCachedContacts = cachedContacts.size();
-    if (currentState.numCachedContacts)
-      mem_copy_to(cachedContacts, currentState.cachedContacts.data());
+    currentState.cachedContacts.clear();
+    if (!cachedContacts.empty())
+      currentState.cachedContacts.insert(currentState.cachedContacts.begin(), cachedContacts.begin(), cachedContacts.end());
   }
   if (erp > 0.f) // skip penetration if we don't have any erp at all
     daphys::resolve_penetration(cogPos, orient, contacts, invMass, invMoi, dt, useFutureContacts, 10, linearSlop, erp);
@@ -544,39 +548,45 @@ void PhysObj::updateAwakePhys(double at_time, float dt, bool)
     currentState.velocity += currentState.gravDirection * gamephys::atmosphere::g() * currentGravityMult * dt;
   }
 
-  if (shouldTraceGround)
+  if (shouldTraceGround && (!shouldBounceOnGroundTrace || !hasGroundCollisionPoint))
   {
     const float groundSlop = 0.05f;
-    float tGround = boundingRadius + 2.f * groundSlop + rabs(currentState.velocity.y) * dt;
-    if (dacoll::traceray_normalized_lmesh(tm.getcol(3), Point3(0.f, -1.f, 0.f), tGround, nullptr, nullptr))
+    const float minGroundNormalY = 0.5f;
+    const float minTraceNormalY = shouldBounceOnGroundTrace ? minGroundNormalY : 1.f;
+    float tGround = boundingRadius / minTraceNormalY + 2.f * groundSlop + rabs(currentState.velocity.y) * dt;
+    Point3 groundNormal = Point3(0.f, 1.f, 0.f);
+    Point3 *outGroundNormal = shouldBounceOnGroundTrace ? &groundNormal : nullptr;
+    if (dacoll::traceray_normalized_lmesh(tm.getcol(3), Point3(0.f, -1.f, 0.f), tGround, nullptr, outGroundNormal))
     {
-      if (tGround < boundingRadius + groundSlop)
+      const Point3 rayHitPosition = tm.getcol(3) + Point3(0.f, -tGround, 0.f);
+      const float distanceToGround = shouldBounceOnGroundTrace ? tGround * groundNormal.y : tGround;
+      const float normalVelocity = currentState.velocity * groundNormal;
+      const bool validGroundNormal = !shouldBounceOnGroundTrace || groundNormal.y >= minGroundNormalY;
+      const bool isGroundContact = distanceToGround < boundingRadius + groundSlop;
+      const bool willHitGround = distanceToGround + normalVelocity * dt < boundingRadius + groundSlop;
+      if (validGroundNormal && (isGroundContact || (shouldBounceOnGroundTrace && willHitGround)))
       {
         gamephys::CollisionContactData &c = contacts.push_back();
-        c.wpos = tm.getcol(3) + Point3(0.f, -tGround, 0.f);
+        c.wpos = shouldBounceOnGroundTrace ? tm.getcol(3) - groundNormal * boundingRadius : rayHitPosition;
         c.wposB = ZERO<Point3>();
-        c.wnormB = Point3(0.f, 1.f, 0.f);
+        c.wnormB = groundNormal;
         c.posA = ZERO<Point3>();
         c.posB = ZERO<Point3>();
-        c.depth = tGround - boundingRadius + groundSlop;
+        c.depth = distanceToGround - boundingRadius + groundSlop;
         c.userPtrA = nullptr;
         c.userPtrB = nullptr;
         c.matId = -1;
 
         hasGroundCollisionPoint = true;
-        groundCollisionPoint = c.wpos;
+        groundCollisionPoint = rayHitPosition;
         G_ASSERTF(daphys::validate_contacts(make_span(&c, 1), tm.getcol(3), boundingRadius), "Contacts validation failed %p %p %i",
           &tm, contacts.data(), contacts.size());
       }
-      else
+      else if (!shouldBounceOnGroundTrace && willHitGround)
       {
-        const float deltaPos = currentState.velocity.y * dt;
-        if (tGround + deltaPos < boundingRadius + groundSlop)
-        {
-          const float maxVel = (boundingRadius + groundSlop - tGround) * safeinv(dt);
-          const float kv = safediv(currentState.velocity.y, maxVel) * 0.8f;
-          currentState.velocity.y *= safeinv(kv);
-        }
+        const float maxVel = (boundingRadius + groundSlop - tGround) * safeinv(dt);
+        const float kv = safediv(currentState.velocity.y, maxVel) * 0.8f;
+        currentState.velocity.y *= safeinv(kv);
       }
     }
   }
@@ -671,7 +681,7 @@ void PhysObj::updateAwakePhys(double at_time, float dt, bool)
       nextState.transform(posTo);
 
       bool ok = solve_ccd(pos, posTo, ccd.r, offset, offsetLen, constrainedVelocity, ccd.r * ccdCollisionMarginMult, physMatId,
-        collision, ignoreObjsSlice, energyConservation, ccdClipVelocityMult, contactPoint, &ri_desc, &ccdHitPos);
+        collision, ignoreObjsSlice, energyConservation, ccdClipVelocityMult, ccdCastMask, contactPoint, &ri_desc, &ccdHitPos);
 
       hasRiDestroyingCollision |=
         apply_impulse_to_ri(ri_desc, at_time, currentState.velocity, linearImpulse, impulseDir, ccdHitPos, speed);
@@ -767,7 +777,7 @@ void PhysObj::drawDebug()
     TMatrix tm;
     currentState.location.toTM(tm);
     Point3 cogPos = tm * centerOfMass;
-    for (auto &contact : make_span_const(currentState.cachedContacts.data(), currentState.numCachedContacts))
+    for (const gamephys::CachedContact &contact : currentState.cachedContacts)
     {
       draw_debug_sph(BSphere3(contact.wpos, max(fabsf(contact.depth), 0.01f)), contact.depth > 0.f ? outsideCache : insideCache);
       draw_debug_line(contact.wpos, contact.wpos + contact.wnorm * 0.2f, insideCache);

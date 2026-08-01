@@ -136,13 +136,14 @@ struct PipelineStageStateBase
 
 
   template <typename T>
-  void bindDescriptor(const spirv::ShaderHeader &hdr, VulkanDescriptorSetHandle ds_handle, T cb)
+  void bindDescriptor(const spirv::ShaderHeader &hdr, uint32_t dynamic_b_mask, VulkanDescriptorSetHandle ds_handle, T cb)
   {
     if (ds_handle == DescriptorSet::dummyHandle)
       return;
     uint32_t dynamicOffsets[spirv::B_REGISTER_INDEX_MAX];
     uint32_t dynamicOffsetCount = 0;
-    for (uint32_t i : LsbVisitor{hdr.bRegisterUseMask})
+    // slots outside the dynamic mask are plain uniform buffers with offset baked in the descriptor
+    for (uint32_t i : LsbVisitor{hdr.bRegisterUseMask & dynamic_b_mask})
       dynamicOffsets[dynamicOffsetCount++] = bBinds[i].buffer ? bBinds[i].bufOffset(0) : 0;
     cb(ds_handle, dynamicOffsets, dynamicOffsetCount);
   }
@@ -171,7 +172,7 @@ template <typename T>
 void PipelineStageStateBase::setResources(size_t frame_index, DescriptorSet &registers, ExtendedShaderStage target_stage, T bind)
 {
   if (updateOnDemand(registers, target_stage, frame_index))
-    bindDescriptor(registers.header, lastDescriptorSet, bind);
+    bindDescriptor(registers.header, registers.dynamicBRegisterMask, lastDescriptorSet, bind);
 }
 
 template <typename T>
@@ -179,7 +180,7 @@ void PipelineStageStateBase::setResourcesWithSyncStep(size_t frame_index, Descri
   T bind)
 {
   if (updateOnDemandWithSyncStep(registers, target_stage, frame_index))
-    bindDescriptor(registers.header, lastDescriptorSet, bind);
+    bindDescriptor(registers.header, registers.dynamicBRegisterMask, lastDescriptorSet, bind);
 }
 
 template <typename T>
@@ -190,7 +191,7 @@ void PipelineStageStateBase::setResourcesNoDiff(size_t frame_index, DescriptorSe
   G_ASSERT(tBinds.dirtyMask == tBinds.FULL_MASK);
   const auto &header = registers.header;
   updateDescriptors(header, target_stage);
-  bindDescriptor(header, registers.getSet(frame_index, &dtab.arr[0]), bind);
+  bindDescriptor(header, registers.dynamicBRegisterMask, registers.getSet(frame_index, &dtab.arr[0]), bind);
 }
 
 } // namespace drv3d_vulkan

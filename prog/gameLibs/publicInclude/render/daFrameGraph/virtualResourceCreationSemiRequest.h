@@ -110,7 +110,7 @@ public:
       .typeTag = tag_for<T>(),
       .ctorOverride = nullptr,
     };
-    Base::blob(eastl::move(desc), detail::make_rtti<T>());
+    Base::blob(eastl::move(desc), &detail::make_rtti_recursive<T>);
     return {resUid, nodeId, registry};
   }
 
@@ -129,7 +129,7 @@ public:
       .ctorOverride =
         eastl::make_unique<BlobDescription::CtorT>(eastl::move([defaultValue](void *ptr) { new (ptr) T{defaultValue}; })),
     };
-    Base::blob(eastl::move(desc), detail::make_rtti<T>());
+    Base::blob(eastl::move(desc), &detail::make_rtti_recursive<T>);
     return {resUid, nodeId, registry};
   }
 };

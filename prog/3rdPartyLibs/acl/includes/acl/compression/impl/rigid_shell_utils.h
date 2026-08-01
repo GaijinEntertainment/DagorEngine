@@ -122,7 +122,7 @@ namespace acl
 						const rtm::vector4f base_scale = additive_base_clip.get_transform_scale(transform_index, base_sample_index);
 
 						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
-						raw_transform = apply_additive_to_base(additive_format, base_transform, raw_transform);
+						raw_transform = rtm::qvv_normalize(apply_additive_to_base(additive_format, base_transform, raw_transform));
 					}
 
 					const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_transform);
@@ -238,7 +238,7 @@ namespace acl
 						const rtm::vector4f base_scale = base_bone_stream.scales.get_sample_clamped(base_sample_index);
 
 						const rtm::qvvf base_transform = rtm::qvv_set(base_rotation, base_translation, base_scale);
-						raw_transform = apply_additive_to_base(owner_clip_context.additive_format, base_transform, raw_transform);
+						raw_transform = rtm::qvv_normalize(apply_additive_to_base(owner_clip_context.additive_format, base_transform, raw_transform));
 					}
 
 					const rtm::vector4f raw_vtx0 = rtm::qvv_mul_point3(vtx0, raw_transform);

@@ -497,7 +497,7 @@ class GenericSbufferImplementation final : public GenericBufferMemoryArchitectur
     T::addGenericView(buffer, structSize, viewFormat);
 
     // views have to be done separately
-    if ((SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED) & bufFlags)
+    if (hasShaderResourceView())
     {
       if (needsRawView())
         T::addRawResourceView(buffer);
@@ -897,7 +897,7 @@ public:
 
     if (bufferLockDiscardRequested(flags))
     {
-      buffer = T::discardBuffer(this, buffer, bufSize, structSize, getMemoryClass(), viewFormat, bufFlags, getName());
+      T::discardBuffer(this, buffer, bufSize, structSize, getMemoryClass(), viewFormat, bufFlags, getName());
 
       if (!T::isValidBuffer(buffer))
       {
@@ -1308,6 +1308,8 @@ public:
   bool usableAsShaderResource() const { return 0 != (bufFlags & SBCF_BIND_SHADER_RES); }
 
   bool usableAsUnorderedResource() const { return 0 != (bufFlags & SBCF_BIND_UNORDERED); }
+
+  bool hasShaderResourceView() const { return 0 != (bufFlags & (SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED)); }
 
   bool usableAsConstantBuffer() const { return 0 != (bufFlags & SBCF_BIND_CONSTANT); }
 

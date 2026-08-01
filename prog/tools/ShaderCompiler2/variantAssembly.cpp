@@ -75,6 +75,7 @@ eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType v
     case VariableType::u3: varTypeStr = "uint3"; break;
     case VariableType::u4: varTypeStr = "uint4"; break;
     case VariableType::f44: varTypeStr = "float4x4"; break;
+    case VariableType::f43: varTypeStr = "float4x3"; break;
     case VariableType::tex2d: varTypeStr = "Texture2D"; break;
     case VariableType::staticSmpArray:
     case VariableType::staticTexArray:
@@ -492,7 +493,8 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
     }
     else
     {
-      G_ASSERT(def.shvarType == SHVT_COLOR4 || def.shvarType == SHVT_INT4 || def.shvarType == SHVT_FLOAT4X4);
+      G_ASSERT(def.shvarType == SHVT_COLOR4 || def.shvarType == SHVT_INT4 || def.shvarType == SHVT_FLOAT4X4 ||
+               def.shvarType == SHVT_FLOAT4x3);
       shcod = float4_to_cod[def.stage];
     }
   }
@@ -821,6 +823,10 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
               gc = SHCOD_GET_GMAT44;
               reg = out_bytecode->regAllocator->add_vec_reg(4);
               break;
+            case SHVT_FLOAT4x3:
+              gc = SHCOD_GET_GMAT43;
+              reg = out_bytecode->regAllocator->add_vec_reg(3);
+              break;
             default: G_ASSERT(0);
           }
 
@@ -838,6 +844,11 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
               out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 2, int(reg) + 2 * 4));
               out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 3, int(reg) + 3 * 4));
             }
+            else if (def.shvarType == SHVT_FLOAT4x3)
+            {
+              out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 1, int(reg) + 1 * 4));
+              out_bytecode->push_stcode(shaderopcode::makeOp2(shcod, elemDestReg + 2, int(reg) + 2 * 4));
+            }
           }
         }
 
@@ -852,6 +863,16 @@ bool build_stcode_for_named_const(const semantic::NamedConstDefInfo &def, int de
               eastl::move(expr));
 
             registerConstSettingForValidation(elemDestReg, semantic::vt_float_size(VariableType::f44));
+          }
+          else if (def.shvarType == SHVT_FLOAT4x3)
+          {
+            StcodeExpression expr;
+            expr.specifyNextExprElement(StcodeExpression::ElementType::GLOBVAR, value.varName(), nullptr, (void *)true);
+            expr.specifyNextExprUnaryOp(shexpr::UOP_POSITIVE);
+            out_cppstcode->cppStcode.addShaderConst(def.stage, SHVT_FLOAT4x3, VariableType::f43, varName, elemDestReg,
+              eastl::move(expr));
+
+            registerConstSettingForValidation(elemDestReg, semantic::vt_float_size(VariableType::f43));
           }
           else
           {

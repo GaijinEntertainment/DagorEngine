@@ -10,31 +10,36 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define OMM_DECLARE_GLOBAL_CONSTANT_BUFFER						\
 OMM_CONSTANTS_START(GlobalConstants)							\
 	OMM_CONSTANT(uint, IndexCount)								\
+	OMM_CONSTANT(uint, IndexOffset)								\
 	OMM_CONSTANT(uint, PrimitiveCount)							\
 	OMM_CONSTANT(uint, MaxBatchCount)							\
-	OMM_CONSTANT(uint, MaxOutOmmArraySize)						\
 																\
-	OMM_CONSTANT(uint, IsOmmIndexFormat16bit)					\
+	OMM_CONSTANT(uint, MaxOutOmmArraySize)						\
+	OMM_CONSTANT(uint, OmmIndexFormat)							\
 	OMM_CONSTANT(uint, EnableSpecialIndices)					\
 	OMM_CONSTANT(uint, EnableTexCoordDeduplication)				\
-	OMM_CONSTANT(uint, DoSetup)									\
 																\
+	OMM_CONSTANT(uint, DoSetup)									\
 	OMM_CONSTANT(uint, SamplerIndex)							\
 	OMM_CONSTANT(uint, BakeResultBufferSize)					\
+	OMM_CONSTANT(uint, InputIndexStride)						\
+																\
 	OMM_CONSTANT(float2, ViewportSize)							\
-																\
 	OMM_CONSTANT(float2, InvViewportSize)						\
-	OMM_CONSTANT(float2, ViewportOffset)						\
 																\
+	OMM_CONSTANT(float2, ViewportOffset)						\
 	OMM_CONSTANT(uint, MaxNumSubdivisionLevels)					\
 	OMM_CONSTANT(uint, MaxSubdivisionLevel)						\
+																\
 	OMM_CONSTANT(uint, OMMFormat)								\
 	OMM_CONSTANT(uint, TexCoordHashTableEntryCount)				\
-																\
 	OMM_CONSTANT(float, DynamicSubdivisionScale)				\
+	OMM_CONSTANT(float, Pad1)									\
+																\
 	OMM_CONSTANT(uint, TexCoordFormat)							\
 	OMM_CONSTANT(uint, TexCoordOffset)							\
 	OMM_CONSTANT(uint, TexCoordStride)							\
+	OMM_CONSTANT(uint, InputIndexFormat)						\
 																\
 	OMM_CONSTANT(float, AlphaCutoff)							\
 	OMM_CONSTANT(uint, AlphaCutoffLessEqual)					\

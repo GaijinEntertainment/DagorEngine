@@ -435,7 +435,7 @@ bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId 
   bool force_gpu_sim = false;
   dafx_ex::TransformType transformType = static_cast<dafx_ex::TransformType>(parGlobals.transform_type);
   const dafx::Config cfg = dafx::get_current_config_copy(ctx); // copy with spinlock, to avoid thread race
-  if (maximumParticleEmissionCount >= cfg.cpu_emission_limit)
+  if (maximumParticleEmissionCount > cfg.cpu_emission_limit)
   {
     if (transformType == dafx_ex::TRANSFORM_WORLD_SPACE)
     {

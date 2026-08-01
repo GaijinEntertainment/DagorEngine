@@ -41,6 +41,12 @@ class GraphEditor
   String fileNameCmd;
   String saveDir;
   String rootGraphFileName;
+  String rootGraphJson;
+  String permutationTable;
+  int editedPermutation = -1;
+
+  bool receivedCompileJsonChanged = false;
+  String receivedCompileJson;
 
   Tab<String> includeFilenames;
 
@@ -69,6 +75,10 @@ public:
   void setRootGraphFileName(const char *root_graph_fname);
   void setIncludeFilenames(const Tab<String> &file_names);
   bool gatherAdditionalIncludes(const Tab<String> &file_names);
+  void setPermutationTable(const char *perm_table_json);
+  void setRootGraphJson(const char *root_graph_json);
+  void setEditedPermutation(int idx);
+  bool getCompileGraphJson(String &out_graph_json, bool only_if_changed);
   static void extractGraphId(const char *graph_json, String &out_id);
   static String findFileInParentDir(const char *file_name);
   static String readFileToString(const char *file_name);

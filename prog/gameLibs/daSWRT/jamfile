@@ -9,8 +9,6 @@ Target      = gameLibs/daSWRT.lib ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/engine/daBVH
-  $(Root)/prog/engine/daBVH/shaders
 ;
 
 Sources =

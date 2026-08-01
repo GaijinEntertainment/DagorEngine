@@ -28,6 +28,10 @@ public:
   void clearResourceBarriers() override;
   void recResourcePlacement(ResNameId id, int frame, int heap, int offset, int size, bool is_cpu) override;
   void recResourceBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame, ResourceBarrier barrier) override;
+  void recEnhancedBufferBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+    const d3d::BufferBarrier &barrier) override;
+  void recEnhancedTextureBarrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame,
+    const d3d::TextureBarrier &barrier) override;
 
 private:
   usergraph::Visualizer userGraphVisualizer;

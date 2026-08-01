@@ -133,18 +133,19 @@ public:
 
     // Properties
 
-    das::addExtern<DAS_BIND_FUN(props_get_int)>(*this, lib, "getInt", das::SideEffects::none, "::darg::props_get_int");
-    das::addExtern<DAS_BIND_FUN(props_get_float)>(*this, lib, "getFloat", das::SideEffects::none, "::darg::props_get_float");
-    das::addExtern<DAS_BIND_FUN(props_get_bool)>(*this, lib, "getBool", das::SideEffects::none, "::darg::props_get_bool");
-    das::addExtern<DAS_BIND_FUN(props_get_color)>(*this, lib, "getColor", das::SideEffects::none, "::darg::props_get_color");
-    das::addExtern<DAS_BIND_FUN(props_get_picture)>(*this, lib, "getPicture", das::SideEffects::none, "::darg::props_get_picture");
-    das::addExtern<DAS_BIND_FUN(props_get_blk)>(*this, lib, "getBlk", das::SideEffects::none, "::darg::props_get_blk");
+    das::addExtern<DAS_BIND_FUN(props_get_int)>(*this, lib, "getInt", das::SideEffects::accessExternal, "::darg::props_get_int");
+    das::addExtern<DAS_BIND_FUN(props_get_float)>(*this, lib, "getFloat", das::SideEffects::accessExternal, "::darg::props_get_float");
+    das::addExtern<DAS_BIND_FUN(props_get_bool)>(*this, lib, "getBool", das::SideEffects::accessExternal, "::darg::props_get_bool");
+    das::addExtern<DAS_BIND_FUN(props_get_color)>(*this, lib, "getColor", das::SideEffects::accessExternal, "::darg::props_get_color");
+    das::addExtern<DAS_BIND_FUN(props_get_picture)>(*this, lib, "getPicture", das::SideEffects::accessExternal,
+      "::darg::props_get_picture");
+    das::addExtern<DAS_BIND_FUN(props_get_blk)>(*this, lib, "getBlk", das::SideEffects::accessExternal, "::darg::props_get_blk");
     das::addExtern<void (*)(StdGuiRender::GuiContext &, Picture *, Point2, Point2, E3DCOLOR), ::darg::render_picture>(*this, lib,
       "render_picture", das::SideEffects::modifyExternal, "::darg::render_picture");
     das::addExtern<void (*)(StdGuiRender::GuiContext &, Picture *, Point2, Point2, E3DCOLOR, float, float, bool, bool, float),
       ::darg::render_picture>(*this, lib, "render_picture", das::SideEffects::modifyExternal, "::darg::render_picture");
-    BIND_MEMBER(::darg::Properties, getFontId, "getFontId", das::SideEffects::none);
-    BIND_MEMBER(::darg::Properties, getFontSize, "getFontSize", das::SideEffects::none);
+    BIND_MEMBER(::darg::Properties, getFontId, "getFontId", das::SideEffects::accessExternal);
+    BIND_MEMBER(::darg::Properties, getFontSize, "getFontSize", das::SideEffects::accessExternal);
 
     verifyAotReady();
   }

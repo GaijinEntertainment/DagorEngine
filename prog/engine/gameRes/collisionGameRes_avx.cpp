@@ -5,12 +5,12 @@
 
 #if defined(__AVX__) && (defined(_TARGET_64BIT) || !defined(_MSC_VER))
 template <bool check_bounding, uint32_t mainBatchSize>
-bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint32_t *indicesBase,
   const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm)
 {
   static_assert(mainBatchSize == 4 || mainBatchSize == 8);
   int resultIdx = -1;
-  const uint16_t *__restrict indices = indicesBase + node.indicesOfs;
+  const uint32_t *__restrict indices = indicesBase + node.indicesOfs;
   const Point3_vec4 *__restrict vertices = verticesBase + node.verticesOfs;
   const uint32_t indicesSize = node.indicesCount;
 
@@ -69,11 +69,11 @@ bool CollisionResource::traceRayMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *v
 }
 
 template <bool check_bounding, uint32_t mainBatchSize>
-bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint32_t *indicesBase,
   const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t)
 {
   static_assert(mainBatchSize == 4 || mainBatchSize == 8);
-  const uint16_t *__restrict indices = indicesBase + node.indicesOfs;
+  const uint32_t *__restrict indices = indicesBase + node.indicesOfs;
   const Point3_vec4 *__restrict vertices = verticesBase + node.verticesOfs;
   const uint32_t indicesSize = node.indicesCount;
 
@@ -124,12 +124,12 @@ bool CollisionResource::rayHitMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *ver
 }
 
 template <bool check_bounding, uint32_t mainBatchSize>
-bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
+bool CollisionResource::traceRayMeshNodeLocalAllHits_AVX256(const Point3_vec4 *verticesBase, const uint32_t *indicesBase,
   const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t, bool calc_normal, bool force_no_cull,
   all_collres_nodes_t &ret_array, all_collres_tri_indices_t &tri_indices)
 {
   static_assert(mainBatchSize == 4 || mainBatchSize == 8);
-  const uint16_t *__restrict indices = indicesBase + node.indicesOfs;
+  const uint32_t *__restrict indices = indicesBase + node.indicesOfs;
   const Point3_vec4 *__restrict vertices = verticesBase + node.verticesOfs;
   const uint32_t indicesSize = node.indicesCount;
   bool noCull = force_no_cull || node.checkBehaviorFlags(CollisionNode::SOLID);

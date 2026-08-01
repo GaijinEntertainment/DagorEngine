@@ -15,6 +15,7 @@
 [[maybe_unused]] constexpr auto IMGUI_IRG_WIN_NAME = "IR Graph Visualizer";
 [[maybe_unused]] constexpr auto IMGUI_RES_WIN_NAME = "Resourse Visualizer";
 [[maybe_unused]] constexpr auto IMGUI_TEX_WIN_NAME = "Texture Visualizer";
+[[maybe_unused]] constexpr auto IMGUI_GPU_CAPTURE_WIN_NAME = "GPU Capture";
 
 
 namespace dafg::visualization

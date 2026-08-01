@@ -35,6 +35,8 @@ public:
       das::SideEffects::accessExternal, "dedicated_matching::get_room_members_count");
     das::addExtern<DAS_BIND_FUN(dedicated_matching::get_player_custom_info)>(*this, lib, "get_player_custom_info",
       das::SideEffects::accessExternal, "dedicated_matching::get_player_custom_info");
+    das::addExtern<DAS_BIND_FUN(dedicated_matching::has_player_penalty)>(*this, lib, "has_player_penalty",
+      das::SideEffects::accessExternal, "dedicated_matching::has_player_penalty");
     verifyAotReady();
   }
 

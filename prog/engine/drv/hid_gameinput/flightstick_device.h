@@ -5,7 +5,7 @@
 #include <EASTL/string.h>
 
 #include <drv/hid/dag_hiJoystick.h>
-#include <osApiWrappers/gdk/gameinput.h>
+#include "gameinput.h"
 
 namespace HumanInput
 {

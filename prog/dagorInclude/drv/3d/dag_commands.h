@@ -370,18 +370,6 @@ enum class Drv3dCommand
   // par1: amd::FSR::FrameGenArgs *
   EXECUTE_FSR_FG,
 
-  // Execute FSR2
-  // par1: Fsr2Params *
-  EXECUTE_FSR2,
-
-  // Returns current FSR2 state as Fsr2State casted to int. No parameters required
-  GET_FSR2_STATE,
-
-  // Return current FSR2 rendering resolution in par1 and par2
-  // par1: int *width
-  // par2: int *height
-  GET_FSR2_RESOLUTION,
-
   // Execute PSSR
   // par1: d3d::PSSR::FrameParameters *
   EXECUTE_PSSR,
@@ -510,9 +498,6 @@ enum class Drv3dCommand
   // Sets to the PS5 driver which eye is rendered in VR and get back the distortion resolve LUT's ID
   SET_PS5_FSR_VIEW,
 
-  // par1: bool enable/disable HDR
-  SET_HDR,
-
   // This raises a debug break event / signal in the driver when it is executed.
   // Drivers with backend workers this will be executed in that thread.
   // This command allows to debug break into the backend to help with issues during execution of d3d commands.
@@ -616,6 +601,10 @@ enum class Drv3dCommand
 
   // Returns whether PIX Capturer is loaded
   IS_PIX_CAPTURE_LOADED,
+
+  // Returns whether any GPU capture tool (PIX, RenderDoc, Nsight, ...) is loaded. Broader than
+  // IS_PIX_CAPTURE_LOADED. Useful to relax resource-size limits that such tools inflate with debug data.
+  IS_ANY_CAPTURE_TOOL_LOADED,
 
   SET_RT_VALIDATION_CALLBACK,
 

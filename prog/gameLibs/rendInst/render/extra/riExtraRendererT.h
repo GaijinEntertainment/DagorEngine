@@ -43,6 +43,8 @@ namespace rendinst::render
 extern int ri_vertex_data_no, ri_voxel_data_offset_varid, ri_voxel_depth_projection_varid;
 extern bool is_tool_shaders;
 
+extern void update_voxel_baker_textures();
+
 static constexpr uint32_t RI_RES_ORDER_COUNT_SHIFT = 14, RI_RES_ORDER_COUNT_MASK = (1 << RI_RES_ORDER_COUNT_SHIFT) - 1;
 
 template <typename Alloc, class DynamicVariantsPolicy>
@@ -58,6 +60,7 @@ class RiExtraRendererT : public DynamicVariantsPolicy //-V730
   bool optimizeDepthPass;
   bool isVoxelizationPass;
   bool isDecalPass;
+  bool isVoxelBakerPass;
   bool isTransparentPass;
   bool allowTreeDepthPrepass;
   bool useExternalPerDrawCb;
@@ -107,6 +110,7 @@ public:
     isVoxelizationPass = render_pass == RenderPass::VoxelizeAlbedo;
     isDecalPass = layer == LayerFlag::Decals;
     isTransparentPass = layer == LayerFlag::Transparent;
+    isVoxelBakerPass = render_pass == RenderPass::ImpostorVoxel;
 
     // Tool shaders don't have depth prepass for trees.
     allowTreeDepthPrepass = !rendinst::render::is_tool_shaders;
@@ -125,8 +129,10 @@ public:
     else
     {
       startStage = ShaderMesh::STG_opaque;
-      if (optimization_depth_prepass == OptimizeDepthPrepass::Yes &&
-          ignore_optimization_instances_limits == IgnoreOptimizationLimits::No)
+      if (render_pass == RenderPass::ImpostorVoxel)
+        endStage = ShaderMesh::STG_decal;
+      else if (optimization_depth_prepass == OptimizeDepthPrepass::Yes &&
+               ignore_optimization_instances_limits == IgnoreOptimizationLimits::No)
         endStage = ShaderMesh::STG_opaque;
       else
         endStage = (render_pass == RenderPass::Normal) ? ShaderMesh::STG_imm_decal : ShaderMesh::STG_atest;
@@ -203,6 +209,15 @@ public:
       update_bindless_state(stateIdTexLevel.first, stateIdTexLevel.second);
   }
 
+  inline void updateVoxelBakerTextures(const RIExRenderRecord &rl) const
+  {
+    if (!isVoxelBakerPass)
+      return;
+    if (rl.drawOrder_stage->stage != ShaderMesh::STG_imm_decal and rl.drawOrder_stage->stage != ShaderMesh::STG_decal)
+      return;
+    update_voxel_baker_textures();
+  }
+
   inline void renderSortedMeshesPacked(dag::ConstSpan<uint16_t> riResOrder) const
   {
     G_UNUSED(riResOrder);
@@ -257,11 +272,26 @@ public:
                                hasStencilTestStateOverride || shaders::overrides::get(previousOverrideId).bits == 0;
     G_UNUSED(validOverride);
 
+    // set lazily at the first voxel-LOD draw: the vars only feed the voxel
+    // raymarch shader and cost a globtm fetch + inverse when no voxel mesh
+    // is in the batch
+    bool voxelDepthProjectionSet = false;
+
+    int cVoxOfs = 0;
+    uint32_t cVoxSurf = VoxelSurfaceData::INVALID_ID;
+
     for (const auto dcParams : drawcallRanges)
     {
       const auto &rl = multidrawList[dcParams.start];
       Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(rl.vbIdx);
       d3d_err(d3d::setvsrc(0, vb, rl.vstride));
+
+      if (rl.isSWVertexFetch)
+      {
+        G_ASSERT(ri_vertex_data_no != -1);
+        d3d::set_buffer(STAGE_VS, ri_vertex_data_no, vb);
+        d3d::set_buffer(STAGE_PS, ri_vertex_data_no, vb);
+      }
 
       RiExtraPool &riPool = riExtra[riResOrder[rl.poolOrder] & RI_RES_ORDER_COUNT_MASK];
       const bool needDepthPrepass =
@@ -278,6 +308,33 @@ public:
       }
 
       debug_mesh::set_debug_value(rl.lod);
+
+      if (cVoxOfs != rl.voxelDataOffset)
+      {
+        if (rl.voxelDataOffset != 0)
+        {
+          G_ASSERT(ri_voxel_data_offset_varid != -1);
+          if (!voxelDepthProjectionSet && ri_voxel_depth_projection_varid != -1)
+          {
+            voxelDepthProjectionSet = true;
+            TMatrix4 gtm;
+            d3d::getglobtm(gtm);
+            ::set_globtm_to_shader(gtm);
+            TMatrix4 globTmInv = inverse44(gtm);
+            ShaderGlobal::set_float4(ri_voxel_depth_projection_varid, globTmInv.getrow(2));
+          }
+          ShaderGlobal::set_int(ri_voxel_data_offset_varid, rl.voxelDataOffset);
+        }
+        cVoxOfs = rl.voxelDataOffset;
+      }
+
+      if (cVoxSurf != rl.voxelSurfaceId)
+      {
+        cVoxSurf = rl.voxelSurfaceId;
+        VoxelSurfaceData::setToShader(cVoxSurf);
+      }
+
+      updateVoxelBakerTextures(rl);
 
       rl.curShader->setReqTexLevel(rl.texLevel);
       set_states_for_variant(rl.curShader->native(), rl.cv, rl.prog, rl.state);
@@ -312,14 +369,10 @@ public:
       cb.flushPerDraw();
     }
 
-    if (ri_voxel_depth_projection_varid != -1)
-    {
-      TMatrix4 gtm;
-      d3d::getglobtm(gtm);
-      ::set_globtm_to_shader(gtm);
-      TMatrix4 globTmInv = inverse44(gtm);
-      ShaderGlobal::set_float4(ri_voxel_depth_projection_varid, globTmInv.getrow(2));
-    }
+    // set lazily at the first voxel-LOD draw: the vars only feed the voxel
+    // raymarch shader and cost a globtm fetch + inverse when no voxel mesh
+    // is in the batch
+    bool voxelDepthProjectionSet = false;
 
     int cVbIdx = -1, cStride = 0, cVoxOfs = 0;
     uint32_t cVoxSurf = VoxelSurfaceData::INVALID_ID;
@@ -349,7 +402,7 @@ public:
           continue;
         }
         Vbuffer *vb = unitedvdata::riUnitedVdata.getVB(rl.vbIdx);
-        if (rl.isSWVertexFetch && cVbIdx != rl.vbIdx)
+        if (rl.isSWVertexFetch)
         {
           G_ASSERT(ri_vertex_data_no != -1);
           d3d::set_buffer(STAGE_VS, ri_vertex_data_no, vb);
@@ -365,6 +418,15 @@ public:
         if (rl.voxelDataOffset != 0)
         {
           G_ASSERT(ri_voxel_data_offset_varid != -1);
+          if (!voxelDepthProjectionSet && ri_voxel_depth_projection_varid != -1)
+          {
+            voxelDepthProjectionSet = true;
+            TMatrix4 gtm;
+            d3d::getglobtm(gtm);
+            ::set_globtm_to_shader(gtm);
+            TMatrix4 globTmInv = inverse44(gtm);
+            ShaderGlobal::set_float4(ri_voxel_depth_projection_varid, globTmInv.getrow(2));
+          }
           ShaderGlobal::set_int(ri_voxel_data_offset_varid, rl.voxelDataOffset);
         }
         cVoxOfs = rl.voxelDataOffset;
@@ -404,6 +466,8 @@ public:
 
       if (debug_mesh::set_debug_value(rl.lod))
         skipApply = false; // stencil must be applied for lod coloring, no matter what
+
+      updateVoxelBakerTextures(rl);
 
       rl.curShader->setReqTexLevel(rl.texLevel);
 
@@ -565,7 +629,7 @@ public:
     RiExtraElementsToHide(uint16_t poolId, const SmallTab<RiGenExtraVisibility::HideMarkedMaterialForInstance> &elementsToHide)
     {
       shaderName = nullptr;
-      if (poolId >= riExtra.size())
+      if (!riExtra.isValid(poolId))
         return;
 
       const SimpleString &materialName = riExtra[poolId].materialMarkedForHiding;
@@ -617,7 +681,7 @@ private:
     uint16_t pool_order, const TexStreamingContext &texCtx, float dist2, float minDist2, const RiExtraElementsToHide &elementsToHide,
     const ShaderElement *shader_override = nullptr, bool gpu_instancing = false)
   {
-    if (ri_idx >= riExtra.size())
+    if (!riExtra.isValid(ri_idx))
     {
       logerr("Attempted to add riex with pool index '%d' to RiExtraRendererT, total pool amount was '%d'.", ri_idx, riExtra.size());
       return;
@@ -719,7 +783,7 @@ private:
           elem.si, elem.sv, elem.numv, elem.numf, elem.baseVertex, texLevel, riPool.isTree, isTessellated, disableOptimization,
           (uint8_t)max(counter, 0));
 
-        if (voxelDataOffset != 0 and EI == startEI and !shader_override)
+        if (voxelDataOffset != 0)
         {
           record.isSWVertexFetch = true;
           record.voxelSurfaceId = voxelSurfaceId;

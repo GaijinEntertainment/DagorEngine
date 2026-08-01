@@ -42,12 +42,18 @@ void writeCompressedBuffer(danet::BitStream &msg, dag::ConstSpan<uint8_t> buf)
   msg.Write((const char *)zip.data(), (uint32_t)zwrite);
 }
 
-bool readCompressedBuffer(const danet::BitStream &msg, Tab<uint8_t> &buf)
+bool readCompressedBuffer(const danet::BitStream &msg, Tab<uint8_t> &buf, size_t max_size_bytes)
 {
   uint32_t comprSize = 0, size = 0;
   if (!msg.ReadCompressed(comprSize) || !msg.ReadCompressed(size))
     return false;
-  G_ASSERT((comprSize < (1 << 20)) && (size < (1 << 20))); // sanity check
+  // both fields are wire-controlled: an oversized frame is a normal parse failure, not a
+  // program bug, so no assert on this path. Callers may raise max_size_bytes.
+  if (comprSize >= max_size_bytes || size >= max_size_bytes)
+  {
+    logerr("%s: rejecting frame with comprSize=%u size=%u (limit %u)", __FUNCTION__, comprSize, size, (uint32_t)max_size_bytes);
+    return false;
+  }
   if (BITS_TO_BYTES(msg.GetNumberOfUnreadBits()) < comprSize)
     return false;
 

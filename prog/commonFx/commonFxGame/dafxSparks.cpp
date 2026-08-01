@@ -5,6 +5,7 @@
 #include <math/dag_TMatrix4.h>
 #include <math/dag_Point2.h>
 #include <daFx/dafx.h>
+#include <fx/dag_baseFxClasses.h>
 #include <daFx/dafx_def.hlsli>
 #include <daFx/dafx_hlsl_funcs.hlsli>
 #include <daFx/dafx_loaders.hlsli>
@@ -405,7 +406,10 @@ struct DafxSparks : BaseParticleEffect
       }
       case _MAKE4C('PFXI'): ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid); break;
       case _MAKE4C('PFXV'): dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(uint32_t *)value : 0); break;
-      case _MAKE4C('PFXG'): dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0); break;
+      case _MAKE4C('PFXG'):
+        if (const BaseFxWarmupParams *warmupParams = (const BaseFxWarmupParams *)value)
+          dafx::warmup_instance(g_dafx_ctx, iid, warmupParams->time, warmupParams->perInstanceMode, warmupParams->stepDt);
+        break;
       case _MAKE4C('GZTM'): dafx::set_instance_value(g_dafx_ctx, iid, "gravity_tm", value, sizeof(Matrix3)); break;
       default: break;
     }

@@ -202,6 +202,13 @@ struct DlssOptions
   bool useLegacyModel = false;
 };
 
+struct DLSSFrameGenerationCapabilities
+{
+  uint32_t maximumNumberOfGeneratedFrames : 30 = 0;
+  uint32_t isDynamicMFGSupported : 1 = false;
+  uint32_t valid : 1 = false;
+};
+
 struct DLSSFrameGeneration
 {
   virtual void setEnabled(int frames_to_generate) = 0;
@@ -220,7 +227,7 @@ struct Streamline
   virtual DLSS *getDlssFeature(int viewport_id) = 0;
   virtual DLSSFrameGeneration *getDlssGFeature(int viewport_id) = 0;
 
-  virtual int getMaximumNumberOfGeneratedFrames() const = 0;
+  virtual DLSSFrameGenerationCapabilities getFrameGenerationCapabilities() const = 0;
   virtual bool isDlssModeAvailableAtResolution(nv::DLSS::Mode mode, const IPoint2 &resolution) const = 0;
 
   // for compatibility

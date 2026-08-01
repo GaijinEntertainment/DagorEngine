@@ -351,9 +351,15 @@ void DwarfCUToModule::GenericDIEHandler::ProcessAttributeString(
       break;
     case dwarf2reader::DW_AT_MIPS_linkage_name: {
       char* demangled = NULL;
+      int status = -1;
 #if !defined(__ANDROID__)
-      demangled = abi::__cxa_demangle(data.c_str(), NULL, NULL, NULL);
+      demangled = abi::__cxa_demangle(data.c_str(), NULL, NULL, &status);
 #endif
+      if (status != 0) {
+        cu_context_->reporter->DemangleError(data, status);
+        demangled_name_ = "";
+        break;
+      }
       if (demangled) {
         demangled_name_ = AddStringToPool(demangled);
         free(reinterpret_cast<void*>(demangled));
@@ -396,6 +402,18 @@ string DwarfCUToModule::GenericDIEHandler::ComputeQualifiedName() {
       enclosing_name = &parent_context_->name;
   }
 
+  // Prepare the return value before upcoming mutations possibly invalidate the
+  // existing pointers.
+  string return_value;
+  if (qualified_name) {
+    return_value = *qualified_name;
+  } else {
+    // Combine the enclosing name and unqualified name to produce our
+    // own fully-qualified name.
+    return_value = cu_context_->language->MakeQualifiedName(*enclosing_name,
+                                                            *unqualified_name);
+  }
+
   // If this DIE was marked as a declaration, record its names in the
   // specification table.
   if (declaration_) {
@@ -409,13 +427,7 @@ string DwarfCUToModule::GenericDIEHandler::ComputeQualifiedName() {
     cu_context_->file_context->file_private_->specifications[offset_] = spec;
   }
 
-  if (qualified_name)
-    return *qualified_name;
-
-  // Combine the enclosing name and unqualified name to produce our
-  // own fully-qualified name.
-  return cu_context_->language->MakeQualifiedName(*enclosing_name,
-                                                  *unqualified_name);
+  return return_value;
 }
 
 // A handler class for DW_TAG_subprogram DIEs.
@@ -528,18 +540,19 @@ void DwarfCUToModule::FuncHandler::Finish() {
   // functions that were never used), but all the ones we're
   // interested in cover a non-empty range of bytes.
   if (low_pc_ < high_pc_) {
-    // Create a Module::Function based on the data we've gathered, and
-    // add it to the functions_ list.
-    scoped_ptr<Module::Function> func(new Module::Function);
     // Malformed DWARF may omit the name, but all Module::Functions must
     // have names.
+    string name;
     if (!name_.empty()) {
-      func->name = name_;
+      name = name_;
     } else {
       cu_context_->reporter->UnnamedFunction(offset_);
-      func->name = "<name omitted>";
+      name = "<name omitted>";
     }
-    func->address = low_pc_;
+
+    // Create a Module::Function based on the data we've gathered, and
+    // add it to the functions_ list.
+    scoped_ptr<Module::Function> func(new Module::Function(name, low_pc_));
     func->size = high_pc_ - low_pc_;
     func->parameter_size = 0;
     if (func->address) {
@@ -659,6 +672,13 @@ void DwarfCUToModule::WarningReporter::UnnamedFunction(uint64 offset) {
   CUHeading();
   fprintf(stderr, "%s: warning: function at offset 0x%llx has no name\n",
           filename_.c_str(), offset);
+}
+
+void DwarfCUToModule::WarningReporter::DemangleError(
+    const string &input, int error) {
+  CUHeading();
+  fprintf(stderr, "%s: warning: failed to demangle %s with error %d\n",
+          filename_.c_str(), input.c_str(), error);
 }
 
 void DwarfCUToModule::WarningReporter::UnhandledInterCUReference(

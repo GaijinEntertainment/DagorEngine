@@ -1,5 +1,15 @@
 macro USE_PAYLOAD_PACKING(stage)
   hlsl(stage) {
+    #if (__SHADER_TARGET_MAJOR == 6 && __SHADER_TARGET_MINOR >= 7) || __SHADER_TARGET_MAJOR > 6
+      #define RAY_PAYLOAD [raypayload]
+      #define PAQR(...) : read(__VA_ARGS__)
+      #define PAQW(...) : write(__VA_ARGS__)
+    #else
+      #define RAY_PAYLOAD
+      #define PAQR(...)
+      #define PAQW(...)
+    #endif
+
     template<uint bits, uint shift>
     void set_packed(inout uint s, uint v)
     {
@@ -54,10 +64,10 @@ macro USE_DISTANCE_PAYLOAD(stage)
   USE_PAYLOAD_PACKING(stage)
 
   hlsl(stage) {
-    struct RayPayload
+    struct RAY_PAYLOAD RayPayload
     {
-      float distance;
-      uint lod_callCounter; // 4_28
+      float distance       PAQR(caller, closesthit, miss, anyhit) PAQW(caller, closesthit, miss, anyhit);
+      uint lod_callCounter PAQR(caller, closesthit, miss, anyhit) PAQW(caller, closesthit, miss, anyhit); // 4_28
     };
 
     float pl_get_distance(RayPayload pl)
@@ -92,11 +102,11 @@ macro USE_GI_PAYLOAD(stage)
   USE_PAYLOAD_PACKING(stage)
 
   hlsl(stage) {
-    struct RayPayload
+    struct RAY_PAYLOAD RayPayload
     {
-      uint albedo_reflectance_metalness; // 24_4_4
-      uint normal_smoothness_iswater_isimpostor_isfoliage; // 24_5_1_1_1
-      uint callcounter_distance; //16_half
+      uint albedo_reflectance_metalness                   PAQR(caller, closesthit, miss, anyhit) PAQW(caller, closesthit, miss, anyhit); // 24_4_4
+      uint normal_smoothness_iswater_isimpostor_isfoliage PAQR(caller, closesthit, miss, anyhit) PAQW(caller, closesthit, miss, anyhit); // 24_5_1_1_1
+      uint callcounter_distance                           PAQR(caller, closesthit, miss, anyhit) PAQW(caller, closesthit, miss, anyhit); //16_half
     };
 
     #define RAY_PAYLOAD_DEFINED 1

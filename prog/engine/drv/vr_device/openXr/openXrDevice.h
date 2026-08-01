@@ -10,8 +10,7 @@
 #include "EASTL/vector.h"
 #include "EASTL/list.h"
 #include "EASTL/string.h"
-#include <atomic>
-#include <mutex>
+#include "osApiWrappers/dag_atomic.h"
 
 #include "openXr.h"
 #include "openXrInputHandler.h"
@@ -115,6 +114,12 @@ private:
     int32_t height = 0;
     eastl::vector<UniqueTex> imageViews;
 
+    // Acquire/wait balance: images are acquired in prepareFrame (main thread) but
+    // waited/released in beginRender/endRender (worker thread); finishPendingFrame
+    // drains the imbalance left by an aborted frame before swapchain teardown.
+    int acquiredImages = 0;
+    int waitedImages = 0;
+
     eastl::unique_ptr<SwapchainData> depth;
   };
 
@@ -122,7 +127,10 @@ private:
   void tearDownInstance();
 
   bool setUpSession();
-  void tearDownSession();
+  void endSession();
+  void destroySession();
+
+  void finishPendingFrame();
 
   bool setUpSwapchains();
   bool setUpSwapchain(SwapchainData &swapchain, int width, int height);
@@ -169,6 +177,9 @@ private:
   bool apiRequestedQuit = false;
 
   uint64_t frameId = 0;
+  // Tracks a successful xrBeginFrame without its matching xrEndFrame yet.
+  bool frameIsOpen = false;
+  XrTime lastPredictedDisplayTime = 0;
 
   bool shouldResetAppSpace = true;
 

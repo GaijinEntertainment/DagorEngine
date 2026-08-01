@@ -21,6 +21,7 @@ struct GamepadReading
 };
 void refresh_gamepads();
 bool is_gamepad_connected(int slot);
+bool is_any_gamepad_connected();
 bool read_gamepad(int slot, GamepadReading &out);
 void set_gamepad_rumble(int slot, float low_freq, float high_freq);
 

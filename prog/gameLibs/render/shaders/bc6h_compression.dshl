@@ -26,3 +26,64 @@ shader bc6h_compressor
     }
   }
 }
+
+// Same global vars as bc6h_high_quality_cs (bc6h_high_quality_cs.dshl), shared by name so both
+// shaders are fed through the same ShaderGlobal::set_* calls.
+float bc6h_cs_src_mip;
+texture bc6h_cs_src_tex;
+int bc6h_cs_blocks_side;
+
+// Single-variant encode, one thread per block: for the small/fine mips, where the cost of
+// bc6h_high_quality_cs's 32-variant search matters most, but shape quality matters least.
+// Reuses pack_bc6h_block(), the same single-pass BC6H packer bc6h_compressor uses above,
+// to sidestep the pixel-shader/render-target export-format path entirely.
+shader bc6h_fast_cs
+{
+  (cs) {
+    src_mip@f1 = bc6h_cs_src_mip;
+    src_tex@texCube = bc6h_cs_src_tex;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
+    blocks_side@i1 = bc6h_cs_blocks_side;
+
+    CompressedTexture@uav : register(0) hlsl {
+      RWTexture2DArray<uint4> CompressedTexture@uav;
+    }
+  }
+
+  USE_BC6H_COMPRESSION(cs)
+
+  hlsl(cs) {
+    #include <get_cubemap_vector.hlsl>
+
+    [numthreads(16, 16, 1)]
+    void main(uint3 dispatchCoords : SV_DispatchThreadID)
+    {
+      // dispatch rounds the block grid up to a multiple of 16, so groups past the
+      // last full block column/row can fall outside the destination mip; skip them.
+      if (dispatchCoords.x >= (uint)blocks_side || dispatchCoords.y >= (uint)blocks_side)
+        return;
+
+      float2 texDim;
+      src_tex.GetDimensions(texDim.x, texDim.y);
+      float2 size = texDim / exp2(src_mip);
+      float2 invSize = 1.0f / size;
+      float2 coords = dispatchCoords.xy * invSize * 4;
+
+      float4 texels[16];
+      #define GET_TEXEL(x, y) texels[y * 4 + x] = texCUBElod(src_tex, float4(GetCubemapVector2(coords + (float2(x, y) + 0.5) * invSize, dispatchCoords.z), src_mip));
+      GET_TEXEL(0, 0); GET_TEXEL(1, 0); GET_TEXEL(2, 0); GET_TEXEL(3, 0);
+      GET_TEXEL(0, 1); GET_TEXEL(1, 1); GET_TEXEL(2, 1); GET_TEXEL(3, 1);
+      GET_TEXEL(0, 2); GET_TEXEL(1, 2); GET_TEXEL(2, 2); GET_TEXEL(3, 2);
+      GET_TEXEL(0, 3); GET_TEXEL(1, 3); GET_TEXEL(2, 3); GET_TEXEL(3, 3);
+      #undef GET_TEXEL
+
+      //DXGI_FORMAT_BC6H_UF16 fmt is used, so limit negative values
+      UNROLL
+      for (int i = 0; i < 16; ++i)
+        texels[i].rgb = max(0., texels[i].rgb);
+
+      CompressedTexture[dispatchCoords.xyz] = pack_bc6h_block(texels);
+    }
+  }
+  compile("cs_5_0", "main");
+}

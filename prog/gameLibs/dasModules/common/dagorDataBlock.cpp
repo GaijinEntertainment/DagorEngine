@@ -67,6 +67,12 @@ static char dagorDataBlock_das[] =
 
 void datablock_debug_print_datablock(const char *name, const DataBlock &blk) { ::debug_print_datablock(name, &blk); }
 
+// Editing tools that rewrite a whole .blk (load + mutate + save) must enable
+// this around the load/save pair, or the rewrite strips every comment in the
+// file. Global and not thread safe, like the quirrel binding; main thread only.
+void datablock_set_parse_comments_as_params(bool v) { DataBlock::parseCommentsAsParams = v; }
+bool datablock_get_parse_comments_as_params() { return DataBlock::parseCommentsAsParams; }
+
 const char *datablock_to_string(const DataBlock &blk, das::Context *context, das::LineInfoArg *at)
 {
   DynamicMemGeneralSaveCB cwr(framemem_ptr(), 0, 2 << 10);
@@ -154,6 +160,11 @@ public:
     BLK_MEMBER(load, "datablock_load", das::SideEffects::modifyArgument, bool(DataBlock::*)(const char *))
 
     das::addExtern<DAS_BIND_FUN(dblk_load)>(*this, lib, "datablock_load", das::SideEffects::modifyArgumentAndExternal, "dblk::load");
+
+    das::addExtern<DAS_BIND_FUN(datablock_set_parse_comments_as_params)>(*this, lib, "datablock_set_parse_comments_as_params",
+      das::SideEffects::modifyExternal, "bind_dascript::datablock_set_parse_comments_as_params");
+    das::addExtern<DAS_BIND_FUN(datablock_get_parse_comments_as_params)>(*this, lib, "datablock_get_parse_comments_as_params",
+      das::SideEffects::accessExternal, "bind_dascript::datablock_get_parse_comments_as_params");
 
     BLK_MEMBER_CONST(getBlock, "datablock_get_block", das::SideEffects::none, const DataBlock *(DataBlock::*)(uint32_t) const)
     BLK_MEMBER(getBlock, "datablock_get_block", das::SideEffects::none, DataBlock * (DataBlock::*)(uint32_t))

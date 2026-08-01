@@ -112,7 +112,7 @@ shader rt_shadows
       uint groupMask = bvhGroupHardShadow;
       uint extraFlags = 0;
 
-      bool isHit = trace_ray(bvhMain, relPos.xyz, direction, 0, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
+      bool isHit = trace_ray(bvhMain, relPos.xyz, direction, 0, 100000, w, groupMask, hitInfo, rayColor, translucentT, extraFlags);
       texture2DAt(rtsm_value, dtid) = isHit ? 0 : 1;
     }
   }

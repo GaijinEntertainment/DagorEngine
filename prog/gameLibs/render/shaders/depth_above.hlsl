@@ -107,22 +107,35 @@ float4 decode_depth_above4(float4 depthHt)
       return get_depth_above_fast_impl(world_pos, tex, tex_samplerstate, vignette_effect);
   }
 
-  float3 get_depth_above_normal_by_unclamped_tc_impl(float2 tc, float lod, Texture2DArray<float4> tex, SamplerState tex_samplerstate)
+  half4 get_depth_above_cross_impl(float2 tc, float2 extraTc, float lod, float step_size, Texture2DArray<float4> tex, SamplerState tex_samplerstate)
   {
-    float lodScale = exp2(lod);
-    float3 offset = float3(world_to_depth_ao.x, 0, world_to_depth_ao.y)*lodScale;
+    float stepScale = exp2(lod) * step_size;
+    float3 tcOffset = float3(world_to_depth_ao.x, 0, world_to_depth_ao.y)*stepScale;
+    float3 txExtraOffset = float3(world_to_depth_ao_extra.x, 0, world_to_depth_ao_extra.y)*stepScale;
     float vignetteEffect;
-    half W = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy - offset.xy, 0, vignetteEffect).xy,0,lod)).x;
-    half E = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy + offset.xy, 0, vignetteEffect).xy,0,lod)).x;
-    half N = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy - offset.yz, 0, vignetteEffect).xy,0,lod)).x;
-    half S = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy + offset.yz, 0, vignetteEffect).xy,0,lod)).x;
-    return normalize(half3(W-E, world_to_depth_ao.x*lodScale, N-S));
+    half W = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy - tcOffset.xy, extraTc.xy - txExtraOffset.xy, vignetteEffect),lod)).x;
+    half E = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy + tcOffset.xy, extraTc.xy + txExtraOffset.xy, vignetteEffect),lod)).x;
+    half N = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy - tcOffset.yz, extraTc.xy - txExtraOffset.yz, vignetteEffect),lod)).x;
+    half S = tex3Dlod(tex, float4(clamp_depth_above_tc(tc.xy + tcOffset.yz, extraTc.xy + txExtraOffset.yz, vignetteEffect),lod)).x;
+    return half4(W, E, N, S);
   }
 
-  float3 get_depth_above_normal_impl(float3 worldPos, float lod, Texture2DArray<float4> tex, SamplerState tex_samplerstate)
+  float3 get_depth_above_normal_from_cross(half4 cross_ht_encoded, float lod, float step_size)
   {
-    float vignette;
+    half y = 2.0 * exp2(lod) * step_size * meter_to_depth_ao_tex_space;
+    return normalize(half3(cross_ht_encoded.x - cross_ht_encoded.y, y, cross_ht_encoded.z - cross_ht_encoded.w));
+  }
+
+  float3 get_depth_above_normal_by_unclamped_tc_impl(float2 tc, float2 extraTc, float lod, float step_size, Texture2DArray<float4> tex, SamplerState tex_samplerstate)
+  {
+    half4 crossHt_encoded = get_depth_above_cross_impl(tc, extraTc, lod, step_size, tex, tex_samplerstate);
+    return get_depth_above_normal_from_cross(crossHt_encoded, lod, step_size);
+  }
+
+  float3 get_depth_above_normal_impl(float3 worldPos, float lod, float step_size, Texture2DArray<float4> tex, SamplerState tex_samplerstate)
+  {
     float2 unclampedTc = world_to_depth_ao.xy * worldPos.xz + world_to_depth_ao.zw;
-    return get_depth_above_normal_by_unclamped_tc_impl(unclampedTc, lod, tex, tex_samplerstate);
+    float2 unclampedExtraTc = world_to_depth_ao_extra.xy * worldPos.xz + world_to_depth_ao_extra.zw;
+    return get_depth_above_normal_by_unclamped_tc_impl(unclampedTc, unclampedExtraTc, lod, step_size, tex, tex_samplerstate);
   }
 #endif

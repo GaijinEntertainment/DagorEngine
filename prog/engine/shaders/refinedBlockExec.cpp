@@ -18,13 +18,13 @@ namespace refined_block
 {
 
 
-static ScopedRefinedBlock emptyScopedBlock{PassBlockHandle::invalid};
+static ScopedRefinedBlock emptyScopedBlock{};
 static eastl::vector<FlushedVar> emptyFlushedVars;
 
 static thread_local ScopedRefinedBlock *g_rb_scoped = &emptyScopedBlock;
 static thread_local eastl::vector<FlushedVar> *g_rb_flushed_vars = &emptyFlushedVars;
 
-ScopedRefinedBlock::ScopedRefinedBlock(const PassBlockHandle &block) : block(block) { g_rb_scoped = this; }
+ScopedRefinedBlock::ScopedRefinedBlock(PassBlockHandle block) : block(block) { g_rb_scoped = this; }
 ScopedRefinedBlock::~ScopedRefinedBlock() { g_rb_scoped = &emptyScopedBlock; }
 
 ScopedFlushedVarsCollector::ScopedFlushedVarsCollector(eastl::vector<FlushedVar> &vars) { g_rb_flushed_vars = &vars; }
@@ -47,6 +47,7 @@ void exec_refined_block_stcode(dag::ConstSpan<int> cod, const PassBlockHandle &b
     {
       case SHCOD_GET_GVEC: color4_reg(regs, getOp2p1(opc)) = stcode_get_from_block<Color4>(block, getOp2p2(opc)); break;
       case SHCOD_GET_GMAT44: float4x4_reg(regs, getOp2p1(opc)) = stcode_get_from_block<TMatrix4>(block, getOp2p2(opc)); break;
+      case SHCOD_GET_GMAT43: set_float3x4_reg(regs, getOp2p1(opc), stcode_get_from_block<TMatrix>(block, getOp2p2(opc))); break;
       case SHCOD_GET_GREAL: real_reg(regs, getOp2p1(opc)) = stcode_get_from_block<real>(block, getOp2p2(opc)); break;
       case SHCOD_GET_GINT: int_reg(regs, getOp2p1(opc)) = stcode_get_from_block<int>(block, getOp2p2(opc)); break;
       case SHCOD_GET_GINT_TOREAL: real_reg(regs, getOp2p1(opc)) = (real)stcode_get_from_block<int>(block, getOp2p2(opc)); break;
@@ -224,6 +225,15 @@ void rb_get_mat44(int32_t gid, stcode::cpp::float4x4 *out)
 {
   TMatrix4 m = g_rb_scoped->getVar<TMatrix4>(gid);
   memcpy(out, &m, sizeof(TMatrix4));
+}
+
+void rb_get_mat43(int32_t gid, stcode::cpp::float4x3 *out)
+{
+  // TMatrix is row major. Hlsl float4x3 (4 rows of 3 columns) is column major
+  TMatrix tm = g_rb_scoped->getVar<TMatrix>(gid);
+  out->col[0] = {tm.m[0][0], tm.m[1][0], tm.m[2][0], tm.m[3][0]};
+  out->col[1] = {tm.m[0][1], tm.m[1][1], tm.m[2][1], tm.m[3][1]};
+  out->col[2] = {tm.m[0][2], tm.m[1][2], tm.m[2][2], tm.m[3][2]};
 }
 
 void *rb_get_tex(int32_t gid) { return g_rb_scoped->getVar<BaseTexture *>(gid); }

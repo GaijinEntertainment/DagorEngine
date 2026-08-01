@@ -2,6 +2,21 @@ include "assert.dshl"
 
 int gbuff_dbg_mode = -1;
 
+macro USE_DBG_GBUFF_TEX_HELPERS(code)
+  hlsl(code)
+  {
+  #ifndef GET_TEXEL_DENSITY_DEFINED
+  #define GET_TEXEL_DENSITY_DEFINED
+    float get_texel_density(float4 gradients, float2 dim)
+    {
+      float2 dtex = gradients.xz * gradients.xz + gradients.yw * gradients.yw;
+      dtex = sqrt(dtex);
+      return dtex.x * dim.x * dtex.y * dim.y;
+    }
+  #endif
+  }
+endmacro
+
 macro INIT_AND_USE_DBG_GBUFF_TEX()
 
   if (debug_mode_enabled == yes)
@@ -9,6 +24,7 @@ macro INIT_AND_USE_DBG_GBUFF_TEX()
     (ps){ gbuff_dbg_mode@i1 = gbuff_dbg_mode; } // Once conditional assumes are a thing: replace it with an interval
   }
 
+  USE_DBG_GBUFF_TEX_HELPERS(ps)
   hlsl (ps)
   {
     void init_mipLevel(inout UnpackedGbuffer result, float mip_level)
@@ -31,9 +47,7 @@ macro INIT_AND_USE_DBG_GBUFF_TEX()
           float mipLevel = tex.CalculateLevelOfDetail(smp, tc);
           tex.GetDimensions((uint) floor(mipLevel), w, h, levels);
           float4 gradients = float4(ddx(tc.xy), ddy(tc.xy));
-          float2 dtex = gradients.xz * gradients.xz + gradients.yw * gradients.yw;
-          dtex = sqrt(dtex);
-          init_debug_info(result, clamp(dtex.x * w * dtex.y * h, 0, MAX_TEXEL_DENSITY_DISPLAYED) / (MAX_TEXEL_DENSITY_DISPLAYED + 1));
+          init_debug_info(result, clamp(get_texel_density(gradients, float2(w, h)), 0, MAX_TEXEL_DENSITY_DISPLAYED) / (MAX_TEXEL_DENSITY_DISPLAYED + 1));
         }
       ##endif
     }

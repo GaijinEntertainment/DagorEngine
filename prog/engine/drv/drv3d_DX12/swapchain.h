@@ -156,6 +156,9 @@ class Swapchain
   WIN_MEMBER std::atomic<uint32_t> numFramesCompletedByBackend = 0;
 
   XBOX_MEMBER FRAME_PIPELINE_TOKEN frameToken = {};
+#if _TARGET_XBOX
+  bool mainThreadFramePacing = false;
+#endif
 
   struct SwapchainBufferInfo
   {
@@ -221,6 +224,11 @@ public:
   bool adopt(Device &device, frontend::Swapchain &fe, DXGISwapChain *external_swapchain, SwapchainCreateInfo &&sci);
 #endif
   void onFrameBegin(D3DDevice *device, uint32_t swapchain_index);
+#if _TARGET_XBOX
+  FRAME_PIPELINE_TOKEN acquireFrameToken(D3DDevice *device);
+  void setPendingFrameToken(FRAME_PIPELINE_TOKEN frame_token) { frameToken = frame_token; }
+  void setMainThreadFramePacing(bool enabled) { mainThreadFramePacing = enabled; }
+#endif
   void present(Device &device, uint32_t frame_id = 0);
 #if _TARGET_XBOX
   void restoreAfterSuspend(D3DDevice *device);

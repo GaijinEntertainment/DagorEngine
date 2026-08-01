@@ -28,7 +28,7 @@
 #include "internal/occlusion_internal.h"
 #include "internal/occlusionGPU_internal.h"
 #include "internal/debug_internal.h"
-#include "internal/steamAudio.h"
+#include "internal/steamAudio/steamAudio_internal.h"
 
 #include <math/random/dag_random.h>
 #include <osApiWrappers/dag_atomic_types.h>
@@ -378,6 +378,9 @@ static bool system_init(const DataBlock &blk, bool null_output)
     fmodStudioInitFlags |= FMOD_STUDIO_INIT_MEMORY_TRACKING;
   }
 #endif
+#if __e2k__ || (_TARGET_PC_WIN && _M_ARM64) // no ported binary of ResonanceAudio plugin for these arch
+  fmodStudioInitFlags |= FMOD_STUDIO_INIT_ALLOW_MISSING_PLUGINS;
+#endif
   g_null_output = null_output;
   FMOD_OUTPUTTYPE currentOutput = FMOD_OUTPUTTYPE_UNKNOWN;
   g_low_level_system->getOutput(&currentOutput);
@@ -634,7 +637,7 @@ bool init(const DataBlock &blk)
   else if (blk.getBool("occlusionGPUInit", false))
     occlusion_gpu::init(blk);
 
-  steam_audio::init(blk);
+  steam_audio::init(blk, g_low_level_system);
 
   eastl::basic_string<char, framemem_allocator> memoryInfo;
   if (g_fixed_mem_pool)

@@ -105,17 +105,28 @@ static inline uint16_t try_parse_port(const char *str) // return 0 on error
   return ret;
 }
 
-net::INetDriver *create_listen_net_driver()
+net::INetDriver *create_listen_net_driver(const char *url_override, int max_connections, bool no_fatal_on_failure)
 {
+  // -nolisten: only applies to the cmdline-driven path; a script-provided URL overrides it.
+  if (!url_override && dgs_get_argv("nolisten"))
+    return nullptr;
+  const char *listen = url_override ? url_override : dgs_get_argv("listen");
+  if (dedicated::is_hosted_server_instance())
+    max_connections += 1; // reserve one connection for possible relay control connections
+
   net::INetDriver *drv = nullptr;
-  if (dgs_get_argv("nolisten"))
-    return drv;
-  const char *listen = dgs_get_argv("listen");
-  if (const char *udp_sock = dgs_get_argv("udp_sock")) // if udp_sock is passed than port should be passed as well
+  // -udp_sock: is a startup-time relay-handoff concern; only honored on the cmdline path.
+  const char *udp_sock = url_override ? nullptr : dgs_get_argv("udp_sock");
+  if (udp_sock) // if udp_sock is passed than port should be passed as well
   {
     binded_net_port = listen ? try_parse_port(listen) : 0;
     if (!binded_net_port)
     {
+      if (no_fatal_on_failure)
+      {
+        logerr("failed to parse bind port from listen url '%s'", listen);
+        return nullptr;
+      }
       DAG_FATAL("failed to parse bind port from listen url '%s'", listen);
       return nullptr;
     }
@@ -126,18 +137,27 @@ net::INetDriver *create_listen_net_driver()
       SocketDescriptor sdss;
       sdss.type = SocketDescriptor::SOCKET;
       sdss.socket = sockfp;
-      int max_connections = NET_MAX_PLAYERS;
-      if (dedicated::is_hosted_server_instance())
-        max_connections += 1; // reserve one connection for possible relay control connections
       drv = net::create_net_driver_listen(sdss, max_connections);
     }
     else
+    {
+      if (no_fatal_on_failure)
+      {
+        logerr("failed to parse udp sock '%s'", udp_sock);
+        return nullptr;
+      }
       DAG_FATAL("failed to parse udp sock '%s'", udp_sock);
+    }
   }
   else
-    drv = net::create_net_driver_listen(listen ? listen : "", NET_MAX_PLAYERS, &binded_net_port);
+    drv = net::create_net_driver_listen(listen ? listen : "", max_connections, &binded_net_port);
   if (!drv)
   {
+    if (no_fatal_on_failure)
+    {
+      logerr("failed to create listen net driver on '%s', port %d is not available?", listen, binded_net_port);
+      return nullptr;
+    }
     DAG_FATAL("failed to create dedicated net driver on '%s', port %d is not available?", listen, binded_net_port);
     return nullptr;
   }

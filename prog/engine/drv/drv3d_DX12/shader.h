@@ -21,6 +21,7 @@
 #include <osApiWrappers/dag_atomic.h>
 #include <osApiWrappers/dag_rwLock.h>
 #include <shadersBinaryData.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 #include <util/dag_hashedKeyMap.h>
 #include <util/dag_watchdog.h>
 
@@ -1299,7 +1300,17 @@ struct StageShaderModuleInBinaryRef : StageShaderModuleHeader
 };
 inline uint32_t offset_to_base(const void *base, const StageShaderModuleInBinaryRef &shader)
 {
-  return shader.byteCode.data() - reinterpret_cast<const uint8_t *>(base);
+  auto value = shader.byteCode.data() - reinterpret_cast<const uint8_t *>(base);
+  if (value < 0)
+  {
+    DAG_FATAL("DX12: Code offset %lld was negative", int64_t{value});
+  }
+  if (value > eastl::numeric_limits<uint32_t>::max())
+  {
+    DAG_FATAL("DX12: Code offset %lld exceeded 32 bits range", int64_t{value});
+  }
+
+  return static_cast<uint32_t>(value);
 }
 using PixelShaderModuleInBinaryRef = StageShaderModuleInBinaryRef;
 
@@ -1551,12 +1562,42 @@ public:
 class ScriptedShadersBinDumpManager
 {
   using UncompressedMemoryProvider = Tab<uint8_t>;
+  // Shader hashes are SHA1 digests, so any 8 leading bytes are already a well-distributed key.
+  struct ShaderHashValueHasher
+  {
+    size_t operator()(const dxil::HashValue &h) const
+    {
+      size_t v = 0;
+      memcpy(&v, h.value, sizeof(v));
+      return v;
+    }
+  };
+  using ShaderHashLookup = ska::flat_hash_map<dxil::HashValue, uint32_t, ShaderHashValueHasher>;
   struct ScriptedShadersBinDumpState
   {
     ScriptedShadersBinDumpOwner *owner = nullptr;
     eastl::unique_ptr<UncompressedMemoryProvider[]> decompressedShaders;
     size_t decompressedShadersSize = 0;
     eastl::string name;
+    ShaderHashLookup vprHashToIndex;
+    ShaderHashLookup computeHashToIndex;
+
+    void buildShaderHashLookup()
+    {
+      vprHashToIndex.clear();
+      computeHashToIndex.clear();
+      auto v2 = owner ? owner->getDumpV2() : nullptr;
+      if (!v2)
+        return;
+      const uint32_t vprCount = v2->vprCount;
+      const uint32_t total = v2->shaderHashes.size();
+      vprHashToIndex.reserve(vprCount);
+      computeHashToIndex.reserve(total > vprCount ? total - vprCount : 0);
+      for (uint32_t i = 0; i < vprCount && i < total; ++i)
+        vprHashToIndex.emplace(v2->shaderHashes[i], i);
+      for (uint32_t i = vprCount; i < total; ++i)
+        computeHashToIndex.emplace(v2->shaderHashes[i], i - vprCount);
+    }
   };
   ScriptedShadersBinDumpState dumps[max_scripted_shaders_bin_groups]{};
   OSSpinlock decompressionCacheLock;
@@ -1598,6 +1639,7 @@ public:
     target.decompressedShaders = eastl::make_unique<UncompressedMemoryProvider[]>(dump->getDump()->shaders.size());
     target.decompressedShadersSize = 0;
     target.name = name;
+    target.buildShaderHashLookup();
   }
   void resetDumpOfGroup(uint32_t shaderGroup)
   {
@@ -1606,6 +1648,8 @@ public:
     target.decompressedShaders.reset();
     target.decompressedShadersSize = 0;
     target.name.clear();
+    ShaderHashLookup{}.swap(target.vprHashToIndex);
+    ShaderHashLookup{}.swap(target.computeHashToIndex);
   }
   // returned memory range is valid until the end of the frame, after that its undefined.
   struct GetShaderByteCodeResult
@@ -1704,18 +1748,10 @@ public:
       {
         continue;
       }
-      auto v2 = group.owner->getDumpV2();
-      if (!v2)
+      auto it = group.vprHashToIndex.find(hash);
+      if (it != group.vprHashToIndex.end())
       {
-        continue;
-      }
-      auto shaderCount = v2->vprCount;
-      for (uint32_t shaderIndex = 0; shaderIndex < shaderCount; ++shaderIndex)
-      {
-        if (v2->shaderHashes[shaderIndex] == hash)
-        {
-          return {groupIndex, shaderIndex};
-        }
+        return {groupIndex, it->second};
       }
     }
     return {max_scripted_shaders_bin_groups, 0};
@@ -1736,19 +1772,10 @@ public:
       {
         continue;
       }
-      auto v2 = group.owner->getDumpV2();
-      if (!v2)
+      auto it = group.computeHashToIndex.find(hash);
+      if (it != group.computeHashToIndex.end())
       {
-        continue;
-      }
-      auto shaderIndexOffset = v2->vprCount;
-      auto shaderCount = v2->shaders.size() - shaderIndexOffset;
-      for (uint32_t shaderIndex = 0; shaderIndex < shaderCount; ++shaderIndex)
-      {
-        if (v2->shaderHashes[shaderIndexOffset + shaderIndex] == hash)
-        {
-          return {groupIndex, shaderIndex};
-        }
+        return {groupIndex, it->second};
       }
     }
     return {max_scripted_shaders_bin_groups, 0};

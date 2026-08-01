@@ -4,8 +4,8 @@ include "gbuffer.dshl"
 include "depth_above.dshl"
 include "heightmap_common.dshl"
 
-int dao_show_normal = 0;
-interval dao_show_normal: off < 1, on;
+int dao_show_mode = 0;
+interval dao_show_mode: plain < 1, normal < 2, texel;
 
 shader debug_depth_above
 {
@@ -54,12 +54,44 @@ shader debug_depth_above
       ProcessedGbuffer gbuffer = processGbuffer(gbuf);
 
       float3 color = ApplySRGBCurve(gbuffer.diffuseColor);
-    ##if dao_show_normal == on
+      float2 daoMainTc = world_to_depth_ao.xy * biasedWorldPos.xz + world_to_depth_ao.zw;
+      // same check as in `clamp_depth_above_tc`
+      bool daoUsesExtra = depth_ao_extra_enabled > 0 && any(saturate(daoMainTc) != daoMainTc);
+      bool daoInBounds = is_inside_depth_above_bounds(biasedWorldPos);
+
+      const float3 outsidePurple = float3(0.5, 0.0, 0.5);
+      const float3 firstCascadeGreen = float3(0.0, 1.0, 0.0);
+      const float3 secondCascadeRed = float3(1.0, 0.0, 0.0);
+      const float halfWay = 0.5;
+
+    ##if dao_show_mode == normal
       float vignetteEffect;
-      color = get_depth_above_normal(worldPos, 0)*0.5+0.5;
+      color = get_depth_above_normal(worldPos, 0, 1.0)*0.5+0.5;
+    ##elif dao_show_mode == texel
+      float texelsPerMeter = (daoUsesExtra ? world_to_depth_ao_extra.x : world_to_depth_ao.x) * depth_ao_texture_size;
+      float2 worldTexel = worldPos.xz * texelsPerMeter;
+      bool checker = ((int(floor(worldTexel.x)) + int(floor(worldTexel.y))) & 1) != 0;
+      float shade = checker ? 1.0 : 0.4;
+      if (daoInBounds)
+      {
+        if (daoUsesExtra)
+          color =  lerp(color, secondCascadeRed * shade, halfWay);
+        else
+          color = lerp(color, firstCascadeGreen * shade, halfWay);
+      }
+    ##else
+      if (daoInBounds && depthInfl < 0.0001)
+      {
+        // green = main cascade, red = extra (second) cascade
+        if (daoUsesExtra)
+          color = secondCascadeRed;
+        else
+          color = firstCascadeGreen;
+      }
     ##endif
-      if (depthInfl < 0.0001)
-        color.g = 1;
+
+      if (!daoInBounds)
+        color = lerp(color, outsidePurple, halfWay);
 
       return float4(color, 1);
     }

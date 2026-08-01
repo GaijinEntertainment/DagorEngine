@@ -6,7 +6,10 @@
 
 ShaderAssumesTable::ShaderAssumesTable(const DataBlock &config_assumes, HashStrings &interval_name_map,
   const ShaderAssumesTable *parent_table, const char *debug_name) :
-  parent{parent_table}, intervalNameMap{&interval_name_map}, debugName{debug_name}
+  parent{parent_table},
+  intervalNameMap{&interval_name_map},
+  debugName{debug_name},
+  toolsAssumeNameId{interval_name_map.addNameId("in_editor_assume")}
 {
   dblk::iterate_params(config_assumes, [&](int idx, int, int type) {
     const char *name = config_assumes.getParamName(idx);
@@ -28,6 +31,12 @@ ShaderAssumesTable::ShaderAssumesTable(const DataBlock &config_assumes, HashStri
 
 float ShaderAssumesTable::addAssume(int nid, float val, bool is_fallback, Parser &parser, Terminal *t)
 {
+  if (DAGOR_UNLIKELY(nid == toolsAssumeNameId))
+  {
+    sh_debug(SHLOG_ERROR, "Assuming \"in_editor_assume\" var only allowed at global blk scope");
+    return 0.f;
+  }
+
   G_ASSERT(nid >= 0);
   if (is_fallback)
   {

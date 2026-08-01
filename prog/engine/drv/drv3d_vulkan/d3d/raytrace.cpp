@@ -77,6 +77,101 @@ RaytraceBLASBufferRefs getRaytraceGeometryRefs(const RaytraceGeometryDescription
   }
   return {nullptr, 0, 0, nullptr, 0, 0};
 }
+
+#if VK_EXT_opacity_micromap
+// gate for consuming the OMM linkage of a geometry, shared by the size query and the build
+// record paths so both agree on whether the linkage is applied
+bool ommLinkageUsable(const RaytraceGeometryDescription &desc)
+{
+  if (!desc.extraDataAvailableMask.hasOpacityMicroMapLinkage || desc.type != RaytraceGeometryDescription::Type::TRIANGLES ||
+      !Globals::VK::phy.hasOpacityMicromap)
+    return false;
+  // U8 OMM linkage indices are unsupported here: index_type_uint8 is not enabled for the micromap
+  // path and DX12 has no U8 path either, so drop the linkage and build without it
+  const bool u8Indices = desc.ommLinkage.indexBuffer && desc.ommLinkage.indexFormat == RaytraceGeometryDescription::IndexFormat::U8;
+  D3D_CONTRACT_ASSERTF(!u8Indices, "vulkan: 8 bit OMM linkage indices are not supported, geometry builds without the linkage");
+  return !u8Indices;
+}
+
+// records the OMM linkage of the geometry that is about to be pushed into raytraceGeometryKHRStore;
+// the geometry pNext / pUsageCounts pointers are installed at backend execution when stores are frozen
+void recordBlasOmmLinkage(const RaytraceGeometryDescription::OpacityMicroMapLinkage &linkage)
+{
+  RenderWork &replay = Frontend::replay.get();
+
+  RaytraceBLASOmmLinkageData l{};
+  fillTrianglesOmmDesc(l.desc, linkage);
+  l.desc.pUsageCounts = nullptr;
+  l.geometryIndex = uint32_t(replay.raytraceGeometryKHRStore.size());
+  l.firstUsage = uint32_t(replay.raytraceMicromapUsageStore.size());
+  l.usageCount = linkage.ommDesc.size();
+  // caller owns the usage span only for the duration of the call, copy for deferred execution
+  const VkMicromapUsageEXT *usages = reinterpret_cast<const VkMicromapUsageEXT *>(linkage.ommDesc.data());
+  replay.raytraceMicromapUsageStore.insert(replay.raytraceMicromapUsageStore.end(), usages, usages + linkage.ommDesc.size());
+  if (linkage.indexBuffer)
+  {
+    const BufferRef &devIbuf = ((GenericBufferInterface *)linkage.indexBuffer)->getBufferRef();
+    const uint32_t indexUnitSize = l.desc.indexType == VK_INDEX_TYPE_UINT32 ? 4 : (l.desc.indexType == VK_INDEX_TYPE_UINT16 ? 2 : 1);
+    const uint32_t localOfs = indexUnitSize * linkage.indexBufferOffsetInIndexUnits;
+    l.indexBuffer = devIbuf.buffer;
+    l.indexOffset = (uint32_t)devIbuf.bufOffset(localOfs);
+    l.indexSize = (uint32_t)devIbuf.visibleDataSize - localOfs;
+  }
+  l.micromap = (RaytraceAccelerationStructure *)linkage.triangleArray;
+  replay.raytraceBLASOmmLinkageStore.push_back(l);
+}
+#endif
+
+// shared per-geometry record body of the single and batched BLAS build paths
+void recordBlasGeometries(RaytraceStructureBuildData &bd, const ::raytrace::BottomAccelerationStructureBuildInfo &basbi)
+{
+  RenderWork &replay = Frontend::replay.get();
+
+  bd.blas.geometryCount = basbi.geometryDescCount;
+  bd.blas.firstGeometry = uint32_t(replay.raytraceGeometryKHRStore.size());
+  bd.blas.firstOmmLinkage = 0;
+  bd.blas.ommLinkageCount = 0;
+#if VK_EXT_opacity_micromap
+  bd.blas.firstOmmLinkage = uint32_t(replay.raytraceBLASOmmLinkageStore.size());
+#endif
+
+  G_ASSERT(replay.raytraceGeometryKHRStore.size() == replay.raytraceBuildRangeInfoKHRStore.size());
+  for (uint32_t i = 0; i < basbi.geometryDescCount; ++i)
+  {
+    uint32_t primitiveOffset = 0;
+    const auto *ibuf = (const GenericBufferInterface *)basbi.geometryDesc[i].data.triangles.indexBuffer;
+    if (ibuf)
+    {
+      const VkIndexType indexType = ibuf->getIndexType();
+      if (indexType == VkIndexType::VK_INDEX_TYPE_UINT32)
+      {
+        primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 4;
+      }
+      else
+      {
+        G_ASSERT(indexType == VkIndexType::VK_INDEX_TYPE_UINT16);
+        primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 2;
+      }
+    }
+    auto &tri = basbi.geometryDesc[i].data.triangles;
+    uint32_t primitiveCount = ibuf ? tri.indexCount / 3 : tri.vertexCount / 3;
+    replay.raytraceBuildRangeInfoKHRStore.push_back({
+      primitiveCount, primitiveOffset,
+      0, // firstVertex
+      0  // transformOffset
+    });
+#if VK_EXT_opacity_micromap
+    // silently dropped when OMM is not supported, geometry then builds without the linkage
+    if (ommLinkageUsable(basbi.geometryDesc[i]))
+      recordBlasOmmLinkage(basbi.geometryDesc[i].ommLinkage);
+#endif
+    replay.raytraceGeometryKHRStore.push_back(RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(basbi.geometryDesc[i]));
+    replay.raytraceBLASBufferRefsStore.push_back(getRaytraceGeometryRefs(basbi.geometryDesc[i]));
+  }
+#if VK_EXT_opacity_micromap
+  bd.blas.ommLinkageCount = uint32_t(replay.raytraceBLASOmmLinkageStore.size()) - bd.blas.firstOmmLinkage;
+#endif
+}
 } // namespace
 
 #define DEF_DESCRIPTOR_RAYTRACE                                                                    \
@@ -92,16 +187,37 @@ VkAccelerationStructureBuildSizesInfoKHR getSizeByDriverDesc(const RaytraceGeome
 
   dag::Vector<VkAccelerationStructureGeometryKHR> geometryDef;
   dag::Vector<uint32_t> maxPrimCounts;
+#if VK_EXT_opacity_micromap
+  dag::Vector<VkAccelerationStructureTrianglesOpacityMicromapEXT> ommDefs;
+#endif
   const bool isTopAS = (geometry == nullptr);
   if (!isTopAS)
   {
     geometryDef.reserve(count);
     maxPrimCounts.reserve(count);
+#if VK_EXT_opacity_micromap
+    // pNext pointers go into this vector, reserve exact size to keep them stable
+    uint32_t ommCount = 0;
+    for (uint32_t i = 0; i < count; ++i)
+      if (ommLinkageUsable(geometry[i]))
+        ++ommCount;
+    ommDefs.reserve(ommCount);
+#endif
     for (uint32_t i = 0; i < count; ++i)
     {
       geometryDef.push_back(RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(geometry[i]));
       auto &tri = geometry[i].data.triangles;
       maxPrimCounts.push_back(tri.indexBuffer ? tri.indexCount / 3 : tri.vertexCount / 3);
+#if VK_EXT_opacity_micromap
+      // OMM linkage changes size requirements; usage counts point at caller memory, valid
+      // for the synchronous size query below
+      if (ommLinkageUsable(geometry[i]))
+      {
+        ommDefs.push_back({});
+        fillTrianglesOmmDesc(ommDefs.back(), geometry[i].ommLinkage);
+        geometryDef.back().geometry.triangles.pNext = &ommDefs.back();
+      }
+#endif
     }
   }
   else
@@ -221,39 +337,8 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
   bd.update = basbi.doUpdate;
   bd.dst = (RaytraceAccelerationStructure *)as;
   bd.scratchBuf = scratchRef;
-  bd.blas.geometryCount = basbi.geometryDescCount;
-  bd.blas.firstGeometry = uint32_t(Frontend::replay->raytraceGeometryKHRStore.size());
   bd.blas.compactionSizeBuffer = compactionSizeBuffer;
-
-  G_ASSERT(Frontend::replay->raytraceGeometryKHRStore.size() == Frontend::replay->raytraceBuildRangeInfoKHRStore.size());
-  for (uint32_t i = 0; i < basbi.geometryDescCount; ++i)
-  {
-    uint32_t primitiveOffset = 0;
-    const auto *ibuf = (const GenericBufferInterface *)basbi.geometryDesc[i].data.triangles.indexBuffer;
-    if (ibuf)
-    {
-      const VkIndexType indexType = ibuf->getIndexType();
-      if (indexType == VkIndexType::VK_INDEX_TYPE_UINT32)
-      {
-        primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 4;
-      }
-      else
-      {
-        G_ASSERT(indexType == VkIndexType::VK_INDEX_TYPE_UINT16);
-        primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 2;
-      }
-    }
-    auto &tri = basbi.geometryDesc[i].data.triangles;
-    uint32_t primitiveCount = ibuf ? tri.indexCount / 3 : tri.vertexCount / 3;
-    Frontend::replay->raytraceBuildRangeInfoKHRStore.push_back({
-      primitiveCount, primitiveOffset,
-      0, // firstVertex
-      0  // transformOffset
-    });
-    Frontend::replay->raytraceGeometryKHRStore.push_back(
-      RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(basbi.geometryDesc[i]));
-    Frontend::replay->raytraceBLASBufferRefsStore.push_back(getRaytraceGeometryRefs(basbi.geometryDesc[i]));
-  }
+  recordBlasGeometries(bd, basbi);
   Globals::ctx.dispatchCmdNoLock(cmd);
 }
 
@@ -312,39 +397,8 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
     bd.update = basbi.doUpdate;
     bd.dst = (RaytraceAccelerationStructure *)itr.as;
     bd.scratchBuf = scratchRef;
-    bd.blas.geometryCount = basbi.geometryDescCount;
-    bd.blas.firstGeometry = uint32_t(Frontend::replay->raytraceGeometryKHRStore.size());
     bd.blas.compactionSizeBuffer = compactionSizeBuffer;
-
-    G_ASSERT(Frontend::replay->raytraceGeometryKHRStore.size() == Frontend::replay->raytraceBuildRangeInfoKHRStore.size());
-    for (uint32_t i = 0; i < basbi.geometryDescCount; ++i)
-    {
-      uint32_t primitiveOffset = 0;
-      const auto *ibuf = (const GenericBufferInterface *)basbi.geometryDesc[i].data.triangles.indexBuffer;
-      if (ibuf)
-      {
-        const VkIndexType indexType = ibuf->getIndexType();
-        if (indexType == VkIndexType::VK_INDEX_TYPE_UINT32)
-        {
-          primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 4;
-        }
-        else
-        {
-          G_ASSERT(indexType == VkIndexType::VK_INDEX_TYPE_UINT16);
-          primitiveOffset = basbi.geometryDesc[i].data.triangles.indexOffset * 2;
-        }
-      }
-      auto &tri = basbi.geometryDesc[i].data.triangles;
-      uint32_t primitiveCount = ibuf ? tri.indexCount / 3 : tri.vertexCount / 3;
-      Frontend::replay->raytraceBuildRangeInfoKHRStore.push_back({
-        primitiveCount, primitiveOffset,
-        0, // firstVertex
-        0  // transformOffset
-      });
-      Frontend::replay->raytraceGeometryKHRStore.push_back(
-        RaytraceGeometryDescriptionToVkAccelerationStructureGeometryKHR(basbi.geometryDesc[i]));
-      Frontend::replay->raytraceBLASBufferRefsStore.push_back(getRaytraceGeometryRefs(basbi.geometryDesc[i]));
-    }
+    recordBlasGeometries(bd, basbi);
   }
   Globals::ctx.dispatchCmdNoLock(cmd);
 }
@@ -451,6 +505,16 @@ RaytraceAccelerationStructureGpuHandle d3d::get_raytrace_acceleration_structure_
 void d3d::copy_raytrace_acceleration_structure(RaytraceAnyAccelerationStructure dst, RaytraceAnyAccelerationStructure src,
   bool compact)
 {
+#if VK_EXT_opacity_micromap
+  if (dst.omm || src.omm)
+  {
+    D3D_CONTRACT_ASSERT_RETURN(dst.omm && src.omm, );
+    D3D_CONTRACT_ASSERT_RETURN(Globals::VK::phy.hasOpacityMicromap, );
+    Globals::ctx.dispatchCmd<CmdCopyRaytraceAccelerationStructure>(
+      {(RaytraceAccelerationStructure *)src.omm, (RaytraceAccelerationStructure *)dst.omm, compact});
+    return;
+  }
+#endif
   D3D_CONTRACT_ASSERT_RETURN((dst.bottom && src.bottom) || (dst.top && src.top), );
 
   auto rsrc = src.top ? reinterpret_cast<RaytraceAccelerationStructure *>(src.top)
@@ -501,8 +565,15 @@ namespace
   return (RaytraceTopAccelerationStructure *)RaytraceAccelerationStructure::create(true /*topLevel*/, info.sizeInBytes);
 }
 
-::raytrace::AnyAccelerationStructure create_as(const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &)
+::raytrace::AnyAccelerationStructure create_as(const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &info)
 {
+#if VK_EXT_opacity_micromap
+  G_UNUSED(info);
+  if (Globals::VK::phy.hasOpacityMicromap)
+    return (RaytraceOpacityMicroMapTriangleArray *)RaytraceAccelerationStructure::createMicromap(info.sizeInBytes);
+#else
+  G_UNUSED(info);
+#endif
   return (RaytraceOpacityMicroMapTriangleArray *)nullptr;
 }
 
@@ -530,9 +601,33 @@ namespace
   return result;
 }
 
-::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo &)
+::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo &info)
 {
+#if VK_EXT_opacity_micromap
+  G_UNUSED(info);
+  if (!Globals::VK::phy.hasOpacityMicromap)
+    return {};
+
+  VulkanDevice &dev = Globals::VK::dev;
+
+  VkMicromapBuildInfoEXT mbi = {VK_STRUCTURE_TYPE_MICROMAP_BUILD_INFO_EXT};
+  mbi.type = VK_MICROMAP_TYPE_OPACITY_MICROMAP_EXT;
+  mbi.flags = ToVkBuildMicromapFlagsEXT(info.flags);
+  mbi.mode = VK_BUILD_MICROMAP_MODE_BUILD_EXT;
+  mbi.usageCountsCount = info.ommDesc.size();
+  mbi.pUsageCounts = reinterpret_cast<const VkMicromapUsageEXT *>(info.ommDesc.data());
+
+  VkMicromapBuildSizesInfoEXT sizes = {VK_STRUCTURE_TYPE_MICROMAP_BUILD_SIZES_INFO_EXT};
+  VULKAN_LOG_CALL(dev.vkGetMicromapBuildSizesEXT(dev.get(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &mbi, &sizes));
+
+  ::raytrace::AccelerationStructureSizes result;
+  result.structureSizeInBytes = sizes.micromapSize;
+  result.buildScratchBufferSizeInBytes = sizes.buildScratchSize;
+  return result;
+#else
+  G_UNUSED(info);
   return {};
+#endif
 }
 } // namespace
 
@@ -563,12 +658,113 @@ void d3d::raytrace::destroy_acceleration_structure(::raytrace::AccelerationStruc
       Globals::ctx.dispatchCmd<CmdDestroyTLAS>({(RaytraceAccelerationStructure *)structure.top});
     else if (structure.bottom)
       Globals::ctx.dispatchCmd<CmdDestroyBLAS>({(RaytraceAccelerationStructure *)structure.bottom});
+#if VK_EXT_opacity_micromap
+    // micromaps are never referenced by descriptor binds, BLAS-outliving-OMM is the callers
+    // responsibility per API contract, so BLAS destroy semantics fit as is
+    else if (structure.omm)
+      Globals::ctx.dispatchCmd<CmdDestroyBLAS>({(RaytraceAccelerationStructure *)structure.omm});
+#endif
   }
 }
+
+#if VK_EXT_opacity_micromap
+namespace
+{
+void build_opacity_micromap_arrays(const ::raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo *builds, uint32_t count)
+{
+  D3D_CONTRACT_ASSERT_RETURN(Globals::VK::phy.hasOpacityMicromap, );
+
+  OSSpinlockScopedLock lockedFront(Globals::ctx.getFrontLock());
+  // invalid items are skipped, valid ones of the batch still build; the command is
+  // dispatched with the count of items that were actually recorded
+  const size_t firstBuildIndex = Frontend::replay->raytraceMicromapBuildStore.size();
+  for (const ::raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo &itr : make_span(builds, count))
+  {
+    const ::raytrace::OpacityMicroMapTriangleArrayBuildInfo &ommtabi = itr.ommtabi;
+    auto inputBuffer = (GenericBufferInterface *)ommtabi.inputBuffer;
+    auto descBuffer = (GenericBufferInterface *)ommtabi.perOpacityMicroMapDescriptions;
+    D3D_CONTRACT_ASSERTF_CONTINUE(itr.omm && inputBuffer && descBuffer,
+      "vulkan: build_acceleration_structure: OMM build needs valid omm, inputBuffer and perOpacityMicroMapDescriptions");
+    D3D_CONTRACT_ASSERTF_CONTINUE(SBCF_OPACITY_MICRO_MAP_TRIANGLE_SOURCE_DATA & inputBuffer->getFlags(),
+      "vulkan: build_acceleration_structure: OMM inputBuffer must be created with the "
+      "SBCF_OPACITY_MICRO_MAP_TRIANGLE_SOURCE_DATA flag set");
+    D3D_CONTRACT_ASSERTF_CONTINUE(ommtabi.inputBufferOffset % Globals::desc.raytrace.opacityMicroMapInputBufferAlignment == 0,
+      "vulkan: build_acceleration_structure: OMM inputBufferOffset %u must be aligned to "
+      "raytrace.opacityMicroMapInputBufferAlignment (%u)",
+      ommtabi.inputBufferOffset, Globals::desc.raytrace.opacityMicroMapInputBufferAlignment);
+
+#if DAGOR_DBGLEVEL > 0
+    // usage subdivision levels must not exceed the per-format device caps
+    // (VUID-VkMicromapBuildInfoEXT-subdivisionLevel-07531/-07532)
+    bool subdivLevelsOk = true;
+    for (const RaytraceOpacityMicroMapDescription &d : ommtabi.ommDesc)
+    {
+      const uint32_t limit = d.format == RaytraceOpacityMicroMapFormat::OpacityCompression1_2State
+                               ? Globals::VK::phy.opacityMicromapProps.maxOpacity2StateSubdivisionLevel
+                               : Globals::VK::phy.opacityMicromapProps.maxOpacity4StateSubdivisionLevel;
+      subdivLevelsOk = subdivLevelsOk && d.subdivisionLevel <= limit;
+    }
+    D3D_CONTRACT_ASSERTF_CONTINUE(subdivLevelsOk,
+      "vulkan: build_acceleration_structure: OMM usage subdivisionLevel exceeds device "
+      "maxOpacity2StateSubdivisionLevel/maxOpacity4StateSubdivisionLevel (%u/%u)",
+      Globals::VK::phy.opacityMicromapProps.maxOpacity2StateSubdivisionLevel,
+      Globals::VK::phy.opacityMicromapProps.maxOpacity4StateSubdivisionLevel);
+#endif
+
+    RaytraceMicromapBuildData bd{};
+    bd.flags = ToVkBuildMicromapFlagsEXT(ommtabi.flags);
+    bd.dst = (RaytraceAccelerationStructure *)itr.omm;
+    bd.inputBuffer = inputBuffer->getBufferRef();
+    bd.inputOffset = ommtabi.inputBufferOffset;
+    bd.triangleArrayBuffer = descBuffer->getBufferRef();
+    bd.triangleArrayOffset = ommtabi.perOpacityMicroMapDescriptionsOffset;
+    bd.triangleArrayStride = ommtabi.perOpacityMicroMapDescriptionsStride;
+    if (ommtabi.scratchSpaceBuffer)
+    {
+      auto scratchSpaceBuffer = (GenericBufferInterface *)ommtabi.scratchSpaceBuffer;
+      D3D_CONTRACT_ASSERTF_CONTINUE(SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE & scratchSpaceBuffer->getFlags(),
+        "vulkan: build_acceleration_structure: OMM scratchSpaceBuffer must be created with the "
+        "SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE flag set");
+      bd.scratchBuf = scratchSpaceBuffer->getBufferRef();
+      bd.scratchBuf.addOffset(ommtabi.scratchSpaceBufferOffsetInBytes);
+    }
+    if (RaytraceBuildFlags::ALLOW_COMPACTION == (ommtabi.flags & RaytraceBuildFlags::ALLOW_COMPACTION))
+    {
+      auto compactedSizeOutputBuffer = (GenericBufferInterface *)ommtabi.compactedSizeOutputBuffer;
+      D3D_CONTRACT_ASSERTF_CONTINUE(compactedSizeOutputBuffer,
+        "vulkan: Compacted size buffer must be provided when compaction is enabled");
+      bd.compactionSizeBuffer = compactedSizeOutputBuffer->getBufferRef();
+      bd.compactionSizeBuffer.addOffset(ommtabi.compactedSizeOutputBufferOffsetInBytes);
+    }
+    bd.firstUsage = uint32_t(Frontend::replay->raytraceMicromapUsageStore.size());
+    bd.usageCount = ommtabi.ommDesc.size();
+    // caller owns the usage span only for the duration of the call, copy for deferred execution
+    const VkMicromapUsageEXT *usages = reinterpret_cast<const VkMicromapUsageEXT *>(ommtabi.ommDesc.data());
+    Frontend::replay->raytraceMicromapUsageStore.insert(Frontend::replay->raytraceMicromapUsageStore.end(), usages,
+      usages + ommtabi.ommDesc.size());
+    Frontend::replay->raytraceMicromapBuildStore.push_back(bd);
+  }
+  const uint32_t recordedCount = uint32_t(Frontend::replay->raytraceMicromapBuildStore.size() - firstBuildIndex);
+  if (recordedCount)
+    Globals::ctx.dispatchCmdNoLock<CmdRaytraceBuildMicromaps>({firstBuildIndex, recordedCount});
+}
+} // namespace
+#endif
 
 void d3d::raytrace::build_acceleration_structure(::raytrace::AccelerationStructureBuildParameters build_params,
   ::raytrace::AccelerationStructureBuildMode)
 {
+#if VK_EXT_opacity_micromap
+  // OMMs build first, they may be referenced by the BLAS builds that follow; the backend
+  // command barriers the builds regardless of flushAfterOpacityMicroMapTriangleArrayBuilds
+  if (!build_params.opacityMicroMapTriangleArrayBuilds.empty())
+  {
+    build_opacity_micromap_arrays(build_params.opacityMicroMapTriangleArrayBuilds.data(),
+      build_params.opacityMicroMapTriangleArrayBuilds.size());
+  }
+#else
+  D3D_CONTRACT_ASSERT(build_params.opacityMicroMapTriangleArrayBuilds.empty());
+#endif
   if (!build_params.bottomBuilds.empty())
   {
     build_bottom_acceleration_structures(build_params.bottomBuilds.data(), build_params.bottomBuilds.size());

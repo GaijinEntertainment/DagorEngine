@@ -1,1 +1,2 @@
 rapidjson v1.1.0 (https://github.com/Tencent/rapidjson/commit/f54b0e47a08782a6131cc3d60f94d038fa6e0a51)
++ backported post-v1.1.0 upstream bugfixes (Change-Id I5d52923e4f64beb6eed3192587687ec572e63063): 24b5e7a, 7c73dd7, 805d7ed, 879ae85, bb06211, 16872af, ed73d7b, 8269bc2, 563fe5b, and the 29b6c9b..d621dc9 number-parsing series.

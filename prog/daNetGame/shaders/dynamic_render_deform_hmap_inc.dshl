@@ -6,6 +6,7 @@ macro RENDER_TO_DEFORM_HMAP()
     hlsl {
       #define NEED_TC 1
       #define SUPPORT_DEFORM_INFO 1
+      #include <deform_hmap.hlsli>
     }
     (ps) { pressure@f1 = deform_hmap_pressure; }
   }
@@ -18,7 +19,8 @@ macro RENDER_DEFORM_HMAP_PS()
       #if SET_UP_MULTIDRAW
         SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
       #endif
-      return get_pressure();
+      // Since heightmap deformation is written into a texture, we need to limit the values to the range [0, 1]:
+      return get_pressure() / DEFORM_HMAP_VEHICLE_DEFORM_COMPRESSION_FACTOR;
     }
     #else
     float render_deform_hmap_ps(float4 screen_pos : VPOS) : SV_Target

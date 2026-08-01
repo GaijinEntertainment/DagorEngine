@@ -16,6 +16,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <math/dag_occlusionZBuffer.h>
+#include <render/dynmodelRenderer.h>
 
 #include <EASTL/shared_ptr.h>
 
@@ -33,21 +34,40 @@ SCOPE_VRS_MASK_VARS
 SCOPE_LENS_VARS
 #undef VAR
 
-
-static auto request_common_scope_state(dafg::Registry registry, const bool use_jittered_proj = true)
+class DynamicPrevViewProjScope
 {
-  auto camera = registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>();
-  if (use_jittered_proj)
-    eastl::move(camera).bindAsProj<&CameraParams::jitterProjTm>();
-  else
-    eastl::move(camera).bindAsProj<&CameraParams::noJitterProjTm>();
+public:
+  DynamicPrevViewProjScope(const CameraParams &camera, const CameraParams &prev_camera)
+  {
+    dynrend::get_prev_view_proj(prevViewTm, prevProjTm);
+    dynrend::set_prev_view_proj(prev_camera.viewRotTm, get_prev_proj_tm_with_cur_jitter(prev_camera, camera));
+  }
+  DynamicPrevViewProjScope(const DynamicPrevViewProjScope &) = delete;
+  DynamicPrevViewProjScope &operator=(const DynamicPrevViewProjScope &) = delete;
+  ~DynamicPrevViewProjScope() { dynrend::set_prev_view_proj(prevViewTm, prevProjTm); }
+
+private:
+  TMatrix4_vec4 prevViewTm;
+  TMatrix4_vec4 prevProjTm;
+};
+
+template <bool use_jittered_proj = true>
+static auto request_common_scope_state(dafg::Registry registry)
+{
+  static constexpr auto ProjBind = use_jittered_proj ? &CameraParams::jitterProjTm : &CameraParams::noJitterProjTm;
+
+  auto camera =
+    registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<ProjBind>().handle();
+  auto prevCamera = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
   auto aimRenderDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
   auto scopeAimRenderDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
   auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-  return eastl::make_tuple(aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl);
+  auto tuple = eastl::make_tuple(aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera);
+  return eastl::make_unique<decltype(tuple)>(tuple);
 }
+
 
 dafg::NodeHandle makeScopePrepassNode()
 {
@@ -60,8 +80,9 @@ dafg::NodeHandle makeScopePrepassNode()
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
-    return [scopeDataHndls]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls)]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -81,8 +102,9 @@ dafg::NodeHandle makeScopeOpaqueNode()
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
-    return [scopeDataHndls]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls)]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -101,8 +123,9 @@ dafg::NodeHandle makeScopeTransNode()
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
-    return [scopeDataHndls]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls)]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -125,7 +148,6 @@ dafg::NodeHandle makeScopeLensMaskNode()
     registry.create("scope_lens_mask")
       .texture({TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
       .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
-    registry.create("scope_lens_sampler").blob(d3d::request_sampler({}));
 
     shaders::OverrideState overrideState;
     overrideState.set(shaders::OverrideState::Z_WRITE_DISABLE);
@@ -135,8 +157,9 @@ dafg::NodeHandle makeScopeLensMaskNode()
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
-    return [scopeDataHndls]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls)]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       extern void scope_fire_debug_assert(const AimRenderingData &aimRenderData);
       scope_fire_debug_assert(aimRenderDataHndl.ref());
@@ -162,8 +185,9 @@ dafg::NodeHandle makeScopeHZBMask()
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
-    return [scopeDataHndls]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls)]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -187,7 +211,6 @@ dafg::NodeHandle makeScopeVrsMaskNode()
       auto closeupsNs = registry.root() / "opaque" / "closeups";
 
       closeupsNs.readTexture("scope_lens_mask").atStage(dafg::Stage::COMPUTE).bindToShaderVar("scope_lens_mask");
-      closeupsNs.read("scope_lens_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("scope_lens_mask_samplerstate");
 
       auto depthGbufHndl =
         closeupsNs.read("gbuf_depth").texture().atStage(dafg::Stage::COMPUTE).useAs(dafg::Usage::SHADER_RESOURCE).handle();
@@ -232,8 +255,9 @@ dafg::NodeHandle makeScopeDownsampleStencilNode(const char *node_name, const cha
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
-    return [scopeDataHndls, depthHndl]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls), depthHndl]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -275,14 +299,14 @@ dafg::NodeHandle makeScopeCutDepthNode()
     registry.requestRenderPass().color({registry.modify("gbuf_2_done").texture().optional()}).depth("gbuf_depth_done");
 
     registry.readTexture("scope_lens_mask").atStage(dafg::Stage::PS).bindToShaderVar("scope_lens_mask");
-    registry.read("scope_lens_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("scope_lens_mask_samplerstate");
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
     const auto mainViewResolution = registry.getResolution<2>("main_view");
 
-    return [scopeDataHndls, mainViewResolution, writeCamcamStencilMask]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls), mainViewResolution, writeCamcamStencilMask]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -322,8 +346,9 @@ dafg::NodeHandle makeRenderLensFrameNode()
 
     auto hasThermalRender = registry.readBlob<OrderingToken>("thermal_spectre_rendered").optional().handle();
 
-    return [scopeDataHndls, postfxResolution, frameHndl, lensSourceHndl, hasThermalRender]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls), postfxResolution, frameHndl, lensSourceHndl, hasThermalRender]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       const ScopeAimRenderingData &scopeAimRenderData = scopeAimRenderDataHndl.ref();
       if (!aimRenderDataHndl.ref().lensRenderEnabled || hasThermalRender.get())
@@ -352,14 +377,15 @@ dafg::NodeHandle makeRenderOpticsPrepassNode()
                                   .handle();
 
     const bool noJitter = false;
-    auto scopeDataHndls = request_common_scope_state(registry, noJitter);
+    auto scopeDataHndls = request_common_scope_state<noJitter>(registry);
 
     auto hasOpticsPrepass = registry.createBlob<bool>("has_aim_scope_optics_prepass").handle();
     auto mainViewRes = registry.getResolution<2>("main_view");
     auto postfxRes = registry.getResolution<2>("post_fx");
 
-    return [scopeDataHndls, hasOpticsPrepass, mainViewRes, postfxRes, depthForOpticsHandle]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls), hasOpticsPrepass, mainViewRes, postfxRes, depthForOpticsHandle]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       d3d::set_render_target({depthForOpticsHandle.view().getTex2D(), 0, 0}, DepthAccess::RW, {});
       d3d::clearview(CLEAR_ZBUFFER, E3DCOLOR(0, 0, 0), 0.f, 0u);
@@ -410,7 +436,7 @@ dafg::NodeHandle makeRenderLensOpticsNode()
     request_and_bind_scope_lens_reflections(registry);
 
     const bool noJitter = false;
-    auto scopeDataHndls = request_common_scope_state(registry, noJitter);
+    auto scopeDataHndls = request_common_scope_state<noJitter>(registry);
 
     struct BlobsToInit
     {
@@ -420,9 +446,10 @@ dafg::NodeHandle makeRenderLensOpticsNode()
     };
     auto extraBlobs = eastl::shared_ptr<BlobsToInit>(new BlobsToInit{hasOpticsPrepass, hasThermalRender, useROdepth});
 
-    return [scopeDataHndls, bs = std::move(extraBlobs), opticsPrepassDepthHndl, depthAfterTransparentsHndl, frameHndl,
-             fadingRenderer = PostFxRenderer("solid_color_shader")]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls), bs = std::move(extraBlobs), opticsPrepassDepthHndl, depthAfterTransparentsHndl,
+             frameHndl, fadingRenderer = PostFxRenderer("solid_color_shader")]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -450,10 +477,11 @@ dafg::NodeHandle makeRenderCrosshairNode()
     registry.requestRenderPass().color({registry.renameTexture("lens_frame_target", "lens_crosshair_target")});
 
     const bool noJitter = false;
-    auto scopeDataHndls = request_common_scope_state(registry, noJitter);
+    auto scopeDataHndls = request_common_scope_state<noJitter>(registry);
 
-    return [scopeDataHndls]() {
-      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl] = scopeDataHndls;
+    return [state = eastl::move(scopeDataHndls)]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
 
       if (!aimRenderDataHndl.ref().lensRenderEnabled)
         return;
@@ -517,8 +545,9 @@ dafg::NodeHandle makeRenderReflectionsNode()
 
     auto invTexelSizeHndl = registry.createBlob<float>("inv_scope_lens_reflection_texel_size").handle();
 
-    return [materialStorage = eastl::move(mat), elemStorage = eastl::move(elem), scopeDataHndls, invTexelSizeHndl]() {
-      const auto &[aimRenderDataHndl, _, strmCtxHndl] = scopeDataHndls;
+    return [_ = eastl::move(mat), elemStorage = eastl::move(elem), state = eastl::move(scopeDataHndls), invTexelSizeHndl]() {
+      const auto &[aimRenderDataHndl, scopeAimRenderDataHndl, strmCtxHndl, camera, prevCamera] = *state;
+      DynamicPrevViewProjScope prevViewProjScope(camera.ref(), prevCamera.ref());
       invTexelSizeHndl.ref() = 1.0 / static_cast<float>(reflection_tex_size);
 
       const AimRenderingData &aimRenderData = aimRenderDataHndl.ref();

@@ -22,7 +22,9 @@
 // Tonemap samples from HDR to perceptual space before integration, then inverse tonemap back to HDR space
 #define TAA_COLOR_ALPHA 1
 
+#ifndef TAA_IN_HDR_SPACE
 #define TAA_IN_HDR_SPACE 0
+#endif
 
 // Use optimized color neighborhood
 //#define TAA_USE_OPTIMIZED_NEIGHBORHOOD
@@ -56,6 +58,22 @@
 #define color_type half4
 #define color_attr rgba
 
+#include "clouds_checker.hlsli"
+
+#ifndef TAA_CHECKER_MODE
+  #define TAA_CHECKER_MODE 0
+  #define TAA_CHECKER_FRAME 0u
+#endif
+
+//checker temporal state in the R8 weight target, 6 bits = (age << 2) | phase.
+//age 0..15 (0 = fill placeholder, 15 = converged); phase is the frame&3 of the
+//last fresh write. Must be read with point Loads and decoded per tap (bilinear
+//would mix the fields; age is monotone and may be interpolated after decode)
+#define CHECKER_AGE_CONVERGED 15u
+float checker_age_encode(uint age, uint phase) { return float((age << 2u) | phase) * (1. / 63.); }
+uint checker_age_decode_age(float x) { return (uint)round(x * 63.) >> 2u; }
+uint checker_age_decode_phase(float x) { return (uint)round(x * 63.) & 3u; }
+
 
 #if CLOUDS_FULLRES
   #undef TAA_BILINEAR
@@ -71,6 +89,15 @@
   #define TAA_BILINEAR 1
 #endif
 
+
+//checker lattice tap validity: raw scene depth 0 is sky - the ray reached past
+//everything and is always a valid tap; both the cloud front distance of a
+//near-empty ray (march end) and the grazing distance to the cloud layer can
+//exceed zfar, so a linearized-depth compare alone wrongly rejects sky
+half checker_tap_valid(float raw_depth, float view_len, float occlude_dist)
+{
+  return (half)(raw_depth == 0 || linearize_z(raw_depth, zn_zfar.zw)*view_len > occlude_dist);
+}
 
 color_type TAA_clip_history(color_type history, color_type current, color_type colorMin, color_type colorMax, float motionVectorPixelLength)
 {
@@ -200,6 +227,20 @@ void TAA_gather_current(Texture2D<float4> sceneTex, SamplerState sceneTex_sample
     screenUV + float2( screenSizeInverse.x,  screenSizeInverse.y)
   };
 
+  #if TAA_CHECKER_MODE
+    //the color lives in the packed quarter-res trace target: tap the same pattern in
+    //packed texels (2 full-res texels apart) around the texel's own quad. Fresh-only
+    //taps trade the classic footprint for zero stale entries; the depth machinery
+    //below still reads the full-res scatter-written depth and is unchanged
+    int2 checkerPackedResM1 = int2(traced_clouds_res) - 1;
+    int2 checkerOwnK = min(int2(screenUV*screenSize) >> 1, checkerPackedResM1);
+    const int2 checkerTapOfs[TAP_COUNT_NEIGHBORHOOD_FULL] =
+    {
+      int2(0, 0), int2(-1, 0), int2(0, -1), int2(1, 0), int2(0, 1),
+      int2(-1, -1), int2(1, -1), int2(-1, 1), int2(1, 1)
+    };
+  #endif
+
   //
   // Color neighborhood calculation
   //
@@ -214,7 +255,11 @@ void TAA_gather_current(Texture2D<float4> sceneTex, SamplerState sceneTex_sample
   UNROLL
   for (uint i = 0; i < neighborhoodSize; i++)
   {
-    color_type color = tex2Dlod(sceneTex, float4(uvOffsets[i],0,0));
+    #if TAA_CHECKER_MODE
+      color_type color = (color_type)sceneTex.Load(int3(clamp(checkerOwnK + checkerTapOfs[i], int2(0, 0), checkerPackedResM1), 0));
+    #else
+      color_type color = tex2Dlod(sceneTex, float4(uvOffsets[i],0,0));
+    #endif
     #if !ALREADY_TONEMAPPED_SCENE
       color = PackToYCoCgAlpha(color) . color_attr;
       #if TAA_IN_HDR_SPACE
@@ -237,6 +282,7 @@ void TAA_gather_current(Texture2D<float4> sceneTex, SamplerState sceneTex_sample
       current.colorBlurred += color * (blurWeights[i]);
       current.colorVeryBlurred += color;
     #endif
+
 
     colorMoment1.rgb += color.rgb;
     colorMoment2.rgb += color.rgb * color.rgb;
@@ -367,7 +413,7 @@ void TAA_gather_history(Texture2D<float4> historyTex, SamplerState historyTex_sa
   {
     float4 c = PackToYCoCgAlpha(tex2Dlod(historyTex, float4(screenUV,0,0)));
     #if TAA_IN_HDR_SPACE
-    c.rgb *= simple_luma_tonemap(c10.x, exposure);
+    c.rgb *= simple_luma_tonemap(c.x, exposure);
     #endif
     history.color = c;
     return;
@@ -410,12 +456,23 @@ void TAA(out float4 result_color, out float taaWeight,
          #endif
          )
 {
-  float2 depthScreenSize = screenSize;
-  float2 depthScreenSizeInv = screenSizeInverse;
+  //the scene depth pair is not clouds-sized: under dynamic resolution it follows
+  //the current scale (and prev differs from current right after a step), with
+  //fullres clouds it is half size. All texel snapping below must use the real
+  //size of the texture it touches, or the cage inspects (and snaps history to)
+  //positions between texels. The unfed (0) fallback is the old clouds-res
+  //assumption, for an exe older than the dump
 #if CLOUDS_FULLRES
-  depthScreenSize /= 2;
-  depthScreenSizeInv *= 2;
+  float2 fallbackDepthSize = screenSize/2;
+  float2 fallbackDepthSizeInv = screenSizeInverse*2;
+#else
+  float2 fallbackDepthSize = screenSize;
+  float2 fallbackDepthSizeInv = screenSizeInverse;
 #endif
+  float2 depthScreenSize = clouds_depth_gbuf_dims.x > 0 ? clouds_depth_gbuf_dims.xy : fallbackDepthSize;
+  float2 depthScreenSizeInv = clouds_depth_gbuf_dims.x > 0 ? clouds_depth_gbuf_dims.zw : fallbackDepthSizeInv;
+  float2 prevDepthScreenSize = clouds_prev_depth_gbuf_dims.x > 0 ? clouds_prev_depth_gbuf_dims.xy : fallbackDepthSize;
+  float2 prevDepthScreenSizeInv = clouds_prev_depth_gbuf_dims.x > 0 ? clouds_prev_depth_gbuf_dims.zw : fallbackDepthSizeInv;
 
   //
   // Gather the current frame neighborhood information.
@@ -425,7 +482,7 @@ void TAA(out float4 result_color, out float taaWeight,
   float reprojectionDepth = current.nearestDepth;
 
   #if !DONT_CHECK_DEPTH_DISCONTINUITY
-    float viewVecLen = length(getViewVecOptimized(screenUV * current_inv_dynamic_resolution_scale));
+    float viewVecLen = length(getViewVecOptimized(screenUV));
     float rawDepth = tex2Dlod(nativeDepthTex, float4(screenUV,0,0)).x;
     float linearDepthW = linearize_z(rawDepth, zn_zfar.zw);
     float linearDepth = linearDepthW*viewVecLen;
@@ -437,38 +494,49 @@ void TAA(out float4 result_color, out float taaWeight,
   #endif
 
   // Reproject uv value to motion from previous frame.
+  //the sub-pixel motion tolerance is measured in the FIXED clouds-derived unit
+  //(the pre-dynres value), not the scaled depth size: a dynres-following unit
+  //would silently widen history acceptance as the scale drops
   half motionVectorPixelLengthTolerance;
   #if TAA_BETTER_MOTION_VECTOR
-    float2 motionVector = TAAGetReprojectedMotionVector(reprojectionDepth, current.motionVectorUV, depthScreenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
+    float2 motionVector = TAAGetReprojectedMotionVector(reprojectionDepth, current.motionVectorUV, fallbackDepthSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
     float2 historyUV = (screenUV - current.motionVectorUV + motionVector);
   #else
-    float2 historyUV = TAAGetReprojectedMotionVector(reprojectionDepth, screenUV * current_inv_dynamic_resolution_scale, depthScreenSize, motionVectorPixelLengthTolerance) * prev_dynamic_resolution_scale; //, reprojectionMatrix
+    float2 historyUV = TAAGetReprojectedMotionVector(reprojectionDepth, screenUV, fallbackDepthSize, motionVectorPixelLengthTolerance); //, reprojectionMatrix
     float2 motionVector = historyUV-screenUV;
   #endif
 
   const bool cameFromDifferentViewArea = invalidate_mvec_to_invalid_view_area(screenUV, motionVector);
-  bool bOffscreen = cameFromDifferentViewArea || historyUV.x >= prev_dynamic_resolution_scale.x || historyUV.x <= TAA_RESTART_TEMPORAL_X || historyUV.y >= prev_dynamic_resolution_scale.y || historyUV.y <= 0.0;
+  bool bOffscreen = cameFromDifferentViewArea || historyUV.x >= 1 || historyUV.x <= TAA_RESTART_TEMPORAL_X || historyUV.y >= 1 || historyUV.y <= 0.0;
 
   bool bilinear = TAA_BILINEAR;
+  //checkerboard: plain bilinear history, like other implementations - the bicubic
+  //SHARPEN overshoots
+  //luma at high-contrast layered edges, the display-space knee INVERSE expands the
+  //overshoot (up to 16x above the knee), and a held texel loops that every frame
+  //with almost no correction at mild weights: pixels overbrighten
+  #if TAA_CHECKER_MODE
+    bilinear = true;
+  #endif
 
   #if !DONT_CHECK_DEPTH_DISCONTINUITY
   if (!bOffscreen)
   {
     float acceptanceThreshold = move_world_view_pos_tolerance + 0.02*linearDepth;
-    float historyViewVecLenScale = length(getPrevViewVecOptimized(historyUV * prev_inv_dynamic_resolution_scale));
+    float historyViewVecLenScale = length(getPrevViewVecOptimized(historyUV));
 
-    float2 histCrd = historyUV*depthScreenSize - 0.5;//should be 0.5, but for some reason it is not
+    float2 histCrd = historyUV*prevDepthScreenSize - 0.5;//should be 0.5, but for some reason it is not
     float2 histCrdFloored = floor(histCrd);
-    float2 histTCBilinear = histCrdFloored*depthScreenSizeInv + depthScreenSizeInv;
+    float2 histTCBilinear = histCrdFloored*prevDepthScreenSizeInv + prevDepthScreenSizeInv;
     #if !TAA_BILINEAR
     {
       BicubicSharpenWeights weights;
-      compute_bicubic_sharpen_weights(historyUV, depthScreenSize, depthScreenSizeInv, TAA_SHARPENING_FACTOR, weights);
-      float4 rawHistoryDepth4_1 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv0*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
-      float4 rawHistoryDepth4_2 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv1*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
-      float4 rawHistoryDepth4_3 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv2*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
-      float4 rawHistoryDepth4_4 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv3*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
-      float4 rawHistoryDepth4_5 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv4*depthScreenSize - 0.5)*depthScreenSizeInv + depthScreenSizeInv);
+      compute_bicubic_sharpen_weights(historyUV, prevDepthScreenSize, prevDepthScreenSizeInv, TAA_SHARPENING_FACTOR, weights);
+      float4 rawHistoryDepth4_1 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv0*prevDepthScreenSize - 0.5)*prevDepthScreenSizeInv + prevDepthScreenSizeInv);
+      float4 rawHistoryDepth4_2 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv1*prevDepthScreenSize - 0.5)*prevDepthScreenSizeInv + prevDepthScreenSizeInv);
+      float4 rawHistoryDepth4_3 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv2*prevDepthScreenSize - 0.5)*prevDepthScreenSizeInv + prevDepthScreenSizeInv);
+      float4 rawHistoryDepth4_4 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv3*prevDepthScreenSize - 0.5)*prevDepthScreenSizeInv + prevDepthScreenSizeInv);
+      float4 rawHistoryDepth4_5 = nativePrevDepthTex.GatherRed(nativePrevDepthTex_samplerstate, floor(weights.uv4*prevDepthScreenSize - 0.5)*prevDepthScreenSizeInv + prevDepthScreenSizeInv);
       float4 rawHistoryDepthMin4 = min(min(min(rawHistoryDepth4_1, rawHistoryDepth4_2), min(rawHistoryDepth4_3, rawHistoryDepth4_4)), rawHistoryDepth4_5);
       float4 rawHistoryDepthMax4 = max(max(max(rawHistoryDepth4_1, rawHistoryDepth4_2), max(rawHistoryDepth4_3, rawHistoryDepth4_4)), rawHistoryDepth4_5);
       float  rawHistoryDepthMin = min(min(rawHistoryDepthMin4.x, rawHistoryDepthMin4.y), min(rawHistoryDepthMin4.z, rawHistoryDepthMin4.w));
@@ -487,7 +555,6 @@ void TAA(out float4 result_color, out float taaWeight,
     #endif
     if (bilinear)
     {
-      //fixme: should be exactly size of nativePrevDepthTex, not screenSize!
       float2 wght = histCrd - histCrdFloored;
       float4 rawHistoryDepth4;
       #if SUPPORT_TEXTURE_GATHER
@@ -531,7 +598,7 @@ void TAA(out float4 result_color, out float taaWeight,
           //select one best corner
           wght = minDiff == difference.x ? float2(0,0) : (minDiff == difference.y ? float2(1,0) : (minDiff == difference.z ? float2(0,1) : float2(1,1)));
         }
-        historyUV = (histCrdFloored + wght + 0.5)*depthScreenSizeInv;
+        historyUV = (histCrdFloored + wght + 0.5)*prevDepthScreenSizeInv;
         motionVector = historyUV-screenUV;
         FLATTEN
         if (minDiff > acceptanceThreshold)
@@ -575,7 +642,10 @@ void TAA(out float4 result_color, out float taaWeight,
 
   // Motion vector changes.
   float newTaaEventFrame = 0;
-  const float blurredFrameNo = !cameFromDifferentViewArea && all(abs(screenUV*2-1) < 2*depthScreenSizeInv) ? 3./255 : 0./255;//blurred color isn't as bad, as completely new one. but blurring outside isngt
+  //one-texel inset (the 3x3 blur reaches +-1 texel)
+  const float blurredFrameNo = !cameFromDifferentViewArea
+    && all(screenUV > depthScreenSizeInv)
+    && all(screenUV < 1. - depthScreenSizeInv) ? 3./255 : 0./255;//blurred color isn't as bad, as completely new one. but blurring outside isn't
   #if TAA_ALWAYS_BLUR
     current.color = current.colorBlurred;
     newTaaEventFrame = blurredFrameNo;
@@ -583,6 +653,9 @@ void TAA(out float4 result_color, out float taaWeight,
     current.color = bOffscreen ? current.colorBlurred : current.color;
     newTaaEventFrame = blurredFrameNo;
   #elif (TAA_NEW_FRAME_WEIGHT_BLUR_WHERE_ALLOWED || TAA_ALWAYS_BLUR_WHERE_ALLOWED) && SUPPORT_TEXTURE_GATHER && !DONT_CHECK_DEPTH_DISCONTINUITY
+    //classic path only: the checker reconstruction consumes raw samples (its own
+    //spatial estimates handle fills) and must not integrate a pre-blurred current
+    #if !TAA_ALWAYS_BLUR_WHERE_ALLOWED || !TAA_CHECKER_MODE
     #if !TAA_ALWAYS_BLUR_WHERE_ALLOWED
     BRANCH
     if (bOffscreen)
@@ -612,8 +685,211 @@ void TAA(out float4 result_color, out float taaWeight,
         //return;
       }
     }
+    #endif
   #endif
 
+  float4 result;
+#if TAA_CHECKER_MODE
+  {
+    //reproject-or-replace, like other implementations: no neighborhood clamp, no
+    //event restarts - clamping multi-layer content (two parallax motions in one
+    //pixel) shows as micro-resets, and the retrace itself refreshes content. One
+    //deviation: the traced texel accumulates at a mild weight instead of
+    //replacing, integrating the march start jitter that other implementations
+    //pay off with higher in-cloud sample counts plus the main screen TAA
+    uint2 sub = clouds_checker_sub(TAA_CHECKER_FRAME);
+    uint2 texel = uint2(screenUV*screenSize);
+    bool fresh = ((texel.x & 1u) == sub.x) && ((texel.y & 1u) == sub.y);
+    int2 resI = int2(screenSize);
+    int2 packedResM1 = int2(traced_clouds_res) - 1;
+    //packed trace target: texel k holds this frame's sample of full-res 2k+sub
+    #define CHECKER_AT(k) sceneTex.Load(int3(k, 0))
+    //history is real only inside the texel-center domain: past it the clamp
+    //sampler extrapolates border content, which rotation would smear inward as
+    //legitimate history. Allow a quarter texel of extrapolation: the at-rest
+    //edge ring sits exactly ON the domain boundary and must keep its history,
+    //or the border refills (= flickers) every frame
+    FLATTEN
+    if (any(historyUV < 0.25*screenSizeInverse) || any(historyUV > 1 - 0.25*screenSizeInverse))
+      bOffscreen = true;
+    //a tap whose scene depth stops in front of this texel's cloud never saw it
+    //(terrain silhouette) and must not average in, or cloud edges erode into
+    //bright rims along the land
+    float3 ccViewVec = getViewVecOptimized(screenUV);
+    float ccViewLen = length(ccViewVec);
+    float occludeDist = current.nearestDepth*0.95;
+    #define CHECKER_TAP_VALID(uv) checker_tap_valid(tex2Dlod(nativeDepthTex, float4(uv, 0, 0)).x, ccViewLen, occludeDist)
+    //the converse leak: a texel whose scene geometry stops in front of the cloud
+    //layer can never show clouds, so it must not accumulate neighbors - the apply
+    //upsample mixes contaminated behind-terrain texels back into pixels just
+    //above the silhouette as a pale rim
+    float cloudsKm0, cloudsKm1;
+    distance_to_clouds(-ccViewVec/ccViewLen, cloudsKm0, cloudsKm1);
+    float rRawDepth = tex2Dlod(nativeDepthTex, float4(screenUV, 0, 0)).x;//0 = sky, never occluded
+    bool receiverOccluded = rRawDepth != 0 && linearize_z(rRawDepth, zn_zfar.zw)*ccViewLen < cloudsKm0*1000;
+    //weight calibrated at 60Hz, scaled by real frame time: a fixed per-frame weight
+    //makes the filter time constant fps-dependent (flicker at high fps, drift at low)
+    half wBase = (half)clouds_checker_reproj.y;//clamped and per-mode scaled in the preshader
+    //reprojection trust fades toward zero cloud distance, where no single parallax
+    //exists: correct wrong-parallax history faster while samples still average
+    //(cutting reprojection off there instead reads as boiling noise on layered thin
+    //clouds)
+    half reprojTrust = saturate(current.nearestDepth * clouds_checker_reproj.x);//0 disables the ramp
+    //fly-through smearing guard: the history clamp box collapses from effectively
+    //unclamped (far from the layer, where a clamp would re-create the micro-resets
+    //it was removed for) down to the classic neighborhood at the layer - that
+    //handles content that was near one frame ago and far the next
+    {
+      half collapse = (half)clouds_checker_reproj.z;
+      color_type boxC = (current.colorMin + current.colorMax)*0.5;
+      color_type boxE = (current.colorMax - current.colorMin)*0.5 + 0.002;
+      half inflate = (half)lerp(24.0, 1.2, collapse);
+      //the zero floor is valid for luma and alpha only: chroma is SIGNED in YCoCg
+      //(blue = negative Co) - flooring all channels at 0 bans negative chroma and
+      //casts the whole image yellow
+      color_type boxLo = boxC - boxE*inflate;
+      boxLo.x = max(0, boxLo.x);
+      boxLo.w = max(0, boxLo.w);
+      history.color.color_attr = clamp(history.color.color_attr, boxLo, boxC + boxE*inflate);
+    }
+    //temporal AGE (see checker_age_encode): 0 = fill placeholder, 1..14 annealing,
+    //15 converged. A fill reconverges through a ramp of fast same-frame blends
+    //(0.75, 0.35, 0.18, then ~1/(3+s)) - the steady weight alone would grind the
+    //seed noise for tens of frames, a one-frame replace flickers. The deep tail
+    //lets the steady weight sit low enough to out-average wind-swept march residue;
+    //age steps per retrace. Tap ages interpolate bilinearly after decode;
+    //floor() rounds boundary mixtures DOWN = toward a faster blend of valid data
+    float2 wtc = historyUV*screenSize - 0.5;
+    float2 wf = frac(wtc);
+    int2 wb = (int2)floor(wtc);
+    int2 wmax = (int2)screenSize - 1;
+    #define AGE_AT(ox, oy) (float)checker_age_decode_age(taaPrevWeight.Load(int3(clamp(wb + int2(ox, oy), int2(0, 0), wmax), 0)).x)
+    float a00 = AGE_AT(0, 0), a10 = AGE_AT(1, 0), a01 = AGE_AT(0, 1), a11 = AGE_AT(1, 1);
+    #undef AGE_AT
+    float cstateBilin = lerp(lerp(a00, a10, wf.x), lerp(a01, a11, wf.x), wf.y);
+    uint cstate = (uint)floor(cstateBilin + 0.02);
+
+    //spatial estimates, only for texels that can show clouds: freshBilinear (the
+    //untraced pull target, a continuous quarter-res upsample of the fresh
+    //sub-lattice) and the validity-weighted lattice means (fill seed and anneal
+    //ramp targets). Terrain-front texels keep their own traced empty instead;
+    //terrain is spatially coherent, so a real branch skips all 24 estimate taps
+    color_type freshBilinear = current.color;
+    half freshValidW = 0;
+    color_type crossMean = current.color;
+    color_type fullMean = current.color;
+    BRANCH
+    if (!receiverOccluded)
+    {
+      {
+        float2 lat = (screenUV*screenSize - 0.5 - float2(sub))*0.5;//continuous packed-lattice coords
+        float2 latF = floor(lat);
+        half2 lw = half2(lat - latF);
+        int2 k0 = clamp(int2(latF), int2(0, 0), packedResM1);
+        int2 k1 = clamp(int2(latF) + 1, int2(0, 0), packedResM1);
+        //validity is tested at the tap's full-res position in the scene depth
+        #define FRESH_VALID(k) CHECKER_TAP_VALID((min((k)*2 + int2(sub), resI - 1) + 0.5)*screenSizeInverse)
+        half4 bw = half4((1 - lw.x)*(1 - lw.y), lw.x*(1 - lw.y), (1 - lw.x)*lw.y, lw.x*lw.y);
+        bw *= half4(FRESH_VALID(k0), FRESH_VALID(int2(k1.x, k0.y)), FRESH_VALID(int2(k0.x, k1.y)), FRESH_VALID(k1));
+        #undef FRESH_VALID
+        freshValidW = bw.x + bw.y + bw.z + bw.w;
+        if (freshValidW > 0.001)
+          freshBilinear = (color_type)((CHECKER_AT(k0)*bw.x + CHECKER_AT(int2(k1.x, k0.y))*bw.y +
+                                        CHECKER_AT(int2(k0.x, k1.y))*bw.z + CHECKER_AT(k1)*bw.w)/freshValidW);
+      }
+      int2 ownK = min(int2(texel >> 1u), packedResM1);
+      #define LAT_ACC(dx, dy, accC, accW) { int2 lk = clamp(ownK + int2(dx, dy), int2(0, 0), packedResM1); \
+        half lv = CHECKER_TAP_VALID((min(lk*2 + int2(sub), resI - 1) + 0.5)*screenSizeInverse); \
+        accC += CHECKER_AT(lk)*lv; accW += lv; }
+      float4 crossSum = 0; half crossW = 0;
+      LAT_ACC(-1, 0, crossSum, crossW) LAT_ACC(1, 0, crossSum, crossW) LAT_ACC(0, -1, crossSum, crossW) LAT_ACC(0, 1, crossSum, crossW)
+      float4 diagSum = 0; half diagW = 0;
+      LAT_ACC(-1, -1, diagSum, diagW) LAT_ACC(1, -1, diagSum, diagW) LAT_ACC(-1, 1, diagSum, diagW) LAT_ACC(1, 1, diagSum, diagW)
+      #undef LAT_ACC
+      if (crossW > 0)
+        crossMean = (color_type)(crossSum/crossW);
+      fullMean = (color_type)((crossSum + diagSum + float4(current.color))/(crossW + diagW + 1));
+    }
+
+    FLATTEN
+    if (bOffscreen)
+    {
+      //no usable history: seed the 9-tap lattice mean, not the sharp lattice
+      //bilinear - a raw sparse seed shows the quincunx as pixelated jitter until
+      //the first retraces melt it, a soft seed reads as brief blur and matches
+      //the state-0 anneal target. A texel whose scene depth sits in front of the
+      //cloud layer can never show clouds - seed the analytic empty (zero scatter,
+      //zero opacity), not neighbor taps, which may carry cloud the apply upsample
+      //would bleed over the silhouette
+      result = receiverOccluded ? (float4)0 : (float4)fullMean;
+      taaWeight = checker_age_encode(0u, TAA_CHECKER_FRAME & 3u);
+    }
+    else FLATTEN if (fresh)
+    {
+      //the annealing estimate uses SAME-FRAME data (the packed target holds nothing
+      //else), COARSE TO FINE: the big early blends must chase stable low-variance
+      //targets (a 9-sample same-frame mean barely moves between retraces - no
+      //bubbling) and land the pixel near its equilibrium noise within the ramp;
+      //sharpness returns through the later, gentler states
+      color_type annealEst = cstate == 0 ? fullMean
+                           : (cstate == 1 ? fp16_aware_lerp4(crossMean, current.color, 0.5)
+                                          : fp16_aware_lerp4(crossMean, current.color, 0.75));
+      half wS = cstate == 0 ? 0.75
+              : (cstate == 1 ? 0.35
+              : (cstate == 2 ? 0.18
+              : (cstate < CHECKER_AGE_CONVERGED ? (half)rcp(3.0 + cstate) : wBase)));
+      //one big blend of a sparse raw sample shows the lattice as pixelation, so big
+      //steps (dt-true wBase grows at low fps) chase a softened target - the ramp's
+      //own coarse-to-fine rule
+      half soft = 0.5*(half)saturate((wS - 0.09)*3.0);
+      color_type steadyTarget = fp16_aware_lerp4(crossMean, current.color, 1 - soft);
+      result = fp16_aware_lerp4(history.color.color_attr, cstate < 3 ? annealEst : steadyTarget, wS);
+      taaWeight = checker_age_encode(min(cstate + 1u, CHECKER_AGE_CONVERGED), TAA_CHECKER_FRAME & 3u);
+      FLATTEN
+      if (receiverOccluded)
+      {
+        result = current.color;//own traced empty is the only truth here
+        //occluded texels stay age-converged so bilinear age reads at silhouettes are inert
+        taaWeight = checker_age_encode(CHECKER_AGE_CONVERGED, TAA_CHECKER_FRAME & 3u);
+      }
+    }
+    else
+    {
+      //untraced texels pull toward the fresh-tap estimate: this-frame content at
+      //correct positions, motion-safe unlike a clamp - it couples the per-texel
+      //EMAs (the quincunx lattice shows otherwise). Pull ONLY when every tap is
+      //valid: a renormalized partial estimate leans to the surviving side and the
+      //pull equilibrium sits at its mean - a one-texel bright line along lit rims
+      //over terrain. Edge texels degrade to their own accumulation
+      half pullW = freshValidW > 0.999 && !receiverOccluded ? saturate(wBase*(half)lerp(2.0, 0.5, reprojTrust)) : (half)0;
+      result = fp16_aware_lerp4(history.color.color_attr, freshBilinear, pullW);
+      //propagate the ROUNDED interpolated age, not the floored one: the floor is
+      //safe to CONSUME but ratchets if written back - under any drift (wind is a
+      //virtual camera translation, so the history frac is nonzero every frame)
+      //three floored propagates per cycle outweigh the single +1 retrace and ages
+      //stall in the anneal band, running its elevated weights forever. The phase
+      //field keeps this texel's own last fresh-write slot (never from neighbors)
+      uint ownPhase = checker_age_decode_phase(taaPrevWeight.Load(int3(texel, 0)).x);
+      taaWeight = checker_age_encode(min((uint)round(cstateBilin), CHECKER_AGE_CONVERGED), ownPhase);
+    }
+    //numeric safety, not a content clamp: at mild weights the tonemap round trip
+    //lets isolated texels random-walk to huge values (chroma especially - it has no
+    //natural bound) - cage far outside the neighborhood so it never steers
+    //convergence, and scrub non-finites. The packed 3x3 box has no receiver
+    //validity, so caging an occluded texel's empty toward it would lift the empty
+    //back to visible cloud behind thin occluders
+    FLATTEN
+    if (!receiverOccluded)
+    {
+      color_type safeExt = (current.colorMax - current.colorMin)*4 + 0.1;
+      result = clamp(result, current.colorMin - safeExt, current.colorMax + safeExt);
+    }
+    FLATTEN
+    if (!all(isfinite(result)))
+      result = current.color;
+  }
+#else
+  {
   // Temporal restart path
   // Perform clamp and integrate.
   half4 historyClamped = TAA_clip_history(history.color.color_attr, current.color, current.colorMin, current.colorMax, motionVectorPixelLengthTolerance);
@@ -628,13 +904,13 @@ void TAA(out float4 result_color, out float taaWeight,
   #endif
   taaWeight = bOffscreen ? newTaaEventFrame : saturate(clampEventFrame*(1./255)+taaEventFrameStep);
   taaWeight = max(clouds_taa_min_new_frame_weight, taaWeight);
-  float4 result = current.color;
+  result = current.color;
   if (all(isfinite(historyClamped)))
     result = fp16_aware_lerp4(historyClamped, result, newFrameWeight);
   else
     taaWeight = 1;
-  //half4 result = lerp(historyClamped, current.color, frameWeight);
-  //result = fp16_aware_lerp4(historyClamped, current.color, bOffscreen ? 1.0 : TAA_NEW_FRAME_WEIGHT);
+  }
+#endif
 
   // Convert back to HDR RGB space and write result.
   #if TAA_IN_HDR_SPACE

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <util/dag_globDef.h>
+#include <stdint.h>
 
 class DataBlock;
 class IGenSave;
@@ -50,3 +51,9 @@ bool patch_update_sound_bank_mem(IGenLoad &index_crd, const char *sound_dir);
 
 //! global settings for path verbosity level (default=0)
 extern int patch_update_game_resources_verbose;
+
+//! optional sanity cap (in bytes) for a single pack's body allocation when the on-disk file size is unknown
+//! (cache-files, file_size<0). Packs with a known file size are always bounded by that size, and a bogus size
+//! is already handled gracefully by tryAlloc; this cap is an extra guard to reject an absurdly large size
+//! early. Default=0 (disabled); set to a positive value per game/platform to enable.
+extern int64_t patch_update_game_resources_max_pack_data_size;

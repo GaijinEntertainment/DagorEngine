@@ -33,6 +33,12 @@ bool dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_
  * When the used compute program is a ray gen shader, then the argument type for buffer creation must be
  * Indirect::DispatchComputeAsRayGen. The data layout for each argument is defined by the raytrace::RayDispatchIndirectArguments
  * type.
+ *
+ * Preconditions (contract assert on all backends):
+ *   - args != nullptr
+ *   - args->getFlags() & SBCF_BIND_UNORDERED
+ *   - args->getFlags() & SBCF_MISC_DRAWINDIRECT
+ *
  * @param byte_offset The byte offset within the argument buffer (default: 0).
  * @param gpu_pipeline The GPU pipeline to use for dispatching (default: GpuPipeline::GRAPHICS).
  * @warning gpu_pipeline argument doesn't work currently.

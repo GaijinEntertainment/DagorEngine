@@ -45,7 +45,7 @@ void ValueRef::intersectValue(const ValueRef *other) {
   }
 }
 
-void ValueRef::merge(const ValueRef *other) {
+void ValueRef::merge(const ValueRef *other, bool joinFlags) {
   assert(info == other->info);
 
   assigned &= other->assigned;
@@ -56,6 +56,15 @@ void ValueRef::merge(const ValueRef *other) {
   }
   else {
     lastAssigneeScope = other->lastAssigneeScope;
+  }
+
+  // Control-flow join: a guarantee (flagsNegative) survives only when both
+  // paths provide it, a possibility (flagsPositive) when either does.
+  // Otherwise narrowing learned in one branch leaks past the join.
+  if (joinFlags) {
+    flagsPositive |= other->flagsPositive;
+    flagsNegative &= other->flagsNegative;
+    assert((flagsNegative & flagsPositive) == 0);
   }
 
   if (state != other->state) {

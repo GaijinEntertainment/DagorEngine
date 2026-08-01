@@ -20,6 +20,7 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_textureIDHolder.h>
 #include <3d/dag_texPackMgr2.h>
 #include <shaders/dag_shaders.h>
@@ -76,6 +77,11 @@ ANIMATED_SPLASH_SCREEN_CONST_LIST
 static volatile int allow_watchdog_kick = 0;
 void animated_splash_screen_allow_watchdog_kick(bool allow) { interlocked_release_store(allow_watchdog_kick, allow ? 1 : 0); }
 
+// Contract: register/unregister must be called under the d3d ownership lock
+// (d3d::GpuAutoLock). Every animated_splash_screen_draw caller holds that lock
+// for the whole frame including the callback, so the lock both publishes the
+// func/arg pair atomically and guarantees that after an unregister returns no
+// callback is in flight, making it safe to destroy the callback context.
 void animated_splash_screen_register_render(void (*render_func)(int w, int h, void *arg), void *arg, bool exclusive)
 {
   splash_render_func = render_func;
@@ -276,11 +282,6 @@ void animated_splash_screen_draw()
         d3d::set_variable_rate_shading(1, 1);
     }
 
-    if (splash_render_func)
-    {
-      d3d::get_target_size(w, h);
-      splash_render_func(w, h, splash_render_func_arg);
-    }
     shadercache::draw_warmup_status();
 
     if (halfResRt)
@@ -293,6 +294,15 @@ void animated_splash_screen_draw()
       d3d::stretch_rect(halfResRt, outputRt.getColor(0).tex);
       halfResRt->texmiplevel(-1, -1);
       d3d::set_render_target(outputRt);
+    }
+
+    // After the half-res resolve: the callback draws over the presented
+    // splash, in the full-res output target, so a UI laid out in screen
+    // space renders correctly regardless of the splash internal resolution
+    if (splash_render_func)
+    {
+      d3d::get_target_size(w, h);
+      splash_render_func(w, h, splash_render_func_arg);
     }
 
     release_l8_64_noise();
@@ -343,7 +353,8 @@ class SplashThread final : public DaThread
       const uint32_t lastDraw = (uint32_t)interlocked_relaxed_load(last_splash_draw_msec);
       if (get_time_msec() > lastDraw + 33)
       {
-        splash_render();
+        if (!d3d::is_in_device_reset_now())
+          splash_render();
         if (interlocked_acquire_load(allow_watchdog_kick))
           watchdog_kick();
       }

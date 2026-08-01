@@ -244,6 +244,31 @@ struct alignas(16) float4x4
   float4x4 &operator=(const float4x4 &other) { return operator=(other.row); }
 };
 
+struct alignas(16) float4x3
+{
+  union
+  {
+    struct
+    {
+      float _11, _12, _13, _14;
+      float _21, _22, _23, _24;
+      float _31, _32, _33, _34;
+    };
+    float m[3][4];
+    float4 col[3];
+  };
+
+  float4x3() : col() {}
+
+  float4x3 &operator=(const float4 (&other)[3])
+  {
+    eastl::copy_n(other, 3, col);
+    return *this;
+  }
+
+  float4x3 &operator=(const float4x3 &other) { return operator=(other.col); }
+};
+
 // Helper types for partial writes of packed consts,
 // for example, (float2 &)const_arr[N] = *some float4 expr*; will only write .xy of the expr
 struct float1

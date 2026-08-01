@@ -1,12 +1,16 @@
 rule ValidateUseD3DMultiList
 {
-  local valid_windows = stub DX11 DX12 vulkan null ;
-  local valid_macOS   = stub Metal null ;
-  local valid_linux   = stub vulkan null ;
+  local valid_windows_x86 = null stub vulkan DX11 ; # drv3d_DX12 is 64-bit only
+  local valid_windows     = null stub vulkan DX11 DX12 ;
+  local valid_linux       = null stub vulkan ;
+  local valid_macOS       = null stub Metal ;
+
+  local valid = $(valid_$(Platform)_$(PlatformArch)) ;
+  if ! $(valid) { valid = $(valid_$(Platform)) ; }
 
   local ret_list = ;
-  for v in $(valid_$(Platform)) { if $(v) in $(1) { ret_list += $(v) ; } }
-  if ! $(ret_list) { Exit ERROR: UseD3DMultiList\=\[ $(1) \] became empty for Platform\=$(Platform) ; }
+  for v in $(valid) { if $(v) in $(1) { ret_list += $(v) ; } }
+  if ! $(ret_list) { Exit ERROR: UseD3DMultiList\=\[ $(1) \] became empty for Platform\=$(Platform)-$(PlatformArch) ; }
   return $(ret_list) ;
 }
 

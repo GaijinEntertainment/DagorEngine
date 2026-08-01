@@ -2682,11 +2682,14 @@ FORCE_INLINE __m128 _mm_sqrt_ps(__m128 in)
 #else
     float32x4_t recip = vrsqrteq_f32(vreinterpretq_f32_m128(in));
 
-    // Test for vrsqrteq_f32(0) -> positive infinity case.
-    // Change to zero, so that s * 1/sqrt(s) result is zero too.
+    // Test for vrsqrteq_f32(0) -> infinity case (both +Inf and -Inf).
+    // vrsqrteq_f32(+0) = +Inf, vrsqrteq_f32(-0) = -Inf
+    // Change recip to zero so that s * 1/sqrt(s) preserves signed zero:
+    //   +0 * 0 = +0, -0 * 0 = -0 (IEEE-754 sign rule)
+    const uint32x4_t abs_mask = vdupq_n_u32(0x7FFFFFFF);
     const uint32x4_t pos_inf = vdupq_n_u32(0x7F800000);
     const uint32x4_t div_by_zero =
-        vceqq_u32(pos_inf, vreinterpretq_u32_f32(recip));
+        vceqq_u32(pos_inf, vandq_u32(abs_mask, vreinterpretq_u32_f32(recip)));
     recip = vreinterpretq_f32_u32(
         vandq_u32(vmvnq_u32(div_by_zero), vreinterpretq_u32_f32(recip)));
 
@@ -3243,11 +3246,18 @@ FORCE_INLINE __m128d _mm_cmpeq_pd(__m128d a, __m128d b)
     return vreinterpretq_m128d_u64(
         vceqq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
 #else
-    // (a == b) -> (a_lo == b_lo) && (a_hi == b_hi)
-    uint32x4_t cmp =
-        vceqq_u32(vreinterpretq_u32_m128d(a), vreinterpretq_u32_m128d(b));
-    uint32x4_t swapped = vrev64q_u32(cmp);
-    return vreinterpretq_m128d_u32(vandq_u32(cmp, swapped));
+    double a0 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(a), 0));
+    double a1 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(a), 1));
+    double b0 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(b), 0));
+    double b1 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(b), 1));
+    uint64_t d[2];
+    d[0] = a0 == b0 ? ~UINT64_C(0) : UINT64_C(0);
+    d[1] = a1 == b1 ? ~UINT64_C(0) : UINT64_C(0);
+    return vreinterpretq_m128d_u64(vld1q_u64(d));
 #endif
 }
 
@@ -3513,11 +3523,18 @@ FORCE_INLINE __m128d _mm_cmpneq_pd(__m128d a, __m128d b)
     return vreinterpretq_m128d_s32(vmvnq_s32(vreinterpretq_s32_u64(
         vceqq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)))));
 #else
-    // (a == b) -> (a_lo == b_lo) && (a_hi == b_hi)
-    uint32x4_t cmp =
-        vceqq_u32(vreinterpretq_u32_m128d(a), vreinterpretq_u32_m128d(b));
-    uint32x4_t swapped = vrev64q_u32(cmp);
-    return vreinterpretq_m128d_u32(vmvnq_u32(vandq_u32(cmp, swapped)));
+    double a0 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(a), 0));
+    double a1 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(a), 1));
+    double b0 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(b), 0));
+    double b1 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(b), 1));
+    uint64_t d[2];
+    d[0] = a0 != b0 ? ~UINT64_C(0) : UINT64_C(0);
+    d[1] = a1 != b1 ? ~UINT64_C(0) : UINT64_C(0);
+    return vreinterpretq_m128d_u64(vld1q_u64(d));
 #endif
 }
 
@@ -3842,16 +3859,11 @@ FORCE_INLINE int _mm_comieq_sd(__m128d a, __m128d b)
 #if defined(__aarch64__) || defined(_M_ARM64)
     return vgetq_lane_u64(vceqq_f64(a, b), 0) & 0x1;
 #else
-    uint32x4_t a_not_nan =
-        vceqq_u32(vreinterpretq_u32_m128d(a), vreinterpretq_u32_m128d(a));
-    uint32x4_t b_not_nan =
-        vceqq_u32(vreinterpretq_u32_m128d(b), vreinterpretq_u32_m128d(b));
-    uint32x4_t a_and_b_not_nan = vandq_u32(a_not_nan, b_not_nan);
-    uint32x4_t a_eq_b =
-        vceqq_u32(vreinterpretq_u32_m128d(a), vreinterpretq_u32_m128d(b));
-    uint64x2_t and_results = vandq_u64(vreinterpretq_u64_u32(a_and_b_not_nan),
-                                       vreinterpretq_u64_u32(a_eq_b));
-    return vgetq_lane_u64(and_results, 0) & 0x1;
+    double a0 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(a), 0));
+    double b0 =
+        sse2neon_recast_u64_f64(vgetq_lane_u64(vreinterpretq_u64_m128d(b), 0));
+    return a0 == b0 ? 1 : 0;
 #endif
 }
 
@@ -7551,15 +7563,17 @@ FORCE_INLINE __m128i _mm_packus_epi32(__m128i a, __m128i b)
 // https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_round_pd
 FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
 {
+    rounding &= ~(_MM_FROUND_RAISE_EXC | _MM_FROUND_NO_EXC);
+
 #if defined(__aarch64__) || defined(_M_ARM64)
     switch (rounding) {
-    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_NEAREST_INT:
         return vreinterpretq_m128d_f64(vrndnq_f64(vreinterpretq_f64_m128d(a)));
-    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_NEG_INF:
         return _mm_floor_pd(a);
-    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_POS_INF:
         return _mm_ceil_pd(a);
-    case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_ZERO:
         return vreinterpretq_m128d_f64(vrndq_f64(vreinterpretq_f64_m128d(a)));
     default:  //_MM_FROUND_CUR_DIRECTION
         return vreinterpretq_m128d_f64(vrndiq_f64(vreinterpretq_f64_m128d(a)));
@@ -7567,7 +7581,7 @@ FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
 #else
     double *v_double = (double *) &a;
 
-    if (rounding == (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC) ||
+    if (rounding == _MM_FROUND_TO_NEAREST_INT ||
         (rounding == _MM_FROUND_CUR_DIRECTION &&
          _MM_GET_ROUNDING_MODE() == _MM_ROUND_NEAREST)) {
         double res[2], tmp;
@@ -7600,11 +7614,11 @@ FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
             res[i] = (v_double[i] < 0) ? -res[i] : res[i];
         }
         return _mm_set_pd(res[1], res[0]);
-    } else if (rounding == (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC) ||
+    } else if (rounding == _MM_FROUND_TO_NEG_INF ||
                (rounding == _MM_FROUND_CUR_DIRECTION &&
                 _MM_GET_ROUNDING_MODE() == _MM_ROUND_DOWN)) {
         return _mm_floor_pd(a);
-    } else if (rounding == (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC) ||
+    } else if (rounding == _MM_FROUND_TO_POS_INF ||
                (rounding == _MM_FROUND_CUR_DIRECTION &&
                 _MM_GET_ROUNDING_MODE() == _MM_ROUND_UP)) {
         return _mm_ceil_pd(a);
@@ -7620,49 +7634,59 @@ FORCE_INLINE __m128d _mm_round_pd(__m128d a, int rounding)
 // software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_round_ps
 FORCE_INLINE __m128 _mm_round_ps(__m128 a, int rounding)
 {
+    rounding &= ~(_MM_FROUND_RAISE_EXC | _MM_FROUND_NO_EXC);
+
 #if (defined(__aarch64__) || defined(_M_ARM64)) || \
     defined(__ARM_FEATURE_DIRECTED_ROUNDING)
     switch (rounding) {
-    case (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_NEAREST_INT:
         return vreinterpretq_m128_f32(vrndnq_f32(vreinterpretq_f32_m128(a)));
-    case (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_NEG_INF:
         return _mm_floor_ps(a);
-    case (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_POS_INF:
         return _mm_ceil_ps(a);
-    case (_MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC):
+    case _MM_FROUND_TO_ZERO:
         return vreinterpretq_m128_f32(vrndq_f32(vreinterpretq_f32_m128(a)));
     default:  //_MM_FROUND_CUR_DIRECTION
         return vreinterpretq_m128_f32(vrndiq_f32(vreinterpretq_f32_m128(a)));
     }
 #else
     float *v_float = (float *) &a;
+    float32x4_t v = vreinterpretq_f32_m128(a);
 
-    if (rounding == (_MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC) ||
+    /* Detect values safe to convert to int32. Values outside this range
+     * (including infinity, NaN, and large finite values) must be preserved
+     * as-is since integer conversion would produce undefined results. */
+    const float32x4_t max_representable = vdupq_n_f32(2147483520.0f);
+    uint32x4_t is_safe =
+        vcleq_f32(vabsq_f32(v), max_representable); /* |v| <= max int32 */
+
+    if (rounding == _MM_FROUND_TO_NEAREST_INT ||
         (rounding == _MM_FROUND_CUR_DIRECTION &&
          _MM_GET_ROUNDING_MODE() == _MM_ROUND_NEAREST)) {
         uint32x4_t signmask = vdupq_n_u32(0x80000000);
-        float32x4_t half = vbslq_f32(signmask, vreinterpretq_f32_m128(a),
-                                     vdupq_n_f32(0.5f)); /* +/- 0.5 */
-        int32x4_t r_normal = vcvtq_s32_f32(vaddq_f32(
-            vreinterpretq_f32_m128(a), half)); /* round to integer: [a + 0.5]*/
-        int32x4_t r_trunc = vcvtq_s32_f32(
-            vreinterpretq_f32_m128(a)); /* truncate to integer: [a] */
+        float32x4_t half =
+            vbslq_f32(signmask, v, vdupq_n_f32(0.5f)); /* +/- 0.5 */
+        int32x4_t r_normal =
+            vcvtq_s32_f32(vaddq_f32(v, half)); /* round to integer: [a + 0.5]*/
+        int32x4_t r_trunc = vcvtq_s32_f32(v);  /* truncate to integer: [a] */
         int32x4_t plusone = vreinterpretq_s32_u32(vshrq_n_u32(
             vreinterpretq_u32_s32(vnegq_s32(r_trunc)), 31)); /* 1 or 0 */
         int32x4_t r_even = vbicq_s32(vaddq_s32(r_trunc, plusone),
                                      vdupq_n_s32(1)); /* ([a] + {0,1}) & ~1 */
         float32x4_t delta = vsubq_f32(
-            vreinterpretq_f32_m128(a),
-            vcvtq_f32_s32(r_trunc)); /* compute delta: delta = (a - [a]) */
+            v, vcvtq_f32_s32(r_trunc)); /* compute delta: delta = (a - [a]) */
         uint32x4_t is_delta_half =
             vceqq_f32(delta, half); /* delta == +/- 0.5 */
-        return vreinterpretq_m128_f32(
-            vcvtq_f32_s32(vbslq_s32(is_delta_half, r_even, r_normal)));
-    } else if (rounding == (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC) ||
+        float32x4_t rounded =
+            vcvtq_f32_s32(vbslq_s32(is_delta_half, r_even, r_normal));
+        /* Preserve original value for inputs outside int32 range */
+        return vreinterpretq_m128_f32(vbslq_f32(is_safe, rounded, v));
+    } else if (rounding == _MM_FROUND_TO_NEG_INF ||
                (rounding == _MM_FROUND_CUR_DIRECTION &&
                 _MM_GET_ROUNDING_MODE() == _MM_ROUND_DOWN)) {
         return _mm_floor_ps(a);
-    } else if (rounding == (_MM_FROUND_TO_POS_INF | _MM_FROUND_NO_EXC) ||
+    } else if (rounding == _MM_FROUND_TO_POS_INF ||
                (rounding == _MM_FROUND_CUR_DIRECTION &&
                 _MM_GET_ROUNDING_MODE() == _MM_ROUND_UP)) {
         return _mm_ceil_ps(a);
@@ -8371,7 +8395,7 @@ FORCE_INLINE int _mm_cmpestra(__m128i a,
 {
     int lb_cpy = lb;
     SSE2NEON_COMP_AGG(a, b, la, lb, imm8, CMPESTRX);
-    return !r2 & (lb_cpy > bound);
+    return !r2 & (lb_cpy >= bound);
 }
 
 // Compare packed strings in a and b with lengths la and lb using the control in

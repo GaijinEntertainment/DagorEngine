@@ -335,7 +335,7 @@ dagdp_has_resource_names {
   "dagdp__resource_names:list<t>"{
     _info { desc:t="List of RendInst resource names to place on." }
   }
-  "dagdp__resource_ids:list<i>"{
+  "dagdp__resource_ids:ClientRiexPoolList"{
     _hide:b=yes
   }
 }

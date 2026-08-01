@@ -61,7 +61,7 @@ protected:
   UniqueBuf dagi_albedo_indirect_args;
   eastl::unique_ptr<ComputeShaderElement> dagi_clear_albedo_freelist_cs, dagi_clear_albedo_texture_cs, dagi_fix_empty_alpha_cs;
   eastl::unique_ptr<ComputeShaderElement> dagi_albedo_toroidal_movement_cs, dagi_albedo_after_toroidal_movement_create_indirect_cs,
-    dagi_albedo_allocate_after_toroidal_movement_cs, dagi_albedo_allocate_after_toroidal_movement_pass2_cs,
+    dagi_albedo_clear_freed_cs, dagi_albedo_allocate_after_toroidal_movement_cs, dagi_albedo_allocate_after_toroidal_movement_pass2_cs,
     dagi_albedo_fix_insufficient_cs;
   eastl::unique_ptr<ComputeShaderElement> dagi_albedo_scene_from_gbuf_cs;
   uint16_t clipW = 0, clipD = 0;

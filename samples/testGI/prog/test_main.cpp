@@ -142,7 +142,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::dagor_init_mouse_win();
   ::dagor_init_joystick();
 #else
-#if _TARGET_C1 == 0 && _TARGET_C2 == 0
+#if _TARGET_C1 == 0 && _TARGET_C2 == 0 && _TARGET_XBOX == 0
   ::dagor_init_mouse_null();
   ::dagor_init_keyboard_null();
 #endif

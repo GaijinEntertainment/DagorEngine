@@ -534,9 +534,11 @@ int32_t Z_EXPORT PREFIX(inflateEx)(PREFIX3(stream) *strm, int32_t flush, in_fetc
                 if (copy) {
                     if (state->head != NULL && state->head->extra != NULL) {
                         len = state->head->extra_len - state->length;
-                        memcpy(state->head->extra + len, next,
-                                len + copy > state->head->extra_max ?
-                                state->head->extra_max - len : copy);
+                        if (len < state->head->extra_max) {
+                            memcpy(state->head->extra + len, next,
+                                    len + copy > state->head->extra_max ?
+                                    state->head->extra_max - len : copy);
+                        }
                     }
                     if ((state->flags & 0x0200) && (state->wrap & 4)) {
                         state->check = PREFIX(crc32)(state->check, next, copy);
@@ -1219,7 +1221,7 @@ int32_t Z_EXPORT PREFIX(inflateSync)(PREFIX3(stream) *strm) {
     /* if first time, start search in bit buffer */
     if (state->mode != SYNC) {
         state->mode = SYNC;
-        state->hold <<= state->bits & 7;
+        state->hold >>= state->bits & 7;
         state->bits -= state->bits & 7;
         len = 0;
         while (state->bits >= 8) {

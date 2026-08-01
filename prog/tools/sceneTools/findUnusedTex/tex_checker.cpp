@@ -129,15 +129,17 @@ void TexChecker::readAssetBaseTexList()
 
   ::load_tex_streaming_settings(fname, NULL, true);
 
-  // load asset base
-  const DataBlock &blk = *appblk.getBlockByNameEx("assets");
-  int base_nid = blk.getNameId("base");
+  { // load asset base
+    const DataBlock &blk = *appblk.getBlockByNameEx("assets");
+    const int base_nid = blk.getNameId("base");
+    eastl::unique_ptr<DagorAssetMgrLoadAssetsBaseContext> loadContext = mAssetMgr.makeLoadAssetsBaseContext();
 
-  mAssetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
+    mAssetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
 
-  for (int i = 0; i < blk.paramCount(); i++)
-    if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-      mAssetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global");
+    for (int i = 0; i < blk.paramCount(); i++)
+      if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
+        mAssetMgr.loadAssetsBase(make_eff_app_relative_path(blk.getStr(i)), "global", *loadContext);
+  }
 
   char dir_path[512];
   if (assetrefs::load_plugins(mAssetMgr, appblk, dag_get_appmodule_dir(dir_path, sizeof(dir_path))))

@@ -6,9 +6,11 @@
 #include <debug/dag_log.h>
 #include <util/dag_finally.h>
 
-#include <setupapi.h>
-#include <devguid.h>
+#include <winternl.h>
 #include <cfgmgr32.h>
+#include <devguid.h>
+#include <d3dkmthk.h> // Isn't self-contained, so we need to include winternl.h first.
+#include <setupapi.h>
 #pragma comment(lib, "setupapi.lib")
 #pragma comment(lib, "cfgmgr32.lib")
 
@@ -107,7 +109,7 @@ eastl::tuple<eastl::string_view, eastl::span<char>> RegistryKey::enumValueNameAn
   }
 }
 
-eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
+eastl::fixed_vector<DeviceDesc, 8> getDisplayDevices()
 {
   // Parses "PCI\VEN_XXXX&DEV_XXXX&..." — returns false if the format doesn't match.
   //         ^       ^    ^   ^
@@ -150,7 +152,9 @@ eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
 
   FINALLY([=] { SetupDiDestroyDeviceInfoList(devInfo); });
 
-  eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> gdis;
+  eastl::fixed_vector<DeviceDesc, 8> displayDevices;
+
+  logdbg("[DRV_MULTI] Display Devices:");
 
   dag::Vector<wchar_t> hwId;
   SP_DEVINFO_DATA devData{.cbSize = sizeof(SP_DEVINFO_DATA)};
@@ -169,26 +173,58 @@ eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
           nullptr))
       continue;
 
-    debug("Found GPU with GDI %ls", hwId.data());
+    logdbg("%ls", hwId.data());
 
     uint16_t vendorId, deviceId;
     if (!parseHardwareId(hwId.data(), vendorId, deviceId))
       continue;
 
     // Skip Microsoft Basic Render Driver.
-    if (vendorId == 0x1414 && deviceId == 0x008C)
+    if (DeviceDesc{vendorId, deviceId}.isSoftwareDevice())
       continue;
 
     ULONG devStatus = 0, devProblem = 0;
-    if (CM_Get_DevNode_Status(&devStatus, &devProblem, devData.DevInst, 0) == CR_SUCCESS && (devStatus & DN_HAS_PROBLEM) &&
-        (devProblem == CM_PROB_DISABLED || devProblem == CM_PROB_HARDWARE_DISABLED))
+    if (auto ret = CM_Get_DevNode_Status(&devStatus, &devProblem, devData.DevInst, 0); ret != CR_SUCCESS || devStatus & DN_HAS_PROBLEM)
     {
-      debug("skipping disabled GPU %04X:%04X (problem %u)", vendorId, deviceId, devProblem);
+      logdbg(" ^ unavailable (result: 0x%08X , problem: 0x%08X)", ret, devProblem); // e.g. CM_PROB_DISABLED
       continue;
     }
 
-    gdis.push_back({vendorId, deviceId});
+    displayDevices.push_back({vendorId, deviceId});
   }
 
-  return gdis;
+  return displayDevices;
+}
+
+GpuHwSchedulingState get_hw_scheduling_from_luid(const LUID &luid)
+{
+  HMODULE gdi32 = GetModuleHandleW(L"gdi32.dll");
+  auto openAdapterFromLuid =
+    gdi32 ? reinterpret_cast<PFND3DKMT_OPENADAPTERFROMLUID>(GetProcAddress(gdi32, "D3DKMTOpenAdapterFromLuid")) : nullptr;
+  if (!openAdapterFromLuid)
+    return GpuHwSchedulingState::Unknown;
+
+  D3DKMT_OPENADAPTERFROMLUID openAdapter{.AdapterLuid = luid};
+  if (NTSTATUS status = openAdapterFromLuid(&openAdapter); !NT_SUCCESS(status))
+    return GpuHwSchedulingState::Unknown;
+
+  FINALLY([=] {
+    D3DKMT_CLOSEADAPTER closeAdapter{openAdapter.hAdapter};
+    D3DKMTCloseAdapter(&closeAdapter);
+  });
+
+  D3DKMT_WDDM_2_7_CAPS caps{};
+  D3DKMT_QUERYADAPTERINFO queryInfo{
+    .hAdapter = openAdapter.hAdapter,
+    .Type = KMTQAITYPE_WDDM_2_7_CAPS,
+    .pPrivateDriverData = &caps,
+    .PrivateDriverDataSize = sizeof(caps),
+  };
+  if (NTSTATUS status = D3DKMTQueryAdapterInfo(&queryInfo); NT_SUCCESS(status))
+  {
+    return !caps.HwSchSupported ? GpuHwSchedulingState::NotSupported
+                                : (caps.HwSchEnabled ? GpuHwSchedulingState::Enabled : GpuHwSchedulingState::Disabled);
+  }
+
+  return GpuHwSchedulingState::Unknown;
 }

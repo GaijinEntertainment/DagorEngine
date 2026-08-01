@@ -107,6 +107,13 @@ static __forceinline void exec_stcode(uint16_t stcodeId, const shaderbindump::Sh
         float4x4_reg(regs, ro) = shGlobalData().globVarsState.get<TMatrix4>(index);
       }
       break;
+      case SHCOD_GET_GMAT43:
+      {
+        const uint32_t ro = shaderopcode::getOp2p1(opc);
+        const uint32_t index = shaderopcode::getOp2p2(opc);
+        set_float3x4_reg(regs, ro, shGlobalData().globVarsState.get<TMatrix>(index));
+      }
+      break;
       case SHCOD_VPR_CONST:
       {
         const uint32_t ind = shaderopcode::getOp2p1(opc);

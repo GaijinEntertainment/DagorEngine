@@ -44,6 +44,12 @@ int get_asset_res_id(const DagorAsset &a);
 
 //! invalidates built gameres, specified by original asset
 bool invalidate_asset(const DagorAsset &a, bool free_unused_resources = true);
+
+//! returns XXH3-128bit hash (16 bytes) for built asset data (builds asset if cache is outdated)
+bool get_built_res_hash_xxh3(DagorAsset &a, unsigned char out_hash_xxh3_128[16]);
+
+//! discards memoized respack/patch-build state; call after an out-of-process dabuild run may have changed respacks on disk
+void invalidate_respack_caches();
 } // namespace dabuildcache
 
 

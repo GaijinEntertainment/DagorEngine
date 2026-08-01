@@ -9,13 +9,17 @@
 
 #include <EASTL/fixed_vector.h>
 #include <EASTL/string.h>
+#include <EASTL/variant.h>
 #include <dag/dag_vector.h>
 #include <dag/dag_vectorMap.h>
 #include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_enhanced_barrier.h>
 
 
 namespace dafg::visualization
 {
+
+using RecordedBarrier = eastl::variant<ResourceBarrier, d3d::BufferBarrier, d3d::TextureBarrier>;
 
 enum class HeapIndex : int
 {
@@ -61,7 +65,7 @@ struct IRResourceInfo
 
   eastl::string name;
   dag::Vector<FrontendResourceInfo> frontendResources;
-  eastl::fixed_vector<eastl::pair<int, ResourceBarrier>, 32> barrierEvents;
+  eastl::fixed_vector<eastl::pair<int, RecordedBarrier>, 32> barrierEvents;
 };
 
 struct ResourcePlacementEntry
@@ -80,7 +84,7 @@ struct ResourceBarrierEntry
   int res_frame;
   int exec_time;
   int exec_frame;
-  ResourceBarrier barrier;
+  RecordedBarrier barrier;
 };
 
 struct ColumnLayout

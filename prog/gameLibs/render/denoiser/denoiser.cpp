@@ -158,8 +158,12 @@ static int denoiser_view_zVarId = -1;
 static int denoiser_nrVarId = -1;
 static int denoiser_half_view_zVarId = -1;
 static int denoiser_half_nrVarId = -1;
-static int denoiser_half_normalsVarId = -1;
-static int denoiser_half_resVarId = -1;
+static int denoiser_half_motion_vectors_rtrVarId = -1;
+static int denoiser_half_nr_rtrVarId = -1;
+static int denoiser_half_view_z_rtrVarId = -1;
+static int denoiser_prepare_close_depthVarId = -1;
+static int half_selected_depth_rtrVarId = -1;
+static int half_selected_depth_rtr_samplerstateVarId = -1;
 static int denoiser_camera_attached_radiusVarId = -1;
 
 static int rtao_bindless_slotVarId = -1;
@@ -684,8 +688,12 @@ void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_rec
   denoiser_nrVarId = get_shader_variable_id("denoiser_nr");
   denoiser_half_view_zVarId = get_shader_variable_id("denoiser_half_view_z");
   denoiser_half_nrVarId = get_shader_variable_id("denoiser_half_nr");
-  denoiser_half_normalsVarId = get_shader_variable_id("denoiser_half_normals");
-  denoiser_half_resVarId = get_shader_variable_id("denoiser_half_res");
+  denoiser_half_motion_vectors_rtrVarId = get_shader_variable_id("denoiser_half_motion_vectors_rtr", true);
+  denoiser_half_nr_rtrVarId = get_shader_variable_id("denoiser_half_nr_rtr", true);
+  denoiser_half_view_z_rtrVarId = get_shader_variable_id("denoiser_half_view_z_rtr", true);
+  denoiser_prepare_close_depthVarId = get_shader_variable_id("denoiser_prepare_close_depth", true);
+  half_selected_depth_rtrVarId = get_shader_variable_id("half_selected_depth_rtr", true);
+  half_selected_depth_rtr_samplerstateVarId = get_shader_variable_id("half_selected_depth_rtr_samplerstate", true);
   denoiser_camera_attached_radiusVarId = get_shader_variable_id("denoiser_camera_attached_radius");
 
   rtao_bindless_slotVarId = get_shader_variable_id("rtao_bindless_slot");
@@ -840,7 +848,8 @@ void add_transient_texture(TexInfoMap &textures, const char *name, int w, int h,
   ti.cflg = TEXCF_UNORDERED | flg;
 }
 
-void get_required_persistent_texture_descriptors(TexInfoMap &persistent_textures, bool need_half_res)
+void get_required_persistent_texture_descriptors(TexInfoMap &persistent_textures, bool need_half_res_close_set,
+  bool need_half_res_checkerboard_set, bool need_smart_depth_set)
 {
   if (resolution_config.useRayReconstruction && resolution_config.ptgiUseRayReconstruction)
     return;
@@ -849,13 +858,23 @@ void get_required_persistent_texture_descriptors(TexInfoMap &persistent_textures
     resolution_config.height, TEXFMT_A2R10G10B10);
   add_persistent_texture(persistent_textures, TextureNames::denoiser_view_z, resolution_config.width, resolution_config.height,
     TEXFMT_R32F);
-  if (need_half_res)
+  const int halfW = resolution_config.width / 2, halfH = resolution_config.height / 2;
+
+  if (need_half_res_close_set)
   {
-    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_normal_roughness, resolution_config.width / 2,
-      resolution_config.height / 2, TEXFMT_A2R10G10B10);
-    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_view_z, resolution_config.width / 2,
-      resolution_config.height / 2, TEXFMT_R32F);
+    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_normal_roughness, halfW, halfH, TEXFMT_A2R10G10B10);
+    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_view_z, halfW, halfH, TEXFMT_R32F);
   }
+
+  if (need_half_res_checkerboard_set || need_smart_depth_set)
+  {
+    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_normal_roughness_rtr, halfW, halfH, TEXFMT_A2R10G10B10);
+    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_view_z_rtr, halfW, halfH, TEXFMT_R32F);
+    add_persistent_texture(persistent_textures, TextureNames::denoiser_half_motion_vectors_rtr, halfW, halfH, TEXFMT_A16B16G16R16F);
+  }
+
+  if (need_smart_depth_set)
+    add_persistent_texture(persistent_textures, TextureNames::half_selected_depth_rtr, halfW, halfH, TEXFMT_R32F);
 }
 
 void get_required_persistent_texture_descriptors_for_ao(TexInfoMap &persistent_textures)
@@ -1249,6 +1268,7 @@ void prepare(const FrameParams &params)
 
   frame_rate_scale = max(33.333f / time_delta_ms, 1.0f);
   frame_rate_scale_relax = clamp(16.666f / time_delta_ms, 0.25f, 4.0f);
+
   float fps = frame_rate_scale * 30.0f;
   float nonLinearAccumSpeed = fps * 0.25f / (1.0f + fps * 0.25f);
   checkerboard_resolve_accum_speed = lerp(nonLinearAccumSpeed, 0.5f, jitter_delta);
@@ -1275,34 +1295,38 @@ void prepare(const FrameParams &params)
   ShaderGlobal::set_texture(denoiser_view_zVarId, view_z);
   ShaderGlobal::set_texture(denoiser_nrVarId, normal_roughness);
 
-  if ((resolution_config.rtao.width > 0 && resolution_config.rtao.isHalfRes) ||
-      (resolution_config.rtr.width > 0 && resolution_config.rtr.isHalfRes) ||
-      (resolution_config.ptgi.width > 0 && resolution_config.ptgi.isHalfRes))
-  {
-    auto downsampled_close_depth_tex_iter = params.textures.find(TextureNames::half_depth);
-    auto half_normal_roughness_iter = params.textures.find(TextureNames::denoiser_half_normal_roughness);
-    auto half_view_z_iter = params.textures.find(TextureNames::denoiser_half_view_z);
-    auto half_normals_iter = params.textures.find(TextureNames::half_normals);
-    G_ASSERT_RETURN(half_normal_roughness_iter != params.textures.end() && half_view_z_iter != params.textures.end() &&
-                      half_normals_iter != params.textures.end() && downsampled_close_depth_tex_iter != params.textures.end(), );
+  auto find_tex = [&params](const char *name) -> Texture * {
+    auto it = params.textures.find(name);
+    return it != params.textures.end() ? it->second : nullptr;
+  };
 
-    auto half_normal_roughness = half_normal_roughness_iter->second;
-    auto half_view_z = half_view_z_iter->second;
-    auto half_normals = half_normals_iter->second;
-    auto downsampled_close_depth_tex = downsampled_close_depth_tex_iter->second;
+  Texture *half_normal_roughness = find_tex(TextureNames::denoiser_half_normal_roughness);
+  Texture *half_view_z = find_tex(TextureNames::denoiser_half_view_z);
+  Texture *downsampled_close_depth_tex = find_tex(TextureNames::half_depth);
+  const bool haveCloseSet = half_normal_roughness && half_view_z && downsampled_close_depth_tex;
 
-    ShaderGlobal::set_int(denoiser_half_resVarId, 1);
-    ShaderGlobal::set_texture(denoiser_half_view_zVarId, half_view_z);
-    ShaderGlobal::set_texture(denoiser_half_normalsVarId, half_normals);
-    ShaderGlobal::set_texture(denoiser_half_nrVarId, half_normal_roughness);
-    ShaderGlobal::set_texture(downsampled_close_depth_texVarId, downsampled_close_depth_tex);
-  }
-  else
+  ShaderGlobal::set_int(denoiser_prepare_close_depthVarId, haveCloseSet ? 1 : 0);
+  ShaderGlobal::set_texture(denoiser_half_view_zVarId, half_view_z);
+  ShaderGlobal::set_texture(denoiser_half_nrVarId, half_normal_roughness);
+  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, downsampled_close_depth_tex);
+
+  Texture *half_nr_rtr = find_tex(TextureNames::denoiser_half_normal_roughness_rtr);
+  Texture *half_view_z_rtr = find_tex(TextureNames::denoiser_half_view_z_rtr);
+  Texture *half_motion_vectors_rtr = find_tex(TextureNames::denoiser_half_motion_vectors_rtr);
+
+  ShaderGlobal::set_texture(denoiser_half_nr_rtrVarId, half_nr_rtr);
+  ShaderGlobal::set_texture(denoiser_half_view_z_rtrVarId, half_view_z_rtr);
+  ShaderGlobal::set_texture(denoiser_half_motion_vectors_rtrVarId, half_motion_vectors_rtr);
+
+  Texture *half_depth_selected_rtr = find_tex(TextureNames::half_selected_depth_rtr);
+
+  ShaderGlobal::set_texture(half_selected_depth_rtrVarId, half_depth_selected_rtr);
+  if (half_depth_selected_rtr)
   {
-    ShaderGlobal::set_int(denoiser_half_resVarId, 0);
-    ShaderGlobal::set_texture(denoiser_half_view_zVarId, nullptr);
-    ShaderGlobal::set_texture(denoiser_half_normalsVarId, nullptr);
-    ShaderGlobal::set_texture(denoiser_half_nrVarId, nullptr);
+    d3d::SamplerInfo info;
+    info.filter_mode = d3d::FilterMode::Point;
+    info.address_mode_u = info.address_mode_v = d3d::AddressMode::Clamp;
+    ShaderGlobal::set_sampler(half_selected_depth_rtr_samplerstateVarId, d3d::request_sampler(info));
   }
 
   prepareCS->dispatchThreads(renderingResolution.x, renderingResolution.y, 1);
@@ -1312,8 +1336,10 @@ void prepare(const FrameParams &params)
   ShaderGlobal::set_texture(denoiser_nrVarId, nullptr);
 
   ShaderGlobal::set_texture(denoiser_half_view_zVarId, nullptr);
-  ShaderGlobal::set_texture(denoiser_half_normalsVarId, nullptr);
   ShaderGlobal::set_texture(denoiser_half_nrVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_half_motion_vectors_rtrVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_half_nr_rtrVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_half_view_z_rtrVarId, nullptr);
 }
 
 static float randuf() { return rand() / float(RAND_MAX); }
@@ -1550,9 +1576,11 @@ void denoise_shadow(const ShadowDenoiser &params)
   d3d::resource_barrier({rtsm_shadows_denoised, RB_RO_SRV | RB_STAGE_ALL_SHADERS, 0, 0});
 }
 
+static float getCheckerboardResolveAccumSpeed(bool need_override) { return need_override ? 0.95f : checkerboard_resolve_accum_speed; }
+
 static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist_params, const Point2 &antilag_settings,
   bool use_history_confidence, const IPoint2 res_size, bool half_res, int max_stabilized_frame_num, bool checkerboard, bool occlusion,
-  bool antiFirefly)
+  bool antiFirefly, bool override_checker_accum)
 {
   const IPoint2 &resolution = half_res ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
   int width = resolution.x, height = resolution.y;
@@ -1655,7 +1683,7 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.usePrepassNotOnlyForSpecularMotionEstimation = 1;
   reblurSharedConstants.splitScreen = 0;
   reblurSharedConstants.splitScreenPrev = 0;
-  reblurSharedConstants.checkerboardResolveAccumSpeed = checkerboard_resolve_accum_speed;
+  reblurSharedConstants.checkerboardResolveAccumSpeed = getCheckerboardResolveAccumSpeed(override_checker_accum);
   reblurSharedConstants.viewZScale = 1;
   reblurSharedConstants.fireflySuppressorMinRelativeScale = 2;
   reblurSharedConstants.minHitDistanceWeight = 0.1f;
@@ -1712,7 +1740,7 @@ void denoise_ao(const AODenoiser &params)
 
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
     IPoint2{resolution_config.rtao.width, resolution_config.rtao.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
-    true, false);
+    true, false, false);
 
   Sbuffer *reblurSharedCb =
     create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_ao, reblurSharedConstants, "ReblurSharedConstantsCB_ao");
@@ -1865,7 +1893,7 @@ void denoise_gi(const GIDenoiser &params)
 
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
     IPoint2{resolution_config.ptgi.width, resolution_config.ptgi.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
-    true, false);
+    true, false, false);
 
   Sbuffer *reblurSharedCb =
     create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_gi, reblurSharedConstants, "ReblurSharedConstantsCB_gi");
@@ -2056,7 +2084,7 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
 
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
     IPoint2{resolution_config.rtr.width, resolution_config.rtr.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
-    false, params.antiFirefly);
+    false, params.antiFirefly, params.useSmartDepth);
 
   Sbuffer *reblurSharedCb =
     create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_reflection, reblurSharedConstants, "ReblurSharedConstantsCB_reflection");
@@ -2255,7 +2283,7 @@ inline float3 RELAX_GetFrustumForward(const float4x4 &viewToWorld, const float4 
 }
 
 static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool half_res, bool checkerboard,
-  int max_stabilized_frame_num, int max_fast_stabilized_frame_num)
+  int max_stabilized_frame_num, int max_fast_stabilized_frame_num, bool override_checker_accum)
 {
   const IPoint2 &resolution = half_res ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
   int width = resolution.x, height = resolution.y;
@@ -2313,7 +2341,7 @@ static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool h
 
   // float2
   relaxSharedConstants.jitter = float2(jitter.x * width, jitter.y * height);
-  relaxSharedConstants.resolutionScale = float2(1, 1);
+  relaxSharedConstants.resolutionScale = float2(float(width) / float(res_size.x), float(height) / float(res_size.y));
   relaxSharedConstants.rectOffset = float2(0, 0);
   relaxSharedConstants.resourceSizeInv = float2(1.0 / res_size.x, 1.0 / res_size.y);
   relaxSharedConstants.resourceSize = float2(res_size.x, res_size.y);
@@ -2367,7 +2395,7 @@ static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool h
   relaxSharedConstants.orthoMode = 0;
   relaxSharedConstants.unproject = unproject;
   relaxSharedConstants.framerateScale = frame_rate_scale_relax;
-  relaxSharedConstants.checkerboardResolveAccumSpeed = checkerboard_resolve_accum_speed;
+  relaxSharedConstants.checkerboardResolveAccumSpeed = getCheckerboardResolveAccumSpeed(override_checker_accum);
   relaxSharedConstants.jitterDelta = jitter_delta;
   relaxSharedConstants.historyFixFrameNum = 4;
   relaxSharedConstants.historyFixBasePixelStride = 14;
@@ -2419,7 +2447,7 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
   RelaxSharedConstants relaxSharedConstants =
     make_relax_shared_constants(IPoint2{resolution_config.rtr.width, resolution_config.rtr.height}, halfRes, params.checkerboard,
-      params.maxStabilizedFrameNum, params.maxFastStabilizedFrameNum);
+      params.maxStabilizedFrameNum, params.maxFastStabilizedFrameNum, params.useSmartDepth);
 
   ShaderGlobal::set_int4(denoiser_resolutionVarId, width, height, 0, 0);
 

@@ -46,10 +46,8 @@ struct GrassMaskSliceHelper
     flipCullStateId = shaders::overrides::create(state);
 
     maskTex = dag::create_tex(nullptr, maskSize.x, maskSize.y, TEXCF_RTARGET, 1, "grass_mask_islands_tex", RESTAG_GRASS);
-    ShaderGlobal::set_sampler(get_shader_variable_id("grass_mask_islands_tex_samplerstate", true), d3d::request_sampler({}));
     colorTex = dag::create_tex(nullptr, maskSize.x, maskSize.y, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1,
       "grass_color_islands_tex", RESTAG_GRASS);
-    ShaderGlobal::set_sampler(get_shader_variable_id("grass_color_islands_tex_samplerstate", true), d3d::request_sampler({}));
   };
 
   void renderMask(IRandomGrassRenderHelper &grassRenderHelper);
@@ -298,6 +296,8 @@ void Grassify::generate(GrassView view, const Point3 &pos, const TMatrix &view_i
   grassGenHelper->generate(view, pos, grassMaskHelper->offset, grassMaskHelper->maskSize, grassMaskHelper->texelSize, view_itm,
     perspective, gpuGrassBase);
 }
+
+void Grassify::driverReset() { grassMaskHelper.reset(); }
 
 void Grassify::generateGrassMask(IRandomGrassRenderHelper &grassRenderHelper)
 {

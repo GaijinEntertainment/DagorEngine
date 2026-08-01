@@ -2,6 +2,7 @@
 #define RENDER_LIGHTS_INCLUDED 1
 
 #include "renderLightsConsts.hlsli"
+#include "spot_light_shadow_flags.hlsli"
 
 struct RenderOmniLight
 {
@@ -29,6 +30,21 @@ float decode_light_roll_angle(RenderSpotLight sl)
   return float((asuint(sl.texId_scale_illuminatingplane_packedDataBits.w) & SPOT_LIGHT_ROLL_MASK) >> SPOT_LIGHT_ROLL_BIT_OFFSET) / SPOT_LIGHT_ROLL_MAX_VALUE;
 }
 
+uint get_spot_light_shadow_data_bits(RenderSpotLight sl)
+{
+  return asuint(sl.texId_scale_illuminatingplane_packedDataBits.w);
+}
+
+bool spot_light_has_shadow(uint shadow_data_bits)
+{
+  return shadow_data_bits & SPOT_LIGHT_HAS_SHADOW_MASK;
+}
+
+bool spot_light_needs_contact_shadows(uint shadow_data_bits)
+{
+  return shadow_data_bits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
+}
+
 float2 decode_spot_light_radius_and_culling_radius(float encoded_value)
 {
   return float2(f16tof32(asuint(encoded_value)), f16tof32(asuint(encoded_value) >> 16));
@@ -51,6 +67,7 @@ float4 decode_spot_light_pos_radius(RenderSpotLight sl)
 {
   return decode_spot_light_pos_radius(sl.lightPos_halfRadius_halfCullRadius);
 }
+
 
 #endif
 

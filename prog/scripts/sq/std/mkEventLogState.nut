@@ -8,7 +8,7 @@ from "%sqstd/frp.nut" import Watched
 //isEventsEqual = @(event1, event2) bool - used only to remove events not only by uid.
 //  Previous equal event will be removed on receive new event.
 function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEqual = null
-) {
+): table {
   let savedEvents = persist(persistId, @() { v = [] })
   let curEvents = Watched(savedEvents.v)
   curEvents.subscribe(@(v) savedEvents.v = v)
@@ -45,7 +45,7 @@ function mkEventLogState(persistId, maxActiveEvents = 10, defTtl = 0, isEventsEq
   }
   curEvents.get().each(startRemoveTimer)
 
-  function findFirstRemoveHint() {
+  function findFirstRemoveHint(): int|null {
     local time = null
     local resIdx = null
     foreach(idx, evt in curEvents.get()) {

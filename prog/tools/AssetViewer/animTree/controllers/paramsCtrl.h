@@ -2,14 +2,18 @@
 #pragma once
 
 #include <dag/dag_vector.h>
+#include <generic/dag_span.h>
 
 class DataBlock;
+class AnimTreePlugin;
+class IListReorderHandler;
 namespace PropPanel
 {
 class ContainerPropertyControl;
 }
 
 struct AnimParamData;
+struct AnimCtrlData;
 
 void params_ctrl_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx);
 void params_ctrl_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings);
@@ -21,3 +25,5 @@ void params_ctrl_block_type_changed(PropPanel::ContainerPropertyControl *group, 
 void params_ctrl_add_mapping(PropPanel::ContainerPropertyControl *panel);
 void params_ctrl_remove_mapping(PropPanel::ContainerPropertyControl *panel);
 void save_if_math_fields(PropPanel::ContainerPropertyControl *panel, DataBlock &settings);
+IListReorderHandler *params_ctrl_get_reorder_handler(AnimTreePlugin &plugin, dag::ConstSpan<AnimCtrlData> controllers,
+  PropPanel::ContainerPropertyControl *panel);

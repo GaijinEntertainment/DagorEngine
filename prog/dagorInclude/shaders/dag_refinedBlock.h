@@ -7,6 +7,7 @@
 #include <3d/dag_resPtr.h>
 #include <drv/3d/dag_resId.h>
 #include <math/dag_TMatrix4.h>
+#include <math/dag_TMatrix.h>
 #include <generic/dag_expected.h>
 #include <EASTL/variant.h>
 
@@ -40,7 +41,7 @@ struct BindlessSamplerVar
   d3d::SamplerHandle handle;
 };
 
-using VarValue = eastl::variant<int, float, Color4, IPoint4, TMatrix4, BaseTexture *, BindlessTexVar, Sbuffer *, CbufVar,
+using VarValue = eastl::variant<int, float, Color4, IPoint4, TMatrix4, TMatrix, BaseTexture *, BindlessTexVar, Sbuffer *, CbufVar,
   d3d::SamplerHandle, BindlessSamplerVar, RaytraceTopAccelerationStructure *, RWTexVar, RWBufVar>;
 
 struct FlushedVar
@@ -59,8 +60,6 @@ enum class GetError
 enum class FlushError : uint8_t
 {
   NoDump,
-  InvalidStcodeId,
-  EmptyStcode,
   CbufCreationFailed,
   CbufUpdateFailed
 };
@@ -91,6 +90,8 @@ protected:
   BaseBlockHandle(uint32_t id) : id(id) {}
 
 public:
+  static constexpr uint32_t invalidId = static_cast<uint32_t>(-1);
+
   uint32_t getId() const { return id; }
 
   const char *getName() const;
@@ -120,15 +121,13 @@ public:
   using BlockType = GlobalBlock;
   using ChildHandle = ViewBlockHandle;
 
-  GlobalBlockHandle() = delete;
+  GlobalBlockHandle() : BaseBlockHandle<GlobalBlockHandle>(invalidId) {}
   GlobalBlockHandle(const GlobalBlockHandle &) = default;
   GlobalBlockHandle &operator=(const GlobalBlockHandle &) = default;
   GlobalBlockHandle(GlobalBlockHandle &&) = default;
   GlobalBlockHandle &operator=(GlobalBlockHandle &&) = default;
 
   ViewBlockHandle refineBlock(const char *name);
-
-  static GlobalBlockHandle invalid;
 
 private:
   friend GlobalBlockHandle get_global();
@@ -145,15 +144,13 @@ public:
   using ParentHandle = GlobalBlockHandle;
   using ChildHandle = PassBlockHandle;
 
-  ViewBlockHandle() = delete;
+  ViewBlockHandle() : ViewBlockHandle(invalidId) {};
   ViewBlockHandle(const ViewBlockHandle &) = default;
   ViewBlockHandle &operator=(const ViewBlockHandle &) = default;
   ViewBlockHandle(ViewBlockHandle &&) = default;
   ViewBlockHandle &operator=(ViewBlockHandle &&) = default;
 
   PassBlockHandle refineBlock(const char *name);
-
-  static ViewBlockHandle invalid;
 
 private:
   template <typename ParentHandle>
@@ -169,15 +166,13 @@ public:
   using BlockType = PassBlock;
   using ParentHandle = ViewBlockHandle;
 
-  PassBlockHandle() = delete;
+  PassBlockHandle() : PassBlockHandle(invalidId) {};
   PassBlockHandle(const PassBlockHandle &) = default;
   PassBlockHandle &operator=(const PassBlockHandle &) = default;
   PassBlockHandle(PassBlockHandle &&) = default;
   PassBlockHandle &operator=(PassBlockHandle &&) = default;
 
   void setState() const;
-
-  static PassBlockHandle invalid;
 
 private:
   template <typename ParentHandle>

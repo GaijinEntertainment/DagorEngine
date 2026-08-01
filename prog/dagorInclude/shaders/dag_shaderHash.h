@@ -12,6 +12,11 @@ struct ShaderHashValue
   typedef uint8_t ValueType[20];
   ValueType value;
 
+  // chars needed for a string buffer, without null terminator.
+  // convertToString will convert the hash value to hex chars, a pair of hex chars is one byte, so the resulting space needed is bytes
+  // times 2.
+  static constexpr uint32_t convert_to_string_char_count = sizeof(value) * 2;
+
   friend bool operator==(const ShaderHashValue &l, const ShaderHashValue &r)
   {
     G_STATIC_ASSERT(sizeof(ShaderHashValue) == sizeof(ValueType));
@@ -48,7 +53,7 @@ struct ShaderHashValue
 
   void convertToString(char *buffer, size_t size) const
   {
-    G_ASSERT(size > (sizeof(ShaderHashValue) * 2));
+    G_ASSERT(size > convert_to_string_char_count);
     data_to_str_hex_buf(buffer, size, value, sizeof(value));
   }
 

@@ -114,8 +114,10 @@ class OZZ_ANIMATION_DLL SamplingJob::Context {
   explicit Context(int _max_tracks);
 
   // Disables copy and assignation.
-  Context(Context const&) = delete;
-  Context& operator=(Context const&) = delete;
+  Context(const Context&) = delete;
+  Context& operator=(const Context&) = delete;
+  Context(Context&&) = delete;
+  Context& operator=(Context&&) = delete;
 
   // Deallocates context.
   ~Context();

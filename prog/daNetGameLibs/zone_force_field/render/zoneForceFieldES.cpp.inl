@@ -93,11 +93,12 @@ void ZoneForceFieldRenderer::fillBuffers()
     1.0f, SLICES, SLICES, sizeof(Point3), false, false, false, false);
 }
 
-dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *rendering_shader_name, uint32_t render_target_fmt)
+dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(
+  const char *rendering_shader_name, uint32_t render_target_fmt, const char *view_ns, bool is_main_view)
 {
-  auto nodeNs = dafg::root() / "transparent" / "middle";
+  auto nodeNs = dafg::root() / "transparent" / "middle" / view_ns;
   return nodeNs.registerNode("zone_renderer", DAFG_PP_NODE_SRC,
-    [this, rendering_shader_name, render_target_fmt](dafg::Registry registry) {
+    [this, rendering_shader_name, render_target_fmt, view_ns, is_main_view](dafg::Registry registry) {
       if (
         !forceFieldShader.init(rendering_shader_name, forcefield_channels, countof(forcefield_channels), rendering_shader_name, true))
         logerr("Forcefield rendering shader initialization failed");
@@ -136,11 +137,13 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
 
       registry.requestState().setFrameBlock("global_frame");
 
-      auto camera = use_camera_in_camera(registry);
+      auto camera = use_camera_view(registry, view_ns);
       auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
 
-      return [this, cameraHndl, lowResFfHndl, maybeDownsampledDepthHndl](const dafg::multiplexing::Index &multiplexing_index) {
-        camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref(), camera_in_camera::USE_STENCIL};
+      auto gatheredHndl = registry.create("forcefield_frame_zones").blob<ZoneForceFieldFrameZones>().handle();
+
+      return [this, cameraHndl, lowResFfHndl, maybeDownsampledDepthHndl, gatheredHndl, is_main_view]() {
+        camera_in_camera::ApplyPostfxState camcam{is_main_view, cameraHndl.ref(), camera_in_camera::USE_STENCIL};
 
         TextureInfo info;
         lowResFfHndl.ref().getinfo(info);
@@ -148,9 +151,10 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
 
         // Gather them again, in order to apply occlusion.
         Occlusion *occlusion = cameraHndl.ref().jobsMgr->getOcclusion();
-        gatherForceFields(cameraHndl.ref().viewItm, cameraHndl.ref().jitterFrustum, occlusion);
+        ZoneForceFieldFrameZones &gathered = gatheredHndl.ref();
+        gatherForceFields(cameraHndl.ref().viewItm, cameraHndl.ref().jitterFrustum, occlusion, gathered);
 
-        if (frameZones.empty())
+        if (gathered.zones.empty())
           return;
 
         TIME_D3D_PROFILE(zone_force_field_rendering);
@@ -162,11 +166,11 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
         d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 1, 0);
 
         startZoneIn();
-        render(frameZones.begin(), frameZones.size());
-        if (!frameZonesOut.empty())
+        render(gathered.zones.begin(), gathered.zones.size());
+        if (!gathered.zonesOut.empty())
         {
           startZoneOut();
-          render(frameZonesOut.begin(), frameZonesOut.size());
+          render(gathered.zonesOut.begin(), gathered.zonesOut.size());
         }
         // as we are not applying force field right away, we must reset overrides by our own
         shaders::overrides::reset();
@@ -174,12 +178,12 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
     });
 }
 
-dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying_shader_name,
-  const char *fullscreen_applying_shader_name)
+dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(
+  const char *applying_shader_name, const char *fullscreen_applying_shader_name, const char *view_ns, bool is_main_view)
 {
-  auto nodeNs = dafg::root() / "transparent" / "middle";
+  auto nodeNs = dafg::root() / "transparent" / "middle" / view_ns;
   return nodeNs.registerNode("zone_applier", DAFG_PP_NODE_SRC,
-    [this, applying_shader_name, fullscreen_applying_shader_name](dafg::Registry registry) {
+    [this, applying_shader_name, fullscreen_applying_shader_name, view_ns, is_main_view](dafg::Registry registry) {
       // TODO: you are NOT supposed to init state within declaration callbacks.
       // It is better to stop storing this object inside the class and simply
       // store it inside the execution lambda's capture.
@@ -189,7 +193,7 @@ dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying
 
       forceFieldManyApplier.init(fullscreen_applying_shader_name);
 
-      request_common_transparent_state(registry);
+      request_common_transparent_state_per_view(registry, view_ns);
 
       registry.bindTexPs("low_res_forcefield", "low_res_forcefield");
       {
@@ -221,16 +225,19 @@ dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying
 
       registry.requestState().setFrameBlock("global_frame");
 
-      return [this](const dafg::multiplexing::Index &multiplexing_index) {
-        if (frameZones.empty())
+      auto gatheredHndl = registry.read("forcefield_frame_zones").blob<ZoneForceFieldFrameZones>().handle();
+
+      return [this, gatheredHndl, is_main_view]() {
+        const ZoneForceFieldFrameZones &gathered = gatheredHndl.ref();
+        if (gathered.zones.empty())
           return;
 
         TIME_D3D_PROFILE(zone_force_field_apply);
 
-        const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+        const camera_in_camera::ApplyMasterState camcam{is_main_view};
 
-        if (frameZones.size() == 1)
-          applyOne(frameZones[0], frameZonesOut.size() == 1);
+        if (gathered.zones.size() == 1)
+          applyOne(gathered.zones[0], gathered.zonesOut.size() == 1);
         else
           applyMany();
 
@@ -297,9 +304,15 @@ void ZoneForceFieldRenderer::applyMany() const
 
 void ZoneForceFieldRenderer::gatherForceFields(const TMatrix &view_itm, const Frustum &culling_frustum, const Occlusion *occlusion)
 {
+  gatherForceFields(view_itm, culling_frustum, occlusion, mainViewZones);
+}
+
+void ZoneForceFieldRenderer::gatherForceFields(
+  const TMatrix &view_itm, const Frustum &culling_frustum, const Occlusion *occlusion, ZoneForceFieldFrameZones &gathered)
+{
   TIME_PROFILE(zone_force_field_gathering);
-  frameZones.clear();
-  frameZonesOut.clear();
+  gathered.zones.clear();
+  gathered.zonesOut.clear();
 
   bool isPlayerImmuneToForcefield = false;
   local_player_immune_to_forcefield_ecs_query(*g_entity_mgr, [&](ecs::EntityId possessed, bool is_local) {
@@ -346,11 +359,11 @@ void ZoneForceFieldRenderer::gatherForceFields(const TMatrix &view_itm, const Fr
         zone.w -= radius_offset.get();
         if (occlusion && !occlusion->isVisibleSphere(v_ldu(&sphC.x), v_splats(sphere_zone__radius), v_splats(0.25 / texHt)))
           return;
-        frameZonesOut.push_back(zone);
+        gathered.zonesOut.push_back(zone);
       }
       else
         zone.w += radius_offset.get();
-      frameZones.push_back(zone);
+      gathered.zones.push_back(zone);
     });
 }
 
@@ -358,15 +371,16 @@ PartitionSphere ZoneForceFieldRenderer::getClosestForceField(const Point3 &camer
 {
   PartitionSphere partitionSphere = {};
 
-  auto it = eastl::min_element(frameZones.cbegin(), frameZones.cend(), [&camera_pos](const Point4 &lhs, const Point4 &rhs) {
+  const auto &zones = mainViewZones.zones;
+  auto it = eastl::min_element(zones.cbegin(), zones.cend(), [&camera_pos](const Point4 &lhs, const Point4 &rhs) {
     Point3 lhs_sph_pos = {lhs.x, lhs.y, lhs.z};
     Point3 rhs_sph_pos = {rhs.x, rhs.y, rhs.z};
     return (lhs_sph_pos - camera_pos).lengthSq() < (rhs_sph_pos - camera_pos).lengthSq();
   });
-  if (it != frameZones.cend())
+  if (it != zones.cend())
   {
     partitionSphere.sphere = *it;
-    if (eastl::find(frameZonesOut.begin(), frameZonesOut.end(), *it) != frameZonesOut.end())
+    if (eastl::find(mainViewZones.zonesOut.begin(), mainViewZones.zonesOut.end(), *it) != mainViewZones.zonesOut.end())
       partitionSphere.status = PartitionSphere::Status::CAMERA_OUTSIDE_SPHERE;
     else
       partitionSphere.status = PartitionSphere::Status::CAMERA_INSIDE_SPHERE;

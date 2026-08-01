@@ -1,0 +1,9 @@
+ERROR: forward declaration 'value' must be initialized in its declaring scope
+testData/diagnostics/forward_let_assign_from_closure.nut:3:2
+
+function writer() {
+  value = 1
+  ^----
+}
+
+

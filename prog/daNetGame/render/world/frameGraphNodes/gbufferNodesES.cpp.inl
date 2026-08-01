@@ -62,6 +62,9 @@ dafg::NodeHandle makePrepareGbufferNode()
 
     registry.requestState().setFrameBlock("global_frame");
 
+    // Schedule clipmap prepareRender before starting rendering gbuffer.
+    registry.readBlob<eastl::monostate>("vtex_clipmap_prepare_render_done").optional();
+
     registry.requestRenderPass()
       .depth("gbuf_depth_done")
       .color({"gbuf_0_done", "gbuf_1_done", registry.modify("gbuf_2_done").texture().optional(),
@@ -324,6 +327,9 @@ static dafg::NodeHandle makeStubBlackTextureNode()
 
 static dafg::NodeHandle makeSinglePassResolveGbufferNode(const char *resolve_pshader_name)
 {
+  // nothing ever resets this var, so setting it once at node creation is enough
+  ShaderGlobal::set_int(get_shader_variable_id("use_precomputed_dynamic_lights"), 1);
+
   return dafg::register_node("resolve_gbuffer_node", DAFG_PP_NODE_SRC, [resolve_pshader_name](dafg::Registry registry) {
     registry.readBlob("gi_before_frame_lit_token").optional();
     registry.readBlob("conditional_resolve_target_clear_token").optional();
@@ -342,19 +348,20 @@ static dafg::NodeHandle makeSinglePassResolveGbufferNode(const char *resolve_psh
     for (auto shaderVar : shaderVars)
       registry.readTexture("single_pass_shading_stub_black_tex").atStage(dafg::Stage::PS).bindToShaderVar(shaderVar);
 
-    return [resolveShader = PostFxRenderer(resolve_pshader_name), cameraHndl]() {
-      WRDispatcher::getShadowsManager().setShadowFrameIndex(cameraHndl.ref());
+    return
+      [resolveShader = PostFxRenderer(resolve_pshader_name), cameraHndl, sunColorVarId = get_shader_variable_id("sun_color_0"),
+        sunColorHt0VarId = get_shader_variable_id("sun_color_0_ht0"), sunColorHt1VarId = get_shader_variable_id("sun_color_0_ht1"),
+        sunColorHt2VarId = get_shader_variable_id("sun_color_0_ht2")]() {
+        WRDispatcher::getShadowsManager().setShadowFrameIndex(cameraHndl.ref());
 
-      ShaderGlobal::set_int(get_shader_variable_id("use_precomputed_dynamic_lights"), 1);
+        // emulate different sun color on different height feature with constant sun color
+        Color4 sunColor = ShaderGlobal::get_float4(sunColorVarId);
+        ShaderGlobal::set_float4(sunColorHt0VarId, sunColor.r, sunColor.g, sunColor.b, 1.0f);
+        ShaderGlobal::set_float4(sunColorHt1VarId, sunColor.r, sunColor.g, sunColor.b, 2.0f);
+        ShaderGlobal::set_float4(sunColorHt2VarId, sunColor.r, sunColor.g, sunColor.b, 3.0f);
 
-      // emulate different sun color on different height feature with constant sun color
-      Color4 sunColor = ShaderGlobal::get_float4(get_shader_variable_id("sun_color_0"));
-      ShaderGlobal::set_float4(get_shader_variable_id("sun_color_0_ht0"), sunColor.r, sunColor.g, sunColor.b, 1.0f);
-      ShaderGlobal::set_float4(get_shader_variable_id("sun_color_0_ht1"), sunColor.r, sunColor.g, sunColor.b, 2.0f);
-      ShaderGlobal::set_float4(get_shader_variable_id("sun_color_0_ht2"), sunColor.r, sunColor.g, sunColor.b, 3.0f);
-
-      resolveShader.render();
-    };
+        resolveShader.render();
+      };
   });
 }
 

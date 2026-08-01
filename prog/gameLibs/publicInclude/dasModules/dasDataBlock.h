@@ -66,6 +66,8 @@ struct E3DCOLOR;
 namespace bind_dascript
 {
 void datablock_debug_print_datablock(const char *name, const DataBlock &blk);
+void datablock_set_parse_comments_as_params(bool v);
+bool datablock_get_parse_comments_as_params();
 const char *datablock_to_string(const DataBlock &blk, das::Context *context, das::LineInfoArg *at);
 const char *datablock_to_compact_string(const DataBlock &blk, das::Context *context, das::LineInfoArg *at);
 const DataBlock &datablock_get_empty();

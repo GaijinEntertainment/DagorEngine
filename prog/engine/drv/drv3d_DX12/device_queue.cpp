@@ -210,11 +210,12 @@ bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &
                 "MAX_WAIT_OBJECT_TIMEOUT_MS) returned WAIT_TIMEOUT for too long (%d ms), giving up",
         progress, qs.checkFrameProgress(), cpuFrameProgress, what, event, msGpuWaitingTime);
 
-      // If device removed is already detected, do not signal another one. That cause deadlock.
-      if (get_device().getDevice()->GetDeviceRemovedReason() == S_OK && get_device().signalDeviceErrorNoDebugInfo())
-      {
-        get_device().getDevice()->RemoveDevice();
-      }
+      get_device().signalDeviceErrorNoDebugInfo();
+      execute_in_new_thread(
+        [device = ComPtr<D3DDevice>(get_device().getDevice())](auto) {
+          device->RemoveDevice(); //
+        },
+        "Device remover");
     }
 #endif
     if (get_device().isInErrorState())

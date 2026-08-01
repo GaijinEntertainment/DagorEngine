@@ -65,8 +65,13 @@ public:
   const char *getTargetName() override { return nullptr; }
   bool ceaseReading() override { return true; }
 
+  // true once the current frame decoded to its end marker: a soft-mode reader that consumed its
+  // payload cannot otherwise distinguish clean frame completion from truncation or decode error
+  bool isFrameFinished() const { return frameFinished; }
+
 protected:
   ZstdErrorMode errorMode = ZstdErrorMode::Fatal;
+  bool frameFinished = false;
   ZSTD_DCtx_s *dstrm = nullptr;
   dag::ConstSpan<unsigned char> encDataBuf;
   unsigned encDataPos = 0;

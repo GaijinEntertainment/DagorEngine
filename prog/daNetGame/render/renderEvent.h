@@ -30,11 +30,63 @@ struct CameraParams;
 class Occlusion;
 // all render events are called with broadcastImmediate. It is just generalized update stage.
 
+class CameraNodesRegistratorStorage
+{
+  eastl::vector<dafg::NodeHandle> *nodes;
+  uint32_t offset;
+  uint32_t oldReservedSpace;
+  uint32_t written = 0;
+  bool hasOverflow = false;
+
+public:
+  CameraNodesRegistratorStorage(eastl::vector<dafg::NodeHandle> &nodes_storage, uint32_t range_offset, uint32_t range_size) :
+    nodes(&nodes_storage), offset(range_size ? range_offset : uint32_t(nodes_storage.size())), oldReservedSpace(range_size)
+  {}
+
+  void push_back(dafg::NodeHandle &&node)
+  {
+    const bool hasReservedSpace = !hasOverflow && oldReservedSpace > 0;
+
+    if (hasReservedSpace)
+    {
+      if (written < oldReservedSpace)
+        (*nodes)[offset + written] = eastl::move(node);
+      else
+      {
+        const uint32_t newOffset = (uint32_t)nodes->size();
+
+        for (uint32_t i = 0; i < written; ++i)
+        {
+          nodes->push_back();
+          nodes->back() = eastl::move((*nodes)[offset + i]);
+        }
+        nodes->push_back(eastl::move(node));
+
+        hasOverflow = true;
+        offset = newOffset;
+      }
+    }
+    else
+      nodes->push_back(eastl::move(node));
+
+    ++written;
+  }
+
+  void clearUnused()
+  {
+    for (uint32_t i = written; i < oldReservedSpace; ++i)
+      (*nodes)[offset + i] = {};
+  }
+
+  uint32_t getWritten() const { return written; }
+  uint32_t getOffset() const { return offset; }
+  bool isOverflowed() const { return hasOverflow; }
+};
+
 struct OnCameraNodeConstruction : public ecs::Event
 {
   ECS_BROADCAST_EVENT_DECL(OnCameraNodeConstruction)
   OnCameraNodeConstruction(eastl::vector<dafg::NodeHandle> *nodes_storage,
-    eastl::vector<resource_slot::NodeHandleWithSlotsAccess> *slot_nodes_storage,
     const bool has_opaque_prepass,
     const bool gi_needs_reprojection,
     const bool need_depth_history,
@@ -42,7 +94,6 @@ struct OnCameraNodeConstruction : public ecs::Event
     const bool has_motion_vectors) :
     ECS_EVENT_CONSTRUCTOR(OnCameraNodeConstruction),
     nodes(nodes_storage),
-    slotNodes(slot_nodes_storage),
     hasOpaquePrepass(has_opaque_prepass),
     giNeedsReprojection(gi_needs_reprojection),
     needDepthHistory(need_depth_history),
@@ -50,13 +101,52 @@ struct OnCameraNodeConstruction : public ecs::Event
     hasMotionVectors(has_motion_vectors)
   {}
   eastl::vector<dafg::NodeHandle> *nodes;
-  eastl::vector<resource_slot::NodeHandleWithSlotsAccess> *slotNodes;
 
   bool hasOpaquePrepass = true;
   bool giNeedsReprojection = true;
   bool needDepthHistory = true;
   bool isBareMinimum = false;
   bool hasMotionVectors = true;
+};
+
+struct OnCameraNodeWithSlotsConstruction : public ecs::Event
+{
+  ECS_BROADCAST_EVENT_DECL(OnCameraNodeWithSlotsConstruction)
+  OnCameraNodeWithSlotsConstruction(eastl::vector<resource_slot::NodeHandleWithSlotsAccess> *slot_nodes_storage) :
+    ECS_EVENT_CONSTRUCTOR(OnCameraNodeWithSlotsConstruction), slotNodes(slot_nodes_storage)
+  {}
+  eastl::vector<resource_slot::NodeHandleWithSlotsAccess> *slotNodes;
+};
+
+struct OnCameraMainViewNodeConstruction : public ecs::Event
+{
+  ECS_UNICAST_EVENT_DECL(OnCameraMainViewNodeConstruction)
+  OnCameraMainViewNodeConstruction(const char *view_ns_name, CameraNodesRegistratorStorage *nodes_storage, bool has_opaque_prepass) :
+    ECS_EVENT_CONSTRUCTOR(OnCameraMainViewNodeConstruction),
+    viewNsName(view_ns_name),
+    nodes(nodes_storage),
+    hasOpaquePrepass(has_opaque_prepass)
+  {}
+  const char *viewNsName;
+  CameraNodesRegistratorStorage *nodes;
+  bool hasOpaquePrepass;
+};
+
+struct OnCameraPerViewNodeConstruction : public ecs::Event
+{
+  ECS_UNICAST_EVENT_DECL(OnCameraPerViewNodeConstruction)
+  OnCameraPerViewNodeConstruction(
+    bool is_main_view, const char *view_ns_name, CameraNodesRegistratorStorage *nodes_storage, bool has_opaque_prepass) :
+    ECS_EVENT_CONSTRUCTOR(OnCameraPerViewNodeConstruction),
+    isMainView(is_main_view),
+    viewNsName(view_ns_name),
+    nodes(nodes_storage),
+    hasOpaquePrepass(has_opaque_prepass)
+  {}
+  bool isMainView;
+  const char *viewNsName;
+  CameraNodesRegistratorStorage *nodes;
+  bool hasOpaquePrepass;
 };
 
 struct QueryShooterCamDistanceMultipliers : public ecs::Event
@@ -67,6 +157,19 @@ struct QueryShooterCamDistanceMultipliers : public ecs::Event
   {}
   float *riDistanceMul;
   float *impostorDistMul;
+};
+
+// Broadcast right before the world's framegraph multiplexing extents are
+// finalized, seeded with the renderer's defaults. A feature may raise any
+// dimension's extent to multiplex extra passes over it (e.g. the AA benchmark
+// iterating ground-truth accumulation over the sub-sample dimension). A consumer
+// should only override a dimension left unused by the renderer (extent == 1).
+// TODO: make screenshot nodes use this override mechanism instead of the current approach
+struct QueryMultiplexingExtents : public ecs::Event
+{
+  ECS_BROADCAST_EVENT_DECL(QueryMultiplexingExtents)
+  QueryMultiplexingExtents(dafg::multiplexing::Extents *extents) : ECS_EVENT_CONSTRUCTOR(QueryMultiplexingExtents), extents(extents) {}
+  dafg::multiplexing::Extents *extents;
 };
 
 struct UpdateBlurredUI : public ecs::Event
@@ -395,18 +498,21 @@ struct RenderStaticSceneEvent : public ecs::Event
 struct RenderDecalsOnDynamic : public ecs::Event
 {
   TMatrix viewTm;
+  TMatrix4 projTm; // must match whatever the broadcaster set as TM_PROJ
   Point3 mainCamPos;
   Frustum cullingFrustum;
   const Occlusion *occlusion;
   TexStreamingContext texCtx;
   ECS_BROADCAST_EVENT_DECL(RenderDecalsOnDynamic);
   RenderDecalsOnDynamic(const TMatrix &view_tm,
+    const TMatrix4 &proj_tm,
     const Point3 &main_cam_pos,
     const Frustum &culling_frustum,
     const Occlusion *occlusion_,
     TexStreamingContext tex_ctx) :
     ECS_EVENT_CONSTRUCTOR(RenderDecalsOnDynamic),
     viewTm(view_tm),
+    projTm(proj_tm),
     mainCamPos(main_cam_pos),
     cullingFrustum(culling_frustum),
     occlusion(occlusion_),
@@ -423,6 +529,7 @@ struct RenderDecalsOnDynamic : public ecs::Event
   DEF_RENDER_PROF_EVENT(RenderEventDebugGUI)
 
 #define DEF_RENDER_EVENTS                                                                              \
+  DEF_RENDER_EVENT(OnWorldRendererCreated)                                                             \
   DEF_RENDER_EVENT(UnloadLevel)                                                                        \
   DEF_RENDER_EVENT(OnRenderDecals, TMatrix /*viewTm*/, TMatrix /*viewItm*/, Point3 /*cameraWorldPos*/, \
     TexStreamingContext /*texCtx*/, const RiGenVisibility * /*rendinstMainVisibility*/)                \

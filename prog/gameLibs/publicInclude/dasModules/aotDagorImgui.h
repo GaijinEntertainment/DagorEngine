@@ -10,6 +10,7 @@
 #include <daScript/daScript.h>
 #include <dasModules/dasDataBlock.h>
 #include <gui/dag_imgui.h>
+#include <memory/dag_dbgMem.h>
 #include <perfMon/dag_statDrv.h>
 
 DAS_BIND_ENUM_CAST(ImGuiState);
@@ -65,8 +66,8 @@ struct RegisterImguiFunctionAnnotation : das::FunctionAnnotation
 
   bool apply(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &, eastl::string &err) override
   {
-    auto program = (*das::daScriptEnvironment::bound)->g_Program;
-    if (program->thisModule->isModule)
+    auto mod = fn->fromGeneric ? fn->fromGeneric->module : fn->module;
+    if (mod && mod->isModule)
     {
       err = "imgui function shouldn't be placed in the module. Please move the function to a file without module directive";
       return false;
@@ -214,6 +215,7 @@ struct RegisterImguiFunctionAnnotation : das::FunctionAnnotation
     {
       RAIIAlwaysErrorOnException alwaysErrorOnException(closureInfo.context);
       RAIIStackwalkOnLogerr stackwalkOnLogerr(closureInfo.context);
+      DagDbgMem::ForcedProfileCallStackRAII st_raii;
       closureInfo.context->tryRestartAndLock();
       if (!closureInfo.context->ownStack)
       {

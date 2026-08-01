@@ -31,7 +31,7 @@ struct VromfsDataRemover
   void operator()(VirtualRomFsData *pack)
   {
     remove_vromfs(pack);
-    memfree(pack, inimem);
+    release_vromfs(pack, inimem);
   }
 };
 struct VromfsPackRemover
@@ -122,7 +122,7 @@ static void add_vrom(const char *fn, const char *mnt_path, bool is_pack, Virtual
     if (is_pack)
       close_vromfs_pack(static_cast<VirtualRomFsPack *>(vd), midmem);
     else
-      memfree(vd, inimem);
+      release_vromfs(vd, inimem);
   }
 }
 
@@ -148,7 +148,7 @@ VirtualRomFsData *mount_vrom(const char *name, const char *mnt_path, bool is_pac
     newData = ::open_vromfs_pack(eff_path, midmem, DF_IGNORE_MISSING);
   else
   {
-    loadedVrom = syncvroms::load_vromfs_dump(eff_path.c_str(), VromfsCompression{signCheckCb, dd_get_fname(eff_path.c_str())});
+    loadedVrom = syncvroms::load_vromfs_dump(eff_path.c_str(), VromfsCompression{signCheckCb, dd_get_fname(eff_path.c_str())}, true);
     newData = loadedVrom.fsData;
   }
   if (!newData && dd_file_exists(eff_path))
@@ -160,7 +160,7 @@ VirtualRomFsData *mount_vrom(const char *name, const char *mnt_path, bool is_pac
       newData = ::open_vromfs_pack(name, midmem, DF_IGNORE_MISSING);
     else
     {
-      loadedVrom = syncvroms::load_vromfs_dump(name, VromfsCompression{signCheckCb, dd_get_fname(name)});
+      loadedVrom = syncvroms::load_vromfs_dump(name, VromfsCompression{signCheckCb, dd_get_fname(name)}, true);
       newData = loadedVrom.fsData;
     }
     logwarn("removing broken %s", eff_path);
@@ -290,7 +290,7 @@ RAIIVrom::~RAIIVrom()
   if (vrom)
   {
     remove_vromfs(vrom);
-    mem->free(vrom);
+    release_vromfs(vrom, mem);
   }
 }
 
@@ -423,11 +423,13 @@ static int remount_all_vroms_impl(const eastl::bitvector<> *remount_filter)
     MountVromfsRec &mnt = mnt_vromfs[req.mountIdx];
     if (!req.isPack)
     {
-      syncvroms::LoadedSyncVrom loadedVrom{syncvroms::load_vromfs_dump(req.upd_vrom, create_vromfs_compression(req.upd_vrom.c_str()))};
+      syncvroms::LoadedSyncVrom loadedVrom{
+        syncvroms::load_vromfs_dump(req.upd_vrom, create_vromfs_compression(req.upd_vrom.c_str()), true)};
       debug("remount vrom(%s), ver=%s -> %s, hash= '%s'", req.upd_vrom, req.vrom_ver.to_string(), req.upd_ver.to_string(),
         loadedVrom.hash.c_str());
       G_VERIFY(replace_vromfs(req.vromIdx, loadedVrom.fsData) == req.vromPtr);
-      memfree(mnt.vromfsData.release(), inimem);
+      VirtualRomFsData *oldVrom = mnt.vromfsData.release();
+      release_vromfs(oldVrom, inimem);
       mnt.vromfsData.reset(loadedVrom.fsData);
       mnt.hash = loadedVrom.hash;
     }
@@ -514,7 +516,7 @@ bool register_data_as_single_file_in_virtual_vrom(dag::ConstSpan<char> data, con
   }
 
   logwarn("single file %s/%s already mounted, ignore", mount_dir, rel_fname);
-  memfree(vrom, inimem);
+  release_vromfs(vrom, inimem);
   return false;
 }
 bool unregister_data_as_single_file_in_virtual_vrom(const char *mount_dir, const char *rel_fname)

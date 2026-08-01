@@ -11,7 +11,6 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #include "omm_platform.hlsli"
 #include "omm.hlsli"
 #include "omm_global_cb.hlsli"
-#include "omm_global_samplers.hlsli"
 #include "omm_rasterize.vs.resources.hlsli"
 
 OMM_DECLARE_GLOBAL_CONSTANT_BUFFER
@@ -41,7 +40,7 @@ void main(
 
 	const float2 texCoord		= raster::PS_SV_Position_to_TexCoord(i_svPosition);
 
-	const float4 color			= t_alphaTexture.SampleLevel(s_samplers[g_GlobalConstants.SamplerIndex], texCoord.xy, 0);
+	const float4 color			= t_alphaTexture.SampleLevel(OMM_GLOBAL_SAMPLER(g_GlobalConstants.SamplerIndex), texCoord.xy, 0);
 	const float alpha			= color[g_GlobalConstants.AlphaTextureChannel];
 
 	//o_color = float4(alpha.rgb, 1);

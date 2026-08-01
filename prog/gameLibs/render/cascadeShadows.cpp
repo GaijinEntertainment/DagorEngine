@@ -1000,32 +1000,74 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
   {
     if (!split.viewport.isEmpty())
     {
-      // Align box with shadow texels.
-      const int borderPixels = 4;
-      float texelWidth = shadowProjectionBox.width().x / split.viewport.width().x; // Add border pixels before adding the reserve for
-                                                                                   // camera rotation to measure this reserve in
-                                                                                   // constant units.
-      float texelHeight = shadowProjectionBox.width().y / split.viewport.width().y;
-      shadowProjectionBox.lim[0].x -= borderPixels * texelWidth;
-      shadowProjectionBox.lim[0].y -= borderPixels * texelHeight;
-      shadowProjectionBox.lim[1].x += borderPixels * texelWidth;
-      shadowProjectionBox.lim[1].y += borderPixels * texelHeight;
+      if (settings.constantCascadeSize)
+      {
+        const int borderPixels = 4;
+        const float mapWidth = split.viewport.width().x;
+        const float mapHeight = split.viewport.width().y;
 
-      float step = modeSettings.shadowCascadeRotationMargin * z_far;
-      shadowProjectionBox.lim[0].x = step * floorf(shadowProjectionBox.lim[0].x / step);
-      shadowProjectionBox.lim[0].y = step * floorf(shadowProjectionBox.lim[0].y / step);
-      shadowProjectionBox.lim[1].x = step * ceilf(shadowProjectionBox.lim[1].x / step);
-      shadowProjectionBox.lim[1].y = step * ceilf(shadowProjectionBox.lim[1].y / step);
+        Frustum viewFrustum;
+        viewFrustum.construct(projTM);
+        viewFrustum.camPlanes[Frustum::FARPLANE] = v_perm_xyzd(viewFrustum.camPlanes[Frustum::FARPLANE], v_splats(z_far));
+        viewFrustum.camPlanes[Frustum::NEARPLANE] = v_perm_xyzd(viewFrustum.camPlanes[Frustum::NEARPLANE], v_splats(-z_near));
+        vec3f viewFrustumPoints[8];
+        viewFrustum.generateAllPointFrustm(viewFrustumPoints);
+        vec4f diameterSq = v_zero();
+        for (int i = 0; i < 8; ++i)
+          for (int j = i + 1; j < 8; ++j)
+            diameterSq = v_max(diameterSq, v_length3_sq_x(v_sub(viewFrustumPoints[i], viewFrustumPoints[j])));
 
-      Point3 anchorPoint = shadowViewMatrix3 * anchor;
-      texelWidth = shadowProjectionBox.width().x / split.viewport.width().x; // Box size was changed, recalculate the exact texel size
-                                                                             // to snap to pixel.
-      texelHeight = shadowProjectionBox.width().y / split.viewport.width().y;
-      shadowProjectionBox.lim[0].x = anchorPoint.x + floorf((shadowProjectionBox.lim[0].x - anchorPoint.x) / texelWidth) * texelWidth;
-      shadowProjectionBox.lim[0].y =
-        anchorPoint.y + floorf((shadowProjectionBox.lim[0].y - anchorPoint.y) / texelHeight) * texelHeight;
-      shadowProjectionBox.lim[1].x = anchorPoint.x + ceilf((shadowProjectionBox.lim[1].x - anchorPoint.x) / texelWidth) * texelWidth;
-      shadowProjectionBox.lim[1].y = anchorPoint.y + ceilf((shadowProjectionBox.lim[1].y - anchorPoint.y) / texelHeight) * texelHeight;
+        const float diameter = ceilf(v_extract_x(v_sqrt_x(diameterSq)));
+        const float minMapSize = min(mapWidth, mapHeight);
+        const float boxSide = diameter * minMapSize / (minMapSize - 2 * borderPixels);
+        const float halfSize = 0.5f * boxSide;
+        const float texelWidth = boxSide / mapWidth;
+        const float texelHeight = boxSide / mapHeight;
+
+        const Point3 camInLightSpace = shadowViewMatrix3 * camera_pos;
+        const Point3 originInLightSpace = shadowViewMatrix3 * anchor;
+        const Point3 deltaInLightSpace = camInLightSpace - originInLightSpace;
+        float centerX = 0.5f * (shadowProjectionBox.lim[0].x + shadowProjectionBox.lim[1].x) + deltaInLightSpace.x;
+        float centerY = 0.5f * (shadowProjectionBox.lim[0].y + shadowProjectionBox.lim[1].y) + deltaInLightSpace.y;
+        centerX = floorf(centerX / texelWidth) * texelWidth - deltaInLightSpace.x;
+        centerY = floorf(centerY / texelHeight) * texelHeight - deltaInLightSpace.y;
+
+        shadowProjectionBox.lim[0].x = centerX - halfSize;
+        shadowProjectionBox.lim[1].x = centerX + halfSize;
+        shadowProjectionBox.lim[0].y = centerY - halfSize;
+        shadowProjectionBox.lim[1].y = centerY + halfSize;
+      }
+      else
+      {
+        // Align box with shadow texels.
+        const int borderPixels = 4;
+        float texelWidth = shadowProjectionBox.width().x / split.viewport.width().x; // Add border pixels before adding the reserve for
+                                                                                     // camera rotation to measure this reserve in
+                                                                                     // constant units.
+        float texelHeight = shadowProjectionBox.width().y / split.viewport.width().y;
+        shadowProjectionBox.lim[0].x -= borderPixels * texelWidth;
+        shadowProjectionBox.lim[0].y -= borderPixels * texelHeight;
+        shadowProjectionBox.lim[1].x += borderPixels * texelWidth;
+        shadowProjectionBox.lim[1].y += borderPixels * texelHeight;
+
+        float step = modeSettings.shadowCascadeRotationMargin * z_far;
+        shadowProjectionBox.lim[0].x = step * floorf(shadowProjectionBox.lim[0].x / step);
+        shadowProjectionBox.lim[0].y = step * floorf(shadowProjectionBox.lim[0].y / step);
+        shadowProjectionBox.lim[1].x = step * ceilf(shadowProjectionBox.lim[1].x / step);
+        shadowProjectionBox.lim[1].y = step * ceilf(shadowProjectionBox.lim[1].y / step);
+
+        Point3 anchorPoint = shadowViewMatrix3 * anchor;
+        texelWidth = shadowProjectionBox.width().x / split.viewport.width().x; // Box size was changed, recalculate the exact texel
+                                                                               // size to snap to pixel.
+        texelHeight = shadowProjectionBox.width().y / split.viewport.width().y;
+        shadowProjectionBox.lim[0].x =
+          anchorPoint.x + floorf((shadowProjectionBox.lim[0].x - anchorPoint.x) / texelWidth) * texelWidth;
+        shadowProjectionBox.lim[0].y =
+          anchorPoint.y + floorf((shadowProjectionBox.lim[0].y - anchorPoint.y) / texelHeight) * texelHeight;
+        shadowProjectionBox.lim[1].x = anchorPoint.x + ceilf((shadowProjectionBox.lim[1].x - anchorPoint.x) / texelWidth) * texelWidth;
+        shadowProjectionBox.lim[1].y =
+          anchorPoint.y + ceilf((shadowProjectionBox.lim[1].y - anchorPoint.y) / texelHeight) * texelHeight;
+      }
     }
   }
 

@@ -35,6 +35,7 @@ PULL_CONSOLE_PROC(das_console_handler)
 PULL_CONSOLE_PROC(replay_console_handler)
 #if DAGOR_DBGLEVEL > 0
 PULL_CONSOLE_PROC(ri_collision_console_handler)
+PULL_CONSOLE_PROC(ri_scene_console_handler)
 #endif
 
 // use it only for app like console processors. move everything else elsewhere
@@ -56,6 +57,10 @@ static bool app_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME_EX("log", "max_lines", 2, 2, "sets how many lines can be shown in log at once", "<lines_count>")
   {
     visuallog::setMaxItems(to_int(argv[1]));
+  }
+  CONSOLE_CHECK_NAME_EX("log", "disable", 1, 2, "disable or enable visuallog fully", "<is_disabled>")
+  {
+    visuallog::setDrawDisabled(to_bool(argv[1]));
   }
   CONSOLE_CHECK_NAME("app", "fps_limit", 2, 2) { set_fps_limit(to_int(argv[1])); }
   CONSOLE_CHECK_NAME("app", "switch_scene", 1, 2) { sceneload::switch_scene(argc > 1 ? argv[1] : "", {}); }

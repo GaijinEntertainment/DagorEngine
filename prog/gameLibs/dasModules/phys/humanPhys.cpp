@@ -11,8 +11,8 @@ DAS_BASE_BIND_ENUM_98(HUStandState, HUStandState, ESS_STAND, ESS_CROUCH, ESS_CRA
   ESS_CLIMB, ESS_CLIMB_THROUGH, ESS_CLIMB_OVER, ESS_CLIMB_LADDER, ESS_EXTERNALLY_CONTROLLED, ESS_NUM);
 DAS_BASE_BIND_ENUM(HumanPhysState::StateFlag, StateFlag, ST_JUMP, ST_CROUCH, ST_CRAWL, ST_ON_GROUND, ST_SPRINT, ST_WALK, ST_SWIM,
   ST_DOWNED);
-DAS_BASE_BIND_ENUM(HumanPhys::ClimbState, ClimbState, CLIMB_STATE_JUMP_UP, CLIMB_STATE_CLIMB, CLIMB_STATE_JUMP_DOWN,
-  CLIMB_STATE_FLY_DOWN, CLIMB_STATE_LANDING);
+DAS_BASE_BIND_ENUM(HumanPhys::ClimbTrajectoryStage, ClimbTrajectoryStage, CLIMB_STAGE_JUMP_UP, CLIMB_STAGE_CLIMB,
+  CLIMB_STAGE_JUMP_DOWN, CLIMB_STAGE_FLY_DOWN, CLIMB_STAGE_LANDING, CLIMB_STAGE_STAND_UP);
 DAS_BASE_BIND_ENUM(HumanControlState::DodgeState, DodgeState, No, Left, Right, Back);
 
 DAS_ANNOTATE_VECTOR(HumanWeaponParamsArray, HumanWeaponParamsArray)
@@ -262,7 +262,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     // NOTE: please add new field according to fields order
     addField<DAS_BIND_MANAGED_FIELD(rotateSpeeds)>("rotateSpeeds");
     addField<DAS_BIND_MANAGED_FIELD(alignSpeeds)>("alignSpeeds");
-    addField<DAS_BIND_MANAGED_FIELD(fricitonByState)>("fricitonByState");
+    addField<DAS_BIND_MANAGED_FIELD(frictionByState)>("frictionByState");
     addField<DAS_BIND_MANAGED_FIELD(accelerationByState)>("accelerationByState");
     addField<DAS_BIND_MANAGED_FIELD(externalFrictionPerSpeedMult)>("externalFrictionPerSpeedMult");
     addField<DAS_BIND_MANAGED_FIELD(minWalkSpeed)>("minWalkSpeed");
@@ -373,6 +373,7 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(climbAngleCos)>("climbAngleCos");
     addField<DAS_BIND_MANAGED_FIELD(climbMinHorzSize)>("climbMinHorzSize");
     addField<DAS_BIND_MANAGED_FIELD(climbOnMinVertSize)>("climbOnMinVertSize");
+    addField<DAS_BIND_MANAGED_FIELD(climbOnMinVertSize)>("climbOnMinVertForwDist");
     addField<DAS_BIND_MANAGED_FIELD(climbThroughMinVertSize)>("climbThroughMinVertSize");
     addField<DAS_BIND_MANAGED_FIELD(climbThroughForwardDist)>("climbThroughForwardDist");
     addField<DAS_BIND_MANAGED_FIELD(climbThroughPosOffset)>("climbThroughPosOffset");
@@ -381,11 +382,13 @@ struct HumanPhysAnnotation : das::ManagedStructureAnnotation<HumanPhys, false>
     addField<DAS_BIND_MANAGED_FIELD(fastClimbingMult)>("fastClimbingMult");
 
     addField<DAS_BIND_MANAGED_FIELD(useClimbTrajectory)>("useClimbTrajectory");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryStage)>("climbTrajectoryStage");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevPos)>("climbTrajectoryPrevPos");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextPos)>("climbTrajectoryNextPos");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevTime)>("climbTrajectoryPrevTime");
-    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextTime)>("climbTrajectoryNextTime");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevStage)>("climbTrajectoryPrevStage");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextStage)>("climbTrajectoryNextStage");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevPosition)>("climbTrajectoryPrevPosition");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextPosition)>("climbTrajectoryNextPosition");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryPrevProgress)>("climbTrajectoryPrevProgress");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryNextProgress)>("climbTrajectoryNextProgress");
+    addField<DAS_BIND_MANAGED_FIELD(climbTrajectoryTransitionK)>("climbTrajectoryTransitionK");
 
     addField<DAS_BIND_MANAGED_FIELD(climbOverMaxHeight)>("climbOverMaxHeight");
     addField<DAS_BIND_MANAGED_FIELD(climbOverHeightThreshold)>("climbOverHeightThreshold");
@@ -498,7 +501,7 @@ public:
     addEnumeration(new EnumerationHUWeaponEquipState());
     addEnumeration(new EnumerationHumanControlThrowSlot());
     addEnumeration(new EnumerationStateFlag());
-    addEnumeration(new EnumerationClimbState());
+    addEnumeration(new EnumerationClimbTrajectoryStage());
     addEnumeration(new EnumerationPrecomputedPresetMode());
     addEnumeration(new EnumerationDodgeState());
 

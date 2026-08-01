@@ -37,9 +37,8 @@ public:
   void reset();
   void reinit();
 
-  void setLevel(float water_level);
-  float getMinLevel() const { return minWaterLevel; }
-  float getMaxLevel() const { return maxWaterLevel; }
+  float getMinHeight() const { return minWaterHeight; }
+  float getMaxHeight() const { return maxWaterHeight; }
   float getMaxWaveHeight() const { return maxWaveHeight; }
   void setMinMaxLevel(float min_water_level, float max_water_level);
   void calcWaveHeight(float &out_max_wave_height, float &out_significant_wave_height);
@@ -55,6 +54,7 @@ public:
   void setRenderQuad(const BBox2 &b);
   void setWakeHtTex(TEXTUREID wake_ht_tex);
   void setLod0AreaSize(float size) { lod0AreaRadius = size; }
+  void setLastLodExtension(float extension) { lastLodExtension = extension; }
   float getLod0AreaSize() { return lod0AreaRadius; }
   void setGridLod0AdditionalTesselation(float additional_tesselation) { lod0TesselationAdditional = additional_tesselation; }
 
@@ -78,8 +78,8 @@ protected:
 
   ChopWaterGenerator &chopGen;
 
-  float waterLevel;
   float minWaterLevel, maxWaterLevel;
+  float minWaterHeight, maxWaterHeight;
   float maxWaveHeight, significantWaveHeight;
   float maxWaveSize[MAX_NUM_CASCADES];
   int numCascades; // todo: support using arbitrary number of cascades for rendering if perf is bad

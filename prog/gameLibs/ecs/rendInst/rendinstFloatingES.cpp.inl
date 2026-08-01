@@ -668,12 +668,11 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
     {
       for (auto destr : destructables::getDestructableObjects())
       {
-        if (destr->resIdx == resIdx && !destr->isFloatable())
+        if (destr->resIdx == resIdx && !destr->isFloatEnabled())
         {
           if (destr->isAlive())
           {
             destr->setTimeToFloat(floatingRiGroup__wreckageFloatDuration);
-            gamephys::DestructableObject::numFloatable++;
             rendinstdestr::remove_restorable_by_destructable_id(destr->getId());
           }
           break;
@@ -687,18 +686,7 @@ ECS_BEFORE(start_async_phys_sim_es)
 ECS_TAG(gameClient)
 static void keep_floatable_destructables_es(const ParallelUpdateFrameDelayed &info)
 {
-  if (!gamephys::DestructableObject::numFloatable)
-    return;
-  int numFloatable = 0;
-  for (auto destr : destructables::getDestructableObjects())
-  {
-    if (destr->isAlive() && destr->isFloatable())
-    {
-      destr->keepFloatable(info.dt, info.curTime);
-      numFloatable++;
-    }
-  }
-  gamephys::DestructableObject::numFloatable = numFloatable;
+  destructables::update_floatable(info.dt, info.curTime);
 }
 
 ECS_ON_EVENT(on_appear)

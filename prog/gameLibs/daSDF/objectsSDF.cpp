@@ -1231,7 +1231,7 @@ struct ObjectsSDFImpl : public ObjectsSDF
       inst.extent = meshSDF.getExt();
       vec4f vtws = v_perm_xaxa(v_length3_x(localToWorld.col0), v_length3_x(localToWorld.col1));
       vtws = v_perm_xyab(vtws, v_length3_x(localToWorld.col2));
-      vtws = v_perm_xyzd(vtws, v_min(v_splat_x(vtws), v_min(v_splat_y(vtws), v_splat_z(vtws))));
+      vtws = v_perm_xyzd(vtws, v_hmin3(vtws));
       v_st(&inst.volumeToWorldScale.x, vtws);
       // world space bounding sphere
       bbox3f destBox;

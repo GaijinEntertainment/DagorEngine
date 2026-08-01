@@ -130,6 +130,13 @@ namespace acl
 
 	namespace acl_impl
 	{
+		//////////////////////////////////////////////////////////////////////////
+		// The following functions come in packed and scalar form and are specifically
+		// crafted to ensure determinism between compression and decompression.
+		// The packed functions have a numbered suffix dictating how many elements
+		// are processed while scalar functions have the 'stable' suffix.
+		//////////////////////////////////////////////////////////////////////////
+
 		// About 31 cycles with AVX on Skylake
 		// Force inline this function, we only use it to keep the code readable
 		RTM_FORCE_INLINE RTM_DISABLE_SECURITY_COOKIE_CHECK rtm::vector4f RTM_SIMD_CALL quat_from_positive_w4(rtm::vector4f_arg0 xxxx, rtm::vector4f_arg1 yyyy, rtm::vector4f_arg2 zzzz)
@@ -208,6 +215,57 @@ namespace acl
 			yyyy = rtm::vector_mul(yyyy, inv_len4);
 			zzzz = rtm::vector_mul(zzzz, inv_len4);
 			wwww = rtm::vector_mul(wwww, inv_len4);
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL quat_from_positive_w_stable(rtm::vector4f_arg0 input) RTM_NO_EXCEPT
+		{
+			rtm::vector4f input_sq = rtm::vector_mul(input, input);
+
+			// 1.0 - (x * x)
+			float result = 1.0F - rtm::vector_get_x(input_sq);
+			// result - (y * y)
+			result = result - rtm::vector_get_y(input_sq);
+			// result - (z * z)
+			float w_squared = result - rtm::vector_get_z(input_sq);
+
+			// w_squared can be negative either due to rounding or due to quantization imprecision, we take the absolute value
+			// to ensure the resulting quaternion is always normalized with a positive W component
+			float w = rtm::scalar_sqrt(rtm::scalar_abs(w_squared));
+			return rtm::quat_set_w(rtm::vector_to_quat(input), w);
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK RTM_FORCE_INLINE rtm::quatf RTM_SIMD_CALL quat_normalize_stable(rtm::quatf_arg0 input) RTM_NO_EXCEPT
+		{
+			rtm::vector4f input_v = rtm::quat_to_vector(input);
+			rtm::vector4f input_sq = rtm::vector_mul(input_v, input_v);
+
+			float dot = rtm::vector_get_x(input_sq);
+			dot = dot + rtm::vector_get_y(input_sq);
+			dot = dot + rtm::vector_get_z(input_sq);
+			dot = dot + rtm::vector_get_w(input_sq);
+
+			float inv_len = 1.0F / rtm::scalar_sqrt(dot);
+			return rtm::vector_to_quat(rtm::vector_mul(input_v, inv_len));
+		}
+
+		RTM_DISABLE_SECURITY_COOKIE_CHECK inline rtm::quatf RTM_SIMD_CALL quat_lerp_stable(rtm::quatf_arg0 start, rtm::quatf_arg1 end, float alpha) RTM_NO_EXCEPT
+		{
+			rtm::vector4f start_v = rtm::quat_to_vector(start);
+			rtm::vector4f end_v = rtm::quat_to_vector(end);
+
+			rtm::vector4f start_mul_end = rtm::vector_mul(start_v, end_v);
+
+			float dot = rtm::vector_get_x(start_mul_end);
+			dot = dot + rtm::vector_get_y(start_mul_end);
+			dot = dot + rtm::vector_get_z(start_mul_end);
+			dot = dot + rtm::vector_get_w(start_mul_end);
+
+			float bias = dot >= 0.0F ? 1.0F : -1.0F;
+
+			// ((1.0 - alpha) * start) + (alpha * (end * bias)) == (start - alpha * start) + (alpha * (end * bias))
+			rtm::vector4f interpolated_rotation = rtm::vector_mul_add(rtm::vector_mul(end_v, bias), alpha, rtm::vector_neg_mul_sub(start_v, alpha, start_v));
+
+			return quat_normalize_stable(interpolated_rotation);
 		}
 	}
 

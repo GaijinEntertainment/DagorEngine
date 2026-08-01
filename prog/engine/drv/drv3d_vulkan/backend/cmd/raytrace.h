@@ -32,6 +32,14 @@ struct CmdRaytraceBuildStructures
   uint32_t count;
 };
 
+// registered in the command list unconditionally (the list is consumed in contexts without
+// vulkan headers where VK_EXT_opacity_micromap is unknown), only the execution needs the extension
+struct CmdRaytraceBuildMicromaps
+{
+  size_t index;
+  uint32_t count;
+};
+
 struct CmdCopyRaytraceAccelerationStructure
 {
   RaytraceAccelerationStructure *src;

@@ -109,6 +109,11 @@ public:
 static ObjectSerializer object_serializer;
 ECS_REGISTER_RELOCATABLE_TYPE(ecs::Object, &object_serializer);
 
+// Coarse sanity cap on a wire-supplied container element count. The abstract DeserializerCb does
+// not expose the remaining stream length, so bound well above any real container to reject a bogus
+// multi-GB reserve/resize from a hostile packet.
+static constexpr uint32_t MAX_DESERIALIZE_CONTAINER_ELEMS = 1 << 20;
+
 class ArraySerializer final : public ecs::ComponentSerializer
 {
 public:
@@ -132,6 +137,8 @@ public:
     arr.clear();
     uint32_t cnt;
     if (!ecs::read_compressed(cb, cnt))
+      return false;
+    if (cnt > MAX_DESERIALIZE_CONTAINER_ELEMS)
       return false;
     arr.reserve(cnt);
     for (uint32_t i = 0; i < cnt; ++i)
@@ -175,6 +182,8 @@ public:
     list.clear();
     uint32_t cnt;
     if (!ecs::read_compressed(cb, cnt))
+      return false;
+    if (cnt > MAX_DESERIALIZE_CONTAINER_ELEMS)
       return false;
     list.resize(cnt);
     for (ItemType &item : list)

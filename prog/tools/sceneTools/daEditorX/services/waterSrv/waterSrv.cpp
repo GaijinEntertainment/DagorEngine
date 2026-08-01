@@ -220,8 +220,6 @@ public:
     ShaderGlobal::set_int(shore_waves_on_gvid, 0);
 
     DagorCurView savedView = ::grs_cur_view;
-    TMatrix4 savedViewMatrix;
-    d3d::gettm(TM_VIEW, &savedViewMatrix);
 
     Driver3dPerspective p;
     bool persp = d3d::getpersp(p);

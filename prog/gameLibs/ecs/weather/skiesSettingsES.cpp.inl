@@ -75,7 +75,16 @@ static __forceinline void clouds_rendering_es_event_handler(const ecs::Event &, 
   float clouds_rendering__forward_eccentricity, float clouds_rendering__back_eccentricity,
   float clouds_rendering__forward_eccentricity_weight, float clouds_rendering__erosion_noise_size,
   float clouds_rendering__ambient_desaturation, float clouds_rendering__ms_contribution, float clouds_rendering__ms_attenuation,
-  float clouds_rendering__ms_ecc_attenuation, float clouds_rendering__erosionWindSpeed)
+  float clouds_rendering__ms_ecc_attenuation, float clouds_rendering__erosionWindSpeed,
+  // optional (defaults mirror CLOUDS_RENDERING_PARAMS) so older templates still match
+  float clouds_rendering__droplet_diameter_um = 20.f, float clouds_rendering__edge_albedo = 0.8f,
+  float clouds_rendering__edge_albedo_sharpness = 4.f, float clouds_rendering__taa_exposure_scale = 0.4f,
+  float clouds_rendering__layer0_aerosolness = 0.35f, float clouds_rendering__layer1_aerosolness = 0.35f,
+  float clouds_rendering__cumulonimbus_aerosolness = 0.5f, float clouds_rendering__cloudAerosolDropletsMieStrength = 1.f,
+  float clouds_rendering__aerosol_reach_below_km = 0.5f, int clouds_rendering__bsm_log2_amortize_frames = 4,
+  float clouds_rendering__bsm_scattering_physicality = 1.f, float clouds_rendering__erosion_strength = 0.15f,
+  float clouds_rendering__erosion_height_bias = 0.5f, float clouds_rendering__erosion_edge_mul = 2.f,
+  float clouds_rendering__erosion_edge_add = 0.25f)
 {
   DaSkies *skies = get_daskies_impl();
   if (!skies)
@@ -91,8 +100,30 @@ static __forceinline void clouds_rendering_es_event_handler(const ecs::Event &, 
   cloudsRendering.ms_attenuation = clouds_rendering__ms_attenuation;
   cloudsRendering.ms_ecc_attenuation = clouds_rendering__ms_ecc_attenuation;
   cloudsRendering.erosionWindSpeed = clouds_rendering__erosionWindSpeed;
+  cloudsRendering.droplet_diameter_um = clouds_rendering__droplet_diameter_um;
+  cloudsRendering.edge_albedo = clouds_rendering__edge_albedo;
+  cloudsRendering.edge_albedo_sharpness = clouds_rendering__edge_albedo_sharpness;
+  cloudsRendering.taa_exposure_scale = clouds_rendering__taa_exposure_scale;
+  cloudsRendering.layer0_aerosolness = clouds_rendering__layer0_aerosolness;
+  cloudsRendering.layer1_aerosolness = clouds_rendering__layer1_aerosolness;
+  cloudsRendering.cumulonimbus_aerosolness = clouds_rendering__cumulonimbus_aerosolness;
+  cloudsRendering.cloudAerosolDropletsMieStrength = clouds_rendering__cloudAerosolDropletsMieStrength;
+  cloudsRendering.aerosol_reach_below_km = clouds_rendering__aerosol_reach_below_km;
+  cloudsRendering.bsm_log2_amortize_frames = clouds_rendering__bsm_log2_amortize_frames;
+  cloudsRendering.bsm_scattering_physicality = clouds_rendering__bsm_scattering_physicality;
+  cloudsRendering.erosion_strength = clouds_rendering__erosion_strength;
+  cloudsRendering.erosion_height_bias = clouds_rendering__erosion_height_bias;
+  cloudsRendering.erosion_edge_mul = clouds_rendering__erosion_edge_mul;
+  cloudsRendering.erosion_edge_add = clouds_rendering__erosion_edge_add;
+  // aerosol controls only change the atmosphere medium: DaSkies::prepare re-derives
+  // them every frame and re-bakes scattering through its own generation counter, so
+  // aerosol-only edits must not trigger the full clouds invalidate
+  DaSkies::CloudsRendering compare = skies->getCloudsRendering();
+  compare.copyAerosolFrom(cloudsRendering);
+  const bool nonAerosolChanged = !(compare == cloudsRendering);
   skies->setCloudsRendering(cloudsRendering);
-  manager.broadcastEventImmediate(CmdSkiesInvalidate());
+  if (nonAerosolChanged)
+    manager.broadcastEventImmediate(CmdSkiesInvalidate());
 }
 
 ECS_ON_EVENT(on_appear, EventSkiesLoaded)
@@ -246,7 +277,9 @@ static __forceinline void sky_atmosphere_es_event_handler(const ecs::Event &, ec
   const Point2 &sky_atmosphere__rayleigh_scale, const Point2 &sky_atmosphere__rayleigh_alt_scale,
   const Point3 &sky_atmosphere__rayleigh_color, float sky_atmosphere__multiple_scattering_factor, float sky_atmosphere__ozone_alt_dist,
   float sky_atmosphere__ozone_max_alt, const Point2 &sky_atmosphere__ozone_scale, float sky_atmosphere__sun_brightness,
-  float sky_atmosphere__moon_brightness, const Point3 &sky_atmosphere__moon_color, bool sky_disable_sky_influence = false)
+  float sky_atmosphere__moon_brightness, const Point3 &sky_atmosphere__moon_color,
+  // optional (default mirrors SKY_PARAMS) so older templates still match
+  float sky_atmosphere__polarization_strength = 0.f, bool sky_disable_sky_influence = false)
 {
   DaSkies *skies = get_daskies_impl();
   if (!skies)
@@ -277,6 +310,7 @@ static __forceinline void sky_atmosphere_es_event_handler(const ecs::Event &, ec
   skyAtmosphereParams.ozone_alt_dist = sky_atmosphere__ozone_alt_dist;
   skyAtmosphereParams.ozone_max_alt = sky_atmosphere__ozone_max_alt;
   skyAtmosphereParams.ozone_scale = SKY_ATMOSPHERE(ozone_scale);
+  skyAtmosphereParams.polarization_strength = sky_atmosphere__polarization_strength;
   skyAtmosphereParams.sun_brightness = sky_atmosphere__sun_brightness;
   skyAtmosphereParams.haze_strength = sky_settings__haze_strength;
   skyAtmosphereParams.haze_min_angle = sky_settings__haze_min_angle;
@@ -385,7 +419,7 @@ void validate_volumetric_clouds_settings_ecs_query(ecs::EntityManager &manager, 
 void validate_volumetric_clouds_settings()
 {
   DaSkies *skies = get_daskies_impl();
-  if (!skies)
+  if (!skies || skies->isCpuOnly())
     return;
   validate_volumetric_clouds_settings_ecs_query(*g_entity_mgr,
     [&](const ecs::Array &clouds_form__layers, bool clouds_settings__force_panorama) {

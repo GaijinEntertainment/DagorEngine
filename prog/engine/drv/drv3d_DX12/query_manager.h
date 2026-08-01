@@ -5,6 +5,7 @@
 #include "pipeline.h"
 
 #include <atomic>
+#include <generic/dag_concurrentElementPool.h>
 #include <generic/dag_objectPool.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <generic/dag_reverseView.h>
@@ -112,6 +113,7 @@ public:
     result += value;
   }
 
+  using QueryBase<D3D12_QUERY_DATA_PIPELINE_STATISTICS>::getValue;
   auto getValue(auto member) const { return result.*member; }
 
   void resetValue() { result = {}; }
@@ -140,14 +142,24 @@ class FrontendQueryManager
     }
   };
 
-  dag::Vector<HeapPredicate> predicateHeaps;
+  // Heaps are indexed lock-free by the render thread (getPredicateInfo / getQueryPtrFromId)
+  // while other threads may create new ones, so storage must stay stable under growth; the
+  // pool guarantees allocated elements never move. predicateGuard only serializes writers.
+  enum class PredicateHeapId : uint32_t
+  {
+    Invalid = 0
+  };
+  using PredicateHeapPool = dag::ConcurrentElementPool<PredicateHeapId, HeapPredicate, 0, 8>;
+
+  PredicateHeapPool predicateHeaps;
   WinCritSec predicateGuard;
 
   ObjectPool<Query> queryPool;
   ObjectPool<PipelineStatsQuery> pipelineStatsQueryPool;
   WinCritSec queryGuard;
 
-  dag::Vector<HeapPredicate>::iterator newPredicateHeap(Device &device, ID3D12Device *dx_device);
+  bool createPredicateHeapResources(HeapPredicate &heap, Device &device, ID3D12Device *dx_device);
+  PredicateHeapId newPredicateHeap(Device &device, ID3D12Device *dx_device);
 
 public:
   uint64_t createPredicate(Device &device, ID3D12Device *dx_device);
@@ -230,56 +242,24 @@ private:
 
   void addInactiveLazyShares(PipelineStatsQuery *query, D3D12_QUERY_DATA_PIPELINE_STATISTICS *result, ID3D12QueryHeap *heap);
 
+  static ComPtr<ID3D12QueryHeap> createQueryHeap(Device &device, D3D12_QUERY_HEAP_TYPE type, uint32_t count);
+  static ComPtr<ID3D12Resource> createQueryReadBackBuffer(Device &device, void **mapped_memory);
+
   template <D3D12_QUERY_HEAP_TYPE type>
-  auto getQuerySlot(ID3D12Device *device)
+  auto getQuerySlot(Device &device)
   {
-    auto createQueryHeap =
-      [=]<class T, size_t HeapSize>(
+    auto createHeapResources =
+      [&device]<class T, size_t HeapSize>(
         const dag::Vector<QueryHeap<T, HeapSize>> &) -> eastl::tuple<ComPtr<ID3D12QueryHeap>, ComPtr<ID3D12Resource>, T *> {
-      D3D12_QUERY_HEAP_DESC heapDesc{
-        .Type = type,
-        .Count = HeapSize,
-        .NodeMask = 0,
-      };
-      ComPtr<ID3D12QueryHeap> heap;
-      if (!DX12_CHECK_OK(device->CreateQueryHeap(&heapDesc, COM_ARGS(&heap))))
+      ComPtr<ID3D12QueryHeap> heap = createQueryHeap(device, type, HeapSize);
+      if (!heap)
       {
         return {};
       }
 
-      D3D12_HEAP_PROPERTIES bufferHeapProps{
-        .Type = D3D12_HEAP_TYPE_READBACK,
-        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
-        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
-        .CreationNodeMask = 0,
-        .VisibleNodeMask = 0,
-      };
-
-      D3D12_RESOURCE_DESC bufferDesc{
-        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
-        .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-        .Width = read_back_buffer_size,
-        .Height = 1,
-        .DepthOrArraySize = 1,
-        .MipLevels = 1,
-        .Format = DXGI_FORMAT_UNKNOWN,
-        .SampleDesc{
-          .Count = 1,
-          .Quality = 0,
-        },
-        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-        .Flags = D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE,
-      };
-      ComPtr<ID3D12Resource> readBackBuffer;
-      if (!DX12_CHECK_OK(device->CreateCommittedResource(&bufferHeapProps, D3D12_HEAP_FLAG_NONE, &bufferDesc,
-            D3D12_RESOURCE_STATE_COPY_DEST, nullptr, COM_ARGS(&readBackBuffer))))
-      {
-        return {};
-      }
-
-      D3D12_RANGE range{};
-      void *mappedMemory;
-      if (!DX12_CHECK_OK(readBackBuffer->Map(0, &range, &mappedMemory)))
+      void *mappedMemory = nullptr;
+      ComPtr<ID3D12Resource> readBackBuffer = createQueryReadBackBuffer(device, &mappedMemory);
+      if (!readBackBuffer)
       {
         return {};
       }
@@ -305,7 +285,7 @@ private:
       else
       {
         // need to create new heap
-        auto [newHeap, readBackBuffer, mappedMemory] = createQueryHeap(heaps);
+        auto [newHeap, readBackBuffer, mappedMemory] = createHeapResources(heaps);
         if (!newHeap)
         {
           return {};
@@ -342,23 +322,23 @@ private:
   }
 
 public:
-  void makeTimeStampQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+  void makeTimeStampQuery(Query *query, Device &device, ID3D12GraphicsCommandList *cmd);
 
-  void makeVisibilityQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+  void makeVisibilityQuery(Query *query, Device &device, ID3D12GraphicsCommandList *cmd);
   void endVisibilityQuery(Query *query, ID3D12GraphicsCommandList *cmd);
 
-  void makePipelineStatsQuery(PipelineStatsQuery *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+  void makePipelineStatsQuery(PipelineStatsQuery *query, Device &device, ID3D12GraphicsCommandList *cmd);
   void endPipelineStatsQuery(PipelineStatsQuery *query, ID3D12GraphicsCommandList *cmd);
 
   void pushLazyPipelineStatsQuery(PipelineStatsQuery *query);
-  void activateTopLazyPipelineStatsQuery(ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+  void activateTopLazyPipelineStatsQuery(Device &device, ID3D12GraphicsCommandList *cmd);
   void popLazyPipelineStatsQuery(PipelineStatsQuery *query);
   void deactivatePendingLazyPipelineStatsQueries(ID3D12GraphicsCommandList *cmd);
   void accumulateInactiveLazyQueries(ID3D12GraphicsCommandList *cmd, uint64_t primitives);
 
   // Suspend all active pipeline statistics queries before the command list is closed
   void suspendActiveQueries(ID3D12GraphicsCommandList *cmd);
-  void resumePipelineStatsQueries(ID3D12GraphicsCommandList *cmd, ID3D12Device *device);
+  void resumePipelineStatsQueries(ID3D12GraphicsCommandList *cmd, Device &device);
   // Finish all active pipeline statistics queries
   void finishActivePipelineStatsQueries();
 
@@ -367,30 +347,29 @@ public:
 
   void resolve(ID3D12GraphicsCommandList *cmd);
   void flush();
-  void shutdown();
+  void shutdown(Device &device);
 };
 
 inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Device *dx_device)
 {
   WinAutoLock lock(predicateGuard);
   uint32_t slotIndex = ~uint32_t(0);
-  auto heap =
-    eastl::find_if(begin(predicateHeaps), end(predicateHeaps), [&slotIndex](const FrontendQueryManager::HeapPredicate &predicateHeap) {
-      slotIndex = predicateHeap.findFreeSlot();
-      return slotIndex != ~uint32_t(0);
-    });
-  if (heap == end(predicateHeaps))
+  PredicateHeapId heapId = predicateHeaps.findIf([&slotIndex](const HeapPredicate &predicateHeap) {
+    slotIndex = predicateHeap.findFreeSlot();
+    return slotIndex != ~uint32_t(0);
+  });
+  if (heapId == PredicateHeapId::Invalid)
   {
-    heap = newPredicateHeap(device, dx_device);
-    if (!heap)
+    heapId = newPredicateHeap(device, dx_device);
+    if (heapId == PredicateHeapId::Invalid)
     {
       return ~uint64_t(0);
     }
     slotIndex = 0;
   }
   Query *query = newQuery();
-  heap->querySlots[slotIndex] = query;
-  uint32_t heapIndex = eastl::distance(eastl::begin(predicateHeaps), heap);
+  predicateHeaps[heapId].querySlots[slotIndex] = query;
+  uint32_t heapIndex = PredicateHeapPool::to_index(heapId);
   uint64_t queryIndex = heap_size * heapIndex + slotIndex;
   query->setQueryIndexAndType(queryIndex, Query::Qtype::SURVEY);
   return query->getRaw();
@@ -398,15 +377,15 @@ inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Devi
 
 inline void FrontendQueryManager::deletePredicate(uint64_t packed_predicate_id)
 {
-  WinAutoLock lock(predicateGuard);
+  if (static_cast<Query::Qtype>(packed_predicate_id & 3) != Query::Qtype::SURVEY)
+    return;
   uint64_t queryIndex = packed_predicate_id >> 2;
   uint32_t heapIndex = queryIndex / heap_size;
   uint32_t slotIndex = queryIndex % heap_size;
-  auto query = eastl::exchange(predicateHeaps[heapIndex].querySlots[slotIndex], nullptr);
-  if (static_cast<Query::Qtype>(packed_predicate_id & 3) == Query::Qtype::SURVEY)
-  {
-    deleteQuery(query);
-  }
+  WinAutoLock lock(predicateGuard);
+  if (heapIndex >= predicateHeaps.totalElements())
+    return;
+  deleteQuery(eastl::exchange(predicateHeaps[PredicateHeapPool::from_index(heapIndex)].querySlots[slotIndex], nullptr));
 }
 
 inline PredicateInfo FrontendQueryManager::getPredicateInfo(Query *query)
@@ -417,7 +396,8 @@ inline PredicateInfo FrontendQueryManager::getPredicateInfo(Query *query)
   uint64_t queryIndex = query->getIndex();
   uint32_t heapIndex = queryIndex / heap_size;
   uint32_t slotIndex = queryIndex % heap_size;
-  auto &heap = predicateHeaps[heapIndex];
+  // Lock-free: pool storage is stable and heap/buffer are set before the id is handed out.
+  auto &heap = predicateHeaps[PredicateHeapPool::from_index(heapIndex)];
 
   return {
     .heap = heap.heap.Get(),
@@ -445,7 +425,7 @@ inline Query *FrontendQueryManager::getQueryPtrFromId(uint64_t packed_query_id)
     uint64_t queryIndex = packed_query_id >> 2;
     uint32_t heapIndex = queryIndex / heap_size;
     uint32_t slotIndex = queryIndex % heap_size;
-    return predicateHeaps[heapIndex].querySlots[slotIndex];
+    return predicateHeaps[PredicateHeapPool::from_index(heapIndex)].querySlots[slotIndex];
   }
   return nullptr;
 }
@@ -474,7 +454,8 @@ inline void FrontendQueryManager::removeDeletedPipelineStatsQueries(dag::ConstSp
   WinAutoLock lock(queryGuard);
   for (auto query : deleted_queries)
   {
-    pipelineStatsQueryPool.free(query);
+    if (query)
+      pipelineStatsQueryPool.free(query);
   }
 }
 
@@ -489,12 +470,16 @@ inline void FrontendQueryManager::preRecovery()
     heap.heap.Reset();
 }
 
-inline void BackendQueryManager::makeTimeStampQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::makeTimeStampQuery(Query *query, Device &device, ID3D12GraphicsCommandList *cmd)
 {
   auto [heap, slotIndex, queryIndex] = getQuerySlot<D3D12_QUERY_HEAP_TYPE_TIMESTAMP>(device);
   if (!heap) [[unlikely]]
   {
     G_ASSERT_FAIL("DX12: unable to create timestamp query heap"); // almost impossible
+    // drop the stale type/index so nothing mistakes this query for one owning a slot,
+    // and finalize with a zero result so pollers waiting on it terminate
+    query->setQueryIndexAndType(0, Query::Qtype::UNDEFINED);
+    query->update(0);
     return;
   }
 
@@ -506,13 +491,17 @@ inline void BackendQueryManager::makeTimeStampQuery(Query *query, ID3D12Device *
   });
 }
 
-inline void BackendQueryManager::makeVisibilityQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::makeVisibilityQuery(Query *query, Device &device, ID3D12GraphicsCommandList *cmd)
 {
   auto [heap, slotIndex, queryIndex] = getQuerySlot<D3D12_QUERY_HEAP_TYPE_OCCLUSION>(device);
   if (!heap) [[unlikely]]
   {
     // almost impossible
     G_ASSERT_FAIL("DX12: unable to create visibility query heap");
+    // drop any stale index so endVisibilityQuery skips this query, and
+    // finalize with a zero result so pollers waiting on it terminate
+    query->setQueryIndexAndType(0, Query::Qtype::UNDEFINED);
+    query->update(0);
     return;
   }
 
@@ -526,14 +515,16 @@ inline void BackendQueryManager::makeVisibilityQuery(Query *query, ID3D12Device 
 
 inline void BackendQueryManager::endVisibilityQuery(Query *query, ID3D12GraphicsCommandList *cmd)
 {
+  // Begin may have failed to allocate a slot; do not end a query on a slot this object does not own
+  if (query->getType() != Query::Qtype::VISIBILITY)
+    return;
   uint64_t queryIndex = query->getIndex();
   uint32_t heapIndex = queryIndex / heap_size;
   uint32_t slotIndex = queryIndex % heap_size;
   cmd->EndQuery(visibilityHeaps[heapIndex].heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, slotIndex);
 }
 
-inline void BackendQueryManager::makePipelineStatsQuery(PipelineStatsQuery *query, ID3D12Device *device,
-  ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::makePipelineStatsQuery(PipelineStatsQuery *query, Device &device, ID3D12GraphicsCommandList *cmd)
 {
   G_ASSERT(!query->isFinalized());
   G_ASSERT(eastl::find_if(currentPipelineStatsQueries.begin(), currentPipelineStatsQueries.end(),
@@ -544,6 +535,11 @@ inline void BackendQueryManager::makePipelineStatsQuery(PipelineStatsQuery *quer
   {
     // almost impossible
     G_ASSERT_FAIL("DX12: unable to create pipeline statistics query heap");
+    // a lazy query stays on the stack and is finalized at frame end even when inactive;
+    // a direct query would otherwise stay ISSUED forever, so finalize it for pollers to terminate
+    if (eastl::find_if(lazyPipelineStatsQueries.begin(), lazyPipelineStatsQueries.end(),
+          [query](const auto &lazy) { return lazy.frontend == query; }) == lazyPipelineStatsQueries.end())
+      query->setFinalized();
     return;
   }
 
@@ -588,7 +584,7 @@ inline void BackendQueryManager::pushLazyPipelineStatsQuery(PipelineStatsQuery *
   });
 }
 
-inline void BackendQueryManager::activateTopLazyPipelineStatsQuery(ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::activateTopLazyPipelineStatsQuery(Device &device, ID3D12GraphicsCommandList *cmd)
 {
   if (lazyPipelineStatsQueries.empty() || lazyPipelineStatsQueries.back().activated)
     return;
@@ -612,7 +608,9 @@ inline void BackendQueryManager::addInactiveLazyShares(PipelineStatsQuery *query
 {
   auto it = eastl::find_if(lazyPipelineStatsQueries.begin(), lazyPipelineStatsQueries.end(),
     [query](const auto &lazy) { return lazy.frontend == query; });
-  G_ASSERT_RETURN(it != lazyPipelineStatsQueries.end() && it->activated, );
+  if (it == lazyPipelineStatsQueries.end())
+    return;
+  G_ASSERT_RETURN(it->activated, );
 
   const auto stackSizeBelow = eastl::distance(lazyPipelineStatsQueries.begin(), it);
   for (auto [frontend, activated] : dag::ReverseView(make_span_const(lazyPipelineStatsQueries.data(), stackSizeBelow)))
@@ -679,7 +677,7 @@ inline void BackendQueryManager::suspendActiveQueries(ID3D12GraphicsCommandList 
   }
 }
 
-inline void BackendQueryManager::resumePipelineStatsQueries(ID3D12GraphicsCommandList *cmd, ID3D12Device *device)
+inline void BackendQueryManager::resumePipelineStatsQueries(ID3D12GraphicsCommandList *cmd, Device &device)
 {
   auto it = currentPipelineStatsQueries.begin();
   auto end = currentPipelineStatsQueries.end();
@@ -858,20 +856,6 @@ inline void BackendQueryManager::flush()
   visibilityFlushes.clear();
   pipelineStatsFlushes.clear();
   finishedPipelineStatsQueries.clear();
-}
-
-inline void BackendQueryManager::shutdown()
-{
-  timestampFlushes.clear();
-  visibilityFlushes.clear();
-  pipelineStatsFlushes.clear();
-  finishedPipelineStatsQueries.clear();
-  currentPipelineStatsQueries.clear();
-  lazyPipelineStatsQueries.clear();
-  pendingDeactivationLazyPipelineStatsQueries.clear();
-  timestampHeaps.clear();
-  visibilityHeaps.clear();
-  pipelineStatsHeaps.clear();
 }
 
 } // namespace drv3d_dx12

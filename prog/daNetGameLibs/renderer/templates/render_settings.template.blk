@@ -37,6 +37,7 @@ render_settings {
 
   render_settings__anisotropy:i=-1 // graphics
   render_settings__chromaticAberration:b=true // graphics
+  render_settings__eyeCaustics:b=false // graphics
 
   render_settings__effectsShadows:b=true // graphics
   render_settings__effects__max_active_shadows:i=4
@@ -58,6 +59,8 @@ render_settings {
   render_settings__enableRTGI:b=no
   render_settings__bvhDagdp:b=no
   render_settings__bvhDynModels:b=yes
+  render_settings__useRTRCheckerboardDepth:b = no;
+  render_settings__useRTRSmartDepth:b = no;
 
   render_settings__gtao_screen_radius:r=0
 

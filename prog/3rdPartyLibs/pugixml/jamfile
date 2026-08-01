@@ -1,0 +1,20 @@
+Root    ?= ../../.. ;
+Location = prog/3rdPartyLibs/pugixml ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = 3rdPartyLibs/pugixml.lib ;
+
+Sources =
+  pugixml.cpp
+;
+
+# Compile into the `pugi_eden` namespace so this copy never collides with assimp's own
+# header-only pugixml (both would otherwise export `pugi::...` symbols). See pugixml_eden.h.
+# The token-level rename only affects the bare `pugi` namespace token, not `pugixml`.
+CPPopt += -Dpugi=pugi_eden ;
+
+AddIncludes = $(Root)/prog/3rdPartyLibs/pugixml ;
+
+include $(Root)/prog/_jBuild/build.jam ;

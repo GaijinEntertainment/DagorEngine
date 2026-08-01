@@ -4,6 +4,7 @@
 #include "render.h"
 #include "drv_log_defs.h"
 #include "drv_assert_defs.h"
+#include <validation/texture.h>
 
 #include <vecmath/dag_vecMath_common.h>
 #include "textureloader.h"
@@ -22,6 +23,7 @@
 #include "statStr.h"
 #include <basetexture.h>
 #include <validateUpdateSubRegion.h>
+#include <os/proc.h>
 
 typedef drv3d_generic::ObjectProxyPtr<drv3d_metal::Texture::ApiTexture> TextureProxyPtr;
 
@@ -59,6 +61,7 @@ namespace drv3d_metal
       case TEXFMT_DXT5:       return MTLPixelFormatBC3_RGBA;
       case TEXFMT_ATI1N:      return MTLPixelFormatBC4_RUnorm;
       case TEXFMT_ATI2N:      return MTLPixelFormatBC5_RGUnorm;
+      case TEXFMT_BC5S:       return MTLPixelFormatBC5_RGSnorm;
       case TEXFMT_BC6H:       return MTLPixelFormatBC6H_RGBUfloat;
       case TEXFMT_BC7:      return MTLPixelFormatBC7_RGBAUnorm;
 #else
@@ -237,6 +240,7 @@ namespace drv3d_metal
       case TEXFMT_BC7:
       case TEXFMT_BC6H:
       case TEXFMT_ATI2N:
+      case TEXFMT_BC5S:
       case TEXFMT_ETC2_RGBA:
       case TEXFMT_ETC2_RG:
       case TEXFMT_ASTC4:
@@ -390,10 +394,6 @@ namespace drv3d_metal
       pTexDesc.depth = base->depth;
     }
 
-    texture = [render.device newTextureWithDescriptor : pTexDesc];
-    if (texture == nil)
-      DAG_FATAL("Failed to allocate texture %s, available %llukb of %llukb", base->getName(), render.device.currentAllocatedSize >> 10, render.device.recommendedMaxWorkingSetSize >> 10);
-
     int slises = 1;
     if (base->type == D3DResourceType::ARRTEX || base->type == D3DResourceType::VOLTEX)
       slises = base->depth;
@@ -401,6 +401,23 @@ namespace drv3d_metal
       slises = 6;
     else if (base->type == D3DResourceType::CUBEARRTEX)
       slises = 6 * base->depth;
+
+    for (int level = 0; level < base->mipLevels; ++level)
+    {
+      int row_pitch = 0, slice_pitch = 0;
+      getStride(base->base_format, base->width, base->height, level, row_pitch, slice_pitch);
+      texture_size += slice_pitch * slises;
+    }
+
+    texture = [render.device newTextureWithDescriptor : pTexDesc];
+    if (texture == nil)
+    {
+      int freeMemMb = 0;
+#if _TARGET_IOS
+      freeMemMb = os_proc_available_memory() >> 20;
+#endif
+      DAG_FATAL("Failed to allocate texture %s of size %ukb, available %dMB, GPU occupies %llukb of %llukb", base->getName(), texture_size >> 10, freeMemMb, render.device.currentAllocatedSize >> 10, render.device.recommendedMaxWorkingSetSize >> 10);
+    }
 
     if (base->metal_format != base->metal_rt_format)
     {
@@ -442,13 +459,6 @@ namespace drv3d_metal
                                                         textureType : base->metal_type
                                                              levels : NSMakeRange(0, base->mipLevels)
                                                              slices : NSMakeRange(0, 1)];
-    }
-
-    for (int level = 0; level < base->mipLevels; ++level)
-    {
-      int row_pitch = 0, slice_pitch = 0;
-      getStride(base->base_format, base->width, base->height, level, row_pitch, slice_pitch);
-      texture_size += slice_pitch * slises;
     }
 
     SubMip sub_mip;
@@ -597,12 +607,22 @@ namespace drv3d_metal
     }
   }
 
-  Texture::Texture(int w, int h, int l, int d, D3DResourceType type, int flg, int fmt, const char* name, bool is_memoryless, bool alloc)
-    : type(type)
+  Texture::Texture(int w, int h, int l, int d, D3DResourceType in_type, int flg, int fmt, const char* name, bool is_memoryless, bool alloc)
+    : type(in_type)
     , cflg(flg)
     , memoryless(is_memoryless)
   {
     setName(name);
+    check_texture_srgb_format(flg, name);
+
+#if _TARGET_IOS
+    // some ios devices don't support cube array textures
+    if (![render.device supportsFamily:MTLGPUFamilyApple4] && this->type == D3DResourceType::CUBEARRTEX)
+    {
+      this->type = D3DResourceType::CUBETEX;
+      d = 1;
+    }
+#endif
 
 #if _TARGET_IOS | _TARGET_TVOS
     switch(fmt)
@@ -612,6 +632,7 @@ namespace drv3d_metal
       case TEXFMT_ATI1N:
       case TEXFMT_DXT5:
       case TEXFMT_ATI2N:
+      case TEXFMT_BC5S:
       case TEXFMT_BC6H:
       case TEXFMT_BC7:
             D3D_CONTRACT_ERROR("unsupported texture format %d is used for texture %s", fmt, getName());
@@ -712,7 +733,7 @@ namespace drv3d_metal
     use_dxt = 0;
 
     if (base_format == TEXFMT_DXT1 || base_format == TEXFMT_DXT3 || base_format == TEXFMT_DXT5 ||
-      base_format == TEXFMT_ATI1N || base_format == TEXFMT_ATI2N ||
+      base_format == TEXFMT_ATI1N || base_format == TEXFMT_ATI2N || base_format == TEXFMT_BC5S ||
       base_format == TEXFMT_BC6H || base_format == TEXFMT_BC7 ||
       base_format == TEXFMT_ETC2_RGBA || base_format == TEXFMT_ETC2_RG || base_format == TEXFMT_ASTC4)
     {
@@ -761,6 +782,7 @@ namespace drv3d_metal
   Texture::Texture(id<MTLTexture> tex, MTLTextureDescriptor *desc, uint32_t flg, const char *name)
   {
     setName(name);
+    check_texture_srgb_format(flg, name);
 
     cflg = flg;
     metal_type = desc.textureType;
@@ -792,7 +814,7 @@ namespace drv3d_metal
     use_dxt = 0;
 
     if (base_format == TEXFMT_DXT1 || base_format == TEXFMT_DXT3 || base_format == TEXFMT_DXT5 ||
-      base_format == TEXFMT_ATI1N || base_format == TEXFMT_ATI2N ||
+      base_format == TEXFMT_ATI1N || base_format == TEXFMT_ATI2N || base_format == TEXFMT_BC5S ||
       base_format == TEXFMT_BC6H || base_format == TEXFMT_BC7 ||
       base_format == TEXFMT_ETC2_RGBA || base_format == TEXFMT_ETC2_RG || base_format == TEXFMT_ASTC4)
     {
@@ -856,6 +878,7 @@ namespace drv3d_metal
     if (!isStub())
       return cflg == implant_d3dformat(cflg, d3d_format);
     cflg = implant_d3dformat(cflg, d3d_format);
+    check_texture_srgb_format(cflg, getTexName());
     base_format = cflg & TEXFMT_MASK;
     metal_format = (cflg & TEXCF_SRGBREAD) ? Texture::format2MetalsRGB(base_format) : Texture::format2Metal(base_format);
     if (cflg & TEXCF_RTARGET)
@@ -1426,6 +1449,7 @@ static const char* format2String(uint32_t fmt)
       case TEXFMT_DXT5:       return "DXT5";
       case TEXFMT_ATI1N:      return "ATI1N";
       case TEXFMT_ATI2N:      return "ATI2N";
+      case TEXFMT_BC5S:       return "BC5S";
       case TEXFMT_BC6H:       return "BC6H";
       case TEXFMT_BC7:      return "BC7";
       case TEXFMT_ASTC4:          return "ASTC4";

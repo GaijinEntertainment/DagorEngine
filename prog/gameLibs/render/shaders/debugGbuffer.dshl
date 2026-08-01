@@ -138,22 +138,6 @@ shader debug_final_gbuffer
         return show_gbuffer == overdraw_mode;
       }
 
-      half3 debug_mesh_get_color(int value)
-      {
-        static const half3 DEBUG_MESH_COLORS[DEBUG_MESH_COLORS__MAX + 1] = {
-          half3(1,1,1), // 0  : white
-          half3(1,0,0), // 1  : red
-          half3(1,1,0), // 2  : yellow
-          half3(0,1,0), // 3  : green
-          half3(0,1,1), // 4  : cyan
-          half3(0,0,1), // 5  : blue
-          half3(1,0,1), // 6+ : magenta
-        };
-        return DEBUG_MESH_COLORS[clamp(value, 0, DEBUG_MESH_COLORS__MAX)];
-      }
-      #define LOD_DIFFUSE_WEIGHT 0.1
-      #define LOD_AMBIENT_WEIGHT 0.5
-      #define LOD_BACKGROUND_TINT 0.6
     }
   }
 
@@ -207,7 +191,7 @@ shader debug_final_gbuffer
       float NoV = abs( NdotV ) + 1e-5;
 
       ##if show_gbuffer == lights
-        float4 debugLights = get_dynamic_lights_count(world_view_pos.xyz + viewVect*w, w, input.tcLinear.xy * viewport.zw, viewport.zw, lights_debug_mode);
+        float4 debugLights = get_dynamic_lights_count(world_view_pos.xyz + viewVect*w, w, distortedTc * rendering_res.xy, rendering_res.xy, lights_debug_mode);
         return float4(debugLights.xyz * (0.5 + 0.5 * NoV), 1);
       ##elif show_gbuffer == emission
         return half4(gbuffer.emissionColor, 1);
@@ -229,12 +213,7 @@ shader debug_final_gbuffer
           return half4(gbuffer.diffuseColor * LOD_BACKGROUND_TINT, 1);
         }
 
-        half3 diffuse = lerp(debug_mesh_get_color(stencil - 1), gbuffer.diffuseColor, LOD_DIFFUSE_WEIGHT);
-
-        float3 lightDir = -from_sun_direction.xyz;
-        float NoL = dot(gbuffer.normal, lightDir);
-
-        float3 result = diffuse * lerp(max(NoL, 0), 1, LOD_AMBIENT_WEIGHT);
+        float3 result = debug_mesh_shade_lod(stencil - 1, gbuffer.diffuseColor, gbuffer.normal, -from_sun_direction.xyz);
         return half4(result, 1);
       ##elif show_gbuffer == baseColor
         return half4(ApplySRGBCurve(gbuf.albedo),1);

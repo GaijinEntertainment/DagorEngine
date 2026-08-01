@@ -14,7 +14,6 @@
 #include <animChar/dag_animCharVis.h>
 #include <3d/dag_render.h>
 #include <ecs/render/updateStageRender.h>
-#include <drv/3d/dag_matricesAndPerspective.h>
 #include <ecs/anim/animchar_visbits.h>
 
 // this is for demo purposes only, should not be used in production.
@@ -27,10 +26,8 @@ static __forceinline void animchar_before_render_es(const UpdateStageInfoBeforeR
   AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm, vec4f &animchar_bsph,
   bbox3f &animchar_bbox, animchar_visbits_t &animchar_visbits, bool animchar_render__enabled = true)
 {
-  mat44f globtm;
-  d3d::getglobtm(globtm);
   animchar_render.setVisible(animchar_render__enabled);
-  animchar_render.beforeRender(animchar_node_wtm, animchar_bsph, animchar_bbox, Frustum(globtm), 1.0f, nullptr, stg.camPos);
+  animchar_render.beforeRender(animchar_node_wtm, animchar_bsph, animchar_bbox, Frustum(stg.loadGlobTm()), 1.0f, nullptr, stg.camPos);
   animchar_visbits = animchar_render.getVisBits();
 }
 
@@ -47,9 +44,7 @@ ECS_NO_ORDER
 static __forceinline void animchar_render_opaque_es(const UpdateStageInfoRender &stg, AnimV20::AnimcharRendComponent &animchar_render,
   const bbox3f &animchar_bbox, animchar_visbits_t &animchar_visbits)
 {
-  mat44f globtm;
-  d3d::getglobtm(globtm);
-  if (AnimV20::AnimcharRendComponent::check_visibility(animchar_visbits, animchar_bbox, true, Frustum(globtm), nullptr))
+  if (AnimV20::AnimcharRendComponent::check_visibility(animchar_visbits, animchar_bbox, true, Frustum(stg.loadGlobTm()), nullptr))
   {
     render_animchar_opaque(animchar_render, animchar_visbits, stg.viewItm.getcol(3), true);
   }

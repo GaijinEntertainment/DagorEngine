@@ -34,12 +34,14 @@ UseProgLibs +=
 
 
 if $(BVHSupport) = yes {
+  UseProgLibs += gameLibs/render/omm ;
+
   if $(BVHProfiling) = yes {
     CPPopt += -DBVH_PROFILING_ENABLED=1 ;
     Target = $(Target:S=~p.lib) ;
   }
 
-  Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_processors.cpp bvh_particles.cpp ;
+  Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_omm.cpp bvh_processors.cpp bvh_particles.cpp ;
 
   if $(BVHTerrain) = yes {
     Sources += bvh_terrain.cpp ;

@@ -85,10 +85,10 @@ CONSOLE_BOOL_VAL("render", debug_water_flowmap, false);
 namespace fft_water
 {
 
-void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_texture_size, const Point3 &camera_pos, int cascade,
+void build_flowmap(FFTWater *water, int flowmap_texture_size, int heightmap_texture_size, const Point3 &camera_pos, int cascade,
   int flags)
 {
-  WaterFlowmap *waterFlowmap = get_flowmap(handle);
+  WaterFlowmap *waterFlowmap = get_flowmap(water);
   if (!waterFlowmap)
     return;
   if ((cascade > 0) && !waterFlowmap->flowmapDetail)
@@ -109,9 +109,9 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
     if (cascade == 0)
     {
       init_shader_vars();
-      set_flowmap_tex(handle);
-      set_flowmap_params(handle);
-      set_flowmap_foam_params(handle);
+      set_flowmap_tex(water);
+      set_flowmap_params(water);
+      set_flowmap_foam_params(water);
 
       waterFlowmap->builder.init("water_flowmap");
 
@@ -220,8 +220,8 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
     ShaderGlobal::set_int(water_flowmap_foam_sample_maskVarId, foamSampleMask);
   }
 
-  float multiplier =
-    (waterFlowmap->flowmapWaveFade.y - get_max_wave(handle)) / (waterFlowmap->flowmapWaveFade.y - waterFlowmap->flowmapWaveFade.x);
+  float multiplier = (waterFlowmap->flowmapWaveFade.y - get_max_wave_height(water)) /
+                     (waterFlowmap->flowmapWaveFade.y - waterFlowmap->flowmapWaveFade.x);
   multiplier = clamp(multiplier, 0.0f, 1.0f);
   ShaderGlobal::set_float(water_flowmap_multiplierVarId, multiplier);
 
@@ -466,9 +466,9 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
     ShaderGlobal::setBlock(sceneId, ShaderGlobal::LAYER_SCENE);
 }
 
-void set_flowmap_tex(FFTWater *handle)
+void set_flowmap_tex(FFTWater *water)
 {
-  WaterFlowmap *waterFlowmap = get_flowmap(handle);
+  WaterFlowmap *waterFlowmap = get_flowmap(water);
   if (!waterFlowmap || waterFlowmap->cascades.empty())
     return;
 
@@ -485,9 +485,9 @@ void set_flowmap_tex(FFTWater *handle)
   }
 }
 
-void set_flowmap_params(FFTWater *handle)
+void set_flowmap_params(FFTWater *water)
 {
-  WaterFlowmap *waterFlowmap = get_flowmap(handle);
+  WaterFlowmap *waterFlowmap = get_flowmap(water);
   if (!waterFlowmap || waterFlowmap->cascades.empty())
     return;
 
@@ -507,9 +507,9 @@ void set_flowmap_params(FFTWater *handle)
   ShaderGlobal::set_float4(water_fluid_strengthVarId, waterFlowmap->fluidStrength);
 }
 
-void set_flowmap_foam_params(FFTWater *handle)
+void set_flowmap_foam_params(FFTWater *water)
 {
-  WaterFlowmap *waterFlowmap = get_flowmap(handle);
+  WaterFlowmap *waterFlowmap = get_flowmap(water);
   if (!waterFlowmap || waterFlowmap->cascades.empty())
     return;
 
@@ -522,9 +522,9 @@ void set_flowmap_foam_params(FFTWater *handle)
   ShaderGlobal::set_float(water_flowmap_foam_displacementVarId, waterFlowmap->flowmapFoamDisplacement);
 }
 
-void close_flowmap(FFTWater *handle)
+void close_flowmap(FFTWater *water)
 {
-  WaterFlowmap *waterFlowmap = get_flowmap(handle);
+  WaterFlowmap *waterFlowmap = get_flowmap(water);
   if (!waterFlowmap)
     return;
 
@@ -549,9 +549,9 @@ void close_flowmap(FFTWater *handle)
   waterFlowmap->cascades.clear();
 }
 
-bool is_flowmap_active(const FFTWater *handle)
+bool is_flowmap_active(const FFTWater *water)
 {
-  WaterFlowmap *waterFlowmap = get_flowmap(handle);
+  WaterFlowmap *waterFlowmap = get_flowmap(water);
   if (!waterFlowmap)
     return false;
 

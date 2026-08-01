@@ -1,0 +1,74 @@
+wait.project_load
+wait.textures
+wait.time 1000
+
+// load mission
+editor.command Main.SwitchToPlugin.MissionEditor
+wait.time 500
+mission_ed.clear_objects
+wait.time 500
+mission_ed.load "prog\gameBase\gamebase\gamedata\missions\tank_test_mission.blk"
+wait.time 1000
+
+// select and zoom
+mission_ed.select_all
+wait.time 1000
+editor.command Main.ZoomAndCenter
+wait.time 500
+
+// toggle properties & triggers
+editor.command Plugin.MissionEditor.TogglePropertiesAndTriggersPanels
+wait.time 500
+editor.command Plugin.MissionEditor.TogglePropertiesAndTriggersPanels
+wait.time 500
+editor.command Plugin.MissionEditor.TogglePropertiesAndTriggersPanels
+wait.time 500
+
+// show toggles
+editor.command_viewport Plugin.MissionEditor.Show.AllWaypoints
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Show.UnitAssets
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Show.UnitIcons
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Show.UnitsAreasNames
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.DrawObjectAxis
+wait.time 500
+
+editor.command_viewport Plugin.MissionEditor.Show.AllWaypoints
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Show.UnitAssets
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Show.UnitIcons
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Show.UnitsAreasNames
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.DrawObjectAxis
+wait.time 500
+
+// visibility map
+editor.command Plugin.MissionEditor.ShowVisibilityMap
+wait.time 500
+editor.command Plugin.MissionEditor.RebuildVisibilityMap
+wait.time 1000
+
+// select
+editor.command_viewport Plugin.MissionEditor.Select.Effects
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Select.PolygonPoints
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Select.Units
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Select.Waypoints
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Select.Zones
+wait.time 500
+editor.command_viewport Plugin.MissionEditor.Select.Zones
+wait.time 500
+
+// reload
+editor.command Plugin.MissionEditor.ReloadBlkData
+wait.time 5000
+
+app.terminate 0

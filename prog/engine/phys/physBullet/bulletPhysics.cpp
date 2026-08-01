@@ -557,6 +557,20 @@ void PhysBody::setMassMatrix(real mass, real ixx, real iyy, real izz)
     exec_or_add_after_phys_action<ReAddToWorldAction>(*world, this, groupMask, layerMask);
 }
 
+void PhysBody::setLockedStatic(bool locked, real mass, const Point3 &momj)
+{
+  // Zero mass makes the Bullet body static (re-added to the world as static); restoring the mass/inertia
+  // returns it to dynamic.
+  if (locked)
+  {
+    setVelocity(Point3(0, 0, 0));
+    setAngularVelocity(Point3(0, 0, 0));
+    setMassMatrix(0.f, 0.f, 0.f, 0.f);
+  }
+  else
+    setMassMatrix(mass, momj.x, momj.y, momj.z);
+}
+
 
 void PhysBody::getMassMatrix(real &mass, real &ixx, real &iyy, real &izz)
 {
@@ -1606,6 +1620,8 @@ void PhysRagdollBallJoint::setTargetOrientation(const TMatrix &tm)
   G_UNUSED(tm);
   LOGERR_ONCE("PhysRagdollBallJoint::setTargetOrientation not implemented");
 }
+
+void PhysRagdollBallJoint::disableMotors() { LOGERR_ONCE("PhysRagdollBallJoint::disableMotors not implemented"); }
 
 void PhysRagdollBallJoint::setTwistSwingMotorSettings(float twistFrequency, float twistDamping, float swingFrequency,
   float swingDamping)

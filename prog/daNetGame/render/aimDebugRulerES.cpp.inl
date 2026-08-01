@@ -8,6 +8,7 @@
 #include <3d/dag_lockTexture.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <physMap/physMap.h>
+#include <physMap/physMapCompactDecals.h>
 #include <physMap/physMatHtTex.h>
 #include <physMap/physMapLoad.h>
 #include <util/dag_treeBitmap.h>
@@ -59,7 +60,7 @@ static inline void debug_physmap_decals_es(const ecs::UpdateStageInfoRenderDebug
 
   const PhysMap *physMap = dacoll::get_lmesh_phys_map();
   G_ASSERT_RETURN(physMap, );
-  int gridSz = sqrt(physMap->gridDecals.size());
+  int gridSz = physMap->compactDecals ? physMap->gridSz : 0;
   if (gridSz > 0)
   {
     const TMatrix &camItm = get_cam_itm();
@@ -73,21 +74,11 @@ static inline void debug_physmap_decals_es(const ecs::UpdateStageInfoRenderDebug
         physmap_decal_vertices.clear();
         physmap_selected_grid = resPos;
         size_t cellId = resPos.y * gridSz + resPos.x;
-        for (const PhysMap::DecalMesh &mesh : physMap->gridDecals[cellId])
-        {
-          for (const PhysMap::DecalMesh::MaterialIndices &indices : mesh.matIndices)
-          {
-            for (int ii = 0; ii < indices.indices.size(); ii += 3)
-            {
-              for (int idx = 0; idx < 3; ++idx)
-              {
-                Point2 xz = mesh.vertices[indices.indices[ii + idx]];
-                float y = dacoll::traceht_lmesh(xz);
-                physmap_decal_vertices.emplace_back(xz.x, y, xz.y);
-              }
-            }
-          }
-        }
+        physMap->compactDecals->forEachCellTri((int)cellId, [&](const Point2 &v0, const Point2 &v1, const Point2 &v2) {
+          const Point2 tri[3] = {v0, v1, v2};
+          for (const Point2 &xz : tri)
+            physmap_decal_vertices.emplace_back(xz.x, dacoll::traceht_lmesh(xz), xz.y);
+        });
       }
     }
   }

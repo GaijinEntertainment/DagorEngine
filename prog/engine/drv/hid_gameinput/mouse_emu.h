@@ -3,7 +3,7 @@
 
 #include <drv/hid/dag_hiPointing.h>
 #include <math/integer/dag_IPoint2.h>
-#include <osApiWrappers/gdk/gameinput.h>
+#include "gameinput.h"
 
 namespace HumanInput
 {
@@ -16,7 +16,7 @@ public:
   bool hwMouseEnabled = false;
 
   MouseEmuDriver() = default;
-  ~MouseEmuDriver();
+  ~MouseEmuDriver() = default;
 
   // generic hid class driver interface
   void enable(bool en) override;
@@ -76,7 +76,7 @@ protected:
     int currentHwWheel = 0;
   };
 
-  MouseState mouse_states[gdk::gameinput::MAX_DEVICES_PER_TYPE] = {};
+  MouseState mouse_states[gameinput::MAX_DEVICES_PER_TYPE] = {};
 
   void updateMouseState(MouseState &state, IGameInputDevice *device);
   void updateHWMouse();

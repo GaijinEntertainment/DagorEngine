@@ -300,6 +300,8 @@ bool DataBlock::loadBinDumpWithSharedNamemap(IGenLoad &crd, const DBNameMap *sha
 
   if (label == dblk::BBF_full_binary_in_stream)
     return loadFromBinDump(crd, nullptr);
+  if (label == dblk::BBF_full_binary_in_stream_dedup)
+    return loadFromBinDump(crd, nullptr, /*dedup_ofs*/ true);
   if (label == dblk::BBF_binary_with_shared_nm)
     return loadFromBinDump(crd, shared_nm);
 

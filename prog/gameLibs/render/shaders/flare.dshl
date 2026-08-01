@@ -28,10 +28,12 @@ shader flare_downsample
 
   dynamic float4 texelOffset;
 
+  INIT_GLOBAL_POINT_CLAMP_SAMPLER(ps)
+
   (vs) { texelOffset@f4 = texelOffset; }
 
   (ps) {
-    flareSrcDownsampled@smp2d = flareSrcDownsampled;
+    flareSrcDownsampled@tex2d = flareSrcDownsampled;
     flareScaleBias@f4 = (flare_scale, flare_bias, 0.0, 0.0);
   }
 
@@ -60,6 +62,8 @@ shader flare_downsample
   }
 
   hlsl(ps) {
+    #define flareSrcDownsampled_samplerstate global_point_clamp_sampler
+
     float4 flare_downsample_ps(VsOutput IN): SV_Target
     {
       half4 flareVal = tex2Dlod(flareSrcDownsampled, float4(IN.texcoord01.xy, 0, 0));

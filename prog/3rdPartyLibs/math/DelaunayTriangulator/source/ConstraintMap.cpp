@@ -35,7 +35,7 @@ namespace ctl {
 
 	void ConstraintMap::FreeConstraintID(ID constraintID)
 	{
-		Constraint_To_Vertex[constraintID] = NULL;
+		Constraint_To_Vertex[constraintID] = 0;
 		id_generator.freeID(constraintID);
 	}
 

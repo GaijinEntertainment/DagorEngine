@@ -59,7 +59,7 @@ dafg::NodeHandle create_lens_flare_prepare_lights_node(LensFlareRenderer *render
       }
       const auto &camera = cameraHndl.ref();
 
-      camera_in_camera::ApplyPostfxState camcam{dafg::multiplexing::Index{0, 0, 0, isMainView ? 0U : 1U}, camera};
+      camera_in_camera::ApplyPostfxState camcam{isMainView, camera};
 
       const auto &sun = sunParamsHndl.ref();
       auto [renderingWidth, renderingHeight] = mainViewResolution.get();
@@ -82,9 +82,8 @@ dafg::NodeHandle create_lens_flare_prepare_lights_node(LensFlareRenderer *render
       if (!camera_in_camera::is_lens_render_active())
         renderer->collectAndPrepareECSFlares_DynamicLights();
 
-      bool hasFlaresToRender =
-        renderer->endPreparingLights(camera.cameraWorldPos, camera.viewItm.getcol(2), lights.getVisibleClusteredOmniCount(),
-          lights.getVisibleClusteredSpotsCount(), WRDispatcher::getShadowInfoProvider().getShadowFramesCount());
+      bool hasFlaresToRender = renderer->endPreparingLights(camera.cameraWorldPos, camera.viewItm.getcol(2),
+        lights.hasClusteredLights(), WRDispatcher::getShadowInfoProvider().getShadowFramesCount());
 
       hasLensFlaresHndl.ref() |= hasFlaresToRender ? 1 : 0;
     };

@@ -24,31 +24,6 @@ using namespace drv3d_metal;
 // d3d:: calls that allocate/resize/free bindless ranges have no external sync requirement, so do sync internally.
 static WinCritSec rangesMutex;
 
-static void resizeBindlessArrays(D3DResourceType type, uint32_t count)
-{
-  if (D3DResourceType::SBUF == type)
-  {
-    render.bindlessBuffers.resize(count);
-    G_ASSERTF(count <= Render::BINDLESS_BUFFER_COUNT, "bindless buffer slot out of range: %d (max slot id: %d)", count, Render::BINDLESS_BUFFER_COUNT);
-  }
-  else
-  {
-    if (type == D3DResourceType::TEX)
-      render.bindlessTextures2D.resize(count);
-    else if (type == D3DResourceType::CUBETEX)
-      render.bindlessTexturesCube.resize(count);
-    else if (type == D3DResourceType::ARRTEX)
-      render.bindlessTextures2DArray.resize(count);
-    else if (type == D3DResourceType::VOLTEX)
-      render.bindlessTextures3D.resize(count);
-    else if (type == D3DResourceType::CUBEARRTEX)
-      render.bindlessTexturesCubeArray.resize(count);
-    else
-      G_ASSERTF(0, "Unknown bindless array type %d", int(type));
-    G_ASSERTF(count <= Render::BINDLESS_TEXTURE_COUNT, "bindless texture slot out of range: %d (max slot id: %d)", count, Render::BINDLESS_TEXTURE_COUNT);
-  }
-}
-
 uint32_t BindlessManager::allocateBindlessResourceRange(D3DResourceType type, uint32_t count)
 {
   WinAutoLock lock(rangesMutex);
@@ -74,7 +49,7 @@ uint32_t BindlessManager::allocateBindlessResourceRangeNoLock(D3DResourceType ty
       return 0;
     }
     res.size += count;
-    resizeBindlessArrays(type, res.size);
+    render.resizeBindlessArrayAnyThread(type, res.size);
     return r;
   }
   else
@@ -101,9 +76,7 @@ void BindlessManager::freeBindlessResourceRangeNoLock(D3DResourceType type, uint
     "%u, bindless count %u",
     index, index + count, res.size);
 
-  render.acquireOwnership();
-  render.updateBindlessResourcesToNull(type, index, count);
-  render.releaseOwnership();
+  render.updateBindlessResourcesToNullAnyThread(type, index, count);
 
   if (index + count != res.size)
   {

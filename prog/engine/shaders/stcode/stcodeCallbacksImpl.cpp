@@ -66,6 +66,7 @@ CB_VISIBILITY float4 rb_get_f4_cb(int32_t gid);
 CB_VISIBILITY float rb_get_real_cb(int32_t gid);
 CB_VISIBILITY int32_t rb_get_int_cb(int32_t gid);
 CB_VISIBILITY void rb_get_mat44_cb(int32_t gid, float4x4 *out);
+CB_VISIBILITY void rb_get_mat43_cb(int32_t gid, float4x3 *out);
 CB_VISIBILITY void *rb_get_tex_cb(int32_t gid);
 CB_VISIBILITY void *rb_get_buf_cb(int32_t gid);
 CB_VISIBILITY void rb_flush_tex_cb(int32_t stage, int32_t slot, void *tex);
@@ -135,6 +136,7 @@ const CallbackTable cb_table_impl =
   &rb_flush_tlas_cb,
   &rb_flush_rwtex_cb,
   &rb_flush_rwbuf_cb,
+  &rb_get_mat43_cb,
 };
 // clang-format on
 
@@ -465,6 +467,7 @@ CB_VISIBILITY float4 rb_get_f4_cb(int32_t gid) { return refined_block::rb_get_f4
 CB_VISIBILITY float rb_get_real_cb(int32_t gid) { return refined_block::rb_get_real(gid); }
 CB_VISIBILITY int32_t rb_get_int_cb(int32_t gid) { return refined_block::rb_get_int(gid); }
 CB_VISIBILITY void rb_get_mat44_cb(int32_t gid, float4x4 *out) { refined_block::rb_get_mat44(gid, out); }
+CB_VISIBILITY void rb_get_mat43_cb(int32_t gid, float4x3 *out) { refined_block::rb_get_mat43(gid, out); }
 CB_VISIBILITY void *rb_get_tex_cb(int32_t gid) { return refined_block::rb_get_tex(gid); }
 CB_VISIBILITY void *rb_get_buf_cb(int32_t gid) { return refined_block::rb_get_buf(gid); }
 CB_VISIBILITY int4 rb_get_ivec_cb(int32_t gid) { return refined_block::rb_get_ivec(gid); }

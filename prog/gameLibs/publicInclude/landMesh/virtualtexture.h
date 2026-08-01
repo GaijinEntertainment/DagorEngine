@@ -7,6 +7,8 @@
 #include <3d/dag_resPtr.h>
 #include <math/integer/dag_IPoint2.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/fixed_function.h>
+#include <render/daFrameGraph/nodeHandle.h>
 
 class ClipmapImpl;
 class TMatrix4;
@@ -14,6 +16,9 @@ class Point4;
 class Point3;
 class Point2;
 class BBox2;
+
+using ClipmapPrepareRenderCb =
+  eastl::fixed_function<0, void(dag::ConstSpan<Texture *> bufferTex, dag::ConstSpan<Texture *> compressorTex)>;
 
 enum class HWFeedbackMode
 {
@@ -122,6 +127,8 @@ public:
     float maxEffectiveTargetResolution);
   void closeVirtualTexture();
 
+  dafg::NodeHandle createPrepareRenderNode(ClipmapPrepareRenderCb prepare_render_cb);
+
   // fallbackTexelSize is fallbackPage size in meters
   // can be set to something like max(4, (1<<(getMaxTexMips()-1))*getPixelRatio*8) - 8 times bigger texel than last clip, but
   // not less than 4 meters if we allocate two pages, it results in minimum 4*256*2 == 1024meters (512 meters radius) of fallback
@@ -152,7 +159,7 @@ public:
   void setStartTexelSize(float st_texel_size);
 
   void setTargetSize(int w, int h, float mip_bias);
-  void prepareRender(ClipmapRenderer &render, dag::Span<Texture *> buffer_tex = {}, dag::Span<Texture *> compressor_tex = {},
+  void prepareRender(ClipmapRenderer &render, dag::ConstSpan<Texture *> buffer_tex = {}, dag::ConstSpan<Texture *> compressor_tex = {},
     bool turn_off_decals_on_fallback = false);
   void prepareFeedback(const Point3 &viewer_pos, const TMatrix4 &globtm, const TMatrix4 *mirror_globtm_opt,
     const ZoomFeeedbackParams &zoom_params, const SoftwareFeedbackParams &software_fb = {}, bool force_update = false,

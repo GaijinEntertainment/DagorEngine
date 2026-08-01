@@ -320,20 +320,12 @@ StaticMeshRTracer::Node *StaticMeshRTracer::build_node(Mesh &m, int *fc, int num
     BNode *n = nomemchk(new BNode);
     n->bsc = c;
     n->bsr2 = r;
-    /*Point3 wd=box.width();
-    int md=0;
-    real ms=wd[0];
-    for(i=1;i<3;++i) if(wd[i]>ms) ms=wd[md=i];*/
     real dp = c[md] * 3;
     for (i = 0; i < numf; ++i)
     {
       int f = fc[i];
-      // fgrp[f]=((m.vert[m.face[f].v[0]][md]+m.vert[m.face[f].v[1]][md]+
-      // m.vert[m.face[f].v[2]][md])>=dp);
       fgrp2[f] = ((m.verts[m.faces[f].v[0]][md] + m.verts[m.faces[f].v[1]][md] + m.verts[m.faces[f].v[2]][md]));
     }
-    // DataSimpleQsort<int,MapSimpleAscentCompare<char>,char> qs;
-    // qs.sort(fc,numf,fgrp);
     DataSimpleQsort<int, MapSimpleAscentCompare<float>, float> qs;
     qs.sort(fc, numf, fgrp2.Addr(0));
     int df = numf >> 1;
@@ -383,17 +375,10 @@ void StaticMeshRTracer::build(Mesh &m)
   }
   Tab<int> fc;
   fc.SetCount(m.numFaces);
-  // nomem(fgrp.resize(m.face.size()));
   fgrp2.SetCount(m.numFaces);
   for (int i = 0; i < fc.Count(); ++i)
     fc[i] = i;
   root = build_node(m, fc.Addr(0), fc.Count());
-}
-
-StaticMeshRayTracer *create_staticmeshraytracer()
-{
-  StaticMeshRTracer *rt = nomemchk(new StaticMeshRTracer);
-  return rt;
 }
 
 StaticMeshRayTracer *create_staticmeshraytracer(Mesh &m)

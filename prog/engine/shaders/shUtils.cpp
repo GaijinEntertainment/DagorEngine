@@ -71,6 +71,7 @@ const char *shader_var_type_name(int t)
     case SHVT_TLAS: return "tlas";
     case SHVT_INT4: return "int4";
     case SHVT_FLOAT4X4: return "float4x4";
+    case SHVT_FLOAT4x3: return "float4x3";
   }
   return "???";
 }
@@ -104,6 +105,7 @@ const char *shcod_tokname(int t)
     case SHCOD_TLAS: return "TLAS";
     case SHCOD_GET_GVEC: return "GET_GVEC";
     case SHCOD_GET_GMAT44: return "GET_GMAT44";
+    case SHCOD_GET_GMAT43: return "GET_GMAT43";
     case SHCOD_G_TM: return "G_TM";
     case SHCOD_IMM_REAL: return "IMM_REAL";
     case SHCOD_IMM_VEC: return "IMM_VEC";
@@ -253,6 +255,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
       case SHCOD_GET_GREAL:
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
+      case SHCOD_GET_GMAT43:
       case SHCOD_GET_GTEX:
       case SHCOD_GET_GBUF:
       case SHCOD_GET_GTLAS:

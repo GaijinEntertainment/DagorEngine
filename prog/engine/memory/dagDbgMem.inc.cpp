@@ -52,6 +52,10 @@ public:
     const unsigned len = max<int>(stackLen - skip, 0);
     return da_profiler::profile_allocation(sz + est_overhead - sizeof(DebugChunk), localStack + skip, len);
   }
+  static __forceinline void release_profile_stack(size_t sz, da_profiler::profile_mem_data_t stk)
+  {
+    da_profiler::profile_deallocation(sz + est_overhead - sizeof(DebugChunk), stk);
+  }
 
 private:
   static __forceinline void *initChunk(void *ptr)
@@ -62,7 +66,7 @@ private:
     if (allow_fill_stack)
     {
       if (forced_memory_stack)
-        prof = da_profiler::profile_allocation(sz, forced_memory_stack);
+        prof = da_profiler::profile_allocation(sz + est_overhead - sizeof(DebugChunk), forced_memory_stack);
 
       if (!prof)
         prof = get_profile_stack(sz);
@@ -74,7 +78,7 @@ private:
   static inline void termChunk(void *p)
   {
     const size_t sz = sourcemem->getSize(p);
-    da_profiler::profile_deallocation(sz + est_overhead - sizeof(DebugChunk), getChunk(p, sz)->profile);
+    release_profile_stack(sz, getChunk(p, sz)->profile);
   }
 
   static DebugChunk *getChunk(void *ptr, size_t sz)
@@ -208,7 +212,7 @@ da_profiler::profile_mem_data_t DagDbgMem::set_forced_profile_callstack()
 void DagDbgMem::unset_forced_profile_callstack(da_profiler::profile_mem_data_t prev_handle)
 {
   if (forced_memory_stack != da_profiler::invalid_memory_profile)
-    da_profiler::profile_deallocation(1, forced_memory_stack);
+    DagDebugMemAllocator::release_profile_stack(1, forced_memory_stack);
   forced_memory_stack = prev_handle;
 }
 

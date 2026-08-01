@@ -122,7 +122,7 @@ void StaticAnalyzer::checkTrailingWhitespaces(HSQUIRRELVM vm, const char *source
   int32_t line = 1;
   int32_t column = 1;
 
-  for (int32_t idx = 0; idx < codeSize - 1; ++idx, ++column) {
+  for (size_t idx = 0; idx + 1 < codeSize; ++idx, ++column) { // idx+1: codeSize is unsigned, 0-1 wraps
     if (isSpaceOrTab(code[idx])) {
       int next = code[idx + 1];
       if (!next || next == '\n' || next == '\r') {

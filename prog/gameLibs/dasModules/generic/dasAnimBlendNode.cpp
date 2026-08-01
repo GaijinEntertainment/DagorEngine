@@ -32,7 +32,7 @@ static das::mutex das_pbc_reload_mutex;
 //
 // Only the rare hot-reload rebuild of the shared das instance (validateClassPtr) is serialized, via
 // das_pbc_reload_mutex.
-static thread_local bind_dascript::EsContext *t_das_blend_node_ctx = nullptr;
+static thread_local eastl::unique_ptr<bind_dascript::EsContext> t_das_blend_node_ctx;
 
 static bind_dascript::EsContext *get_blend_node_eval_context(bind_dascript::EsContext *source)
 {
@@ -47,11 +47,12 @@ static bind_dascript::EsContext *get_blend_node_eval_context(bind_dascript::EsCo
     c->stringHeap = das::make_unique<das::LinearStringAllocator>();
     c->heap->setInitialSize(DAS_INITIAL_HEAP_SIZE);
     c->stringHeap->setInitialSize(DAS_INITIAL_STRING_HEAP_SIZE);
-    t_das_blend_node_ctx = c;
+    t_das_blend_node_ctx.reset(c);
   }
-  t_das_blend_node_ctx->makeWorkerFor(*source); // share `source` read-only code & globals (early-outs once bound)
-  t_das_blend_node_ctx->mgr = source->mgr;
-  return t_das_blend_node_ctx;
+  bind_dascript::EsContext *t_das_blend_node_ctx_ptr = t_das_blend_node_ctx.get();
+  t_das_blend_node_ctx_ptr->makeWorkerFor(*source); // share `source` read-only code & globals (early-outs once bound)
+  t_das_blend_node_ctx_ptr->mgr = source->mgr;
+  return t_das_blend_node_ctx_ptr;
 }
 
 void DasAnimPostBlendCtrl::printUnhandledException(das::Context *c, const char *func_name) const
@@ -88,28 +89,18 @@ template <typename Fn>
 void DasAnimPostBlendCtrl::invokeGuarded(const char *func_name, Fn &&fn)
 {
   // Bind the main-thread das environment on worker threads, else env-dependent builtins used by the
-  // controller (ecs query, profiler, rtti) dereference an unbound thread-local environment and crash.
+  // controller (profiler, rtti) dereference an unbound thread-local environment and crash.
+  // NOTE: Calling ecs queries is prohibited and does not work.
   bind_dascript::RAIIDasEnvBound dasEnv;
   bind_dascript::EsContext *context = get_blend_node_eval_context(bind_dascript::cast_es_context(ctx->context));
   context->tryRestartAndLock();
-  ecs::NestedQueryRestorer restorer(context->mgr);
   if (!context->ownStack)
   {
     das::SharedFramememStackGuard guard(*context);
-    das::das_try_recover(
-      context, [&]() { fn(context); },
-      [&]() {
-        printUnhandledException(context, func_name);
-        restorer.restore(context->mgr);
-      });
+    das::das_try_recover(context, [&]() { fn(context); }, [&]() { printUnhandledException(context, func_name); });
   }
   else
-    das::das_try_recover(
-      context, [&]() { fn(context); },
-      [&]() {
-        printUnhandledException(context, func_name);
-        restorer.restore(context->mgr);
-      });
+    das::das_try_recover(context, [&]() { fn(context); }, [&]() { printUnhandledException(context, func_name); });
   context->unlock();
 }
 
@@ -138,16 +129,12 @@ bool DasAnimPostBlendCtrl::validateClassPtr()
   bind_dascript::RAIIDasEnvBound dasEnv;
   bind_dascript::EsContext *context = get_blend_node_eval_context(bind_dascript::cast_es_context(ctx->context));
   context->tryRestartAndLock();
-  ecs::NestedQueryRestorer restorer(context->mgr);
   classPtr = (char *)das_aligned_alloc16(ctx->structInfo->size);
   if (classPtr)
   {
     vec4f args[1];
     auto callCtor = [&]() { context->callWithCopyOnReturn(ctx->ctor, args, classPtr, nullptr); };
-    auto onErr = [&]() {
-      printUnhandledException(context, "ctor");
-      restorer.restore(context->mgr);
-    };
+    auto onErr = [&]() { printUnhandledException(context, "ctor"); };
     if (!context->ownStack)
     {
       das::SharedFramememStackGuard guard(*context);

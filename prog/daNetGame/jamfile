@@ -243,6 +243,7 @@ UseProgLibs +=
   gameLibs/fftWater
   gameLibs/heightmap
   engine/daNet
+  gameLibs/daFracture/core
   gameLibs/daPhys
   gameLibs/physMap
   gameLibs/gamePhys/collision/collision-common
@@ -557,13 +558,15 @@ if $(HaveRenderer) = yes {
     gameLibs/render/texDebug
     gameLibs/render/fastGrassBaker
     gameLibs/render/levelProfiler
-    gameLibs/daGI
+    gameLibs/render/voxelizationTarget
+    gameLibs/GIWindows
     gameLibs/daGI2
     gameLibs/ecs/render
     gameLibs/ecs/render/weather_effects
     gameLibs/ecs/camera
     gameLibs/ecs/weather
     gameLibs/ecs/lights
+    gameLibs/daFracture/render
     gameLibs/rendInst/riFx
     gameLibs/projectiveDecals
     gameLibs/billboardDecals
@@ -593,6 +596,7 @@ if $(HaveRenderer) = yes {
 } else {
   UseProgLibs +=
     gameLibs/gamePhys/phys/destrRenderStub
+    gameLibs/daFracture/renderStub
     gameLibs/render/cables/stub
     gameLibs/rendInst/riFx/stub
     gameLibs/render/hdrRender/stub
@@ -604,7 +608,12 @@ if $(HaveRenderer) = yes {
 }
 
 if $(HaveRenderer) = yes {
-  UseProgLibs += gameLibs/daSkies2 ;
+  UseProgLibs +=
+    gameLibs/daSkies2
+    gameLibs/daSkies2/debug
+  ;
+
+  gamePulls += daSkies2_clouds_field_debug_pull ;
 } else {
   # Stub ECS pull for daSkies
   stub_daSkies2_ecs_pull = extern const size_t ecs_pull_cloudsRainMap \= \(size_t\)\(\&ecs_pull_cloudsRainMap\) \; ;
@@ -910,7 +919,7 @@ if $(Dedicated) = yes {
       UseProgLibs += engine/drv/hid_nswitch ;
     }
 
-    if ! $(Platform) in windows macOS linux {
+    if ! $(Platform) in windows macOS linux xboxOne scarlett {
       UseProgLibs += engine/drv/hid_nulldrv ;
     }
   }

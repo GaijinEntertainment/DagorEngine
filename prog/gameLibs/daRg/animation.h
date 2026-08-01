@@ -67,6 +67,8 @@ public:
   void setPause(bool on);
 
 protected:
+  // resolve a null 'from' to the value the element has right now, see start()
+  virtual void snapshotFromCurrent() {}
   bool baseUpdate(int64_t dt_usec);
   void playSound(const Sqrat::Object &key);
   void callHandler(const Sqrat::Object &handler, bool allow_start);
@@ -97,11 +99,12 @@ public:
   static const Sqrat::Object *fieldForAnim(const Element *elem, AnimProp prop, bool assert_on_missing);
 
 private:
-  ColorHsva cur;
+  virtual void snapshotFromCurrent() override;
+
   E3DCOLOR *output;
   E3DCOLOR baseElemColor;
 
-  ColorHsva cFrom, cTo;
+  ColorOklcha cFrom, cTo;
 };
 
 
@@ -114,6 +117,8 @@ public:
   virtual void apply() override;
 
 private:
+  virtual void snapshotFromCurrent() override;
+
   float cur = 0;
   float *output = nullptr;
   float fFrom = 0, fTo = 0;
@@ -129,6 +134,8 @@ public:
   virtual void apply() override;
 
 private:
+  virtual void snapshotFromCurrent() override;
+
   Point2 cur;
   Point2 p2From, p2To;
   const Point2 defVal;
@@ -170,7 +177,7 @@ private:
   E3DCOLOR lastElemColor = 0, curColor = 0;
   float lastElemFloat = 0, curFloat = 0;
   Point2 lastElemP2 = Point2(0, 0), curP2 = Point2(0, 0);
-  ColorHsva colorFrom, colorTo;
+  ColorOklcha colorFrom, colorTo;
   float floatFrom = 0, floatTo = 0;
   Point2 p2From = Point2(0, 0), p2To = Point2(0, 0);
 

@@ -10,8 +10,10 @@
 #include <debug/dag_debug.h>
 #include <drv/3d/dag_decl.h>
 #include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_resetDevice.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/optional.h>
 #include <EASTL/span.h>
 #include <EASTL/utility.h>
 #include <EASTL/vector.h>
@@ -90,6 +92,9 @@ NvPhysicalGpuHandle gpu::get_nv_physical_gpu()
 void gpu::get_nv_gpu_memory(uint32_t &out_dedicated_kb, uint32_t &out_shared_kb, uint32_t &out_dedicated_free_kb)
 {
   out_dedicated_kb = out_shared_kb = out_dedicated_free_kb = 0;
+
+  if (is_restoring_3d_device() || dagor_d3d_force_driver_reset)
+    return;
 
   if (!get_nv_physical_gpu())
     return;
@@ -310,7 +315,7 @@ void gpu::get_video_amd_str(String &out_str)
 namespace
 {
 #if HAS_NVAPI
-uint32_t get_nvidia_gpu_family(uint32_t device_id)
+eastl::optional<NV_GPU_ARCH_INFO> get_nvidia_arch_info(uint32_t device_id)
 {
   if (init_nvapi())
   {
@@ -327,17 +332,35 @@ uint32_t get_nvidia_gpu_family(uint32_t device_id)
           NV_GPU_ARCH_INFO archInfo{.version = NV_GPU_ARCH_INFO_VER};
           if (NvAPI_GPU_GetArchInfo(gpuHandle, &archInfo) == NVAPI_OK)
           {
-            return archInfo.architecture_id;
+            return archInfo;
           }
         }
       }
     }
   }
 
-  return DeviceAttributes::UNKNOWN;
+  return eastl::nullopt;
+}
+
+uint32_t get_nvidia_gpu_family(uint32_t device_id)
+{
+  const auto archInfo = get_nvidia_arch_info(device_id);
+  return archInfo ? archInfo->architecture_id : DeviceAttributes::UNKNOWN;
+}
+
+bool is_nvidia_turing_chip_without_tensor_cores(uint32_t device_id)
+{
+  const auto archInfo = get_nvidia_arch_info(device_id);
+  if (!archInfo)
+    return false;
+  if (archInfo->architecture_id != NV_GPU_ARCHITECTURE_TU100)
+    return false;
+  return archInfo->implementation_id == NV_GPU_ARCH_IMPLEMENTATION_TU116 ||
+         archInfo->implementation_id == NV_GPU_ARCH_IMPLEMENTATION_TU117;
 }
 #else
 constexpr uint32_t get_nvidia_gpu_family(uint32_t) { return DeviceAttributes::UNKNOWN; }
+constexpr bool is_nvidia_turing_chip_without_tensor_cores(uint32_t) { return false; }
 #endif
 
 #if _TARGET_PC
@@ -620,6 +643,17 @@ void gpu::update_device_attributes(uint32_t vendor_id, uint32_t device_id, Devic
   }
 }
 
+bool gpu::is_omm_hardware_accelerated(const DeviceAttributes &device_attributes)
+{
+  // Turing and Ampere report opacity micro maps but emulate them in the driver, dedicated hardware starts with Ada. Turing is also
+  // the oldest arch to report them at all, so everything below Ada is exactly the emulated set.
+  if (GpuVendor::NVIDIA == device_attributes.vendor)
+    return device_attributes >= GpuDesc{.vendor = GpuVendor::NVIDIA, .family = GpuDesc::AD100};
+
+  // No other vendor ships opacity micro maps yet. Whoever does has to be checked for emulation before being trusted here.
+  return true;
+}
+
 static bool match_device_families(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
   eastl::span<const uint32_t> other_discrete, eastl::span<const char *> family_keys, eastl::span<const char *> device_keys)
 {
@@ -698,6 +732,22 @@ bool gpu::is_blacklisted_device(const DataBlock &gpu_preferences, uint32_t vendo
   }
 
   return false;
+}
+
+bool gpu::is_nvidia_turing_without_tensor_cores(uint32_t vendor_id, uint32_t device_id)
+{
+  if (d3d_get_vendor(vendor_id) != GpuVendor::NVIDIA)
+    return false;
+
+  switch (device_id)
+  {
+    // TU106 with tensor cores fused off
+    case 0x1F09: // GTX 1660 SUPER
+    case 0x1F0A: // GTX 1650
+    case 0x1F0B: // CMP 40HX
+      return true;
+    default: return is_nvidia_turing_chip_without_tensor_cores(device_id);
+  }
 }
 
 #if _TARGET_PC_WIN

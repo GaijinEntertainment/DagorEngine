@@ -41,6 +41,8 @@ public:
   virtual void eval(immediate_const_block &) = 0;
   virtual void eval_supports(supports_stat &) = 0;
   virtual void eval_render_stage(render_stage_stat &) = 0;
+  // Only AssembleShaderEvalCB authors RT pipeline config; other callbacks ignore the block.
+  virtual void eval_raytrace_pipeline(raytrace_pipeline_stat &) {}
   virtual void eval_assume_stat(assume_stat &) = 0;
   virtual void eval_assume_if_not_assumed_stat(assume_if_not_assumed_stat &) = 0;
   virtual void eval_command(shader_directive &) = 0;

@@ -913,6 +913,7 @@ void app_start(bool register_dagor_scene)
   public:
     virtual void actScene() override
     {
+      net::NetSnapshotScope snapshotScope(/*assumeSingleUpdate*/ false, "DngGameScene::actScene"); // owner-thread publish runs within
       game_scene::act_scene();
       if (is_animated_splash_screen_in_thread() && !sceneload::is_load_in_progress())
       {
@@ -922,6 +923,7 @@ void app_start(bool register_dagor_scene)
     }
     virtual void drawScene() override
     {
+      net::NetSnapshotScope snapshotScope(/*assumeSingleUpdate*/ false, "DngGameScene::drawScene");
       if (is_animated_splash_screen_in_thread())
       {
         d3d::set_render_target();
@@ -935,6 +937,7 @@ void app_start(bool register_dagor_scene)
     virtual void sceneDeselected(DagorGameScene *) override { game_scene::on_scene_deselected(); }
     virtual void beforeDrawScene(int realtime_elapsed_usec, float gametime_elapsed_sec) override
     {
+      net::NetSnapshotScope snapshotScope(/*assumeSingleUpdate*/ false, "DngGameScene::beforeDrawScene");
       if (is_animated_splash_screen_in_thread())
         return;
       game_scene::before_draw_scene(realtime_elapsed_usec, gametime_elapsed_sec);

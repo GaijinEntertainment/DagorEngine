@@ -43,6 +43,7 @@ struct Clouds2
   void setWeatherGen(const DaSkies::CloudsWeatherGen &weather_params);
   void setCloudsForm(const DaSkies::CloudsForm &form_params);
   void setCloudsRendering(const DaSkies::CloudsRendering &rendering_params);
+  void setTraceCheckerboard(bool v) { clouds.traceCheckerboard = v; }
 
   // temporary function for a workaround on A8 iPads (gpu hang)
   void setRenderingEnabled(bool enabled) { renderingEnabled = enabled; }
@@ -58,7 +59,7 @@ struct Clouds2
   void setCloudsOffsetVars(float current_clouds_offset) { clouds.setCloudsOffsetVars(current_clouds_offset, weatherParams.worldSize); }
   IPoint2 getResolution(const CloudsRendererData &data) { return data.cloudTexRes; }
   void renderCloudsPrepare(CloudsRendererData &data, BaseTexture *depth, BaseTexture *prev_depth, const TMatrix &view_tm,
-    const TMatrix4 &proj_tm, const CloudsRenderFlags flags = CloudsRenderFlags::Default, const DynRes *dynamic_resolution = nullptr);
+    const TMatrix4 &proj_tm, const CloudsRenderFlags flags = CloudsRenderFlags::Default);
   void renderCloudsApply(CloudsRendererData &data, BaseTexture *downsampled_depth, BaseTexture *target_depth,
     const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm,
     const CloudsRenderFlags flags = CloudsRenderFlags::Default);
@@ -66,14 +67,20 @@ struct Clouds2
   bool isPrepareRequired() const { return noises.isPrepareRequired(); }
   bool isReady() const { return noises.isReady(); }
 
-  CloudsChangeFlags prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir, bool scattering_ready);
+  CloudsChangeFlags prepareLighting(const Point3 &main_light_dir, const Point3 &second_light_dir, bool scattering_ready,
+    const Point2 &camera_xz);
+  // camera teleport catch-up for a per-view origin learned after prepareLighting
+  void ensureBSMWindow(const Point2 &camera_xz, const Point3 &main_light_dir)
+  {
+    cloudShadows.ensureBSMWindow(camera_xz, main_light_dir);
+  }
   void renderCloudVolume(VolTexture *cloud_volume, TEXTUREID prev_cloud_volume, float max_dist, const TMatrix &view_tm,
     const TMatrix4 &proj_tm, const TMatrix4 &prev_glob_tm);
-  void setUseShadows2D(bool on);
+  void resetCloudsShadows();
   void reset()
   {
-    noises.close();
     noises.reset();
+    noises.close();
   }
 
   void layersHeightsBarrier() { field.layersHeightsBarrier(); }
@@ -91,7 +98,23 @@ struct Clouds2
       field.invalidate();
   }
 
+  void initNBS(const String &root_graph) { field.initNBS(root_graph); }
+  bool updateNBSShaders(const String &shader_name, const DataBlock &shader_blk, String &out_errors)
+  {
+    if (field.updateNBSShaders(shader_name, shader_blk, out_errors))
+    {
+      cloudShadows.invalidate();
+      return true;
+    }
+
+    return false;
+  }
+  void enableNBSOptionalGraph(const String &graph_name, bool enable) { field.enableNBSOptionalGraph(graph_name, enable); }
+  void closeNBS() { field.closeNBS(); }
+
   bool isLightRendered() const;
+
+  bool isLightingConverged() const;
 
 private:
   void initHole();
@@ -125,6 +148,9 @@ protected:
   DaSkies::CloudsWeatherGen weatherParams;
   DaSkies::CloudsForm formParams;
   DaSkies::CloudsRendering renderingParams;
+  // a visible rendering param changed: report CLOUDS_INVALIDATED once so a converged
+  // panorama re-renders (the light volume alone updates incrementally and never does)
+  bool renderingParamsDirty = false;
 
   Point2 clouds_erosion_noise_wind_ofs = {0, 0};
   Point2 erosionWindChange = {0, 0};

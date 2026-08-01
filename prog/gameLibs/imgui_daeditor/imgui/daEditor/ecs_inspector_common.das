@@ -23,29 +23,22 @@ require daslib/defer
 require gameLibs.imgui_daeditor.imgui.daEditor.ecs_inspectors_common
 require gameLibs.imgui_daeditor.imgui.daEditor.ecs_inspectors_macro
 require gameLibs.imgui_daeditor.daEditor.daEditor_common
+require gameLibs.imgui_daeditor.imgui.ecs_struct_walker_common
 require %gameLibs.imgui_daeditor.imgui.imgui_common
 require %gameLibs.imgui_daeditor.imgui.ecs_plot_common
 
-var private @ignore_heap_usage basicStructAnnotations : table<string; rtti::BasicStructureAnnotation?>
-var private basicStructAnnotationsInited = false
-
+// 2D-layout types (TMatrix, bbox3f, BBox3) intentionally return 1 -- "Add to Plot" creates a
+// single row-0 entry and the plot window drives the row selector from there.
 def private axes_for_type(type_name : string) : int
-  if type_name == "Point2" || type_name == "IPoint2"
+  if type_name == "Point2" || type_name == "IPoint2" || type_name == "DPoint2"
     return 2
-  elif type_name == "Point3" || type_name == "IPoint3"
+  elif type_name == "Point3" || type_name == "IPoint3" || type_name == "DPoint3"
     return 3
-  elif type_name == "Point4" || type_name == "IPoint4"
+  elif type_name == "Point4" || type_name == "IPoint4" || type_name == "vec4f" || type_name == "E3DCOLOR"
     return 4
   return 1
 
-def private is_plottable_type(type_name : string) : bool
-  return (type_name == "int" || type_name == "float"
-       || type_name == "Point2" || type_name == "Point3" || type_name == "Point4"
-       || type_name == "IPoint2" || type_name == "IPoint3" || type_name == "IPoint4")
-
 def private draw_add_to_plot_buttons(eid_val : uint; name, type_name : string)
-  if !is_plottable_type(type_name)
-    return
   static_let <|
     var all_axes = true
   let is_multi_axis = axes_for_type(type_name) > 1
@@ -160,7 +153,7 @@ def to_string_via_blk(compName : string; eid : EntityId)
   using() <| $(var blk : DataBlock)
     let mgr & = getEntityManager()
     component_to_blk_param(compName, mgr |> getComponentRef(eid, compName), blk)
-    data := string(blk)
+    data = string(blk)
   return data
 
 def to_int2(str : string)
@@ -419,47 +412,8 @@ def open_inspector(idx : int; eid : EntityId; filter_str : string)
   imgui_set_blk_val("ecs_inspector_{idx}", "filter", filter_str)
   imgui_window_set_visible("Editor", "Inspector {idx+1}", true)
 
-def das_type_to_ecs_type_str(typ : rtti::Type)
-  if typ == Type.tBool
-    return "bool"
-  if typ == Type.tInt8
-    return "int8_t"
-  if typ == Type.tUInt8
-    return "uint8_t"
-  if typ == Type.tInt16
-    return "int16_t"
-  if typ == Type.tUInt16
-    return "uint16_t"
-  if typ == Type.tInt64
-    return "int64_t"
-  if typ == Type.tUInt64
-    return "uint64_t"
-  if typ == Type.tInt
-    return "int"
-  if typ == Type.tInt2
-    return "IPoint2"
-  if typ == Type.tInt3
-    return "IPoint3"
-  if typ == Type.tInt4
-    return "IPoint4"
-  if typ == Type.tUInt
-    return "uint32_t"
-  if typ == Type.tFloat
-    return "float"
-  if typ == Type.tFloat2
-    return "Point2"
-  if typ == Type.tFloat3
-    return "Point3"
-  if typ == Type.tFloat4
-    return "Point4"
-  if typ == Type.tDouble
-    return "double"
-  if typ == Type.tString
-    return "ecs::string"
-  return "UnknownBindedStructureFieldType"
-
-def collect_struct_components(prefix : string; data : uint8?; type_name : string; var comps : array<tuple<name : string; cri : ComponentRenderInfo>>; var annotations : table<string; rtti::BasicStructureAnnotation?>)
-  let ann = annotations |> get_value(type_name)
+def collect_struct_components(prefix : string; data : uint8?; type_name : string; var comps : array<tuple<name : string; cri : ComponentRenderInfo>>)
+  let ann = get_basic_struct_annotation(type_name)
   if ann == null
     return
 
@@ -476,7 +430,7 @@ def collect_struct_components(prefix : string; data : uint8?; type_name : string
         if has_inspector(compTypeName) // If an inspector for some type is present, it is probably better than showing individual fields.
           comps |> emplace((name="{prefix}.{field_name}", cri=ComponentRenderInfo(rawData = field_data, roVal = "", dasTypeName = "", typeName = compTypeName, idx = 0u, componentId = uint16(0), isValidComponent = false)))
         else
-          collect_struct_components("{prefix}.{field_name}", field_data, compTypeName, comps, annotations)
+          collect_struct_components("{prefix}.{field_name}", field_data, compTypeName, comps)
       elif ti.isPod || ti.isConst
         let typ = das_type_to_ecs_type_str(ti.basicType)
         var roVal = ""
@@ -484,7 +438,7 @@ def collect_struct_components(prefix : string; data : uint8?; type_name : string
           roVal = "{sprint_data(field_data, addr(ti), default<print_flags>)}"
         comps |> emplace((name="{prefix}.{field_name}", cri=ComponentRenderInfo(rawData = field_data, roVal = roVal, dasTypeName = "{ti.basicType}", typeName = typ, idx = 0u, componentId = uint16(0), isValidComponent = false)))
       elif ti.isRefType && ti.annotation != null
-        collect_struct_components("{prefix}.{field_name}", field_data, get_annotation_name(*ti.annotation), comps, annotations)
+        collect_struct_components("{prefix}.{field_name}", field_data, get_annotation_name(*ti.annotation), comps)
 
 [no_aot]
 def inspect_item(uid : int; var filter : ImGuiTextFilter; eids : array<EntityId>#; new_selection : bool)
@@ -714,15 +668,6 @@ def iterate_over_filtered_components(eid : EntityId;
                                      templateName : string;
                                      var filter : ImGuiTextFilter;
                                      cb : block<(name : string; cri : ComponentRenderInfo; flags : uint) : void>)
-  if !basicStructAnnotationsInited
-    basicStructAnnotationsInited = true
-    program_for_each_registered_module() <| $(mod)
-      mod |> module_for_each_annotation <| $(ann)
-        if ann.isBasicStructureAnnotation
-          unsafe
-            let name = get_annotation_name(ann)
-            basicStructAnnotations |> insert(name) <| addr(reinterpret<BasicStructureAnnotation> ann)
-
   let mgr & = getEntityManager()
   let dataComps & = getDataComponents()
   let compTypes & = getComponentTypes()
@@ -740,11 +685,11 @@ def iterate_over_filtered_components(eid : EntityId;
     let name = dataComps |> data_components_getComponentNameById(compRef.componentId)
     var annotationFound = false
     let compsSizeBefore = length(comps)
-    if basicStructAnnotations |> key_exists(compTypeName) && !has_inspector(compTypeName)
+    if basic_struct_annotation_exists(compTypeName) && !has_inspector(compTypeName)
       annotationFound = true
       let t = compTypes |> component_types_getTypeInfo(compRef.typeId)
       let data = (uint(t.flags) & uint(ComponentTypeFlags.COMPONENT_TYPE_BOXED)) != 0u ? *unsafe(reinterpret<uint8 ??> compRef.rawData) : unsafe(reinterpret<uint8?> compRef.rawData)
-      collect_struct_components(name, data, compTypeName, comps, basicStructAnnotations)
+      collect_struct_components(name, data, compTypeName, comps)
 
     comps |> emplace((name=name, cri=ComponentRenderInfo(
       rawData = compRef.rawData,
@@ -805,22 +750,6 @@ def iterate_over_filtered_components(eid : EntityId;
       flags = tmp != null && !empty(name) ? getRegExpInheritedFlags(mgr, tmp, name) : 0u
 
     cb |> invoke(name, c.cri, flags)
-
-def get_annotation_name(ann : rtti::Annotation | rtti::TypeAnnotation)
-  var name = ""
-
-  // same logic as get_underlying_ecs_type
-  peek(ann.cppName) <| $(cppName)
-    if length(cppName) > 0
-      var startAt = 0
-      while startAt < length(cppName) && (cppName.character_at(startAt) == ':' || cppName.character_at(startAt) == ' ')
-        startAt += 1
-      name = slice(cppName, startAt)
-
-  if name == ""
-    name = "{ann.name}"
-
-  return name
 
 [no_aot]
 def invalidate_item(eid : EntityId; refs : array<ComponentRenderInfo#>#)
@@ -921,14 +850,14 @@ def compact_component_to_blk_text(compName, typeName : string; compRef : EntityC
         datablock_get_block(blk, 0u) <| $(contBlk)
           elemCount = int(contBlk.paramCount) + int(contBlk.blockCount)
       if elemCount < maxContainerItems
-        result := "{string(blk) |> strip()}\n"
+        result = "{string(blk) |> strip()}\n"
       else
-        result := "{compName}: {typeName} [{elemCount} items]\n"
+        result = "{compName}: {typeName} [{elemCount} items]\n"
     return result
 
   using() <| $(var blk : DataBlock)
     component_to_blk_param(compName, compRef, blk)
-    result := "{string(blk) |> strip()}\n"
+    result = "{string(blk) |> strip()}\n"
 
   return result
 

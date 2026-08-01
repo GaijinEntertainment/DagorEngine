@@ -49,6 +49,7 @@ enum class ConnErr
 
 class Object;
 class IMessage;
+class Connection;
 struct MessageNetDesc;
 
 enum class EncryptionKeyBits : uint32_t
@@ -106,10 +107,19 @@ public:
 class ConnectionsIterator
 {
   int i = 0;
+  // Resolved once by the constructor. The iterator must not outlive the net session, and the
+  // connection set must not change under it (single-frame send loops; mutating it would be UB).
+  union
+  {
+    Connection *const *clientConns; // server: getClientConnections() storage, valid over [0, clientConnCount)
+    Connection *serverConn;         // client: getServerConnection() (may be null)
+  };
+  int clientConnCount = 0; // server only
+  bool cachedIsServer = false;
   void advance();
 
 public:
-  ConnectionsIterator() { advance(); }
+  ConnectionsIterator(); // outlined: resolves the net once, so the hot loop dereferences a cached target directly
   explicit operator bool() const { return i >= 0; }
   IConnection &operator*() const;
   void operator++()
@@ -145,7 +155,7 @@ INetDriver *create_net_driver_startup(); // client driver: binds socket, defers 
 Connection *create_net_connection(ecs::EntityManager &mgr, INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query = {});
 
 INetDriver *create_stub_net_driver();
-Connection *create_stub_connection();
+Connection *create_stub_connection(ecs::EntityManager &mgr);
 
 // serialization
 void serialize_comp_nameless(ecs::EntityManager &mgr, ecs::component_t name, const ecs::EntityComponentRef &cref,

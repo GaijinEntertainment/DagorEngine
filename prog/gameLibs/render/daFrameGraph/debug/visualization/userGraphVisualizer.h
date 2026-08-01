@@ -2,6 +2,7 @@
 #pragma once
 
 #include <debug/visualization/structuresUser.h>
+#include <debug/visualization/gpuCaptureWindow.h>
 
 #include <frontend/internalRegistry.h>
 #include <frontend/nodeTracker.h>
@@ -35,6 +36,7 @@ public:
   // draw functions
 private:
   void drawUI();
+  void drawGpuCaptureWindow();
   void drawCanvas();
 
   void drawNodes(ImDrawList *draw_list, const CanvasLayout &layout);
@@ -226,6 +228,8 @@ private:
     inline void reset() { set(DependencyId::Invalid); }
   } inspectedDependency;
 
+  GpuCapture gpuCapture;
+  void setCaptureBoundary(CaptureBoundary &boundary, NodeNameId id);
 
   // misc functions
 private:

@@ -34,9 +34,6 @@ float tess_quality = 75;
 float lods_shift_dist_mul = 1.0;
 float ri_dist_mul_rcp = 1.0;
 
-float4 camera_base_offset = (0, 0, 0, 0);
-float4 prev_camera_base_offset = (0, 0, 0, 0);
-
 ////// macro
 
 macro INIT_RENDINST_IMPOSTOR_SHADOW()

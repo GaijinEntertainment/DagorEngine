@@ -164,22 +164,389 @@ typedef struct frame_state
     int32_t offset;
   } frame_state_t;
 
-/* Recognise when a frame record storing FP+LR has been created and whether FP
-   has been updated to point to the frame record. For example:
-  4183d4:       a9bd7bfd        stp     x29, x30, [sp,#-48]!    <= FP+LR stored
-  4183d8:       d2800005        mov     x5, #0x0
-  4183dc:       d2800004        mov     x4, #0x0
-  4183e0:       910003fd        mov     x29, sp                 <= FP updated
-  4183e4:       a90153f3        stp     x19, x20, [sp,#16]
-  ...
-  418444:       a94153f3        ldp     x19, x20, [sp,#16]
-  418448:       f94013f5        ldr     x21, [sp,#32]
-  41844c:       a8c37bfd        ldp     x29, x30, [sp],#48      <= FP+LR retrieved
-  418450:       d65f03c0        ret
-*/
+typedef enum
+  {
+    SP_UNCHANGED,
+    SP_ADJUSTED,
+    SP_UNKNOWN,
+  } sp_state_t;
+
+/* Detect a single straight-line stack decrement that has not been undone by a
+   matching restore or invalidated by ambiguous control flow.  When no frame
+   record is found, the SP adjustment is returned via the offset field so the
+   caller can correct the CFA for LR fallback.
+
+   From the linux aarch64 vDSO:
+
+      <__kernel_gettimeofday>:
+      d10043ff  sub  sp, sp, #0x10         <= SP adjusted
+      b4000680  cbz  x0, ...
+      ...
+      910043ff  add  sp, sp, #0x10         <= SP restored
+      d65f03c0  ret  */
+static void
+track_stack_pointer (uint32_t insn, sp_state_t *state, int32_t *offset)
+{
+  if (*state == SP_UNKNOWN)
+    return;
+
+  if (*state == SP_UNCHANGED
+      && ((insn & 0x7c000000) == 0x14000000       /* B, BL */
+          || (insn & 0xff000000) == 0x54000000    /* B.cond, BC.cond */
+          || (insn & 0x7e000000) == 0x34000000    /* CBZ, CBNZ */
+          || (insn & 0x7e000000) == 0x36000000    /* TBZ, TBNZ */
+          || (insn & 0xfe9fc000) == 0xd61f0000    /* BR, BLR, RET (+PAC) */
+          || (insn & 0xfe9f8000) == 0xd69f0000))  /* ERET, DRPS */
+    {
+      *state = SP_UNKNOWN;
+      *offset = 0;
+    }
+
+  /* SUB SP, SP, #imm
+
+     | 1 | 1 | 0 | 10001 | shift |     imm12     |   Rn  |   Rd  |
+
+     Rn == SP (x31) => 0b11111
+     Rd == SP (x31) => 0b11111.
+
+     Using a bitmask of 0xff0003ff, the masked instruction would be
+     0xd10003ff. */
+  else if ((insn & 0xff0003ff) == 0xd10003ff)
+    {
+      int32_t imm = (insn >> 10) & 0xfff;
+      if (insn & 0x00400000)  /* shift == 0b01 (LSL #12) */
+        imm <<= 12;
+      if (imm != 0)
+        {
+          if (*state != SP_UNCHANGED)
+            {
+              *state = SP_UNKNOWN;
+              *offset = 0;
+            }
+          else
+            {
+              *state = SP_ADJUSTED;
+              *offset = imm;
+            }
+        }
+    }
+
+  /* ADD SP, SP, #imm
+
+     | 1 | 0 | 0 | 10001 | shift |     imm12     |   Rn  |   Rd  |
+
+     Rn == SP (x31) => 0b11111
+     Rd == SP (x31) => 0b11111.
+
+     Using a bitmask of 0xff0003ff, the masked instruction would be
+     0x910003ff. */
+  else if ((insn & 0xff0003ff) == 0x910003ff)
+    {
+      int32_t imm = (insn >> 10) & 0xfff;
+      if (insn & 0x00400000)  /* shift == 0b01 (LSL #12) */
+        imm <<= 12;
+      if (imm != 0)
+        {
+          if (*state == SP_ADJUSTED && *offset == imm)
+            *state = SP_UNCHANGED;
+          else
+            *state = SP_UNKNOWN;
+          *offset = 0;
+        }
+    }
+
+  /* STP Xt1, Xt2, [SP, #-imm]!
+
+     | 10 | 101 | 0 | 011 | 0 |   imm7  |  Rt2  |   Rn  |   Rt  |
+
+     Rn == SP (x31) => 0b11111.
+
+     Using a bitmask of 0xffc003e0, the masked instruction would be
+     0xa98003e0. The offset value is (imm7 * 8) */
+  else if ((insn & 0xffc003e0) == 0xa98003e0)
+    {
+      /* STP x29, x30 is handled by track_frame_record, not here. */
+      if ((insn & 0x1f) == 0x1d && ((insn >> 10) & 0x1f) == 0x1e)
+        return;
+
+      int32_t imm = (insn >> 15) & 0x7f;
+      if (imm & 0x40)
+        imm |= ~0x7f;
+      if (imm < 0)
+        {
+          imm = -(imm * 8);
+          if (*state != SP_UNCHANGED)
+            {
+              *state = SP_UNKNOWN;
+              *offset = 0;
+            }
+          else
+            {
+              *state = SP_ADJUSTED;
+              *offset = imm;
+            }
+        }
+      else
+        {
+          *state = SP_UNKNOWN;
+          *offset = 0;
+        }
+    }
+
+  /* LDP Xt1, Xt2, [SP], #imm
+
+     | 10 | 101 | 0 | 011 | 1 |   imm7  |  Rt2  |   Rn  |   Rt  |
+
+     Rn == SP (x31) => 0b11111.
+
+     Using a bitmask of 0xffc003e0, the masked instruction would be
+     0xa8c003e0. The offset value is (imm7 * 8) */
+  else if ((insn & 0xffc003e0) == 0xa8c003e0)
+    {
+      /* LDP x29, x30 is handled by track_frame_record, not here. */
+      if ((insn & 0x1f) == 0x1d && ((insn >> 10) & 0x1f) == 0x1e)
+        return;
+
+      int32_t imm = (insn >> 15) & 0x7f;
+      if (imm & 0x40)
+        imm |= ~0x7f;
+      if (imm > 0 && *state == SP_ADJUSTED
+          && *offset == imm * 8)
+        {
+          *state = SP_UNCHANGED;
+          *offset = 0;
+        }
+      else
+        {
+          *state = SP_UNKNOWN;
+          *offset = 0;
+        }
+    }
+
+  /* STR Xt, [SP, #-imm]!
+
+     | 11 | 111 | 0 | 00 | 00 | 0 |   imm9  | 11 |   Rn  |   Rt  |
+
+     Rn == SP (x31) => 0b11111.
+
+     Using a bitmask of 0xffe00fe0, the masked instruction would be
+     0xf8000fe0. The offset value is (imm9) */
+  else if ((insn & 0xffe00fe0) == 0xf8000fe0)
+    {
+      int32_t imm = (insn >> 12) & 0x1ff;
+      if (imm & 0x100)
+        imm |= ~0x1ff;
+      if (imm < 0)
+        {
+          imm = -imm;
+          if (*state != SP_UNCHANGED)
+            {
+              *state = SP_UNKNOWN;
+              *offset = 0;
+            }
+          else
+            {
+              *state = SP_ADJUSTED;
+              *offset = imm;
+            }
+        }
+      else
+        {
+          *state = SP_UNKNOWN;
+          *offset = 0;
+        }
+    }
+
+  /* LDR Xt, [SP], #imm
+
+     | 11 | 111 | 0 | 00 | 01 | 0 |   imm9  | 01 |   Rn  |   Rt  |
+
+     Rn == SP (x31) => 0b11111.
+
+     Using a bitmask of 0xffe00fe0, the masked instruction would be
+     0xf84007e0. The offset value is (imm9) */
+  else if ((insn & 0xffe00fe0) == 0xf84007e0)
+    {
+      int32_t imm = (insn >> 12) & 0x1ff;
+      if (imm & 0x100)
+        imm |= ~0x1ff;
+      if (imm > 0 && *state == SP_ADJUSTED && *offset == imm)
+        *state = SP_UNCHANGED;
+      else
+        *state = SP_UNKNOWN;
+      *offset = 0;
+    }
+
+  /* ADD/SUB SP, x29, #imm
+
+     | 1 | op | 0 | 10001 | shift |     imm12     |   Rn  |   Rd  |
+
+     Rn == FP (x29) => 0b11101
+     Rd == SP (x31) => 0b11111.
+
+     MOV Rd, Rn is equivalent to ADD Rd, Rn, #0
+
+     Mask out op (bit 30), shift (bit 22), and imm12 (bits 10-21).
+     Using a bitmask of 0xbf0003ff, the masked instruction would be
+     0x910003bf. */
+  else if ((insn & 0xbf0003ff) == 0x910003bf)
+    {
+      *state = SP_UNKNOWN;
+      *offset = 0;
+    }
+
+  /* ADD/SUB SP, SP, Xm
+
+     | 1 | op | 0 | 01011 | 00 | 1 |  Rm  | option | imm3 |  Rn  |  Rd  |
+
+     Rn == SP (x31) => 0b11111
+     Rd == SP (x31) => 0b11111.
+
+     Mask out op (bit 30).  Using a bitmask of 0xdfe003ff, the masked
+     instruction would be 0x8b2003ff. */
+  else if ((insn & 0xdfe003ff) == 0x8b2003ff)
+    {
+      *state = SP_UNKNOWN;
+      *offset = 0;
+    }
+}
+
+/* Detect the STP/MOV/LDP sequence that creates and destroys a frame record,
+   tracking loc through NONE -> AT_SP_OFFSET -> AT_FP -> (back to NONE).
+
+   For example:
+
+      4183d4:  a9bd7bfd  stp  x29, x30, [sp,#-48]!   <= FP+LR stored
+      4183d8:  d2800005  mov  x5, #0x0
+      4183dc:  d2800004  mov  x4, #0x0
+      4183e0:  910003fd  mov  x29, sp                 <= FP updated
+      4183e4:  a90153f3  stp  x19, x20, [sp,#16]
+      ...
+      418444:  a94153f3  ldp  x19, x20, [sp,#16]
+      418448:  f94013f5  ldr  x21, [sp,#32]
+      41844c:  a8c37bfd  ldp  x29, x30, [sp],#48      <= FP+LR restored
+      418450:  d65f03c0  ret  */
+static void
+track_frame_record (uint32_t insn, unw_word_t insn_addr,
+                    frame_record_location_t *loc, int32_t *offset)
+{
+  if (*loc == NONE)
+    {
+      /* Check that a 64-bit store pair (STP) instruction storing FP
+         and LR has been executed, which would indicate that a frame
+         record has been created and that the LR value is saved therein.
+
+         From the ARM Architecture Reference Manual (ARMv8), the format
+         of the 64-bit STP instruction is
+
+         | 10 | 101 | 0 | 0XX | 0 |   imm7  |  Rt2  |   Rn  |   Rt  |
+
+         where X can be 0/1 above to indicate the instruction variant
+         (post-index, pre-index or signed offset).
+
+         Rt2 == LR (x30) => 0b11110
+         Rn  == SP (x31) => 0b11111
+         Rt  == FP (x29) => 0b11101.
+
+         So using a bitmask of 0xfe407fff, the masked instruction would
+         be 0xa8007bfd */
+      if ((insn & 0xfe407fff) == 0xa8007bfd)
+        {
+          *loc = AT_SP_OFFSET;
+
+          /* If the signed offset variant of the STP instruction is
+             detected, the frame record may not be currently pointed to
+             by SP. Extract the offset from the STP instruction.
+
+             The signed offset variant is
+
+             | 10 | 101 | 0 | 010 | 0 | imm7 | Rt2 | Rn | Rt |
+
+             So using a bitmask of 0xffc07fff, the masked instruction
+             would be 0xa9007bfd. The offset value is (imm7 * 8) */
+          if ((insn & 0xffc07fff) == 0xa9007bfd)
+            {
+              int32_t imm = (insn >> 15) & 0x7f;
+              if (imm & 0x40) imm |= ~0x7f;
+              *offset = imm * 8;
+            }
+          else
+            *offset = 0;
+
+          Debug (4, "ip=0x%lx => frame record stored at SP+0x%x\n",
+                 (long) insn_addr, *offset);
+        }
+    }
+  else if (*loc == AT_SP_OFFSET)
+    {
+      /* If the STP instruction has been executed, but not the
+         instruction to update FP, then the SP (with offset) should be
+         used to find the frame record, otherwise the FP should be used
+         as there are no guarantees that the SP is pointing to the frame
+         record after the FP has been updated.
+
+         Two methods for updating the FP have been seen in practice.
+         The first is a MOV instruction. The 64-bit MOV (to/from SP)
+         instruction to update FP (x29) is 0x910003fd.
+
+         The second is an ADD instruction taking SP and FP as the source
+         and destination registers, respectively. The 64-bit ADD
+         (immediate) instruction is
+
+         | 1 | 0 | 0 | 10001 | shift |     imm12     |   Rn  |   Rd  |
+
+         Rn == SP (x31) => 0b11111
+         Rd == FP (x29) => 0b11101.
+
+         So using a bitmask of 0xff0003ff, the masked instruction would
+         be 0x910003fd.
+
+         Since the MOV instruction is an alias for ADD, it is sufficient
+         to only check for the latter case. */
+      if ((insn & 0xff0003ff) == 0x910003fd)
+        {
+          *loc = AT_FP;
+          *offset = 0;
+
+          Debug (4, "ip=0x%lx => frame record stored at FP\n",
+                 (long) insn_addr);
+        }
+    }
+  else if (*loc == AT_FP)
+    {
+      /* Check that a 64-bit load pair (LDP) instruction to restore FP
+         and LR has been executed, which would indicate that a branch or
+         return instruction is about to be executed and that FP is
+         pointing to the caller's frame record instead.
+
+         The format of the 64-bit LDP instruction is
+
+         | 10 | 101 | 0 | 0XX | 1 |   imm7  |  Rt2  |   Rn  |   Rt  |
+
+         Rt2 == LR (x30) => 0b11110
+         Rn  == SP (x31) => 0b11111
+         Rt  == FP (x29) => 0b11101.
+
+         So using a bitmask of 0xfe407fff, the masked instruction would
+         be 0xa8407bfd */
+      if ((insn & 0xfe407fff) == 0xa8407bfd)
+        {
+          *loc = NONE;
+          *offset = 0;
+
+          Debug (4, "ip=0x%lx => frame record has been loaded, use LR\n",
+                 (long) insn_addr);
+        }
+    }
+}
+
+/* Scan instructions from the start of the current procedure up to the current
+   IP tracking the frame record and SP adjustment. */
 static frame_state_t
 get_frame_state (unw_cursor_t *cursor)
 {
+  sp_state_t sp_state = SP_UNCHANGED;
+  int32_t sp_offset = 0;
   struct cursor *c = (struct cursor *) cursor;
   unw_accessors_t *a = unw_get_accessors (c->dwarf.as);
   unw_word_t w, start_ip, ip, offp;
@@ -191,7 +558,9 @@ get_frame_state (unw_cursor_t *cursor)
   if (is_plt_entry (&c->dwarf))
     return fs;
 
-  /* Use get_proc_name to find start_ip of procedure */
+  /* Use get_proc_name to find start_ip of procedure.
+     For vDSO functions (the primary consumer of this fallback),
+     .dynsym is always available even though .eh_frame is discarded. */
   char name[128];
   if (((*a->get_proc_name) (c->dwarf.as, c->dwarf.ip, name, sizeof(name), &offp, c->dwarf.as_arg)) != 0)
     return fs;
@@ -206,150 +575,27 @@ get_frame_state (unw_cursor_t *cursor)
       if ((*a->access_mem) (c->dwarf.as, ip, &w, 0, c->dwarf.as_arg) < 0)
         return fs;
 
-      if (fs.loc == NONE)
+      uint32_t insns[2] = { w & 0xffffffff, w >> 32 };
+
+      for (int j = 0; j < 2; j++)
         {
-          /* Check that a 64-bit store pair (STP) instruction storing FP and LR
-             has been executed, which would indicate that a frame record has been
-             created and that the LR value is saved therein.
+          uint32_t insn = insns[j];
 
-             From the ARM Architecture Reference Manual (ARMv8), the format of the
-             64-bit STP instruction is
+          if (c->dwarf.ip <= ip + j * 4)
+            continue;
 
-             | 10 | 101 | 0 | 0XX | 0 |   imm7  |  Rt2  |   Rn  |   Rt  |
+          track_stack_pointer (insn, &sp_state, &sp_offset);
 
-             where X can be 0/1 above to indicate the instruction variant (post-
-             index, pre-index or signed offset). imm7 is a 7-bit signed immediate
-             offset. The following should be asserted for this check
-
-             Rt2 == LR (x30) => 0b11110
-             Rn  == SP (x31) => 0b11111
-             Rt  == FP (x29) => 0b11101.
-
-             Hence the bitmask should be constructed to assert that the instruction
-             is
-
-             | 10 | 101 | 0 | 0XX | 0 | XXXXXXX | 11110 | 11111 | 11101 |
-
-             So using a bitmask of 0xfe407fff, the masked instruction would be
-             0xa8007bfd */
-          if ((((w & 0xfe407fff00000000) == 0xa8007bfd00000000) && (c->dwarf.ip > ip + 4))
-           || (((w & 0x00000000fe407fff) == 0x00000000a8007bfd) && (c->dwarf.ip > ip)))
-            {
-              fs.loc = AT_SP_OFFSET;
-
-              /* If the signed offset variant of the STP instruction is detected,
-                 the frame record may not be currently pointed to by SP. Extract
-                 the offset from the STP instruction.
-
-                 From the ARM Architecture Reference Manual (ARMv8), the format of
-                 the signed offset variant of the 64-bit STP instruction is
-
-                 | 10 | 101 | 0 | 010 | 0 | imm7 | Rt2 | Rn | Rt |
-
-                 Hence the bitmask should be constructed to assert that the
-                 instruction is
-
-                 | 10 | 101 | 0 | 010 | 0 | XXXXXXX | 11110 | 11111 | 11101 |
-
-                 So using a bitmask of 0xffc07fff, the masked instruction would
-                 be 0xa9007bdf. The offset value is (imm7 * 8) */
-              if (((w & 0xffc07fff00000000) == 0xa9007bfd00000000) && (c->dwarf.ip > ip + 4))
-                {
-                  int32_t abs_offset = (w & 0x001f800000000000) >> 47;
-                  fs.offset = ((w & 0x0020000000000000)? -abs_offset : abs_offset) * 8;
-                }
-              else if (((w & 0x00000000ffc07fff) == 0x00000000a9007bfd) && (c->dwarf.ip > ip))
-                {
-                  int32_t abs_offset = (w & 0x00000000001f8000) >> 15;
-                  fs.offset = ((w & 0x0000000000200000)? -abs_offset : abs_offset) * 8;
-                }
-              else
-                fs.offset = 0;
-
-              Debug (4, "ip=0x%lx => frame record stored at SP+0x%x\n", ip, fs.offset);
-            }
-        }
-
-      if (fs.loc == AT_SP_OFFSET)
-        {
-          /* If the STP instruction has been executed, but not the instruction
-             to update FP, then the SP (with offset) should be used to find the
-             frame record, otherwise the FP should be used as there are no
-             guarantees that the SP is pointing to the frame record after the FP
-             has been updated.
-
-             Two methods for updating the FP have been seen in practice. The
-             first is a MOV instruction. From the ARM Architecture Reference
-             Manual (ARMv8), the 64-bit MOV (to/from SP) instruction to update
-             FP (x29) is 0x910003fd.
-
-             The second is an ADD instruction taking SP and FP as the source and
-             destination registers, respectively. From the ARM Architecture
-             Reference Manual (ARMv8), the 64-bit ADD (immediate) instruction is
-
-             | 1 | 0 | 0 | 10001 | shift |     imm12    |   Rn  |   Rd  |
-
-             where the values of shift and imm12 are irrelevant for this check.
-             The following should be asserted
-
-             Rn == SP (x31) => 0b11111
-             Rd == FP (x29) => 0b11101.
-
-             Hence the bitmask should be constructed to assert that the instruction
-             is
-
-             | 1 | 0 | 0 | 10001 |   XX  | XXXXXXXXXXXX | 11111 | 11101 |
-
-             So using a bitmask of 0xff0003ff, the masked instruction would be
-             0x910003fd.
-
-             Since the MOV instruction is an alias for ADD, it is sufficient to
-             only check for the latter case. */
-          if ((((w & 0xff0003ff00000000) == 0x910003fd00000000) && (c->dwarf.ip > ip + 4))
-           || (((w & 0x00000000ff0003ff) == 0x00000000910003fd) && (c->dwarf.ip > ip)))
-            {
-              fs.loc = AT_FP;
-              fs.offset = 0;
-
-              Debug (4, "ip=0x%lx => frame record stored at FP\n", ip);
-            }
-        }
-      else if (fs.loc == AT_FP)
-        {
-          /* Check that a 64-bit load pair (LDP) instruction to restore FP and LR has been
-             executed, which would indicate that a branch or return instruction is about to
-             be executed and that FP is pointing to the caller's frame record instead. The
-             LR should be examined for the return address. In this case, the RA must have
-             already been authenticated.
-
-             From the ARM Architecture Reference Manual (ARMv8), the format of the 64-bit
-             LDP instruction is
-
-             | 10 | 101 | 0 | 0XX | 1 |   imm7  |  Rt2  |   Rn  |   Rt  |
-
-             where X can be 0/1 above to indicate the instruction variant (post-index, pre-
-             index or signed offset). imm7 is a 7-bit signed immediate offset, which is
-             irrelevant for this check. However, the following should be asserted
-
-             Rt2 == LR (x30) => 0b11110
-             Rn  == SP (x31) => 0b11111
-             Rt  == FP (x29) => 0b11101.
-
-             Hence the bitmask should be constructed to assert that the instruction is
-
-             | 10 | 101 | 0 | 0XX | 1 | XXXXXXX | 11110 | 11111 | 11101 |
-
-             So using a bitmask of 0xfe407fff, the masked instruction would be 0xa8407bfd */
-          if ((((w & 0xfe407fff00000000) == 0xa8407bfd00000000) && (c->dwarf.ip > ip + 4))
-           || (((w & 0x00000000fe407fff) == 0x00000000a8407bfd) && (c->dwarf.ip > ip)))
-            {
-              fs.loc = NONE;
-              fs.offset = 0;
-
-              Debug (4, "ip=0x%lx => frame record has been loaded, use LR\n", ip);
-            }
+          /* Frame-record tracking.  Detects the STP/MOV/LDP sequence that
+             creates and destroys a frame record, tracking fs.loc through
+             NONE -> AT_SP_OFFSET -> AT_FP -> (back to NONE).  */
+          track_frame_record (insn, ip + j * 4, &fs.loc, &fs.offset);
         }
     }
+
+  /* Use the SP offset if no frame record was found. */
+  if (fs.loc == NONE)
+    fs.offset = sp_offset;
 
   Debug (3, "[start_ip = 0x%lx, ip=0x%lx) => loc = %d, offset = %d\n",
             start_ip, c->dwarf.ip, fs.loc, fs.offset);
@@ -739,8 +985,8 @@ unw_step (unw_cursor_t *cursor)
         }
 
       /* No frame record, fallback to link register (X30).  */
-      c->frame_info.cfa_reg_offset = 0;
-      c->frame_info.cfa_reg_sp = 0;
+      c->frame_info.cfa_reg_sp = (fs.offset > 0) ? 1 : 0;
+      c->frame_info.cfa_reg_offset = fs.offset;
       c->frame_info.fp_cfa_offset = -1;
       c->frame_info.lr_cfa_offset = -1;
       c->frame_info.sp_cfa_offset = -1;
@@ -754,7 +1000,16 @@ unw_step (unw_cursor_t *cursor)
               Debug (2, "failed to get pc from link register: %d\n", ret);
               return ret;
             }
-          Debug (2, "link register (x30) = 0x%016lx\n", c->dwarf.ip);
+          /* Undo the stack frame allocation so the CFA is correct for
+             the caller.  Without this adjustment, the next DWARF step
+             would compute register locations from the wrong SP.  */
+          if (fs.offset > 0)
+            {
+              c->dwarf.cfa += fs.offset;
+              Debug (2, "adjusted CFA by +%d for stack frame\n", fs.offset);
+            }
+          Debug (2, "link register (x30) = 0x%016lx, CFA = 0x%016lx\n",
+                 c->dwarf.ip, c->dwarf.cfa);
           ret = 1;
         }
       else

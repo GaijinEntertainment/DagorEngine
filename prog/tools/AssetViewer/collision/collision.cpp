@@ -122,7 +122,7 @@ CollisionPlugin::CollisionPlugin()
   showFaceOrientation = false;
   showDegenerativeTriangles = false;
   collisionRes = NULL;
-  nodeTree = NULL;
+  nodeTree.reset();
   selectedNodeId = -1;
 
   MaterialData matNull;
@@ -148,7 +148,7 @@ bool CollisionPlugin::begin(DagorAsset *asset)
 
   if (asset)
   {
-    InitCollisionResource(*asset, &collisionRes, &nodeTree);
+    InitCollisionResource(*asset, &collisionRes, nodeTree);
     nodesProcessing.init(asset, collisionRes, this);
     curAsset = asset;
     if (showDegenerativeTriangles)
@@ -174,7 +174,7 @@ bool CollisionPlugin::end()
   selectedNodeId = -1;
 
   clearAssetStats();
-  ReleaseCollisionResource(&collisionRes, &nodeTree);
+  ReleaseCollisionResource(&collisionRes, nodeTree);
   destroy_it(modelEntity);
   modelAssetName.clear();
   curAsset = nullptr;
@@ -205,9 +205,10 @@ void CollisionPlugin::renderTransObjects()
     d3d::clearview(CLEAR_ZBUFFER, 0, 0, 0);
   }
 
-  RenderCollisionResource(*collisionRes, nodeTree, showBbox, showPhysCollidable, showTraceable, drawSolid, showFaceOrientation,
-    showDegenerativeTriangles, degenerativeNodes, selectedNodeId, nodesProcessing.editMode,
-    nodesProcessing.selectionNodesProcessing.hiddenNodes);
+  if (const ViewportWindow *vpw = static_cast<ViewportWindow *>(EDITORCORE->getRenderViewport()))
+    RenderCollisionResource(*collisionRes, nodeTree.get(), vpw->getViewTm(), vpw->getProjTm(), showBbox, showPhysCollidable,
+      showTraceable, drawSolid, showFaceOrientation, showDegenerativeTriangles, degenerativeNodes, selectedNodeId,
+      nodesProcessing.editMode, nodesProcessing.selectionNodesProcessing.hiddenNodes);
   nodesProcessing.renderNodes(selectedNodeId, drawSolid);
 
   fillAssetStats();
@@ -509,7 +510,12 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
     Point2 pos;
     real z;
 
-    Point3 pos3 = collisionRes->getNodeTm(i) * collisionRes->getNodeBSphere(i).c;
+    // a SPHERE node's bounding sphere already carries the placement; every other type pairs
+    // its stored bsphere with the tm that places it (exporter-combined nodes bake verts AND
+    // serialize an IDENT tm, so composing is a no-op there, never a double-apply)
+    const CollisionNode &annNode = allNodes[i];
+    const BSphere3 annBSphere = collisionRes->getNodeBSphere(i);
+    Point3 pos3 = annNode.type == COLLISION_NODE_TYPE_SPHERE ? annBSphere.c : collisionRes->getNodeTm(i) * annBSphere.c;
 
     if (!wnd->worldToClient(pos3, pos, &z) || (z < 0.001))
       continue;
@@ -686,42 +692,29 @@ static void reset_nodes_tm(CollisionResource *collision_res, GeomNodeTree *node_
   if (node_tree)
     return;
 
-  auto allNodes = collision_res->getAllNodes();
-  for (int ni = 0; ni < allNodes.size(); ni++)
-  {
-    auto &node = allNodes[ni];
-    const TMatrix &nodeTmRef = collision_res->getNodeTm(ni);
-    if ((node.type == COLLISION_NODE_TYPE_MESH || node.type == COLLISION_NODE_TYPE_CONVEX) && nodeTmRef.det() < 0.0f)
-      collision_res->bakeNodeTransform(ni);
-  }
+  collision_res->bakeMirroredNodes();
 }
 
-void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTree **node_tree)
+void InitCollisionResource(const DagorAsset &asset, CollisionResource **collision_res, GeomNodeTreeUniquePtr &node_tree)
 {
   *collision_res = (CollisionResource *)::get_game_resource_ex(asset.getName(), CollisionGameResClassId);
 
   const DataBlock &props = asset.getProfileTargetProps(_MAKE4C('PC'), NULL);
   if (const char *skeletonName = props.getStr("ref_skeleton", nullptr))
   {
-    *node_tree = new GeomNodeTree;
-
-    if (getSkeleton(**node_tree, asset.getMgr(), skeletonName, ::get_app().getConsole()))
+    node_tree = getSkeleton(asset.getMgr(), skeletonName, ::get_app().getConsole());
+    if (node_tree)
     {
-      (*node_tree)->invalidateWtm();
-      (*node_tree)->calcWtm();
-      (*collision_res)->initializeWithGeomNodeTree(**node_tree);
-    }
-    else
-    {
-      delete *node_tree;
-      *node_tree = nullptr;
+      node_tree->invalidateWtm();
+      node_tree->calcWtm();
+      (*collision_res)->initializeWithGeomNodeTree(*node_tree);
     }
   }
-  reset_nodes_tm(*collision_res, *node_tree);
+  reset_nodes_tm(*collision_res, node_tree.get());
 }
 
 
-void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **node_tree)
+void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTreeUniquePtr &node_tree)
 {
   if (*collision_res)
   {
@@ -729,11 +722,7 @@ void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **
     *collision_res = NULL;
   }
 
-  if (*node_tree)
-  {
-    delete *node_tree;
-    *node_tree = nullptr;
-  }
+  node_tree.reset();
 }
 
 struct ScreenSpaceParams
@@ -744,21 +733,24 @@ struct ScreenSpaceParams
 };
 
 static void draw_collision_mesh(const CollisionResource &collision_res, int node_id, const TMatrix &tm, const E3DCOLOR &color,
-  dag::ConstSpan<uint16_t> degenerative_indices, bool draw_solid, bool show_face_orientation, const ScreenSpaceParams &params)
+  dag::ConstSpan<uint32_t> degenerative_indices, bool draw_solid, bool show_face_orientation, const ScreenSpaceParams &params)
 {
   if (show_face_orientation || draw_solid)
   {
     // draw_debug_solid_mesh uploads to a d3d buffer so it needs contiguous indices/vertices; materialize only when solid is drawn.
     const int faceCount = collision_res.getNodeFaceCount(node_id);
     const int vertCount = collision_res.getNodeVertCount(node_id);
-    if (faceCount > 0 && vertCount > 0)
+    // draw_debug_solid_mesh uploads a uint16 index buffer, so it can only represent a node with up to
+    // 65536 node-local verts; a larger node (heavy per-node-BLAS dup) would truncate its face indices.
+    // Skip the solid fill for it -- the wireframe below still renders. Editor debug viz only.
+    if (faceCount > 0 && vertCount > 0 && vertCount <= 65536)
     {
       dag::Vector<uint16_t> idx(faceCount * 3);
       dag::Vector<Point3_vec4> verts(vertCount);
-      collision_res.iterateNodeFaces(node_id, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
-        idx[fi * 3 + 0] = i0;
-        idx[fi * 3 + 1] = i1;
-        idx[fi * 3 + 2] = i2;
+      collision_res.iterateNodeFaces(node_id, [&](int fi, uint32_t i0, uint32_t i1, uint32_t i2) {
+        idx[fi * 3 + 0] = (uint16_t)i0;
+        idx[fi * 3 + 1] = (uint16_t)i1;
+        idx[fi * 3 + 2] = (uint16_t)i2;
       });
       collision_res.iterateNodeVerts(node_id, [&](int vi, vec4f v) { v_st(&verts[vi].x, v); });
       if (show_face_orientation)
@@ -863,22 +855,18 @@ static void draw_collision_mesh(const CollisionResource &collision_res, int node
   }
 }
 
-void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_bbox,
-  bool show_phys_collidable, bool show_traceable, bool draw_solid, bool show_face_orientation, bool show_degenerate_triangles,
-  const dag::Vector<DegenerativeNodeData> &degenerative_nodes, int selected_node_id, bool edit_mode,
+void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, const TMatrix &view_tm,
+  const TMatrix4 &proj_tm, bool show_bbox, bool show_phys_collidable, bool show_traceable, bool draw_solid, bool show_face_orientation,
+  bool show_degenerate_triangles, const dag::Vector<DegenerativeNodeData> &degenerative_nodes, int selected_node_id, bool edit_mode,
   const dag::Vector<bool> &hidden_nodes)
 {
-  TMatrix viewTm;
-  d3d::gettm(TM_VIEW, viewTm);
-  TMatrix4 projTm;
-  d3d::gettm(TM_PROJ, &projTm);
   int vx, vy, vw, vh;
   float vzn, vzf;
   d3d::getview(vx, vy, vw, vh, vzn, vzf);
   ScreenSpaceParams ssParams;
-  ssParams.viewItm = inverse(viewTm);
+  ssParams.viewItm = inverse(view_tm);
   ssParams.camPos = ssParams.viewItm.getcol(3);
-  ssParams.pixelToWorld = (vh > 0 && projTm[1][1] > 1e-6f) ? 2.0f / (projTm[1][1] * vh) : 0.001f;
+  ssParams.pixelToWorld = (vh > 0 && proj_tm[1][1] > 1e-6f) ? 2.0f / (proj_tm[1][1] * vh) : 0.001f;
 
   begin_draw_cached_debug_lines();
 
@@ -891,7 +879,7 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
   for (int i = 0; i < cnt; i++)
   {
     const CollisionNode &node = allNodes[i];
-    dag::ConstSpan<uint16_t> degenerativeIndices;
+    dag::ConstSpan<uint32_t> degenerativeIndices;
     if (show_degenerate_triangles)
     {
       const DegenerativeNodeData *degenerativeNode = eastl::find_if(degenerative_nodes.begin(), degenerative_nodes.end(),
@@ -976,13 +964,61 @@ void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTre
       const TMatrix &nTm = collision_res.getNodeTm(i);
       bool haveInvalidVertices = false;
       const float distEps = 1e-3f;
-      vec4f nodeEps = v_splats(max(collision_res.getNodeBSphere(i).r * distEps, 1e-2f));
+      const float nodeEpsF = max(collision_res.getNodeBSphere(i).r * distEps, 1e-2f);
+      vec4f nodeEps = v_splats(nodeEpsF);
       dag::ConstSpan<plane3f> convexPlanes = collision_res.getNodeConvexPlanes(i);
+      const int nodeFaceCnt = collision_res.getNodeFaceCount(i);
+      // Materialise the node's faces once (a getNodeFaceVerts() per face is a full per-node BLAS walk).
+      Tab<Point3> faceVerts;
+      faceVerts.resize(nodeFaceCnt * 3);
+      collision_res.iterateNodeFacesVerts(i, [&](int fi, vec4f v0, vec4f v1, vec4f v2) {
+        Point3_vec4 a, b, c;
+        v_st(&a.x, v0);
+        v_st(&b.x, v1);
+        v_st(&c.x, v2);
+        faceVerts[fi * 3 + 0] = a;
+        faceVerts[fi * 3 + 1] = b;
+        faceVerts[fi * 3 + 2] = c;
+      });
+      // Per-node-BLAS chunking reorders a convex node's faces (meshopt), so face index no longer equals
+      // plane index. Build the plane->face map once by geometry (the face whose verts sit closest to the
+      // plane), so the per-plane overlay is an O(1) lookup and pairs by best fit, not first-within-eps
+      // (which could mis-match near-coplanar hull faces).
+      Tab<int> faceOfPlane;
+      faceOfPlane.resize(convexPlanes.size());
+      mem_set_ff(faceOfPlane);
+      for (int f = 0; f < nodeFaceCnt; ++f)
+      {
+        const Point3 &a = faceVerts[f * 3], &b = faceVerts[f * 3 + 1], &c = faceVerts[f * 3 + 2];
+        int best = -1;
+        float bestErr = nodeEpsF;
+        for (int k = 0; k < convexPlanes.size(); ++k)
+        {
+          const plane3f &pl = convexPlanes[k];
+          vec4f err = v_max(v_max(v_abs(v_plane_dist(pl, v_ldu_p3(&a.x))), v_abs(v_plane_dist(pl, v_ldu_p3(&b.x)))),
+            v_abs(v_plane_dist(pl, v_ldu_p3(&c.x))));
+          float e = v_extract_x(err);
+          if (e < bestErr)
+          {
+            bestErr = e;
+            best = k;
+          }
+        }
+        if (best >= 0)
+          faceOfPlane[best] = f;
+      }
       for (int k = 0; k < convexPlanes.size(); ++k)
       {
         const plane3f &plane = convexPlanes[k];
         Point3 fv0, fv1, fv2;
-        const bool hasFace = collision_res.getNodeFaceVerts(i, k, fv0, fv1, fv2);
+        const bool hasFace = faceOfPlane[k] >= 0;
+        if (hasFace)
+        {
+          const int f = faceOfPlane[k];
+          fv0 = faceVerts[f * 3];
+          fv1 = faceVerts[f * 3 + 1];
+          fv2 = faceVerts[f * 3 + 2];
+        }
         collision_res.iterateNodeVerts(i, [&](int, vec4f vertex) {
           vec4f dist = v_plane_dist(plane, vertex);
           if (v_test_vec_x_gt(dist, nodeEps))

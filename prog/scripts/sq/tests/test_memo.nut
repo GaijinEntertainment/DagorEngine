@@ -25,7 +25,7 @@ let pairs = @() table.topairs().map(@(v) v[1]*v[0])
 stest(redu, "reduce")
 stest(pairs, "pairs")
 */
-function test(fn, pref="", arg=null){
+function test(fn: function, pref="", arg=null){
   let args = [null].extend(arg ?? [])
   let ct = get_time_msec()
   for (local i=0; i<N; i++) {
@@ -36,7 +36,7 @@ function test(fn, pref="", arg=null){
 }
 
 let INDX = {}
-function testOne(fn, pref="", arg=null){
+function testOne(fn: function, pref="", arg=null){
   local ct
   if (arg != INDX) {
     ct = get_time_msec()
@@ -54,7 +54,7 @@ function testOne(fn, pref="", arg=null){
   log($"{pref}took time:{rest/1000.0}")
 }
 
-function bench(func, prefix, args){
+function bench(func: function, prefix, args){
   let t  = func.getfuncinfos().parameters.len() > 2 ? test : testOne
   t(func, prefix, args)
   t(memoize(func),$"memoized {prefix}", args)

@@ -44,9 +44,9 @@
 #define MAX_LIGHT_SCATTER_DIST 900.f
 #define LIGHT_SCATTER_DIST_MUL 80.f
 
-static const char *water_shader_name[fft_water::RenderMode::MAX] = {"water_nv2", "water_depth_nv2", "water_ssr_nv2"};
+static const char *water_shader_name[fft_water::RenderMode::MAX] = {"water_nv2", "water_depth_nv2", "water_normal_nv2"};
 static const char *water_heightmap_shader_name[fft_water::RenderMode::MAX] = {
-  "water_nv2_heightmap", "water_depth_nv2_heightmap", "water_ssr_nv2_heightmap"};
+  "water_nv2_heightmap", "water_depth_nv2_heightmap", "water_normal_nv2_heightmap"};
 static const char *water_hmap_tess_factor_name = "water_tess_factor";
 
 static int water_gradients_texVarId[WaterNVRender::MAX_NUM_CASCADES] = {-1, -1, -1, -1, -1};
@@ -167,7 +167,7 @@ void WaterNVRender::reinit(const Point2 &wind_dir, float wind_speed, float perio
   if (gpGpu)
     gpGpu->updateHt0WindowsVB(fft, numFftCascades);
 
-  setLevel(waterLevel);
+  setMinMaxLevel(minWaterLevel, maxWaterLevel);
 
   cascadesRoughnessInvalid = true;
 }
@@ -273,8 +273,7 @@ void WaterNVRender::setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p)
   }
 
   calcWaveHeight(maxWaveHeight, significantWaveHeight);
-  minWaterLevel -= significantWaveHeight;
-  maxWaterLevel += significantWaveHeight;
+  setMinMaxLevel(minWaterLevel, maxWaterLevel);
 
   applyWaterCell();
 
@@ -342,7 +341,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   geomQuality = max(geom_quality, waterHeightmap ? fft_water::RENDER_LOW : 0);
   autoVsamplersAdjust = true;
   memset(maxWaveSize, 0, sizeof(maxWaveSize));
-  setLevel(0);
+  setMinMaxLevel(0.0f, 0.0f);
   G_ASSERT(num_cascades >= 0);
   numCascades = num_cascades;
   numFftCascades = oneToFourCascades ? 1 : num_cascades;
@@ -412,7 +411,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
             minMax.x = min(minMax.x, waterHeightmap->patchHeights[j * waterHeightmap->PATCHES_GRID_SIZE + i].x);
             minMax.y = max(minMax.y, waterHeightmap->patchHeights[j * waterHeightmap->PATCHES_GRID_SIZE + i].y);
           }
-        if (minMax.y > waterLevel)
+        if (minMax.y > minWaterLevel)
           waterHeightmapPatchPositions.push_back(Point4(x, y, minMax.x, minMax.y));
       }
 
@@ -557,24 +556,13 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   }
 }
 
-void WaterNVRender::setLevel(float water_level)
-{
-  waterLevel = water_level;
-  minWaterLevel = waterLevel;
-  maxWaterLevel = waterLevel;
-  if (waterHeightmap)
-  {
-    minWaterLevel = min(minWaterLevel, waterHeightmap->heightOffset);
-    maxWaterLevel = max(maxWaterLevel, waterHeightmap->heightMax);
-  }
-  minWaterLevel -= significantWaveHeight;
-  maxWaterLevel += significantWaveHeight;
-}
-
 void WaterNVRender::setMinMaxLevel(float min_water_level, float max_water_level)
 {
-  minWaterLevel = min_water_level - significantWaveHeight;
-  maxWaterLevel = max_water_level + significantWaveHeight;
+  minWaterLevel = min_water_level;
+  maxWaterLevel = max_water_level;
+
+  minWaterHeight = minWaterLevel - significantWaveHeight;
+  maxWaterHeight = maxWaterLevel + significantWaveHeight;
 }
 
 void WaterNVRender::setWaveDisplacementDistance(const Point2 &value) { waveDisplacementDist = value; }
@@ -1248,11 +1236,11 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   else
     logerr("Non-existent water rendering mode %d", render_mode);
 
-  float waterHeight = waterLevel;
+  float waterHeight = minWaterLevel;
   if (waterHeightmap)
     waterHeightmap->getHeightmapDataBilinear(origin.x, origin.z, waterHeight);
   else if ((geom_lod_quality == fft_water::GEOM_LOD_LOW) || (geom_lod_quality == fft_water::GEOM_LOD_HIGH))
-    waterHeight = maxWaterLevel;
+    waterHeight = maxWaterHeight;
   float originAlt = origin.y - waterHeight;
   const int fftResBits = fft[0].getParams().fft_resolution_bits;
 
@@ -1318,11 +1306,11 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
     lodCount = max(lodCount - lod, 0);
   float scaledCell = waterCellSize * (1 << min(11, lod));
   int vs_samplers = vertexDisplaceSamplers;
-  float maxScatterDist = min(MAX_LIGHT_SCATTER_DIST, LIGHT_SCATTER_DIST_MUL * (maxWaterLevel - waterLevel));
+  float maxScatterDist = min(MAX_LIGHT_SCATTER_DIST, LIGHT_SCATTER_DIST_MUL * (maxWaterHeight - minWaterLevel));
   if (lod != 0 && autoVsamplersAdjust)
   {
     vs_samplers = min(vs_samplers, getAutoDisplacementSamplers(scaledCell * 0.25f));
-    if (!vs_samplers && origin.y < maxWaterLevel + maxScatterDist)
+    if (!vs_samplers && origin.y < maxWaterHeight + maxScatterDist)
       vs_samplers = 1;
   }
   Point2 centerOfHmap = Point2::xz(origin);
@@ -1331,8 +1319,8 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
 
   if (renderQuad)
   {
-    if (!frustum.testBoxB(BBox3(Point3(renderQuad->lim[0].x, minWaterLevel, renderQuad->lim[0].y),
-          Point3(renderQuad->lim[1].x, maxWaterLevel, renderQuad->lim[1].y))))
+    if (!frustum.testBoxB(BBox3(Point3(renderQuad->lim[0].x, minWaterHeight, renderQuad->lim[0].y),
+          Point3(renderQuad->lim[1].x, maxWaterHeight, renderQuad->lim[1].y))))
       return;
     centerOfHmap.x = clamp(centerOfHmap.x, renderQuad->lim[0].x, renderQuad->lim[1].x);
     centerOfHmap.y = clamp(centerOfHmap.y, renderQuad->lim[0].y, renderQuad->lim[1].y);
@@ -1351,14 +1339,14 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
 
   LodGrid lodGrid;
   lodGrid.init(lodCount, lod0Rad, lod0TessFactor, lastLodRad, lastLodExtension);
-  LodGridCullData defaultCullData(framemem_ptr());
+  LodGridRingCullData defaultCullData(framemem_ptr());
   int hmap_tess_factorVarId = renderer ? renderer->get_hmap_tess_factorVarId() : -1;
   BBox2 lodsRegion;
   void (*drawCullingBoxCb)(const BBox3 &box) =
     debug_draw_culling_boxes.get() ? +[](const BBox3 &box) { draw_debug_box_buffered(box, E3DCOLOR_MAKE(32, 255, 32, 255), 1); }
                                    : nullptr;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
-    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
+    minWaterHeight, maxWaterHeight, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
     false /*not used*/, heightmapCulling, &lodsRegion, -10000.0F, nullptr, cullCb, drawCullingBoxCb);
   if (!defaultCullData.getCount())
     return;
@@ -1392,7 +1380,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   if (autoVsamplersAdjust)
     set_vertex_samplers_to_shader(vs_samplers);
   static int scatter_disappear_factorVarId = get_shader_variable_id("scatter_disappear_factor", true);
-  float scatterFactor = clamp(safediv(origin.y - maxWaterLevel, maxScatterDist), 0.f, 1.f);
+  float scatterFactor = clamp(safediv(origin.y - maxWaterHeight, maxScatterDist), 0.f, 1.f);
   ShaderGlobal::set_float(scatter_disappear_factorVarId, 1 - scatterFactor * scatterFactor * scatterFactor);
 
   ShaderGlobal::set_float4(water_originVarId, Color4(origin.x, origin.y, origin.z));

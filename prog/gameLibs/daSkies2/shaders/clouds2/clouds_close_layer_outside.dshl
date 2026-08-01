@@ -1,3 +1,4 @@
+// slot 0 nonzero = close layer not rendered this frame (consumers skip it), slot 1 = non-empty tile count
 buffer clouds_close_layer_is_outside;
 
 macro CLOSE_LAYER_EARLY_EXIT(code)

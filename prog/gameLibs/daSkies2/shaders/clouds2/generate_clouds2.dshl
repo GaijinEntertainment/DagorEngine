@@ -1,5 +1,6 @@
 include "hardware_defines.dshl"
 include "writeToTex.dshl"
+include "bc_compression_inc.dshl"
 
 //changing this parameters would cause to recalculate noise
 //if we store noise as asset (texture), it won't be possible to change them
@@ -198,22 +199,30 @@ macro GEN_CURL_CLOUDS(code)
     {
       return (1 + L * invWhite) / (L + 1);
     }
+    //curl noise returns more than -1..1: halve, then reinhard the tail - relative
+    //vorticity must survive the snorm8 encode instead of hard-clipping to +-1
+    float2 encode_curl_tonemapped(float3 curl_values)
+    {
+      curl_values *= 0.5;
+      float3 abs_curl = abs(curl_values);
+      float3 tonemapped = abs_curl*lerp(1, float3(toneMap(abs_curl.x,0.33), toneMap(abs_curl.y,0.33), toneMap(abs_curl.z,0.33)), saturate(abs_curl));//reinhard tonemap
+      return encode_curl(sign(curl_values)*tonemapped);
+    }
     float2 getCurl(uint2 st)
     {
       float3 xyz = float3(((float2)st.xy+0.5)/CLOUD_CURL_RES, 0.275);
-      float3 curl_values = curl_noise(xyz, 2)*0.5;//curl noise can return more than -1..1
-      //return encode_curl(curl_values);
-      //return encode_curl(curl_values*0.5);
-      //use tonemapping, to keep within reasonable values
-      float3 abs_curl = abs(curl_values);
-      float3 tonemapped = abs_curl*lerp(1, float3(toneMap(abs_curl.x,0.33), toneMap(abs_curl.y,0.33), toneMap(abs_curl.z,0.33)), saturate(abs_curl));//reinhard tonemap
-      //float3 tonemapped = abs_curl*lerp(1, rcp(1+abs_curl)*1.3, saturate(abs_curl));//reinhard tonemap
-      return encode_curl(sign(curl_values)*tonemapped);
+      return encode_curl_tonemapped(curl_noise(xyz, 2));
+    }
+    float2 getCurl3d(uint3 st)
+    {
+      float3 xyz = (st+0.5)/CLOUD_CURL_3D_RES;
+      //tile z too: the volume wraps vertically over the cloud layer
+      return encode_curl_tonemapped(curl_noise(xyz, 2, bool3(true, true, true)));
     }
   }
 endmacro
 
-shader gen_curl_clouds_2d//, gen_curl_clouds_2d_compressed
+shader gen_curl_clouds_2d
 {
   GEN_CURL_CLOUDS(cs)
 
@@ -227,6 +236,54 @@ shader gen_curl_clouds_2d//, gen_curl_clouds_2d_compressed
   hlsl(cs) {
     [numthreads(CLOUD_WARP_SIZE_2D, CLOUD_WARP_SIZE_2D, 1)]
     void cs_main(uint3 tid : SV_DispatchThreadID) { texture2DAt(output, tid.xy) = getCurl(tid.xy); }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+// curl is procedural, so BC5S blocks are packed right in the generator: every thread
+// evaluates one texel of the group tile into groupshared, then the first thread of
+// each 4x4 block packs and writes it
+shader gen_curl_clouds_2d_compressed
+{
+  GEN_CURL_CLOUDS(cs)
+  USE_BC5S_COMPRESSION(cs)
+
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWTexture2D<uint4> output@uav;
+    }
+  }
+
+  hlsl(cs) {
+    #define TILE CLOUD_WARP_SIZE_2D
+    #define TILE_BLOCKS (TILE / 4)
+    groupshared float2 g_curl[TILE * TILE];
+
+    [numthreads(TILE, TILE, 1)]
+    void cs_main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID, uint gi : SV_GroupIndex)
+    {
+      g_curl[gtid.y * TILE + gtid.x] = getCurl(dtid.xy);
+      GroupMemoryBarrierWithGroupSync();
+
+      if (gi >= TILE_BLOCKS * TILE_BLOCKS)
+        return;
+      uint2 blockInTile = uint2(gi % TILE_BLOCKS, gi / TILE_BLOCKS);
+      uint2 block = gid.xy * TILE_BLOCKS + blockInTile;
+      if (any(block >= (CLOUD_CURL_RES + 3) / 4))
+        return;
+
+      bc5_type texels[16], minV = 2, maxV = -2;
+      LOOP
+      for (uint i = 0; i < 16; ++i)
+      {
+        uint2 t = blockInTile * 4 + uint2(i & 3, i >> 2);
+        bc5_type v = bc5_type(g_curl[t.y * TILE + t.x], 0, 0);
+        texels[i] = v;
+        minV = min(minV, v);
+        maxV = max(maxV, v);
+      }
+      texture2DAt(output, block) = pack_bc5s_block(texels, minV, maxV);
+    }
   }
   compile("cs_5_0", "cs_main")
 }
@@ -247,26 +304,82 @@ shader gen_curl_clouds_2d_ps
 
 shader gen_curl_clouds_3d
 {
+  GEN_CURL_CLOUDS(cs)
+
   (cs) {
     output@uav : register(0) hlsl {
+      ACCESS_FORMAT(rg8snorm)
       RWTexture3D<float2> output@uav;
     }
   }
   hlsl(cs) {
-    #include <common_functions.hlsl>
-    #include <noise_functions.hlsl>
-    #include <cloud_settings.hlsli>
-
     [numthreads(CLOUD_WARP_SIZE, CLOUD_WARP_SIZE, CLOUD_WARP_SIZE)]
     void cs_main(uint3 tid : SV_DispatchThreadID) {
-      float3 xyz = (tid+0.5)/32.;
-      float3 curl_values = curl_noise(xyz, 2);
-
-      curl_values = set_ranges_signed(curl_values, -1, 1);
-      //curl_values.z = 0;
-
-      texture3DAt(output, tid) = encode_curl(curl_values);
+      texture3DAt(output, tid) = getCurl3d(tid);
     }
   }
   compile("cs_5_0", "cs_main")
+}
+
+// same in-generator BC5S packing as gen_curl_clouds_2d_compressed: the group tile is
+// one 4x4 block times TILE slices, blocks stay 4x4x1 so each packing thread takes a slice
+shader gen_curl_clouds_3d_compressed
+{
+  GEN_CURL_CLOUDS(cs)
+  USE_BC5S_COMPRESSION(cs)
+
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWTexture3D<uint4> output@uav;
+    }
+  }
+
+  hlsl(cs) {
+    #define TILE 4 // must equal the BC block side: block xy is gid.xy, packing thread gi takes a slice
+    groupshared float2 g_curl[TILE * TILE * TILE];
+
+    [numthreads(TILE, TILE, TILE)]
+    void cs_main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID, uint gi : SV_GroupIndex)
+    {
+      g_curl[(gtid.z * TILE + gtid.y) * TILE + gtid.x] = getCurl3d(dtid);
+      GroupMemoryBarrierWithGroupSync();
+
+      if (gi >= TILE)
+        return;
+      uint3 block = uint3(gid.xy, gid.z * TILE + gi);
+      if (any(block.xy >= (CLOUD_CURL_3D_RES + 3) / 4) || block.z >= CLOUD_CURL_3D_RES)
+        return;
+
+      bc5_type texels[16], minV = 2, maxV = -2;
+      LOOP
+      for (uint i = 0; i < 16; ++i)
+      {
+        bc5_type v = bc5_type(g_curl[(gi * TILE + (i >> 2)) * TILE + (i & 3)], 0, 0);
+        texels[i] = v;
+        minV = min(minV, v);
+        maxV = max(maxV, v);
+      }
+      texture3DAt(output, block) = pack_bc5s_block(texels, minV, maxV);
+    }
+  }
+  compile("cs_5_0", "cs_main")
+}
+
+shader gen_curl_clouds_3d_ps
+{
+  if (hardware.metal)
+  {
+    dont_render;
+  }
+  WRITE_TO_VOLTEX_TC()
+  GEN_CURL_CLOUDS(ps)
+
+  hlsl(ps) {
+    float2 ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
+    {
+      float3 xyz = float3(input.texcoord, (input.slice_index + 0.5)/CLOUD_CURL_3D_RES);
+      return encode_curl_tonemapped(curl_noise(xyz, 2, bool3(true, true, true)));
+    }
+  }
+  compile("target_ps", "ps_main")
 }

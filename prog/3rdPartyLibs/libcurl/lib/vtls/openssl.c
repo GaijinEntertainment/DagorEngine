@@ -446,7 +446,7 @@ static int passwd_callback(char *buf, int num, int encrypting,
 {
   DEBUGASSERT(0 == encrypting);
 
-  if(!encrypting) {
+  if(!encrypting && global_passwd) {
     int klen = curlx_uztosi(strlen((char *)global_passwd));
     if(num > klen) {
       memcpy(buf, global_passwd, klen + 1);
@@ -873,6 +873,7 @@ int cert_stuff(struct Curl_easy *data,
             failf(data, "unable to set client certificate [%s]",
                   ossl_strerror(ERR_get_error(), error_buffer,
                                 sizeof(error_buffer)));
+            X509_free(params.cert);
             return 0;
           }
           X509_free(params.cert); /* we don't need the handle any more... */
@@ -2194,9 +2195,11 @@ static void ossl_trace(int direction, int ssl_ver, int content_type,
      && content_type != SSL3_RT_INNER_CONTENT_TYPE
 #endif
     ) {
-    const char *msg_name, *tls_rt_name;
+    const char *msg_name = "Truncated message";
+    const char *tls_rt_name;
     char ssl_buf[1024];
-    int msg_type, txt_len;
+    int msg_type = 0;
+    int txt_len;
 
     /* the info given when the version is zero is not that useful for us */
 
@@ -2212,14 +2215,18 @@ static void ossl_trace(int direction, int ssl_ver, int content_type,
       tls_rt_name = "";
 
     if(content_type == SSL3_RT_CHANGE_CIPHER_SPEC) {
-      msg_type = *(char *)buf;
-      msg_name = "Change cipher spec";
+      if(len) {
+        msg_type = *(char *)buf;
+        msg_name = "Change cipher spec";
+      }
     }
     else if(content_type == SSL3_RT_ALERT) {
-      msg_type = (((char *)buf)[0] << 8) + ((char *)buf)[1];
-      msg_name = SSL_alert_desc_string_long(msg_type);
+      if(len >= 2) {
+        msg_type = (((char *)buf)[0] << 8) + ((char *)buf)[1];
+        msg_name = SSL_alert_desc_string_long(msg_type);
+      }
     }
-    else {
+    else if(len) {
       msg_type = *(char *)buf;
       msg_name = ssl_msg_type(ssl_ver, msg_type);
     }

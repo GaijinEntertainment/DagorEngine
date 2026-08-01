@@ -8,6 +8,7 @@ class Point3;
 class Point4;
 class IPoint2;
 class IPoint3;
+class IPoint4;
 
 namespace das
 {
@@ -41,6 +42,7 @@ CAST_CONST_REF_ARG(Point3)
 CAST_CONST_REF_ARG(Point4)
 CAST_CONST_REF_ARG(IPoint2)
 CAST_CONST_REF_ARG(IPoint3)
+CAST_CONST_REF_ARG(IPoint4)
 
 #undef CAST_CONST_REF_ARG
 } // namespace das

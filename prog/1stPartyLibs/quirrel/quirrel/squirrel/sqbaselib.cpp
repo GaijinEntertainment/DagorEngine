@@ -2264,6 +2264,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT("native", false);
         SET_SLOT("pure", f->_purefunction);
         SET_SLOT("nodiscard", f->_nodiscard);
+        SET_SLOT("fastcall", false);  // script closures are never fastcall
         SET_SLOT("name", f->_name);
         SET_SLOT("freevars", f->_noutervalues);
         SET_SLOT("src", f->_sourcename);
@@ -2346,6 +2347,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
         SET_SLOT("native", true);
         SET_SLOT("pure", nc->_purefunction);
         SET_SLOT("nodiscard", nc->_nodiscard);
+        SET_SLOT("fastcall", nc->_isfastcall);
         SET_SLOT("name", nc->_name);
         SET_SLOT("freevars", SQInteger(nc->_noutervalues));
         SET_SLOT("src", SQObjectPtr());

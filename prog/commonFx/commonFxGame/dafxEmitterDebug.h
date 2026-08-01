@@ -3,6 +3,8 @@
 
 #include <math/dag_Point3.h>
 
+struct E3DCOLOR;
+
 namespace dafx_ex
 {
 enum EmitterDebugType
@@ -75,4 +77,8 @@ struct EmitterDebug
 
   ~EmitterDebug() {}
 };
+
+// To be called between begin_draw_cached_debug_lines() and end_draw_cached_debug_lines(). (or their _ex() variants)
+void draw_emitter_debug_cached(const EmitterDebug &emitter_debug, E3DCOLOR color);
+
 } // namespace dafx_ex

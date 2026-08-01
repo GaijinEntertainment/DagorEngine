@@ -7,6 +7,9 @@
 #include <sstream>
 #include <algorithm>
 #include <locale>
+#include <string_view>
+#include <optional>
+#include <filesystem>
 
 #include <max.h>
 #include <stdmat.h>
@@ -29,6 +32,8 @@
 #include <d3d9types.h>
 #include <ihardwarematerial.h>
 
+namespace fs = std::filesystem;
+
 //////////////////////////////////////////////////////////////////////////////////
 
 #define TX_MODULATE   0
@@ -39,42 +44,30 @@ static const std::wstring DEFAULT_SHADER_NAME(_T("gi_black"));
 static const TSTR DAGOR_SHADERS_CONFIG(_T("dagorShaders.blk"));
 static const TCHAR *REAL_TWO_SIDED(_T("real_two_sided"));
 
-/////////////////////////////////////////////////////////////////////////////////
-
-static const std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> &type_map()
-{
-  // old C++ doesn't recognize the static initializer list for complex containers
-  static std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> tmap;
-  if (tmap.empty())
-  {
-    tmap.emplace("text", DataBlock::ParamType::TYPE_STRING);
-    tmap.emplace("int", DataBlock::ParamType::TYPE_INT);
-    tmap.emplace("bool", DataBlock::ParamType::TYPE_BOOL);
-    tmap.emplace("color", DataBlock::ParamType::TYPE_E3DCOLOR);
-    tmap.emplace("real", DataBlock::ParamType::TYPE_REAL);
-    //
-    tmap.emplace("t", DataBlock::ParamType::TYPE_STRING);
-    tmap.emplace("i", DataBlock::ParamType::TYPE_INT);
-    tmap.emplace("b", DataBlock::ParamType::TYPE_BOOL);
-    tmap.emplace("c", DataBlock::ParamType::TYPE_E3DCOLOR);
-    tmap.emplace("r", DataBlock::ParamType::TYPE_REAL);
-    tmap.emplace("m", DataBlock::ParamType::TYPE_MATRIX);
-    tmap.emplace("p2", DataBlock::ParamType::TYPE_POINT2);
-    tmap.emplace("p3", DataBlock::ParamType::TYPE_POINT3);
-    tmap.emplace("p4", DataBlock::ParamType::TYPE_POINT4);
-    tmap.emplace("ip2", DataBlock::ParamType::TYPE_IPOINT2);
-    tmap.emplace("ip3", DataBlock::ParamType::TYPE_IPOINT3);
-  }
-  return tmap;
-}
+static const std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> type_map = {
+  {"text", DataBlock::ParamType::TYPE_STRING},
+  {"int", DataBlock::ParamType::TYPE_INT},
+  {"bool", DataBlock::ParamType::TYPE_BOOL},
+  {"color", DataBlock::ParamType::TYPE_E3DCOLOR},
+  {"real", DataBlock::ParamType::TYPE_REAL},
+  {"t", DataBlock::ParamType::TYPE_STRING},
+  {"i", DataBlock::ParamType::TYPE_INT},
+  {"b", DataBlock::ParamType::TYPE_BOOL},
+  {"c", DataBlock::ParamType::TYPE_E3DCOLOR},
+  {"r", DataBlock::ParamType::TYPE_REAL},
+  {"m", DataBlock::ParamType::TYPE_MATRIX},
+  {"p2", DataBlock::ParamType::TYPE_POINT2},
+  {"p3", DataBlock::ParamType::TYPE_POINT3},
+  {"p4", DataBlock::ParamType::TYPE_POINT4},
+  {"ip2", DataBlock::ParamType::TYPE_IPOINT2},
+  {"ip3", DataBlock::ParamType::TYPE_IPOINT3},
+};
 
 /////////////////////////////////////////////////////////////////////////////////
 
 static const char *blk_tex_name(int i)
 {
-#if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703) // C++17
   static_assert(DAGTEXNUM == 16);
-#endif
   static const char *s[DAGTEXNUM] = {"tex0", "tex1", "tex2", "tex3", "tex4", "tex5", "tex6", "tex7", "tex8", "tex9", "tex10", "tex11",
     "tex12", "tex13", "tex14", "tex15"};
   return s[(i >= 0 && i < DAGTEXNUM) ? i : 0];
@@ -82,12 +75,13 @@ static const char *blk_tex_name(int i)
 
 /////////////////////////////////////////////////////////////////////////////////
 
-static std::wstring mangled_category_name(unsigned depth, const std::wstring &name)
+static std::wstring mangled_category_name(unsigned depth, std::wstring_view name)
 {
   std::wstring prefix;
   while (depth-- > 0)
     prefix += _T("--- ");
-  return prefix + name;
+  prefix += name;
+  return prefix;
 }
 
 static std::unique_ptr<DataBlock> get_blk()
@@ -104,12 +98,10 @@ static const DataBlock *get_shared_blk()
 }
 
 
-static std::vector<std::wstring> get_blk_shader_list_of_category(unsigned depth, const DataBlock *categoryBlk)
+static void get_blk_shader_list_of_category(unsigned depth, const DataBlock *categoryBlk, std::vector<std::wstring> &shader_list)
 {
-  std::vector<std::wstring> shader_list;
-
   if (!categoryBlk)
-    return shader_list;
+    return;
 
   int category_name_i = categoryBlk->findParam("name");
   if (category_name_i != -1 && depth)
@@ -126,8 +118,7 @@ static std::vector<std::wstring> get_blk_shader_list_of_category(unsigned depth,
 
     if (!stricmp(blk->getBlockName(), "shader_category"))
     {
-      std::vector<std::wstring> shaders = get_blk_shader_list_of_category(depth + 1, blk);
-      shader_list.insert(shader_list.end(), shaders.begin(), shaders.end());
+      get_blk_shader_list_of_category(depth + 1, blk, shader_list);
       continue;
     }
 
@@ -135,18 +126,20 @@ static std::vector<std::wstring> get_blk_shader_list_of_category(unsigned depth,
     if (name_i == -1)
       continue;
 
-    const std::wstring name = strToWide(blk->getStr(name_i));
-    shader_list.emplace_back(name);
+    shader_list.emplace_back(strToWide(blk->getStr(name_i)));
   }
+}
 
+
+std::vector<std::wstring> get_blk_shader_list(const DataBlock *dataBlk)
+{
+  std::vector<std::wstring> shader_list;
+  get_blk_shader_list_of_category(0, dataBlk, shader_list);
   return shader_list;
 }
 
 
-std::vector<std::wstring> get_blk_shader_list(const DataBlock *dataBlk) { return get_blk_shader_list_of_category(0, dataBlk); }
-
-
-static const DataBlock *get_blk_shader(const DataBlock *dataBlk, const std::wstring &shader_name)
+static const DataBlock *get_blk_shader(const DataBlock *dataBlk, std::wstring_view shader_name)
 {
   if (!dataBlk)
     return nullptr;
@@ -179,10 +172,10 @@ static const DataBlock *get_blk_shader(const DataBlock *dataBlk, const std::wstr
 
 /////////////////////////////////////////////////////////////////////////////////
 
-static DataBlock::ParamType deserialize_param_type(const std::string &s)
+static DataBlock::ParamType deserialize_param_type(std::string_view s)
 {
-  auto it = type_map().find(s);
-  if (it == type_map().end())
+  auto it = type_map.find(s);
+  if (it == type_map.end())
     return DataBlock::ParamType::TYPE_NONE;
 
   return it->second;
@@ -240,49 +233,81 @@ static const TCHAR *get_default_param_value(DataBlock::ParamType type)
   return L"";
 }
 
-static std::wstring get_param_value_as_string(const DataBlock *blk, int name_id)
+static std::wstring get_param_value_as_string(const DataBlock *blk, int param_number)
 {
-  if (!blk || name_id == -1)
+  if (!blk || param_number == -1)
     return std::wstring();
 
-  const DataBlock::Param *p = blk->getParam(name_id);
-  if (!p)
+  auto param_ref = blk->getParam(param_number);
+  if (!param_ref)
     return std::wstring();
+
+  const DataBlock::Param &p = param_ref->get();
 
   std::wstringstream os;
   os.imbue(std::locale::classic());
 
-  switch (p->type)
+  switch (type(p))
   {
-    case DataBlock::ParamType::TYPE_STRING: return strToWide(p->as_c_str());
-    case DataBlock::ParamType::TYPE_BOOL: return p->as_bool() ? L"yes" : L"no";
+    case DataBlock::ParamType::TYPE_STRING: return strToWide(std::get<std::string>(p));
+    case DataBlock::ParamType::TYPE_BOOL: return std::get<bool>(p) ? L"yes" : L"no";
 
-    case DataBlock::ParamType::TYPE_INT: os << p->as_int(); break;
-    case DataBlock::ParamType::TYPE_REAL: os << p->as_real(); break;
+    case DataBlock::ParamType::TYPE_INT: os << std::get<int>(p); break;
+    case DataBlock::ParamType::TYPE_REAL: os << std::get<float>(p); break;
 
-    case DataBlock::ParamType::TYPE_POINT2: os << p->as_pt2().x << ", " << p->as_pt2().y; break;
-    case DataBlock::ParamType::TYPE_POINT3: os << p->as_pt3().x << ", " << p->as_pt3().y << ", " << p->as_pt3().z; break;
+    case DataBlock::ParamType::TYPE_POINT2:
+    {
+      auto &p2 = std::get<Point2>(p);
+      os << p2.x << ", " << p2.y;
+    }
+    break;
+
+    case DataBlock::ParamType::TYPE_POINT3:
+    {
+      auto &p3 = std::get<Point3>(p);
+      os << p3.x << ", " << p3.y << ", " << p3.z;
+    }
+    break;
+
     case DataBlock::ParamType::TYPE_POINT4:
-      os << p->as_pt4().x << ", " << p->as_pt4().y << ", " << p->as_pt4().z << ", " << p->as_pt4().w;
-      break;
+    {
+      auto &p4 = std::get<Point4>(p);
+      os << p4.x << ", " << p4.y << ", " << p4.z << ", " << p4.w;
+    }
+    break;
 
-    case DataBlock::ParamType::TYPE_IPOINT2: os << p->as_ipt2().x << ", " << p->as_ipt2().y; break;
-    case DataBlock::ParamType::TYPE_IPOINT3: os << p->as_ipt3().x << ", " << p->as_ipt3().y << ", " << p->as_ipt3().z; break;
+    case DataBlock::ParamType::TYPE_IPOINT2:
+    {
+      auto &ip2 = std::get<IPoint2>(p);
+      os << ip2.x << ", " << ip2.y;
+    }
+    break;
+
+    case DataBlock::ParamType::TYPE_IPOINT3:
+    {
+      auto &ip3 = std::get<IPoint3>(p);
+      os << ip3.x << ", " << ip3.y << ", " << ip3.z;
+    }
+    break;
 
     case DataBlock::ParamType::TYPE_E3DCOLOR:
-      os << p->as_color().r << ", " << p->as_color().g << ", " << p->as_color().b << ", " << p->as_color().a;
-      break;
+    {
+      auto &c = std::get<E3DCOLOR>(p);
+      os << c.r << ", " << c.g << ", " << c.b << ", " << c.a;
+    }
+    break;
 
     case DataBlock::ParamType::TYPE_MATRIX:
     {
+      auto &m = std::get<TMatrix>(p);
       os << "[";
-      os << "[" << p->as_tm().getcol(0).x << ", " << p->as_tm().getcol(0).y << ", " << p->as_tm().getcol(0).z << "]";
-      os << "[" << p->as_tm().getcol(1).x << ", " << p->as_tm().getcol(1).y << ", " << p->as_tm().getcol(1).z << "]";
-      os << "[" << p->as_tm().getcol(2).x << ", " << p->as_tm().getcol(2).y << ", " << p->as_tm().getcol(2).z << "]";
-      os << "[" << p->as_tm().getcol(3).x << ", " << p->as_tm().getcol(3).y << ", " << p->as_tm().getcol(3).z << "]";
+      os << "[" << m.getcol(0).x << ", " << m.getcol(0).y << ", " << m.getcol(0).z << "]";
+      os << "[" << m.getcol(1).x << ", " << m.getcol(1).y << ", " << m.getcol(1).z << "]";
+      os << "[" << m.getcol(2).x << ", " << m.getcol(2).y << ", " << m.getcol(2).z << "]";
+      os << "[" << m.getcol(3).x << ", " << m.getcol(3).y << ", " << m.getcol(3).z << "]";
       os << "]";
-      break;
     }
+    break;
 
     default: debug("unknown type"); break;
   }
@@ -290,25 +315,27 @@ static std::wstring get_param_value_as_string(const DataBlock *blk, int name_id)
   return os.str();
 }
 
-static float get_param_value_as_float(const DataBlock *blk, int name_id, float def)
+static float get_param_value_as_float(const DataBlock *blk, int param_number, float def)
 {
-  if (!blk || name_id == -1)
+  if (!blk || param_number == -1)
     return def;
 
-  const DataBlock::Param *p = blk->getParam(name_id);
-  if (!p)
+  auto param_ref = blk->getParam(param_number);
+  if (!param_ref)
     return def;
 
-  if (p->type == DataBlock::ParamType::TYPE_INT)
-    return p->as_int();
+  const DataBlock::Param &p = param_ref->get();
 
-  if (p->type == DataBlock::ParamType::TYPE_REAL)
-    return p->as_real();
+  if (type(p) == DataBlock::ParamType::TYPE_INT)
+    return std::get<int>(p);
+
+  if (type(p) == DataBlock::ParamType::TYPE_REAL)
+    return std::get<float>(p);
 
   return def;
 }
 
-static std::vector<ParamInfo> get_blk_shader_params_of_group(const DataBlock *groupBlk, const std::wstring &parent)
+static std::vector<ParamInfo> get_blk_shader_params_of_group(const DataBlock *groupBlk, std::wstring_view parent)
 {
   std::vector<ParamInfo> shader_params;
 
@@ -402,7 +429,7 @@ static std::vector<ParamInfo> get_blk_shader_params(const DataBlock *shaderBlk)
 }
 
 
-static ParamInfo get_param_info(const DataBlock *dataBlk, const std::wstring classname, const std::wstring param_name)
+static ParamInfo get_param_info(const DataBlock *dataBlk, std::wstring_view classname, std::wstring_view param_name)
 {
   if (!dataBlk || classname.empty() || param_name.empty())
     return ParamInfo();
@@ -450,7 +477,7 @@ static DataBlock::ParamType guess_blk_type_by_value(const std::wstring &value)
   return DataBlock::ParamType::TYPE_STRING;
 }
 
-static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, const std::wstring &line, const std::wstring &classname)
+static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, std::wstring_view line, std::wstring_view classname)
 {
   ParamInfo res;
 
@@ -471,7 +498,7 @@ static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, const std::w
   if (tokens.size() == 2)
   {
     // use specified type
-    res.type = DataBlock::deserialize_param_type(wideToStr(tokens[1].data()));
+    res.type = DataBlock::deserialize_param_type(wideToStr(tokens[1]));
     res.name = tokens[0]; // type stripped
   }
   else // read type from the config
@@ -490,7 +517,7 @@ static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, const std::w
   return res;
 }
 
-static std::vector<ParamInfo> get_blk_params(const DataBlock *dataBlk, const std::wstring &_script, const std::wstring &classname)
+static std::vector<ParamInfo> get_blk_params(const DataBlock *dataBlk, std::wstring_view _script, std::wstring_view classname)
 {
   std::vector<std::wstring> lines = split(simplifyRN(_script), L'\n');
 
@@ -533,7 +560,7 @@ class Dagormat2Dialog;
 class NewParameterDialog
 {
 public:
-  NewParameterDialog(Dagormat2Dialog *p, std::wstring &shdr);
+  NewParameterDialog(Dagormat2Dialog *p, std::wstring_view shdr);
   virtual ~NewParameterDialog();
 
   const std::vector<std::wstring> &GetNewParamNames() const { return selected_names; }
@@ -714,7 +741,7 @@ public:
 
   std::vector<std::unique_ptr<AbstractWidget>> parameters;
 
-  WStr proxyPath;
+  fs::path proxyPath;
   FilterList filterList;
   static const TCHAR *defaultExtension;
 
@@ -731,9 +758,9 @@ public:
   void ChangeShaderName();
   void Update2SidedWidget();
   void AddParam(ParamInfo param);
-  AbstractWidget *GetParam(const std::wstring &name);
-  void RemParam(const std::wstring &name);
-  void RemParamGroup(const std::wstring &group_name);
+  AbstractWidget *GetParam(std::wstring_view name);
+  void RemParam(std::wstring_view name);
+  void RemParamGroup(std::wstring_view group_name);
   void MarkUnknownParams(const DataBlock *dataBlk);
   std::vector<RECT> GetParamGroupRectangles() const;
 
@@ -856,11 +883,7 @@ public:
 
   Class_ID ClassID() override;
   SClass_ID SuperClassID() override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   void GetClassName(TSTR &s, bool localized) const override { s = GetString(IDS_DAGORMAT2); }
-#else
-  void GetClassName(TSTR &s) { s = GetString(IDS_DAGORMAT2); }
-#endif
 
   void DeleteThis() override;
 
@@ -868,11 +891,7 @@ public:
   ULONG LocalRequirements(int subMtlNum) override;
   int NumSubs() override;
   Animatable *SubAnim(int i) override;
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   MSTR SubAnimName(int i, bool localized) override;
-#else
-  TSTR SubAnimName(int i) override;
-#endif
   int SubNumToRefNum(int subNum) override;
 
   // From ref
@@ -885,12 +904,8 @@ public:
 
   RefTargetHandle Clone(RemapDir &remap) override;
 
-#if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
   RefResult NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
     BOOL propagate) override;
-#else
-  RefResult NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message) override;
-#endif
 
   BOOL SupportTexDisplay() override;
   BOOL SupportsMultiMapsInViewport() override;
@@ -931,35 +946,13 @@ public:
   int IsPublic() override { return 1; }
   void *Create(BOOL loading) override { return new DagorMat2(loading); }
   const TCHAR *ClassName() override { return GetString(IDS_DAGORMAT2_LONG); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
   const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
   SClass_ID SuperClassID() override { return MATERIAL_CLASS_ID; }
   Class_ID ClassID() override { return DagorMat2_CID; }
   const TCHAR *Category() override { return _T(""); }
 };
 static MaterClassDesc2 materCD;
 ClassDesc *GetMaterCD2() { return &materCD; }
-
-class TexmapsClassDesc2 : public ClassDesc
-{
-public:
-  int IsPublic() override { return 0; }
-  void *Create(BOOL loading) override { return new Texmaps; }
-  const TCHAR *ClassName() override { return _T("DagorTexmaps"); }
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
-  const MCHAR *NonLocalizedClassName() override { return ClassName(); }
-#else
-  const MCHAR *NonLocalizedClassName() { return ClassName(); }
-#endif
-  SClass_ID SuperClassID() override { return TEXMAP_CONTAINER_CLASS_ID; }
-  Class_ID ClassID() override { return Texmaps_CID; }
-  const TCHAR *Category() override { return _T(""); }
-};
-static TexmapsClassDesc2 texmapsCD;
-ClassDesc *GetTexmapsCD2() { return &texmapsCD; }
 
 //--- MaterDlg2 ------------------------------------------------------
 
@@ -1383,6 +1376,8 @@ Dagormat2Dialog::Dagormat2Dialog(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m) 
 Dagormat2Dialog::~Dagormat2Dialog()
 {
   SaveParams();
+  if (theMtl && theMtl->dlg == this)
+    theMtl->dlg = NULL;
   ReleaseIColorSwatch(csa);
   ReleaseIColorSwatch(csd);
   ReleaseIColorSwatch(css);
@@ -1393,6 +1388,7 @@ Dagormat2Dialog::~Dagormat2Dialog()
   SetWindowLongPtr(hTex, GWLP_USERDATA, NULL);
   SetWindowLongPtr(hParam, GWLP_USERDATA, NULL);
   SetWindowLongPtr(hPhong, GWLP_USERDATA, NULL);
+  SetWindowLongPtr(hProxy, GWLP_USERDATA, NULL);
 
   DeleteObject(hFramePen);
 }
@@ -1539,20 +1535,12 @@ std::vector<RECT> Dagormat2Dialog::GetParamGroupRectangles() const
 }
 
 
-struct FindParamInfo
+static std::optional<ParamInfo> find_param_info(const std::vector<ParamInfo> &params, std::wstring_view name)
 {
-  ParamInfo pinfo;
-  bool found;
-};
-
-static FindParamInfo find_param_info(std::vector<ParamInfo> &params, const std::wstring &name)
-{
-  FindParamInfo res;
-  auto it = std::find_if(params.begin(), params.end(), [&name](const ParamInfo &p) { return !p.is_group && p.name == name; });
-  res.found = it != params.end();
-  if (res.found)
-    res.pinfo = *it;
-  return res;
+  auto it = std::find_if(params.begin(), params.end(), [name](const ParamInfo &p) { return !p.is_group && p.name == name; });
+  if (it != params.end())
+    return *it;
+  return std::nullopt;
 }
 
 void Dagormat2Dialog::RestoreParams()
@@ -1584,8 +1572,8 @@ void Dagormat2Dialog::RestoreParams()
     if (!param.is_group && param.parent.empty())
     {
       auto res = find_param_info(user_params, param.name);
-      if (res.found)
-        uncategorized_params.emplace_back(res.pinfo);
+      if (res)
+        uncategorized_params.emplace_back(*res);
     }
 
   if (!uncategorized_params.empty())
@@ -1612,8 +1600,8 @@ void Dagormat2Dialog::RestoreParams()
       if (!param.is_group && param.parent == p.name)
       {
         auto res = find_param_info(user_params, param.name);
-        if (res.found)
-          grouped_params.emplace_back(res.pinfo);
+        if (res)
+          grouped_params.emplace_back(*res);
       }
 
     if (!grouped_params.empty())
@@ -1644,7 +1632,7 @@ void Dagormat2Dialog::RestoreParams()
 
     // find parameter among pre-defined
     auto res = find_param_info(all_params, param.name);
-    if (!res.found)
+    if (!res)
       unknown_params.emplace_back(param);
   }
 
@@ -1703,18 +1691,7 @@ int Dagormat2Dialog::FindSubTexFromHWND(HWND hw)
   return -1;
 }
 
-std::wstring Dagormat2Dialog::GetShaderName()
-{
-  std::wstring name;
-  HWND hwnd = GetDlgItem(hShader, IDC_CLASSNAME);
-  long length = GetWindowTextLength(hwnd);
-  if (length > 0)
-  {
-    name.resize(length);
-    GetWindowText(hwnd, (TCHAR *)name.c_str(), length + 1);
-  }
-  return name;
-}
+std::wstring Dagormat2Dialog::GetShaderName() { return get_window_text(GetDlgItem(hShader, IDC_CLASSNAME)); }
 
 void Dagormat2Dialog::UpdateShaderNameWidget()
 {
@@ -1742,9 +1719,9 @@ void Dagormat2Dialog::Update2SidedWidget()
   CheckDlgButton(hShader, IDC_BACKFACE_REAL2, theMtl->twosided == IDagorMat::Sides::RealDoubleSided);
 }
 
-static std::wstring fix_empty_param(DataBlock::ParamType type, const std::wstring &value)
+static std::wstring fix_empty_param(DataBlock::ParamType type, std::wstring_view value)
 {
-  return value.empty() ? get_default_param_value(type) : value;
+  return value.empty() ? get_default_param_value(type) : std::wstring(value);
 }
 
 void Dagormat2Dialog::AddParam(ParamInfo param)
@@ -1774,7 +1751,7 @@ void Dagormat2Dialog::AddParam(ParamInfo param)
   parameters.emplace_back(std::unique_ptr<AbstractWidget>(par));
 }
 
-AbstractWidget *Dagormat2Dialog::GetParam(const std::wstring &name)
+AbstractWidget *Dagormat2Dialog::GetParam(std::wstring_view name)
 {
   for (auto &p : parameters)
     if (iequal(p->param.name, name))
@@ -1782,7 +1759,7 @@ AbstractWidget *Dagormat2Dialog::GetParam(const std::wstring &name)
   return nullptr;
 }
 
-void Dagormat2Dialog::RemParam(const std::wstring &name)
+void Dagormat2Dialog::RemParam(std::wstring_view name)
 {
   std::wstring script = simplifyRN(std::wstring(theMtl->script));
 
@@ -1818,7 +1795,7 @@ void Dagormat2Dialog::RemParam(const std::wstring &name)
   RestoreParams();
 }
 
-void Dagormat2Dialog::RemParamGroup(const std::wstring &group_name)
+void Dagormat2Dialog::RemParamGroup(std::wstring_view group_name)
 {
   std::wstring script = simplifyRN(std::wstring(theMtl->script));
 
@@ -1892,6 +1869,7 @@ void Dagormat2Dialog::SetThing(ReferenceTarget *m)
   if (theMtl)
     theMtl->dlg = this;
   ReloadDialog();
+  RestoreParams();
 }
 
 BOOL Dagormat2Dialog::KeyAtCurTime(int id) { return theMtl->pblock->KeyFrameAtTime(id, ip->GetTime()); }
@@ -1934,7 +1912,7 @@ void Dagormat2Dialog::ReloadDialog()
 void Dagormat2Dialog::ImportProxymat()
 {
   DataBlock proxyBlk(std::make_shared<NameMap>());
-  if (!proxyBlk.load(proxyPath.data()))
+  if (!proxyBlk.load(proxyPath))
     return;
 
   int classname_i = proxyBlk.findParam("class");
@@ -1974,7 +1952,7 @@ void Dagormat2Dialog::ExportProxymat()
 {
   DataBlock proxyBlk(std::make_shared<NameMap>());
 
-  proxyBlk.addStr("class", wideToStr(theMtl->classname.data()).data());
+  proxyBlk.addStr("class", wideToStr(theMtl->classname).data());
   proxyBlk.addBool("tex16support", true);
   proxyBlk.addBool("twosided", theMtl->twosided == IDagorMat::Sides::DoubleSided);
 
@@ -1988,9 +1966,9 @@ void Dagormat2Dialog::ExportProxymat()
   std::vector<std::wstring> lines = split(simplifyRN(theMtl->script.data()), L'\n');
   for (auto const &s : lines)
     if (!s.empty())
-      proxyBlk.addStr("script", wideToStr(s.data()).data());
+      proxyBlk.addStr("script", wideToStr(s).data());
 
-  proxyBlk.saveToTextFile(proxyPath.data());
+  proxyBlk.saveToTextFile(proxyPath);
 }
 
 //--- DagorMat2 -------------------------------------------------
@@ -2015,8 +1993,6 @@ void DagorMat2PostLoadCallback::proc(ILoad *iload)
   {
     BitmapTex *bitmap = (BitmapTex *)tex;
 
-    // debug("mat=0x%08x texmap loaded '%s'", (unsigned int)parent, bitmap->GetMapName());
-
     bitmap->SetAlphaSource(ALPHA_FILE);
     bitmap->SetAlphaAsMono(TRUE);
   }
@@ -2032,24 +2008,15 @@ DagorMat2::DagorMat2(BOOL loading)
   ivalid.SetEmpty();
   std::fill(texHandle.begin(), texHandle.end(), nullptr);
 
-  // debug("mat=0x%08x created", (unsigned int)this);
-
   Reset();
 }
 
 
-DagorMat2::~DagorMat2()
-{
-  // debug("mat=0x%08x deleted", (unsigned int)this);
-
-  DiscardTexHandles();
-}
+DagorMat2::~DagorMat2() { DiscardTexHandles(); }
 
 
 void DagorMat2::Reset()
 {
-  // debug("mat=0x%08x reseted", (unsigned int)this);
-
   ReplaceReference(TEX_REF, (Texmaps *)CreateInstance(TEXMAP_CONTAINER_CLASS_ID, Texmaps_CID));
   ReplaceReference(PB_REF, CreateParameterBlock(pbdesc, sizeof(pbdesc) / sizeof(pbdesc[0]), VERSION));
   pblock->SetValue(PB_AMB, 0, cola = Color(1, 1, 1));
@@ -2164,7 +2131,6 @@ void DagorMat2::updateViewportTexturesState()
       SetActiveTexmap(texmaps->gettex(0));
       SetMtlFlag(MTL_DISPLAY_ENABLE_FLAGS);
       ClearMtlFlag(MTL_TEX_DISPLAY_ENABLED);
-      // GetCOREInterface()->ForceCompleteRedraw();
     }
   }
 }
@@ -2215,13 +2181,6 @@ void DagorMat2::SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &
     texHandle[0] = cb.MakeHandle(bmiColor);
     if (!texHandle[0])
       return;
-
-
-    // debug("mat=0x%08x creates tex ('%s', '%s', '%s')",
-    //   (unsigned int)this,
-    //   classname,
-    //   GetName(),
-    //   texmaps->gettex(0)->ClassID() == Class_ID(BMTEX_CLASS_ID, 0x00) ? ((BitmapTex*)texmaps->gettex(0))->GetMapName() : "???");
   }
 
   IHardwareMaterial *pIHWMat = (IHardwareMaterial *)GetProperty(PROPID_HARDWARE_MATERIAL);
@@ -2244,16 +2203,6 @@ void DagorMat2::SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &
   {
     cb.GetGfxTexInfoFromTexmap(t, mtl->texture[0], texmaps->texmap[0]);
 
-    // mtl->Ka = Point3(1., 0.1, 0.1);
-    // mtl->Kd = Point3(1., 0.2, 0.5);
-    // mtl->Ks = Point3(1, 0, 0);
-    // mtl->shininess = 0;
-    // mtl->shinStrength = 0;
-    // mtl->opacity = 0.5;
-    // mtl->selfIllum = 0;
-    // mtl->dblSided = FALSE;
-    // mtl->shadeLimit = GW_TEXTURE | GW_TRANSPARENCY;
-
     mtl->texture[0].textHandle = texHandle[0]->GetHandle();
     mtl->texture[0].colorOp = GW_TEX_REPLACE;
     mtl->texture[0].colorAlphaSource = GW_TEX_TEXTURE;
@@ -2261,13 +2210,6 @@ void DagorMat2::SetupGfxMultiMaps(TimeValue t, Material *mtl, MtlMakerCallback &
     mtl->texture[0].alphaOp = GW_TEX_REPLACE;
     mtl->texture[0].alphaAlphaSource = GW_TEX_TEXTURE;
     mtl->texture[0].alphaScale = GW_TEX_SCALE_1X;
-
-    ////mtl->texture[0].colorOp           = GW_TEX_REPLACE;
-    ////mtl->texture[0].colorAlphaSource  = GW_TEX_ZERO;
-    ////mtl->texture[0].colorScale        = GW_TEX_SCALE_1X;
-    ////mtl->texture[0].alphaOp           = GW_TEX_LEAVE;
-    ////mtl->texture[0].alphaAlphaSource  = GW_TEX_TEXTURE;
-    ////mtl->texture[0].alphaScale        = GW_TEX_SCALE_1X;
   }
 }
 
@@ -2305,26 +2247,6 @@ void DagorMat2::Update(TimeValue t, Interval &valid)
   pblock->GetValue(PB_SHIN, t, shin, ivalid);
   power = powf(2.0f, shin / 10.0f) * 4.0f;
   valid &= ivalid;
-
-
-  // Texmap *tex = texmaps->gettex(0);
-  // if (tex && tex->ClassID() == Class_ID(BMTEX_CLASS_ID, 0x00))
-  //{
-  //   BitmapTex *bitmap = (BitmapTex*)tex;
-  //   IParamBlock2 *pb = bitmap->GetParamBlock(0);
-  //   if (pb)
-  //   {
-  //     int val[17];
-  //     BOOL res[17];
-  //     for (int i = 0; i < 17; i++)
-  //     {
-  //       int id = pb->IndextoID(i);
-  //       Interval valid = FOREVER;
-  //       res[i] = pb->GetValue(id, 0, val[i], valid);
-  //     }
-  //     int a = 1;
-  //   }
-  // }
 }
 
 Interval DagorMat2::Validity(TimeValue t)
@@ -2382,11 +2304,7 @@ Animatable *DagorMat2::SubAnim(int i)
   }
 }
 
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
 MSTR DagorMat2::SubAnimName(int i, bool localized)
-#else
-TSTR DagorMat2::SubAnimName(int i)
-#endif
 {
   switch (i)
   {
@@ -2436,18 +2354,12 @@ RefTargetHandle DagorMat2::Clone(RemapDir &remap)
   mtl->twosided = twosided;
   mtl->classname = (!classname.empty() ? classname : DEFAULT_SHADER_NAME);
   mtl->script = script;
-#if MAX_RELEASE >= 4000
   BaseClone(this, mtl, remap);
-#endif
   return mtl;
 }
 
-#if defined(MAX_RELEASE_R17) && MAX_RELEASE >= MAX_RELEASE_R17
 RefResult DagorMat2::NotifyRefChanged(const Interval &changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message,
   BOOL propagate)
-#else
-RefResult DagorMat2::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarget, PartID &partID, RefMessage message)
-#endif
 {
   switch (message)
   {
@@ -2473,11 +2385,7 @@ RefResult DagorMat2::NotifyRefChanged(Interval changeInt, RefTargetHandle hTarge
       return REF_STOP;
     }
 
-#if defined(MAX_RELEASE_R24) && MAX_RELEASE >= MAX_RELEASE_R24
     case REFMSG_GET_PARAM_NAME_NONLOCALIZED:
-#else
-    case REFMSG_GET_PARAM_NAME:
-#endif
     {
       GetParamName *gpn = (GetParamName *)partID;
       gpn->name.printf(_T("param#%d"), gpn->index);
@@ -2501,7 +2409,6 @@ enum
 
 IOResult DagorMat2::Save(ISave *isave)
 {
-  //      ULONG nb;
   isave->BeginChunk(MTL_HDR_CHUNK);
   IOResult res = MtlBase::Save(isave);
   if (res != IO_OK)
@@ -2527,7 +2434,6 @@ IOResult DagorMat2::Save(ISave *isave)
 
 IOResult DagorMat2::Load(ILoad *iload)
 {
-  //      ULONG nb;
   int id;
   IOResult res;
 
@@ -2567,13 +2473,9 @@ IOResult DagorMat2::Load(ILoad *iload)
     if (res != IO_OK)
       return res;
   }
-  //      iload->RegisterPostLoadCallback(
-  //              new ParamBlockPLCB(versions,NUM_OLDVERSIONS,&curVersion,this,PB_REF));
 
   DiscardTexHandles();
   iload->RegisterPostLoadCallback(&postLoadCallback);
-
-  // debug("mat=0x%08x loaded '%s'", (unsigned int)this, classname);
 
   return IO_OK;
 }
@@ -2722,8 +2624,8 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
     if (!param.is_group && param.parent.empty())
     {
       auto res = find_param_info(user_params, param.name);
-      if (res.found)
-        uncategorized_params.emplace_back(res.pinfo);
+      if (res)
+        uncategorized_params.emplace_back(*res);
     }
 
   if (!uncategorized_params.empty())
@@ -2742,8 +2644,8 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
       if (!param.is_group && param.parent == p.name)
       {
         auto res = find_param_info(user_params, param.name);
-        if (res.found)
-          grouped_params.emplace_back(res.pinfo);
+        if (res)
+          grouped_params.emplace_back(*res);
       }
 
     if (!grouped_params.empty())
@@ -2762,7 +2664,7 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
 
     // find parameter among pre-defined
     auto res = find_param_info(all_params, param.name);
-    if (!res.found)
+    if (!res)
       unknown_params.emplace_back(param);
   }
 
@@ -2865,7 +2767,7 @@ void DagorMat2::set_texname(int i, const TCHAR *s)
     bm = NewDefaultBitmapTex();
     assert(bm);
 
-    std::wstring path = dagor_path + s;
+    const auto path = dagor_path / s;
     bm->SetMapName(path.c_str());
   }
   texmaps->settex(i, bm);
@@ -2892,7 +2794,7 @@ static INT_PTR CALLBACK NewParameterDialogProc(HWND hWnd, UINT msg, WPARAM wPara
   return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-NewParameterDialog::NewParameterDialog(Dagormat2Dialog *p, std::wstring &shdr) : parent(p), hWnd(NULL), shader(shdr) {}
+NewParameterDialog::NewParameterDialog(Dagormat2Dialog *p, std::wstring_view shdr) : parent(p), hWnd(NULL), shader(shdr) {}
 
 NewParameterDialog::~NewParameterDialog() {}
 
@@ -2901,7 +2803,7 @@ int NewParameterDialog::DoModal()
   return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_NEW, parent->hParam, NewParameterDialogProc, (LPARAM)this);
 }
 
-static bool is_parameter_name_valid(const std::wstring &name)
+static bool is_parameter_name_valid(std::wstring_view name)
 {
   return std::all_of(name.begin(), name.end(),
     [](wchar_t c) { return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || (c == '_'); });
@@ -2976,6 +2878,8 @@ BOOL NewParameterDialog::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 
     case WM_SIZE: update_layout(hWnd, lParam); return 0;
 
+    case WM_DESTROY: detach_layout_from_dialog(hWnd); return 0;
+
     default: return FALSE;
   }
 
@@ -3020,14 +2924,7 @@ bool NewParameterDialog::GetAndVerifyParamName()
 
     const TCHAR *err = nullptr;
 
-    std::wstring name;
-    HWND ed = GetDlgItem(hWnd, IDC_PARAM_NAME_EDIT);
-    long length = GetWindowTextLength(ed);
-    if (length > 0)
-    {
-      name.resize(length);
-      GetWindowText(ed, (TCHAR *)name.c_str(), length + 1);
-    }
+    std::wstring name = get_window_text(GetDlgItem(hWnd, IDC_PARAM_NAME_EDIT));
 
     if (name.empty())
       err = _T("Name is empty");
@@ -3050,8 +2947,8 @@ bool NewParameterDialog::GetAndVerifyParamName()
     return true;
   }
 
-  auto is_selected = [&selected](const std::wstring &name) -> bool {
-    auto it = std::find_if(selected.begin(), selected.end(), [&name](const std::wstring &n) { return n == name; });
+  auto is_selected = [&selected](std::wstring_view name) -> bool {
+    auto it = std::find_if(selected.begin(), selected.end(), [name](const std::wstring &n) { return n == name; });
     return it != selected.end();
   };
 
@@ -3161,6 +3058,8 @@ BOOL ShaderClassDialog::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 
     case WM_SIZE: update_layout(this->hWnd, lParam); return 0;
 
+    case WM_DESTROY: detach_layout_from_dialog(this->hWnd); return 0;
+
     default: return FALSE;
   }
 
@@ -3169,18 +3068,13 @@ BOOL ShaderClassDialog::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 
 bool ShaderClassDialog::GetName()
 {
-  HWND hCmbName = ::GetDlgItem(hWnd, IDC_SHADER_CLASS_LIST);
-  int len = ::GetWindowTextLength(hCmbName);
+  std::wstring s = get_window_text(::GetDlgItem(hWnd, IDC_SHADER_CLASS_LIST));
 
-  if (len <= 0)
+  if (s.empty())
   {
     MessageBox(hWnd, _T("Empty shader class is not allowed"), _T("Class selection error"), MB_ICONERROR | MB_OK);
     return false;
   }
-
-  std::wstring s;
-  s.resize(len);
-  ::GetWindowText(hCmbName, (TCHAR *)s.c_str(), len + 1);
 
   if (s.substr(0, 1) == _T("-"))
   {
@@ -3721,8 +3615,8 @@ void Dagormat2Dialog::DialogsReposition()
 
 //////////////////////////////////////////////////////////////////////
 
-std::wstring fix_param_values(const std::wstring &script, const std::wstring &classname,
-  std::wstring (*fix)(DataBlock::ParamType, const std::wstring &))
+std::wstring fix_param_values(std::wstring_view script, std::wstring_view classname,
+  std::wstring (*fix)(DataBlock::ParamType, std::wstring_view))
 {
   std::wstring buffer;
   auto params = get_blk_params(get_blk().get(), script, classname);
@@ -3737,9 +3631,9 @@ std::wstring fix_param_values(const std::wstring &script, const std::wstring &cl
 }
 
 template <typename T>
-std::wstring normalize_value(const std::wstring &v)
+std::wstring normalize_value(std::wstring_view v)
 {
-  std::wistringstream iss(v);
+  std::wistringstream iss{std::wstring(v)};
   iss.imbue(std::locale::classic());
 
   std::wostringstream oss;
@@ -3761,7 +3655,7 @@ std::wstring normalize_value(const std::wstring &v)
   return oss.str();
 }
 
-static std::wstring normalize_param(DataBlock::ParamType type, const std::wstring &value)
+static std::wstring normalize_param(DataBlock::ParamType type, std::wstring_view value)
 {
   std::wstring v = fix_empty_param(type, value);
   trim(v);
@@ -3783,7 +3677,7 @@ static std::wstring normalize_param(DataBlock::ParamType type, const std::wstrin
         return L"no";
       if (iequal(v, L"yes") || iequal(v, L"true") || v == L"1")
         return L"yes";
-      return value; // cannot recognize the value, return as is
+      return std::wstring(value); // cannot recognize the value, return as is
     }
 
     case DataBlock::ParamType::TYPE_INT:
@@ -3799,15 +3693,15 @@ static std::wstring normalize_param(DataBlock::ParamType type, const std::wstrin
     default: break;
   }
 
-  return value; // unknown type, return as is
+  return std::wstring(value); // unknown type, return as is
 }
 
-std::wstring fix_empty_param_values(const std::wstring &script, const std::wstring &classname)
+std::wstring fix_empty_param_values(std::wstring_view script, std::wstring_view classname)
 {
   return fix_param_values(script, classname, fix_empty_param);
 }
 
-std::wstring normalize_param_values(const std::wstring &script, const std::wstring &classname)
+std::wstring normalize_param_values(std::wstring_view script, std::wstring_view classname)
 {
   return fix_param_values(script, classname, normalize_param);
 }

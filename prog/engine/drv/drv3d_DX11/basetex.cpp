@@ -2,6 +2,7 @@
 
 #include "basetex.h"
 
+#include <validation/texture.h>
 #include <memory/dag_fixedBlockAllocator.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_platform_pc.h>
@@ -434,6 +435,8 @@ BaseTex::BaseTex(uint32_t cflg, D3DResourceType type) :
   wasCopiedToStage{0},
   dirtyRt{0},
   wasUsed{0},
+  hasUavViews{0},
+  uploadSkipped{0},
   lockMsr{
     .pData = nullptr,
     .RowPitch = 0,
@@ -645,9 +648,11 @@ BaseTexture *BaseTex::downSize(int new_width, int new_height, int new_depth, int
   {
     for (int s = 0; s < selfInfo.a; s++)
     {
+      // copy depth is the source mip depth: 1 for the layered types (each slice is a separate
+      // subresource iterated by s), the per-mip depth for volumes
       ((BaseTex *)rep)
         ->updateSubRegionImpl(this, calcSubResIdx(sourceLevel, s, selfInfo.mipLevels), 0, 0, 0, max<int>(selfInfo.w >> sourceLevel, 1),
-          max<int>(selfInfo.h >> sourceLevel, 1), max<int>(selfInfo.d >> sourceLevel, selfInfo.a),
+          max<int>(selfInfo.h >> sourceLevel, 1), max<int>(selfInfo.d >> sourceLevel, 1),
           calcSubResIdx(sourceLevel - level_offset, s, new_mips), 0, 0, 0);
     }
   }
@@ -672,10 +677,12 @@ BaseTexture *BaseTex::upSize(int new_width, int new_height, int new_depth, int n
   {
     for (int s = 0; s < selfInfo.a; s++)
     {
+      // copy depth is the source mip depth: 1 for the layered types (each slice is a separate
+      // subresource iterated by s), the per-mip depth for volumes
       ((BaseTex *)rep)
         ->updateSubRegionImpl(this, calcSubResIdx(destinationLevel - level_offset, s, selfInfo.mipLevels), 0, 0, 0,
           max<int>(new_width >> destinationLevel, 1), max<int>(new_height >> destinationLevel, 1),
-          max<int>(new_depth >> destinationLevel, selfInfo.a), calcSubResIdx(destinationLevel, s, new_mips), 0, 0, 0);
+          max<int>(selfInfo.d >> (destinationLevel - level_offset), 1), calcSubResIdx(destinationLevel, s, new_mips), 0, 0, 0);
     }
   }
 
@@ -919,6 +926,7 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
 
     viewCache.addNoCheck(texture_view_key, tv);
     ptv = &tv;
+    hasUavViews = true;
   }
 
   return ptv->uaView;
@@ -929,6 +937,7 @@ bool BaseTex::updateTexResFormat(unsigned d3d_format)
   if (!isStub())
     return cflg == implant_d3dformat(cflg, d3d_format);
   cflg = implant_d3dformat(cflg, d3d_format);
+  check_texture_srgb_format(cflg, getTexName());
   format = dxgi_format_from_flags(cflg);
   return true;
 }
@@ -940,6 +949,8 @@ BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l)
   if (!clonedTex)
     return nullptr;
   clonedTex->tidXored = tidXored, clonedTex->stubTexIdx = stubTexIdx;
+  // allocateTex and getinfo need the bit to treat a CUBEARRTEX clone as 6 faces per array element
+  clonedTex->cube_array = cube_array;
 
   clonedTex->maxMipLevel = maxMipLevel;
   clonedTex->minMipLevel = minMipLevel;
@@ -972,6 +983,8 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
     eastl::swap(width, other->width);
     eastl::swap(height, other->height);
     eastl::swap(depth, other->depth);
+    eastl::swap(cflg, other->cflg);
+    eastl::swap(format, other->format);
     eastl::swap(mipLevels, other->mipLevels);
     eastl::swap(maxMipLevel, other->maxMipLevel);
     eastl::swap(minMipLevel, other->minMipLevel);
@@ -985,7 +998,9 @@ void BaseTex::replaceTexResObject(BaseTexture *&other_tex)
 
     // clear view cache to switch to new texture object
     viewCache.clear();
+    hasUavViews = false;
     other->viewCache.clear();
+    other->hasUavViews = false;
   }
   del_d3dres(other_tex);
 }
@@ -1051,6 +1066,7 @@ bool BaseTex::releaseTex(bool recreate_after)
     found = remove_texture_from_states(this, recreate_after);
 
   viewCache.clear();
+  hasUavViews = false;
   //   if (!(cflg & TEXCF_RTARGET) || !releasePreallocatedRenderTarget(tex))
   if (tex.texRes && !isStub())
     TEXQL_ON_RELEASE(this);
@@ -1286,6 +1302,7 @@ int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
             return 0;
           }
         }
+        uploadSkipped = 0; // a fresh staging can not hold batched TEXLOCK_DONOTUPDATE writes
       }
     }
 
@@ -1406,9 +1423,18 @@ int BaseTex::unlockimg()
 #else
         VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
           "DX11: BaseTex::unlockimg uses CopyResource in an active generic render pass");
-        dx_context->CopyResource(tex.tex2D, tex.stagingTex2D);
+        // Upload only the locked subresource: staging is never filled from the GPU for non-RT
+        // textures, so a full copy would overwrite the other subresources with stale staging
+        // content. Batched TEXLOCK_DONOTUPDATE locks are the exception and flush everything.
+        if (uploadSkipped)
+          dx_context->CopyResource(tex.tex2D, tex.stagingTex2D);
+        else
+          dx_context->CopySubresourceRegion(tex.tex2D, mappedSubresource, 0, 0, 0, tex.stagingTex2D, mappedSubresource, NULL);
 #endif
+        uploadSkipped = 0;
       }
+      else if (tex.stagingTex2D != NULL && (lockFlags & TEXLOCK_RWMASK) != 0 && (lockFlags & TEXLOCK_DONOTUPDATE))
+        uploadSkipped = 1;
     }
 
     if ((lockFlags & TEXLOCK_DELSYSMEMCOPY) && tex.stagingTex2D != NULL)
@@ -1501,6 +1527,7 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
           *data = NULL; // -V1048
           return 0;
         }
+        uploadSkipped = 0; // a fresh staging can not hold batched TEXLOCK_DONOTUPDATE writes
         if ((flags & TEXLOCK_READ) && !(cflg & (TEXCF_RTARGET | TEXCF_UNORDERED)))
         {
           ContextAutoLock contextLock;
@@ -1528,8 +1555,9 @@ int BaseTex::lockbox(void **data, int &row_pitch, int &slice_pitch, int level, u
     mappedSubresource = D3D11CalcSubresource(level, 0, 1);
 
     D3D11_MAPPED_SUBRESOURCE msr;
-    HRESULT hr = map_without_context_blocking(res, mappedSubresource,
-      (flags & TEXLOCK_DISCARD) ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_READ_WRITE, flags & TEXLOCK_NOSYSLOCK, &msr);
+    // D3D11 dynamic textures only accept WRITE_DISCARD; READ_WRITE fails the map.
+    D3D11_MAP mapAccess = ((cflg & TEXCF_DYNAMIC) || (flags & TEXLOCK_DISCARD)) ? D3D11_MAP_WRITE_DISCARD : D3D11_MAP_READ_WRITE;
+    HRESULT hr = map_without_context_blocking(res, mappedSubresource, mapAccess, flags & TEXLOCK_NOSYSLOCK, &msr);
     if (FAILED(hr))
       return 0;
 
@@ -1576,17 +1604,30 @@ int BaseTex::unlockbox()
   if (lockFlags & TEXLOCK_RWMASK)
   {
     ContextAutoLock contextLock;
-    dx_context->Unmap(tex.stagingTex3D, mappedSubresource);
+    // dynamic voltex has no staging; unmap the resource lockbox mapped
+    dx_context->Unmap(tex.stagingTex3D ? tex.stagingTex3D : tex.tex3D, mappedSubresource);
     //  leave_lock_resources();
   }
 
   if (tex.stagingTex3D != NULL && (lockFlags & TEXLOCK_WRITE))
   {
-    ContextAutoLock contextLock;
-    disable_conditional_render_unsafe();
-    VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-      "BaseTex::unlockbox uses CopyResource in an active generic render pass");
-    dx_context->CopyResource(tex.tex3D, tex.stagingTex3D);
+    if (lockFlags & TEXLOCK_DONOTUPDATE)
+      uploadSkipped = 1;
+    else
+    {
+      ContextAutoLock contextLock;
+      disable_conditional_render_unsafe();
+      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
+        "BaseTex::unlockbox uses CopyResource in an active generic render pass");
+      // Upload only the locked mip: staging is never filled from the GPU for non-RT textures, so a
+      // full copy would overwrite the other mips with stale staging content. Batched
+      // TEXLOCK_DONOTUPDATE locks are the exception and flush everything.
+      if (uploadSkipped)
+        dx_context->CopyResource(tex.tex3D, tex.stagingTex3D);
+      else
+        dx_context->CopySubresourceRegion(tex.tex3D, mappedSubresource, 0, 0, 0, tex.stagingTex3D, mappedSubresource, NULL);
+      uploadSkipped = 0;
+    }
   }
 
   if ((lockFlags & TEXLOCK_DELSYSMEMCOPY) && tex.stagingTex3D != NULL)
@@ -1626,6 +1667,7 @@ bool BaseTex::isSampledAsFloat() const
     case TEXFMT_A16B16G16R16S:
     case TEXFMT_ATI1N:
     case TEXFMT_ATI2N:
+    case TEXFMT_BC5S:
     case TEXFMT_R8G8B8A8:
     case TEXFMT_R11G11B10F:
     case TEXFMT_R9G9B9E5:

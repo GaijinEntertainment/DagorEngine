@@ -78,6 +78,11 @@ void android_d3d_reinit(void *w)
   const DataBlock *videoBlk = settings->getBlockByNameEx("video");
   const String resStr(16, videoBlk->getStr("androidResolution", "Native"));
 
+  // The window is reported in the device natural orientation, which is portrait on most phones
+  // while the game is landscape locked, so at the first init we can see a transposed size.
+  // Resolution is derived from the long/short axes to stay independent of that.
+  const IPoint2 landscapeWindow = {max(window_width, window_height), min(window_width, window_height)};
+
   if (resStr == "HD")
     target_resolution = IPoint2(1280, 720);
   else if (resStr == "Full HD")
@@ -90,7 +95,7 @@ void android_d3d_reinit(void *w)
   if (target_resolution == undefined_resolution)
   {
     bool isAuto, isRetina;
-    get_settings_resolution(target_resolution.x, target_resolution.y, isRetina, window_width, window_height, isAuto);
+    get_settings_resolution(target_resolution.x, target_resolution.y, isRetina, landscapeWindow.x, landscapeWindow.y, isAuto);
 
     // When screen is a square (tablet/foldable phone) depending on
     // the calculation mode for resolution we might get an unreasonably
@@ -102,7 +107,7 @@ void android_d3d_reinit(void *w)
       // 20/9 aspect is used for majority of low to medium end phones
       const IPoint2 referenceAspect = referenceAspectBlk->getIPoint2("aspect", {20, 9});
       const float referenceRatio = static_cast<float>(referenceAspect.x) / referenceAspect.y;
-      const float realRatio = static_cast<float>(window_width) / window_height;
+      const float realRatio = static_cast<float>(landscapeWindow.x) / landscapeWindow.y;
 
       const float threshold = referenceAspectBlk->getReal("deviationThreshold", 0.1f);
       const float deviation = (referenceRatio / realRatio) - 1;
@@ -119,7 +124,7 @@ void android_d3d_reinit(void *w)
     target_resolution.x *= square_scale;
     target_resolution.y *= square_scale;
 
-    target_resolution = min(target_resolution, {window_width, window_height});
+    target_resolution = min(target_resolution, landscapeWindow);
     target_resolution -= target_resolution % 8;
   }
   else
@@ -127,7 +132,7 @@ void android_d3d_reinit(void *w)
     const String aspectRatio(16, videoBlk->getStr("androidAspectRatio", "Auto"));
     if (aspectRatio != "Fixed")
     {
-      target_resolution.x = (window_width * target_resolution.y) / window_height;
+      target_resolution.x = (landscapeWindow.x * target_resolution.y) / landscapeWindow.y;
     }
   }
 

@@ -482,7 +482,7 @@ public:
     loadDag(asset);
     EDITORCORE->invalidateViewportCache();
     if (DAGORED2 && needsRenderToClipmap() && ent.size())
-      DAGORED2->spawnEvent(HUID_InvalidateClipmap, (void *)true);
+      DAGORED2->spawnEvent(HUID_InvalidateClipmap, (void *)(uintptr_t)INVALIDATE_CLIPMAP_FORCE_REDRAW);
   }
 
   bool isCollidable() const { return (sumNodeFlags & StaticGeometryNode::FLG_COLLIDABLE); }
@@ -697,12 +697,12 @@ void PrefabEntity::setTm(const TMatrix &_tm)
 {
   tm = _tm;
   if (DAGORED2 && pool->getPools()[poolIdx]->needsRenderToClipmap())
-    DAGORED2->spawnEvent(HUID_InvalidateClipmap, (void *)false);
+    DAGORED2->spawnEvent(HUID_InvalidateClipmap, (void *)(uintptr_t)0);
 }
 void PrefabEntity::destroy()
 {
   if (DAGORED2 && pool->getPools()[poolIdx]->needsRenderToClipmap())
-    DAGORED2->spawnEvent(HUID_InvalidateClipmap, (void *)false);
+    DAGORED2->spawnEvent(HUID_InvalidateClipmap, (void *)(uintptr_t)0);
   pool->delEntity(this);
 }
 int PrefabEntity::getAssetNameId() { return pool->getPools()[poolIdx]->getAssetNameId(); }

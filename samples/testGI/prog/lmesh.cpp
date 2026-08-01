@@ -26,14 +26,23 @@ struct LMesh
   }
 
 
+  // prepare() only binds shader vars and does a distance check; the once-per-frame heightmap
+  // texture upload and pending terrain-edit apply live in makeBookKeeping() and must run before it.
+  void prepareRenderer(const Point3 &pos)
+  {
+    if (auto *hmap = lmeshMgr->getHmapHandler())
+      hmap->makeBookKeeping();
+    lmRenderer->prepare(*lmeshMgr, HmapOrigin(pos));
+  }
+
   void render(const BBox3 &box)
   {
     const float oldInvGeomDist = lmRenderer->getInvGeomLodDist();
     lmRenderer->setInvGeomLodDist(0.f);
 
-    lmRenderer->prepare(*lmeshMgr, box.center(), 1.f);
+    prepareRenderer(box.center());
     lmRenderer->setRenderInBBox(box);
-    lmRenderer->render(*lmeshMgr, LandMeshRenderer::RenderType::RENDER_WITH_SPLATTING, box.center());
+    lmRenderer->render(*lmeshMgr, LandMeshRenderer::RenderType::RENDER_WITH_SPLATTING, box.center(), HmapOrigin(box.center()));
     lmRenderer->setInvGeomLodDist(oldInvGeomDist);
   }
   void render(const Point3 &view_pos)
@@ -41,9 +50,9 @@ struct LMesh
     if (!lmRenderer)
       return;
     lmRenderer->setRenderInBBox(BBox3());
-    lmRenderer->prepare(*lmeshMgr, view_pos, 1.f);
+    prepareRenderer(view_pos);
     // LMeshRenderingMode::RENDERING_LANDMESH
-    lmRenderer->render(*lmeshMgr, LandMeshRenderer::RenderType::RENDER_WITH_SPLATTING, view_pos);
+    lmRenderer->render(*lmeshMgr, LandMeshRenderer::RenderType::RENDER_WITH_SPLATTING, view_pos, HmapOrigin(view_pos));
   }
   bool loadMeshData(IGenLoad &crd)
   {

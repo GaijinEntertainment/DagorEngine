@@ -212,8 +212,7 @@ dag::Span<uint8_t> GlobalVertexDataSrc::attachRawData(int size_bytes)
   int num = (size_bytes + stride - 1) / stride;
   vData.resize(vData.size() + num * stride);
   numv += num;
-  if (numv > MAX_VERTEX_16)
-    convertToIData32();
+  baseVertSegCount++;
   allowVertexMerge = false;
   return make_span(&vData[start], num * stride);
 }
