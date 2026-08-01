@@ -4,6 +4,8 @@ Location              = prog/engine/imgui ;
 TargetType            = lib ;
 Target                = engine/imgui.lib ;
 
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
 Sources =
   imguiImpl.cpp
   imguiRenderer.cpp

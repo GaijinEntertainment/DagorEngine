@@ -416,7 +416,7 @@ void ImGuiTestEngineHook_Log(ImGuiContext *ctx, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
-  debug(fmt, args);
+  cvlogmessage(LOGLEVEL_DEBUG, fmt, args);
   va_end(args);
 }
 
