@@ -42,7 +42,7 @@ if $(PlatformArch) = e2k {
   UseProgLibs += 3rdPartyLibs/convert/ispc_texcomp ;
 }
 
-CPPopt = -D_DEBUG_TAB_ ;
+CPPopt += -D_DEBUG_TAB_ ;
 
 
 include $(Root)/prog/_jBuild/build.jam ;
