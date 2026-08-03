@@ -246,6 +246,78 @@ MEMEXP3 wchar_t *__cdecl _wcsdup_dbg(const wchar_t *s, int, const char *, int) {
 #endif
 #endif
 
+#if DAG_OVERRIDE_MALLOC_FAMILY && _TARGET_PC_WIN && _TARGET_STATIC_LIB && !defined(_DLL)
+// ucrt system()/_wsystem() take a COMSPEC copy via _dupenv_s (public calloc by contract) but release it via internal _free_base;
+// with the split tracked public / raw base overrides above that desyncs memory stats and false-triggers the exit leak check.
+// Same logic, but over a symmetric alloc/free pair.
+// Static CRT only: with dynamic ucrt (_DLL, e.g. GDK builds) the asymmetry cannot occur,
+// and defining system() would clash with the ucrt import library at link.
+#include <stdlib.h>
+#include <process.h>
+#include <io.h>
+#include <errno.h>
+
+MEMEXP3 int __cdecl system(const char *command)
+{
+  const char *comspec_env = getenv("COMSPEC");
+  char *comspec = comspec_env ? _strdup(comspec_env) : nullptr;
+  if (!command)
+  {
+    int r = (comspec && _access_s(comspec, 0) == 0) ? 1 : 0;
+    free(comspec);
+    return r;
+  }
+  if (comspec)
+  {
+    errno_t saved_errno = errno;
+    errno = 0;
+    const char *args[4] = {comspec, "/c", command, nullptr};
+    int r = (int)_spawnve(_P_WAIT, comspec, args, nullptr);
+    if (r != -1 || (errno != ENOENT && errno != EACCES))
+    {
+      if (r != -1)
+        errno = saved_errno;
+      free(comspec);
+      return r;
+    }
+    errno = saved_errno;
+    free(comspec);
+  }
+  const char *args[4] = {"cmd.exe", "/c", command, nullptr};
+  return (int)_spawnvpe(_P_WAIT, args[0], args, nullptr);
+}
+
+MEMEXP3 int __cdecl _wsystem(const wchar_t *command)
+{
+  const wchar_t *comspec_env = _wgetenv(L"COMSPEC");
+  wchar_t *comspec = comspec_env ? _wcsdup(comspec_env) : nullptr;
+  if (!command)
+  {
+    int r = (comspec && _waccess_s(comspec, 0) == 0) ? 1 : 0;
+    free(comspec);
+    return r;
+  }
+  if (comspec)
+  {
+    errno_t saved_errno = errno;
+    errno = 0;
+    const wchar_t *args[4] = {comspec, L"/c", command, nullptr};
+    int r = (int)_wspawnve(_P_WAIT, comspec, args, nullptr);
+    if (r != -1 || (errno != ENOENT && errno != EACCES))
+    {
+      if (r != -1)
+        errno = saved_errno;
+      free(comspec);
+      return r;
+    }
+    errno = saved_errno;
+    free(comspec);
+  }
+  const wchar_t *args[4] = {L"cmd.exe", L"/c", command, nullptr};
+  return (int)_wspawnvpe(_P_WAIT, args[0], args, nullptr);
+}
+#endif
+
 #if DAG_DECLARE_IMPORT_STUBS
 MEMEXP3 size_t(__cdecl *__imp__msize)(void *ptr) = &dagmem_malloc_usable_size;
 MEMEXP3 void *(__cdecl *__imp_malloc)(size_t const size) = &malloc;
