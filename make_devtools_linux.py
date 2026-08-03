@@ -121,7 +121,7 @@ elif is_altlinux:
   pkg_install_cmd = 'apt-get install'
   pkg_to_install += ['python3-module-pip', 'clang21.1', 'libclang21', 'libasan-devel-static']
   pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libXcursor-devel', 'libfltk-devel', 'libxkbfile-devel', 'libxkbcommon-devel',
-                     'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel', 'libuuid-devel']
+                     'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel', 'libuuid-devel', 'libdbus-devel']
 elif is_elbrus_linux:
   pkg_install_cmd = 'apt install'
   pkg_to_install  = ['python3-pip']
@@ -273,7 +273,7 @@ if pathlib.Path("prog").exists():
       fd.write('FmodStudio = none ;\n')
     if linux_arch_type == 'e2k':
       fd.write('PlatformArch = e2k ;\n')
-      fd.write('PlatformSpec = gcc ;\n')
+      fd.write('PlatformSpec ?= clang ;\n')
       fd.write('WError = no ;\n')
       fd.write('RemoveCompilerSwitches_linux/gcc = -mno-recip -minline-all-stringops -fconserve-space ;\n')
     if is_astra_linux:
