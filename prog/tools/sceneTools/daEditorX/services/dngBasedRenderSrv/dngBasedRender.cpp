@@ -528,9 +528,6 @@ public:
 
   void beforeRender(const TMatrix &viewTm, const Driver3dPerspective &persp, bool isOrtho, int viewportWidth)
   {
-    if (auto *daSkies = get_daskies())
-      daSkies->setPanoramaBelowSkiesFillColor(Color3(0.05, 0.1, 0));
-
     if (prevIsOrtho != isOrtho)
     {
       if (auto *daSkies = get_daskies())
