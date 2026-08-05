@@ -57,9 +57,10 @@ You will need to download and extract additional binary files (as of 2026/08/01)
 
 More downloads in the repository [https://github.com/GaijinEntertainment/DagorEngine/releases](https://github.com/GaijinEntertainment/DagorEngine/releases) with prebuilt binaries (may be a bit outdate):
 
-* [tools-prebuilt-windows-x86_64.7z](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-prebuilt-windows-x86_64.7z),
-  [tools-prebuilt-linux-x86_64.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-prebuilt-linux-x86_64.tar.gz),
-  [tools-prebuilt-macOS.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/tools-prebuilt-macOS.tar.gz) - contains the prebuilt engine toolkit
+* [tools-prebuilt-windows-x86_64.7z](https://dagorenginedata.cdn.gaijin.net/rel-0ebc89d5d795f3f96324843abf72c5ca7b8555cf/tools-prebuilt-windows-x86_64.7z),
+  [tools-prebuilt-windows-arm64.7z](https://dagorenginedata.cdn.gaijin.net/rel-0ebc89d5d795f3f96324843abf72c5ca7b8555cf/tools-prebuilt-windows-arm64.7z),
+  [tools-prebuilt-linux-x86_64.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-0ebc89d5d795f3f96324843abf72c5ca7b8555cf/tools-prebuilt-linux-x86_64.tar.gz),
+  [tools-prebuilt-macOS.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-0ebc89d5d795f3f96324843abf72c5ca7b8555cf/tools-prebuilt-macOS.tar.gz) - contains the prebuilt engine toolkit
 
 The directory structure should look like this:
 ```
@@ -120,13 +121,13 @@ Example: `build_all.py project:dngSceneViewer code shaders` will build only code
 ### Basic dagor samples
 
 * Offline scene viewer : **East District**<br>
-  [Code](https://github.com/GaijinEntertainment/DagorEngine/tree/main/samples/dngSceneViewer/prog) and built scene data [east_district-dagor.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/east_district-dagor.p1.tar.gz) to be unpacked to DagorEngine root<br>
-  **east_district-dagor.p1.tar.gz** also contains prebuilt viewer app (for windows, macOS and linux) to run sample at once<br>
+  [Code](https://github.com/GaijinEntertainment/DagorEngine/tree/main/samples/dngSceneViewer/prog) and built scene data [east_district-dagor-prebuilt.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-0ebc89d5d795f3f96324843abf72c5ca7b8555cf/east_district-dagor-prebuilt.tar.gz) to be unpacked to DagorEngine root<br>
+  **east_district-dagor-prebuilt.tar.gz** also contains prebuilt viewer app (for windows, macOS and linux) to run sample at once<br>
   [Demos of a new Gaijin’s game showcase Dagor Engine power](https://gaijinent.com/news/demos-of-a-new-gaijins-game-showcase-dagor-engine-power)<br>
   [East District review on YouTube](https://youtu.be/miABl6aekBA)
 * Multiplayer sample: **Outer Space**<br>
   [Code](https://github.com/GaijinEntertainment/DagorEngine/tree/main/outerSpace/prog) and source (develop) files [outerSpace-devsrc.7z](https://dagorenginedata.cdn.gaijin.net/head-2026.08.01/outerSpace-devsrc.7z) to be unpacked to DagorEngine root<br>
-  Prebuilt game (executables, shaders, vromfs, gameres) is available as [outerSpace-prebuilt-fullsrc.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-fea0a2b3ae5acdb25e088e57a8fb1f77d5ba3e1d/outerSpace-prebuilt-fullsrc.tar.gz)
+  Prebuilt game (executables, shaders, vromfs, gameres) is available as [outerSpace-prebuilt-fullsrc.tar.gz](https://dagorenginedata.cdn.gaijin.net/rel-0ebc89d5d795f3f96324843abf72c5ca7b8555cf/outerSpace-prebuilt-fullsrc.tar.gz)
 
 ### Documentation
   Automatically generated [Dagor Documentation](https://gaijinentertainment.github.io/DagorEngine/) contains general architecture description, API reference, tutorials and manuals.<br>
