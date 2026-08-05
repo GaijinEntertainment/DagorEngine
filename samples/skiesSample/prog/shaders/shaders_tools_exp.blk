@@ -1,6 +1,6 @@
 include shaders_tools11.blk
 
-"@override:outDumpName":t="../../tools/tools.exp"
+"@override:outDumpName":t="*"
 outMiniDumpName:t="../../tools/tools.exp"
 
 compileRefinedBlock:b=no
