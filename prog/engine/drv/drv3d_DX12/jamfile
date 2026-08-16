@@ -118,7 +118,7 @@ if $(Platform) in windows {
   }
 
   local NvapiDir = $(_DEVTOOL)/nvapi-$(NvApiVer) ;
-  if [ GLOB $(NvapiDir) : * ] {
+  if [ GLOB $(NvapiDir) : * ] && $(PlatformArch) != arm64 {
     AddIncludes += $(NvapiDir) ;
     # nvapiXXX.lib is added to AddLibs throughd drv3d_commonCode
     CPPopt += -DHAS_NVAPI ;

@@ -52,7 +52,7 @@ if $(Platform) in macOS iOS tvOS {
   ;
 }
 
-if $(Platform) in windows && $(PlatformArch) in x86 x86_64 arm64 {
+if $(Platform) in windows && $(PlatformArch) in x86 x86_64 {
   local NvApiDir = $(_DEVTOOL)/nvapi-$(NvApiVer) ;
   if ! [ GLOB $(NvApiDir) : * ] { exit FATAL\: \"$(NvApiDir)\" not found!  Please, update DEVTOOLS ; }
 
